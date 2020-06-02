@@ -1,0 +1,15 @@
+[submodule "deps/azure-c-build-tools"]
+	path = deps/azure-c-build-tools
+	url = https://github.com/azure/azure-c-build-tools
+[submodule "deps/azure-macro-utils-c"]
+	path = deps/azure-macro-utils-c
+	url = https://github.com/azure/azure-macro-utils-c
+[submodule "deps/azure-ctest"]
+	path = deps/azure-ctest
+	url = https://github.com/azure/azure-ctest
+[submodule "deps/umock-c"]
+	path = deps/umock-c
+	url = https://github.com/azure/umock-c
+[submodule "deps/azure-c-testrunnerswitcher"]
+	path = deps/azure-c-testrunnerswitcher
+	url = https://github.com/azure/azure-c-testrunnerswitcher
