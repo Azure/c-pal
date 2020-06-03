@@ -13,3 +13,9 @@
 [submodule "deps/azure-c-testrunnerswitcher"]
 	path = deps/azure-c-testrunnerswitcher
 	url = https://github.com/azure/azure-c-testrunnerswitcher
+[submodule "deps/azure-c-util"]
+	path = deps/azure-c-util
+	url = https://github.com/azure/azure-c-util
+[submodule "deps/azure-c-logging"]
+	path = deps/azure-c-logging
+	url = https://github.com/azure/azure-c-logging
