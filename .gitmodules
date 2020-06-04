@@ -19,3 +19,6 @@
 [submodule "deps/azure-c-logging"]
 	path = deps/azure-c-logging
 	url = https://github.com/azure/azure-c-logging
+[submodule "cmake/deps/azure-c-logging"]
+	path = cmake/deps/azure-c-logging
+	url = https://github.com/azure/azure-c-logging

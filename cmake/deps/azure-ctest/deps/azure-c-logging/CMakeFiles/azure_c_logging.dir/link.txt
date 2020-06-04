@@ -1,0 +1,2 @@
+/usr/bin/ar qc libazure_c_logging.a  CMakeFiles/azure_c_logging.dir/src/consolelogger.c.o CMakeFiles/azure_c_logging.dir/src/xlogging.c.o CMakeFiles/azure_c_logging.dir/src/dummy.c.o
+/usr/bin/ranlib libazure_c_logging.a
