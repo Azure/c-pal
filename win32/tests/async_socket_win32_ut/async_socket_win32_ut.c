@@ -31,7 +31,7 @@ void real_free(void* ptr)
 
 #define ENABLE_MOCKS
 
-#include "azure_c_util/gballoc.h"
+#include "gballoc.h"
 #include "execution_engine.h"
 #include "execution_engine_win32.h"
 

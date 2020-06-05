@@ -13,7 +13,7 @@
 
 #include "azure_macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
-#include "azure_c_util/lock.h"
+#include "lock.h"
 #include "gballoc.h"
 
 

@@ -76,4 +76,4 @@
     void* volatile_atomic*: mock_atomic_load_pointer \
 )(X)
 
-#include "../../adapters/interlocked_linux.c"
+#include "../../src/interlocked_linux.c"

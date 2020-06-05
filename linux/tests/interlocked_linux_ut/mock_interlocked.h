@@ -13,7 +13,7 @@
 #endif
 
 #include "umock_c/umock_c_prod.h"
-#include "../../inc/azure_c_util/interlocked.h"
+#include "interlocked.h"
 
 #ifdef __cplusplus
 extern "C" {
