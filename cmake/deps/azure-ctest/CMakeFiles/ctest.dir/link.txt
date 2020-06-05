@@ -1,2 +1,0 @@
-/usr/bin/ar qc libctest.a  CMakeFiles/ctest.dir/src/ctest.c.o
-/usr/bin/ranlib libctest.a
