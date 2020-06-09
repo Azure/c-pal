@@ -9,8 +9,8 @@
 
 #include "azure_macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
-#include "azure_c_util/crt_abstractions.h"
-#include "azure_c_util/lock.h"
+// #include "crt_abstractions.h"
+#include "lock.h"
 #include "umock_c/umock_c.h"
 
 static void* my_gballoc_malloc(size_t size)
@@ -24,7 +24,7 @@ static void my_gballoc_free(void* ptr)
 }
 
 #define ENABLE_MOCKS
-#include "azure_c_util/gballoc.h"
+#include "gballoc.h"
 #undef ENABLE_MOCKS
 
 TEST_DEFINE_ENUM_TYPE(LOCK_RESULT, LOCK_RESULT_VALUES);

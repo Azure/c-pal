@@ -3,6 +3,12 @@
 #ifndef THREADPOOL_H
 #define THREADPOOL_H
 
+#ifdef __cplusplus
+#include <cstdint>
+#else
+#include <stdint.h>
+#endif
+
 #include "azure_macro_utils/macro_utils.h"
 #include "execution_engine.h"
 #include "umock_c/umock_c_prod.h"
@@ -12,6 +18,7 @@ extern "C" {
 #endif
 
 typedef struct THREADPOOL_TAG* THREADPOOL_HANDLE;
+typedef struct TIMER_INSTANCE_TAG* TIMER_INSTANCE_HANDLE;
 
 #define THREADPOOL_OPEN_RESULT_VALUES \
     THREADPOOL_OPEN_OK, \
@@ -29,6 +36,10 @@ MOCKABLE_FUNCTION(, int, threadpool_open_async, THREADPOOL_HANDLE, threadpool, O
 MOCKABLE_FUNCTION(, void, threadpool_close, THREADPOOL_HANDLE, threadpool);
 
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THREADPOOL_HANDLE, threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
+
+MOCKABLE_FUNCTION(, int, threadpool_start_timer, THREADPOOL_HANDLE, threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, TIMER_INSTANCE_HANDLE*, timer_handle);
+
+MOCKABLE_FUNCTION(, void, threadpool_stop_timer, TIMER_INSTANCE_HANDLE, timer);
 
 #ifdef __cplusplus
 }

@@ -1,7 +1,10 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 
+#include <inttypes.h>
 #include <stdlib.h>
+
 #include "windows.h"
+#include "gballoc.h"
 #include "azure_c_logging/xlogging.h"
 #include "threadpool.h"
 #include "execution_engine.h"
@@ -23,6 +26,13 @@ typedef struct WORK_ITEM_CONTEXT_TAG
     THREADPOOL_WORK_FUNCTION work_function;
     void* work_function_context;
 } WORK_ITEM_CONTEXT;
+
+typedef struct TIMER_INSTANCE_TAG
+{
+    PTP_TIMER timer;
+    THREADPOOL_WORK_FUNCTION work_function;
+    void* work_function_context;
+} TIMER_INSTANCE;
 
 typedef struct THREADPOOL_TAG
 {
@@ -143,7 +153,7 @@ void threadpool_destroy(THREADPOOL_HANDLE threadpool)
     }
     else
     {
-        /* Codes_SRS_THREADPOOL_WIN32_01_006: [ While threadpool is OPENING or CLOSING, threadpool_destroy shall wait for the open to complete either succesfully or with error. ]*/
+        /* Codes_SRS_THREADPOOL_WIN32_01_006: [ While threadpool is OPENING or CLOSING, threadpool_destroy shall wait for the open to complete either successfully or with error. ]*/
         do
         {
             LONG current_state = InterlockedCompareExchange(&threadpool->state, (LONG)THREADPOOL_WIN32_STATE_CLOSING, (LONG)THREADPOOL_WIN32_STATE_OPEN);
@@ -281,9 +291,10 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
     {
         (void)InterlockedIncrement(&threadpool->pending_api_calls);
 
-        if (InterlockedAdd(&threadpool->state, 0) != (LONG)THREADPOOL_WIN32_STATE_OPEN)
+        THREADPOOL_WIN32_STATE state = InterlockedAdd(&threadpool->state, 0);
+        if (state != (LONG)THREADPOOL_WIN32_STATE_OPEN)
         {
-            LogWarning("Not open");
+            LogWarning("Bad state: %" PRI_MU_ENUM, MU_ENUM_VALUE(THREADPOOL_WIN32_STATE, state));
             result = MU_FAILURE;
         }
         else
@@ -301,7 +312,7 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
                 work_item_context->work_function = work_function;
                 work_item_context->work_function_context = work_function_context;
 
-                /* Codes_SRS_THREADPOOL_WIN32_01_034: [ threadpool_schedule_work shall call CreateThreadpoolWork to schedule executiong the callback while apssing to it the on_work_callback function and the newly created context. ]*/
+                /* Codes_SRS_THREADPOOL_WIN32_01_034: [ threadpool_schedule_work shall call CreateThreadpoolWork to schedule execution the callback while passing to it the on_work_callback function and the newly created context. ]*/
                 PTP_WORK ptp_work = CreateThreadpoolWork(on_work_callback, work_item_context, &threadpool->tp_environment);
                 if (ptp_work == NULL)
                 {
@@ -332,4 +343,131 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
 
 all_ok:
     return result;
+}
+
+static VOID CALLBACK on_timer_callback(PTP_CALLBACK_INSTANCE instance, PVOID context, PTP_TIMER timer)
+{
+    if (context == NULL)
+    {
+        /* Codes_SRS_THREADPOOL_WIN32_42_016: [ If context is NULL, on_work_callback shall return. ]*/
+        LogError("Invalid args: PTP_CALLBACK_INSTANCE instance = %p, PVOID context = %p, PTP_TIMER timer = %p",
+            instance, context, timer);
+    }
+    else
+    {
+        /* Codes_SRS_THREADPOOL_WIN32_42_017: [ Otherwise context shall be used as the context created in threadpool_schedule_work. ]*/
+        TIMER_INSTANCE_HANDLE timer_instance = context;
+
+        /* Codes_SRS_THREADPOOL_WIN32_42_018: [ The work_function callback passed to threadpool_schedule_work shall be called, passing to it the work_function_context argument passed to threadpool_schedule_work. ]*/
+        timer_instance->work_function(timer_instance->work_function_context);
+    }
+}
+
+int threadpool_start_timer(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context, TIMER_INSTANCE_HANDLE* timer_handle)
+{
+    int result;
+
+    /* Codes_SRS_THREADPOOL_WIN32_42_004: [ work_function_context shall be allowed to be NULL. ]*/
+    if (
+        /* Codes_SRS_THREADPOOL_WIN32_42_001: [ If threadpool is NULL, threadpool_schedule_work shall fail and return a non-zero value. ]*/
+        threadpool == NULL ||
+        /* Codes_SRS_THREADPOOL_WIN32_42_002: [ If work_function is NULL, threadpool_schedule_work shall fail and return a non-zero value. ]*/
+        work_function == NULL ||
+        /* Codes_SRS_THREADPOOL_WIN32_42_003: [ If timer_handle is NULL, threadpool_schedule_work shall fail and return a non-zero value. ]*/
+        timer_handle == NULL
+        )
+    {
+        LogError("Invalid args: THREADPOOL_HANDLE threadpool = %p, uint32_t start_delay_ms = %" PRIu32 ", uint32_t timer_period_ms = %" PRIu32 ", THREADPOOL_WORK_FUNCTION work_function = %p, void* work_function_context = %p, TIMER_INSTANCE_HANDLE* timer_handle = %p",
+            threadpool, start_delay_ms, timer_period_ms, work_function, work_function_context, timer_handle);
+        result = MU_FAILURE;
+    }
+    else
+    {
+        (void)InterlockedIncrement(&threadpool->pending_api_calls);
+
+        THREADPOOL_WIN32_STATE state = InterlockedAdd(&threadpool->state, 0);
+        if (state != (LONG)THREADPOOL_WIN32_STATE_OPEN)
+        {
+            LogWarning("Bad state: %" PRI_MU_ENUM, MU_ENUM_VALUE(THREADPOOL_WIN32_STATE, state));
+            result = MU_FAILURE;
+        }
+        else
+        {
+            /* Codes_SRS_THREADPOOL_WIN32_42_005: [ threadpool_start_timer shall allocate a context for the timer being started and store work_function and work_function_context in it. ]*/
+            TIMER_INSTANCE_HANDLE timer_temp = malloc(sizeof(TIMER_INSTANCE));
+
+            if (timer_temp == NULL)
+            {
+                /* Codes_SRS_THREADPOOL_WIN32_42_008: [ If any error occurs, threadpool_start_timer shall fail and return a non-zero value. ]*/
+                LogError("malloc(%zu) failed for TIMER_INSTANCE_HANDLE", sizeof(TIMER_INSTANCE));
+                result = MU_FAILURE;
+            }
+            else
+            {
+                /* Codes_SRS_THREADPOOL_WIN32_42_006: [ threadpool_start_timer shall call CreateThreadpoolTimer to schedule execution the callback while passing to it the on_timer_callback function and the newly created context. ]*/
+                PTP_TIMER tp_timer = CreateThreadpoolTimer(on_timer_callback, timer_temp, &threadpool->tp_environment);
+
+                if (tp_timer == NULL)
+                {
+                    /* Codes_SRS_THREADPOOL_WIN32_42_008: [ If any error occurs, threadpool_start_timer shall fail and return a non-zero value. ]*/
+                    LogError("CreateThreadpoolTimer failed");
+                    result = MU_FAILURE;
+                }
+                else
+                {
+                    timer_temp->timer = tp_timer;
+                    timer_temp->work_function = work_function;
+                    timer_temp->work_function_context = work_function_context;
+
+                    /* Codes_SRS_THREADPOOL_WIN32_42_007: [ threadpool_start_timer shall call SetThreadpoolTimer, passing negative start_delay_ms as pftDueTime, timer_period_ms as msPeriod, and 0 as msWindowLength. ]*/
+                    ULARGE_INTEGER ularge_due_time;
+                    ularge_due_time.QuadPart = (ULONGLONG) -((int64_t)start_delay_ms * 10000);
+                    FILETIME filetime_due_time;
+                    filetime_due_time.dwHighDateTime = ularge_due_time.HighPart;
+                    filetime_due_time.dwLowDateTime= ularge_due_time.LowPart;
+                    SetThreadpoolTimer(tp_timer, &filetime_due_time, timer_period_ms, 0);
+
+                    /* Codes_SRS_THREADPOOL_WIN32_42_009: [ threadpool_start_timer shall return the allocated handle in timer_handle. ]*/
+                    *timer_handle = timer_temp;
+                    timer_temp = NULL;
+
+                    /* Codes_SRS_THREADPOOL_WIN32_42_010: [ threadpool_start_timer shall succeed and return 0. ]*/
+                    result = 0;
+                }
+
+                if (timer_temp != NULL)
+                {
+                    free(timer_temp);
+                }
+            }
+        }
+
+        (void)InterlockedDecrement(&threadpool->pending_api_calls);
+        WakeByAddressSingle((PVOID)&threadpool->pending_api_calls);
+    }
+
+    return result;
+}
+
+void threadpool_stop_timer(TIMER_INSTANCE_HANDLE timer)
+{
+    if (timer == NULL)
+    {
+        /* Codes_SRS_THREADPOOL_WIN32_42_011: [ If timer is NULL, threadpool_stop_timer shall fail and return. ]*/
+        LogError("Invalid args: TIMER_INSTANCE_HANDLE timer = %p", timer);
+    }
+    else
+    {
+        /* Codes_SRS_THREADPOOL_WIN32_42_012: [ threadpool_stop_timer shall call SetThreadpoolTimer with NULL for pftDueTime and 0 for msPeriod and msWindowLength to cancel ongoing timers. ]*/
+        SetThreadpoolTimer(timer->timer, NULL, 0, 0);
+
+        /* Codes_SRS_THREADPOOL_WIN32_42_013: [ threadpool_stop_timer shall call WaitForThreadpoolTimerCallbacks. ]*/
+        WaitForThreadpoolTimerCallbacks(timer->timer, TRUE);
+
+        /* Codes_SRS_THREADPOOL_WIN32_42_014: [ threadpool_stop_timer shall call CloseThreadpoolTimer. ]*/
+        CloseThreadpoolTimer(timer->timer);
+
+        /* Codes_SRS_THREADPOOL_WIN32_42_015: [ threadpool_stop_timer shall free all resources in timer. ]*/
+        free(timer);
+    }
 }

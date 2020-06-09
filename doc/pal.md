@@ -5,11 +5,20 @@
 
 The Platform Abstraction Layer interfaces presented here are:
 
+- Asynchronous socket
 - Execution engine
-- Threadpool API
-- Asynchronous socket API
-- Asynchronous file API
-
+- InterlockedHL 
+- Interlocked
+- Lock
+- Platform
+- Refcount
+- Socket handle
+- SRW lock
+- String utils
+- Thread API
+- Threadpool
+- Timer
+- Unique ID
 Each of these APIs have:
 - an interface header (for example execution_engine.h)
 - specific platform implementations (for example execution_engine_win32.c)

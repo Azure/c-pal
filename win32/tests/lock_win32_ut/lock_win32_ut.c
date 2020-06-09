@@ -9,7 +9,6 @@
 
 #include "azure_macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
-// #include "azure_c_util/crt_abstractions.h"
 #include "umock_c/umock_c.h"
 #include "lock.h"
 

@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include <stddef.h>
-#include "azure_c_util/refcount.h"
+#include "refcount.h"
 #include "some_refcount_impl.h"
 
 typedef struct pos_TAG
