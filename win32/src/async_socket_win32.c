@@ -7,6 +7,7 @@
 #include "windows.h"
 #include "azure_macro_utils/macro_utils.h"
 #include "azure_c_logging/xlogging.h"
+#include "gballoc.h"
 #include "async_socket.h"
 #include "execution_engine.h"
 #include "execution_engine_win32.h"
