@@ -1,0 +1,26 @@
+#Copyright (c) Microsoft. All rights reserved.
+#Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+cmake_minimum_required(VERSION 2.8.11)
+
+set(theseTestsName refcount_ut)
+
+set(${theseTestsName}_test_files
+${theseTestsName}.c
+)
+
+set(${theseTestsName}_c_files
+    some_refcount_impl.c
+)
+
+set(${theseTestsName}_h_files
+    some_refcount_impl.h
+)
+
+if(MSVC)
+    set(PAL_OS pal_win32)
+else()
+    set(PAL_OS pal_linux)
+endif()
+
+build_c_tests(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS ${PAL_OS})

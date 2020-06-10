@@ -1,0 +1,25 @@
+#Copyright (C) Microsoft Corporation. All rights reserved.
+
+set(pal_linux_h_files
+    inc/refcount_os.h
+)
+
+set(pal_linux_c_files
+    src/interlocked_linux.c
+    src/lock_pthreads.c
+    src/platform_linux.c
+    src/threadapi_pthreads.c
+    src/uniqueid_linux.c
+)
+
+FILE(GLOB pal_linux_md_files "devdoc/*.md")
+SOURCE_GROUP(devdoc FILES ${pal_linux_md_files})
+
+include_directories(${CMAKE_CURRENT_LIST_DIR}/inc)
+
+add_library(pal_linux ${pal_linux_h_files} ${pal_linux_c_files} ${pal_linux_md_files})
+target_link_libraries(pal_linux pal_interfaces)
+target_include_directories(pal_linux PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc)
+
+add_subdirectory(tests)
+
