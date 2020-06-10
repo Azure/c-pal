@@ -9,15 +9,9 @@ set(${theseTestsName}_test_files
     ${theseTestsName}.c
 )
 
-if(WIN32)
 set(${theseTestsName}_c_files
     uniqueid_win32_mocked.c
 )
-else()
-set(${theseTestsName}_c_files
-    ../../src/uniqueid_win32.c
-)
-endif()
 
 set(${theseTestsName}_h_files
     ../../../interfaces/inc/uniqueid.h

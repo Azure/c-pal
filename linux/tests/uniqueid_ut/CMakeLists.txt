@@ -13,12 +13,12 @@ set(${theseTestsName}_test_files
 
 
 set(${theseTestsName}_c_files
-    ${UNIQUEID_C_FILE}
+    ../../src/uniqueid_linux.c
 )
 
 set(${theseTestsName}_h_files
     ../../../interfaces/inc/uniqueid.h
 )
 
-build_c_tests(${theseTestsName} ON "tests/azure_c_pal" ADDITIONAL_LIBS pal_linux uuid)
+build_c_tests(${theseTestsName} ON "tests/azure_c_pal" ADDITIONAL_LIBS pal_interfaces uuid)
 

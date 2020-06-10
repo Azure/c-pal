@@ -11,13 +11,15 @@ ${theseTestsName}.c
 
 set(${theseTestsName}_c_files
 threadpool_win32_mocked.c
+../../src/string_utils.c
 )
 
 set(${theseTestsName}_h_files
 ../../../interfaces/inc/threadpool.h
+../../../interfaces/inc/string_utils.h
 )
 
-build_c_tests(${theseTestsName} ON "tests/pal/win32" ADDITIONAL_LIBS pal_interfaces pal_win32)
+build_c_tests(${theseTestsName} ON "tests/pal/win32" ADDITIONAL_LIBS pal_interfaces pal_common synchronization)
 
 set_target_properties(${theseTestsName}_exe PROPERTIES LINK_FLAGS "/ignore:4217")
 if(use_cppunittest)

@@ -10,11 +10,17 @@ ${theseTestsName}.c
 )
 
 set(${theseTestsName}_c_files
-	some_refcount_impl.c
+    some_refcount_impl.c
 )
 
 set(${theseTestsName}_h_files
-	some_refcount_impl.h
+    some_refcount_impl.h
 )
 
-build_c_tests(${theseTestsName} ON "tests/azure_c_pal/common")
+if(MSVC)
+    set(PAL_OS pal_win32)
+else()
+    set(PAL_OS pal_linux)
+endif()
+
+build_c_tests(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS ${PAL_OS})

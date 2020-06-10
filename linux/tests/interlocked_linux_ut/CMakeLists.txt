@@ -18,4 +18,4 @@ set(${theseTestsName}_h_files
 mock_interlocked.h
 )
 
-build_c_tests(${theseTestsName} ON "tests/azure_c_pal/linux" ADDITIONAL_LIBS pal_interfaces pal_linux)
+build_c_tests(${theseTestsName} ON "tests/azure_c_pal/linux" ADDITIONAL_LIBS pal_interfaces)
