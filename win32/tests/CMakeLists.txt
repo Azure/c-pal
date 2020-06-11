@@ -12,6 +12,7 @@ if(${run_unittests})
     add_subdirectory(uniqueid_win32_ut)
     add_subdirectory(timer_win32_ut)
     add_subdirectory(srw_lock_win32_ut)
+    add_subdirectory(reals_ut)
 endif()
 
 if(${run_int_tests})

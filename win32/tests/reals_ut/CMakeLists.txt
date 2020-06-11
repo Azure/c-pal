@@ -1,0 +1,10 @@
+#Copyright (c) Microsoft. All rights reserved.
+#Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+set(theseTestsName azure_c_pal_reals_ut)
+
+set(${theseTestsName}_test_files
+    ${theseTestsName}.c
+)
+
+build_c_tests(${theseTestsName} ON "tests/azure_c_pal/win32" ADDITIONAL_LIBS azure_c_pal azure_c_pal_reals)
