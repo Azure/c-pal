@@ -1,5 +1,6 @@
 #Copyright (C) Microsoft Corporation. All rights reserved.
 
+add_subdirectory(reals_win32)
 # unit tests
 if(${run_unittests})
     add_subdirectory(execution_engine_win32_ut)
@@ -12,7 +13,7 @@ if(${run_unittests})
     add_subdirectory(uniqueid_win32_ut)
     add_subdirectory(timer_win32_ut)
     add_subdirectory(srw_lock_win32_ut)
-    add_subdirectory(reals_ut)
+    add_subdirectory(reals_win32_ut)
 endif()
 
 if(${run_int_tests})

@@ -20,11 +20,15 @@ set(original_run_e2e_tests ${run_e2e_tests})
 set(original_run_unittests ${run_unittests})
 set(original_run_int_tests ${run_int_tests})
 set(original_run_traceability ${run_traceability})
+set(original_run_perf_tests ${run_perf_tests})
+
 
 set(run_e2e_tests OFF)
 set(run_unittests OFF)
 set(run_int_tests OFF)
 set(run_traceability OFF)
+set(run_perf_tests OFF)
+
 
 if ((NOT TARGET azure_c_build_tools) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/azure-c-build-tools/CMakeLists.txt))
         add_subdirectory(deps/azure-c-build-tools)
@@ -63,6 +67,7 @@ set(run_e2e_tests ${original_run_e2e_tests})
 set(run_unittests ${original_run_unittests})
 set(run_int_tests ${original_run_int_tests})
 set(run_traceability ${original_run_traceability})
+set(run_perf_tests ${original_run_perf_tests})
 
 add_subdirectory(interfaces)
 add_subdirectory(common)
@@ -91,6 +96,13 @@ if((WIN32) AND (${run_traceability}))
     add_custom_target(azure_c_pal_traceability ALL
         COMMAND traceabilitytool -buildcheck -e ${CMAKE_CURRENT_LIST_DIR}/deps -i ${CMAKE_CURRENT_LIST_DIR})
     add_dependencies(azure_c_pal_traceability traceabilitytool)
+endif()
+
+add_library(azure_c_pal_reals INTERFACE)
+if(MSVC)
+    target_link_libraries(azure_c_pal_reals INTERFACE reals_win32)
+else()
+    target_link_libraries(azure_c_pal_reals INTERFACE reals_linux)
 endif()
 
 include(CMakePackageConfigHelpers)
