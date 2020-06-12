@@ -25,6 +25,5 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/inc)
 include_directories(${MACRO_UTILS_INC_FOLDER})
 
 add_library(pal_interfaces INTERFACE)
-#target_sources(pal_interfaces INTERFACE ${pal_interfaces_md_files} ${pal_interfaces_h_files})
 target_include_directories(pal_interfaces INTERFACE ${CMAKE_CURRENT_LIST_DIR}/inc)
 add_subdirectory(tests)

@@ -8,9 +8,9 @@
 #include "windows.h"
 
 #include "azure_macro_utils/macro_utils.h"
-#include "gballoc.h"
 #include "azure_c_logging/xlogging.h"
 
+#include "gballoc.h"
 #include "string_utils.h"
 
 IMPLEMENT_MOCKABLE_FUNCTION(, char*, vsprintf_char, const char*, format, va_list, va)

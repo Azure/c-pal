@@ -26,7 +26,7 @@ SOURCE_GROUP(devdoc FILES ${pal_win32_md_files})
 include_directories(${CMAKE_CURRENT_LIST_DIR}/inc)
 
 add_library(pal_win32 ${pal_win32_h_files} ${pal_win32_c_files} ${pal_win32_md_files})
-target_link_libraries(pal_win32 pal_interfaces pal_common ws2_32 synchronization)
+target_link_libraries(pal_win32 pal_interfaces pal_common ws2_32 synchronization rpcrt4 azure_c_logging)
 target_include_directories(pal_win32 PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc)
 
 add_subdirectory(tests)
