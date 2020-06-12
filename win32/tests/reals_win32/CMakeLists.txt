@@ -14,4 +14,4 @@ set(reals_win32_c_files
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../src)
 add_library(reals_win32 ${reals_win32_c_files})
-target_link_libraries(reals_win32 reals_interface)
+target_link_libraries(reals_win32 reals_pal_interface)

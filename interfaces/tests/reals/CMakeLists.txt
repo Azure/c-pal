@@ -3,13 +3,13 @@
 
 cmake_minimum_required(VERSION 2.8.11)
 
-set(reals_interface_h_files
+set(reals_pal_interface_h_files
     real_threadapi.h
     real_threadapi_renames.h
 )
 
 if(WIN32)
-set(reals_interface_h_files ${reals_interface_h_files}
+set(reals_pal_interface_h_files ${reals_pal_interface_h_files}
     real_interlocked_hl.h
     real_interlocked_hl_renames.h
     real_srw_lock.h
@@ -22,6 +22,6 @@ set(reals_interface_h_files ${reals_interface_h_files}
 else()
 endif()
 
-add_library(reals_interface INTERFACE)
-target_include_directories(reals_interface INTERFACE ${CMAKE_CURRENT_LIST_DIR})
-target_link_libraries(reals_interface INTERFACE azure_c_logging pal_common)
+add_library(reals_pal_interface INTERFACE)
+target_include_directories(reals_pal_interface INTERFACE ${CMAKE_CURRENT_LIST_DIR})
+target_link_libraries(reals_pal_interface INTERFACE azure_c_logging pal_common)
