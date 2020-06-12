@@ -24,6 +24,6 @@ set(PAL_INTERFACES_INC_FOLDER ${CMAKE_CURRENT_LIST_DIR}/inc CACHE INTERNAL "this
 include_directories(${CMAKE_CURRENT_LIST_DIR}/inc)
 include_directories(${MACRO_UTILS_INC_FOLDER})
 
-add_library(pal_interfaces INTERFACE)
+add_library(pal_interfaces INTERFACE pal_interfaces_h_files)
 target_include_directories(pal_interfaces INTERFACE ${CMAKE_CURRENT_LIST_DIR}/inc)
 add_subdirectory(tests)
