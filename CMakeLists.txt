@@ -90,9 +90,9 @@ SOURCE_GROUP(devdoc FILES ${azure_c_pal_md_files})
 target_sources(azure_c_pal INTERFACE ${azure_c_pal_md_files})
 
 if(MSVC)
-    target_link_libraries(azure_c_pal INTERFACE pal_win32 pal_common)
+    target_link_libraries(azure_c_pal INTERFACE pal_win32)
 else()
-    target_link_libraries(azure_c_pal INTERFACE pal_linux pal_common)
+    target_link_libraries(azure_c_pal INTERFACE pal_linux)
 endif()
 
 
