@@ -38,6 +38,11 @@ set_default_build_options()
 include(CTest)
 enable_testing()
 
+set(C_PAL_INC_FOLDER 
+    ${CMAKE_CURRENT_LIST_DIR}/interfaces/inc
+    ${CMAKE_CURRENT_LIST_DIR}/common/inc
+    CACHE INTERNAL "this is what needs to be included if using azure_c_pal" FORCE)
+
 if ((NOT TARGET azure_macro_utils_c) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/azure-macro-utils-c/CMakeLists.txt))
         add_subdirectory(deps/azure-macro-utils-c)
         include_directories(deps/azure-macro-utils-c/inc)
@@ -85,9 +90,9 @@ SOURCE_GROUP(devdoc FILES ${azure_c_pal_md_files})
 target_sources(azure_c_pal INTERFACE ${azure_c_pal_md_files})
 
 if(MSVC)
-    target_link_libraries(azure_c_pal INTERFACE pal_win32 pal_common)
+    target_link_libraries(azure_c_pal INTERFACE pal_win32)
 else()
-    target_link_libraries(azure_c_pal INTERFACE pal_linux pal_common)
+    target_link_libraries(azure_c_pal INTERFACE pal_linux)
 endif()
 
 
