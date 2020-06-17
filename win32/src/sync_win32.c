@@ -14,10 +14,8 @@ IMPLEMENT_MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, a
 IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_all, void*, address)
 {
     (void) address;
-    return;
 }
 IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_single, void*, address)
 {
     (void) address;
-    return;
 }
