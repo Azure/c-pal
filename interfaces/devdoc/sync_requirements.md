@@ -25,15 +25,15 @@ MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, in
 
 **SRS_SYNC_43_001: [** `wait_on_address` shall atomically compare `*address` and `compare_address`.**]**
 
-**SRS_SYNC_43_002: [** `wait_on_address` shall immediately return `false` if `*address` is not equal to `*compare_address`.**]**
+**SRS_SYNC_43_002: [** `wait_on_address` shall immediately return `true` if `*address` is not equal to `*compare_address`.**]**
 
-**SRS_SYNC_43_007: [** If `*address` is equal to `*compare_address`, `wait_on_address` shall cause the thread to sleep for atmost `timeout_ms` milliseconds, if `timeout_ms` is not equal to `UINT32_MAX`. **]**
+**SRS_SYNC_43_007: [** If `*address` is equal to `*compare_address`, `wait_on_address` shall cause the thread to sleep. **]**
+
+**SRS_SYNC_43_009: [** If `timeout_ms` milliseconds elapse, `wait_on_address` shall return `false`. **]**
 
 **SRS_SYNC_43_008: [**`wait_on_address` shall wait indefinitely until it is woken up by a call to `wake_by_address_[single/all]` if `timeout_ms` is equal to `UINT32_MAX`**]**
 
-**SRS_SYNC_43_003: [** `wait_on_address` shall wait until another thread in the same process signals at `address` using `wake_by_address_[single/all]` or the timeout elapses. **]**
-
-**SRS_SYNC_43_006: [** `wait_on_address` shall return `true` if the thread is woken up or the timeout expires.**]**
+**SRS_SYNC_43_003: [** `wait_on_address` shall wait until another thread in the same process signals at `address` using `wake_by_address_[single/all]` and return `true`. **]**
 
 ## wake_by_address_all
 

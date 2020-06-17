@@ -22,5 +22,5 @@ IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_all, void*, address)
 IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_single, void*, address)
 {
     (void) address;
-    return;
+    return;clear
 }
