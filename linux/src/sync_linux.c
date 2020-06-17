@@ -7,15 +7,20 @@
 
 #include "sync.h"
 
-IMPLEMENT_MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, int32_t*, compare_address, uint32_t, timeout)
+IMPLEMENT_MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, int32_t*, compare_address, uint32_t, timeout_ms)
 {
+    (void) address;
+    (void) compare_address;
+    (void) timeout;
     return false;
 }
 IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_all, void*, address)
 {
+    (void) address;
     return;
 }
 IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_single, void*, address)
 {
+    (void) address;
     return;
 }

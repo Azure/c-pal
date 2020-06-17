@@ -8,7 +8,7 @@
 ## Exposed API
 
 ```c
-MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, int32_t*, compare_address, uint32_t, timeout);
+MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, int32_t*, compare_address, uint32_t, timeout_ms);
 MOCKABLE_FUNCTION(, void, wake_by_address_all, void*, address);
 MOCKABLE_FUNCTION(, void, wake_by_address_single, void*, address);
 ```
@@ -16,13 +16,13 @@ MOCKABLE_FUNCTION(, void, wake_by_address_single, void*, address);
 ## wait_on_address
 
 ```c
-MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, int32_t*, compare_address, uint32_t, timeout)
+MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, int32_t*, compare_address, uint32_t, timeout_ms)
 ```
 
-**SRS_SYNC_LINUX_43_001: [** `wait_on_address` shall define a `timespec` struct with `.tv_nsec` equal to `timeout* 10^6`. **]**
+**SRS_SYNC_LINUX_43_001: [** `wait_on_address` shall initialize a `timespec` struct with `.tv_nsec` equal to `timeout* 10^6`. **]**
 
 
-**SRS_SYNC_LINUX_43_002: [** `wait_on_address` shall call `syscall` from `sys/syscall.h` with arguments `SYS_futex`, `address`, `FUTEX_WAIT`, `*compare_address`, `timeout_struct`, `NULL`, `NULL`. **]**
+**SRS_SYNC_LINUX_43_002: [** `wait_on_address` shall call `syscall` from `sys/syscall.h` with arguments `FUTEX_PRIVATE_FLAG`, `address`, `FUTEX_WAIT`, `*compare_address`, `timeout_struct`, `NULL`, `NULL`. **]**
 
 **SRS_SYNC_LINUX_43_003: [** `wait_on_address` shall return `true` if `syscall` returns `0`.**]**
 
@@ -34,6 +34,7 @@ MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, in
 ```c
 MOCKABLE_FUNCTION(, void, wake_by_address_all, void*, address)
 ```
+
 **SRS_SYNC_LINUX_43_005: [** `wake_by_address_all` shall call `syscall` from `sys/syscall.h` with arguments `SYS_futex`, `address`, `FUTEX_WAKE`, `INT_MAX`, `NULL`, `NULL`, `NULL`. **]**
 
 ## wake_by_address_single
