@@ -14,6 +14,7 @@ set(pal_interfaces_h_files
     inc/uniqueid.h
     inc/srw_lock.h
     inc/string_utils.h
+    inc/sync.h
 )
 
 FILE(GLOB pal_interfaces_md_files "devdoc/*.md")

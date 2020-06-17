@@ -18,6 +18,7 @@ set(pal_win32_c_files
     src/srw_lock_win32.c
     src/string_utils.c
     src/timer.c
+    src/sync_win32.c
 )
 
 FILE(GLOB pal_win32_md_files "devdoc/*.md")
