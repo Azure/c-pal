@@ -11,7 +11,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, a
 {
     (void) address;
     (void) compare_address;
-    (void) timeout;
+    (void) timeout_ms;
     return false;
 }
 IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_all, void*, address)
