@@ -5,15 +5,17 @@
 #define SYNC_H
 
 #ifdef __cplusplus
-extern "C" {
+#include <cstdint>
+#else
+#include <stdint.h>
+#include <stdbool.h>
 #endif
 
-#ifdef _WIN32
-#ifndef volatile_atomic
-#define volatile_atomic volatile
-#else
-#define volatile_atomic volatile _Atomic
-#endif
+#include "umock_c/umock_c_prod.h"
+#include "interlocked.h"
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, int32_t*, compare_address, uint32_t, timeout);

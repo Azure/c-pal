@@ -10,6 +10,7 @@ set(pal_linux_c_files
     src/platform_linux.c
     src/threadapi_pthreads.c
     src/uniqueid_linux.c
+    src/sync_linux.c
 )
 
 FILE(GLOB pal_linux_md_files "devdoc/*.md")
