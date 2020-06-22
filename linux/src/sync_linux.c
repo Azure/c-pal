@@ -14,11 +14,11 @@ IMPLEMENT_MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, a
     (void) timeout_ms;
     return false;
 }
-IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_all, void*, address)
+IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t*, address)
 {
     (void) address;
 }
-IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_single, void*, address)
+IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_single, volatile_atomic int32_t*, address)
 {
     (void) address;
 }
