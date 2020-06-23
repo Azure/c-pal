@@ -11,14 +11,11 @@
 #include <stdint.h>
 #endif
 
-
 #include "testrunnerswitcher.h"
 #include "interlocked.h"
 #include "threadapi.h"
 #include "sync.h"
 #include "timer.h"
-
-#include "umock_c/umock_c.h"
 
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES)
 
@@ -110,7 +107,7 @@ TEST_FUNCTION(two_threads_increment_alternately)
 {
     ///arrange
     volatile_atomic int32_t var;
-    interlocked_exchange(&var, 0);
+    (void)interlocked_exchange(&var, 0);
     THREAD_HANDLE thread1;
     THREAD_HANDLE thread2;
 
@@ -134,12 +131,12 @@ TEST_FUNCTION(wake_up_all_threads)
 {
     ///arrange
     volatile_atomic int32_t var;
-    interlocked_exchange(&var, 0);
-    interlocked_exchange(&create_count, 0);
+    (void)interlocked_exchange(&var, 0);
+    (void)interlocked_exchange(&create_count, 0);
     THREAD_HANDLE threads[100];
 
     ///act
-    for(int i = 0; i < 100; ++i)
+    for (int i = 0; i < 100; ++i)
     {
         ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&threads[i], increment_on_wake_up, (void*)&var));
     }
@@ -151,7 +148,7 @@ TEST_FUNCTION(wake_up_all_threads)
         current_create_count = interlocked_add(&create_count, 0);
     }
     wake_by_address_all(&var);
-    for(int i = 0; i < 100; ++i)
+    for (int i = 0; i < 100; ++i)
     {
         ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(threads[i], NULL), "ThreadAPI_Join did not work");
     }
@@ -167,7 +164,7 @@ TEST_FUNCTION(wait_on_address_returns_immediately)
 {
     ///arrange
     volatile_atomic int32_t var;
-    interlocked_exchange(&var, 0);
+    (void)interlocked_exchange(&var, 0);
     int value = 1;
 
     ///act
@@ -185,7 +182,7 @@ TEST_FUNCTION(wait_on_address_returns_after_timeout_elapses)
 {
     ///arrange
     volatile_atomic int32_t var;
-    interlocked_exchange(&var, 0);
+    (void)interlocked_exchange(&var, 0);
     int value = 0;
     int timeout = 1000;
     double tolerance_factor = 1.5;

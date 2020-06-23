@@ -80,7 +80,7 @@ TEST_FUNCTION(wait_on_address_calls_WaitOnAddress_successfully)
     ///arrange
     volatile int32_t var;
     int32_t val = INT32_MAX;
-    InterlockedExchange((volatile LONG*)&var, val);
+    (void)InterlockedExchange((volatile LONG*)&var, val);
     uint32_t timeout = 1000;
     STRICT_EXPECTED_CALL(mock_WaitOnAddress((volatile VOID*)&var, (PVOID)&val, (SIZE_T)4, (DWORD)timeout))
         .SetReturn(true);
@@ -100,7 +100,7 @@ TEST_FUNCTION(wait_on_address_calls_WaitOnAddress_unsuccessfully)
     ///arrange
     volatile int32_t var;
     int32_t val = INT32_MAX;
-    InterlockedExchange((volatile LONG*)&var, val);
+    (void)InterlockedExchange((volatile LONG*)&var, val);
     uint32_t timeout = 1000;
     STRICT_EXPECTED_CALL(mock_WaitOnAddress((volatile VOID*)&var, (PVOID)&val, (SIZE_T)4, (DWORD)timeout))
         .SetReturn(false);
@@ -119,7 +119,7 @@ TEST_FUNCTION(wake_by_address_all_calls_WakeByAddressAll)
     ///arrange
     volatile int32_t var;
     int32_t val = INT32_MAX;
-    InterlockedExchange((volatile LONG*)&var, val);
+    (void)InterlockedExchange((volatile LONG*)&var, val);
     STRICT_EXPECTED_CALL(mock_WakeByAddressAll((PVOID)&var));
     ///act
     wake_by_address_all(&var);
@@ -134,7 +134,7 @@ TEST_FUNCTION(wake_by_address_single_calls_WakeByAddressSingle)
     ///arrange
     volatile int32_t var;
     int32_t val = INT32_MAX;
-    InterlockedExchange((volatile LONG*)&var, val);
+    (void)InterlockedExchange((volatile LONG*)&var, val);
     STRICT_EXPECTED_CALL(mock_WakeByAddressSingle((PVOID)&var));
     ///act
     wake_by_address_single(&var);

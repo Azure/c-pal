@@ -5,18 +5,20 @@
 #include <cstdlib>
 #include <cstddef>
 #include <cstdatomic>
+#include <climits>
+#include <ctime>
 #else
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdatomic.h>
+#include <limits.h>
+#include <time.h>
 #endif
 
-#include <limits.h>
 
 #include <sys/syscall.h>
 #include <linux/futex.h>
-#include <time.h>
 
 
 #include "azure_macro_utils/macro_utils.h"
@@ -47,7 +49,8 @@ static int hook_mock_syscall(long call_code, int* uaddr, int futex_op, int val, 
     /*Tests_SRS_SYNC_LINUX_43_001: [ wait_on_address shall initialize a timespec struct with .tv_nsec equal to timeout_ms* 10^6. ]*/
     if(check_timeout)
     {
-        ASSERT_ARE_EQUAL(long, expected_timeout_ms*1e6, timeout->tv_nsec);
+        ASSERT_ARE_EQUAL(long, (expected_timeout_ms / 1000), (long)timeout->tv_sec);
+        ASSERT_ARE_EQUAL(long, (expected_timeout_ms % 1000)*1e6, timeout->tv_nsec);
     }
     return expected_return_val;
 }
@@ -76,7 +79,8 @@ TEST_FUNCTION_INITIALIZE(f)
     {
         ASSERT_FAIL("our mutex is ABANDONED. Failure in test framework");
     }
-
+    expected_return_val = 0;
+    check_timeout = false;
     umock_c_reset_all_calls();
 }
 
@@ -93,7 +97,7 @@ TEST_FUNCTION(wait_on_address_calls_syscall_successfully)
     ///arrange
     volatile_atomic int32_t var;
     int32_t val = INT32_MAX;
-    atomic_exchange(&var, val);
+    (void)atomic_exchange(&var, val);
     check_timeout = true;
     expected_timeout_ms = 100;
     expected_return_val = 0;
@@ -114,9 +118,9 @@ TEST_FUNCTION(wait_on_address_calls_sycall_unsuccessfully)
     ///arrange
     volatile_atomic int32_t var;
     int32_t val = INT32_MAX;
-    atomic_exchange(&var, val);
+    (void)atomic_exchange(&var, val);
     check_timeout = true;
-    expected_timeout_ms = 100;
+    expected_timeout_ms = 1500;
     expected_return_val = -1;
     STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int*)&var, FUTEX_WAIT_PRIVATE, val, IGNORED_ARG, NULL, 0));
 
@@ -132,10 +136,9 @@ TEST_FUNCTION(wait_on_address_calls_sycall_unsuccessfully)
 TEST_FUNCTION(wake_by_address_all_calls_sycall)
 {
     ///arrange
-    check_timeout = false;
     volatile_atomic int32_t var;
     int32_t val = INT32_MAX;
-    atomic_exchange(&var, val);
+    (void)atomic_exchange(&var, val);
     STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int*)&var, FUTEX_WAKE_PRIVATE, INT_MAX, NULL, NULL, 0));
 
     ///act
@@ -149,10 +152,9 @@ TEST_FUNCTION(wake_by_address_all_calls_sycall)
 TEST_FUNCTION(wake_by_address_single_calls_sycall)
 {
     ///arrange
-    check_timeout = false;
     volatile_atomic int32_t var;
     int32_t val = INT32_MAX;
-    atomic_exchange(&var, val);
+    (void)atomic_exchange(&var, val);
     STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int*)&var, FUTEX_WAKE_PRIVATE, 1, NULL, NULL, 0));
 
     ///act
