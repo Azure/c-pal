@@ -1,11 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#include <sys/sycall.h>
-#include <linux/futex.h>
+#ifndef MOCK_SYNC_H
+#define MOCK_SYNC_H
 #include <time.h>
 #include "umock_c/umock_c_prod.h"
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,4 +14,5 @@ MOCKABLE_FUNCTION(, int, mock_syscall, long, call_code, int*, uaddr, int, futex_
 
 #ifdef __cplusplus
 }
+#endif
 #endif

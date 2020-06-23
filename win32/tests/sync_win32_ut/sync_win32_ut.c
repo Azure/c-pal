@@ -48,6 +48,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     ASSERT_IS_NOT_NULL(g_testByTest);
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error));
     ASSERT_ARE_EQUAL(int, 0, umocktypes_windows_register_types());
+    REGISTER_UMOCK_ALIAS_TYPE(SIZE_T, size_t);
 }
 
 TEST_SUITE_CLEANUP(TestClassCleanup)
@@ -89,7 +90,7 @@ TEST_FUNCTION(wait_on_address_calls_WaitOnAddress_successfully)
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
-    ASSERT_IS_TRUE(return_val, "Return value is incorrect.");
+    ASSERT_IS_TRUE(return_val, "Return value is incorrect");
 }
 
 /*Tests_SRS_SYNC_WIN32_43_001: [ wait_on_address shall call WaitOnAddress from windows.h with address as Address, compare_address as CompareAddress, 4 as AddressSize and timeout_ms as dwMilliseconds. ]*/
@@ -109,10 +110,10 @@ TEST_FUNCTION(wait_on_address_calls_WaitOnAddress_unsuccessfully)
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
-    ASSERT_IS_FALSE(return_val, "Return value is incorrect.");
+    ASSERT_IS_FALSE(return_val, "wait_on_address was supposed to fail but did not.");
 }
 
-/*Tests_SRS_SYNC_WIN32_43_004: [ wake_by_address_single shall call WakeByAddressSingle from windows.h with address as Address. ]*/
+/*Tests_SRS_SYNC_WIN32_43_003: [ wake_by_address_all shall call WakeByAddressAll from windows.h with address as Address. ]*/
 TEST_FUNCTION(wake_by_address_all_calls_WakeByAddressAll)
 {
     ///arrange

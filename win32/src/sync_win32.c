@@ -8,7 +8,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, a
 {
     /*Codes_SRS_SYNC_WIN32_43_001: [ wait_on_address shall call WaitOnAddress from windows.h with address as Address, compare_address as CompareAddress, 4 as AddressSize and timeout_ms as dwMilliseconds. ]*/
     /*Codes_SRS_SYNC_WIN32_43_002: [ wait_on_address shall return the return value of WaitOnAddress ]*/
-    return WaitOnAddress((volatile VOID*) address, (PVOID)compare_address, (SIZE_T)4, (DWORD)timeout_ms);
+    return WaitOnAddress(address, compare_address, sizeof(*compare_address), timeout_ms);
 }
 IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t*, address)
 {

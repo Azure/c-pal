@@ -4,20 +4,24 @@
 #ifdef __cplusplus
 #include <cstdlib>
 #include <cstddef>
+#include <cstdatomic>
 #else
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdatomic.h>
 #endif
+
+#include <limits.h>
 
 #include <sys/syscall.h>
 #include <linux/futex.h>
 #include <time.h>
+
+
 #include "azure_macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
-
 #include "umock_c/umock_c.h"
-#include "umock_c/umocktypes_windows.h"
 
 #include "sync.h"
 
@@ -30,30 +34,26 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 #define ENABLE_MOCKS
 #include "mock_sync.h"
 #undef ENABLE_MOCKS
 
-#ifdef __cplusplus
-}
-#endif
 
+static bool check_timeout;
 static uint32_t expected_timeout_ms;
 static int expected_return_val;
-static bool hook_mock_syscall(long call_code, int* uaddr, int futex_op, int val, const struct timespec* timeout, int* uaddr2, int val3)
+static int hook_mock_syscall(long call_code, int* uaddr, int futex_op, int val, const struct timespec* timeout, int* uaddr2, int val3)
 {
     /*Tests_SRS_SYNC_LINUX_43_001: [ wait_on_address shall initialize a timespec struct with .tv_nsec equal to timeout_ms* 10^6. ]*/
-    ASSERT_ARE_EQUAL(long, expected_timeout_ms*10e6, timeout->tv_nsec);
+    if(check_timeout)
+    {
+        ASSERT_ARE_EQUAL(long, expected_timeout_ms*1e6, timeout->tv_nsec);
+    }
     return expected_return_val;
 }
 
 
-BEGIN_TEST_SUITE(sync_win32_unittests)
+BEGIN_TEST_SUITE(sync_linux_unittests)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -91,15 +91,16 @@ TEST_FUNCTION_CLEANUP(cleans)
 TEST_FUNCTION(wait_on_address_calls_syscall_successfully)
 {
     ///arrange
-    volatile int32_t var;
+    volatile_atomic int32_t var;
     int32_t val = INT32_MAX;
-    InterlockedExchange((volatile LONG*)&var, val);
-    expected_timeout_ms = 1000;
+    atomic_exchange(&var, val);
+    check_timeout = true;
+    expected_timeout_ms = 100;
     expected_return_val = 0;
-    STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int32_t*)&var, FUTEX_WAIT_PRIVATE, val, IGNORED_ARG, NULL, NULL));
+    STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int32_t*)&var, FUTEX_WAIT_PRIVATE, val, IGNORED_ARG, NULL, 0));
 
     ///act
-    bool return_val = wait_on_address(&var, val, timeout);
+    bool return_val = wait_on_address(&var, &val, expected_timeout_ms);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
@@ -111,15 +112,16 @@ TEST_FUNCTION(wait_on_address_calls_syscall_successfully)
 TEST_FUNCTION(wait_on_address_calls_sycall_unsuccessfully)
 {
     ///arrange
-    volatile int32_t var;
+    volatile_atomic int32_t var;
     int32_t val = INT32_MAX;
-    InterlockedExchange((volatile LONG*)&var, val);
-    expected_timeout_ms = 1000;
+    atomic_exchange(&var, val);
+    check_timeout = true;
+    expected_timeout_ms = 100;
     expected_return_val = -1;
-    STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int*)&var, FUTEX_WAIT_PRIVATE, val, IGNORED_ARG, NULL, NULL));
+    STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int*)&var, FUTEX_WAIT_PRIVATE, val, IGNORED_ARG, NULL, 0));
 
     ///act
-    bool return_val = wait_on_address(&var, val, timeout);
+    bool return_val = wait_on_address(&var, &val, expected_timeout_ms);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
@@ -130,10 +132,12 @@ TEST_FUNCTION(wait_on_address_calls_sycall_unsuccessfully)
 TEST_FUNCTION(wake_by_address_all_calls_sycall)
 {
     ///arrange
-    volatile int32_t var;
+    check_timeout = false;
+    volatile_atomic int32_t var;
     int32_t val = INT32_MAX;
-    InterlockedExchange((volatile LONG*)&var, val);
-    STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int*)&var, FUTEX_WAKE_PRIVATE, INT_MAX, NULL, NULL, NULL));
+    atomic_exchange(&var, val);
+    STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int*)&var, FUTEX_WAKE_PRIVATE, INT_MAX, NULL, NULL, 0));
+
     ///act
     wake_by_address_all(&var);
 
@@ -145,14 +149,16 @@ TEST_FUNCTION(wake_by_address_all_calls_sycall)
 TEST_FUNCTION(wake_by_address_single_calls_sycall)
 {
     ///arrange
-    volatile int32_t var;
+    check_timeout = false;
+    volatile_atomic int32_t var;
     int32_t val = INT32_MAX;
-    InterlockedExchange((volatile LONG*)&var, val);
-    STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int*)&var, FUTEX_WAKE_PRIVATE, 1, NULL, NULL, NULL));
+    atomic_exchange(&var, val);
+    STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int*)&var, FUTEX_WAKE_PRIVATE, 1, NULL, NULL, 0));
+
     ///act
-    wake_by_address_all(&var);
+    wake_by_address_single(&var);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
 }
-END_TEST_SUITE(sync_win32_unittests)
+END_TEST_SUITE(sync_linux_unittests)
