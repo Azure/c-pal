@@ -5,15 +5,15 @@
 
 `sync` provides platform-independent synchronization primitives:
 
-- `wait_on_address`: causes the thread to wait until another thread calls `wake_by_address_[single/all]` on the same address.
+- `wait_on_address`: causes the thread to wait until anothr thread calls `wake_by_address_[single/all]` on the same address.
 - `wake_on_address_[single/all]`: causes the thread(s) that are waiting inside a `wait_on_address` call to continue execution.
 
 ## Exposed API
 
 ```c
 MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, int32_t*, compare_address, uint32_t, timeout_ms);
-MOCKABLE_FUNCTION(, void, wake_by_address_all, void*, address);
-MOCKABLE_FUNCTION(, void, wake_by_address_single, void*, address);
+MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t*, address);
+MOCKABLE_FUNCTION(, void, wake_by_address_single, volatile_atomic int32_t*, address);
 ```
 
 ## wait_on_address
@@ -23,7 +23,7 @@ MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, in
 ```
 `wait_on_address` causes the executing thread to sleep if the value `*address` and `*compare_address` have the same value. The thread sleeps until the timeout elapses or another thread calls `wake_by_address_[single/all]` on the same address that the current thread is waiting on.
 
-**SRS_SYNC_43_001: [** `wait_on_address` shall atomically compare `*address` and `compare_address`.**]**
+**SRS_SYNC_43_001: [** `wait_on_address` shall atomically compare `*address` and `*compare_address`.**]**
 
 **SRS_SYNC_43_002: [** `wait_on_address` shall immediately return `true` if `*address` is not equal to `*compare_address`.**]**
 
@@ -38,7 +38,7 @@ MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, in
 ## wake_by_address_all
 
 ```c
-MOCKABLE_FUNCTION(, void, wake_by_address_all, void*, address)
+MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t*, address)
 ```
 `wake_by_address_all` wakes up all the threads waiting in a `wait_on_address` call on the given `address`.
 
@@ -47,7 +47,7 @@ MOCKABLE_FUNCTION(, void, wake_by_address_all, void*, address)
 ## wake_by_address_single
 
 ```c
-MOCKABLE_FUNCTION(, void, wake_by_address_single, void*, address)
+MOCKABLE_FUNCTION(, void, wake_by_address_single, volatile_atomic int32_t*, address)
 ```
 `wake_by_address_single` wakes up a single thread waiting in a `wait_on_address` call on the given `address`.
 

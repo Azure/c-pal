@@ -19,8 +19,8 @@ extern "C" {
 #endif
 
 MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, int32_t*, compare_address, uint32_t, timeout_ms);
-MOCKABLE_FUNCTION(, void, wake_by_address_all, void*, address);
-MOCKABLE_FUNCTION(, void, wake_by_address_single, void*, address);
+MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t*, address);
+MOCKABLE_FUNCTION(, void, wake_by_address_single, volatile_atomic int32_t*, address);
 
 
 #ifdef __cplusplus
