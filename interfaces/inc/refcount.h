@@ -26,7 +26,7 @@ will interact with deallocated memory / resources resulting in an undefined beha
 #include "gballoc.h"
 
 // Include the platform-specific file that defines atomic functionality
-#include "refcount_os.h"
+#include "../../../linux/inc/refcount_os.h"
 
 #ifdef __cplusplus
 extern "C"

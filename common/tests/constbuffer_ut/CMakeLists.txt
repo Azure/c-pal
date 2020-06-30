@@ -3,18 +3,17 @@
 
 cmake_minimum_required(VERSION 2.8.11)
 
-set(theseTestsName refcount_ut)
+set(theseTestsName constbuffer_ut)
 
 set(${theseTestsName}_test_files
 ${theseTestsName}.c
 )
 
 set(${theseTestsName}_c_files
-    some_refcount_impl.c
+../../src/constbuffer.c
 )
 
 set(${theseTestsName}_h_files
-    some_refcount_impl.h
 )
 
-build_c_tests(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS ${PAL_OS})
+build_c_tests(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS pal_interfaces)

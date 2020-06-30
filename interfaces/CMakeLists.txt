@@ -15,6 +15,10 @@ set(pal_interfaces_h_files
     inc/srw_lock.h
     inc/string_utils.h
     inc/sync.h
+    inc/file.h
+    inc/constbuffer.h
+    inc/buffer_.h
+    inc/refcount.h
 )
 
 FILE(GLOB pal_interfaces_md_files "devdoc/*.md")

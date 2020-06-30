@@ -76,6 +76,7 @@ set(run_perf_tests ${original_run_perf_tests})
 
 add_subdirectory(interfaces)
 add_subdirectory(common)
+add_subdirectory(internal)
 if(WIN32)
     add_subdirectory(win32)
 else()

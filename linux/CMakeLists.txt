@@ -11,6 +11,7 @@ set(pal_linux_c_files
     src/threadapi_pthreads.c
     src/uniqueid_linux.c
     src/sync_linux.c
+    src/file_linux.c
 )
 
 FILE(GLOB pal_linux_md_files "devdoc/*.md")
@@ -19,7 +20,7 @@ SOURCE_GROUP(devdoc FILES ${pal_linux_md_files})
 include_directories(${CMAKE_CURRENT_LIST_DIR}/inc)
 
 add_library(pal_linux ${pal_linux_h_files} ${pal_linux_c_files} ${pal_linux_md_files})
-target_link_libraries(pal_linux pal_interfaces pal_common pthread m rt uuid)
+target_link_libraries(pal_linux pal_interfaces pal_common pal_internal pthread m rt uuid)
 target_include_directories(pal_linux PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc)
 
 add_subdirectory(tests)

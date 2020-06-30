@@ -6,6 +6,8 @@ set(pal_common_h_files
 
 set(pal_common_c_files
     src/gballoc.c
+    src/constbuffer.c
+    src/buffer.c
 )
 
 FILE(GLOB pal_common_md_files "devdoc/*.md")
