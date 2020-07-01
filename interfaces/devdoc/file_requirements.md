@@ -8,17 +8,17 @@ The `file` module provides a platform-independent API for asynchronous file oper
 ## Exposed API
 
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name, int64_t, desired_file_size, bool, has_manage_volume)(0, MU_FAILURE);
+MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name, uint64_t, desired_file_size, bool, has_manage_volume);
 MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
-MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, CONSTBUFFER_HANDLE, source, int64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(0, MU_FAILURE);
-MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_HANDLE, handle, uint32_t, size, int64_t, position, FILE_READ_CB, user_callback, void*, user_context)(0, MU_FAILURE);
+MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, CONSTBUFFER_HANDLE, source, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(0, MU_FAILURE);
+MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_HANDLE, handle, uint32_t, size, uint64_t, position, FILE_READ_CB, user_callback, void*, user_context)(0, MU_FAILURE);
 MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend_filesize, FILE_HANDLE, handle, uint64_t, desired_size, bool, has_manage_volume)(0, MU_FAILURE);
 ```
 
 ## file_create
 
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_HANDLE, file_create, const char*, full_file_name, int64_t, desired_file_size)(0, MU_FAILURE);
+MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name, uint64_t, desired_file_size, bool, has_manage_volume);
 ```
 
 `file_create` opens an existing file by the name of `full_file_name` or creates a file of `desired_file_size` if it doesn't exist and returns the file handle.
@@ -50,7 +50,7 @@ MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 ## file_write_async
 
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, CONSTBUFFER_HANDLE, source, int64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(0, MU_FAILURE);
+MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, CONSTBUFFER_HANDLE, source, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(0, MU_FAILURE);
 ```
 
 `file_write_async` issues an asynchronous write request.
@@ -60,8 +60,6 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE
 **SRS_FILE_43_009: [** If `handle` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
 
 **SRS_FILE_43_010: [** If `source` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
-
-**SRS_FILE_43_011: [** If `position` is negative then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
 
 **SRS_FILE_43_012: [** If `user_callback` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
 
@@ -76,7 +74,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE
 ## file_read_async
 
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_read_async, FILE_HANDLE, handle, uint32_t, size, int64_t, position, FILE_READ_CB, user_callback, void*, user_context)(0, MU_FAILURE);
+MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_read_async, FILE_HANDLE, handle, uint32_t, size, uint64_t, position, FILE_READ_CB, user_callback, void*, user_context)(0, MU_FAILURE);
 ```
 
 `file_read_async` issues an asynchronous read request.
@@ -84,8 +82,6 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_read_async, FILE_HANDLE, handle, uint
 **SRS_FILE_43_016: [** `file_read_async` reads a byte array identified by `destination`, `size` from `position` and calls `user_callback` passing `user_context`. **]**
 
 **SRS_FILE_43_017: [** If `handle` is `NULL` then `file_read_async` shall fail and return `FILE_READ_ASYNC_INVALID_ARGS`. **]**
-
-**SRS_FILE_43_018: [** If `position` is negative then `file_read_async` shall fail and return `FILE_READ_ASYNC_INVALID_ARGS`. **]**
 
 **SRS_FILE_43_019: [** If `position` + `size` would exceed the available bytes in the file then `file_read_async` shall fail and return `FILE_READ_ASYNC_INVALID_ARGS`. **]**
 
