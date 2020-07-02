@@ -14,7 +14,27 @@ Linux implementation of the `file` module.
 ## Exposed API
 
 ```c
-MOCKABLE_FUNCTION(, FILE_HANDLE, file_create,FILE_REPORT_FAULT, user_report_fault_callback, void*, user_report_fault_context, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name);
+#define FILE_WRITE_ASYNC_VALUES \
+    FILE_WRITE_ASYNC_INVALID_ARGS, \
+    FILE_WRITE_ASYNC_WRITE_ERROR, \
+    FILE_WRITE_ASYNC_ERROR,\
+    FILE_WRITE_ASYNC_OK
+MU_DEFINE_ENUM(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_VALUES);
+
+#define FILE_READ_ASYNC_VALUES \
+    FILE_READ_ASYNC_INVALID_ARGS, \
+    FILE_READ_ASYNC_READ_ERROR, \
+    FILE_READ_ASYNC_ERROR,\
+    FILE_READ_ASYNC_OK
+MU_DEFINE_ENUM(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_VALUES);
+
+typedef struct FILE_HANDLE_DATA_TAG* FILE_HANDLE;
+typedef void(*FILE_REPORT_FAULT)(void* user_report_fault_context, const char* information);
+
+typedef void(*FILE_WRITE_CB)(void* user_context, bool is_successful);
+typedef void(*FILE_READ_CB)(void* user_context, bool is_successful, CONSTBUFFER_HANDLE content);
+
+MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name, FILE_REPORT_FAULT, user_report_fault_callback, void*, user_report_fault_context);
 MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, CONSTBUFFER_HANDLE, source, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(0, MU_FAILURE);
 MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_HANDLE, handle, uint32_t, size, uint64_t, position, FILE_READ_CB, user_callback, void*, user_context)(0, MU_FAILURE);
@@ -24,8 +44,12 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend_filesize, FILE_HANDLE, handle,
 ## file_create
 
 ```c
-MOCKABLE_FUNCTION(, FILE_HANDLE, file_create,FILE_REPORT_FAULT, user_report_fault_callback, void*, user_report_fault_context, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name);
+MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name, FILE_REPORT_FAULT, user_report_fault_callback, void*, user_report_fault_context);
 ```
+
+**SRS_FILE_LINUX_43_037: [** If `execution_engine` is `NULL`, `file_create` shall fail and return `NULL`. **]**
+
+**SRS_FILE_LINUX_43_038: [** If `full_file_name` is `NULL` then `file_create` shall fail and return `NULL`. **]**
 
 **SRS_FILE_LINUX_43_029: [** `file_create` shall allocate a `FILE_HANDLE`. **]**
 
@@ -39,6 +63,8 @@ MOCKABLE_FUNCTION(, FILE_HANDLE, file_create,FILE_REPORT_FAULT, user_report_faul
 MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 ```
 
+**SRS_FILE_LINUX_43_036: [** If `handle` is `NULL`, `file_destroy` shall return. **]**
+
 **SRS_FILE_LINUX_43_003: [** `file_destroy` shall call `close` with `fd` as `handle`.**]**
 
 **SRS_FILE_LINUX_43_030: [** `file_destroy` shall free the `FILE_HANDLE`. **]**
@@ -49,6 +75,12 @@ MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 ```c
 MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, CONSTBUFFER_HANDLE, source, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(0, MU_FAILURE);
 ```
+
+**SRS_FILE_LINUX_43_031: [** If `handle` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
+
+**SRS_FILE_LINUX_43_032: [** If `source` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
+
+**SRS_FILE_LINUX_43_033: [** If `user_callback` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
 
 **SRS_FILE_LINUX_43_019: [** `file_write_async` shall create a `FILE_LINUX_IO` struct with `handle` as `handle`, `FILE_ASYNC_WRITE` as `type`. **]**
 
@@ -71,6 +103,10 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE
 ```c
 MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_HANDLE, handle, uint32_t, size, uint64_t, position, FILE_READ_CB, user_callback, void*, user_context)(0, MU_FAILURE);
 ```
+
+**SRS_FILE_LINUX_43_034: [** If `handle` is `NULL` then `file_read_async` shall fail and return `FILE_READ_ASYNC_INVALID_ARGS`. **]**
+
+**SRS_FILE_LINUX_43_035: [** If `user_callback` is `NULL` then `file_read_async` shall fail and return `FILE_READ_ASYNC_INVALID_ARGS`. **]**
 
 **SRS_FILE_LINUX_43_016: [** `file_read_async` shall create a `FILE_LINUX_IO` struct with `handle` as `handle`, `FILE_ASYNC_READ` as `type`. **]**
 
@@ -110,7 +146,7 @@ static void on_file_io_complete_linux( FILE_LINUX_IO* io);
 
 **SRS_FILE_LINUX_43_022: [** `on_file_io_complete_linux` shall call `aio_return` to determine if the asynchronous operation succeeded. **]**
 
-**SRS_FILE_LINUX_43_023: [** If the asynchronous operation did not succeed, `on_file_io_complete_linux` shall call `user_report_fault_callback` with `user_report_fault_context` which were specified when `file_create` was called. **]**
+**SRS_FILE_LINUX_43_023: [** If the asynchronous operation did not succeed, `on_file_io_complete_linux` shall call `user_callback` with `false` as `is_successful`. **]**
 
 **SRS_FILE_LINUX_43_024: [** If the type of the asynchronous operation is read, `on_file_io_complete_linux` shall  construct a `CONSTBUFFER_HANDLE` by calling `CONSTBUFFER_CreateWithMoveMemory` from the bytes read by `ReadFile`. **]**
 

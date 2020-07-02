@@ -8,7 +8,26 @@ Windows implementation of the `file` module.
 ## Exposed API
 
 ```c
-MOCKABLE_FUNCTION(, FILE_HANDLE, file_create,FILE_REPORT_FAULT, user_report_fault_callback, void*, user_report_fault_context, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name);
+#define FILE_WRITE_ASYNC_VALUES \
+    FILE_WRITE_ASYNC_INVALID_ARGS, \
+    FILE_WRITE_ASYNC_WRITE_ERROR, \
+    FILE_WRITE_ASYNC_ERROR,\
+    FILE_WRITE_ASYNC_OK
+MU_DEFINE_ENUM(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_VALUES);
+
+#define FILE_READ_ASYNC_VALUES \
+    FILE_READ_ASYNC_INVALID_ARGS, \
+    FILE_READ_ASYNC_READ_ERROR, \
+    FILE_READ_ASYNC_ERROR,\
+    FILE_READ_ASYNC_OK
+MU_DEFINE_ENUM(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_VALUES);
+
+typedef struct FILE_HANDLE_DATA_TAG* FILE_HANDLE;
+typedef void(*FILE_REPORT_FAULT)(void* user_report_fault_context, const char* information);
+
+typedef void(*FILE_WRITE_CB)(void* user_context, bool is_successful);
+typedef void(*FILE_READ_CB)(void* user_context, bool is_successful, CONSTBUFFER_HANDLE content);
+MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name, FILE_REPORT_FAULT, user_report_fault_callback, void*, user_report_fault_context);
 MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, CONSTBUFFER_HANDLE, source, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(0, MU_FAILURE);
 MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_HANDLE, handle, uint32_t, size, uint64_t, position, FILE_READ_CB, user_callback, void*, user_context)(0, MU_FAILURE);
@@ -18,8 +37,12 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend_filesize, FILE_HANDLE, handle,
 ## file_create
 
 ```c
-MOCKABLE_FUNCTION(, FILE_HANDLE, file_create,FILE_REPORT_FAULT, user_report_fault_callback, void*, user_report_fault_context, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name);
+MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name, FILE_REPORT_FAULT, user_report_fault_callback, void*, user_report_fault_context);
 ```
+
+**SRS_FILE_WIN32_43_040: [** If `execution_engine` is `NULL`, `file_create` shall fail and return `NULL`. **]**
+
+**SRS_FILE_WIN32_43_041: [** If `full_file_name` is `NULL` then `file_create` shall fail and return `NULL`. **]**
 
 **SRS_FILE_WIN32_43_001: [** `file_create` shall call `CreateFileA` with `full_file_name` as `lpFileName`, `GENERIC_READ|GENERIC_WRITE` as `dwDesiredAccess`, `FILE_SHARED_READ` as `dwShareMode`, `NULL` as `lpSecurityAttributes`, `OPEN_ALWAYS` as `dwCreationDisposition`, `FILE_FLAG_OVERLAPPED|FILE_FLAG_WRITE_THROUGH` as `dwFlagsAndAttributes` and `NULL` as `hTemplateFiles`. **]**
 
@@ -37,7 +60,7 @@ MOCKABLE_FUNCTION(, FILE_HANDLE, file_create,FILE_REPORT_FAULT, user_report_faul
 
 **SRS_FILE_WIN32_43_007: [** `file_create` shall register the cleanup group with the threadpool environment. **]**
 
-**SRS_FILE_WIN32_43_033: [** `file_create` shall create a threadpool io and use `onFileIoComplete` as a callback. **]**
+**SRS_FILE_WIN32_43_033: [** `file_create` shall create a threadpool io and use `on_file_io_complete_win32` as a callback. **]**
 
 **SRS_FILE_WIN32_43_008: [** If there are any failures, `file_create` shall return `NULL`. **]**
 
@@ -48,6 +71,8 @@ MOCKABLE_FUNCTION(, FILE_HANDLE, file_create,FILE_REPORT_FAULT, user_report_faul
 ```c
 MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 ```
+
+**SRS_FILE_WIN32_43_042: [** If `handle` is `NULL`, `file_destroy` shall return. **]**
 
 **SRS_FILE_WIN32_43_011: [** `file_destroy` shall wait for all I/O to complete. **]**
 
@@ -67,6 +92,12 @@ MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 ```c
 MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, CONSTBUFFER_HANDLE, source, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(0, MU_FAILURE);
 ```
+
+**SRS_FILE_WIN32_43_043: [** If `handle` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
+
+**SRS_FILE_WIN32_43_044: [** If `source` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
+
+**SRS_FILE_WIN32_43_045: [** If `user_callback` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
 
 **SRS_FILE_WIN32_43_017: [** `file_write_async` shall call `StartThreadpoolIo`. **]**
 
@@ -88,6 +119,10 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE
 MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_HANDLE, handle, uint32_t, size, uint64_t, position, FILE_READ_CB, user_callback, void*, user_context)(0, MU_FAILURE);
 ```
 
+**SRS_FILE_WIN32_43_046: [** If `handle` is `NULL` then `file_read_async` shall fail and return `FILE_READ_ASYNC_INVALID_ARGS`. **]**
+
+**SRS_FILE_WIN32_43_047: [** If `user_callback` is `NULL` then `file_read_async` shall fail and return `FILE_READ_ASYNC_INVALID_ARGS`. **]**
+
 **SRS_FILE_WIN32_43_025: [** `file_read_async` shall call `StartThreadpoolIo`. **]**
 
 **SRS_FILE_WIN32_43_026: [** `file_read_async` shall allocate a context to store `handle`, read as the type of asynchronous operation, `user_callback` and `user_context` **]**
@@ -106,21 +141,21 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_H
 ## on_file_io_complete_win32
 
 ```c
-static VOID CALLBACK on_file_io_complete_win32( /*called when some read/write operation is finished*/
-    _Inout_     PTP_CALLBACK_INSTANCE Instance,
-    _Inout_opt_ PVOID                 Context,
-    _Inout_opt_ PVOID                 Overlapped,
-    _In_        ULONG                 IoResult,
-    _In_        ULONG_PTR             NumberOfBytesTransferred,
-    _Inout_     PTP_IO                Io
+static void on_file_io_complete_win32(
+    PTP_CALLBACK_INSTANCE instance,
+    PVOID context,
+    PVOID overlapped,
+    ULONG io_result,
+    ULONG_PTR number_of_bytes_transferred,
+    PTP_IO io
 );
 ```
 `on_file_io_complete_win32` is called when a file operation completes asynchronously.
 
 
-**SRS_FILE_WIN32_43_034: [** `on_file_io_complete_win32` shall recover the context containing `Overlapped`. **]**
+**SRS_FILE_WIN32_43_034: [** `on_file_io_complete_win32` shall recover the context containing `overlapped`. **]**
 
-**SRS_FILE_WIN32_43_035: [** If `IoResult` is not `NO_ERROR`, `on_file_io_complete_win32` shall call `user_report_fault_callback` with `user_report_fault_context` which were specified when `file_create` was called. **]**
+**SRS_FILE_WIN32_43_035: [** If `io_result` is not `NO_ERROR`, `on_file_io_complete_win32` shall call `user_callback` with `false` as `is_successful`. **]**
 
 **SRS_FILE_WIN32_43_036: [** If the type of the asynchronous operation is read, `on_file_io_complete_win32` shall  construct a `CONSTBUFFER_HANDLE` by calling `CONSTBUFFER_CreateWithMoveMemory` from the bytes read by `ReadFile`. **]**
 
@@ -129,5 +164,3 @@ static VOID CALLBACK on_file_io_complete_win32( /*called when some read/write op
 **SRS_FILE_WIN32_43_038: [** If the construction of the `CONSTBUFFER_HANDLE` succeeds, `on_file_io_complete_win32` shall call `user_callback` with `user_context`, `true` as `is_successful` and the created `CONSTBUFFER_HANDLE` as `content`. **]**
 
 **SRS_FILE_WIN32_43_039: [** If the type of the asynchronous operation is write, `on_file_io_complete_win32` shall call `user_callback` with `user_context` and `true` as `is_successful`. **]**
-
-**SRS_FILE_WIN32_43_040: [** If the type of asynchronous operation is neither read nor write, `on_file_io_complete_win32` shall call `user_report_fault_callback` with `user_report_fault_context` which were specified when `file_create` was called. **]**

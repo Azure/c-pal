@@ -27,11 +27,11 @@ typedef struct FILE_WIN32_IO_TAG
     FILE_IO_DATA data;
 }FILE_WIN32_IO;
 
-static VOID CALLBACK on_file_io_complete_win32( /*called when some read/write operation is finished*/
-    _Inout_     PTP_CALLBACK_INSTANCE Instance,
-    _Inout_opt_ PVOID                 Context,
-    _Inout_opt_ PVOID                 Overlapped,
-    _In_        ULONG                 IoResult,
-    _In_        ULONG_PTR             NumberOfBytesTransferred,
-    _Inout_     PTP_IO                Io
+static void on_file_io_complete_win32(
+    PTP_CALLBACK_INSTANCE instance,
+    PVOID context,
+    PVOID overlapped,
+    ULONG io_result,
+    ULONG_PTR number_of_bytes_transferred,
+    PTP_IO io
 );

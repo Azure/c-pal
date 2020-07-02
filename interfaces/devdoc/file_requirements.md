@@ -14,6 +14,25 @@ The `file` module provides a platform-independent API for asynchronous file oper
 ## Exposed API
 
 ```c
+#define FILE_WRITE_ASYNC_VALUES \
+    FILE_WRITE_ASYNC_INVALID_ARGS, \
+    FILE_WRITE_ASYNC_WRITE_ERROR, \
+    FILE_WRITE_ASYNC_ERROR,\
+    FILE_WRITE_ASYNC_OK
+MU_DEFINE_ENUM(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_VALUES);
+
+#define FILE_READ_ASYNC_VALUES \
+    FILE_READ_ASYNC_INVALID_ARGS, \
+    FILE_READ_ASYNC_READ_ERROR, \
+    FILE_READ_ASYNC_ERROR,\
+    FILE_READ_ASYNC_OK
+MU_DEFINE_ENUM(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_VALUES);
+
+typedef struct FILE_HANDLE_DATA_TAG* FILE_HANDLE;
+typedef void(*FILE_REPORT_FAULT)(void* user_report_fault_context, const char* information);
+
+typedef void(*FILE_WRITE_CB)(void* user_context, bool is_successful);
+typedef void(*FILE_READ_CB)(void* user_context, bool is_successful, CONSTBUFFER_HANDLE content);
 MOCKABLE_FUNCTION(, FILE_HANDLE, file_create,FILE_REPORT_FAULT, user_report_fault_callback, void*, user_report_fault_context, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name);
 MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, CONSTBUFFER_HANDLE, source, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(0, MU_FAILURE);
@@ -27,8 +46,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend_filesize, FILE_HANDLE, handle,
 MOCKABLE_FUNCTION(, FILE_HANDLE, file_create,FILE_REPORT_FAULT, user_report_fault_callback, void*, user_report_fault_context, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name);
 ```
 
-`file_create` opens an existing file by the name of `full_file_name` or creates a file of `desired_file_size` if it doesn't exist and returns the file handle.
-
+`file_create` creates a file by the name of `full_file_name` it doesn't exist. `file_create` opens a file by the name `full_file_name` and returns its file handle.
 
 **SRS_FILE_43_033: [** If `execution_engine` is `NULL`, `file_create` shall fail and return `NULL`. **]**
 
@@ -48,7 +66,7 @@ MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 
 `file_destroy` closes the given file handle.
 
-**SRS_FILE_43_005: [** If `handle` is null, `file_destroy` shall return. **]**
+**SRS_FILE_43_005: [** If `handle` is `NULL`, `file_destroy` shall return. **]**
 
 **SRS_FILE_43_006: [** `file_destroy` shall wait for all pending I/O operations to complete. **]**
 
