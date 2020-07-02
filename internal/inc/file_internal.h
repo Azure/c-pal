@@ -4,7 +4,14 @@
 #ifndef FILE_INTERNAL_H
 #define FILE_INTERNAL_H
 
+#ifdef __cplusplus
+#include <cstdint>
+#else
+#include <stdint.h>
+#endif
+
 #include "umock_c/umock_c_prod.h"
+#include "azure_macro_utils/macro_utils.h"
 #include "constbuffer.h"
 #include "file.h"
 
@@ -24,7 +31,7 @@ typedef struct FILE_READ_DATA_TAG
     FILE_READ_CB user_callback;
     void* user_context;
     uint32_t size;
-    unsigned char* destination; /*where the readfile reads*/
+    unsigned char* destination;
 }FILE_READ_DATA;
 
 typedef union FILE_IO_DATA_TAG
@@ -38,7 +45,6 @@ typedef union FILE_IO_DATA_TAG
     FILE_ASYNC_READ
 
 MU_DEFINE_ENUM(FILE_ASYNC_OPERATION, FILE_ASYNC_OPERATION_VALUES)
-MU_DEFINE_ENUM_STRINGS(FILE_ASYNC_OPERATION, FILE_ASYNC_OPERATION_VALUES)
 
 #ifdef __cplusplus
 }

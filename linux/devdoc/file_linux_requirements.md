@@ -5,10 +5,16 @@
 
 Linux implementation of the `file` module.
 
+-`file_create` uses [`open`](https://www.man7.org/linux/man-pages/man2/open.2.html).
+-`file_destroy` uses [`close`](https://www.man7.org/linux/man-pages/man2/close.2.html).
+-`file_write_async` and `file_read_async` create [`sigevent`](https://man7.org/linux/man-pages/man7/sigevent.7.html)s to specify callbacks.
+-`file_write_async` uses [`aio_write`](https://man7.org/linux/man-pages/man3/aio_write.3.html).
+-`file_read_async` uses [`aio_read`](https://man7.org/linux/man-pages/man3/aio_read.3.html).
+
 ## Exposed API
 
 ```c
-MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name, uint64_t, desired_file_size, bool, has_manage_volume);
+MOCKABLE_FUNCTION(, FILE_HANDLE, file_create,FILE_REPORT_FAULT, user_report_fault_callback, void*, user_report_fault_context, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name);
 MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, CONSTBUFFER_HANDLE, source, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(0, MU_FAILURE);
 MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_HANDLE, handle, uint32_t, size, uint64_t, position, FILE_READ_CB, user_callback, void*, user_context)(0, MU_FAILURE);
@@ -18,12 +24,14 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend_filesize, FILE_HANDLE, handle,
 ## file_create
 
 ```c
-MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name, uint64_t, desired_file_size, bool, has_manage_volume);
+MOCKABLE_FUNCTION(, FILE_HANDLE, file_create,FILE_REPORT_FAULT, user_report_fault_callback, void*, user_report_fault_context, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name);
 ```
+
+**SRS_FILE_LINUX_43_029: [** `file_create` shall allocate a `FILE_HANDLE`. **]**
 
 **SRS_FILE_LINUX_43_001: [** `file_create` shall call `open` with `full_file_name` as `pathname` and flags `O_CREAT` and `O_RDWR`. **]**
 
-**SRS_FILE_LINUX_43_002: [** `file_create` shall return the file handle returned by the call to open. [`open` documentation](https://www.man7.org/linux/man-pages/man2/open.2.html) **]**
+**SRS_FILE_LINUX_43_002: [** `file_create` shall return the file handle returned by the call to `open`.**]**
 
 ## file_destroy
 
@@ -31,7 +39,10 @@ MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE, execution
 MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 ```
 
-**SRS_FILE_LINUX_43_003: [** `file_destroy` shall call `close` with `fd` as `handle`. [`close` documentation](https://www.man7.org/linux/man-pages/man2/close.2.html) **]**
+**SRS_FILE_LINUX_43_003: [** `file_destroy` shall call `close` with `fd` as `handle`.**]**
+
+**SRS_FILE_LINUX_43_030: [** `file_destroy` shall free the `FILE_HANDLE`. **]**
+
 
 ## file_write_async
 
@@ -39,21 +50,21 @@ MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, CONSTBUFFER_HANDLE, source, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(0, MU_FAILURE);
 ```
 
-**SRS_FILE_LINUX_43_016: [** `file_write_async` shall create a `FILE_LINUX_IO` struct with `handle` as `handle`, `FILE_ASYNC_WRITE` as `type`. **]**
+**SRS_FILE_LINUX_43_019: [** `file_write_async` shall create a `FILE_LINUX_IO` struct with `handle` as `handle`, `FILE_ASYNC_WRITE` as `type`. **]**
 
-**SRS_FILE_LINUX_43_017: [** `file_write_async` shall populate the `data` field of the `FILE_LINUX_IO` struct using `source`, `user_callback` and `user_context`. **]**
+**SRS_FILE_LINUX_43_020: [** `file_write_async` shall populate the `data` field of the `FILE_LINUX_IO` struct using `source`, `user_callback` and `user_context`. **]**
 
-**SRS_FILE_LINUX_43_004: [** `file_write_async` shall initialize a `sigevent` struct with `SIGEV_THREAD` as `sigev_notify`, the created `FILE_LINUX_IO` struct as `sigev_value`, `on_file_io_complete_linux` as `sigev_notify_function`, `NULL` as `sigev_notify_attributes`(unsure about what `sigev_notify_attributes` should be). [`sigevent` documentation](https://man7.org/linux/man-pages/man7/sigevent.7.html). **]**
+**SRS_FILE_LINUX_43_004: [** `file_write_async` shall initialize a `sigevent` struct with `SIGEV_THREAD` as `sigev_notify`, the created `FILE_LINUX_IO` struct as `sigev_value`, `on_file_io_complete_linux` as `sigev_notify_function`, `NULL` as `sigev_notify_attributes`(unsure about what `sigev_notify_attributes` should be). **]**
 
 **SRS_FILE_LINUX_43_005: [** `file_write_async` shall initialize an `aiocb` struct with `handle` as `aio_fildes`, `position` as `aio_offset`, source as `aio_buf`, `source->alias->size` as `aio_nbytes`, and the initialized `sigevent` struct as `aio_sigevent`. **]**
 
-**SRS_FILE_LINUX_43_006: [** `file_write_async` shall call `aio_write` with the initialized `aiocb` struct as `aiocbp`. [`aio_write` documentation](https://man7.org/linux/man-pages/man3/aio_write.3.html) **]**
+**SRS_FILE_LINUX_43_006: [** `file_write_async` shall call `aio_write` with the initialized `aiocb` struct as `aiocbp`.**]**
 
 **SRS_FILE_LINUX_43_012: [** If `aio_write` fails, `file_write_async` shall return `FILE_WRITE_ASYNC_WRITE_ERROR`. **]**
 
 **SRS_FILE_LINUX_43_007: [** If `aio_write` succeeds, `file_write_async` shall return `FILE_WRITE_ASYNC_OK`. **]**
 
-**SRS_FILE_LINUX_43_013: [** If there are any failures, `file_write_async` shall return `FILE_WRITE_ASYNC_ERROR`. **]**
+**SRS_FILE_LINUX_43_013: [** If there are any other failures, `file_write_async` shall return `FILE_WRITE_ASYNC_ERROR`. **]**
 
 ## file_read_async
 
@@ -65,7 +76,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_H
 
 **SRS_FILE_LINUX_43_017: [** `file_read_async` shall populate the `data` field of the `FILE_LINUX_IO` struct using `user_callback` and `user_context`. **]**
 
-**SRS_FILE_LINUX_43_008: [** `file_read_async` shall initialize a `sigevent` struct with `SIGEV_THREAD` as `sigev_notify`, `user_context` as `sigev_value`, `user_callback` as `sigev_notify_function`, `NULL` as `sigev_notify_attributes`(unsure about what `sigev_notify_attributes` should be). [`sigevent` documentation](https://man7.org/linux/man-pages/man7/sigevent.7.html). **]**
+**SRS_FILE_LINUX_43_008: [** `file_read_async` shall initialize a `sigevent` struct with `SIGEV_THREAD` as `sigev_notify`, `user_context` as `sigev_value`, `user_callback` as `sigev_notify_function`, `NULL` as `sigev_notify_attributes`(unsure about what `sigev_notify_attributes` should be). **]**
 
 **SRS_FILE_LINUX_43_009: [** `file_read_async` shall initialize an `aiocb` struct with `handle` as `aio_fildes`, `position` as `aio_offset`, source as `aio_buf`, `source->alias->size` as `aio_nbytes`, and the initialized `sigevent` struct as `aio_sigevent`. **]**
 
@@ -83,4 +94,30 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_H
 MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend_filesize, FILE_HANDLE, handle, uint64_t, desired_size, bool, has_manage_volume)(0, MU_FAILURE);
 ```
 
-Will do this later.
+**SRS_FILE_LINUX_43_018: [** `file_extend_filesize` shall return 0. **]**
+
+Will be implemented later.
+
+## on_file_io_complete_linux
+
+```c
+static void on_file_io_complete_linux( FILE_LINUX_IO* io);
+```
+
+`on_file_io_complete_linux` is called when a file operation completes asynchronously.
+
+**SRS_FILE_LINUX_43_021: [** `on_file_io_complete_linux` shall recover the `aiocb` struct that was used to create the current asynchronous operation. **]**
+
+**SRS_FILE_LINUX_43_022: [** `on_file_io_complete_linux` shall call `aio_return` to determine if the asynchronous operation succeeded. **]**
+
+**SRS_FILE_LINUX_43_023: [** If the asynchronous operation did not succeed, `on_file_io_complete_linux` shall call `user_report_fault_callback` with `user_report_fault_context` which were specified when `file_create` was called. **]**
+
+**SRS_FILE_LINUX_43_024: [** If the type of the asynchronous operation is read, `on_file_io_complete_linux` shall  construct a `CONSTBUFFER_HANDLE` by calling `CONSTBUFFER_CreateWithMoveMemory` from the bytes read by `ReadFile`. **]**
+
+**SRS_FILE_LINUX_43_025: [** If the construction of the `CONSTBUFFER_HANDLE` fails, `on_file_io_complete_linux` shall call `user_callback` with `user_context`, `false` as `is_successful` and `NULL` as `content`. **]**
+
+**SRS_FILE_LINUX_43_026: [** If the construction of the `CONSTBUFFER_HANDLE` succeeds, `on_file_io_complete_linux` shall call `user_callback` with `user_context`, `true` as `is_successful` and the created `CONSTBUFFER_HANDLE` as `content`. **]**
+
+**SRS_FILE_LINUX_43_027: [** If the type of the asynchronous operation is write, `on_file_io_complete_linux` shall call `user_callback` with `user_context` and `true` as `is_successful`. **]**
+
+**SRS_FILE_LINUX_43_028: [** If the type of asynchronous operation is neither read nor write, `on_file_io_complete_win32` shall call `user_report_fault_callback` with `user_report_fault_context` which were specified when `file_create` was called. **]**
