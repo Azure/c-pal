@@ -52,6 +52,8 @@ MOCKABLE_FUNCTION(, FILE_HANDLE, file_create,FILE_REPORT_FAULT, user_report_faul
 
 **SRS_FILE_43_002: [** If `full_file_name` is `NULL` then `file_create` shall fail and return `NULL`. **]**
 
+**SRS_FILE_43_037: [** If `full_file_name` is an empty string, `file_create` shall fail and return `NULL`. **]**
+
 **SRS_FILE_43_003: [** If a file with name `full_file_name` does not exist, `file_create` shall create a file with that name.**]**
 
 **SRS_FILE_43_001: [** `file_create` shall open the file named `full_file_name` for asynchronous operations and return its handle. **]**
