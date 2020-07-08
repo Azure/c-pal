@@ -346,33 +346,6 @@ void gballoc_free(void* ptr)
     }
 }
 
-size_t gballoc_getMaximumMemoryUsed(void)
-{
-    size_t result;
-
-    /* Codes_SRS_GBALLOC_01_038: [If gballoc was not initialized gballoc_getMaximumMemoryUsed shall return MAX_INT_SIZE.] */
-    if (gballocState != GBALLOC_STATE_INIT)
-    {
-        LogError("gballoc is not initialized.");
-        result = SIZE_MAX;
-    }
-    /* Codes_SRS_GBALLOC_01_034: [gballoc_getMaximumMemoryUsed shall ensure thread safety by using the lock created by gballoc_Init.]  */
-    else if (LOCK_OK != Lock(gballocThreadSafeLock))
-    {
-        /* Codes_SRS_GBALLOC_01_050: [If the lock cannot be acquired, gballoc_getMaximumMemoryUsed shall return SIZE_MAX.]  */
-        LogError("Failed to get the Lock.");
-        result = SIZE_MAX;
-    }
-    else
-    {
-        /* Codes_SRS_GBALLOC_01_010: [gballoc_getMaximumMemoryUsed shall return the maximum amount of total memory used recorded since the module initialization.] */
-        result = maxSize;
-        (void)Unlock(gballocThreadSafeLock);
-    }
-
-    return result;
-}
-
 size_t gballoc_getCurrentMemoryUsed(void)
 {
     size_t result;
