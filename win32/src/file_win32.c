@@ -19,6 +19,12 @@ typedef struct FILE_HANDLE_DATA_TAG
     
 }FILE_HANDLE_DATA;
 
+typedef union FILE_IO_DATA_TAG
+{
+    FILE_READ_DATA_CONTEXT read_data;
+    FILE_WRITE_DATA_CONTEXT write_data;
+}FILE_IO_DATA;
+
 typedef struct FILE_WIN32_IO_TAG
 {
     OVERLAPPED ov;

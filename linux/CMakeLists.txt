@@ -1,10 +1,12 @@
 #Copyright (C) Microsoft Corporation. All rights reserved.
 
 set(pal_linux_h_files
+    ${pal_common_h_files}
     inc/refcount_os.h
 )
 
 set(pal_linux_c_files
+    ${pal_common_c_files}
     src/interlocked_linux.c
     src/lock_pthreads.c
     src/platform_linux.c
@@ -18,10 +20,11 @@ FILE(GLOB pal_linux_md_files "devdoc/*.md")
 SOURCE_GROUP(devdoc FILES ${pal_linux_md_files})
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/inc)
+include_directories(../common/inc)
 
 add_library(pal_linux ${pal_linux_h_files} ${pal_linux_c_files} ${pal_linux_md_files})
-target_link_libraries(pal_linux pal_interfaces pal_common pal_internal pthread m rt uuid)
+target_link_libraries(pal_linux pal_interfaces pal_internal pthread m rt uuid)
 target_include_directories(pal_linux PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc)
 
 add_subdirectory(tests)
-
+add_subdirectory(../common/tests common/tests)

@@ -9,7 +9,7 @@ The `file` module provides a platform-independent API for asynchronous file oper
 -`file_destroy`: closes the given file handle.
 -`file_write_async`: enqueues an asynchronous write request for a file at a given position.
 -`file_read_async`: enqueues an asynchronous read request for a file at a given position and size.
--`file_extend_filesize`: expands the given file to be of desired size.
+-`file_extend`: expands the given file to be of desired size.
 
 ## Exposed API
 
@@ -33,11 +33,14 @@ typedef void(*FILE_REPORT_FAULT)(void* user_report_fault_context, const char* in
 
 typedef void(*FILE_WRITE_CB)(void* user_context, bool is_successful);
 typedef void(*FILE_READ_CB)(void* user_context, bool is_successful, CONSTBUFFER_HANDLE content);
-MOCKABLE_FUNCTION(, FILE_HANDLE, file_create,FILE_REPORT_FAULT, user_report_fault_callback, void*, user_report_fault_context, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name);
+
+MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name, FILE_REPORT_FAULT, user_report_fault_callback, void*, user_report_fault_context);
 MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
-MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, CONSTBUFFER_HANDLE, source, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(0, MU_FAILURE);
-MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_HANDLE, handle, uint32_t, size, uint64_t, position, FILE_READ_CB, user_callback, void*, user_context)(0, MU_FAILURE);
-MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend_filesize, FILE_HANDLE, handle, uint64_t, desired_size, bool, has_manage_volume)(0, MU_FAILURE);
+
+MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, CONSTBUFFER_HANDLE, source, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(FILE_WRITE_ASYNC_OK, FILE_WRITE_ASYNC_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_HANDLE, handle, uint32_t, size, uint64_t, position, FILE_READ_CB, user_callback, void*, user_context)(FILE_READ_ASYNC_OK, FILE_READ_ASYNC_ERROR);
+
+MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend, FILE_HANDLE, handle, uint64_t, desired_size)(0, MU_FAILURE);
 ```
 
 ## file_create
@@ -46,7 +49,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend_filesize, FILE_HANDLE, handle,
 MOCKABLE_FUNCTION(, FILE_HANDLE, file_create,FILE_REPORT_FAULT, user_report_fault_callback, void*, user_report_fault_context, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name);
 ```
 
-`file_create` creates a file by the name of `full_file_name` it doesn't exist. `file_create` opens a file by the name `full_file_name` and returns its file handle.
+If a file by the name `full_file_name` does not exist, `file_create` creates a file by that name, opens it and returns its handle. If the file does exist, `file_create` opens the file and returns its handle.
 
 **SRS_FILE_43_033: [** If `execution_engine` is `NULL`, `file_create` shall fail and return `NULL`. **]**
 
@@ -57,6 +60,8 @@ MOCKABLE_FUNCTION(, FILE_HANDLE, file_create,FILE_REPORT_FAULT, user_report_faul
 **SRS_FILE_43_003: [** If a file with name `full_file_name` does not exist, `file_create` shall create a file with that name.**]**
 
 **SRS_FILE_43_001: [** `file_create` shall open the file named `full_file_name` for asynchronous operations and return its handle. **]**
+
+**SRS_FILE_43_038: [** `file_create` shall register `user_report_fault_callback` with argument `user_report_fault_context` as the callback function to be called when the callback specified by the user for a specific asynchronous operation cannot be called. **]**
 
 **SRS_FILE_43_034: [** If there are any failures, `file_create` shall fail and return `NULL`. **]**
 
@@ -77,14 +82,16 @@ MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 ## file_write_async
 
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, CONSTBUFFER_HANDLE, source, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(0, MU_FAILURE);
+MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, CONSTBUFFER_HANDLE, source, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(FILE_WRITE_ASYNC_OK, FILE_WRITE_ASYNC_ERROR);
 ```
 
-`file_write_async` issues an asynchronous write request.
+`file_write_async` issues an asynchronous write request. If the write goes beyond the size of the file, the file grows to accomodate the write. On linux, the grow-and-write is atomic. On Windows, ...(waiting for response from Windows 32-bit Sys Prgrmmg Questions).
 
 **SRS_FILE_43_009: [** If `handle` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
 
 **SRS_FILE_43_010: [** If `source` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
+
+**SRS_FILE_43_040: [** If `position` is greater than `INT64_MAX`, then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
 
 **SRS_FILE_43_012: [** If `user_callback` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
 
@@ -101,7 +108,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE
 ## file_read_async
 
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_HANDLE, handle, uint32_t, size, uint64_t, position, FILE_READ_CB, user_callback, void*, user_context)(0, MU_FAILURE);
+MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_HANDLE, handle, uint32_t, size, uint64_t, position, FILE_READ_CB, user_callback, void*, user_context)(FILE_READ_ASYNC_OK, FILE_READ_ASYNC_ERROR);
 ```
 
 `file_read_async` issues an asynchronous read request.
@@ -116,28 +123,30 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_H
 
 **SRS_FILE_43_036: [** If the call to read the file fails, `file_read_async` shall fail and return `FILE_READ_ASYNC_READ_ERROR`. **]**
 
-**SRS_FILE_43_016: [** `file_read_async` shall call `user_call_back` passing `user_context` and `success` depending on the success of the asynchronous write operation.**]**
+**SRS_FILE_43_039: [** If `position` + `size` exceeds the size of the file, `user_callback` shall be called with `success` as `false`. **]**
+
+**SRS_FILE_43_016: [** `file_read_async` shall call `user_callback` passing `user_context` and `success` depending on the success of the asynchronous write operation.**]**
 
 **SRS_FILE_43_022: [** If there are any failures then `file_read_async` shall fail and return `FILE_READ_ASYNC_ERROR`. **]**
 
 **SRS_FILE_43_031: [** `file_read_async` shall succeed and return `FILE_READ_ASYNC_OK`. **]**
 
-## file_extend_filesize
+## file_extend
 
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend_filesize, FILE_HANDLE, handle, uint64_t, desired_size, bool, has_manage_volume)(0, MU_FAILURE);
+MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend, FILE_HANDLE, handle, uint64_t, desired_size)(0, MU_FAILURE);
 ```
 
-`file_extend_filesize` resizes the file to `desired_size`.
+`file_extend` grows the file to `desired_size`.
 
-**SRS_FILE_43_024: [** If `handle` is `NULL`, `file_extend_filesize` shall return a non-zero value. **]**
+**SRS_FILE_43_024: [** If `handle` is `NULL`, `file_extend` shall return a non-zero value. **]**
 
-**SRS_FILE_43_025: [** If `desired_size` is greater than `INT64_MAX`, `file_extend_filesize` shall return a non-zero value. **]**
+**SRS_FILE_43_025: [** If `desired_size` is greater than `INT64_MAX`, `file_extend` shall return a non-zero value. **]**
 
-**SRS_FILE_43_026: [** If `desired_size` is less than the current size of the file, `file_extend_filesize` shall return a non-zero value. **]**
+**SRS_FILE_43_026: [** If `desired_size` is less than the current size of the file, `file_extend` shall return a non-zero value. **]**
 
-**SRS_FILE_43_027: [** If `has_manage_volume` is `true`, `file_extend_filesize` shall set the valid file data size of the given file to `desired_size`. **]**
+**SRS_FILE_43_027: [** `file_extend` shall set the valid file data size of the given file to `desired_size`. **]**
 
-**SRS_FILE_43_028: [** If there are any failures, `file_extend_filesize` shall return a non-zero value. **]**
+**SRS_FILE_43_028: [** If there are any failures, `file_extend` shall return a non-zero value. **]**
 
-**SRS_FILE_43_029: [** If there are no failures, `file_extend_filesize` will return `0`. **]**
+**SRS_FILE_43_029: [** If there are no failures, `file_extend` will return `0`. **]**

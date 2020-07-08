@@ -13,11 +13,17 @@ typedef struct FILE_HANDLE_DATA_TAG
     void* user_report_fault_context;
 }FILE_HANDLE_DATA;
 
-typedef struct FILE_LINUX_IO_TAG
+typedef struct FILE_LINUX_WRITE_TAG
 {
-    void* handle;
-    FILE_ASYNC_OPERATION type;
-    FILE_IO_DATA data;
-}FILE_LINUX_IO;
+    FILE_HANDLE_DATA handle;
+    FILE_WRITE_DATA_CONTEXT write_data;
+}FILE_LINUX_WRITE;
 
-static void on_file_io_complete_linux( FILE_LINUX_IO* io);
+typedef struct FILE_LINUX_READ_TAG
+{
+    FILE_HANDLE_DATA handle;
+    FILE_READ_DATA_CONTEXT read_data;
+}FILE_LINUX_READ;
+
+static void on_file_write_complete_linux( FILE_LINUX_WRITE* write_info);
+static void on_file_read_complete_linux( FILE_LINUX_READ* read_info);

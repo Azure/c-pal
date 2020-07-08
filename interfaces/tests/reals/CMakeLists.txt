@@ -24,4 +24,4 @@ endif()
 
 add_library(reals_pal_interface INTERFACE)
 target_include_directories(reals_pal_interface INTERFACE ${CMAKE_CURRENT_LIST_DIR})
-target_link_libraries(reals_pal_interface INTERFACE azure_c_logging pal_common)
+target_link_libraries(reals_pal_interface INTERFACE azure_c_logging pal_interfaces)

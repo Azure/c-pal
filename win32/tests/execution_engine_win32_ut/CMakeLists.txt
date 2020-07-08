@@ -18,7 +18,7 @@ set(${theseTestsName}_h_files
 ../../../interfaces/inc/execution_engine.h
 )
 
-build_c_tests(${theseTestsName} ON "tests/azure_c_pal/win32" ADDITIONAL_LIBS pal_interfaces pal_common)
+build_c_tests(${theseTestsName} ON "tests/azure_c_pal/win32" ADDITIONAL_LIBS pal_interfaces)
 
 set_target_properties(${theseTestsName}_exe PROPERTIES LINK_FLAGS "/ignore:4217")
 if(use_cppunittest)

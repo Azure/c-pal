@@ -16,8 +16,6 @@ set(pal_interfaces_h_files
     inc/string_utils.h
     inc/sync.h
     inc/file.h
-    inc/constbuffer.h
-    inc/buffer_.h
     inc/refcount.h
 )
 

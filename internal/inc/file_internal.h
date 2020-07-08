@@ -10,7 +10,6 @@
 #include <stdint.h>
 #endif
 
-#include "umock_c/umock_c_prod.h"
 #include "azure_macro_utils/macro_utils.h"
 #include "constbuffer.h"
 #include "file.h"
@@ -19,26 +18,20 @@
 extern "C" {
 #endif
 
-typedef struct FILE_WRITE_DATA_TAG
+typedef struct FILE_WRITE_DATA_CONTEXT_TAG
 {
     FILE_WRITE_CB user_callback;
     void* user_context;
     CONSTBUFFER_HANDLE source;
-}FILE_WRITE_DATA;
+}FILE_WRITE_DATA_CONTEXT;
 
-typedef struct FILE_READ_DATA_TAG
+typedef struct FILE_READ_DATA_CONTEXT_TAG
 {
     FILE_READ_CB user_callback;
     void* user_context;
     uint32_t size;
-    unsigned char* destination;
-}FILE_READ_DATA;
-
-typedef union FILE_IO_DATA_TAG
-{
-    FILE_READ_DATA read_data;
-    FILE_WRITE_DATA write_data;
-}FILE_IO_DATA;
+    CONSTBUFFER_HANDLE destination;
+}FILE_READ_DATA_CONTEXT;
 
 #define FILE_ASYNC_OPERATION_VALUES \
     FILE_ASYNC_WRITE, \
