@@ -109,31 +109,6 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
 
 /* gballoc_init */
 
-/* Tests_SRS_GBALLOC_01_002: [Upon initialization the total memory used and maximum total memory used tracked by the module shall be set to 0.] */
-TEST_FUNCTION(gballoc_init_resets_memory_used)
-{
-    //arrange
-    void* allocation;
-    gballoc_init();
-    allocation = malloc(OVERHEAD_SIZE);
-
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation);
-    gballoc_free(gballoc_malloc(1));
-
-    gballoc_deinit();
-
-    // act
-    gballoc_init();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 0, gballoc_getMaximumMemoryUsed());
-    ASSERT_ARE_EQUAL(size_t, 0, gballoc_getCurrentMemoryUsed());
-
-    ///cleanup
-    free(allocation);
-}
-
 /* Tests_SRS_GBALLOC_01_024: [gballoc_init shall initialize the gballoc module and return 0 upon success.] */
 /* Tests_SRS_GBALLOC_01_026: [gballoc_Init shall create a lock handle that will be used to make the other gballoc APIs thread-safe.] */
 TEST_FUNCTION(when_gballoc_init_calls_lock_init_and_it_succeeds_then_gballoc_init_succeeds)
@@ -234,7 +209,6 @@ TEST_FUNCTION(when_acquiring_the_lock_fails_gballoc_malloc_fails)
 }
 
 /* Tests_SRS_GBALLOC_01_003: [gballoc_malloc shall call the C99 malloc function and return its result.] */
-/* Tests_SRS_GBALLOC_01_004: [If the underlying malloc call is successful, gballoc_malloc shall increment the total memory used with the amount indicated by size.] */
 /* Tests_SRS_GBALLOC_01_030: [gballoc_malloc shall ensure thread safety by using the lock created by gballoc_Init.] */
 TEST_FUNCTION(gballoc_malloc_with_0_Size_Calls_Underlying_malloc)
 {
@@ -260,7 +234,6 @@ TEST_FUNCTION(gballoc_malloc_with_0_Size_Calls_Underlying_malloc)
     ASSERT_ARE_EQUAL(void_ptr, TEST_ALLOC_PTR1, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
-    ASSERT_ARE_EQUAL(size_t, 0, gballoc_getMaximumMemoryUsed());
 
     // cleanup
     gballoc_free(result);
@@ -268,8 +241,7 @@ TEST_FUNCTION(gballoc_malloc_with_0_Size_Calls_Underlying_malloc)
 }
 
 /* Tests_SRS_GBALLOC_01_003: [gballoc_malloc shall call the C99 malloc function and return its result.] */
-/* Tests_SRS_GBALLOC_01_004: [If the underlying malloc call is successful, gballoc_malloc shall increment the total memory used with the amount indicated by size.] */
-TEST_FUNCTION(gballoc_malloc_with_1_Size_Calls_Underlying_malloc_And_Increases_Max_Used)
+TEST_FUNCTION(gballoc_malloc_with_1_Size_Calls_Underlying_malloc)
 {
     // arrange
     void* result;
@@ -292,14 +264,13 @@ TEST_FUNCTION(gballoc_malloc_with_1_Size_Calls_Underlying_malloc_And_Increases_M
     // assert
     ASSERT_ARE_EQUAL(void_ptr, TEST_ALLOC_PTR1, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(size_t, 1, gballoc_getMaximumMemoryUsed());
 
     // cleanup
     gballoc_free(result);
     free(allocation);
 }
 
-/* Tests_SRS_GBALLOC_01_012: [When the underlying malloc call fails, gballoc_malloc shall return NULL and size should not be counted towards total memory used.] */
+/* Tests_SRS_GBALLOC_01_012: [When the underlying malloc call fails, gballoc_malloc shall return NULL.] */
 TEST_FUNCTION(When_malloc_Fails_Then_gballoc_malloc_fails_too)
 {
     // arrange
@@ -325,7 +296,6 @@ TEST_FUNCTION(When_malloc_Fails_Then_gballoc_malloc_fails_too)
     // assert
     ASSERT_IS_NULL(result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(size_t, 0, gballoc_getMaximumMemoryUsed());
 
     // cleanup
     free(allocation);
@@ -351,7 +321,6 @@ TEST_FUNCTION(When_allocating_memory_for_tracking_information_fails_Then_gballoc
     // assert
     ASSERT_IS_NULL(result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(size_t, 0, gballoc_getMaximumMemoryUsed());
 }
 
 /* Tests_SRS_GBALLOC_01_039: [If gballoc was not initialized gballoc_malloc shall simply call malloc without any memory tracking being performed.] */
@@ -391,7 +360,6 @@ TEST_FUNCTION(when_acquiring_the_lock_fails_gballoc_calloc_fails)
 }
 
 /* Tests_SRS_GBALLOC_01_020: [gballoc_calloc shall call the C99 calloc function and return its result.] */
-/* Tests_SRS_GBALLOC_01_021: [If the underlying calloc call is successful, gballoc_calloc shall increment the total memory used with nmemb*size.] */
 /* Tests_SRS_GBALLOC_01_031: [gballoc_calloc shall ensure thread safety by using the lock created by gballoc_Init] */
 TEST_FUNCTION(gballoc_calloc_with_0_Size_And_ItemCount_Calls_Underlying_calloc)
 {
@@ -416,7 +384,6 @@ TEST_FUNCTION(gballoc_calloc_with_0_Size_And_ItemCount_Calls_Underlying_calloc)
     // assert
     ASSERT_ARE_EQUAL(void_ptr, TEST_ALLOC_PTR1, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(size_t, 0, gballoc_getMaximumMemoryUsed());
 
     // cleanup
     gballoc_free(result);
@@ -424,8 +391,7 @@ TEST_FUNCTION(gballoc_calloc_with_0_Size_And_ItemCount_Calls_Underlying_calloc)
 }
 
 /* Tests_SRS_GBALLOC_01_020: [gballoc_calloc shall call the C99 calloc function and return its result.] */
-/* Tests_SRS_GBALLOC_01_021: [If the underlying calloc call is successful, gballoc_calloc shall increment the total memory used with nmemb*size.] */
-TEST_FUNCTION(gballoc_calloc_with_1_Item_Of_1_Size_Calls_Underlying_malloc_And_Increases_Max_Used)
+TEST_FUNCTION(gballoc_calloc_with_1_Item_Of_1_Size_Calls_Underlying_calloc)
 {
     // arrange
     void* result;
@@ -448,7 +414,6 @@ TEST_FUNCTION(gballoc_calloc_with_1_Item_Of_1_Size_Calls_Underlying_malloc_And_I
     // assert
     ASSERT_ARE_EQUAL(void_ptr, TEST_ALLOC_PTR1, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(size_t, 1, gballoc_getMaximumMemoryUsed());
 
     // cleanup
     gballoc_free(result);
@@ -456,8 +421,7 @@ TEST_FUNCTION(gballoc_calloc_with_1_Item_Of_1_Size_Calls_Underlying_malloc_And_I
 }
 
 /* Tests_SRS_GBALLOC_01_020: [gballoc_calloc shall call the C99 calloc function and return its result.] */
-/* Tests_SRS_GBALLOC_01_021: [If the underlying calloc call is successful, gballoc_calloc shall increment the total memory used with nmemb*size.] */
-TEST_FUNCTION(gballoc_calloc_with_1_Item_Of_0_Size_Calls_Underlying_malloc_And_Does_Not_Increase_Max_Used)
+TEST_FUNCTION(gballoc_calloc_with_1_Item_Of_0_Size_Calls_Underlying_calloc_And_Does_Not_Increase_Max_Used)
 {
     // arrange
     void* result;
@@ -480,7 +444,6 @@ TEST_FUNCTION(gballoc_calloc_with_1_Item_Of_0_Size_Calls_Underlying_malloc_And_D
     // assert
     ASSERT_ARE_EQUAL(void_ptr, TEST_ALLOC_PTR1, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(size_t, 0, gballoc_getMaximumMemoryUsed());
 
     // cleanup
     gballoc_free(result);
@@ -488,8 +451,7 @@ TEST_FUNCTION(gballoc_calloc_with_1_Item_Of_0_Size_Calls_Underlying_malloc_And_D
 }
 
 /* Tests_SRS_GBALLOC_01_020: [gballoc_calloc shall call the C99 calloc function and return its result.] */
-/* Tests_SRS_GBALLOC_01_021: [If the underlying calloc call is successful, gballoc_calloc shall increment the total memory used with nmemb*size.] */
-TEST_FUNCTION(gballoc_calloc_with_0_Items_Of_1_Size_Calls_Underlying_malloc_And_Does_Not_Increase_Max_Used)
+TEST_FUNCTION(gballoc_calloc_with_0_Items_Of_1_Size_Calls_Underlying_calloc)
 {
     // arrange
     void* result;
@@ -512,7 +474,6 @@ TEST_FUNCTION(gballoc_calloc_with_0_Items_Of_1_Size_Calls_Underlying_malloc_And_
     // assert
     ASSERT_ARE_EQUAL(void_ptr, TEST_ALLOC_PTR1, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(size_t, 0, gballoc_getMaximumMemoryUsed());
 
     // cleanup
     gballoc_free(result);
@@ -520,8 +481,7 @@ TEST_FUNCTION(gballoc_calloc_with_0_Items_Of_1_Size_Calls_Underlying_malloc_And_
 }
 
 /* Tests_SRS_GBALLOC_01_020: [gballoc_calloc shall call the C99 calloc function and return its result.] */
-/* Tests_SRS_GBALLOC_01_021: [If the underlying calloc call is successful, gballoc_calloc shall increment the total memory used with nmemb*size.] */
-TEST_FUNCTION(gballoc_calloc_with_42_Items_Of_2_Size_Calls_Underlying_malloc_And_Increases_Max_Size)
+TEST_FUNCTION(gballoc_calloc_with_42_Items_Of_2_Size_Calls_Underlying_calloc)
 {
     // arrange
     void* result;
@@ -544,14 +504,13 @@ TEST_FUNCTION(gballoc_calloc_with_42_Items_Of_2_Size_Calls_Underlying_malloc_And
     // assert
     ASSERT_ARE_EQUAL(void_ptr, TEST_ALLOC_PTR1, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(size_t, 84, gballoc_getMaximumMemoryUsed());
 
     // cleanup
     gballoc_free(result);
     free(allocation);
 }
 
-/* Tests_SRS_GBALLOC_01_022: [When the underlying calloc call fails, gballoc_calloc shall return NULL and size should not be counted towards total memory used.] */
+/* Tests_SRS_GBALLOC_01_022: [When the underlying calloc call fails, gballoc_calloc shall return NULL.] */
 TEST_FUNCTION(When_calloc_Fails_Then_gballoc_calloc_fails_too)
 {
     // arrange
@@ -577,7 +536,6 @@ TEST_FUNCTION(When_calloc_Fails_Then_gballoc_calloc_fails_too)
     // assert
     ASSERT_IS_NULL(result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(size_t, 0, gballoc_getMaximumMemoryUsed());
 
     // cleanup
     free(allocation);
@@ -603,7 +561,6 @@ TEST_FUNCTION(When_allocating_memory_for_tracking_information_fails_Then_gballoc
     // assert
     ASSERT_IS_NULL(result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(size_t, 0, gballoc_getMaximumMemoryUsed());
 }
 
 /* Tests_SRS_GBALLOC_01_040: [If gballoc was not initialized gballoc_calloc shall simply call calloc without any memory tracking being performed.] */
@@ -684,7 +641,6 @@ TEST_FUNCTION(gballoc_realloc_with_NULL_Arg_And_0_Size_Calls_Underlying_realloc)
     // assert
     ASSERT_ARE_EQUAL(void_ptr, TEST_ALLOC_PTR1, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(size_t, 0, gballoc_getMaximumMemoryUsed());
 
     // cleanup
     gballoc_free(result);
@@ -716,7 +672,6 @@ TEST_FUNCTION(gballoc_realloc_with_NULL_Arg_And_1_Size_Calls_Underlying_realloc)
     // assert
     ASSERT_ARE_EQUAL(void_ptr, TEST_ALLOC_PTR1, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(size_t, 1, gballoc_getMaximumMemoryUsed());
 
     // cleanup
     gballoc_free(result);
@@ -724,7 +679,6 @@ TEST_FUNCTION(gballoc_realloc_with_NULL_Arg_And_1_Size_Calls_Underlying_realloc)
 }
 
 /* Tests_SRS_GBALLOC_01_005: [gballoc_realloc shall call the C99 realloc function and return its result.] */
-/* Tests_SRS_GBALLOC_01_006: [If the underlying realloc call is successful, gballoc_realloc shall look up the size associated with the pointer ptr and decrease the total memory used with that size.] */
 TEST_FUNCTION(gballoc_realloc_with_Previous_1_Byte_Block_Ptr_And_2_Size_Calls_Underlying_realloc_And_Increases_Max_Used_Memory)
 {
     // arrange
@@ -754,14 +708,13 @@ TEST_FUNCTION(gballoc_realloc_with_Previous_1_Byte_Block_Ptr_And_2_Size_Calls_Un
     // assert
     ASSERT_ARE_EQUAL(void_ptr, TEST_ALLOC_PTR2, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(size_t, 2, gballoc_getMaximumMemoryUsed());
 
     // cleanup
     gballoc_free(result);
     free(allocation);
 }
 
-/* Tests_SRS_GBALLOC_01_014: [When the underlying realloc call fails, gballoc_realloc shall return NULL and no change should be made to the counted total memory usage.] */
+/* Tests_SRS_GBALLOC_01_014: [When the underlying realloc call fails, gballoc_realloc shall return NULL.] */
 TEST_FUNCTION(When_realloc_fails_then_gballoc_realloc_Fails_Too_And_No_Change_Is_Made_To_Memory_Counters)
 {
     // arrange
@@ -791,14 +744,13 @@ TEST_FUNCTION(When_realloc_fails_then_gballoc_realloc_Fails_Too_And_No_Change_Is
     // assert
     ASSERT_IS_NULL(result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(size_t, 1, gballoc_getMaximumMemoryUsed());
 
     // cleanup
     gballoc_free(TEST_ALLOC_PTR1);
     free(allocation);
 }
 
-/* Tests_SRS_GBALLOC_01_015: [When allocating memory used for tracking by gballoc_realloc fails, gballoc_realloc shall return NULL and no change should be made to the counted total memory usage.] */
+/* Tests_SRS_GBALLOC_01_015: [When allocating memory used for tracking by gballoc_realloc fails, gballoc_realloc shall return NULL.] */
 TEST_FUNCTION(When_Allocating_Memory_For_tracking_fails_gballoc_realloc_fails)
 {
     // arrange
@@ -818,7 +770,6 @@ TEST_FUNCTION(When_Allocating_Memory_For_tracking_fails_gballoc_realloc_fails)
     // assert
     ASSERT_IS_NULL(result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(size_t, 0, gballoc_getMaximumMemoryUsed());
 }
 
 /* Tests_SRS_GBALLOC_01_016: [When the ptr pointer cannot be found in the pointers tracked by gballoc, gballoc_realloc shall return NULL and the underlying realloc shall not be called.] */
@@ -850,14 +801,13 @@ TEST_FUNCTION(When_The_Pointer_Is_Not_Tracked_gballoc_realloc_Returns_NULL)
     // assert
     ASSERT_IS_NULL(result2);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(size_t, 1, gballoc_getMaximumMemoryUsed());
 
     // cleanup
     gballoc_free(result1);
     free(allocation);
 }
 
-/* Tests_SRS_GBALLOC_01_014: [When the underlying realloc call fails, gballoc_realloc shall return NULL and no change should be made to the counted total memory usage.] */
+/* Tests_SRS_GBALLOC_01_014: [When the underlying realloc call fails, gballoc_realloc shall return NULL.] */
 TEST_FUNCTION(When_ptr_is_null_and_the_underlying_realloc_fails_then_the_memory_used_for_tracking_is_freed)
 {
     // arrange
@@ -883,7 +833,6 @@ TEST_FUNCTION(When_ptr_is_null_and_the_underlying_realloc_fails_then_the_memory_
     // assert
     ASSERT_IS_NULL(result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(size_t, 0, gballoc_getMaximumMemoryUsed());
 
     // cleanup
     free(allocation);
@@ -937,9 +886,7 @@ TEST_FUNCTION(when_acquiring_the_lock_fails_then_gballoc_free_does_nothing)
 }
 
 /* Tests_SRS_GBALLOC_01_008: [gballoc_free shall call the C99 free function.] */
-/* Tests_SRS_GBALLOC_01_009: [gballoc_free shall also look up the size associated with the ptr pointer and decrease the total memory used with the associated size amount.] */
-/* Tests_SRS_GBALLOC_01_010: [gballoc_getMaximumMemoryUsed shall return the maximum amount of total memory used recorded since the module initialization.] */
-/* Tests_SRS_GBALLOC_01_011: [The maximum total memory used shall be the maximum of the total memory used at any point.] */
+/* Tests_SRS_GBALLOC_01_009: [gballoc_free shall also look up the size associated with the ptr pointer and release the used memory.] */
 /* Tests_SRS_GBALLOC_01_033: [gballoc_free shall ensure thread safety by using the lock created by gballoc_Init.] */
 TEST_FUNCTION(gballoc_free_calls_the_underlying_free)
 {
@@ -968,17 +915,13 @@ TEST_FUNCTION(gballoc_free_calls_the_underlying_free)
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(size_t, 1, gballoc_getMaximumMemoryUsed());
 
     // cleanup
     free(allocation);
 }
 
 /* Tests_SRS_GBALLOC_01_008: [gballoc_free shall call the C99 free function.] */
-/* Tests_SRS_GBALLOC_01_009: [gballoc_free shall also look up the size associated with the ptr pointer and decrease the total memory used with the associated size amount.] */
-/* Tests_SRS_GBALLOC_01_010: [gballoc_getMaximumMemoryUsed shall return the maximum amount of total memory used recorded since the module initialization.] */
-/* Tests_SRS_GBALLOC_01_010: [gballoc_getMaximumMemoryUsed shall return the maximum amount of total memory used recorded since the module initialization.] */
-/* Tests_SRS_GBALLOC_01_011: [The maximum total memory used shall be the maximum of the total memory used at any point.] */
+/* Tests_SRS_GBALLOC_01_009: [gballoc_free shall also look up the size associated with the ptr pointer and release the used memory.] */
 TEST_FUNCTION(gballoc_malloc_free_2_times_with_1_byte_yields_1_byte_as_max)
 {
     // arrange
@@ -1012,14 +955,13 @@ TEST_FUNCTION(gballoc_malloc_free_2_times_with_1_byte_yields_1_byte_as_max)
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(size_t, 1, gballoc_getMaximumMemoryUsed());
 
     // cleanup
     free(allocation);
 }
 
 /* Tests_SRS_GBALLOC_01_019:[When the ptr pointer cannot be found in the pointers tracked by gballoc, gballoc_free shall not free any memory.] */
-TEST_FUNCTION(gballoc_free_with_an_untracked_pointer_does_not_alter_total_memory_used)
+TEST_FUNCTION(gballoc_free_with_an_untracked_pointer)
 {
     // arrange
     void* allocation;
@@ -1044,789 +986,9 @@ TEST_FUNCTION(gballoc_free_with_an_untracked_pointer_does_not_alter_total_memory
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     gballoc_realloc(TEST_ALLOC_PTR1, 2);
-    ASSERT_ARE_EQUAL(size_t, 2, gballoc_getMaximumMemoryUsed());
 
     // cleanup
     gballoc_free(TEST_ALLOC_PTR1);
-    free(allocation);
-}
-
-/* gballoc_getMaximumMemoryUsed */
-
-
-/* Tests_SRS_GBALLOC_01_034: [gballoc_getMaximumMemoryUsed shall ensure thread safety by using the lock created by gballoc_Init.] */
-TEST_FUNCTION(when_gballoc_getMaximumMemoryUsed_called_It_Shall_Lock_And_Unlock)
-{
-    // arrange
-    gballoc_init();
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-    // act
-    (void)gballoc_getMaximumMemoryUsed();
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* Tests_SRS_GBALLOC_01_050: [If the lock cannot be acquired, gballoc_getMaximumMemoryUsed shall return SIZE_MAX.] */
-TEST_FUNCTION(when_acquiring_the_lock_fails_then_gballoc_getMaximumMemoryUsed_fails)
-{
-    // arrange
-    size_t result;
-    gballoc_init();
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE))
-        .SetReturn(LOCK_ERROR);
-
-    // act
-    result = gballoc_getMaximumMemoryUsed();
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(size_t, SIZE_MAX, result);
-}
-
-/* Tests_SRS_GBALLOC_01_038: [If gballoc was not initialized gballoc_getMaximumMemoryUsed shall return MAX_INT_SIZE.]  */
-TEST_FUNCTION(gballoc_getMaximumMemoryUsed_after_deinit_fails)
-{
-    // arrange
-
-    // act
-    size_t result = gballoc_getMaximumMemoryUsed();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, SIZE_MAX, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* gballoc_getCurrentMemoryUsed */
-
-/*Tests_SRS_GBALLOC_02_001: [gballoc_getCurrentMemoryUsed shall return the currently used memory size.] */
-TEST_FUNCTION(gballoc_getCurrentMemoryUsed_after_1_byte_malloc_returns_1)
-{
-    // arrange
-    void* allocation;
-    void* toBeFreed;
-    size_t result;
-    gballoc_init();
-    umock_c_reset_all_calls();
-
-    allocation = malloc(OVERHEAD_SIZE);
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation);
-    STRICT_EXPECTED_CALL(mock_malloc(1));
-    toBeFreed = gballoc_malloc(1);
-    umock_c_reset_all_calls();
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    // act
-    result = gballoc_getCurrentMemoryUsed();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 1, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///cleanup
-    gballoc_free(toBeFreed);
-    free(allocation);
-    umock_c_reset_all_calls(); //this is just for mathematics, not for functionality
-}
-
-/*Tests_SRS_GBALLOC_02_001: [gballoc_getCurrentMemoryUsed shall return the currently used memory size.] */
-TEST_FUNCTION(gballoc_getCurrentMemoryUsed_after_2x3_byte_calloc_returns_6)
-{
-    // arrange
-    void* allocation;
-    void* toBeFreed;
-    size_t result;
-    gballoc_init();
-    umock_c_reset_all_calls();
-    allocation = malloc(OVERHEAD_SIZE);
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation);
-    toBeFreed = gballoc_calloc(2, 3);
-    umock_c_reset_all_calls();
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    // act
-    result = gballoc_getCurrentMemoryUsed();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 6, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///cleanup
-    gballoc_free(toBeFreed);
-    free(allocation);
-    umock_c_reset_all_calls(); //this is just for mathematics, not for functionality
-}
-
-/*Tests_SRS_GBALLOC_02_001: [gballoc_getCurrentMemoryUsed shall return the currently used memory size.] */
-TEST_FUNCTION(gballoc_getCurrentMemoryUsed_after_1_byte_malloc_and_3_bytes_realloc_returns_3)
-{
-    // arrange
-    void* allocation;
-    void* toBeFreed;
-    size_t result;
-    gballoc_init();
-    umock_c_reset_all_calls();
-    allocation = malloc(OVERHEAD_SIZE);
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation);
-    STRICT_EXPECTED_CALL(mock_malloc(1));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    toBeFreed = gballoc_malloc(1);
-    toBeFreed = gballoc_realloc(toBeFreed, 3);
-    umock_c_reset_all_calls();
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    // act
-    result = gballoc_getCurrentMemoryUsed();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 3, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///cleanup
-    gballoc_free(toBeFreed);
-    free(allocation);
-    umock_c_reset_all_calls(); //this is just for mathematics, not for functionality
-}
-
-/*Tests_SRS_GBALLOC_02_001: [gballoc_getCurrentMemoryUsed shall return the currently used memory size.] */
-TEST_FUNCTION(gballoc_getCurrentMemoryUsed_after_1_byte_malloc_and_free_returns_0)
-{
-    // arrange
-    void* allocation;
-    void* toBeFreed;
-    size_t result;
-    gballoc_init();
-    umock_c_reset_all_calls();
-    allocation = malloc(OVERHEAD_SIZE);
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation);
-    STRICT_EXPECTED_CALL(mock_malloc(1));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    toBeFreed = gballoc_malloc(1);
-    gballoc_free(toBeFreed);
-    umock_c_reset_all_calls();
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    // act
-    result = gballoc_getCurrentMemoryUsed();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 0, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///cleanup
-    free(allocation);
-    umock_c_reset_all_calls(); //this is just for mathematics, not for functionality
-}
-
-/*Tests_SRS_GBALLOC_02_001: [gballoc_getCurrentMemoryUsed shall return the currently used memory size.] */
-TEST_FUNCTION(gballoc_getCurrentMemoryUsed_after_2x3_byte_calloc_and_free_returns_0)
-{
-    // arrange
-    void* allocation;
-    void* toBeFreed;
-    size_t result;
-    gballoc_init();
-    umock_c_reset_all_calls();
-    allocation = malloc(OVERHEAD_SIZE);
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation);
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    toBeFreed = gballoc_calloc(2, 3);
-    gballoc_free(toBeFreed);
-    umock_c_reset_all_calls();
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    // act
-    result = gballoc_getCurrentMemoryUsed();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 0, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///cleanup
-    free(allocation);
-    umock_c_reset_all_calls(); //this is just for mathematics, not for functionality
-}
-
-/*Tests_SRS_GBALLOC_02_001: [gballoc_getCurrentMemoryUsed shall return the currently used memory size.] */
-TEST_FUNCTION(gballoc_getCurrentMemoryUsed_after_realloc_and_free_returns_0)
-{
-    // arrange
-    void* allocation;
-    void* toBeFreed;
-    size_t result;
-    gballoc_init();
-    umock_c_reset_all_calls();
-    allocation = malloc(OVERHEAD_SIZE);
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation);
-    STRICT_EXPECTED_CALL(mock_malloc(1));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    toBeFreed = gballoc_malloc(1);
-    toBeFreed = gballoc_realloc(toBeFreed, 3);
-    gballoc_free(toBeFreed);
-    umock_c_reset_all_calls();
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    // act
-    result = gballoc_getCurrentMemoryUsed();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 0, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///cleanup
-    free(allocation);
-    umock_c_reset_all_calls(); //this is just for mathematics, not for functionality
-}
-
-/*Tests_SRS_GBALLOC_02_001: [gballoc_getCurrentMemoryUsed shall return the currently used memory size.] */
-TEST_FUNCTION(gballoc_getCurrentMemoryUsed_after_1_byte_malloc_and_1_byte_malloc_returns_2)
-{
-    // arrange
-    void* allocation1;
-    void* allocation2;
-    void* toBeFreed1;
-    void* toBeFreed2;
-    size_t result;
-    gballoc_init();
-    umock_c_reset_all_calls();
-
-    allocation1 = malloc(OVERHEAD_SIZE);
-    allocation2 = malloc(OVERHEAD_SIZE);
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation1);
-    STRICT_EXPECTED_CALL(mock_malloc(1));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation2);
-    STRICT_EXPECTED_CALL(mock_malloc(1));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    toBeFreed1 = gballoc_malloc(1);
-    toBeFreed2 = gballoc_malloc(1);
-    umock_c_reset_all_calls();
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    // act
-    result = gballoc_getCurrentMemoryUsed();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 2, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///cleanup
-    gballoc_free(toBeFreed1);
-    gballoc_free(toBeFreed2);
-    free(allocation1);
-    free(allocation2);
-    umock_c_reset_all_calls(); //this is just for mathematics, not for functionality
-}
-
-/*Tests_SRS_GBALLOC_02_001: [gballoc_getCurrentMemoryUsed shall return the currently used memory size.] */
-TEST_FUNCTION(gballoc_getCurrentMemoryUsed_after_1_byte_malloc_and_1_byte_malloc_and_3_realloc_returns_4)
-{
-    // arrange
-    void* allocation1;
-    void* allocation2;
-    void* toBeFreed1;
-    void* toBeFreed2;
-    size_t result;
-    gballoc_init();
-    umock_c_reset_all_calls();
-
-    allocation1 = malloc(OVERHEAD_SIZE);
-    allocation2 = malloc(OVERHEAD_SIZE);
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation1);
-    STRICT_EXPECTED_CALL(mock_malloc(1));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation2);
-    STRICT_EXPECTED_CALL(mock_malloc(1));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    toBeFreed1 = gballoc_malloc(1);
-    toBeFreed2 = gballoc_malloc(1);
-    toBeFreed2 = gballoc_realloc(toBeFreed2, 3);
-    umock_c_reset_all_calls();
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    // act
-    result = gballoc_getCurrentMemoryUsed();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 4, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///cleanup
-    gballoc_free(toBeFreed1);
-    gballoc_free(toBeFreed2);
-    free(allocation1);
-    free(allocation2);
-    umock_c_reset_all_calls(); //this is just for mathematics, not for functionality
-}
-
-/*Tests_SRS_GBALLOC_02_001: [gballoc_getCurrentMemoryUsed shall return the currently used memory size.] */
-TEST_FUNCTION(gballoc_getCurrentMemoryUsed_after_1_byte_malloc_and_6_byte_calloc_returns_7)
-{
-    // arrange
-    void* allocation1;
-    void* allocation2;
-    void* toBeFreed1;
-    void* toBeFreed2;
-    size_t result;
-    gballoc_init();
-    umock_c_reset_all_calls();
-
-    allocation1 = malloc(OVERHEAD_SIZE);
-    allocation2 = malloc(OVERHEAD_SIZE);
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation1);
-    STRICT_EXPECTED_CALL(mock_malloc(1));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation2);
-    STRICT_EXPECTED_CALL(mock_calloc(2, 3));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    toBeFreed1 = gballoc_malloc(1);
-    toBeFreed2 = gballoc_calloc(2, 3);
-    umock_c_reset_all_calls();
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    // act
-    result = gballoc_getCurrentMemoryUsed();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 7, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///cleanup
-    gballoc_free(toBeFreed1);
-    gballoc_free(toBeFreed2);
-    free(allocation1);
-    free(allocation2);
-    umock_c_reset_all_calls(); //this is just for mathematics, not for functionality
-}
-
-/*Tests_SRS_GBALLOC_02_001: [gballoc_getCurrentMemoryUsed shall return the currently used memory size.] */
-TEST_FUNCTION(gballoc_getCurrentMemoryUsed_after_1_byte_malloc_and_6_byte_calloc_and_free_returns_6)
-{
-    // arrange
-    void* allocation1;
-    void* allocation2;
-    void* toBeFreed1;
-    void* toBeFreed2;
-    size_t result;
-    gballoc_init();
-    umock_c_reset_all_calls();
-    allocation1 = malloc(OVERHEAD_SIZE);
-    allocation2 = malloc(OVERHEAD_SIZE);
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation1);
-    STRICT_EXPECTED_CALL(mock_malloc(1))
-        .SetReturn((char*)allocation1 + OVERHEAD_SIZE / 2); /*somewhere in the middle of allocation*/
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation2);
-    STRICT_EXPECTED_CALL(mock_calloc(2, 3))
-        .SetReturn((char*)allocation2 + OVERHEAD_SIZE / 2);
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    toBeFreed1 = gballoc_malloc(1);
-    toBeFreed2 = gballoc_calloc(2, 3);
-    gballoc_free(toBeFreed1);
-    umock_c_reset_all_calls();
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    // act
-    result = gballoc_getCurrentMemoryUsed();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 6, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///cleanup
-    gballoc_free(toBeFreed2);
-    free(allocation1);
-    free(allocation2);
-    umock_c_reset_all_calls(); //this is just for mathematics, not for functionality
-}
-
-/*Tests_SRS_GBALLOC_02_001: [gballoc_getCurrentMemoryUsed shall return the currently used memory size.] */
-TEST_FUNCTION(gballoc_getCurrentMemoryUsed_after_1_byte_malloc_and_1_byte_malloc_and_3_realloc_and_free_returns_3)
-{
-    // arrange
-    void* allocation1;
-    void* allocation2;
-    void* toBeFreed1;
-    void* toBeFreed2;
-    size_t result;
-    gballoc_init();
-    umock_c_reset_all_calls();
-    allocation1 = malloc(OVERHEAD_SIZE);
-    allocation2 = malloc(OVERHEAD_SIZE);
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation1);
-    STRICT_EXPECTED_CALL(mock_malloc(1))
-        .SetReturn((char*)allocation1 + OVERHEAD_SIZE / 2); /*somewhere in the middle of allocation*/
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation2);
-    STRICT_EXPECTED_CALL(mock_realloc(IGNORED_ARG, 3))
-        .IgnoreArgument(1)
-        .SetReturn((char*)allocation2 + OVERHEAD_SIZE / 2); /*somewhere in the middle of allocation*/
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    toBeFreed1 = gballoc_malloc(1);
-    toBeFreed2 = gballoc_malloc(1);
-    toBeFreed2 = gballoc_realloc(toBeFreed2, 3);
-    gballoc_free(toBeFreed1);
-    umock_c_reset_all_calls();
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    // act
-    result = gballoc_getCurrentMemoryUsed();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 3, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///cleanup
-    gballoc_free(toBeFreed2);
-    free(allocation1);
-    free(allocation2);
-    umock_c_reset_all_calls(); //this is just for mathematics, not for functionality
-}
-
-/* Tests_SRS_GBALLOC_01_036: [gballoc_getCurrentMemoryUsed shall ensure thread safety by using the lock created by gballoc_Init.] */
-TEST_FUNCTION(gballoc_getCurrentMemoryUsed_locks_and_unlocks)
-{
-    // assert
-    size_t result;
-    gballoc_init();
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    // act
-    result = gballoc_getCurrentMemoryUsed();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 0, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* Tests_SRS_GBALLOC_01_044: [If gballoc was not initialized gballoc_getCurrentMemoryUsed shall return SIZE_MAX.] */
-TEST_FUNCTION(gballoc_getCurrentMemoryUsed_after_deinit_fails)
-{
-    // arrange
-
-    // act
-    size_t result = gballoc_getCurrentMemoryUsed();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, SIZE_MAX, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* Tests_SRS_GBALLOC_01_051: [If the lock cannot be acquired, gballoc_getCurrentMemoryUsed shall return SIZE_MAX.] */
-TEST_FUNCTION(when_acquiring_the_lock_fails_gballoc_getCurrentMemoryUsed_fails)
-{
-    // arrange
-    size_t result;
-    gballoc_init();
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE))
-        .SetReturn(LOCK_ERROR);
-
-    // act
-    result = gballoc_getCurrentMemoryUsed();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, SIZE_MAX, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* Tests_SRS_GBALLOC_07_001: [ If gballoc was not initialized gballoc_getAllocationCount shall return SIZE_MAX. ] */
-TEST_FUNCTION(gballoc_getAllocationCount_without_init_fail)
-{
-    // arrange
-    size_t result;
-
-    // act
-    result = gballoc_getAllocationCount();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 0, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* Tests_SRS_GBALLOC_07_003: [ If the lock cannot be acquired, gballoc_getAllocationCount shall return SIZE_MAX. ] */
-TEST_FUNCTION(gballoc_getAllocationCount_lock_fail)
-{
-    // arrange
-    size_t result;
-    gballoc_init();
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE))
-        .SetReturn(LOCK_ERROR);
-
-    // act
-    result = gballoc_getAllocationCount();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 0, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* Tests_SRS_GBALLOC_07_004: [ gballoc_getAllocationCount shall return the currently number of allocations. ] */
-/* Tests_SRS_GBALLOC_07_002: [ gballoc_getAllocationCount shall ensure thread safety by using the lock created by gballoc_Init ] */
-TEST_FUNCTION(gballoc_getAllocationCount_success)
-{
-    // arrange
-    void* allocation;
-    void* toBeFreed;
-    size_t result;
-    gballoc_init();
-    umock_c_reset_all_calls();
-
-    allocation = malloc(OVERHEAD_SIZE);
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation);
-    STRICT_EXPECTED_CALL(mock_malloc(1));
-    toBeFreed = gballoc_malloc(1);
-    umock_c_reset_all_calls();
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    // act
-    result = gballoc_getAllocationCount();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 1, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    // Cleanup
-    gballoc_free(toBeFreed);
-    free(allocation);
-}
-
-TEST_FUNCTION(gballoc_resetMetrics_without_init_fail)
-{
-    // arrange
-
-    // act
-    gballoc_resetMetrics();
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* Tests_SRS_GBALLOC_07_003: [ If the lock cannot be acquired, gballoc_getAllocationCount shall return SIZE_MAX. ] */
-TEST_FUNCTION(gballoc_resetMetrics_lock_fail)
-{
-    // arrange
-    gballoc_init();
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE))
-        .SetReturn(LOCK_ERROR);
-
-    // act
-    gballoc_resetMetrics();
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* Tests_SRS_GBALLOC_07_004: [ gballoc_getAllocationCount shall return the currently number of allocations. ] */
-/* Tests_SRS_GBALLOC_07_002: [ gballoc_getAllocationCount shall ensure thread safety by using the lock created by gballoc_Init ] */
-/* Tests_SRS_GBALLOC_07_006: [ gballoc_resetMetrics shall ensure thread safety by using the lock created by gballoc_Init ]*/
-/* Tests_SRS_GBALLOC_07_008: [ gballoc_resetMetrics shall reset the total allocation size, max allocation size and number of allocation to zero. ] */
-TEST_FUNCTION(gballoc_resetMetrics_success)
-{
-    // arrange
-    void* allocation;
-    void* toBeFreed;
-    size_t mem_used;
-    size_t alloc_count;
-    gballoc_init();
-    umock_c_reset_all_calls();
-
-    allocation = malloc(OVERHEAD_SIZE);
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation);
-    STRICT_EXPECTED_CALL(mock_malloc(1));
-    toBeFreed = gballoc_malloc(1);
-    umock_c_reset_all_calls();
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    alloc_count = gballoc_getAllocationCount();
-    ASSERT_ARE_EQUAL(size_t, 1, alloc_count);
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    // act
-    gballoc_resetMetrics();
-    mem_used = gballoc_getCurrentMemoryUsed();
-    alloc_count = gballoc_getAllocationCount();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 0, mem_used);
-    ASSERT_ARE_EQUAL(size_t, 0, alloc_count);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    // Cleanup
-    gballoc_free(toBeFreed);
-    free(allocation);
-}
-
-/* Tests_SRS_GBALLOC_07_007: [** If the lock cannot be acquired, gballoc_reset Metrics shall do nothing.]*/
-TEST_FUNCTION(when_lock_cannot_be_acquired_gballoc_resetMetrics_returns)
-{
-    // arrange
-    void* allocation;
-    void* toBeFreed;
-    size_t mem_used;
-    size_t alloc_count;
-    gballoc_init();
-    umock_c_reset_all_calls();
-
-    allocation = malloc(OVERHEAD_SIZE);
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation);
-    STRICT_EXPECTED_CALL(mock_malloc(1));
-    toBeFreed = gballoc_malloc(1);
-    umock_c_reset_all_calls();
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    alloc_count = gballoc_getAllocationCount();
-    ASSERT_ARE_EQUAL(size_t, 1, alloc_count);
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE))
-        .SetReturn(LOCK_ERROR);
-
-    // act
-    gballoc_resetMetrics();
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    mem_used = gballoc_getCurrentMemoryUsed();
-    alloc_count = gballoc_getAllocationCount();
-
-    // assert
-    ASSERT_ARE_NOT_EQUAL(size_t, 0, mem_used);
-    ASSERT_ARE_EQUAL(size_t, 1, alloc_count);
-
-    // Cleanup
-    gballoc_free(toBeFreed);
-    free(allocation);
-}
-
-/* Tests_SRS_GBALLOC_01_007: [If realloc is successful, gballoc_realloc shall also increment the total memory used value tracked by this module.] */
-TEST_FUNCTION(gballoc_realloc_increases_tracked_usage)
-{
-    // arrange
-    void* allocation;
-    void* toBeFreed;
-    size_t alloc_count;
-    gballoc_init();
-    umock_c_reset_all_calls();
-
-    allocation = malloc(OVERHEAD_SIZE);
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation);
-    STRICT_EXPECTED_CALL(mock_malloc(1));
-    toBeFreed = gballoc_malloc(1);
-    umock_c_reset_all_calls();
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    alloc_count = gballoc_getAllocationCount();
-    ASSERT_ARE_EQUAL(size_t, 1, alloc_count);
-    size_t first_memory_usage = gballoc_getCurrentMemoryUsed();
-
-    // act
-    toBeFreed = gballoc_realloc(toBeFreed, 2);
-
-    // assert
-    ASSERT_IS_TRUE(gballoc_getCurrentMemoryUsed() > first_memory_usage);
-    ASSERT_ARE_EQUAL(size_t, 1, gballoc_getAllocationCount());
-
-    // Cleanup
-    gballoc_free(toBeFreed);
     free(allocation);
 }
 
