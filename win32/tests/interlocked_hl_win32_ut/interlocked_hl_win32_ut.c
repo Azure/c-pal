@@ -31,7 +31,7 @@ static TEST_MUTEX_HANDLE g_testByTest;
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_stdint.h"
 
-#include "interlocked_hl.h"
+#include "azure_c_pal/interlocked_hl.h"
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)

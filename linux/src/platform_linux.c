@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#include "platform.h"
+#include "azure_c_pal/platform.h"
 
 int platform_init(void)
 {

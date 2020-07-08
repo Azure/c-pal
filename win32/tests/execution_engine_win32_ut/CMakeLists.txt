@@ -15,7 +15,7 @@ execution_engine_win32_mocked.c
 
 set(${theseTestsName}_h_files
 ../../inc/execution_engine_win32.h
-../../../interfaces/inc/execution_engine.h
+../../../interfaces/inc/azure_c_pal/execution_engine.h
 )
 
 build_c_tests(${theseTestsName} ON "tests/azure_c_pal/win32" ADDITIONAL_LIBS pal_interfaces pal_common)

@@ -12,10 +12,10 @@
 #endif
 
 #include "testrunnerswitcher.h"
-#include "interlocked.h"
-#include "threadapi.h"
-#include "sync.h"
-#include "timer.h"
+#include "azure_c_pal/interlocked.h"
+#include "azure_c_pal/threadapi.h"
+#include "azure_c_pal/sync.h"
+#include "azure_c_pal/timer.h"
 
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES)
 

@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "azure_macro_utils/macro_utils.h"
-#include "platform.h"
+#include "azure_c_pal/platform.h"
 #include "azure_c_logging/xlogging.h"
 #include "winsock2.h"
 #include "minwindef.h"

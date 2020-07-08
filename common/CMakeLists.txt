@@ -1,7 +1,7 @@
 #Copyright (C) Microsoft Corporation. All rights reserved.
 
 set(pal_common_h_files
-    inc/gballoc.h
+    inc/azure_c_pal/gballoc.h
 )
 
 set(pal_common_c_files

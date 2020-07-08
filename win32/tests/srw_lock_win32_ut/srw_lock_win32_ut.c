@@ -26,8 +26,8 @@ static void my_gballoc_free(void* s)
 #include "umock_c/umocktypes.h"
 
 #define ENABLE_MOCKS
-#include "gballoc.h"
-#include "timer.h"
+#include "azure_c_pal/gballoc.h"
+#include "azure_c_pal/timer.h"
 
 #ifdef __cplusplus
 extern "C"{
@@ -45,7 +45,7 @@ MOCKABLE_FUNCTION(, void, mocked_ReleaseSRWLockShared, PSRWLOCK, SRWLock);
 
 #undef ENABLE_MOCKS
 
-#include "srw_lock.h"
+#include "azure_c_pal/srw_lock.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 
