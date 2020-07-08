@@ -29,7 +29,7 @@ static void my_gballoc_free(void* s)
 #include "azure_c_pal/timer.h"
 
 #define ENABLE_MOCKS
-#include "gballoc.h"
+#include "azure_c_pal/gballoc.h"
 #undef ENABLE_MOCKS
 
 #ifdef __cplusplus

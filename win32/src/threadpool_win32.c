@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 #include "windows.h"
-#include "gballoc.h"
+#include "azure_c_pal/gballoc.h"
 #include "azure_c_logging/xlogging.h"
 #include "azure_c_pal/threadpool.h"
 #include "azure_c_pal/execution_engine.h"

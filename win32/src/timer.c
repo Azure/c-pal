@@ -3,7 +3,7 @@
 #include "windows.h"
 
 #include "azure_c_logging/xlogging.h"
-#include "gballoc.h"
+#include "azure_c_pal/gballoc.h"
 
 #include "azure_c_pal/timer.h"
 
