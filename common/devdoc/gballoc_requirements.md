@@ -20,8 +20,6 @@ extern void* gballoc_calloc(size_t nmemb, size_t size);
 extern void* gballoc_realloc(void* ptr, size_t size);
 extern void gballoc_free(void* ptr);
 
-
-extern int gballoc_resetCounters(void);
 extern size_t gballoc_getMaximumMemoryUsed(void);
 extern size_t gballoc_getCurrentMemoryUsed(void);
 extern size_t gballoc_getAllocationCount(void));
