@@ -11,7 +11,7 @@ set(${theseTestsName}_c_files
 )
 
 set(${theseTestsName}_h_files
-../../../interfaces/inc/interlocked_hl.h
+../../../interfaces/inc/azure_c_pal/interlocked_hl.h
 ../mocked/inc/windows.h
 )
 

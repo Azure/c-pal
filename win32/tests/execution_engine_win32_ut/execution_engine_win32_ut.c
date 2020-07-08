@@ -25,11 +25,11 @@ void real_free(void* ptr)
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umock_c_negative_tests.h"
-#include "execution_engine.h"
+#include "azure_c_pal/execution_engine.h"
 
 #define ENABLE_MOCKS
 
-#include "gballoc.h"
+#include "azure_c_pal/gballoc.h"
 
 #undef ENABLE_MOCKS
 

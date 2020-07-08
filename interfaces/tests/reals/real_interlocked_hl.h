@@ -19,7 +19,7 @@
         InterlockedHL_CompareExchange64If \
     )
 
-#include "interlocked_hl.h"
+#include "azure_c_pal/interlocked_hl.h"
 
 #ifdef __cplusplus
 extern "C" {

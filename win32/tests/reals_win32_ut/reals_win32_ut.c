@@ -6,11 +6,11 @@
 #define REGISTER_GLOBAL_MOCK_HOOK(original, real) \
     (original == real) ? (void)0 : (void)1;
 
-#include "threadapi.h"
-#include "srw_lock.h"
-#include "string_utils.h"
-#include "timer.h"
-#include "interlocked_hl.h"
+#include "azure_c_pal/threadapi.h"
+#include "azure_c_pal/srw_lock.h"
+#include "azure_c_pal/string_utils.h"
+#include "azure_c_pal/timer.h"
+#include "azure_c_pal/interlocked_hl.h"
 
 #include "real_threadapi.h"
 #include "real_srw_lock.h"

@@ -3,9 +3,9 @@
 #include "windows.h"
 
 #include "azure_c_logging/xlogging.h"
-#include "gballoc.h"
+#include "azure_c_pal/gballoc.h"
 
-#include "timer.h"
+#include "azure_c_pal/timer.h"
 
 typedef struct TIMER_HANDLE_DATA_TAG
 {

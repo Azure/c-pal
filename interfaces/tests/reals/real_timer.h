@@ -6,7 +6,7 @@
 
 #include "azure_macro_utils/macro_utils.h"
 
-#include "timer.h"
+#include "azure_c_pal/timer.h"
 
 #define R2(X) REGISTER_GLOBAL_MOCK_HOOK(X, real_##X);
 

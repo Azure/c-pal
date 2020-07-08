@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "azure_c_logging/xlogging.h"
 #include "rpc.h"
-#include "uniqueid.h"
+#include "azure_c_pal/uniqueid.h"
 
 MU_DEFINE_ENUM_STRINGS(UNIQUEID_RESULT, UNIQUEID_RESULT_VALUES);
 

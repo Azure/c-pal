@@ -6,7 +6,7 @@
 
 #include "azure_macro_utils/macro_utils.h"
 
-#include "threadapi.h"
+#include "azure_c_pal/threadapi.h"
 
 #define R2(X) REGISTER_GLOBAL_MOCK_HOOK(X, real_##X);
 
