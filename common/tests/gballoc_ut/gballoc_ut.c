@@ -209,7 +209,6 @@ TEST_FUNCTION(when_acquiring_the_lock_fails_gballoc_malloc_fails)
 }
 
 /* Tests_SRS_GBALLOC_01_003: [gballoc_malloc shall call the C99 malloc function and return its result.] */
-/* Tests_SRS_GBALLOC_01_004: [If the underlying malloc call is successful, gballoc_malloc shall increment the total memory used with the amount indicated by size.] */
 /* Tests_SRS_GBALLOC_01_030: [gballoc_malloc shall ensure thread safety by using the lock created by gballoc_Init.] */
 TEST_FUNCTION(gballoc_malloc_with_0_Size_Calls_Underlying_malloc)
 {
@@ -242,8 +241,7 @@ TEST_FUNCTION(gballoc_malloc_with_0_Size_Calls_Underlying_malloc)
 }
 
 /* Tests_SRS_GBALLOC_01_003: [gballoc_malloc shall call the C99 malloc function and return its result.] */
-/* Tests_SRS_GBALLOC_01_004: [If the underlying malloc call is successful, gballoc_malloc shall increment the total memory used with the amount indicated by size.] */
-TEST_FUNCTION(gballoc_malloc_with_1_Size_Calls_Underlying_malloc_And_Increases_Max_Used)
+TEST_FUNCTION(gballoc_malloc_with_1_Size_Calls_Underlying_malloc)
 {
     // arrange
     void* result;
@@ -272,7 +270,7 @@ TEST_FUNCTION(gballoc_malloc_with_1_Size_Calls_Underlying_malloc_And_Increases_M
     free(allocation);
 }
 
-/* Tests_SRS_GBALLOC_01_012: [When the underlying malloc call fails, gballoc_malloc shall return NULL and size should not be counted towards total memory used.] */
+/* Tests_SRS_GBALLOC_01_012: [When the underlying malloc call fails, gballoc_malloc shall return NULL.] */
 TEST_FUNCTION(When_malloc_Fails_Then_gballoc_malloc_fails_too)
 {
     // arrange
@@ -362,7 +360,6 @@ TEST_FUNCTION(when_acquiring_the_lock_fails_gballoc_calloc_fails)
 }
 
 /* Tests_SRS_GBALLOC_01_020: [gballoc_calloc shall call the C99 calloc function and return its result.] */
-/* Tests_SRS_GBALLOC_01_021: [If the underlying calloc call is successful, gballoc_calloc shall increment the total memory used with nmemb*size.] */
 /* Tests_SRS_GBALLOC_01_031: [gballoc_calloc shall ensure thread safety by using the lock created by gballoc_Init] */
 TEST_FUNCTION(gballoc_calloc_with_0_Size_And_ItemCount_Calls_Underlying_calloc)
 {
@@ -394,8 +391,7 @@ TEST_FUNCTION(gballoc_calloc_with_0_Size_And_ItemCount_Calls_Underlying_calloc)
 }
 
 /* Tests_SRS_GBALLOC_01_020: [gballoc_calloc shall call the C99 calloc function and return its result.] */
-/* Tests_SRS_GBALLOC_01_021: [If the underlying calloc call is successful, gballoc_calloc shall increment the total memory used with nmemb*size.] */
-TEST_FUNCTION(gballoc_calloc_with_1_Item_Of_1_Size_Calls_Underlying_malloc_And_Increases_Max_Used)
+TEST_FUNCTION(gballoc_calloc_with_1_Item_Of_1_Size_Calls_Underlying_calloc)
 {
     // arrange
     void* result;
@@ -425,8 +421,7 @@ TEST_FUNCTION(gballoc_calloc_with_1_Item_Of_1_Size_Calls_Underlying_malloc_And_I
 }
 
 /* Tests_SRS_GBALLOC_01_020: [gballoc_calloc shall call the C99 calloc function and return its result.] */
-/* Tests_SRS_GBALLOC_01_021: [If the underlying calloc call is successful, gballoc_calloc shall increment the total memory used with nmemb*size.] */
-TEST_FUNCTION(gballoc_calloc_with_1_Item_Of_0_Size_Calls_Underlying_malloc_And_Does_Not_Increase_Max_Used)
+TEST_FUNCTION(gballoc_calloc_with_1_Item_Of_0_Size_Calls_Underlying_calloc_And_Does_Not_Increase_Max_Used)
 {
     // arrange
     void* result;
@@ -456,8 +451,7 @@ TEST_FUNCTION(gballoc_calloc_with_1_Item_Of_0_Size_Calls_Underlying_malloc_And_D
 }
 
 /* Tests_SRS_GBALLOC_01_020: [gballoc_calloc shall call the C99 calloc function and return its result.] */
-/* Tests_SRS_GBALLOC_01_021: [If the underlying calloc call is successful, gballoc_calloc shall increment the total memory used with nmemb*size.] */
-TEST_FUNCTION(gballoc_calloc_with_0_Items_Of_1_Size_Calls_Underlying_malloc_And_Does_Not_Increase_Max_Used)
+TEST_FUNCTION(gballoc_calloc_with_0_Items_Of_1_Size_Calls_Underlying_calloc)
 {
     // arrange
     void* result;
@@ -487,8 +481,7 @@ TEST_FUNCTION(gballoc_calloc_with_0_Items_Of_1_Size_Calls_Underlying_malloc_And_
 }
 
 /* Tests_SRS_GBALLOC_01_020: [gballoc_calloc shall call the C99 calloc function and return its result.] */
-/* Tests_SRS_GBALLOC_01_021: [If the underlying calloc call is successful, gballoc_calloc shall increment the total memory used with nmemb*size.] */
-TEST_FUNCTION(gballoc_calloc_with_42_Items_Of_2_Size_Calls_Underlying_malloc_And_Increases_Max_Size)
+TEST_FUNCTION(gballoc_calloc_with_42_Items_Of_2_Size_Calls_Underlying_calloc)
 {
     // arrange
     void* result;
@@ -517,7 +510,7 @@ TEST_FUNCTION(gballoc_calloc_with_42_Items_Of_2_Size_Calls_Underlying_malloc_And
     free(allocation);
 }
 
-/* Tests_SRS_GBALLOC_01_022: [When the underlying calloc call fails, gballoc_calloc shall return NULL and size should not be counted towards total memory used.] */
+/* Tests_SRS_GBALLOC_01_022: [When the underlying calloc call fails, gballoc_calloc shall return NULL.] */
 TEST_FUNCTION(When_calloc_Fails_Then_gballoc_calloc_fails_too)
 {
     // arrange
@@ -721,7 +714,7 @@ TEST_FUNCTION(gballoc_realloc_with_Previous_1_Byte_Block_Ptr_And_2_Size_Calls_Un
     free(allocation);
 }
 
-/* Tests_SRS_GBALLOC_01_014: [When the underlying realloc call fails, gballoc_realloc shall return NULL and no change should be made to the counted total memory usage.] */
+/* Tests_SRS_GBALLOC_01_014: [When the underlying realloc call fails, gballoc_realloc shall return NULL.] */
 TEST_FUNCTION(When_realloc_fails_then_gballoc_realloc_Fails_Too_And_No_Change_Is_Made_To_Memory_Counters)
 {
     // arrange
@@ -757,7 +750,7 @@ TEST_FUNCTION(When_realloc_fails_then_gballoc_realloc_Fails_Too_And_No_Change_Is
     free(allocation);
 }
 
-/* Tests_SRS_GBALLOC_01_015: [When allocating memory used for tracking by gballoc_realloc fails, gballoc_realloc shall return NULL and no change should be made to the counted total memory usage.] */
+/* Tests_SRS_GBALLOC_01_015: [When allocating memory used for tracking by gballoc_realloc fails, gballoc_realloc shall return NULL.] */
 TEST_FUNCTION(When_Allocating_Memory_For_tracking_fails_gballoc_realloc_fails)
 {
     // arrange
@@ -814,7 +807,7 @@ TEST_FUNCTION(When_The_Pointer_Is_Not_Tracked_gballoc_realloc_Returns_NULL)
     free(allocation);
 }
 
-/* Tests_SRS_GBALLOC_01_014: [When the underlying realloc call fails, gballoc_realloc shall return NULL and no change should be made to the counted total memory usage.] */
+/* Tests_SRS_GBALLOC_01_014: [When the underlying realloc call fails, gballoc_realloc shall return NULL.] */
 TEST_FUNCTION(When_ptr_is_null_and_the_underlying_realloc_fails_then_the_memory_used_for_tracking_is_freed)
 {
     // arrange
@@ -893,7 +886,7 @@ TEST_FUNCTION(when_acquiring_the_lock_fails_then_gballoc_free_does_nothing)
 }
 
 /* Tests_SRS_GBALLOC_01_008: [gballoc_free shall call the C99 free function.] */
-/* Tests_SRS_GBALLOC_01_009: [gballoc_free shall also look up the size associated with the ptr pointer and decrease the total memory used with the associated size amount.] */
+/* Tests_SRS_GBALLOC_01_009: [gballoc_free shall also look up the size associated with the ptr pointer and release the used memory.] */
 /* Tests_SRS_GBALLOC_01_033: [gballoc_free shall ensure thread safety by using the lock created by gballoc_Init.] */
 TEST_FUNCTION(gballoc_free_calls_the_underlying_free)
 {
@@ -928,7 +921,7 @@ TEST_FUNCTION(gballoc_free_calls_the_underlying_free)
 }
 
 /* Tests_SRS_GBALLOC_01_008: [gballoc_free shall call the C99 free function.] */
-/* Tests_SRS_GBALLOC_01_009: [gballoc_free shall also look up the size associated with the ptr pointer and decrease the total memory used with the associated size amount.] */
+/* Tests_SRS_GBALLOC_01_009: [gballoc_free shall also look up the size associated with the ptr pointer and release the used memory.] */
 TEST_FUNCTION(gballoc_malloc_free_2_times_with_1_byte_yields_1_byte_as_max)
 {
     // arrange
@@ -968,7 +961,7 @@ TEST_FUNCTION(gballoc_malloc_free_2_times_with_1_byte_yields_1_byte_as_max)
 }
 
 /* Tests_SRS_GBALLOC_01_019:[When the ptr pointer cannot be found in the pointers tracked by gballoc, gballoc_free shall not free any memory.] */
-TEST_FUNCTION(gballoc_free_with_an_untracked_pointer_does_not_alter_total_memory_used)
+TEST_FUNCTION(gballoc_free_with_an_untracked_pointer)
 {
     // arrange
     void* allocation;
@@ -996,192 +989,6 @@ TEST_FUNCTION(gballoc_free_with_an_untracked_pointer_does_not_alter_total_memory
 
     // cleanup
     gballoc_free(TEST_ALLOC_PTR1);
-    free(allocation);
-}
-
-/* Tests_SRS_GBALLOC_07_001: [ If gballoc was not initialized gballoc_getAllocationCount shall return SIZE_MAX. ] */
-TEST_FUNCTION(gballoc_getAllocationCount_without_init_fail)
-{
-    // arrange
-    size_t result;
-
-    // act
-    result = gballoc_getAllocationCount();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 0, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* Tests_SRS_GBALLOC_07_003: [ If the lock cannot be acquired, gballoc_getAllocationCount shall return SIZE_MAX. ] */
-TEST_FUNCTION(gballoc_getAllocationCount_lock_fail)
-{
-    // arrange
-    size_t result;
-    gballoc_init();
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE))
-        .SetReturn(LOCK_ERROR);
-
-    // act
-    result = gballoc_getAllocationCount();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 0, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* Tests_SRS_GBALLOC_07_004: [ gballoc_getAllocationCount shall return the currently number of allocations. ] */
-/* Tests_SRS_GBALLOC_07_002: [ gballoc_getAllocationCount shall ensure thread safety by using the lock created by gballoc_Init ] */
-TEST_FUNCTION(gballoc_getAllocationCount_success)
-{
-    // arrange
-    void* allocation;
-    void* toBeFreed;
-    size_t result;
-    gballoc_init();
-    umock_c_reset_all_calls();
-
-    allocation = malloc(OVERHEAD_SIZE);
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation);
-    STRICT_EXPECTED_CALL(mock_malloc(1));
-    toBeFreed = gballoc_malloc(1);
-    umock_c_reset_all_calls();
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    // act
-    result = gballoc_getAllocationCount();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 1, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    // Cleanup
-    gballoc_free(toBeFreed);
-    free(allocation);
-}
-
-TEST_FUNCTION(gballoc_resetMetrics_without_init_fail)
-{
-    // arrange
-
-    // act
-    gballoc_resetMetrics();
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* Tests_SRS_GBALLOC_07_003: [ If the lock cannot be acquired, gballoc_getAllocationCount shall return SIZE_MAX. ] */
-TEST_FUNCTION(gballoc_resetMetrics_lock_fail)
-{
-    // arrange
-    gballoc_init();
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE))
-        .SetReturn(LOCK_ERROR);
-
-    // act
-    gballoc_resetMetrics();
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* Tests_SRS_GBALLOC_07_004: [ gballoc_getAllocationCount shall return the currently number of allocations. ] */
-/* Tests_SRS_GBALLOC_07_002: [ gballoc_getAllocationCount shall ensure thread safety by using the lock created by gballoc_Init ] */
-/* Tests_SRS_GBALLOC_07_006: [ gballoc_resetMetrics shall ensure thread safety by using the lock created by gballoc_Init ]*/
-/* Tests_SRS_GBALLOC_07_008: [ gballoc_resetMetrics shall reset the total allocation size, max allocation size and number of allocation to zero. ] */
-TEST_FUNCTION(gballoc_resetMetrics_success)
-{
-    // arrange
-    void* allocation;
-    void* toBeFreed;
-    size_t mem_used;
-    size_t alloc_count;
-    gballoc_init();
-    umock_c_reset_all_calls();
-
-    allocation = malloc(OVERHEAD_SIZE);
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation);
-    STRICT_EXPECTED_CALL(mock_malloc(1));
-    toBeFreed = gballoc_malloc(1);
-    umock_c_reset_all_calls();
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    alloc_count = gballoc_getAllocationCount();
-    ASSERT_ARE_EQUAL(size_t, 1, alloc_count);
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    // act
-    gballoc_resetMetrics();
-    alloc_count = gballoc_getAllocationCount();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 0, alloc_count);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    // Cleanup
-    gballoc_free(toBeFreed);
-    free(allocation);
-}
-
-/* Tests_SRS_GBALLOC_07_007: [** If the lock cannot be acquired, gballoc_reset Metrics shall do nothing.]*/
-TEST_FUNCTION(when_lock_cannot_be_acquired_gballoc_resetMetrics_returns)
-{
-    // arrange
-    void* allocation;
-    void* toBeFreed;
-    size_t alloc_count;
-    gballoc_init();
-    umock_c_reset_all_calls();
-
-    allocation = malloc(OVERHEAD_SIZE);
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    EXPECTED_CALL(mock_malloc(0))
-        .SetReturn(allocation);
-    STRICT_EXPECTED_CALL(mock_malloc(1));
-    toBeFreed = gballoc_malloc(1);
-    umock_c_reset_all_calls();
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE));
-    STRICT_EXPECTED_CALL(Unlock(TEST_LOCK_HANDLE));
-
-    alloc_count = gballoc_getAllocationCount();
-    ASSERT_ARE_EQUAL(size_t, 1, alloc_count);
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(Lock(TEST_LOCK_HANDLE))
-        .SetReturn(LOCK_ERROR);
-
-    // act
-    gballoc_resetMetrics();
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    alloc_count = gballoc_getAllocationCount();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, 1, alloc_count);
-
-    // Cleanup
-    gballoc_free(toBeFreed);
     free(allocation);
 }
 

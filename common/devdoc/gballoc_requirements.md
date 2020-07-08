@@ -19,9 +19,6 @@ extern void* gballoc_malloc(size_t size);
 extern void* gballoc_calloc(size_t nmemb, size_t size);
 extern void* gballoc_realloc(void* ptr, size_t size);
 extern void gballoc_free(void* ptr);
-
-extern size_t gballoc_getAllocationCount(void));
-extern void gballoc_resetMetrics(void);
 ```
 
 ### gballoc_init
@@ -56,9 +53,7 @@ extern void* gballoc_malloc(size_t size);
 
 **SRS_GBALLOC_01_003: [** gballoc_malloc shall call the C99 malloc function and return its result. **]**
 
-**SRS_GBALLOC_01_004: [** If the underlying malloc call is successful, gballoc_malloc shall increment the total memory used with the amount indicated by size. **]**
-
-**SRS_GBALLOC_01_012: [** When the underlying malloc call fails, gballoc_malloc shall return NULL and size should not be counted towards total memory used. **]**
+**SRS_GBALLOC_01_012: [** When the underlying malloc call fails, gballoc_malloc shall return NULL. **]**
 
 **SRS_GBALLOC_01_013: [** When gballoc_malloc fails allocating memory for its internal use, gballoc_malloc shall return NULL. **]**
 
@@ -76,9 +71,7 @@ extern void* gballoc_calloc(size_t nmemb, size_t size);
 
 **SRS_GBALLOC_01_020: [** gballoc_calloc shall call the C99 calloc function and return its result. **]**
 
-**SRS_GBALLOC_01_021: [** If the underlying calloc call is successful, gballoc_calloc shall increment the total memory used with nmemb*size. **]**
-
-**SRS_GBALLOC_01_022: [** When the underlying calloc call fails, gballoc_calloc shall return NULL and size should not be counted towards total memory used. **]**
+**SRS_GBALLOC_01_022: [** When the underlying calloc call fails, gballoc_calloc shall return NULL. **]**
 
 **SRS_GBALLOC_01_023: [** When gballoc_calloc fails allocating memory for its internal use, gballoc_calloc shall return NULL. **]**
 
@@ -96,9 +89,9 @@ extern void* gballoc_realloc(void* ptr, size_t size);
 
 **SRS_GBALLOC_01_005: [** gballoc_realloc shall call the C99 realloc function and return its result. **]**
 
-**SRS_GBALLOC_01_014: [** When the underlying realloc call fails, gballoc_realloc shall return NULL and no change should be made to the counted total memory usage. **]**
+**SRS_GBALLOC_01_014: [** When the underlying realloc call fails, gballoc_realloc shall return NULL. **]**
 
-**SRS_GBALLOC_01_015: [** When allocating memory used for tracking by gballoc_realloc fails, gballoc_realloc shall return NULL and no change should be made to the counted total memory usage. **]**
+**SRS_GBALLOC_01_015: [** When allocating memory used for tracking by gballoc_realloc fails, gballoc_realloc shall return NULL. **]**
 
 **SRS_GBALLOC_01_016: [** When the ptr pointer cannot be found in the pointers tracked by gballoc, gballoc_realloc shall return NULL and the underlying realloc shall not be called. **]**
 
@@ -118,7 +111,7 @@ extern void gballoc_free(void* ptr);
 
 **SRS_GBALLOC_01_008: [** gballoc_free shall call the C99 free function. **]**
 
-**SRS_GBALLOC_01_009: [** gballoc_free shall also look up the size associated with the ptr pointer and decrease the total memory used with the associated size amount. **]**
+**SRS_GBALLOC_01_009: [** gballoc_free shall also look up the size associated with the ptr pointer and release the used memory. **]**
 
 **SRS_GBALLOC_01_019: [** When the ptr pointer cannot be found in the pointers tracked by gballoc, gballoc_free shall not free any memory. **]**
 
@@ -127,45 +120,3 @@ extern void gballoc_free(void* ptr);
 **SRS_GBALLOC_01_042: [** If gballoc was not initialized gballoc_free shall shall simply call free. **]**
 
 **SRS_GBALLOC_01_049: [** If acquiring the lock fails, gballoc_free shall do nothing. **]**
-
-### gballoc_getMaximumMemoryUsed
-
-```c
-extern size_t gballoc_getMaximumMemoryUsed(void);
-```
-
-**SRS_GBALLOC_01_010: [** gballoc_getMaximumMemoryUsed shall return the maximum amount of total memory used recorded since the module initialization. **]**
-
-**SRS_GBALLOC_01_034: [** gballoc_getMaximumMemoryUsed shall ensure thread safety by using the lock created by gballoc_Init. **]**
-
-**SRS_GBALLOC_01_038: [** If gballoc was not initialized gballoc_getMaximumMemoryUsed shall return MAX_INT_SIZE. **]**
-
-**SRS_GBALLOC_01_050: [** If the lock cannot be acquired, gballoc_getMaximumMemoryUsed shall return SIZE_MAX. **]**
-
-### gballoc_getAllocationCount
-
-```c
-extern size_t gballoc_getAllocationCount(void));
-```
-
-**SRS_GBALLOC_07_001: [** If `gballoc` was not initialized `gballoc_getAllocationCount` shall return `0`. **]**
-
-**SRS_GBALLOC_07_002: [** `gballoc_getAllocationCount` shall ensure thread safety by using the lock created by `gballoc_Init` **]**
-
-**SRS_GBALLOC_07_003: [** If the lock cannot be acquired, `gballoc_getAllocationCount` shall return `0`. **]**
-
-**SRS_GBALLOC_07_004: [** `gballoc_getAllocationCount` shall return the currently number of allocations. **]**
-
-### gballoc_resetMetrics
-
-```c
-extern void gballoc_resetMetrics(void);
-```
-
-**SRS_GBALLOC_07_005: [** If `gballoc` was not initialized `gballoc_resetMetrics` shall do nothing.**]**
-
-**SRS_GBALLOC_07_006: [** `gballoc_resetMetrics` shall ensure thread safety by using the lock created by `gballoc_Init` **]**
-
-**SRS_GBALLOC_07_007: [** If the lock cannot be acquired, `gballoc_reset Metrics` shall do nothing.**]**
-
-**SRS_GBALLOC_07_008: [** `gballoc_resetMetrics` shall reset the total allocation size, max allocation size and number of allocation to zero. **]**

@@ -15,7 +15,6 @@
 
 typedef struct ALLOCATION_TAG
 {
-    size_t size; /*vld.h remove this field*/
     void* ptr;
     void* next;
 } ALLOCATION;
@@ -101,14 +100,12 @@ void* gballoc_malloc(size_t size)
             result = malloc(size);
             if (result == NULL)
             {
-                /* Codes_SRS_GBALLOC_01_012: [When the underlying malloc call fails, gballoc_malloc shall return NULL and size should not be counted towards total memory used.] */
+                /* Codes_SRS_GBALLOC_01_012: [When the underlying malloc call fails, gballoc_malloc shall return NULL.] */
                 free(allocation);
             }
             else
             {
-                /* Codes_SRS_GBALLOC_01_004: [If the underlying malloc call is successful, gb_malloc shall increment the total memory used with the amount indicated by size.] */
                 allocation->ptr = result;
-                allocation->size = size;
                 allocation->next = head;
                 head = allocation;
             }
@@ -150,14 +147,12 @@ void* gballoc_calloc(size_t nmemb, size_t size)
             result = calloc(nmemb, size);
             if (result == NULL)
             {
-                /* Codes_SRS_GBALLOC_01_022: [When the underlying calloc call fails, gballoc_calloc shall return NULL and size should not be counted towards total memory used.] */
+                /* Codes_SRS_GBALLOC_01_022: [When the underlying calloc call fails, gballoc_calloc shall return NULL.] */
                 free(allocation);
             }
             else
             {
-                /* Codes_SRS_GBALLOC_01_021: [If the underlying calloc call is successful, gballoc_calloc shall increment the total memory used with nmemb*size.] */
                 allocation->ptr = result;
-                allocation->size = nmemb * size;
                 allocation->next = head;
                 head = allocation;
             }
@@ -213,7 +208,7 @@ void* gballoc_realloc(void* ptr, size_t size)
 
         if (allocation == NULL)
         {
-            /* Codes_SRS_GBALLOC_01_015: [When allocating memory used for tracking by gballoc_realloc fails, gballoc_realloc shall return NULL and no change should be made to the counted total memory usage.] */
+            /* Codes_SRS_GBALLOC_01_015: [When allocating memory used for tracking by gballoc_realloc fails, gballoc_realloc shall return NULL.] */
             /* Codes_SRS_GBALLOC_01_016: [When the ptr pointer cannot be found in the pointers tracked by gballoc, gballoc_realloc shall return NULL and the underlying realloc shall not be called.] */
             result = NULL;
         }
@@ -223,7 +218,7 @@ void* gballoc_realloc(void* ptr, size_t size)
             result = realloc(ptr, size);
             if (result == NULL)
             {
-                /* Codes_SRS_GBALLOC_01_014: [When the underlying realloc call fails, gballoc_realloc shall return NULL and no change should be made to the counted total memory usage.] */
+                /* Codes_SRS_GBALLOC_01_014: [When the underlying realloc call fails, gballoc_realloc shall return NULL.] */
                 if (ptr == NULL)
                 {
                     free(allocation);
@@ -234,13 +229,11 @@ void* gballoc_realloc(void* ptr, size_t size)
                 if (ptr != NULL)
                 {
                     allocation->ptr = result;
-                    allocation->size = size;
                 }
                 else
                 {
                     /* add block */
                     allocation->ptr = result;
-                    allocation->size = size;
                     allocation->next = head;
                     head = allocation;
                 }
@@ -271,7 +264,7 @@ void gballoc_free(void* ptr)
     }
     else
     {
-        /* Codes_SRS_GBALLOC_01_009: [gballoc_free shall also look up the size associated with the ptr pointer and decrease the total memory used with the associated size amount.] */
+        /* Codes_SRS_GBALLOC_01_009: [gballoc_free shall also look up the size associated with the ptr pointer and release the used memory.] */
         while (curr != NULL)
         {
             if (curr->ptr == ptr)
@@ -302,56 +295,6 @@ void gballoc_free(void* ptr)
             /* could not find the allocation */
             LogError("Could not free allocation for address %p (not found)", ptr);
         }
-        (void)Unlock(gballocThreadSafeLock);
-    }
-}
-
-size_t gballoc_getAllocationCount(void)
-{
-    size_t result;
-
-    /* Codes_SRS_GBALLOC_07_001: [ If gballoc was not initialized gballoc_getAllocationCount shall return 0. ] */
-    if (gballocState != GBALLOC_STATE_INIT)
-    {
-        LogError("gballoc is not initialized.");
-        result = 0;
-    }
-    /* Codes_SRS_GBALLOC_07_002: [ gballoc_getAllocationCount shall ensure thread safety by using the lock created by gballoc_Init ] */
-    else if (LOCK_OK != Lock(gballocThreadSafeLock))
-    {
-        /* Codes_SRS_GBALLOC_07_003: [ If the lock cannot be acquired, gballoc_getAllocationCount shall return 0. ] */
-        LogError("Failed to get the Lock.");
-        result = 0;
-    }
-    else
-    {
-        /* Codes_SRS_GBALLOC_07_004: [ gballoc_getAllocationCount shall return the currently number of allocations. ] */
-        result = g_allocations;
-        (void)Unlock(gballocThreadSafeLock);
-    }
-
-    return result;
-}
-
-void gballoc_resetMetrics()
-{
-    /* Codes_SRS_GBALLOC_07_005: [ If gballoc was not initialized gballoc_resetMetrics shall do nothing.] */
-    if (gballocState != GBALLOC_STATE_INIT)
-    {
-        LogError("gballoc is not initialized.");
-    }
-    /* Codes_SRS_GBALLOC_07_006: [ gballoc_resetMetrics shall ensure thread safety by using the lock created by gballoc_Init ]*/
-    else if (LOCK_OK != Lock(gballocThreadSafeLock))
-    {
-        /* Codes_SRS_GBALLOC_07_007: [ If the lock cannot be acquired, gballoc_reset Metrics shall do nothing.] */
-        LogError("Failed to get the Lock.");
-    }
-    else
-    {
-        /* Codes_SRS_GBALLOC_07_008: [ gballoc_resetMetrics shall reset the total allocation size, max allocation size and number of allocation to zero. ] */
-        totalSize = 0;
-        maxSize = 0;
-        g_allocations = 0;
         (void)Unlock(gballocThreadSafeLock);
     }
 }
