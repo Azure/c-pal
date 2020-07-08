@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 #include <stdint.h>
 #include "windows.h"
-#include "interlocked.h"
+#include "azure_c_pal/interlocked.h"
 
 IMPLEMENT_MOCKABLE_FUNCTION(, int32_t, interlocked_add, volatile int32_t*, addend, int32_t, value) 
 {

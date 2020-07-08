@@ -8,7 +8,7 @@
 
 #include "azure_c_logging/xlogging.h"
 
-#include "interlocked_hl.h"
+#include "azure_c_pal/interlocked_hl.h"
 
 MU_DEFINE_ENUM_STRINGS(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES)
 

@@ -13,7 +13,7 @@
 
 #include "azure_macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
-#include "lock.h"
+#include "azure_c_pal/lock.h"
 #include "gballoc.h"
 
 #ifndef SIZE_MAX

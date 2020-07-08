@@ -14,10 +14,10 @@
 #include "azure_macro_utils/macro_utils.h"
 #include "azure_c_logging/xlogging.h"
 #include "testrunnerswitcher.h"
-#include "interlocked_hl.h"
-#include "timer.h"
-#include "threadpool.h"
-#include "execution_engine.h"
+#include "azure_c_pal/interlocked_hl.h"
+#include "azure_c_pal/timer.h"
+#include "azure_c_pal/threadpool.h"
+#include "azure_c_pal/execution_engine.h"
 #include "execution_engine_win32.h"
 
 TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);

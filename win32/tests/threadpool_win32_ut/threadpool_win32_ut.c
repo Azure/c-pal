@@ -32,15 +32,15 @@ void real_free(void* ptr)
 #define ENABLE_MOCKS
 
 #include "gballoc.h"
-#include "execution_engine.h"
+#include "azure_c_pal/execution_engine.h"
 #include "execution_engine_win32.h"
 
 #undef ENABLE_MOCKS
 
 #include "azure_c_logging/xlogging.h"
 
-#include "string_utils.h"
-#include "threadpool.h"
+#include "azure_c_pal/string_utils.h"
+#include "azure_c_pal/threadpool.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 static EXECUTION_ENGINE_HANDLE test_execution_engine = (EXECUTION_ENGINE_HANDLE)0x4243;

@@ -26,7 +26,7 @@ static void my_gballoc_free(void* s)
 #include "umock_c/umocktypes.h"
 #include "umock_c/umock_c_negative_tests.h"
 #include "umock_c/umocktypes_bool.h"
-#include "timer.h"
+#include "azure_c_pal/timer.h"
 
 #define ENABLE_MOCKS
 #include "gballoc.h"

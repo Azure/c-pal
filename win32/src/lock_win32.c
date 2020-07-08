@@ -5,7 +5,7 @@
 #include <windows.h>
 #include "azure_c_logging/xlogging.h"
 #include "azure_macro_utils/macro_utils.h"
-#include "lock.h"
+#include "azure_c_pal/lock.h"
 #include "gballoc.h"
 
 LOCK_HANDLE Lock_Init(void)

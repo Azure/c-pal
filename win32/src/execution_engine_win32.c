@@ -4,9 +4,9 @@
 #include "windows.h"
 #include "azure_macro_utils/macro_utils.h"
 #include "azure_c_logging/xlogging.h"
-#include "execution_engine.h"
+#include "azure_c_pal/execution_engine.h"
 #include "execution_engine_win32.h"
-#include "refcount.h"
+#include "azure_c_pal/refcount.h"
 
 typedef struct EXECUTION_ENGINE_TAG
 {

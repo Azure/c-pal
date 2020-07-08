@@ -6,8 +6,8 @@
 #include "windows.h"
 #include "gballoc.h"
 #include "azure_c_logging/xlogging.h"
-#include "threadpool.h"
-#include "execution_engine.h"
+#include "azure_c_pal/threadpool.h"
+#include "azure_c_pal/execution_engine.h"
 #include "execution_engine_win32.h"
 
 #define THREADPOOL_WIN32_STATE_VALUES \

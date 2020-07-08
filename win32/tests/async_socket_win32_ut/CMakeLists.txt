@@ -14,7 +14,7 @@ async_socket_win32_mocked.c
 )
 
 set(${theseTestsName}_h_files
-../../../interfaces/inc/async_socket.h
+../../../interfaces/inc/azure_c_pal/async_socket.h
 )
 
 build_c_tests(${theseTestsName} ON "tests/azure_c_pal/win32" ADDITIONAL_LIBS pal_interfaces pal_common synchronization ws2_32)
