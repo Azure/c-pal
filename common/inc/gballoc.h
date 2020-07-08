@@ -42,7 +42,6 @@ MOCKABLE_FUNCTION(, void*, gballoc_calloc, size_t, nmemb, size_t, size);
 MOCKABLE_FUNCTION(, void*, gballoc_realloc, void*, ptr, size_t, size);
 MOCKABLE_FUNCTION(, void, gballoc_free, void*, ptr);
 
-MOCKABLE_FUNCTION(, size_t, gballoc_getCurrentMemoryUsed);
 MOCKABLE_FUNCTION(, size_t, gballoc_getAllocationCount);
 MOCKABLE_FUNCTION(, void, gballoc_resetMetrics);
 
@@ -72,7 +71,6 @@ That is because there is a rogue component (most likely CppUnitTest) including c
 #define gballoc_init() 0
 #define gballoc_deinit() ((void)0)
 
-#define gballoc_getCurrentMemoryUsed() SIZE_MAX
 #define gballoc_getAllocationCount() SIZE_MAX
 #define gballoc_resetMetrics() ((void)0)
 

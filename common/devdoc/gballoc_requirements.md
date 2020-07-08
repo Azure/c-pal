@@ -20,8 +20,6 @@ extern void* gballoc_calloc(size_t nmemb, size_t size);
 extern void* gballoc_realloc(void* ptr, size_t size);
 extern void gballoc_free(void* ptr);
 
-extern size_t gballoc_getMaximumMemoryUsed(void);
-extern size_t gballoc_getCurrentMemoryUsed(void);
 extern size_t gballoc_getAllocationCount(void));
 extern void gballoc_resetMetrics(void);
 ```
@@ -39,8 +37,6 @@ extern int gballoc_init(void);
 **SRS_GBALLOC_01_026: [** gballoc_Init shall create a lock handle that will be used to make the other gballoc APIs thread-safe. **]**
 
 **SRS_GBALLOC_01_027: [** If the Lock creation fails, gballoc_init shall return a non-zero value. **]**
-
-**SRS_GBALLOC_01_002: [** Upon initialization the total memory used and maximum total memory used tracked by the module shall be set to 0. **]**
 
 ### gballoc_deinit
 
@@ -100,10 +96,6 @@ extern void* gballoc_realloc(void* ptr, size_t size);
 
 **SRS_GBALLOC_01_005: [** gballoc_realloc shall call the C99 realloc function and return its result. **]**
 
-**SRS_GBALLOC_01_006: [** If the underlying realloc call is successful, gballoc_realloc shall look up the size associated with the pointer ptr and decrease the total memory used with that size. **]**
-
-**SRS_GBALLOC_01_007: [** If realloc is successful, gballoc_realloc shall also increment the total memory used value tracked by this module. **]**
-
 **SRS_GBALLOC_01_014: [** When the underlying realloc call fails, gballoc_realloc shall return NULL and no change should be made to the counted total memory usage. **]**
 
 **SRS_GBALLOC_01_015: [** When allocating memory used for tracking by gballoc_realloc fails, gballoc_realloc shall return NULL and no change should be made to the counted total memory usage. **]**
@@ -144,27 +136,11 @@ extern size_t gballoc_getMaximumMemoryUsed(void);
 
 **SRS_GBALLOC_01_010: [** gballoc_getMaximumMemoryUsed shall return the maximum amount of total memory used recorded since the module initialization. **]**
 
-**SRS_GBALLOC_01_011: [** The maximum total memory used shall be the maximum of the total memory used at any point. **]**
-
 **SRS_GBALLOC_01_034: [** gballoc_getMaximumMemoryUsed shall ensure thread safety by using the lock created by gballoc_Init. **]**
 
 **SRS_GBALLOC_01_038: [** If gballoc was not initialized gballoc_getMaximumMemoryUsed shall return MAX_INT_SIZE. **]**
 
 **SRS_GBALLOC_01_050: [** If the lock cannot be acquired, gballoc_getMaximumMemoryUsed shall return SIZE_MAX. **]**
-
-### gballoc_getCurrentMemoryUsed
-
-```c
-extern size_t gballoc_getCurrentMemoryUsed(void);
-```
-
-**SRS_GBALLOC_02_001: [** gballoc_getCurrentMemoryUsed shall return the currently used memory size. **]**
-
-**SRS_GBALLOC_01_036: [** gballoc_getCurrentMemoryUsed shall ensure thread safety by using the lock created by gballoc_Init. **]**
-
-**SRS_GBALLOC_01_044: [** If gballoc was not initialized gballoc_getCurrentMemoryUsed shall return SIZE_MAX. **]**
-
-**SRS_GBALLOC_01_051: [** If the lock cannot be acquired, gballoc_getCurrentMemoryUsed shall return SIZE_MAX. **]**
 
 ### gballoc_getAllocationCount
 

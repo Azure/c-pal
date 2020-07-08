@@ -179,21 +179,6 @@ TEST_FUNCTION(when_gballoc_is_not_initialized_then_gballoc_free_does_nothing)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/* gballoc_getCurrentMemoryUsed */
-
-/* Tests_SRS_GBALLOC_01_044: [If gballoc was not initialized gballoc_getCurrentMemoryUsed shall return SIZE_MAX.] */
-TEST_FUNCTION(without_gballoc_being_initialized_gballoc_getCurrentMemoryUsed_fails)
-{
-    // arrange
-
-    // act
-    size_t result = gballoc_getCurrentMemoryUsed();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, SIZE_MAX, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
 /* gballoc_resetMetrics */
 
 /* Tests_SRS_GBALLOC_07_005: [ If gballoc was not initialized gballoc_resetMetrics shall do nothing.] */

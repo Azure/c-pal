@@ -15,7 +15,7 @@
 
 typedef struct ALLOCATION_TAG
 {
-    size_t size;
+    size_t size; /*vld.h remove this field*/
     void* ptr;
     void* next;
 } ALLOCATION;
@@ -27,9 +27,6 @@ typedef enum GBALLOC_STATE_TAG
 } GBALLOC_STATE;
 
 static ALLOCATION* head = NULL;
-static size_t totalSize = 0;
-static size_t maxSize = 0;
-static size_t g_allocations = 0;
 static GBALLOC_STATE gballocState = GBALLOC_STATE_NOT_INIT;
 
 static LOCK_HANDLE gballocThreadSafeLock = NULL;
@@ -52,11 +49,6 @@ int gballoc_init(void)
     else
     {
         gballocState = GBALLOC_STATE_INIT;
-
-        /* Codes_SRS_GBALLOC_01_002: [Upon initialization the total memory used and maximum total memory used tracked by the module shall be set to 0.] */
-        totalSize = 0;
-        maxSize = 0;
-        g_allocations = 0;
 
         /* Codes_SRS_GBALLOC_01_024: [gballoc_init shall initialize the gballoc module and return 0 upon success.] */
         result = 0;
@@ -119,14 +111,6 @@ void* gballoc_malloc(size_t size)
                 allocation->size = size;
                 allocation->next = head;
                 head = allocation;
-
-                g_allocations++;
-                totalSize += size;
-                /* Codes_SRS_GBALLOC_01_011: [The maximum total memory used shall be the maximum of the total memory used at any point.] */
-                if (maxSize < totalSize)
-                {
-                    maxSize = totalSize;
-                }
             }
         }
 
@@ -176,14 +160,6 @@ void* gballoc_calloc(size_t nmemb, size_t size)
                 allocation->size = nmemb * size;
                 allocation->next = head;
                 head = allocation;
-                g_allocations++;
-
-                totalSize += allocation->size;
-                /* Codes_SRS_GBALLOC_01_011: [The maximum total memory used shall be the maximum of the total memory used at any point.] */
-                if (maxSize < totalSize)
-                {
-                    maxSize = totalSize;
-                }
             }
         }
 
@@ -257,9 +233,7 @@ void* gballoc_realloc(void* ptr, size_t size)
             {
                 if (ptr != NULL)
                 {
-                    /* Codes_SRS_GBALLOC_01_006: [If the underlying realloc call is successful, gballoc_realloc shall look up the size associated with the pointer ptr and decrease the total memory used with that size.] */
                     allocation->ptr = result;
-                    totalSize -= allocation->size;
                     allocation->size = size;
                 }
                 else
@@ -269,19 +243,6 @@ void* gballoc_realloc(void* ptr, size_t size)
                     allocation->size = size;
                     allocation->next = head;
                     head = allocation;
-                }
-
-                /* Codes_SRS_GBALLOC_01_007: [If realloc is successful, gballoc_realloc shall also increment the total memory used value tracked by this module.] */
-                totalSize += size;
-                if (ptr == NULL)
-                {
-                    g_allocations++;
-                }
-
-                /* Codes_SRS_GBALLOC_01_011: [The maximum total memory used shall be the maximum of the total memory used at any point.] */
-                if (maxSize < totalSize)
-                {
-                    maxSize = totalSize;
                 }
             }
         }
@@ -317,7 +278,6 @@ void gballoc_free(void* ptr)
             {
                 /* Codes_SRS_GBALLOC_01_008: [gballoc_free shall call the C99 free function.] */
                 free(ptr);
-                totalSize -= curr->size;
                 if (prev != NULL)
                 {
                     prev->next = curr->next;
@@ -344,33 +304,6 @@ void gballoc_free(void* ptr)
         }
         (void)Unlock(gballocThreadSafeLock);
     }
-}
-
-size_t gballoc_getCurrentMemoryUsed(void)
-{
-    size_t result;
-
-    /* Codes_SRS_GBALLOC_01_044: [If gballoc was not initialized gballoc_getCurrentMemoryUsed shall return SIZE_MAX.] */
-    if (gballocState != GBALLOC_STATE_INIT)
-    {
-        LogError("gballoc is not initialized.");
-        result = SIZE_MAX;
-    }
-    /* Codes_SRS_GBALLOC_01_036: [gballoc_getCurrentMemoryUsed shall ensure thread safety by using the lock created by gballoc_Init.]*/
-    else if (LOCK_OK != Lock(gballocThreadSafeLock))
-    {
-        /* Codes_SRS_GBALLOC_01_051: [If the lock cannot be acquired, gballoc_getCurrentMemoryUsed shall return SIZE_MAX.] */
-        LogError("Failed to get the Lock.");
-        result = SIZE_MAX;
-    }
-    else
-    {
-        /*Codes_SRS_GBALLOC_02_001: [gballoc_getCurrentMemoryUsed shall return the currently used memory size.] */
-        result = totalSize;
-        (void)Unlock(gballocThreadSafeLock);
-    }
-
-    return result;
 }
 
 size_t gballoc_getAllocationCount(void)
