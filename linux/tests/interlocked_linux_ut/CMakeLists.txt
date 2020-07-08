@@ -14,7 +14,7 @@ mock_interlocked.c
 )
 
 set(${theseTestsName}_h_files
-../../../interfaces/inc/interlocked.h
+../../../interfaces/inc/azure_c_pal/interlocked.h
 mock_interlocked.h
 )
 
