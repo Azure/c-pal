@@ -158,6 +158,9 @@ static void on_file_write_complete_linux( FILE_LINUX_WRITE* write_info);
 static void on_file_read_complete_linux( FILE_LINUX_READ* read_info);
 ```
 
+`on_file_read_complete_linux` is called when an asynchronous read  operation completes.
+
+
 **SRS_FILE_LINUX_43_039: [** `on_file_read_complete_linux` shall recover the `aiocb` struct that was used to create the current asynchronous read operation. **]**
 
 **SRS_FILE_LINUX_43_040: [** `on_file_read_complete_linux` shall call `aio_return` to determine if the asynchronous read operation succeeded. **]**

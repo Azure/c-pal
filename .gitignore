@@ -53,5 +53,3 @@ dkms.conf
 
 cmake*/
 .vscode/
-
-win32/tests/scratch_ut

@@ -9,11 +9,11 @@ MU_DEFINE_ENUM_STRINGS(FILE_ASYNC_OPERATION, FILE_ASYNC_OPERATION_VALUES)
 
 typedef struct FILE_HANDLE_DATA_TAG
 {
-    PTP_POOL ptpPool;
-    HANDLE hFile;
+    PTP_POOL ptp_pool;
+    HANDLE h_file;
     TP_CALLBACK_ENVIRON cbe;
-    PTP_CLEANUP_GROUP ptpcg; /*the cleanup group of IO operations*/
-    PTP_IO ptpIo;
+    PTP_CLEANUP_GROUP ptp_cleanup_group; /*the cleanup group of IO operations*/
+    PTP_IO ptp_io;
     FILE_REPORT_FAULT user_report_fault_callback;
     void* user_report_fault_context;
     

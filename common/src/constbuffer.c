@@ -33,13 +33,11 @@ static CONSTBUFFER_HANDLE CONSTBUFFER_Create_Internal(const unsigned char* sourc
 {
     CONSTBUFFER_HANDLE result;
     /*Codes_SRS_CONSTBUFFER_02_005: [The non-NULL handle returned by CONSTBUFFER_Create shall have its ref count set to "1".]*/
-    /*Codes_SRS_CONSTBUFFER_02_010: [The non-NULL handle returned by CONSTBUFFER_CreateFromBuffer shall have its ref count set to "1".]*/
     /*Codes_SRS_CONSTBUFFER_02_037: [ CONSTBUFFER_CreateFromOffsetAndSizeWithCopy shall allocate enough memory to hold CONSTBUFFER_HANDLE and size bytes. ]*/
     result = (CONSTBUFFER_HANDLE)malloc(sizeof(CONSTBUFFER_HANDLE_DATA) + size * sizeof(unsigned char));
     if (result == NULL)
     {
         /*Codes_SRS_CONSTBUFFER_02_003: [If creating the copy fails then CONSTBUFFER_Create shall return NULL.]*/
-        /*Codes_SRS_CONSTBUFFER_02_008: [If copying the content fails, then CONSTBUFFER_CreateFromBuffer shall fail and return NULL.] */
         /*Codes_SRS_CONSTBUFFER_02_040: [ If there are any failures then CONSTBUFFER_CreateFromOffsetAndSizeWithCopy shall fail and return NULL. ]*/
         LogError("failure in malloc(sizeof(CONSTBUFFER_HANDLE_DATA)=%zu + size=%zu * sizeof(unsigned char)=%zu)",
             sizeof(CONSTBUFFER_HANDLE_DATA) , size , sizeof(unsigned char));
@@ -59,8 +57,6 @@ static CONSTBUFFER_HANDLE CONSTBUFFER_Create_Internal(const unsigned char* sourc
         else
         {
             /*Codes_SRS_CONSTBUFFER_02_004: [Otherwise CONSTBUFFER_Create shall return a non-NULL handle.]*/
-            /*Codes_SRS_CONSTBUFFER_02_007: [Otherwise, CONSTBUFFER_CreateFromBuffer shall copy the content of buffer.]*/
-            /*Codes_SRS_CONSTBUFFER_02_009: [Otherwise, CONSTBUFFER_CreateFromBuffer shall return a non-NULL handle.]*/
             /*Codes_SRS_CONSTBUFFER_02_039: [ CONSTBUFFER_CreateFromOffsetAndSizeWithCopy shall set the pointed to a non-NULL value that contains the same bytes as offset...offset+size-1 of handle. ]*/
             (void)memcpy(result->storage, source, size);
             result->alias.buffer = result->storage;
@@ -86,25 +82,6 @@ IMPLEMENT_MOCKABLE_FUNCTION(, CONSTBUFFER_HANDLE, CONSTBUFFER_Create, const unsi
     else
     {
         result = CONSTBUFFER_Create_Internal(source, size);
-    }
-    return result;
-}
-
-/*this creates a new constbuffer from an existing BUFFER_HANDLE*/
-IMPLEMENT_MOCKABLE_FUNCTION(, CONSTBUFFER_HANDLE, CONSTBUFFER_CreateFromBuffer, BUFFER_HANDLE, buffer)
-{
-    CONSTBUFFER_HANDLE result;
-    /*Codes_SRS_CONSTBUFFER_02_006: [If buffer is NULL then CONSTBUFFER_CreateFromBuffer shall fail and return NULL.]*/
-    if (buffer == NULL)
-    {
-        LogError("invalid arg passed to CONSTBUFFER_CreateFromBuffer");
-        result = NULL;
-    }
-    else
-    {
-        size_t length = BUFFER_length(buffer);
-        unsigned char* rawBuffer = BUFFER_u_char(buffer);
-        result = CONSTBUFFER_Create_Internal(rawBuffer, length);
     }
     return result;
 }

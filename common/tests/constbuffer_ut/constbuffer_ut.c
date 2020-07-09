@@ -24,7 +24,6 @@ void my_gballoc_free(void* ptr)
 
 #define ENABLE_MOCKS
 #include "umock_c/umock_c.h"
-#include "buffer_.h"
 #include "gballoc.h"
 
 #undef ENABLE_MOCKS
@@ -48,36 +47,6 @@ static const char* buffer3 = "three";
 #define BUFFER3_u_char ((unsigned char*)buffer3)
 #define BUFFER3_length ((size_t)0)
 
-unsigned char* my_BUFFER_u_char(BUFFER_HANDLE handle)
-{
-    unsigned char* result;
-    if (handle == BUFFER1_HANDLE)
-    {
-        result = BUFFER1_u_char;
-    }
-    else
-    {
-        result = NULL;
-        ASSERT_FAIL("who am I?");
-    }
-    return result;
-}
-
-static size_t my_BUFFER_length(BUFFER_HANDLE handle)
-{
-    size_t result;
-    if (handle == BUFFER1_HANDLE)
-    {
-        result = BUFFER1_length;
-    }
-    else
-    {
-        result = 0;
-        ASSERT_FAIL("who am I?");
-    }
-    return result;
-}
-
 MOCK_FUNCTION_WITH_CODE(, void, test_free_func, void*, context)
 MOCK_FUNCTION_END()
 
@@ -97,12 +66,8 @@ BEGIN_TEST_SUITE(constbuffer_unittests)
 
         umock_c_init(on_umock_c_error);
 
-        REGISTER_UMOCK_ALIAS_TYPE(BUFFER_HANDLE, void*);
-
         REGISTER_GLOBAL_MOCK_HOOK(gballoc_malloc, my_gballoc_malloc);
         REGISTER_GLOBAL_MOCK_HOOK(gballoc_free, my_gballoc_free);
-        REGISTER_GLOBAL_MOCK_HOOK(BUFFER_u_char, my_BUFFER_u_char);
-        REGISTER_GLOBAL_MOCK_HOOK(BUFFER_length, my_BUFFER_length);
     }
 
     TEST_SUITE_CLEANUP(TestClassCleanup)
@@ -170,77 +135,6 @@ BEGIN_TEST_SUITE(constbuffer_unittests)
         CONSTBUFFER_DecRef(handle);
     }
 
-    /* CONSTBUFFER_CreateFromBuffer */
-
-    /*Tests_SRS_CONSTBUFFER_02_009: [Otherwise, CONSTBUFFER_CreateFromBuffer shall return a non-NULL handle.]*/
-    /*Tests_SRS_CONSTBUFFER_02_007: [Otherwise, CONSTBUFFER_CreateFromBuffer shall copy the content of buffer.]*/
-    TEST_FUNCTION(CONSTBUFFER_CreateFromBuffer_succeeds)
-    {
-        ///arrange
-        CONSTBUFFER_HANDLE handle;
-        const CONSTBUFFER* content;
-
-        ///act
-        STRICT_EXPECTED_CALL(BUFFER_length(BUFFER1_HANDLE));
-        STRICT_EXPECTED_CALL(BUFFER_u_char(BUFFER1_HANDLE));
-        STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG));
-
-        handle = CONSTBUFFER_CreateFromBuffer(BUFFER1_HANDLE);
-
-        ///assert
-        ASSERT_IS_NOT_NULL(handle);
-        /*testing the "copy"*/
-        content = CONSTBUFFER_GetContent(handle);
-        ASSERT_ARE_EQUAL(size_t, BUFFER1_length, content->size);
-        ASSERT_ARE_EQUAL(int, 0, memcmp(BUFFER1_u_char, content->buffer, BUFFER1_length));
-        /*testing that it is a copy and not a pointer assignment*/
-        ASSERT_ARE_NOT_EQUAL(void_ptr, BUFFER1_u_char, content->buffer);
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-        ///cleanup
-        CONSTBUFFER_DecRef(handle);
-    }
-
-    /*Tests_SRS_CONSTBUFFER_02_008: [If copying the content fails, then CONSTBUFFER_CreateFromBuffer shall fail and return NULL.]*/
-    TEST_FUNCTION(CONSTBUFFER_CreateFromBuffer_fails_when_malloc_fails)
-    {
-        ///arrange
-        CONSTBUFFER_HANDLE handle;
-
-        ///act
-        STRICT_EXPECTED_CALL(BUFFER_length(BUFFER1_HANDLE));
-        STRICT_EXPECTED_CALL(BUFFER_u_char(BUFFER1_HANDLE));
-
-        STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG))
-            .SetReturn(NULL);
-
-
-        handle = CONSTBUFFER_CreateFromBuffer(BUFFER1_HANDLE);
-
-        ///assert
-        ASSERT_IS_NULL(handle);
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-        ///cleanup
-        CONSTBUFFER_DecRef(handle);
-    }
-
-    /*Tests_SRS_CONSTBUFFER_02_006: [If buffer is NULL then CONSTBUFFER_CreateFromBuffer shall fail and return NULL.]*/
-    TEST_FUNCTION(CONSTBUFFER_CreateFromBuffer_with_NULL_fails)
-    {
-        ///arrange
-
-        ///act
-        CONSTBUFFER_HANDLE handle = CONSTBUFFER_CreateFromBuffer(NULL);
-
-        ///assert
-        ASSERT_IS_NULL(handle);
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-        ///cleanup
-        CONSTBUFFER_DecRef(handle);
-    }
-
     /*Tests_SRS_CONSTBUFFER_02_003: [If creating the copy fails then CONSTBUFFER_Create shall return NULL.]*/
     TEST_FUNCTION(CONSTBUFFER_Create_fails_when_malloc_fails)
     {
@@ -296,31 +190,6 @@ BEGIN_TEST_SUITE(constbuffer_unittests)
         /*testing the "copy"*/
         content = CONSTBUFFER_GetContent(handle);
         ASSERT_ARE_EQUAL(size_t, BUFFER2_length, content->size);
-        /*testing that it is a copy and not a pointer assignment*/
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-        ///cleanup
-        CONSTBUFFER_DecRef(handle);
-    }
-
-    /*Tests_SRS_CONSTBUFFER_02_002: [Otherwise, CONSTBUFFER_Create shall create a copy of the memory area pointed to by source having size bytes.]*/
-    /*Tests_SRS_CONSTBUFFER_02_009: [Otherwise, CONSTBUFFER_CreateFromBuffer shall return a non-NULL handle.]*/
-    TEST_FUNCTION(CONSTBUFFER_Create_from_0_size_succeeds_2)
-    {
-        ///arrange
-        CONSTBUFFER_HANDLE handle;
-        const CONSTBUFFER* content;
-
-        ///act
-        STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG));
-
-        handle = CONSTBUFFER_Create(BUFFER3_u_char, BUFFER3_length);
-
-        ///assert
-        ASSERT_IS_NOT_NULL(handle);
-        /*testing the "copy"*/
-        content = CONSTBUFFER_GetContent(handle);
-        ASSERT_ARE_EQUAL(size_t, BUFFER3_length, content->size);
         /*testing that it is a copy and not a pointer assignment*/
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
@@ -1175,26 +1044,6 @@ BEGIN_TEST_SUITE(constbuffer_unittests)
 
         ///act
         CONSTBUFFER_DecRef(NULL);
-
-        ///assert
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-        ///cleanup
-    }
-
-    /*Tests_SRS_CONSTBUFFER_02_010: [The non-NULL handle returned by CONSTBUFFER_CreateFromBuffer shall have its ref count set to "1".]*/
-    /*Tests_SRS_CONSTBUFFER_02_005: [The non-NULL handle returned by CONSTBUFFER_Create shall have its ref count set to "1".]*/
-    /*Tests_SRS_CONSTBUFFER_02_017: [If the refcount reaches zero, then CONSTBUFFER_DecRef shall deallocate all resources used by the CONSTBUFFER_HANDLE.]*/
-    TEST_FUNCTION(CONSTBUFFER_CreateFromBuffer_is_ref_counted_1)
-    {
-        ///arrange
-        CONSTBUFFER_HANDLE handle = CONSTBUFFER_CreateFromBuffer(BUFFER1_HANDLE);
-        umock_c_reset_all_calls();
-        ///act
-
-        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_ARG));
-
-        CONSTBUFFER_DecRef(handle);
 
         ///assert
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());

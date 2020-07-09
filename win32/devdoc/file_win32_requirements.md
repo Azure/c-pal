@@ -169,12 +169,10 @@ static void on_file_io_complete_win32(
 
 **SRS_FILE_WIN32_43_034: [** `on_file_io_complete_win32` shall recover the context containing `overlapped`. **]**
 
+**SRS_FILE_WIN32_43_053: [** `on_file_io_complete_win32` shall determine the type of asynchronous operation from the context. **]**
+
 **SRS_FILE_WIN32_43_035: [** If `io_result` is not `NO_ERROR`, `on_file_io_complete_win32` shall call `user_callback` with `false` as `is_successful`. **]**
 
-**SRS_FILE_WIN32_43_036: [** If the type of the asynchronous operation is read, `on_file_io_complete_win32` shall  construct a `CONSTBUFFER_HANDLE` by calling `CONSTBUFFER_CreateWithMoveMemory` from the bytes read by `ReadFile`. **]**
-
-**SRS_FILE_WIN32_43_037: [** If the construction of the `CONSTBUFFER_HANDLE` fails, `on_file_io_complete_win32` shall call `user_callback` with `user_context`, `false` as `is_successful` and `NULL` as `content`. **]**
-
-**SRS_FILE_WIN32_43_038: [** If the construction of the `CONSTBUFFER_HANDLE` succeeds, `on_file_io_complete_win32` shall call `user_callback` with `user_context`, `true` as `is_successful` and the created `CONSTBUFFER_HANDLE` as `content`. **]**
+**SRS_FILE_WIN32_43_036: [** If the type of the asynchronous operation is read, `on_file_io_complete_win32` shall call `user_callback` with `user_context`, `true` as `is_successful` and the `CONSTBUFFER_HANDLE` from the context as `content`. **]**
 
 **SRS_FILE_WIN32_43_039: [** If the type of the asynchronous operation is write, `on_file_io_complete_win32` shall call `user_callback` with `user_context` and `true` as `is_successful`. **]**

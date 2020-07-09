@@ -25,12 +25,12 @@ set(pal_win32_c_files
 )
 
 FILE(GLOB pal_win32_md_files "devdoc/*.md")
-SOURCE_GROUP(devdoc FILES ${pal_win32_md_files})
+SOURCE_GROUP(devdoc FILES ${pal_win32_md_files} ${pal_common_md_files})
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/inc)
 include_directories(../common/inc)
 
-add_library(pal_win32 ${pal_win32_h_files} ${pal_win32_c_files} ${pal_win32_md_files})
+add_library(pal_win32 ${pal_win32_h_files} ${pal_win32_c_files} ${pal_win32_md_files} ${pal_common_md_files})
 target_link_libraries(pal_win32 pal_interfaces pal_internal ws2_32 synchronization rpcrt4 azure_c_logging)
 target_include_directories(pal_win32 PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc)
 
