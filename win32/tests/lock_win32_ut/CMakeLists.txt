@@ -17,4 +17,4 @@ set(${theseTestsName}_h_files
     ../../../interfaces/inc/azure_c_pal/lock.h
 )
 
-build_c_tests(${theseTestsName} ON "tests/azure_c_pal/win32" ADDITIONAL_LIBS pal_interfaces pal_common)
+build_c_tests(${theseTestsName} ON "tests/azure_c_pal/win32" ADDITIONAL_LIBS pal_interfaces)
