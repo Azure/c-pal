@@ -3,8 +3,28 @@
 
 #include "windows.h"
 #include "file.h"
-#include "file_internal.h"
 
+typedef struct FILE_WRITE_DATA_CONTEXT_TAG
+{
+    FILE_WRITE_CB user_callback;
+    void* user_context;
+    const unsigned char* source;
+    size_t size;
+}FILE_WRITE_DATA_CONTEXT;
+
+typedef struct FILE_READ_DATA_CONTEXT_TAG
+{
+    FILE_READ_CB user_callback;
+    void* user_context;
+    unsigned char* destination;
+    size_t size;
+}FILE_READ_DATA_CONTEXT;
+
+#define FILE_ASYNC_OPERATION_VALUES \
+    FILE_ASYNC_WRITE, \
+    FILE_ASYNC_READ
+
+MU_DEFINE_ENUM(FILE_ASYNC_OPERATION, FILE_ASYNC_OPERATION_VALUES)
 MU_DEFINE_ENUM_STRINGS(FILE_ASYNC_OPERATION, FILE_ASYNC_OPERATION_VALUES)
 
 typedef struct FILE_HANDLE_DATA_TAG
@@ -28,7 +48,7 @@ typedef union FILE_IO_DATA_TAG
 typedef struct FILE_WIN32_IO_TAG
 {
     OVERLAPPED ov;
-    HANDLE handle;
+    FILE_HANDLE handle;
     FILE_ASYNC_OPERATION type;
     FILE_IO_DATA data;
 }FILE_WIN32_IO;

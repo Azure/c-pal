@@ -32,15 +32,15 @@ typedef struct FILE_HANDLE_DATA_TAG* FILE_HANDLE;
 typedef void(*FILE_REPORT_FAULT)(void* user_report_fault_context, const char* information);
 
 typedef void(*FILE_WRITE_CB)(void* user_context, bool is_successful);
-typedef void(*FILE_READ_CB)(void* user_context, bool is_successful, CONSTBUFFER_HANDLE content);
+typedef void(*FILE_READ_CB)(void* user_context, bool is_successful, const unsigned char* source, size_t size);
 
 MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name, FILE_REPORT_FAULT, user_report_fault_callback, void*, user_report_fault_context);
 MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 
-MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, CONSTBUFFER_HANDLE, source, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(FILE_WRITE_ASYNC_OK, FILE_WRITE_ASYNC_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, const unsigned char*, source, size_t, size, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(FILE_WRITE_ASYNC_OK, FILE_WRITE_ASYNC_ERROR);
 MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_HANDLE, handle, uint32_t, size, uint64_t, position, FILE_READ_CB, user_callback, void*, user_context)(FILE_READ_ASYNC_OK, FILE_READ_ASYNC_ERROR);
 
-MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend, FILE_HANDLE, handle, uint64_t, desired_size, bool, has_manage_volume)(0, MU_FAILURE);
+MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend, FILE_HANDLE, handle, uint64_t, desired_size)(0, MU_FAILURE);
 ```
 
 ## file_create
@@ -75,20 +75,22 @@ MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 ## file_write_async
 
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, CONSTBUFFER_HANDLE, source, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(FILE_WRITE_ASYNC_OK, FILE_WRITE_ASYNC_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, const unsigned char*, source, size_t, size, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(FILE_WRITE_ASYNC_OK, FILE_WRITE_ASYNC_ERROR);
 ```
 
 **SRS_FILE_LINUX_43_031: [** If `handle` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
 
 **SRS_FILE_LINUX_43_032: [** If `source` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
 
-**SRS_FILE_LINUX_43_033: [** If `user_callback` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
+**SRS_FILE_LINUX_43_048: [** If `size` is 0 then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
 
-**SRS_FILE_LINUX_43_019: [** `file_write_async` shall allocate a struct to hold `handle`, `source`, `user_callback` and `user_context`. **]**
+**SRS_FILE_LINUX_43_049: [** **SRS_FILE_LINUX_43_033: [** If `user_callback` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]** **]**
+
+**SRS_FILE_LINUX_43_019: [** `file_write_async` shall allocate a struct to hold `handle`, `source`, `size`, `user_callback` and `user_context`. **]**
 
 **SRS_FILE_LINUX_43_004: [** `file_write_async` shall allocate a `sigevent` struct with `SIGEV_THREAD` as `sigev_notify`, the allocated struct as `sigev_value`, `on_file_write_complete_linux` as `sigev_notify_function`, `NULL` as `sigev_notify_attributes`. **]**
 
-**SRS_FILE_LINUX_43_005: [** `file_write_async` shall allocate an `aiocb` struct with `handle` as `aio_fildes`, `position` as `aio_offset`, source as `aio_buf`, `source->alias->size` as `aio_nbytes`, and the allocated `sigevent` struct as `aio_sigevent`. **]**
+**SRS_FILE_LINUX_43_005: [** `file_write_async` shall allocate an `aiocb` struct with `handle` as `aio_fildes`, `position` as `aio_offset`, source as `aio_buf`, `size` as `aio_nbytes`, and the allocated `sigevent` struct as `aio_sigevent`. **]**
 
 **SRS_FILE_LINUX_43_006: [** `file_write_async` shall call `aio_write` with the allocated `aiocb` struct as `aiocbp`.**]**
 
@@ -108,11 +110,9 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_H
 
 **SRS_FILE_LINUX_43_035: [** If `user_callback` is `NULL` then `file_read_async` shall fail and return `FILE_READ_ASYNC_INVALID_ARGS`. **]**
 
-**SRS_FILE_LINUX_43_043: [** `file_read_async` shall allocate a buffer of size `size`. **]**
+**SRS_FILE_LINUX_43_043: [** `file_read_async` shall allocate a buffer named `destination` of size `size`. **]**
 
-**SRS_FILE_LINUX_43_044: [** `file_read_async` shall create a `CONSTBUFFER_HANDLE` using the allocated buffer. **]**
-
-**SRS_FILE_LINUX_43_045: [** `file_read_async` shall allocate a struct to hold `handle`, the created `CONSTBUFFER_HANDLE`, `user_callback` and `user_context`. **]**
+**SRS_FILE_LINUX_43_045: [** `file_read_async` shall allocate a struct to hold `handle`, the allocated buffer `destination`, `user_callback` and `user_context`. **]**
 
 **SRS_FILE_LINUX_43_008: [** `file_read_async` shall allocate a `sigevent` struct with `SIGEV_THREAD` as `sigev_notify`, `user_context` as `sigev_value`, `on_file_read_complete_linux` as `sigev_notify_function`, `NULL` as `sigev_notify_attributes`. **]**
 
@@ -129,7 +129,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_H
 
 ## file_extend
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend, FILE_HANDLE, handle, uint64_t, desired_size, bool, has_manage_volume)(0, MU_FAILURE);
+MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend, FILE_HANDLE, handle, uint64_t, desired_size)(0, MU_FAILURE);
 ```
 
 **SRS_FILE_LINUX_43_018: [** `file_extend` shall return 0. **]**
@@ -143,6 +143,8 @@ static void on_file_write_complete_linux( FILE_LINUX_WRITE* write_info);
 ```
 
 `on_file_write_complete_linux` is called when an asynchronous write operation completes.
+
+**SRS_FILE_LINUX_43_047: [** If `write_info` is `NULL`, `on_file_write_complete_linux` shall call `user_report_fault_callback` with `user_report_fault_context`. **]**
 
 **SRS_FILE_LINUX_43_021: [** `on_file_write_complete_linux` shall recover the `aiocb` struct that was used to create the current asynchronous write operation. **]**
 
@@ -158,13 +160,14 @@ static void on_file_write_complete_linux( FILE_LINUX_WRITE* write_info);
 static void on_file_read_complete_linux( FILE_LINUX_READ* read_info);
 ```
 
-`on_file_read_complete_linux` is called when an asynchronous read  operation completes.
+`on_file_read_complete_linux` is called when an asynchronous read operation completes.
 
+**SRS_FILE_LINUX_43_046: [** If `read_info` is `NULL`, `on_file_write_complete_linux` shall call `user_report_fault_callback` with `user_report_fault_context`. **]**
 
 **SRS_FILE_LINUX_43_039: [** `on_file_read_complete_linux` shall recover the `aiocb` struct that was used to create the current asynchronous read operation. **]**
 
 **SRS_FILE_LINUX_43_040: [** `on_file_read_complete_linux` shall call `aio_return` to determine if the asynchronous read operation succeeded. **]**
 
-**SRS_FILE_LINUX_43_041: [** If the asynchronous read operation did not succeed, `on_file_io_complete_linux` shall call `user_callback` with `user_context`, `false` as `is_successful` and the `CONSTBUFFER_HANDLE` from `read_info`. **]**
+**SRS_FILE_LINUX_43_041: [** If the asynchronous read operation did not succeed, `on_file_io_complete_linux` shall call `user_callback` with `user_context`, `false` as `is_successful` and `destination` from `read_info`. **]**
 
-**SRS_FILE_LINUX_43_042: [** If the asynchronous read operation succeeded, `on_file_read_complete_linux` shall call `user_callback` with `user_context`, `false` as `is_successful` and the `CONSTBUFFER_HANDLE` from `read_info`. **]**
+**SRS_FILE_LINUX_43_042: [** If the asynchronous read operation succeeded, `on_file_read_complete_linux` shall call `user_callback` with `user_context`, `false` as `is_successful` and `destination` from `read_info`. **]**

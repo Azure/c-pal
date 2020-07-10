@@ -2,9 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "file.h"
-#include "file_internal.h"
-
-MU_DEFINE_ENUM_STRINGS(FILE_ASYNC_OPERATION, FILE_ASYNC_OPERATION_VALUES)
 
 typedef struct FILE_HANDLE_DATA_TAG
 {
@@ -15,14 +12,20 @@ typedef struct FILE_HANDLE_DATA_TAG
 
 typedef struct FILE_LINUX_WRITE_TAG
 {
-    FILE_HANDLE_DATA handle;
-    FILE_WRITE_DATA_CONTEXT write_data;
+    FILE_HANDLE handle;
+    FILE_WRITE_CB user_callback;
+    void* user_context;
+    const unsigned char* source;
+    size_t size;
 }FILE_LINUX_WRITE;
 
 typedef struct FILE_LINUX_READ_TAG
 {
-    FILE_HANDLE_DATA handle;
-    FILE_READ_DATA_CONTEXT read_data;
+    FILE_HANDLE handle;
+    FILE_READ_CB user_callback;
+    void* user_context;
+    unsigned char* destination;
+    size_t size;
 }FILE_LINUX_READ;
 
 static void on_file_write_complete_linux( FILE_LINUX_WRITE* write_info);

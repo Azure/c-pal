@@ -11,7 +11,6 @@ if(${run_unittests})
     add_subdirectory(gballoc_ut)
     add_subdirectory(gballoc_without_init_ut)
     add_subdirectory(refcount_ut)
-    add_subdirectory(constbuffer_ut)
 endif()
 
 if(${run_int_tests})

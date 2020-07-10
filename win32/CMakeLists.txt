@@ -1,5 +1,13 @@
 #Copyright (C) Microsoft Corporation. All rights reserved.
 
+set(pal_common_h_files
+    ../common/inc/gballoc.h
+)
+
+set(pal_common_c_files
+    ../common/src/gballoc.c
+)
+
 set(pal_win32_h_files
     ${pal_common_h_files}
     inc/execution_engine_win32.h
@@ -25,13 +33,14 @@ set(pal_win32_c_files
 )
 
 FILE(GLOB pal_win32_md_files "devdoc/*.md")
+FILE(GLOB pal_common_md_files "../common/devdoc/*.md")
 SOURCE_GROUP(devdoc FILES ${pal_win32_md_files} ${pal_common_md_files})
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/inc)
 include_directories(../common/inc)
 
 add_library(pal_win32 ${pal_win32_h_files} ${pal_win32_c_files} ${pal_win32_md_files} ${pal_common_md_files})
-target_link_libraries(pal_win32 pal_interfaces pal_internal ws2_32 synchronization rpcrt4 azure_c_logging)
+target_link_libraries(pal_win32 pal_interfaces ws2_32 synchronization rpcrt4 azure_c_logging)
 target_include_directories(pal_win32 PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc)
 
 add_subdirectory(tests)
