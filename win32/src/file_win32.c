@@ -9,7 +9,7 @@ typedef struct FILE_WRITE_DATA_CONTEXT_TAG
     FILE_WRITE_CB user_callback;
     void* user_context;
     const unsigned char* source;
-    size_t size;
+    uint32_t size;
 }FILE_WRITE_DATA_CONTEXT;
 
 typedef struct FILE_READ_DATA_CONTEXT_TAG
@@ -17,7 +17,7 @@ typedef struct FILE_READ_DATA_CONTEXT_TAG
     FILE_READ_CB user_callback;
     void* user_context;
     unsigned char* destination;
-    size_t size;
+    uint32_t size;
 }FILE_READ_DATA_CONTEXT;
 
 #define FILE_ASYNC_OPERATION_VALUES \

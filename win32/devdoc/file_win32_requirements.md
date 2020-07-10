@@ -26,13 +26,13 @@ typedef struct FILE_HANDLE_DATA_TAG* FILE_HANDLE;
 typedef void(*FILE_REPORT_FAULT)(void* user_report_fault_context, const char* information);
 
 typedef void(*FILE_WRITE_CB)(void* user_context, bool is_successful);
-typedef void(*FILE_READ_CB)(void* user_context, bool is_successful, const unsigned char* source, size_t size);
+typedef void(*FILE_READ_CB)(void* user_context, bool is_successful);
 
 MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name, FILE_REPORT_FAULT, user_report_fault_callback, void*, user_report_fault_context);
 MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 
-MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, const unsigned char*, source, size_t, size, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(FILE_WRITE_ASYNC_OK, FILE_WRITE_ASYNC_ERROR);
-MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_HANDLE, handle, uint32_t, size, uint64_t, position, FILE_READ_CB, user_callback, void*, user_context)(FILE_READ_ASYNC_OK, FILE_READ_ASYNC_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, const unsigned char*, source, uint32_t, size, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(FILE_WRITE_ASYNC_OK, FILE_WRITE_ASYNC_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_HANDLE, handle, uint64_t, position, unsigned char*, destination, uint32_t, size,FILE_READ_CB, user_callback, void*, user_context)(FILE_READ_ASYNC_OK, FILE_READ_ASYNC_ERROR);
 
 MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend, FILE_HANDLE, handle, uint64_t, desired_size)(0, MU_FAILURE);
 ```
@@ -93,7 +93,7 @@ MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 ## file_write_async
 
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, const unsigned char*, source, size_t, size, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(FILE_WRITE_ASYNC_OK, FILE_WRITE_ASYNC_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, const unsigned char*, source, uint32_t, size, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(FILE_WRITE_ASYNC_OK, FILE_WRITE_ASYNC_ERROR);
 ```
 
 **SRS_FILE_WIN32_43_043: [** If `handle` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
@@ -121,10 +121,12 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE
 ## file_read_async
 
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_HANDLE, handle, uint32_t, size, uint64_t, position, FILE_READ_CB, user_callback, void*, user_context)(FILE_READ_ASYNC_OK, FILE_READ_ASYNC_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_HANDLE, handle, uint64_t, position, unsigned char*, destination, uint32_t, size,FILE_READ_CB, user_callback, void*, user_context)(FILE_READ_ASYNC_OK, FILE_READ_ASYNC_ERROR);
 ```
 
 **SRS_FILE_WIN32_43_046: [** If `handle` is `NULL` then `file_read_async` shall fail and return `FILE_READ_ASYNC_INVALID_ARGS`. **]**
+
+**SRS_FILE_WIN32_43_051: [** If `destination` is `NULL` then `file_read_async` shall fail and return `FILE_READ_ASYNC_INVALID_ARGS`. **]**
 
 **SRS_FILE_WIN32_43_047: [** If `user_callback` is `NULL` then `file_read_async` shall fail and return `FILE_READ_ASYNC_INVALID_ARGS`. **]**
 
@@ -134,9 +136,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_H
 
 **SRS_FILE_WIN32_43_028: [** `file_read_async` shall allocate an `OVERLAPPED` struct and populate it with the created event and `position`. **]**
 
-**SRS_FILE_WIN32_43_051: [** `file_read_async` shall allocate a buffer named `destination` of size `size`. **]**
-
-**SRS_FILE_WIN32_43_026: [** `file_read_async` shall allocate a context to store the allocated `OVERLAPPED` struct, the allocated buffer `destination`, `handle`, read as the type of asynchronous operation, `user_callback` and `user_context` **]**
+**SRS_FILE_WIN32_43_026: [** `file_read_async` shall allocate a context to store the allocated `OVERLAPPED` struct, `destination`, `handle`, read as the type of asynchronous operation, `user_callback` and `user_context` **]**
 
 **SRS_FILE_WIN32_43_029: [** `file_read_async` shall call `ReadFile` with `handle`, `destination`, `size` and the allocated `OVERLAPPED` struct. **]**
 
@@ -178,6 +178,6 @@ static void on_file_io_complete_win32(
 
 **SRS_FILE_WIN32_43_035: [** If `io_result` is not `NO_ERROR`, `on_file_io_complete_win32` shall call `user_callback` with `false` as `is_successful`. **]**
 
-**SRS_FILE_WIN32_43_036: [** If the type of the asynchronous operation is read, `on_file_io_complete_win32` shall call `user_callback` with `user_context`, `true` as `is_successful` and the `destination` from the context as `content`. **]**
+**SRS_FILE_WIN32_43_036: [** If the type of the asynchronous operation is read, `on_file_io_complete_win32` shall call `user_callback` with `user_context` and `true` as `is_successful`. **]**
 
 **SRS_FILE_WIN32_43_039: [** If the type of the asynchronous operation is write, `on_file_io_complete_win32` shall call `user_callback` with `user_context` and `true` as `is_successful`. **]**

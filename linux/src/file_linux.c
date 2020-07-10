@@ -16,7 +16,7 @@ typedef struct FILE_LINUX_WRITE_TAG
     FILE_WRITE_CB user_callback;
     void* user_context;
     const unsigned char* source;
-    size_t size;
+    uint32_t size;
 }FILE_LINUX_WRITE;
 
 typedef struct FILE_LINUX_READ_TAG
@@ -25,7 +25,7 @@ typedef struct FILE_LINUX_READ_TAG
     FILE_READ_CB user_callback;
     void* user_context;
     unsigned char* destination;
-    size_t size;
+    uint32_t size;
 }FILE_LINUX_READ;
 
 static void on_file_write_complete_linux( FILE_LINUX_WRITE* write_info);
