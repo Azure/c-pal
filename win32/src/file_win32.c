@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "windows.h"
-#include "file.h"
+#include "azure_c_pal/file.h"
 
 typedef struct FILE_WRITE_DATA_CONTEXT_TAG
 {
