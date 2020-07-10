@@ -42,11 +42,6 @@ MOCKABLE_FUNCTION(, void*, gballoc_calloc, size_t, nmemb, size_t, size);
 MOCKABLE_FUNCTION(, void*, gballoc_realloc, void*, ptr, size_t, size);
 MOCKABLE_FUNCTION(, void, gballoc_free, void*, ptr);
 
-MOCKABLE_FUNCTION(, size_t, gballoc_getMaximumMemoryUsed);
-MOCKABLE_FUNCTION(, size_t, gballoc_getCurrentMemoryUsed);
-MOCKABLE_FUNCTION(, size_t, gballoc_getAllocationCount);
-MOCKABLE_FUNCTION(, void, gballoc_resetMetrics);
-
 /* if GB_MEASURE_MEMORY_FOR_THIS is defined then we want to redirect memory allocation functions to gballoc_xxx functions */
 #ifdef GB_MEASURE_MEMORY_FOR_THIS
 /* Unfortunately this is still needed here for things to still compile when using _CRTDBG_MAP_ALLOC.
@@ -72,11 +67,6 @@ That is because there is a rogue component (most likely CppUnitTest) including c
 
 #define gballoc_init() 0
 #define gballoc_deinit() ((void)0)
-
-#define gballoc_getMaximumMemoryUsed() SIZE_MAX
-#define gballoc_getCurrentMemoryUsed() SIZE_MAX
-#define gballoc_getAllocationCount() SIZE_MAX
-#define gballoc_resetMetrics() ((void)0)
 
 #endif /* GB_DEBUG_ALLOC */
 

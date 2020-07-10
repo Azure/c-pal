@@ -28,7 +28,7 @@ static TEST_MUTEX_HANDLE g_testByTest;
 
 #define ENABLE_MOCKS
 
-#include "gballoc.h"
+#include "azure_c_pal/gballoc.h"
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 

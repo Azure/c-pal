@@ -13,7 +13,7 @@
 
 #include "testrunnerswitcher.h"
 
-#include "string_utils.h"
+#include "azure_c_pal/string_utils.h"
 
 
 BEGIN_TEST_SUITE(string_utils_int_tests)

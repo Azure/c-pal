@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <time.h>
-#include "sync.h"
+#include "azure_c_pal/sync.h"
 
 IMPLEMENT_MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, int32_t*, compare_address, uint32_t, timeout_ms)
 {

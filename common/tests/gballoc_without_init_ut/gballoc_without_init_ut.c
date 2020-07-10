@@ -13,8 +13,8 @@
 
 #include "azure_macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
-#include "lock.h"
-#include "gballoc.h"
+#include "azure_c_pal/lock.h"
+#include "azure_c_pal/gballoc.h"
 
 #ifndef SIZE_MAX
 #define SIZE_MAX ((size_t)~(size_t)0)
@@ -174,50 +174,6 @@ TEST_FUNCTION(when_gballoc_is_not_initialized_then_gballoc_free_does_nothing)
 
     // act
     gballoc_free((void*)0x4242);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* gballoc_getMaximumMemoryUsed */
-
-/* Tests_SRS_GBALLOC_01_038: [If gballoc was not initialized gballoc_getMaximumMemoryUsed shall return MAX_INT_SIZE.]  */
-TEST_FUNCTION(without_gballoc_being_initialized_gballoc_getMaximumMemoryUsed_fails)
-{
-    // arrange
-
-    // act
-    size_t result = gballoc_getMaximumMemoryUsed();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, SIZE_MAX, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* gballoc_getCurrentMemoryUsed */
-
-/* Tests_SRS_GBALLOC_01_044: [If gballoc was not initialized gballoc_getCurrentMemoryUsed shall return SIZE_MAX.] */
-TEST_FUNCTION(without_gballoc_being_initialized_gballoc_getCurrentMemoryUsed_fails)
-{
-    // arrange
-
-    // act
-    size_t result = gballoc_getCurrentMemoryUsed();
-
-    // assert
-    ASSERT_ARE_EQUAL(size_t, SIZE_MAX, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* gballoc_resetMetrics */
-
-/* Tests_SRS_GBALLOC_07_005: [ If gballoc was not initialized gballoc_resetMetrics shall do nothing.] */
-TEST_FUNCTION(without_gballoc_being_initialized_gballoc_resetMetrics_returns)
-{
-    // arrange
-
-    // act
-    gballoc_resetMetrics();
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());

@@ -35,7 +35,7 @@ void my_gballoc_free(void* ptr)
 #include "umock_c/umock_c_prod.h"
 #undef ENABLE_MOCKS
 
-#include "platform.h"
+#include "azure_c_pal/platform.h"
 
 #define ENABLE_MOCKS
 
