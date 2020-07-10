@@ -25,7 +25,7 @@
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
 
-#include "sync.h"
+#include "azure_c_pal/sync.h"
 
 static TEST_MUTEX_HANDLE g_testByTest;
 

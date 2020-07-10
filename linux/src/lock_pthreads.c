@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include "azure_c_logging/xlogging.h"
-#include "lock.h"
+#include "azure_c_pal/lock.h"
 
 
 LOCK_HANDLE Lock_Init(void)

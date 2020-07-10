@@ -7,13 +7,10 @@
 #include "windows.h"
 #include "azure_macro_utils/macro_utils.h"
 #include "azure_c_logging/xlogging.h"
-#include "gballoc.h"
-#include "async_socket.h"
-#include "execution_engine.h"
+#include "azure_c_pal/gballoc.h"
+#include "azure_c_pal/async_socket.h"
+#include "azure_c_pal/execution_engine.h"
 #include "execution_engine_win32.h"
-
-#include "../inc/async_socket.h"
-
 
 #define ASYNC_SOCKET_WIN32_STATE_VALUES \
     ASYNC_SOCKET_WIN32_STATE_CLOSED, \

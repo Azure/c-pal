@@ -6,11 +6,11 @@
 #include "windows.h"
 
 #include "azure_c_logging/xlogging.h"
-#include "gballoc.h"
-#include "timer.h"
-#include "string_utils.h"
+#include "azure_c_pal/gballoc.h"
+#include "azure_c_pal/timer.h"
+#include "azure_c_pal/string_utils.h"
 
-#include "srw_lock.h"
+#include "azure_c_pal/srw_lock.h"
 
 /*
 vocabulary:

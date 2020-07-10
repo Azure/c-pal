@@ -15,7 +15,7 @@ mock_sync.c
 )
 
 set(${theseTestsName}_h_files
-../../../interfaces/inc/sync.h
+../../../interfaces/inc/azure_c_pal/sync.h
 mock_sync.h
 )
 
