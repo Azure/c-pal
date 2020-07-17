@@ -8,6 +8,7 @@ endif()
 
 if(${run_int_tests})
     add_subdirectory(interlocked_int)
+    add_subdirectory(file_int)
     if(MSVC)
         # waiting for timer to be implemented on linux
         add_subdirectory(sync_int)

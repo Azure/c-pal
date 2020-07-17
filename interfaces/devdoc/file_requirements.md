@@ -38,7 +38,7 @@ MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE, execution
 MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 
 MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, const unsigned char*, source, uint32_t, size, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(FILE_WRITE_ASYNC_OK, FILE_WRITE_ASYNC_ERROR);
-MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_HANDLE, handle, uint64_t, position, unsigned char*, destination, uint32_t, size,FILE_READ_CB, user_callback, void*, user_context)(FILE_READ_ASYNC_OK, FILE_READ_ASYNC_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_HANDLE, handle, unsigned char*, destination, uint64_t, position, uint32_t, size, FILE_CB, user_callback, void*, user_context)(FILE_READ_ASYNC_OK, FILE_READ_ASYNC_ERROR);
 
 MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend, FILE_HANDLE, handle, uint64_t, desired_size)(0, MU_FAILURE);
 ```
@@ -49,7 +49,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend, FILE_HANDLE, handle, uint64_t
 MOCKABLE_FUNCTION(, FILE_HANDLE, file_create,FILE_REPORT_FAULT, user_report_fault_callback, void*, user_report_fault_context, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name);
 ```
 
-If a file by the name `full_file_name` does not exist, `file_create` creates a file by that name, opens it and returns its handle. If the file does exist, `file_create` opens the file and returns its handle.
+If a file by the name `full_file_name` does not exist, `file_create` creates a file by that name, opens it and returns its handle. If the file does exist, `file_create` opens the file and returns its handle. `file_create` shall register `user_report_fault_callback` with argument `user_report_fault_context` as the callback function to be called when the callback specified by the user for a specific asynchronous operation cannot be called.
 
 **SRS_FILE_43_033: [** If `execution_engine` is `NULL`, `file_create` shall fail and return `NULL`. **]**
 
@@ -60,8 +60,6 @@ If a file by the name `full_file_name` does not exist, `file_create` creates a f
 **SRS_FILE_43_003: [** If a file with name `full_file_name` does not exist, `file_create` shall create a file with that name.**]**
 
 **SRS_FILE_43_001: [** `file_create` shall open the file named `full_file_name` for asynchronous operations and return its handle. **]**
-
-**SRS_FILE_43_038: [** `file_create` shall register `user_report_fault_callback` with argument `user_report_fault_context` as the callback function to be called when the callback specified by the user for a specific asynchronous operation cannot be called. **]**
 
 **SRS_FILE_43_034: [** If there are any failures, `file_create` shall fail and return `NULL`. **]**
 
@@ -91,9 +89,11 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE
 
 **SRS_FILE_43_010: [** If `source` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
 
+**SRS_FILE_43_012: [** If `user_callback` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
+
 **SRS_FILE_43_040: [** If `position` + `size` is greater than `INT64_MAX`, then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
 
-**SRS_FILE_43_012: [** If `user_callback` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
+**SRS_FILE_43_042: [** If `size` is 0 then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
 
 **SRS_FILE_43_014: [** `file_write_async` shall enqueue a write request to write `source`'s content to the `position` offset in the file. **]**
 
@@ -120,6 +120,8 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_H
 **SRS_FILE_43_032: [** If `destination` is `NULL` then `file_read_async` shall fail and return `FILE_READ_ASYNC_INVALID_ARGS`. **]**
 
 **SRS_FILE_43_020: [** If `user_callback` is `NULL` then `file_read_async` shall fail and return `FILE_READ_ASYNC_INVALID_ARGS`. **]**
+
+**SRS_FILE_43_043: [** If `size` is 0 then `file_read_async` shall fail and return `FILE_READ_ASYNC_INVALID_ARGS`. **]**
 
 **SRS_FILE_43_021: [** `file_read_async` shall enqueue a read request to read `handle`'s content at `position` offset and write it to `destination`. **]**
 
