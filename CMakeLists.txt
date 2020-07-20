@@ -89,18 +89,21 @@ if ((NOT TARGET umock_c) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/umock-c/CMak
 endif()
 
 if ((NOT TARGET mimalloc) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/mimalloc/CMakeLists.txt))
-        #vld.h message(STATUS "before CMAKE_C_FLAGS=${CMAKE_C_FLAGS}")
-        #vld.h message(STATUS "before CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
-        
         set(MI_BUILD_TESTS OFF)
-        #for mimalloc disable this warning: warning C4459: declaration of 'os_page_size' hides global declaration
+        #for mimalloc disable this warning: Warning C4459: declaration of 'os_page_size' hides global declaration
+        #for mimalloc disable this warning: Warning C4100: 'try_alignment': unreferenced formal parameter
+
         set(PREV_CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
         set(PREV_CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd4459")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4459")
+        if(WIN32)
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd4459 /wd4100")
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4459 /wd4100")
+        endif()
+
         add_subdirectory(deps/mimalloc)
         include_directories(deps/mimalloc/include)
-        set(CMAKE_C_FLAGS ${PREV_CMAKE_C_FLAGS})        
+        
+        set(CMAKE_C_FLAGS ${PREV_CMAKE_C_FLAGS})
         set(CMAKE_CXX_FLAGS ${PREV_CMAKE_CXX_FLAGS})
 endif()
 
