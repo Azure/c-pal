@@ -3,14 +3,14 @@
 
 #ifdef __cplusplus
 #include <cstdlib>
+#include <cstddef>
 #else
 #include <stdlib.h>
+#include <stddef.h>
 #endif
 
 #include "azure_macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
-
-#include "windows.h"
 
 static TEST_MUTEX_HANDLE g_testByTest;
 
