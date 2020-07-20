@@ -3,7 +3,7 @@
 
 ## Overview
 
-gballoc_ll_passthrough is a module that delegates all call to its APIs to the ones from C standard lib.
+gballoc_ll_passthrough is a module that delegates all call of its APIs to the ones from C standard lib.
 
 ## References
 

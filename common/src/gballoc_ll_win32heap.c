@@ -2,7 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include <stddef.h>
-#include <stdlib.h>
 
 #include "windows.h"
 
@@ -87,7 +86,7 @@ void* gballoc_ll_calloc(size_t nmemb, size_t size)
         result = HeapAlloc(the_heap, HEAP_ZERO_MEMORY, nmemb * size);
         /*return as is*/
     }
-    return calloc(nmemb, size);
+    return result;
 }
 
 void* gballoc_ll_realloc(void* ptr, size_t size)
