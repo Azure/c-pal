@@ -11,7 +11,10 @@ if(${run_unittests})
     add_subdirectory(gballoc_ut)
     add_subdirectory(gballoc_without_init_ut)
     add_subdirectory(refcount_ut)
-    if(${PAL_OS} STREQUAL "pal_win32")
+    if(
+        (${PAL_OS} STREQUAL "pal_win32") AND
+        (${ARCHITECTURE} STREQUAL "x86_64")
+    )
         build_test_folder(gballoc_ll_passthrough_ut)
         build_test_folder(gballoc_ll_win32heap_ut)
     endif()

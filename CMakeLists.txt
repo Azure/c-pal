@@ -88,7 +88,11 @@ if ((NOT TARGET umock_c) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/umock-c/CMak
         include_directories(deps/umock-c/inc)
 endif()
 
-if ((NOT TARGET mimalloc) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/mimalloc/CMakeLists.txt))
+if (
+    (NOT TARGET mimalloc) AND 
+    (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/mimalloc/CMakeLists.txt) AND
+    (${ARCHITECTURE} STREQUAL "x86_64")
+    )
         set(MI_BUILD_TESTS OFF)
         #for mimalloc disable this warning: Warning C4459: declaration of 'os_page_size' hides global declaration
         #for mimalloc disable this warning: Warning C4100: 'try_alignment': unreferenced formal parameter
