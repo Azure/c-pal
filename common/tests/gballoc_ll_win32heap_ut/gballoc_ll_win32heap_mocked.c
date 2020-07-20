@@ -7,4 +7,4 @@
 #define HeapFree mock_HeapFree
 #define HeapReAlloc mock_HeapReAlloc
 
-#include "..\..\src\gballoc_ll_win32heap.c"
+#include "../../src/gballoc_ll_win32heap.c"
