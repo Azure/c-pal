@@ -17,6 +17,7 @@ if(${run_unittests})
     )
         build_test_folder(gballoc_ll_passthrough_ut)
         build_test_folder(gballoc_ll_win32heap_ut)
+        build_test_folder(gballoc_ll_mimalloc_ut)
     endif()
 endif()
 
