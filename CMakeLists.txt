@@ -89,8 +89,8 @@ if ((NOT TARGET umock_c) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/umock-c/CMak
 endif()
 
 if ((NOT TARGET mimalloc) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/mimalloc/CMakeLists.txt))
-        message(STATUS "before CMAKE_C_FLAGS=${CMAKE_C_FLAGS}")
-        message(STATUS "before CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
+        #vld.h message(STATUS "before CMAKE_C_FLAGS=${CMAKE_C_FLAGS}")
+        #vld.h message(STATUS "before CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
         
         set(MI_BUILD_TESTS OFF)
         #for mimalloc disable this warning: warning C4459: declaration of 'os_page_size' hides global declaration
