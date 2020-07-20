@@ -22,4 +22,10 @@ if(${run_unittests})
 endif()
 
 if(${run_int_tests})
+    if(
+        (${PAL_OS} STREQUAL "pal_win32") AND
+        (${ARCHITECTURE} STREQUAL "x86_64")
+    )
+        build_test_folder(gballoc_ll_mimalloc_int)
+    endif()
 endif()
