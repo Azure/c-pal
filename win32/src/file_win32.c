@@ -148,7 +148,6 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE,
                         }
                         else
                         {
-                            /*Codes_SRS_FILE_43_038: [ file_create shall register user_report_fault_callback with argument user_report_fault_context as the callback function to be called when the callback specified by the user for a specific asynchronous operation cannot be called. ]*/
                             result->user_report_fault_callback = user_report_fault_callback;
                             result->user_report_fault_context = user_report_fault_context;
                         }

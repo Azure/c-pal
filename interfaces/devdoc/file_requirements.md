@@ -142,14 +142,14 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend, FILE_HANDLE, handle, uint64_t
 
 `file_extend` grows the file to `desired_size`. The contents of the file between the old end and new end are not defined.
 
-**SRS_FILE_43_024: [** If `handle` is `NULL`, `file_extend` shall fail and return a non-zero value. **]**
+**S_R_S_FILE_43_024: [** If `handle` is `NULL`, `file_extend` shall fail and return a non-zero value. **]**
 
-**SRS_FILE_43_025: [** If `desired_size` is greater than `INT64_MAX`, `file_extend` shall fail and return a non-zero value. **]**
+**S_R_S_FILE_43_025: [** If `desired_size` is greater than `INT64_MAX`, `file_extend` shall fail and return a non-zero value. **]**
 
-**SRS_FILE_43_026: [** If `desired_size` is less than the current size of the file, `file_extend` shall fail and return a non-zero value. **]**
+**S_R_S_FILE_43_026: [** If `desired_size` is less than the current size of the file, `file_extend` shall fail and return a non-zero value. **]**
 
-**SRS_FILE_43_027: [** `file_extend` shall set the valid file data size of the given file to `desired_size`. **]**
+**S_R_S_FILE_43_027: [** `file_extend` shall set the valid file data size of the given file to `desired_size`. **]**
 
-**SRS_FILE_43_028: [** If there are any failures, `file_extend` shall return a non-zero value. **]**
+**S_R_S_FILE_43_028: [** If there are any failures, `file_extend` shall return a non-zero value. **]**
 
-**SRS_FILE_43_029: [** If there are no failures, `file_extend` will return 0. **]**
+**S_R_S_FILE_43_029: [** If there are no failures, `file_extend` will return 0. **]**

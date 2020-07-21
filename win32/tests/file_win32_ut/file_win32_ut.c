@@ -343,9 +343,6 @@ TEST_FUNCTION(file_destroy_succeeds)
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///cleanup
-    file_destroy(file_handle);
 }
 
 /*Tests_SRS_FILE_43_009: [ If handle is NULL then file_write_async shall fail and return FILE_WRITE_ASYNC_INVALID_ARGS. ]*/
@@ -825,7 +822,7 @@ TEST_FUNCTION(file_read_async_fails)
 TEST_FUNCTION(file_extend_returns_zero)
 {
     ///arrange
-    FILE_HANDLE file_handle = get_file_handle("file_extend_returns_zero.txt")
+    FILE_HANDLE file_handle = get_file_handle("file_extend_returns_zero.txt");
     ///act
     int return_val = file_extend(file_handle, 0);
 
@@ -837,7 +834,6 @@ TEST_FUNCTION(file_extend_returns_zero)
 }
 
 /*Tests_SRS_FILE_WIN32_43_034: [ on_file_io_complete_win32 shall recover the file handle, the number of bytes requested by the user, user_callback and user_context from the context containing overlapped. ]*/
-/*Tests_SRS_FILE_WIN32_43_067: [ on_file_io_complete_win32 shall compare number_of_bytes_transferred to the number of bytes requested by the user. ]*/
 /*Tests_SRS_FILE_WIN32_43_066: [ on_file_io_complete_win32 shall call user_callback with is_successful as true if and only if io_result is equal to NO_ERROR and number_of_bytes_transferred is equal to the number of bytes requested by the user. ]*/
 TEST_FUNCTION(on_file_io_complete_win32_calls_callback_successfully_for_write)
 {
@@ -926,7 +922,6 @@ TEST_FUNCTION(on_file_io_complete_win32_calls_callback_unsuccessfully_for_write_
 }
 
 /*Tests_SRS_FILE_WIN32_43_034: [ on_file_io_complete_win32 shall recover the file handle, the number of bytes requested by the user, user_callback and user_context from the context containing overlapped. ]*/
-/*Tests_SRS_FILE_WIN32_43_067: [ on_file_io_complete_win32 shall compare number_of_bytes_transferred to the number of bytes requested by the user. ]*/
 /*Tests_SRS_FILE_WIN32_43_066: [ on_file_io_complete_win32 shall call user_callback with is_successful as true if and only if io_result is equal to NO_ERROR and number_of_bytes_transferred is equal to the number of bytes requested by the user. ]*/
 TEST_FUNCTION(on_file_io_complete_win32_calls_callback_successfully_for_read)
 {
