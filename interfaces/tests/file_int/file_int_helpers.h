@@ -13,7 +13,7 @@ extern "C" {
 #include <stdbool.h>
 #endif
 
-void delete_file(const char* filename);
+int delete_file(const char* filename);
 bool check_file_exists(const char* filename);
 
 #ifdef __cplusplus

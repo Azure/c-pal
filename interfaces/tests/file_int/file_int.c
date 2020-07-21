@@ -604,7 +604,6 @@ TEST_FUNCTION(large_simultaneous_reads_succeed)
     {
         destinations[i] = (unsigned char*)malloc(block_size);
         ASSERT_IS_NOT_NULL(destinations[i]);
-        (void)memset(destinations[i], 'a' + i, block_size);
         contexts[i].pre_callback_value = num_blocks + 1;
         (void)interlocked_exchange(&contexts[i].value, contexts[i].pre_callback_value);
         contexts[i].post_callback_value = i;
