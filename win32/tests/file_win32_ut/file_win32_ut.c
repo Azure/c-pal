@@ -57,78 +57,91 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
 
-static FILE_HANDLE get_file_handle(const char* filename, PTP_WIN32_IO_CALLBACK* captured_callback)
+static HANDLE fake_handle = (HANDLE)42;
+static PTP_POOL fake_ptp_pool = (PTP_POOL)43;
+static PTP_CLEANUP_GROUP fake_ptp_cleanup_group = (PTP_CLEANUP_GROUP)44;
+static PTP_IO fake_ptp_io = (PTP_IO)45;
+static HANDLE fake_h_event = (HANDLE)46;
+static EXECUTION_ENGINE_HANDLE fake_execution_engine = (EXECUTION_ENGINE_HANDLE)47;
+
+static void setup_file_create_expectations(const char* filename, PTP_CALLBACK_ENVIRON* captured_ptpcbe,  PTP_WIN32_IO_CALLBACK* captured_callback)
 {
-    ///arrange
-    EXECUTION_ENGINE_HANDLE execution_engine = (EXECUTION_ENGINE_HANDLE)41;
-    HANDLE handle = (HANDLE)42;
-    PTP_POOL ptp_pool = (PTP_POOL)43;
-    PTP_CALLBACK_ENVIRON captured_pcbe;
-    PTP_CLEANUP_GROUP ptp_cleanup_group = (PTP_CLEANUP_GROUP)44;
-    PTP_IO ptp_io = (PTP_IO)45;
-
-
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mock_CreateFileA(filename, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_FLAG_OVERLAPPED | FILE_FLAG_WRITE_THROUGH, NULL))
-        .SetReturn(handle);
-    STRICT_EXPECTED_CALL(mock_SetFileCompletionNotificationModes(handle, FILE_SKIP_COMPLETION_PORT_ON_SUCCESS))
-        .SetReturn(TRUE);
+    STRICT_EXPECTED_CALL(mock_CreateFileA(filename, GENERIC_READ|GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_FLAG_OVERLAPPED|FILE_FLAG_WRITE_THROUGH, NULL));
+    STRICT_EXPECTED_CALL(mock_SetFileCompletionNotificationModes(fake_handle, FILE_SKIP_COMPLETION_PORT_ON_SUCCESS));
     STRICT_EXPECTED_CALL(mock_InitializeThreadpoolEnvironment(IGNORED_ARG))
-        .CaptureArgumentValue_pcbe(&captured_pcbe);
-    STRICT_EXPECTED_CALL(execution_engine_win32_get_threadpool(execution_engine))
-        .SetReturn(ptp_pool);
-    STRICT_EXPECTED_CALL(mock_SetThreadpoolCallbackPool(IGNORED_ARG, ptp_pool))
-        .ValidateArgumentValue_pcbe(&captured_pcbe);
-    STRICT_EXPECTED_CALL(mock_CreateThreadpoolCleanupGroup())
-        .SetReturn(ptp_cleanup_group);
-    STRICT_EXPECTED_CALL(mock_SetThreadpoolCallbackCleanupGroup(IGNORED_ARG, ptp_cleanup_group, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mock_CreateThreadpoolIo(handle, IGNORED_ARG, NULL, IGNORED_ARG))
-        .CaptureArgumentValue_pcbe(&captured_pcbe)
-        .CaptureArgumentValue_pfnio(captured_callback)
-        .SetReturn(ptp_io);
+        .CaptureArgumentValue_pcbe(captured_ptpcbe);
+    STRICT_EXPECTED_CALL(execution_engine_win32_get_threadpool(fake_execution_engine))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(mock_SetThreadpoolCallbackPool(IGNORED_ARG, fake_ptp_pool))
+        .ValidateArgumentValue_pcbe(captured_ptpcbe);
+    STRICT_EXPECTED_CALL(mock_CreateThreadpoolCleanupGroup());
+    STRICT_EXPECTED_CALL(mock_SetThreadpoolCallbackCleanupGroup(IGNORED_ARG, fake_ptp_cleanup_group, IGNORED_ARG))
+        .ValidateArgumentValue_pcbe(captured_ptpcbe);
+    STRICT_EXPECTED_CALL(mock_CreateThreadpoolIo(fake_handle, IGNORED_ARG, NULL, IGNORED_ARG))
+        .ValidateArgumentValue_pcbe(captured_ptpcbe)
+        .CaptureArgumentValue_pfnio(captured_callback);
+}
 
-    ///act
-    FILE_HANDLE file_handle = file_create(execution_engine, filename, NULL, NULL);
+static FILE_HANDLE get_file_handle_and_callback(const char* filename, PTP_WIN32_IO_CALLBACK* captured_callback)
+{
+    PTP_CALLBACK_ENVIRON captured_ptpcbe;
+    setup_file_create_expectations(filename, &captured_ptpcbe, captured_callback);
 
-    ///assert
+    FILE_HANDLE file_handle = file_create(fake_execution_engine, filename, NULL, NULL);
+
     ASSERT_IS_NOT_NULL(file_handle);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     umock_c_reset_all_calls();
     return file_handle;
 }
-
-static void get_callback(FILE_CB user_callback, void* user_context, uint32_t size, PTP_WIN32_IO_CALLBACK* captured_callback, LPOVERLAPPED* captured_ov)
+static FILE_HANDLE get_file_handle(const char* filename)
 {
-    ///arrange
-    FILE_HANDLE file_handle = get_file_handle("test_file.txt", captured_callback);
-    unsigned char buf[10];
-    HANDLE h_event = (HANDLE)44;
-    uint64_t position = 5;
-    PTP_IO captured_ptp_io;
+    PTP_WIN32_IO_CALLBACK captured_callback = NULL;
+    return get_file_handle_and_callback(filename, &captured_callback);
+}
+
+
+
+static FILE_HANDLE start_file_io_async(char type, unsigned char* buffer, uint32_t size, uint64_t position, FILE_CB user_callback, void* user_context, PTP_WIN32_IO_CALLBACK* captured_callback, LPOVERLAPPED* captured_ov)
+{
+    FILE_HANDLE file_handle = get_file_handle_and_callback("test_file.txt", captured_callback);
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mock_CreateEvent(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .SetReturn(h_event);
-    STRICT_EXPECTED_CALL(mock_StartThreadpoolIo(IGNORED_ARG))
-        .CaptureArgumentValue_pio(&captured_ptp_io);
-
-    STRICT_EXPECTED_CALL(mock_WriteFile(IGNORED_ARG, buf, size, NULL, IGNORED_ARG))
-        .CaptureArgumentValue_lpOverlapped(captured_ov)
-        .SetReturn(FALSE);
+    STRICT_EXPECTED_CALL(mock_CreateEvent(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mock_StartThreadpoolIo(fake_ptp_io));
+    if(type == 'w')
+    {
+        STRICT_EXPECTED_CALL(mock_WriteFile(fake_handle, buffer, size, IGNORED_ARG, IGNORED_ARG))
+            .CaptureArgumentValue_lpOverlapped(captured_ov)
+            .SetReturn(FALSE);
+    }
+    else if (type == 'r')
+    {
+        STRICT_EXPECTED_CALL(mock_ReadFile(fake_handle, buffer, size, IGNORED_ARG, IGNORED_ARG))
+            .CaptureArgumentValue_lpOverlapped(captured_ov)
+            .SetReturn(FALSE);
+    }
     STRICT_EXPECTED_CALL(mock_GetLastError())
         .SetReturn(ERROR_IO_PENDING);
 
-    ///act
-    FILE_WRITE_ASYNC_RESULT result = file_write_async(file_handle, buf, size, position, user_callback, user_context);
+    if(type == 'w')
+    {
+        FILE_WRITE_ASYNC_RESULT result = file_write_async(file_handle, buffer, size, position, user_callback, user_context);
+        ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, result);
+    }
+    else if(type == 'r')
+    {
+        FILE_READ_ASYNC_RESULT result = file_read_async(file_handle, buffer, size, position, user_callback, user_context);
+        ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_OK, result);
+    }
 
-    ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, result);
     
-    //cleanup
-    file_destroy(file_handle);
     umock_c_reset_all_calls();
+    return file_handle;
+
 }
 
 BEGIN_TEST_SUITE(file_win32_unittests)
@@ -154,11 +167,12 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_TYPE(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_RESULT);
 
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(malloc, NULL);
-    REGISTER_GLOBAL_MOCK_FAIL_RETURN(mock_CreateEvent, NULL);
-
-    REGISTER_GLOBAL_MOCK_FAIL_RETURN(mock_CreateThreadpoolCleanupGroup, NULL);
-    REGISTER_GLOBAL_MOCK_FAIL_RETURN(mock_CreateThreadpoolIo, NULL);
-    REGISTER_GLOBAL_MOCK_FAIL_RETURN(mock_SetFileCompletionNotificationModes, FALSE);
+    REGISTER_GLOBAL_MOCK_RETURNS(mock_CreateFileA, fake_handle, INVALID_HANDLE_VALUE);
+    REGISTER_GLOBAL_MOCK_RETURNS(mock_SetFileCompletionNotificationModes, TRUE, FALSE);
+    REGISTER_GLOBAL_MOCK_RETURNS(execution_engine_win32_get_threadpool, fake_ptp_pool, NULL);
+    REGISTER_GLOBAL_MOCK_RETURNS(mock_CreateThreadpoolCleanupGroup, fake_ptp_cleanup_group, NULL);
+    REGISTER_GLOBAL_MOCK_RETURNS(mock_CreateThreadpoolIo, fake_ptp_io, NULL);
+    REGISTER_GLOBAL_MOCK_RETURNS(mock_CreateEvent, fake_h_event, NULL);
 }
 
 TEST_SUITE_CLEANUP(TestClassCleanup)
@@ -196,6 +210,8 @@ TEST_FUNCTION(file_create_fails_on_null_execution_engine)
 
     ///assert
     ASSERT_IS_NULL(return_val);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
 }
 
 /*Tests_SRS_FILE_43_002: [ If full_file_name is NULL then file_create shall fail and return NULL. ]*/
@@ -203,11 +219,11 @@ TEST_FUNCTION(file_create_fails_on_null_execution_engine)
 TEST_FUNCTION(file_create_fails_on_null_full_file_name)
 {
     ///arrange
-    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
     ///act
-    FILE_HANDLE return_val = file_create(execution_engine, NULL, NULL, NULL);
+    FILE_HANDLE return_val = file_create(fake_execution_engine, NULL, NULL, NULL);
     ///assert
     ASSERT_IS_NULL(return_val);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 /*Tests_SRS_FILE_43_037: [ If full_file_name is an empty string, file_create shall fail and return NULL. ]*/
@@ -215,11 +231,11 @@ TEST_FUNCTION(file_create_fails_on_null_full_file_name)
 TEST_FUNCTION(file_create_fails_on_empty_full_file_name)
 {
     ///arrange
-    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
     ///act
-    FILE_HANDLE return_val = file_create(execution_engine, "", NULL, NULL);
+    FILE_HANDLE return_val = file_create(fake_execution_engine, "", NULL, NULL);
     ///assert
     ASSERT_IS_NULL(return_val);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 /*Tests_SRS_FILE_WIN32_43_041: [ file_create shall allocate a FILE_HANDLE. ]*/
@@ -235,15 +251,20 @@ TEST_FUNCTION(file_create_fails_on_empty_full_file_name)
 TEST_FUNCTION(file_create_succeeds)
 {
     ///arrange
-    PTP_WIN32_IO_CALLBACK captured_callback;
+    PTP_CALLBACK_ENVIRON captured_ptpcbe;
+    PTP_WIN32_IO_CALLBACK captured_callback = NULL;
+    char* filename = "file_create_succeeds.txt";
+    setup_file_create_expectations(filename, &captured_ptpcbe, &captured_callback);
+
     ///act
-    FILE_HANDLE return_val = get_file_handle("file_create_succeeds.txt", &captured_callback);
+    FILE_HANDLE file_handle = file_create(fake_execution_engine, filename, NULL, NULL);
+
     ///assert
+    ASSERT_IS_NOT_NULL(file_handle);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_IS_NOT_NULL(return_val);
     
     ///cleanup
-    file_destroy(return_val);
+    file_destroy(file_handle);
 }
 
 /*Tests_SRS_FILE_43_034: [ If there are any failures, file_create shall fail and return NULL. ]*/
@@ -251,32 +272,11 @@ TEST_FUNCTION(file_create_succeeds)
 TEST_FUNCTION(file_create_fails)
 {
     ///arrange
-    EXECUTION_ENGINE_HANDLE execution_engine = (EXECUTION_ENGINE_HANDLE)41;
     const char filename[] = "file_create_succeeds.txt";
-    HANDLE handle = (HANDLE)42;
-    PTP_POOL ptp_pool = (PTP_POOL)43;
-    PTP_CALLBACK_ENVIRON captured_pcbe;
-    PTP_CLEANUP_GROUP ptp_cleanup_group = (PTP_CLEANUP_GROUP)44;
-    PTP_IO ptp_io = (PTP_IO)45;
+    PTP_CALLBACK_ENVIRON captured_ptpcbe;
+    PTP_WIN32_IO_CALLBACK captured_ptp_callback;
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mock_CreateFileA(filename, GENERIC_READ|GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_FLAG_OVERLAPPED|FILE_FLAG_WRITE_THROUGH, NULL))
-        .SetReturn(handle)
-        .SetFailReturn(INVALID_HANDLE_VALUE);
-    STRICT_EXPECTED_CALL(mock_SetFileCompletionNotificationModes(handle, FILE_SKIP_COMPLETION_PORT_ON_SUCCESS))
-        .SetReturn(TRUE);
-    STRICT_EXPECTED_CALL(mock_InitializeThreadpoolEnvironment(IGNORED_ARG))
-        .CaptureArgumentValue_pcbe(&captured_pcbe);
-    STRICT_EXPECTED_CALL(execution_engine_win32_get_threadpool(execution_engine))
-        .SetReturn(ptp_pool);
-    STRICT_EXPECTED_CALL(mock_SetThreadpoolCallbackPool(IGNORED_ARG, ptp_pool))
-        .ValidateArgumentValue_pcbe(&captured_pcbe);
-    STRICT_EXPECTED_CALL(mock_CreateThreadpoolCleanupGroup())
-        .SetReturn(ptp_cleanup_group);
-    STRICT_EXPECTED_CALL(mock_SetThreadpoolCallbackCleanupGroup(IGNORED_ARG, ptp_cleanup_group, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mock_CreateThreadpoolIo(handle, IGNORED_ARG, NULL, IGNORED_ARG))
-        .CaptureArgumentValue_pcbe(&captured_pcbe)
-        .SetReturn(ptp_io);
+    setup_file_create_expectations(filename, &captured_ptpcbe, &captured_ptp_callback);
 
     umock_c_negative_tests_snapshot();
     for (int i = 0; i < umock_c_negative_tests_call_count(); ++i)
@@ -287,10 +287,13 @@ TEST_FUNCTION(file_create_fails)
             umock_c_negative_tests_fail_call(i);
 
             ///act
-            FILE_HANDLE file_handle = file_create(execution_engine, filename, NULL, NULL);
+            FILE_HANDLE file_handle = file_create(fake_execution_engine, filename, NULL, NULL);
 
             ///assert
             ASSERT_IS_NULL(file_handle);
+
+            ///cleanup
+            file_destroy(file_handle);
         }
     }
 }
@@ -311,23 +314,28 @@ TEST_FUNCTION(file_destroy_called_with_null_handle)
 /*Tests_SRS_FILE_WIN32_43_011: [ file_destroy shall wait for all I / O to complete by calling WaitForThreadpoolIoCallbacks.]*/
 /*Tests_SRS_FILE_WIN32_43_012: [ file_destroy shall close the cleanup group by calling CloseThreadpoolCleanupGroup.]*/
 /*Tests_SRS_FILE_WIN32_43_013: [ file_destroy shall destroy the environment by calling DestroyThreadpoolEnvironment.]*/
-/*Tests_SRS_FILE_WIN32_43_016: [ file_destroy shall call CloseHandle on handle->h_file]*/
+/*Tests_SRS_FILE_WIN32_43_016: [ file_destroy shall call CloseHandle on the handle returned by CreateFileA. ]*/
 /*Tests_SRS_FILE_WIN32_43_015: [ file_destroy shall close the threadpool IO by calling CloseThreadPoolIo.]*/
 /*Tests_SRS_FILE_WIN32_43_042: [ file_destroy shall free the handle.]*/
 TEST_FUNCTION(file_destroy_succeeds)
 {
 
-    PTP_WIN32_IO_CALLBACK captured_callback;
-    FILE_HANDLE file_handle = get_file_handle("file_destroy_succeeds.txt", &captured_callback);
-    PTP_IO captured_ptp_io;
+    ///arrange
+    PTP_CALLBACK_ENVIRON captured_ptpcbe;
+    PTP_WIN32_IO_CALLBACK captured_callback = NULL;
+    const char* filename = "file_destroy_succeeds.txt";
+    setup_file_create_expectations(filename, &captured_ptpcbe, &captured_callback);
 
-    STRICT_EXPECTED_CALL(mock_WaitForThreadpoolIoCallbacks(IGNORED_ARG, FALSE))
-        .CaptureArgumentValue_pio(&captured_ptp_io);
-    STRICT_EXPECTED_CALL(mock_CloseThreadpoolCleanupGroup(IGNORED_ARG));
+    FILE_HANDLE file_handle = file_create(fake_execution_engine, filename, NULL, NULL);
+
+    ASSERT_IS_NOT_NULL(file_handle);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(mock_WaitForThreadpoolIoCallbacks(fake_ptp_io, FALSE));
+    STRICT_EXPECTED_CALL(mock_CloseThreadpoolCleanupGroup(fake_ptp_cleanup_group));
     STRICT_EXPECTED_CALL(mock_DestroyThreadpoolEnvironment(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mock_CloseHandle(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mock_CloseThreadpoolIo(IGNORED_ARG))
-        .ValidateArgumentValue_pio(&captured_ptp_io);
+    STRICT_EXPECTED_CALL(mock_CloseHandle(fake_handle));
+    STRICT_EXPECTED_CALL(mock_CloseThreadpoolIo(fake_ptp_io));
     STRICT_EXPECTED_CALL(free(file_handle));
 
     ///act
@@ -335,6 +343,9 @@ TEST_FUNCTION(file_destroy_succeeds)
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    file_destroy(file_handle);
 }
 
 /*Tests_SRS_FILE_43_009: [ If handle is NULL then file_write_async shall fail and return FILE_WRITE_ASYNC_INVALID_ARGS. ]*/
@@ -343,13 +354,13 @@ TEST_FUNCTION(file_write_async_fails_with_null_handle)
 {
     ///arrange
     unsigned char source[10];
-    FILE_CB user_callback = (FILE_CB)42;
 
     ///act
-    FILE_WRITE_ASYNC_RESULT result = file_write_async(NULL, source, 1, 1, user_callback, NULL);
+    FILE_WRITE_ASYNC_RESULT result = file_write_async(NULL, source, 1, 1, mock_user_callback, NULL);
 
     ///assert
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_INVALID_ARGS, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 /*Tests_SRS_FILE_43_010: [ If source is NULL then file_write_async shall fail and return FILE_WRITE_ASYNC_INVALID_ARGS. ]*/
@@ -357,14 +368,17 @@ TEST_FUNCTION(file_write_async_fails_with_null_handle)
 TEST_FUNCTION(file_write_async_fails_with_null_source)
 {
     ///arrange
-    FILE_HANDLE file_handle = (FILE_HANDLE)42;
-    FILE_CB user_callback = (FILE_CB)43;
+    FILE_HANDLE file_handle = get_file_handle("file_write_async_fails_with_null_source.txt");
 
     ///act
-    FILE_WRITE_ASYNC_RESULT result = file_write_async(file_handle, NULL, 1, 1, user_callback, NULL);
+    FILE_WRITE_ASYNC_RESULT result = file_write_async(file_handle, NULL, 1, 1, mock_user_callback, NULL);
 
     ///assert
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_INVALID_ARGS, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    file_destroy(file_handle);
 }
 
 /*Tests_SRS_FILE_43_012: [ If user_callback is NULL then file_write_async shall fail and return FILE_WRITE_ASYNC_INVALID_ARGS. ]*/
@@ -372,7 +386,7 @@ TEST_FUNCTION(file_write_async_fails_with_null_source)
 TEST_FUNCTION(file_write_async_fails_with_null_user_callback)
 {
     ///arrange
-    FILE_HANDLE file_handle = (FILE_HANDLE)42;
+    FILE_HANDLE file_handle = get_file_handle("file_write_async_fails_with_null_user_callback.txt");
     unsigned char source[10];
 
     ///act
@@ -380,6 +394,10 @@ TEST_FUNCTION(file_write_async_fails_with_null_user_callback)
 
     ///assert
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_INVALID_ARGS, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    file_destroy(file_handle);
 }
 
 /*Tests_SRS_FILE_43_040: [ If position + size is greater than INT64_MAX, then file_write_async shall fail and return FILE_WRITE_ASYNC_INVALID_ARGS. ]*/
@@ -387,15 +405,18 @@ TEST_FUNCTION(file_write_async_fails_with_null_user_callback)
 TEST_FUNCTION(file_write_async_fails_if_write_overflows_max_size)
 {
     ///arrange
-    FILE_HANDLE file_handle = (FILE_HANDLE)42;
-    FILE_CB user_callback = (FILE_CB)43;
+    FILE_HANDLE file_handle = get_file_handle("file_write_async_fails_if_write_overflows_max_size.txt");
     unsigned char source[10];
 
     ///act
-    FILE_WRITE_ASYNC_RESULT result = file_write_async(file_handle, source, 1, INT64_MAX, user_callback, NULL);
+    FILE_WRITE_ASYNC_RESULT result = file_write_async(file_handle, source, 1, INT64_MAX, mock_user_callback, NULL);
 
     ///assert
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_INVALID_ARGS, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    file_destroy(file_handle);
 }
 
 /*Tests_SRS_FILE_43_042: [ If size is 0 then file_write_async shall fail and return FILE_WRITE_ASYNC_INVALID_ARGS. ]*/
@@ -403,15 +424,18 @@ TEST_FUNCTION(file_write_async_fails_if_write_overflows_max_size)
 TEST_FUNCTION(file_write_async_fails_if_size_is_zero)
 {
     ///arrange
-    FILE_HANDLE file_handle = (FILE_HANDLE)42;
-    FILE_CB user_callback = (FILE_CB)43;
+    FILE_HANDLE file_handle = get_file_handle("file_write_async_fails_if_size_is_zero.txt");
     unsigned char source[10];
 
     ///act
-    FILE_WRITE_ASYNC_RESULT result = file_write_async(file_handle, source, 0, INT64_MAX, user_callback, NULL);
+    FILE_WRITE_ASYNC_RESULT result = file_write_async(file_handle, source, 0, INT64_MAX, mock_user_callback, NULL);
 
     ///assert
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_INVALID_ARGS, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    file_destroy(file_handle);
 }
 
 /*Tests_SRS_FILE_WIN32_43_017: [ file_write_async shall call StartThreadpoolIo.]*/
@@ -423,28 +447,21 @@ TEST_FUNCTION(file_write_async_fails_if_size_is_zero)
 TEST_FUNCTION(file_write_async_succeeds_asynchronously)
 {
     ///arrange
-    PTP_WIN32_IO_CALLBACK captured_callback;
-    FILE_HANDLE file_handle = get_file_handle("file_write_async_succeeds_asynchronously.txt", &captured_callback);
+    FILE_HANDLE file_handle = get_file_handle("file_write_async_succeeds_asynchronously.txt");
     unsigned char source[10];
-    FILE_CB user_callback = (FILE_CB)43;
-    HANDLE h_event = (HANDLE)44;
     uint32_t size = 10;
     uint64_t position = 5;
 
-    PTP_IO captured_ptp_io;
-
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mock_CreateEvent(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .SetReturn(h_event);
-    STRICT_EXPECTED_CALL(mock_StartThreadpoolIo(IGNORED_ARG))
-        .CaptureArgumentValue_pio(&captured_ptp_io);
+    STRICT_EXPECTED_CALL(mock_CreateEvent(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mock_StartThreadpoolIo(fake_ptp_io));
     STRICT_EXPECTED_CALL(mock_WriteFile(IGNORED_ARG, source, size, NULL, IGNORED_ARG))
         .SetReturn(FALSE);
     STRICT_EXPECTED_CALL(mock_GetLastError())
         .SetReturn(ERROR_IO_PENDING);
 
     ///act
-    FILE_WRITE_ASYNC_RESULT result = file_write_async(file_handle, source, size, position, user_callback, NULL);
+    FILE_WRITE_ASYNC_RESULT result = file_write_async(file_handle, source, size, position, mock_user_callback, NULL);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -464,33 +481,26 @@ TEST_FUNCTION(file_write_async_succeeds_asynchronously)
 TEST_FUNCTION(file_write_async_fails_synchronously)
 {
     ///arrange
-    PTP_WIN32_IO_CALLBACK captured_callback;
-    FILE_HANDLE file_handle = get_file_handle("file_write_async_fails_synchronously.txt", &captured_callback);
+    FILE_HANDLE file_handle = get_file_handle("file_write_async_fails_synchronously.txt");
     unsigned char source[10];
-    FILE_CB user_callback = (FILE_CB)43;
     uint32_t size = 10;
     uint64_t position = 5;
-    HANDLE h_event = (HANDLE)44;
     void* io;
-    PTP_IO captured_ptp_io;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG))
         .CaptureReturn(&io);
-    STRICT_EXPECTED_CALL(mock_CreateEvent(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .SetReturn(h_event);
-    STRICT_EXPECTED_CALL(mock_StartThreadpoolIo(IGNORED_ARG))
-        .CaptureArgumentValue_pio(&captured_ptp_io);
-    STRICT_EXPECTED_CALL(mock_WriteFile(IGNORED_ARG, source, size, NULL, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(mock_CreateEvent(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mock_StartThreadpoolIo(fake_ptp_io));
+    STRICT_EXPECTED_CALL(mock_WriteFile(fake_handle, source, size, NULL, IGNORED_ARG))
         .SetReturn(FALSE);
     STRICT_EXPECTED_CALL(mock_GetLastError())
         .SetReturn(ERROR_IO_INCOMPLETE);
-    STRICT_EXPECTED_CALL(mock_CancelThreadpoolIo(IGNORED_ARG))
-        .ValidateArgumentValue_pio(&captured_ptp_io);
-    STRICT_EXPECTED_CALL(mock_CloseHandle(h_event));
+    STRICT_EXPECTED_CALL(mock_CancelThreadpoolIo(fake_ptp_io));
+    STRICT_EXPECTED_CALL(mock_CloseHandle(fake_h_event));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG))
         .ValidateArgumentValue_ptr(&io);
     ///act
-    FILE_WRITE_ASYNC_RESULT result = file_write_async(file_handle, source, size, position, user_callback, NULL);
+    FILE_WRITE_ASYNC_RESULT result = file_write_async(file_handle, source, size, position, mock_user_callback, NULL);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -509,33 +519,27 @@ TEST_FUNCTION(file_write_async_fails_synchronously)
 TEST_FUNCTION(file_write_async_succeeds_synchronously)
 {
     ///arrange
-    PTP_WIN32_IO_CALLBACK captured_callback;
-    FILE_HANDLE file_handle = get_file_handle("file_write_async_succeeds_synchronously.txt", &captured_callback);
+    FILE_HANDLE file_handle = get_file_handle("file_write_async_succeeds_synchronously.txt");
     unsigned char source[10];
     uint32_t size = 10;
     uint64_t position = 5;
-    HANDLE h_event = (HANDLE)44;
     void* user_context = (void*)45;
     void* io;
-    PTP_IO captured_ptp_io;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG))
         .CaptureReturn(&io);
-    STRICT_EXPECTED_CALL(mock_CreateEvent(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .SetReturn(h_event);
-    STRICT_EXPECTED_CALL(mock_StartThreadpoolIo(IGNORED_ARG))
-        .CaptureArgumentValue_pio(&captured_ptp_io);
-    STRICT_EXPECTED_CALL(mock_WriteFile(IGNORED_ARG, source, size, NULL, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(mock_CreateEvent(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mock_StartThreadpoolIo(fake_ptp_io));
+    STRICT_EXPECTED_CALL(mock_WriteFile(fake_handle, source, size, NULL, IGNORED_ARG))
         .SetReturn(TRUE);
-    STRICT_EXPECTED_CALL(mock_CancelThreadpoolIo(IGNORED_ARG))
-        .ValidateArgumentValue_pio(&captured_ptp_io);
+    STRICT_EXPECTED_CALL(mock_CancelThreadpoolIo(fake_ptp_io));
     STRICT_EXPECTED_CALL(mock_user_callback(user_context, true));
-    STRICT_EXPECTED_CALL(mock_CloseHandle(h_event));
+    STRICT_EXPECTED_CALL(mock_CloseHandle(fake_h_event));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG))
         .ValidateArgumentValue_ptr(&io);
     
     ///act
-    FILE_WRITE_ASYNC_RESULT result = file_write_async(file_handle, source, size, position, (FILE_CB)mock_user_callback, user_context);
+    FILE_WRITE_ASYNC_RESULT result = file_write_async(file_handle, source, size, position, mock_user_callback, user_context);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -550,31 +554,24 @@ TEST_FUNCTION(file_write_async_succeeds_synchronously)
 TEST_FUNCTION(file_write_async_fails)
 {
     ///arrange
-    PTP_WIN32_IO_CALLBACK captured_callback;
-    FILE_HANDLE file_handle = get_file_handle("file_write_async_fails.txt", &captured_callback);
+    FILE_HANDLE file_handle = get_file_handle("file_write_async_fails.txt");
     unsigned char source[10];
-    FILE_CB user_callback = (FILE_CB)43;
-    HANDLE h_event = (HANDLE)44;
     uint32_t size = 10;
     uint64_t position = 5;
     void* io;
-    PTP_IO captured_ptp_io;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG))
         .CaptureReturn(&io);
-    STRICT_EXPECTED_CALL(mock_CreateEvent(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .SetReturn(h_event);
-    STRICT_EXPECTED_CALL(mock_StartThreadpoolIo(IGNORED_ARG))
-        .CaptureArgumentValue_pio(&captured_ptp_io);
+    STRICT_EXPECTED_CALL(mock_CreateEvent(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mock_StartThreadpoolIo(fake_ptp_io));
     STRICT_EXPECTED_CALL(mock_WriteFile(IGNORED_ARG, source, size, NULL, IGNORED_ARG))
         .SetReturn(FALSE)
         .CallCannotFail();
     STRICT_EXPECTED_CALL(mock_GetLastError())
         .SetReturn(ERROR_IO_PENDING)
         .CallCannotFail();
-    STRICT_EXPECTED_CALL(mock_CancelThreadpoolIo(IGNORED_ARG))
-        .ValidateArgumentValue_pio(&captured_ptp_io);
-    STRICT_EXPECTED_CALL(mock_CloseHandle(h_event))
+    STRICT_EXPECTED_CALL(mock_CancelThreadpoolIo(fake_ptp_io));
+    STRICT_EXPECTED_CALL(mock_CloseHandle(fake_h_event))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(free(IGNORED_ARG))
         .ValidateArgumentValue_ptr(&io);
@@ -588,7 +585,7 @@ TEST_FUNCTION(file_write_async_fails)
             umock_c_negative_tests_fail_call(i);
 
             ///act
-            FILE_WRITE_ASYNC_RESULT result = file_write_async(file_handle, source, size, position, user_callback, NULL);
+            FILE_WRITE_ASYNC_RESULT result = file_write_async(file_handle, source, size, position, mock_user_callback, NULL);
 
             ///assert
             ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_ERROR, result);
@@ -605,10 +602,9 @@ TEST_FUNCTION(file_read_async_fails_with_null_handle)
 {
     ///arrange
     unsigned char destination[10];
-    FILE_CB user_callback = (FILE_CB)42;
 
     ///act
-    FILE_READ_ASYNC_RESULT result = file_read_async(NULL, destination, 1, 1, user_callback, NULL);
+    FILE_READ_ASYNC_RESULT result = file_read_async(NULL, destination, 1, 1, mock_user_callback, NULL);
 
     ///assert
     ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_INVALID_ARGS, result);
@@ -619,15 +615,14 @@ TEST_FUNCTION(file_read_async_fails_with_null_handle)
 TEST_FUNCTION(file_read_async_fails_with_null_destination)
 {
     ///arrange
-    PTP_WIN32_IO_CALLBACK captured_callback;
-    FILE_HANDLE file_handle = get_file_handle("file_read_async_fails_with_null_destination.txt", &captured_callback);
-    FILE_CB user_callback = (FILE_CB)43;
+    FILE_HANDLE file_handle = get_file_handle("file_read_async_fails_with_null_destination.txt");
 
     ///act
-    FILE_READ_ASYNC_RESULT result = file_read_async(file_handle, NULL, 1, 1, user_callback, NULL);
+    FILE_READ_ASYNC_RESULT result = file_read_async(file_handle, NULL, 1, 1, mock_user_callback, NULL);
 
     ///assert
     ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_INVALID_ARGS, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     
     ///cleanup
     file_destroy(file_handle);
@@ -638,8 +633,7 @@ TEST_FUNCTION(file_read_async_fails_with_null_destination)
 TEST_FUNCTION(file_read_async_fails_with_null_user_callback)
 {
     ///arrange
-    PTP_WIN32_IO_CALLBACK captured_callback;
-    FILE_HANDLE file_handle = get_file_handle("file_read_async_fails_with_null_user_callback.txt", &captured_callback);
+    FILE_HANDLE file_handle = get_file_handle("file_read_async_fails_with_null_user_callback.txt");
     unsigned char destination[10];
 
     ///act
@@ -647,6 +641,7 @@ TEST_FUNCTION(file_read_async_fails_with_null_user_callback)
 
     ///assert
     ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_INVALID_ARGS, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     
     ///cleanup
     file_destroy(file_handle);
@@ -657,15 +652,18 @@ TEST_FUNCTION(file_read_async_fails_with_null_user_callback)
 TEST_FUNCTION(file_read_async_fails_if_size_is_zero)
 {
     ///arrange
-    FILE_HANDLE file_handle = (FILE_HANDLE)42;
-    FILE_CB user_callback = (FILE_CB)43;
+    FILE_HANDLE file_handle = get_file_handle("file_read_async_fails_if_size_is_zero.txt");
     unsigned char source[10];
 
     ///act
-    FILE_READ_ASYNC_RESULT result = file_read_async(file_handle, source, 0, INT64_MAX, user_callback, NULL);
+    FILE_READ_ASYNC_RESULT result = file_read_async(file_handle, source, 0, INT64_MAX, mock_user_callback, NULL);
 
     ///assert
     ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_INVALID_ARGS, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    
+    ///cleanup
+    file_destroy(file_handle);
 }
 
 /*Tests_SRS_FILE_WIN32_43_025: [ file_read_async shall call StartThreadpoolIo.]*/
@@ -677,28 +675,20 @@ TEST_FUNCTION(file_read_async_fails_if_size_is_zero)
 TEST_FUNCTION(file_read_async_succeeds_asynchronously)
 {
     ///arrange
-    PTP_WIN32_IO_CALLBACK captured_callback;
-    FILE_HANDLE file_handle = get_file_handle("file_read_async_succeeds_asynchronously.txt", &captured_callback);
+    FILE_HANDLE file_handle = get_file_handle("file_read_async_succeeds_asynchronously.txt");
     unsigned char destination[10];
-    FILE_CB user_callback = (FILE_CB)43;
-    HANDLE h_event = (HANDLE)44;
-    uint32_t size = 10;
     uint64_t position = 5;
 
-    PTP_IO captured_ptp_io;
-
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mock_CreateEvent(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .SetReturn(h_event);
-    STRICT_EXPECTED_CALL(mock_StartThreadpoolIo(IGNORED_ARG))
-        .CaptureArgumentValue_pio(&captured_ptp_io);
-    STRICT_EXPECTED_CALL(mock_ReadFile(IGNORED_ARG, destination, size, NULL, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(mock_CreateEvent(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mock_StartThreadpoolIo(fake_ptp_io));
+    STRICT_EXPECTED_CALL(mock_ReadFile(fake_handle, destination, sizeof(destination), NULL, IGNORED_ARG))
         .SetReturn(FALSE);
     STRICT_EXPECTED_CALL(mock_GetLastError())
         .SetReturn(ERROR_IO_PENDING);
 
     ///act
-    FILE_READ_ASYNC_RESULT result = file_read_async(file_handle, destination, size, position, user_callback, NULL);
+    FILE_READ_ASYNC_RESULT result = file_read_async(file_handle, destination, sizeof(destination), position, mock_user_callback, NULL);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -718,34 +708,26 @@ TEST_FUNCTION(file_read_async_succeeds_asynchronously)
 TEST_FUNCTION(file_read_async_fails_synchronously)
 {
     ///arrange
-    PTP_WIN32_IO_CALLBACK captured_callback;
-    FILE_HANDLE file_handle = get_file_handle("file_read_async_fails_synchronously.txt", &captured_callback);
+    FILE_HANDLE file_handle = get_file_handle("file_read_async_fails_synchronously.txt");
     unsigned char destination[10];
-    FILE_CB user_callback = (FILE_CB)43;
-    uint32_t size = 10;
     uint64_t position = 5;
-    HANDLE h_event = (HANDLE)44;
     void* io;
-    PTP_IO captured_ptp_io;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG))
         .CaptureReturn(&io);
-    STRICT_EXPECTED_CALL(mock_CreateEvent(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .SetReturn(h_event);
-    STRICT_EXPECTED_CALL(mock_StartThreadpoolIo(IGNORED_ARG))
-        .CaptureArgumentValue_pio(&captured_ptp_io);
-    STRICT_EXPECTED_CALL(mock_ReadFile(IGNORED_ARG, destination, size, NULL, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(mock_CreateEvent(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mock_StartThreadpoolIo(fake_ptp_io));
+    STRICT_EXPECTED_CALL(mock_ReadFile(IGNORED_ARG, destination, sizeof(destination), NULL, IGNORED_ARG))
         .SetReturn(FALSE);
     STRICT_EXPECTED_CALL(mock_GetLastError())
         .SetReturn(ERROR_IO_INCOMPLETE);
-    STRICT_EXPECTED_CALL(mock_CancelThreadpoolIo(IGNORED_ARG))
-        .ValidateArgumentValue_pio(&captured_ptp_io);
-    STRICT_EXPECTED_CALL(mock_CloseHandle(h_event));
+    STRICT_EXPECTED_CALL(mock_CancelThreadpoolIo(fake_ptp_io));
+    STRICT_EXPECTED_CALL(mock_CloseHandle(fake_h_event));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG))
         .ValidateArgumentValue_ptr(&io);
 
     ///act
-    FILE_READ_ASYNC_RESULT result = file_read_async(file_handle, destination, size, position, user_callback, NULL);
+    FILE_READ_ASYNC_RESULT result = file_read_async(file_handle, destination, sizeof(destination), position, mock_user_callback, NULL);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -764,37 +746,33 @@ TEST_FUNCTION(file_read_async_fails_synchronously)
 TEST_FUNCTION(file_read_async_succeeds_synchronously)
 {
     ///arrange
-    PTP_WIN32_IO_CALLBACK captured_callback;
-    FILE_HANDLE file_handle = get_file_handle("file_read_async_succeeds_synchronously.txt", &captured_callback);
+    FILE_HANDLE file_handle = get_file_handle("file_read_async_succeeds_synchronously.txt");
     unsigned char destination[10];
-    uint32_t size = 10;
     uint64_t position = 5;
-    HANDLE h_event = (HANDLE)44;
     void* user_context = (void*)45;
     void* io;
-    PTP_IO captured_ptp_io;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG))
         .CaptureReturn(&io);
-    STRICT_EXPECTED_CALL(mock_CreateEvent(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .SetReturn(h_event);
-    STRICT_EXPECTED_CALL(mock_StartThreadpoolIo(IGNORED_ARG))
-        .CaptureArgumentValue_pio(&captured_ptp_io);
-    STRICT_EXPECTED_CALL(mock_ReadFile(IGNORED_ARG, destination, size, NULL, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(mock_CreateEvent(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mock_StartThreadpoolIo(fake_ptp_io));
+    STRICT_EXPECTED_CALL(mock_ReadFile(fake_handle, destination, sizeof(destination), NULL, IGNORED_ARG))
         .SetReturn(TRUE);
-    STRICT_EXPECTED_CALL(mock_CancelThreadpoolIo(IGNORED_ARG))
-        .ValidateArgumentValue_pio(&captured_ptp_io);
+    STRICT_EXPECTED_CALL(mock_CancelThreadpoolIo(fake_ptp_io));
     STRICT_EXPECTED_CALL(mock_user_callback(user_context, true));
-    STRICT_EXPECTED_CALL(mock_CloseHandle(h_event));
+    STRICT_EXPECTED_CALL(mock_CloseHandle(fake_h_event));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG))
         .ValidateArgumentValue_ptr(&io);
 
     ///act
-    FILE_READ_ASYNC_RESULT result = file_read_async(file_handle, destination, size, position, (FILE_CB)mock_user_callback, user_context);
+    FILE_READ_ASYNC_RESULT result = file_read_async(file_handle, destination, sizeof(destination), position, mock_user_callback, user_context);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_OK, result);
+
+    ///cleanup
+    file_destroy(file_handle);
 }
 
 /*Tests_SRS_FILE_43_022: [ If there are any failures then file_read_async shall fail and return FILE_READ_ASYNC_ERROR. ]*/
@@ -802,31 +780,23 @@ TEST_FUNCTION(file_read_async_succeeds_synchronously)
 TEST_FUNCTION(file_read_async_fails)
 {
     ///arrange
-    PTP_WIN32_IO_CALLBACK captured_callback;
-    FILE_HANDLE file_handle = get_file_handle("file_read_async_fails.txt", &captured_callback);
+    FILE_HANDLE file_handle = get_file_handle("file_read_async_fails.txt");
     unsigned char destination[10];
-    FILE_CB user_callback = (FILE_CB)43;
-    uint32_t size = 10;
     uint64_t position = 5;
-    HANDLE h_event = (HANDLE)44;
     void* io;
-    PTP_IO captured_ptp_io;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG))
         .CaptureReturn(&io);
-    STRICT_EXPECTED_CALL(mock_CreateEvent(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .SetReturn(h_event);
-    STRICT_EXPECTED_CALL(mock_StartThreadpoolIo(IGNORED_ARG))
-        .CaptureArgumentValue_pio(&captured_ptp_io);
-    STRICT_EXPECTED_CALL(mock_ReadFile(IGNORED_ARG, destination, size, NULL, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(mock_CreateEvent(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mock_StartThreadpoolIo(fake_ptp_io));
+    STRICT_EXPECTED_CALL(mock_ReadFile(IGNORED_ARG, destination, sizeof(destination), NULL, IGNORED_ARG))
         .SetReturn(FALSE)
         .CallCannotFail();
     STRICT_EXPECTED_CALL(mock_GetLastError())
         .SetReturn(ERROR_IO_PENDING)
         .CallCannotFail();
-    STRICT_EXPECTED_CALL(mock_CancelThreadpoolIo(IGNORED_ARG))
-        .ValidateArgumentValue_pio(&captured_ptp_io);
-    STRICT_EXPECTED_CALL(mock_CloseHandle(h_event))
+    STRICT_EXPECTED_CALL(mock_CancelThreadpoolIo(fake_ptp_io));
+    STRICT_EXPECTED_CALL(mock_CloseHandle(fake_h_event))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(free(IGNORED_ARG))
         .ValidateArgumentValue_ptr(&io);
@@ -840,7 +810,7 @@ TEST_FUNCTION(file_read_async_fails)
             umock_c_negative_tests_fail_call(i);
 
             ///act
-            FILE_READ_ASYNC_RESULT result = file_read_async(file_handle, destination, size, position, user_callback, NULL);
+            FILE_READ_ASYNC_RESULT result = file_read_async(file_handle, destination, sizeof(destination), position, mock_user_callback, NULL);
 
             ///assert
             ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_ERROR, result);
@@ -855,98 +825,192 @@ TEST_FUNCTION(file_read_async_fails)
 TEST_FUNCTION(file_extend_returns_zero)
 {
     ///arrange
-
+    FILE_HANDLE file_handle = get_file_handle("file_extend_returns_zero.txt")
     ///act
-    int return_val = file_extend(NULL, 0);
+    int return_val = file_extend(file_handle, 0);
 
     ///assert
     ASSERT_ARE_EQUAL(int, 0, return_val);
+
+    ///cleanup
+    file_destroy(file_handle);
 }
 
 /*Tests_SRS_FILE_WIN32_43_034: [ on_file_io_complete_win32 shall recover the file handle, the number of bytes requested by the user, user_callback and user_context from the context containing overlapped. ]*/
-/*Tests_SRS_FILE_WIN32_43_063: [ on_file_io_complete_win32 shall call GetOverlappedResult to determine if the asynchronous operation was successful. ]*/
 /*Tests_SRS_FILE_WIN32_43_067: [ on_file_io_complete_win32 shall compare number_of_bytes_transferred to the number of bytes requested by the user. ]*/
-/*Tests_SRS_FILE_WIN32_43_066: [ on_file_io_complete_win32 shall call user_callback with is_successful as true if and only if GetOverlappedResult returns true and number_of_bytes_transferred is equal to the number of bytes requested by the user. ]*/
-TEST_FUNCTION(on_file_io_complete_win32_calls_callback_successfully)
+/*Tests_SRS_FILE_WIN32_43_066: [ on_file_io_complete_win32 shall call user_callback with is_successful as true if and only if io_result is equal to NO_ERROR and number_of_bytes_transferred is equal to the number of bytes requested by the user. ]*/
+TEST_FUNCTION(on_file_io_complete_win32_calls_callback_successfully_for_write)
 {
     ///arrange
-    FILE_CB user_callback = mock_user_callback;
+    unsigned char source[10];
+    uint64_t position = 11;
     void* user_context = (void*)20;
-    uint32_t size = 10;
-    PTP_WIN32_IO_CALLBACK captured_callback;
+
+    PTP_WIN32_IO_CALLBACK captured_callback = NULL;
     LPOVERLAPPED captured_ov;
 
-    get_callback(user_callback, user_context, size, &captured_callback, &captured_ov);
+    FILE_HANDLE file_handle = start_file_io_async('w', source, sizeof(source), position, mock_user_callback, user_context,  &captured_callback, &captured_ov);
 
-    STRICT_EXPECTED_CALL(mock_GetOverlappedResult(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, FALSE))
-        .ValidateArgumentValue_lpOverlapped(&captured_ov)
-        .SetReturn(TRUE);
     STRICT_EXPECTED_CALL(mock_CloseHandle(IGNORED_ARG));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mock_user_callback(user_context, true));
+    ASSERT_ARE_EQUAL(uint64_t, position, captured_ov->Offset);
 
     ///act
-    captured_callback(NULL, NULL, captured_ov, NO_ERROR, size, NULL);
+    captured_callback(NULL, NULL, captured_ov, NO_ERROR, sizeof(source), NULL);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    file_destroy(file_handle);
 }
 
 /*Tests_SRS_FILE_WIN32_43_034: [ on_file_io_complete_win32 shall recover the file handle, the number of bytes requested by the user, user_callback and user_context from the context containing overlapped. ]*/
-/*Tests_SRS_FILE_WIN32_43_063: [ on_file_io_complete_win32 shall call GetOverlappedResult to determine if the asynchronous operation was successful. ]*/
-/*Tests_SRS_FILE_WIN32_43_068: [ If either GetOverlappedResult returns false or number_of_bytes_transferred is not equal to the bytes requested by the user, on_file_io_complete_win32 shall return false.]*/
-TEST_FUNCTION(on_file_io_complete_win32_calls_callback_unsuccessfully_because_GetOverlapped_returned_false)
+/*Tests_SRS_FILE_WIN32_43_068: [ If either io_result is not equal to NO_ERROR or number_of_bytes_transferred is not equal to the bytes requested by the user, on_file_io_complete_win32 shall return false. ]*/
+TEST_FUNCTION(on_file_io_complete_win32_calls_callback_unsuccessfully_for_write_because_io_failed)
 {
     ///arrange
-    FILE_CB user_callback = mock_user_callback;
+    unsigned char source[10];
+    uint64_t position = 11;
     void* user_context = (void*)20;
-    uint32_t size = 10;
-    PTP_WIN32_IO_CALLBACK captured_callback;
+
+    PTP_WIN32_IO_CALLBACK captured_callback = NULL;
     LPOVERLAPPED captured_ov;
 
-    get_callback(user_callback, user_context, size, &captured_callback, &captured_ov);
+    FILE_HANDLE file_handle = start_file_io_async('w', source, sizeof(source), position, mock_user_callback, user_context,  &captured_callback, &captured_ov);
 
-    STRICT_EXPECTED_CALL(mock_GetOverlappedResult(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, FALSE))
-        .ValidateArgumentValue_lpOverlapped(&captured_ov)
-        .SetReturn(FALSE);
     STRICT_EXPECTED_CALL(mock_CloseHandle(IGNORED_ARG));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mock_GetLastError());
+
     STRICT_EXPECTED_CALL(mock_user_callback(user_context, false));
+    ASSERT_ARE_EQUAL(uint64_t, position, captured_ov->Offset);
 
     ///act
-    captured_callback(NULL, NULL, captured_ov, ERROR_IO_INCOMPLETE, size, NULL);
+    captured_callback(NULL, NULL, captured_ov, ERROR_IO_INCOMPLETE, sizeof(source), NULL);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    file_destroy(file_handle);
 }
 
 /*Tests_SRS_FILE_WIN32_43_034: [on_file_io_complete_win32 shall recover the file handle, the number of bytes requested by the user, user_callback and user_context from the context containing overlapped.]*/
-/*Tests_SRS_FILE_WIN32_43_067: [ on_file_io_complete_win32 shall compare number_of_bytes_transferred to the number of bytes requested by the user. ]*/
 /*Tests_SRS_FILE_WIN32_43_068 : [If either GetOverlappedResult returns false or number_of_bytes_transferred is not equal to the bytes requested by the user, on_file_io_complete_win32 shall return false.]*/
-TEST_FUNCTION(on_file_io_complete_win32_calls_callback_unsuccessfully_because_num_bytes_is_less)
+TEST_FUNCTION(on_file_io_complete_win32_calls_callback_unsuccessfully_for_write_because_num_bytes_is_less)
 {
     ///arrange
-    FILE_CB user_callback = mock_user_callback;
+    unsigned char source[10];
+    uint64_t position = 11;
     void* user_context = (void*)20;
-    uint32_t size = 10;
-    PTP_WIN32_IO_CALLBACK captured_callback;
+
+    PTP_WIN32_IO_CALLBACK captured_callback = NULL;
     LPOVERLAPPED captured_ov;
 
-    get_callback(user_callback, user_context, size, &captured_callback, &captured_ov);
+    FILE_HANDLE file_handle = start_file_io_async('w', source, sizeof(source), position, mock_user_callback, user_context,  &captured_callback, &captured_ov);
 
-    STRICT_EXPECTED_CALL(mock_GetOverlappedResult(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, FALSE))
-        .ValidateArgumentValue_lpOverlapped(&captured_ov)
-        .SetReturn(TRUE);
     STRICT_EXPECTED_CALL(mock_CloseHandle(IGNORED_ARG));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mock_user_callback(user_context, false));
+    ASSERT_ARE_EQUAL(uint64_t, position, captured_ov->Offset);
 
     ///act
-    captured_callback(NULL, NULL, captured_ov, ERROR_IO_INCOMPLETE, size-1, NULL);
+    captured_callback(NULL, NULL, captured_ov, NO_ERROR, sizeof(source)-1, NULL);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    file_destroy(file_handle);
+}
+
+/*Tests_SRS_FILE_WIN32_43_034: [ on_file_io_complete_win32 shall recover the file handle, the number of bytes requested by the user, user_callback and user_context from the context containing overlapped. ]*/
+/*Tests_SRS_FILE_WIN32_43_067: [ on_file_io_complete_win32 shall compare number_of_bytes_transferred to the number of bytes requested by the user. ]*/
+/*Tests_SRS_FILE_WIN32_43_066: [ on_file_io_complete_win32 shall call user_callback with is_successful as true if and only if io_result is equal to NO_ERROR and number_of_bytes_transferred is equal to the number of bytes requested by the user. ]*/
+TEST_FUNCTION(on_file_io_complete_win32_calls_callback_successfully_for_read)
+{
+    ///arrange
+    unsigned char destination[10];
+    uint64_t position = 11;
+    void* user_context = (void*)20;
+
+    PTP_WIN32_IO_CALLBACK captured_callback = NULL;
+    LPOVERLAPPED captured_ov;
+
+    FILE_HANDLE file_handle = start_file_io_async('r', destination, sizeof(destination), position, mock_user_callback, user_context,  &captured_callback, &captured_ov);
+
+    STRICT_EXPECTED_CALL(mock_CloseHandle(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mock_user_callback(user_context, true));
+    ASSERT_ARE_EQUAL(uint64_t, position, captured_ov->Offset);
+
+    ///act
+    captured_callback(NULL, NULL, captured_ov, NO_ERROR, sizeof(destination), NULL);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    file_destroy(file_handle);
+}
+
+/*Tests_SRS_FILE_WIN32_43_034: [ on_file_io_complete_win32 shall recover the file handle, the number of bytes requested by the user, user_callback and user_context from the context containing overlapped. ]*/
+/*Tests_SRS_FILE_WIN32_43_068: [ If either io_result is not equal to NO_ERROR or number_of_bytes_transferred is not equal to the bytes requested by the user, on_file_io_complete_win32 shall return false. ]*/
+TEST_FUNCTION(on_file_io_complete_win32_calls_callback_unsuccessfully_for_read_because_io_failed)
+{
+    ///arrange
+    unsigned char destination[10];
+    uint64_t position = 11;
+    void* user_context = (void*)20;
+
+    PTP_WIN32_IO_CALLBACK captured_callback = NULL;
+    LPOVERLAPPED captured_ov;
+
+    FILE_HANDLE file_handle = start_file_io_async('r', destination, sizeof(destination), position, mock_user_callback, user_context,  &captured_callback, &captured_ov);
+
+    STRICT_EXPECTED_CALL(mock_CloseHandle(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mock_user_callback(user_context, false));
+    ASSERT_ARE_EQUAL(uint64_t, position, captured_ov->Offset);
+
+    ///act
+    captured_callback(NULL, NULL, captured_ov, ERROR_IO_INCOMPLETE, sizeof(destination), NULL);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    file_destroy(file_handle);
+}
+
+/*Tests_SRS_FILE_WIN32_43_034: [on_file_io_complete_win32 shall recover the file handle, the number of bytes requested by the user, user_callback and user_context from the context containing overlapped.]*/
+/*Tests_SRS_FILE_WIN32_43_068 : [If either GetOverlappedResult returns false or number_of_bytes_transferred is not equal to the bytes requested by the user, on_file_io_complete_win32 shall return false.]*/
+TEST_FUNCTION(on_file_io_complete_win32_calls_callback_unsuccessfully_for_read_because_num_bytes_is_less)
+{
+    ///arrange
+    unsigned char destination[10];
+    uint64_t position = 11;
+    void* user_context = (void*)20;
+
+    PTP_WIN32_IO_CALLBACK captured_callback = NULL;
+    LPOVERLAPPED captured_ov;
+
+    FILE_HANDLE file_handle = start_file_io_async('r', destination, sizeof(destination), position, mock_user_callback, user_context,  &captured_callback, &captured_ov);
+
+    STRICT_EXPECTED_CALL(mock_CloseHandle(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mock_user_callback(user_context, false));
+    ASSERT_ARE_EQUAL(uint64_t, position, captured_ov->Offset);
+
+    ///act
+    captured_callback(NULL, NULL, captured_ov, NO_ERROR, sizeof(destination) -1, NULL);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    file_destroy(file_handle);
 }
 
 END_TEST_SUITE(file_win32_unittests)

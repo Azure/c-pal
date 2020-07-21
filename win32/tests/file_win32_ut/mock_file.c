@@ -22,6 +22,5 @@
 #define ReadFile mock_ReadFile
 #define GetLastError mock_GetLastError
 #define CancelThreadpoolIo mock_CancelThreadpoolIo
-#define GetOverlappedResult mock_GetOverlappedResult
 
 #include "../../src/file_win32.c"

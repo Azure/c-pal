@@ -30,7 +30,7 @@ typedef void(*FILE_CB)(void* user_context, bool is_successful);
 MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name, FILE_REPORT_FAULT, user_report_fault_callback, void*, user_report_fault_context);
 MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 
-MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, const unsigned char*, source, uint32_t, size, uint64_t, position, FILE_WRITE_CB, user_callback, void*, user_context)(FILE_WRITE_ASYNC_OK, FILE_WRITE_ASYNC_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, const unsigned char*, source, uint32_t, size, uint64_t, position, FILE_CB, user_callback, void*, user_context)(FILE_WRITE_ASYNC_OK, FILE_WRITE_ASYNC_ERROR);
 MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_HANDLE, handle, unsigned char*, destination, uint32_t, size, uint64_t, position, FILE_CB, user_callback, void*, user_context)(FILE_READ_ASYNC_OK, FILE_READ_ASYNC_ERROR);
 
 MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend, FILE_HANDLE, handle, uint64_t, desired_size)(0, MU_FAILURE);
@@ -84,7 +84,7 @@ MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 
 **SRS_FILE_WIN32_43_013: [** `file_destroy` shall destroy the environment by calling `DestroyThreadpoolEnvironment`. **]**
 
-**SRS_FILE_WIN32_43_016: [** `file_destroy` shall call `CloseHandle` on `handle->h_file` **]**
+**SRS_FILE_WIN32_43_016: [** `file_destroy` shall call `CloseHandle` on the handle returned by `CreateFileA`. **]**
 
 **SRS_FILE_WIN32_43_015: [** `file_destroy` shall close the threadpool IO by calling `CloseThreadPoolIo`. **]**
 
@@ -181,10 +181,6 @@ static void on_file_io_complete_win32(
 
 **SRS_FILE_WIN32_43_034: [** `on_file_io_complete_win32` shall recover the file handle, the number of bytes requested by the user, `user_callback` and `user_context` from the context containing `overlapped`. **]**
 
-**SRS_FILE_WIN32_43_063: [** `on_file_io_complete_win32` shall call `GetOverlappedResult` to determine if the asynchronous operation was successful. **]**
+**SRS_FILE_WIN32_43_066: [** `on_file_io_complete_win32` shall call `user_callback` with `is_successful` as `true` if and only if `io_result` is equal to `NO_ERROR` and `number_of_bytes_transferred` is equal to the number of bytes requested by the user.  **]**
 
-**SRS_FILE_WIN32_43_067: [** `on_file_io_complete_win32` shall compare `number_of_bytes_transferred` to the number of bytes requested by the user. **]**
-
-**SRS_FILE_WIN32_43_066: [** `on_file_io_complete_win32` shall call `user_callback` with `is_successful` as `true` if and only if `GetOverlappedResult` returns `true` and `number_of_bytes_transferred` is equal to the number of bytes requested by the user.  **]**
-
-**SRS_FILE_WIN32_43_068: [** If either `GetOverlappedResult` returns `false` or `number_of_bytes_transferred` is not equal to the bytes requested by the user, `on_file_io_complete_win32` shall return `false`. **]**
+**SRS_FILE_WIN32_43_068: [** If either `io_result` is not equal to `NO_ERROR` or `number_of_bytes_transferred` is not equal to the bytes requested by the user, `on_file_io_complete_win32` shall return `false`. **]**

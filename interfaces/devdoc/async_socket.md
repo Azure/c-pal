@@ -84,7 +84,7 @@ MOCKABLE_FUNCTION(, void, async_socket_destroy, ASYNC_SOCKET_HANDLE, async_socke
 
 **SRS_ASYNC_SOCKET_01_005: [** Otherwise, `async_socket_destroy` shall free all resources associated with `async_socket`. **]**
 
-**SRS_ASYNC_SOCKET_01_050: [** While `async_socket` is OPENING, `async_socket_destroy` shall wait for the open to complete either succesfully or with error. **]**
+**SRS_ASYNC_SOCKET_01_050: [** While `async_socket` is OPENING, `async_socket_destroy` shall wait for the open to complete either successfully or with error. **]**
 
 **SRS_ASYNC_SOCKET_01_006: [** `async_socket_destroy` shall perform an implicit close if `async_socket` is OPEN. **]**
 
@@ -108,7 +108,7 @@ MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_soc
 
 **SRS_ASYNC_SOCKET_01_015: [** If `async_socket` is already OPEN or OPENING, `async_socket_open_async` shall fail and return a non-zero value. **]**
 
-**SRS_ASYNC_SOCKET_01_016: [** When opening the async socket completes succesfully, `on_open_complete_context` shall be called with `ASYNC_SOCKET_OPEN_OK`. **]**
+**SRS_ASYNC_SOCKET_01_016: [** When opening the async socket completes successfully, `on_open_complete_context` shall be called with `ASYNC_SOCKET_OPEN_OK`. **]**
 
 **SRS_ASYNC_SOCKET_01_017: [** When opening the async socket completes with failure, `on_open_complete_context` shall be called with `ASYNC_SOCKET_OPEN_ERROR`. **]**
 
@@ -160,7 +160,7 @@ Note: It is the responsibility of the caller to ensure the order of the send cal
 
 **SRS_ASYNC_SOCKET_01_029: [** If any error occurs, `async_socket_send_async` shall fail and return a non-zero value. **]**
 
-**SRS_ASYNC_SOCKET_01_030: [** When sending completes succesfully, `on_send_complete` shall be called with `ASYNC_SOCKET_SEND_OK`. **]**
+**SRS_ASYNC_SOCKET_01_030: [** When sending completes successfully, `on_send_complete` shall be called with `ASYNC_SOCKET_SEND_OK`. **]**
 
 **SRS_ASYNC_SOCKET_01_031: [** When sending completes with error, `on_send_complete` shall be called with `ASYNC_SOCKET_SEND_ERROR`. **]**
 
@@ -190,6 +190,6 @@ Note: It is the responsibility of the caller to ensure the order of the receive 
 
 **SRS_ASYNC_SOCKET_01_043: [** If any error occurs, `async_socket_receive_async` shall fail and return a non-zero value. **]**
 
-**SRS_ASYNC_SOCKET_01_044: [** When receiving completes succesfully, `on_receive_complete` shall be called with `ASYNC_SOCKET_RECEIVE_OK`. **]**
+**SRS_ASYNC_SOCKET_01_044: [** When receiving completes successfully, `on_receive_complete` shall be called with `ASYNC_SOCKET_RECEIVE_OK`. **]**
 
 **SRS_ASYNC_SOCKET_01_045: [** When receiving completes with error, `on_receive_complete` shall be called with `ASYNC_SOCKET_RECEIVE_ERROR`. **]**

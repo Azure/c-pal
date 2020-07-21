@@ -299,7 +299,7 @@ TEST_FUNCTION(async_socket_destroy_frees_resources)
 }
 
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_006: [ async_socket_destroy shall perform an implicit close if async_socket is OPEN. ]*/
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_093: [ While async_socket is OPENING or CLOSING, async_socket_destroy shall wait for the open to complete either succesfully or with error. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_093: [ While async_socket is OPENING or CLOSING, async_socket_destroy shall wait for the open to complete either successfully or with error. ]*/
 TEST_FUNCTION(async_socket_destroy_closes_first_if_open)
 {
     // arrange
@@ -1036,7 +1036,7 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_send_async_fails)
 
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_062: [ If WSASend fails, async_socket_send_async shall call WSAGetLastError. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_053: [ If WSAGetLastError returns WSA_IO_PENDING, it shall be not treated as an error. ]*/
-TEST_FUNCTION(when_get_last_error_for_send_returns_WSA_IO_PENDING_it_is_treated_as_succesfull)
+TEST_FUNCTION(when_get_last_error_for_send_returns_WSA_IO_PENDING_it_is_treated_as_successfull)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
@@ -1656,7 +1656,7 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_receive_async_fails)
 
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_054: [ If WSARecv fails with SOCKET_ERROR, async_socket_receive_async shall call WSAGetLastError. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_055: [ If WSAGetLastError returns IO_PENDING, it shall be not treated as an error. ]*/
-TEST_FUNCTION(when_get_last_error_for_receive_returns_WSA_IO_PENDING_it_is_treated_as_succesfull)
+TEST_FUNCTION(when_get_last_error_for_receive_returns_WSA_IO_PENDING_it_is_treated_as_successfull)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);

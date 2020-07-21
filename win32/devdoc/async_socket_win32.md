@@ -86,7 +86,7 @@ X**SRS_ASYNC_SOCKET_WIN32_01_004: [** If `async_socket` is NULL, `async_socket_d
 
 X**SRS_ASYNC_SOCKET_WIN32_01_005: [** Otherwise, `async_socket_destroy` shall free all resources associated with `async_socket`. **]**
 
-X**SRS_ASYNC_SOCKET_WIN32_01_093: [** While `async_socket` is OPENING or CLOSING, `async_socket_destroy` shall wait for the open to complete either succesfully or with error. **]**
+X**SRS_ASYNC_SOCKET_WIN32_01_093: [** While `async_socket` is OPENING or CLOSING, `async_socket_destroy` shall wait for the open to complete either successfully or with error. **]**
 
 X**SRS_ASYNC_SOCKET_WIN32_01_006: [** `async_socket_destroy` shall perform an implicit close if `async_socket` is OPEN. **]**
 
