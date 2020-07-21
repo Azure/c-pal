@@ -14,12 +14,17 @@
 #endif
 #include "file_int_helpers.h"
 
-void delete_file(const char* filename)
+int delete_file(const char* filename)
 {
     char* command = malloc(strlen(filename) + 5);
+    if (command == NULL)
+    {
+        return -1;
+    }
     (void)sprintf(command, "del %s", filename);
     (void)system(command);
     free(command);
+    return 0;
 }
 
 bool check_file_exists(const char* filename)

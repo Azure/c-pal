@@ -74,7 +74,7 @@ static void wait_on_address_helper(volatile_atomic int32_t* address, int32_t* ol
 
 static FILE_HANDLE file_create_helper(const char* filename)
 {
-    delete_file(filename);
+    (void)delete_file(filename);
     ASSERT_IS_FALSE(check_file_exists(filename));
 
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
@@ -122,7 +122,7 @@ TEST_FUNCTION(file_create_creates_new_file)
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
     ASSERT_IS_NOT_NULL(execution_engine);
     char filename[] = "file_create_creates_new_file.txt";
-    delete_file(filename);
+    (void)delete_file(filename);
     ASSERT_IS_FALSE(check_file_exists(filename));
 
     ///act
@@ -134,7 +134,7 @@ TEST_FUNCTION(file_create_creates_new_file)
 
     ///cleanup
     file_destroy(file_handle);
-    delete_file(filename);
+    (void)delete_file(filename);
 }
 
 /*Tests_SRS_FILE_43_003: [If a file with name full_file_name does not exist, file_create shall create a file with that name.]*/
@@ -187,7 +187,7 @@ TEST_FUNCTION(write_to_a_file_and_read_from_it)
 
     //cleanup
     file_destroy(file_handle);
-    delete_file(filename);
+    (void)delete_file(filename);
 }
 
 /*Tests_SRS_FILE_43_003: [If a file with name full_file_name does not exist, file_create shall create a file with that name.]*/
@@ -251,7 +251,7 @@ TEST_FUNCTION(write_twice_to_a_file_contiguously_and_read_from_it)
 
     //cleanup
     file_destroy(file_handle);
-    delete_file(filename);
+    (void)delete_file(filename);
 }
 
 /*Tests_SRS_FILE_43_003: [If a file with name full_file_name does not exist, file_create shall create a file with that name.]*/
@@ -333,7 +333,7 @@ TEST_FUNCTION(write_twice_to_a_file_non_contiguously_and_read_from_it)
 
     //cleanup
     file_destroy(file_handle);
-    delete_file(filename);
+    (void)delete_file(filename);
 }
 
 /*Tests_SRS_FILE_43_003: [If a file with name full_file_name does not exist, file_create shall create a file with that name.]*/
@@ -366,7 +366,7 @@ TEST_FUNCTION(perform_operations_open_write_close_open_read_close)
     read_context.post_callback_value = 44;
 
     char filename[] = "perform_operations_open_write_close_open_read_close.txt";
-    delete_file(filename);
+    (void)delete_file(filename);
     ASSERT_IS_FALSE(check_file_exists(filename));
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
     ASSERT_IS_NOT_NULL(execution_engine);
@@ -439,7 +439,7 @@ TEST_FUNCTION(read_across_eof_fails)
 
     //cleanup
     file_destroy(file_handle);
-    delete_file(filename);
+    (void)delete_file(filename);
 }
 
 /*Tests_SRS_FILE_43_039: [ If position + size exceeds the size of the file, user_callback shall be called with success as false. ]*/
@@ -482,7 +482,7 @@ TEST_FUNCTION(read_beyond_eof_fails)
 
     //cleanup
     file_destroy(file_handle);
-    delete_file(filename);
+    (void)delete_file(filename);
 }
 
 /*Tests_SRS_FILE_43_003: [If a file with name full_file_name does not exist, file_create shall create a file with that name.]*/
@@ -554,7 +554,7 @@ TEST_FUNCTION(large_simultaneous_writes_succeed)
         free(sources[i]);
     }
     file_destroy(file_handle);
-    delete_file(filename);
+    (void)delete_file(filename);
 } 
 
 
@@ -632,6 +632,6 @@ TEST_FUNCTION(large_simultaneous_reads_succeed)
         free(destinations[i]);
     }
     file_destroy(file_handle);
-    delete_file(filename);
+    (void)delete_file(filename);
 }
 END_TEST_SUITE(file_int)
