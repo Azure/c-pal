@@ -80,6 +80,23 @@ TEST_FUNCTION(gballoc_ll_malloc_works)
     gballoc_ll_free(ptr);
 }
 
+TEST_FUNCTION(gballoc_ll_malloc_1MB_works)
+{
+    ///act (1)
+    unsigned char* ptr = (unsigned char*)gballoc_ll_malloc(1024 * 1024);
+
+    ///assert (1)
+    ASSERT_IS_NOT_NULL(ptr);
+
+    ///act(2)
+    ptr[0] = '3'; /*can be written*/
+
+    ///assert (2) - doesn't crash
+
+    ///clean
+    gballoc_ll_free(ptr);
+}
+
 TEST_FUNCTION(gballoc_ll_free_works)
 {
     ///arrange

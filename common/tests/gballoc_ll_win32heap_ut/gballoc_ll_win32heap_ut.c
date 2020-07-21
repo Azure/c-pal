@@ -86,7 +86,7 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
     TEST_MUTEX_RELEASE(g_testByTest);
 }
 
-/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_001: [ gballoc_ll_init shall call CreateHeap(0,0,0). ]*/
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_001: [ gballoc_ll_init shall call HeapCreate(0,0,0). ]*/
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_002: [ gballoc_ll_init shall succeed and return 0. ]*/
 TEST_FUNCTION(gballoc_ll_init_succeeds)
 {
@@ -104,7 +104,7 @@ TEST_FUNCTION(gballoc_ll_init_succeeds)
     gballoc_ll_deinit();
 }
 
-/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_003: [ If CreateHeap fails then gballoc_ll_init shall fail and return a non-0 value. ]*/
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_003: [ If HeapCreate fails then gballoc_ll_init shall fail and return a non-0 value. ]*/
 TEST_FUNCTION(gballoc_ll_init_unhappy)
 {
     ///arrange
@@ -301,7 +301,7 @@ TEST_FUNCTION(gballoc_ll_realloc_with_ptr_NULL)
     gballoc_ll_deinit();
 }
 
-/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_015: [ If ptr is not NULL then gballoc_ll_realloc shall call HeapReAlloc and return what HeapAlloc returns. ]*/
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_015: [ If ptr is not NULL then gballoc_ll_realloc shall call HeapReAlloc and return what HeapReAlloc returns. ]*/
 TEST_FUNCTION(gballoc_ll_realloc_with_ptr_non_NULL)
 {
     ///arrange

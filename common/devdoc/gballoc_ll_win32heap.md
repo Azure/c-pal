@@ -28,11 +28,11 @@ MOCKABLE_FUNCTION(, int, gballoc_ll_init, void*, params);
 
 `gballoc_ll_init` globally initializes the module. `params` exists as a placeholder and is ignored.
 
-**SRS_GBALLOC_LL_WIN32HEAP_02_001: [** `gballoc_ll_init` shall call `CreateHeap(0,0,0)`. **]**
+**SRS_GBALLOC_LL_WIN32HEAP_02_001: [** `gballoc_ll_init` shall call `HeapCreate(0,0,0)`. **]**
 
 **SRS_GBALLOC_LL_WIN32HEAP_02_002: [** `gballoc_ll_init` shall succeed and return 0. **]**
 
-**SRS_GBALLOC_LL_WIN32HEAP_02_003: [** If `CreateHeap` fails then `gballoc_ll_init` shall fail and return a non-0 value. **]**
+**SRS_GBALLOC_LL_WIN32HEAP_02_003: [** If `HeapCreate` fails then `gballoc_ll_init` shall fail and return a non-0 value. **]**
 
 ### gballoc_ll_deinit
 ```c
@@ -96,7 +96,7 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc, void*, ptr, size_t, size);
 
 **SRS_GBALLOC_LL_WIN32HEAP_02_014: [** If `ptr` is `NULL` then `gballoc_ll_realloc` shall call `HeapAlloc` and return what `HeapAlloc` returns. **]**
 
-**SRS_GBALLOC_LL_WIN32HEAP_02_015: [** If `ptr` is not `NULL` then `gballoc_ll_realloc` shall call `HeapReAlloc` and return what `HeapAlloc` returns. **]**
+**SRS_GBALLOC_LL_WIN32HEAP_02_015: [** If `ptr` is not `NULL` then `gballoc_ll_realloc` shall call `HeapReAlloc` and return what `HeapReAlloc` returns. **]**
 
 
 

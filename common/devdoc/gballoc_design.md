@@ -1,7 +1,7 @@
 gballoc design
 =====
 
-`gballoc` is a layer that abstrats memory allocators. The need to have and be able to compare multiple memory allocators stems from performance requirements. Not all memory allocators have the same performance and for the sake of being able to compare them gballoc exists.
+`gballoc` is a layer that abstracts memory allocators. The need to have and be able to compare multiple memory allocators stems from performance requirements. Not all memory allocators have the same performance and for the sake of being able to compare them gballoc exists.
 
 `gballoc` is dvided in 2 layers (`ll` stand for `lower layer`, `hl` stands for `higher layer`):
 a) `gballoc_ll` - contains software wrappers over the memory allocation as provided by other components. For example, `gballoc_malloc/free` will redirect to `HeapAlloc/Free` when Windows APIs are directly used.
@@ -18,7 +18,7 @@ As far as Windows is concerned there are several CMake options.
 
   1. `USE_SEGMENTED_HEAP` - this is a process wide option that replaces all the "regular" heaps with segmented heaps (https://docs.microsoft.com/en-us/windows/win32/sbscs/application-manifests#heaptype)
 
-  2. One a heap type is used, there are other several CMakeLists switches that further influence the SW behavior.
+  2. Once a heap type is used, there are other several CMakeLists switches that further influence the SW behavior.
 
     a) `gballoc_ll` implementation is switched between its implementations by the CMake option `GBALLOC_LL_TYPE` (of type string) which can be either
 

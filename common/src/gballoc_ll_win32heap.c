@@ -17,11 +17,11 @@ int gballoc_ll_init(void* params)
     (void)params;
     int result;
 
-    /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_001: [ gballoc_ll_init shall call CreateHeap(0,0,0). ]*/
+    /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_001: [ gballoc_ll_init shall call HeapCreate(0,0,0). ]*/
     the_heap = HeapCreate(0, 0, 0);
     if (the_heap == NULL)
     {
-        /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_003: [ If CreateHeap fails then gballoc_ll_init shall fail and return a non-0 value. ]*/
+        /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_003: [ If HeapCreate fails then gballoc_ll_init shall fail and return a non-0 value. ]*/
         LogLastError("HeapCreate failed.");
         result = MU_FAILURE;
     }
@@ -124,7 +124,7 @@ void* gballoc_ll_realloc(void* ptr, size_t size)
         }
         else
         {
-            /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_015: [ If ptr is not NULL then gballoc_ll_realloc shall call HeapReAlloc and return what HeapAlloc returns. ]*/
+            /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_015: [ If ptr is not NULL then gballoc_ll_realloc shall call HeapReAlloc and return what HeapReAlloc returns. ]*/
             result = HeapReAlloc(the_heap, 0, ptr, size);
             /*return as is*/
         }
