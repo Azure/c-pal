@@ -121,6 +121,7 @@ TEST_FUNCTION(gballoc_ll_init_with_non_NULL_pointer_returns_0)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
+    gballoc_ll_deinit();
 }
 
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_003: [ If HeapCreate fails then gballoc_ll_init shall fail and return a non-0 value. ]*/

@@ -142,6 +142,4 @@ TEST_FUNCTION(gballoc_ll_calloc_works)
     gballoc_ll_free(ptr);
 }
 
-
-
 END_TEST_SUITE(gballoc_ll_mimalloc_int)

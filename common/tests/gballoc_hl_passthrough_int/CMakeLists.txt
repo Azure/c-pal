@@ -3,16 +3,30 @@
 
 cmake_minimum_required(VERSION 2.8.11)
 
-set(theseTestsName gballoc_hl_passthrough_int) 
+#this cmakelists.txt in intended to build test for every combination of gballoc_hl and gballoc_ll
+#to do that, it uses GBALOC_LL_IMPL (which is set in a foreach() loop in the folder above). 
+#since it would result in multiple of the same target, it uses ${BINARY_DIR} suffix on the CMake binary build folder AND on the targets that it builds (they all need to be unique)
+#
+
+set(theseTestsNameBase gballoc_hl_passthrough_int) 
+
+set(theseTestsName ${theseTestsNameBase}${BINARY_DIR})
 
 set(${theseTestsName}_test_files
-    ${theseTestsName}.c
+    ${theseTestsNameBase}.c
 )
 
 set(${theseTestsName}_c_files
+    ../../src/gballoc_ll_${gballoc_ll_impl_lower}.c
+    ../../src/gballoc_hl_passthrough.c
 )
 
 set(${theseTestsName}_h_files
 )
 
-build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS azure_c_pal) 
+if(${GBALOC_LL_IMPL} STREQUAL "MIMALLOC")
+    build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS mimalloc-obj)
+else()
+    build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/common")
+endif()
+

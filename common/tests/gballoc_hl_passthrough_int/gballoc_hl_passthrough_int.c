@@ -49,10 +49,16 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
 
 TEST_FUNCTION(gballoc_hl_init_works)
 {
+    ///arrange
+    gballoc_hl_deinit();
+
+    int result;
+
     ///act
-    gballoc_hl_init(NULL, NULL);
+    result = gballoc_hl_init(NULL, NULL);
 
     ///assert - doesn't crash
+    ASSERT_ARE_EQUAL(int, 0, result);
 }
 
 TEST_FUNCTION(gballoc_hl_deinit_works)
@@ -61,6 +67,9 @@ TEST_FUNCTION(gballoc_hl_deinit_works)
     gballoc_hl_deinit();
 
     ///assert - doesn't crash
+
+    ///clean
+    ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 }
 
 TEST_FUNCTION(gballoc_hl_malloc_works)
