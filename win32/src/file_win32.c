@@ -55,8 +55,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE,
 )
 {
     FILE_HANDLE result;
-    bool succeeded = true;
-    if(
+    if (
         /*Codes_SRS_FILE_43_033: [ If execution_engine is NULL, file_create shall fail and return NULL. ]*/
         /*Codes_SRS_FILE_WIN32_43_040: [ If execution_engine is NULL, file_create shall fail and return NULL. ]*/
         (execution_engine == NULL) ||
@@ -71,7 +70,6 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE,
         LogError("Invalid arguments to file_create: EXECUTION_ENGINE_HANDLE execution_engine=%p, const char* full_file_name=%s, FILE_REPORT_FAULT user_report_callback=%p, void* user_report_faul_context=%p",
             execution_engine, MU_P_OR_NULL(full_file_name), user_report_fault_callback, user_report_fault_context);
         result = NULL;
-        succeeded = false;
     }
     else
     {
@@ -80,11 +78,12 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE,
         if (result == NULL)
         {
             /*Codes_SRS_FILE_43_034: [ If there are any failures, file_create shall fail and return NULL. ]*/
+            /*Codes_SRS_FILE_WIN32_43_008: [ If there are any failures, file_create shall return NULL. ]*/
             LogError("Failure in malloc");
-            succeeded = false;
         }
         else
         {
+            bool succeeded;
             /*Codes_SRS_FILE_43_003: [ If a file with name full_file_name does not exist, file_create shall create a file with that name.]*/
             /*Codes_SRS_FILE_43_001: [ file_create shall open the file named full_file_name for asynchronous operations and return its handle. ]*/
             /*Codes_SRS_FILE_WIN32_43_001: [ file_create shall call CreateFileA with full_file_name as lpFileName, GENERIC_READ|GENERIC_WRITE as dwDesiredAccess, FILE_SHARED_READ as dwShareMode, NULL as lpSecurityAttributes, OPEN_ALWAYS as dwCreationDisposition, FILE_FLAG_OVERLAPPED|FILE_FLAG_WRITE_THROUGH as dwFlagsAndAttributes and NULL as hTemplateFile. ]*/
@@ -100,6 +99,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE,
             if ( result->h_file == INVALID_HANDLE_VALUE)
             {
                 /*Codes_SRS_FILE_43_034: [ If there are any failures, file_create shall fail and return NULL. ]*/
+                /*Codes_SRS_FILE_WIN32_43_008: [ If there are any failures, file_create shall return NULL. ]*/
                 LogLastError("Failure in CreateFileA, full_file_name=%s", full_file_name);
                 succeeded = false;
             }
@@ -109,6 +109,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE,
                 if (!SetFileCompletionNotificationModes(result->h_file, FILE_SKIP_COMPLETION_PORT_ON_SUCCESS))
                 {
                     /*Codes_SRS_FILE_43_034: [ If there are any failures, file_create shall fail and return NULL. ]*/
+                    /*Codes_SRS_FILE_WIN32_43_008: [ If there are any failures, file_create shall return NULL. ]*/
                     LogLastError("Failure in SetFileCompletionNotificationModes, full_file_name=%s", full_file_name);
                     succeeded = false;
                 }
@@ -143,11 +144,14 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE,
                         if (result->ptp_io == NULL)
                         {
                             /*Codes_SRS_FILE_43_034: [ If there are any failures, file_create shall fail and return NULL. ]*/
+                            /*Codes_SRS_FILE_WIN32_43_008: [ If there are any failures, file_create shall return NULL. ]*/
                             LogLastError("Failure in CreateThreadpoolIo, full_file_name=%s", full_file_name);
                             succeeded = false;
                         }
                         else
                         {
+                            /*Codes_SRS_FILE_WIN32_43_009: [ file_create shall succeed and return a non - NULL value.]*/
+                            succeeded = true;
                             result->user_report_fault_callback = user_report_fault_callback;
                             result->user_report_fault_context = user_report_fault_context;
                         }
@@ -166,13 +170,15 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE,
             /*Codes_SRS_FILE_43_034: [ If there are any failures, file_create shall fail and return NULL. ]*/
             if (!succeeded)
             {
+                if (!CloseHandle(result->h_file))
+                {
+                    LogLastError("Failure in CloseHandle, full_file_name=%s", full_file_name);
+                }
                 free(result);
                 result = NULL;
             }
         }
     }
-    /*Codes_SRS_FILE_WIN32_43_008: [ If there are any failures, file_create shall return NULL.]*/
-    /*Codes_SRS_FILE_WIN32_43_009: [ file_create shall succeed and return a non - NULL value.]*/
     return result;
 }
 

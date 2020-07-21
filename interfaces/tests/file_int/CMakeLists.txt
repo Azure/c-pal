@@ -9,6 +9,19 @@ set(${theseTestsName}_test_files
 
 set(${theseTestsName}_h_files
     ../../inc/azure_c_pal/file.h
+    file_int_helpers.h
 )
+
+if(WIN32)
+    set(${theseTestsName}_c_files
+        file_int_helpers_win32.c
+    )
+else()
+    set(${theseTestsName}_c_files
+        file_int_helpers_linux.c
+    )
+endif()
+
+
 
 build_c_tests(${theseTestsName} ON "tests/azure_c_pal/int" ADDITIONAL_LIBS azure_c_pal)
