@@ -94,7 +94,6 @@ if (
     (${ARCHITECTURE} STREQUAL "x86_64")
     )
         set(MI_BUILD_TESTS OFF)
-        set(MI_DEBUG_FULL ON)
         #for mimalloc disable this warning: Warning C4459: declaration of 'os_page_size' hides global declaration
         #for mimalloc disable this warning: Warning C4100: 'try_alignment': unreferenced formal parameter
         #for mimalloc disable this warning: warning C4505: 'mi_os_get_aligned_hint': unreferenced local function has been removed

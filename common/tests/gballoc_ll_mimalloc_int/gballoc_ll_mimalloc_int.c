@@ -14,8 +14,6 @@
 
 static TEST_MUTEX_HANDLE g_testByTest;
 
-#include "windows.h"
-
 #include "azure_c_pal/gballoc_ll.h"
 
 #include "mimalloc.h"
