@@ -284,7 +284,7 @@ TEST_FUNCTION(file_create_fails)
     setup_file_create_expectations(filename, &captured_ptpcbe, &captured_ptp_callback);
 
     umock_c_negative_tests_snapshot();
-    for (int i = 0; i < umock_c_negative_tests_call_count(); ++i)
+    for (size_t i = 0; i < umock_c_negative_tests_call_count(); ++i)
     {
         if (umock_c_negative_tests_can_call_fail(i))
         {
@@ -296,9 +296,6 @@ TEST_FUNCTION(file_create_fails)
 
             ///assert
             ASSERT_IS_NULL(file_handle);
-
-            ///cleanup
-            file_destroy(file_handle);
         }
     }
 }
@@ -579,7 +576,7 @@ TEST_FUNCTION(file_write_async_fails)
         .ValidateArgumentValue_ptr(&io);
 
     umock_c_negative_tests_snapshot();
-    for (int i = 0; i < umock_c_negative_tests_call_count(); ++i)
+    for (size_t i = 0; i < umock_c_negative_tests_call_count(); ++i)
     {
         if (umock_c_negative_tests_can_call_fail(i))
         {
@@ -804,7 +801,7 @@ TEST_FUNCTION(file_read_async_fails)
         .ValidateArgumentValue_ptr(&io);
 
     umock_c_negative_tests_snapshot();
-    for (int i = 0; i < umock_c_negative_tests_call_count(); ++i)
+    for (size_t i = 0; i < umock_c_negative_tests_call_count(); ++i)
     {
         if (umock_c_negative_tests_can_call_fail(i))
         {

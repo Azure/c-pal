@@ -168,7 +168,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend, FILE_HANDLE, handle, uint64_t
 ## on_file_io_complete_win32
 
 ```c
-static void on_file_io_complete_win32(
+static VOID CALLBACK on_file_io_complete_win32(
     PTP_CALLBACK_INSTANCE instance,
     PVOID context,
     PVOID overlapped,

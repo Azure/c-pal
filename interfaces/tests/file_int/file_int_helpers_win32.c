@@ -5,16 +5,21 @@
 #ifdef __cplusplus
 #include <cstdlib>
 #include <cstdio>
+#include <cstring>
 #else
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 #endif
 #include "file_int_helpers.h"
 
-void delete_all_txt_files()
+void delete_file(const char* filename)
 {
-    system("del *.txt");
+    char* command = malloc(strlen(filename) + 5);
+    (void)sprintf(command, "del %s", filename);
+    (void)system(command);
+    free(command);
 }
 
 bool check_file_exists(const char* filename)

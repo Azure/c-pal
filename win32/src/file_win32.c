@@ -166,14 +166,17 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE,
                         DestroyThreadpoolEnvironment(&result->cbe);
                     }
                 }
+                if (!succeeded)
+                {
+                    if (!CloseHandle(result->h_file))
+                    {
+                        LogLastError("Failure in CloseHandle, full_file_name=%s", full_file_name);
+                    }
+                }
             }
             /*Codes_SRS_FILE_43_034: [ If there are any failures, file_create shall fail and return NULL. ]*/
             if (!succeeded)
             {
-                if (!CloseHandle(result->h_file))
-                {
-                    LogLastError("Failure in CloseHandle, full_file_name=%s", full_file_name);
-                }
                 free(result);
                 result = NULL;
             }
@@ -446,14 +449,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, int, file_extend, FILE_HANDLE, handle, uint64_t, d
     return 0;
 }
 
-static void on_file_io_complete_win32(
-    PTP_CALLBACK_INSTANCE instance,
-    PVOID context,
-    PVOID overlapped,
-    ULONG io_result,
-    ULONG_PTR number_of_bytes_transferred,
-    PTP_IO io
-)
+static VOID CALLBACK on_file_io_complete_win32( PTP_CALLBACK_INSTANCE instance, PVOID context, PVOID overlapped, ULONG io_result, ULONG_PTR number_of_bytes_transferred, PTP_IO io)
 {
     (void)instance;
     (void)context;
