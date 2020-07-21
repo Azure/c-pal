@@ -19,3 +19,6 @@
 [submodule "cmake/deps/azure-c-logging"]
 	path = cmake/deps/azure-c-logging
 	url = https://github.com/azure/azure-c-logging
+[submodule "deps/mimalloc"]
+	path = deps/mimalloc
+	url = https://github.com/microsoft/mimalloc
