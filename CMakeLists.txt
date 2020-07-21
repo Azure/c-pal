@@ -16,19 +16,39 @@ option(run_int_tests "set run_int_tests to ON to integration tests (default is O
 option(use_cppunittest "set use_cppunittest to ON to build CppUnitTest tests on Windows (default is ON)" ON)
 option(run_traceability "run traceability tool (default is ON)" ON)
 
+#canon way of limiting an option to a predefined set of values
+set(GBALLOC_LL_TYPE_VALUES PASSTHROUGH WIN32HEAP MIMALLOC) #the list of values which are allowed
+set(GBALLOC_LL_TYPE PASSTHROUGH CACHE STRING "Value of GBALLOC_LL_TYPE") #setting the property's default value in case none is taken from the command line
+set_property(CACHE GBALLOC_LL_TYPE PROPERTY STRINGS ${GBALLOC_LL_TYPE_VALUES}) #build a property that can have only the allowed values
+
+
+list(FIND GBALLOC_LL_TYPE_VALUES ${GBALLOC_LL_TYPE} index) #check that the received value (either the default or the one from command line) matches one of the allowed values.
+if(index EQUAL -1)
+    message(FATAL_ERROR "GBALLOC_LL_TYPE must be one of '${GBALLOC_LL_TYPE_VALUES}'. It was actually '${GBALLOC_LL_TYPE}'")
+endif()
+
+#canon way of limiting an option to a predefined set of values
+set(GBALLOC_HL_TYPE_VALUES PASSTHROUGH METRICS) #the list of values which are allowed
+set(GBALLOC_HL_TYPE PASSTHROUGH CACHE STRING "Value of GBALLOC_HL_TYPE") #build a property that can have only the allowed values
+set_property(CACHE GBALLOC_HL_TYPE PROPERTY STRINGS ${GBALLOC_HL_TYPE_VALUES}) #setting the property's default value in case none is taken from the command line
+
+list(FIND GBALLOC_HL_TYPE_VALUES ${GBALLOC_HL_TYPE} index) #check that the received value (either the default or the one from command line) matches one of the allowed values.
+if(index EQUAL -1)
+    message(FATAL_ERROR "GBALLOC_HL_TYPE must be one of '${GBALLOC_HL_TYPE_VALUES}'. It was actually '${GBALLOC_HL_TYPE}'")
+endif()
+
+
 set(original_run_e2e_tests ${run_e2e_tests})
 set(original_run_unittests ${run_unittests})
 set(original_run_int_tests ${run_int_tests})
 set(original_run_traceability ${run_traceability})
 set(original_run_perf_tests ${run_perf_tests})
 
-
 set(run_e2e_tests OFF)
 set(run_unittests OFF)
 set(run_int_tests OFF)
 set(run_traceability OFF)
 set(run_perf_tests OFF)
-
 
 if ((NOT TARGET azure_c_build_tools) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/azure-c-build-tools/CMakeLists.txt))
         add_subdirectory(deps/azure-c-build-tools)
@@ -66,6 +86,30 @@ endif()
 if ((NOT TARGET umock_c) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/umock-c/CMakeLists.txt))
         add_subdirectory(deps/umock-c)
         include_directories(deps/umock-c/inc)
+endif()
+
+if (
+    (NOT TARGET mimalloc) AND 
+    (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/mimalloc/CMakeLists.txt) AND
+    (${ARCHITECTURE} STREQUAL "x86_64")
+    )
+        set(MI_BUILD_TESTS OFF)
+        #for mimalloc disable this warning: Warning C4459: declaration of 'os_page_size' hides global declaration
+        #for mimalloc disable this warning: Warning C4100: 'try_alignment': unreferenced formal parameter
+        #for mimalloc disable this warning: warning C4505: 'mi_os_get_aligned_hint': unreferenced local function has been removed
+
+        set(PREV_CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
+        set(PREV_CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+        if(WIN32)
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd4459 /wd4100 /wd4505")
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4459 /wd4100 /wd4505")
+        endif()
+
+        add_subdirectory(deps/mimalloc)
+        include_directories(deps/mimalloc/include)
+        
+        set(CMAKE_C_FLAGS ${PREV_CMAKE_C_FLAGS})
+        set(CMAKE_CXX_FLAGS ${PREV_CMAKE_CXX_FLAGS})
 endif()
 
 set(run_e2e_tests ${original_run_e2e_tests})
