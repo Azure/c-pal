@@ -86,7 +86,7 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
     TEST_MUTEX_RELEASE(g_testByTest);
 }
 
-/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_001: [ gballoc_ll_init shall call HeapCreate(0,0,0). ]*/
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_001: [ gballoc_ll_init shall call HeapCreate(0,0,0) and store the returned heap handle in a global variable. ]*/
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_002: [ gballoc_ll_init shall succeed and return 0. ]*/
 TEST_FUNCTION(gballoc_ll_init_succeeds)
 {
@@ -102,6 +102,25 @@ TEST_FUNCTION(gballoc_ll_init_succeeds)
 
     ///clean
     gballoc_ll_deinit();
+}
+
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_001: [ gballoc_ll_init shall call HeapCreate(0,0,0) and store the returned heap handle in a global variable. ]*/
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_002: [ gballoc_ll_init shall succeed and return 0. ]*/
+TEST_FUNCTION(gballoc_ll_init_with_non_NULL_pointer_returns_0)
+{
+    ///arrange
+    int result;
+
+    STRICT_EXPECTED_CALL(mock_HeapCreate(0, 0, 0));
+
+    ///act
+    result = gballoc_ll_init((void*)0x24);
+
+    ///assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
 }
 
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_003: [ If HeapCreate fails then gballoc_ll_init shall fail and return a non-0 value. ]*/
@@ -135,7 +154,7 @@ TEST_FUNCTION(gballoc_ll_deinit_without_init)
     ///clean
 }
 
-/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_004: [ gballoc_ll_deinit shall call HeapDestroy. ]*/
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_004: [ gballoc_ll_deinit shall call HeapDestroy on the handle stored by gballoc_ll_init in the global variable. ]*/
 TEST_FUNCTION(gballoc_ll_deinit_success)
 {
     ///arrange

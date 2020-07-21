@@ -5,7 +5,6 @@
 
 #include "windows.h"
 
-#include "azure_macro_utils/macro_utils.h"
 #include "azure_c_logging/xlogging.h"
 #include "azure_c_pal/gballoc_ll.h"
 
@@ -17,12 +16,12 @@ int gballoc_ll_init(void* params)
     (void)params;
     int result;
 
-    /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_001: [ gballoc_ll_init shall call HeapCreate(0,0,0). ]*/
+    /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_001: [ gballoc_ll_init shall call HeapCreate(0,0,0) and store the returned heap handle in a global variable. ]*/
     the_heap = HeapCreate(0, 0, 0);
     if (the_heap == NULL)
     {
         /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_003: [ If HeapCreate fails then gballoc_ll_init shall fail and return a non-0 value. ]*/
-        LogLastError("HeapCreate failed.");
+        LogLastError("HeapCreate(0,0,0) failed.");
         result = MU_FAILURE;
     }
     else
@@ -42,7 +41,7 @@ void gballoc_ll_deinit(void)
     }
     else
     {
-        /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_004: [ gballoc_ll_deinit shall call HeapDestroy. ]*/
+        /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_004: [ gballoc_ll_deinit shall call HeapDestroy on the handle stored by gballoc_ll_init in the global variable. ]*/
         if (!HeapDestroy(the_heap))
         {
             LogLastError("failure in HeapDestroy(the_heap=%p).", the_heap);
@@ -50,6 +49,7 @@ void gballoc_ll_deinit(void)
         the_heap = NULL;
     }
 }
+    MOCKABLE_FUNCTION(, void*, gballoc_ll_calloc, size_t, nmemb, size_t, size);
 
 void* gballoc_ll_malloc(size_t size)
 {
@@ -65,6 +65,11 @@ void* gballoc_ll_malloc(size_t size)
         /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_006: [ gballoc_ll_malloc shall call HeapAlloc. ]*/
         /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_007: [ gballoc_ll_malloc shall return what HeapAlloc returned. ]*/
         result = HeapAlloc(the_heap, 0, size);
+
+        if (result == NULL)
+        {
+            LogError("failure in HeapAlloc(the_heap=%p, 0, size=%zu)", the_heap, size);
+        }
     }
     return result;
 }
@@ -101,6 +106,11 @@ void* gballoc_ll_calloc(size_t nmemb, size_t size)
         /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_012: [ gballoc_ll_calloc shall return what HeapAlloc returns. ]*/
         result = HeapAlloc(the_heap, HEAP_ZERO_MEMORY, nmemb * size);
         /*return as is*/
+
+        if (result == NULL)
+        {
+            LogError("failure in HeapAlloc(the_heap=%p, HEAP_ZERO_MEMORY, nmemb=%zu * size=%zu)", the_heap, nmemb, size);
+        }
     }
     return result;
 }
@@ -121,12 +131,22 @@ void* gballoc_ll_realloc(void* ptr, size_t size)
         {
             result = HeapAlloc(the_heap, 0, size);
             /*return as is*/
+
+            if (result == NULL)
+            {
+                LogError("Failure in HeapAlloc(the_heap=%p, 0, size=%zu)", the_heap, size);
+            }
         }
         else
         {
             /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_015: [ If ptr is not NULL then gballoc_ll_realloc shall call HeapReAlloc and return what HeapReAlloc returns. ]*/
             result = HeapReAlloc(the_heap, 0, ptr, size);
             /*return as is*/
+
+            if (result == NULL)
+            {
+                LogError("Failure in HeapReAlloc(the_heap=%p, 0, ptr=%p, size=%zu)", the_heap, ptr, size);
+            }
         }
     }
     return result;

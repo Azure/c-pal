@@ -105,7 +105,7 @@ TEST_FUNCTION(gballoc_ll_free_works)
     ///assert - doesn't crash
 }
 
-TEST_FUNCTION(gballoc_ll_calloc_works)
+TEST_FUNCTION(gballoc_ll_realloc_works)
 {
     ///arrange
     unsigned char* ptr1 = (unsigned char*)gballoc_ll_malloc(1);
@@ -122,7 +122,7 @@ TEST_FUNCTION(gballoc_ll_calloc_works)
     gballoc_ll_free(ptr2);
 }
 
-TEST_FUNCTION(gballoc_ll_realloc_works)
+TEST_FUNCTION(gballoc_ll_calloc_works)
 {
     ///arrange
     unsigned char* ptr;

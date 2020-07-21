@@ -4,7 +4,6 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-#include "azure_macro_utils/macro_utils.h"
 #include "azure_c_logging/xlogging.h"
 #include "azure_c_pal/gballoc_ll.h"
 
@@ -25,8 +24,14 @@ void gballoc_ll_deinit(void)
 
 void* gballoc_ll_malloc(size_t size)
 {
+    void* result;
     /*Codes_SRS_GBALLOC_LL_MIMALLOC_02_003: [ gballoc_ll_malloc shall call mi_malloc and returns what mi_malloc returned. ]*/
-    return mi_malloc(size);
+    if ((result = mi_malloc(size)) == NULL)
+    {
+        LogError("failure in mi_malloc(size=%zu)", size);
+    }
+
+    return result;
 }
 
 void gballoc_ll_free(void* ptr)
@@ -37,12 +42,25 @@ void gballoc_ll_free(void* ptr)
 
 void* gballoc_ll_calloc(size_t nmemb, size_t size)
 {
+    void* result;
+
     /*Codes_SRS_GBALLOC_LL_MIMALLOC_02_005: [ gballoc_ll_calloc shall call mi_calloc(nmemb, size) and return what mi_calloc returned. ]*/
-    return mi_calloc(nmemb, size);
+    if ((result = mi_calloc(nmemb, size)) == NULL)
+    {
+        LogError("failure in mi_calloc(nmemb=%zu, size=%zu)", nmemb, size);
+    }
+
+    return result;
 }
 
 void* gballoc_ll_realloc(void* ptr, size_t size)
 {
+    void* result;
     /*Codes_SRS_GBALLOC_LL_MIMALLOC_02_006: [ gballoc_ll_realloc calls mi_realloc(ptr, size) and returns what mi_realloc returned. ]*/
-    return mi_realloc(ptr, size);
+    if ((result = mi_realloc(ptr, size)) == NULL)
+    {
+        LogError("failure in mi_realloc(ptr=%p, size=%zu)", ptr, size);
+    }
+
+    return result;
 }

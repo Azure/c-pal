@@ -26,9 +26,9 @@ gballoc_ll_win32heap is a module that delegates all call of its APIs to the ones
 MOCKABLE_FUNCTION(, int, gballoc_ll_init, void*, params);
 ```
 
-`gballoc_ll_init` globally initializes the module. `params` exists as a placeholder and is ignored.
+`gballoc_ll_init` initializes the module by storing a HANDLE to a heap in a global variable. `params` exists as a placeholder and is ignored.
 
-**SRS_GBALLOC_LL_WIN32HEAP_02_001: [** `gballoc_ll_init` shall call `HeapCreate(0,0,0)`. **]**
+**SRS_GBALLOC_LL_WIN32HEAP_02_001: [** `gballoc_ll_init` shall call `HeapCreate(0,0,0)` and store the returned heap handle in a global variable. **]**
 
 **SRS_GBALLOC_LL_WIN32HEAP_02_002: [** `gballoc_ll_init` shall succeed and return 0. **]**
 
@@ -43,7 +43,7 @@ MOCKABLE_FUNCTION(, void, gballoc_ll_deinit);
 
 **SRS_GBALLOC_LL_WIN32HEAP_02_016: [** If the global state is not initialized then `gballoc_ll_deinit` shall return. **]**
 
-**SRS_GBALLOC_LL_WIN32HEAP_02_004: [** `gballoc_ll_deinit` shall call `HeapDestroy`. **]**
+**SRS_GBALLOC_LL_WIN32HEAP_02_004: [** `gballoc_ll_deinit` shall call `HeapDestroy` on the handle stored by `gballoc_ll_init` in the global variable. **]**
 
 
 

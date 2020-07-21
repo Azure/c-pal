@@ -95,6 +95,22 @@ TEST_FUNCTION(gballoc_ll_init_returns_0)
     ///clean
 }
 
+/*Tests_SRS_GBALLOC_LL_MIMALLOC_02_001: [ gballoc_ll_init shall return 0. ]*/
+TEST_FUNCTION(gballoc_ll_init_with_non_NULL_pointer_returns_0)
+{
+    ///arrange
+    int result;
+
+    ///act
+    result = gballoc_ll_init((void*)0x24);
+
+    ///assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
 /*Tests_SRS_GBALLOC_LL_MIMALLOC_02_002: [ gballoc_ll_deinit shall return. ]*/
 TEST_FUNCTION(gballoc_ll_deinit_returns)
 {
