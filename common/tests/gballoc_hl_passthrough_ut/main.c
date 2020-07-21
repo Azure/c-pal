@@ -4,11 +4,9 @@
 #include <stddef.h>
 #include "testrunnerswitcher.h"
 
-#include "vld.h"
-
 int main(void)
 {
     size_t failedTestCount = 0;
-    RUN_TEST_SUITE(gballoc_ll_mimalloc_int, failedTestCount);
+    RUN_TEST_SUITE(gballoc_hl_passthrough_ut, failedTestCount);
     return failedTestCount;
 }

@@ -14,7 +14,11 @@
 
 static TEST_MUTEX_HANDLE g_testByTest;
 
+#include "windows.h"
+
 #include "azure_c_pal/gballoc_ll.h"
+
+#include "mimalloc.h"
 
 BEGIN_TEST_SUITE(gballoc_ll_mimalloc_int)
 
@@ -27,6 +31,7 @@ TEST_SUITE_INITIALIZE(TestClassInitialize)
 TEST_SUITE_CLEANUP(TestClassCleanup)
 {
     TEST_MUTEX_DESTROY(g_testByTest);
+    mi_stats_print(NULL);
 }
 
 TEST_FUNCTION_INITIALIZE(TestMethodInitialize)

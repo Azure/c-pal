@@ -17,9 +17,6 @@ extern "C"
 {
 #endif
 
-#ifdef ENABLE_MOCKS
-#error
-#endif
     MOCKABLE_FUNCTION(, int, gballoc_ll_init, void*, params);
     MOCKABLE_FUNCTION(, void, gballoc_ll_deinit);
 
