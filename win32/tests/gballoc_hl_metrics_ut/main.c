@@ -6,6 +6,6 @@
 int main(void)
 {
     size_t failedTestCount = 0;
-    RUN_TEST_SUITE(gballoc_win32_heap_unittests, failedTestCount);
+    RUN_TEST_SUITE(gballoc_hl_metrics_unittests, failedTestCount);
     return failedTestCount;
 }

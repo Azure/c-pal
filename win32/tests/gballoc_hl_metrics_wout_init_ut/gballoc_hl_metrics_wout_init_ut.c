@@ -48,7 +48,7 @@ MOCK_FUNCTION_END(HeapFree(hHeap, dwFlags, lpMem));
 }
 #endif
 
-BEGIN_TEST_SUITE(gballoc_win32_heap_wout_init_unittests)
+BEGIN_TEST_SUITE(gballoc_hl_metrics_wout_init_unittests)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -184,4 +184,4 @@ TEST_FUNCTION(gballoc_free_when_not_initialized_returns)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-END_TEST_SUITE(gballoc_win32_heap_wout_init_unittests)
+END_TEST_SUITE(gballoc_hl_metrics_wout_init_unittests)

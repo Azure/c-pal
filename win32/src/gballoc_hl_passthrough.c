@@ -84,3 +84,65 @@ void* gballoc_hl_realloc(void* ptr, size_t size)
 
     return result;
 }
+
+void gballoc_hl_reset_counters(void)
+{
+    return;
+}
+
+int gballoc_hl_get_malloc_latency_buckets(GBALLOC_LATENCY_BUCKETS* latency_buckets_out)
+{
+    (void)memset(latency_buckets_out, 0, sizeof(GBALLOC_LATENCY_BUCKETS));
+    return 0;
+}
+
+int gballoc_hl_get_realloc_latency_buckets(GBALLOC_LATENCY_BUCKETS* latency_buckets_out)
+{
+    (void)memset(latency_buckets_out, 0, sizeof(GBALLOC_LATENCY_BUCKETS));
+    return 0;
+}
+
+int gballoc_hl_get_calloc_latency_buckets(GBALLOC_LATENCY_BUCKETS* latency_buckets_out)
+{
+    (void)memset(latency_buckets_out, 0, sizeof(GBALLOC_LATENCY_BUCKETS));
+    return 0;
+}
+
+int gballoc_hl_get_free_latency_buckets(GBALLOC_LATENCY_BUCKETS* latency_buckets_out)
+{
+    (void)memset(latency_buckets_out, 0, sizeof(GBALLOC_LATENCY_BUCKETS));
+    return 0;
+}
+
+static const GBALLOC_LATENCY_BUCKET_METADATA latency_buckets_metadata[GBALLOC_LATENCY_BUCKET_COUNT] =
+{
+    { "Bucket [0-511]", 0, 511 },
+    { "Bucket [512-1023]", 512, 1023 },
+    { "Bucket [1024-2047]", 1024, 2047 },
+    { "Bucket [2048-4095]", 2048, 4095 },
+    { "Bucket [4096-8191]", 4096, 8191 },
+    { "Bucket [8192-16383]", 8192, 16383 },
+    { "Bucket [16384-32767]", 16384, 32767 },
+    { "Bucket [32768-65535]", 32768, 65535 },
+    { "Bucket [65536-131071]", 65536, 131071 },
+    { "Bucket [131072-262143]", 131072, 262143 },
+    { "Bucket [262144-524287]", 262144, 524287 },
+    { "Bucket [524288-1048575]", 524288, 1048575 },
+    { "Bucket [1048576-2097151]", 1048576, 2097151 },
+    { "Bucket [2097152-4194303]", 2097152, 4194303 },
+    { "Bucket [4194304-8388607]", 4194304, 8388607 },
+    { "Bucket [8388608-16777215]", 8388608, 16777215 },
+    { "Bucket [16777216-33554431]", 16777216, 33554431 },
+    { "Bucket [33554432-67108863]", 33554432, 67108863 },
+    { "Bucket [67108864-134217727]", 67108864, 134217727 },
+    { "Bucket [134217728-268435455]", 134217728, 268435455 },
+    { "Bucket [268435456-536870911]", 268435456, 536870911 },
+    { "Bucket [536870912-1073741823]", 536870912, 1073741823 },
+    { "Bucket [1073741824-2147483647]", 1073741824, 2147483647 },
+    { "Bucket [2147483648-4294967295]", 2147483648, 4294967295 }
+};
+
+const GBALLOC_LATENCY_BUCKET_METADATA* gballoc_hl_get_latency_bucket_metadata(void)
+{
+    return latency_buckets_metadata;
+}

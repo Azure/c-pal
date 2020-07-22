@@ -57,7 +57,7 @@ MOCK_FUNCTION_END(HeapSize(hHeap, dwFlags, lpMem));
 }
 #endif
 
-BEGIN_TEST_SUITE(gballoc_win32_heap_unittests)
+BEGIN_TEST_SUITE(gballoc_hl_metrics_unittests)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -1657,4 +1657,4 @@ TEST_FUNCTION(gballoc_hl_get_latency_bucket_metadata_returns_the_array_with_the_
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-END_TEST_SUITE(gballoc_win32_heap_unittests)
+END_TEST_SUITE(gballoc_hl_metrics_unittests)

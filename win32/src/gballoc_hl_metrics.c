@@ -26,7 +26,7 @@ static HANDLE custom_heap;
 
 /* Codes_SRS_GBALLOC_HL_01_038: [ The first latency bucket shall be [0-511]. ]*/
 /* Codes_SRS_GBALLOC_HL_01_039: [ Each consecutive bucket shall be [1 << n, (1 << (n + 1)) - 1], where n starts at 8. ]*/
-const GBALLOC_LATENCY_BUCKET_METADATA latency_buckets_metadata[GBALLOC_LATENCY_BUCKET_COUNT] =
+static const GBALLOC_LATENCY_BUCKET_METADATA latency_buckets_metadata[GBALLOC_LATENCY_BUCKET_COUNT] =
 {
     { "Bucket [0-511]", 0, 511 },
     { "Bucket [512-1023]", 512, 1023 },
