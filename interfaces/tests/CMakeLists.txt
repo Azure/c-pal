@@ -11,5 +11,6 @@ if(${run_int_tests})
     if(MSVC)
         # waiting for timer to be implemented on linux
         add_subdirectory(sync_int)
+        add_subdirectory(file_int)
     endif()
 endif()
