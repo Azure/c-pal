@@ -25,6 +25,8 @@ extern "C"
     MOCKABLE_FUNCTION(, void*, gballoc_ll_calloc, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc, void*, ptr, size_t, size);
 
+    MOCKABLE_FUNCTION(, size_t, gballoc_ll_size, void*, ptr);
+
 #ifdef __cplusplus
 }
 #endif

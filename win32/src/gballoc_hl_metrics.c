@@ -7,9 +7,9 @@
 #include "azure_c_logging/xlogging.h"
 
 #include "azure_c_pal/timer.h"
-#include "azure_c_pal/gballoc_hl.h"
+#include "azure_c_pal/gballoc_ll.h"
 
-static HANDLE custom_heap;
+#include "azure_c_pal/gballoc_hl.h"
 
 // This code snippet generates the below structure
 //static void generate_metadata_as_text(void)
@@ -24,8 +24,8 @@ static HANDLE custom_heap;
 //    }
 //}
 
-/* Codes_SRS_GBALLOC_HL_01_038: [ The first latency bucket shall be [0-511]. ]*/
-/* Codes_SRS_GBALLOC_HL_01_039: [ Each consecutive bucket shall be [1 << n, (1 << (n + 1)) - 1], where n starts at 8. ]*/
+/* Codes_SRS_GBALLOC_HL_METRICS_01_038: [ The first latency bucket shall be [0-511]. ]*/
+/* Codes_SRS_GBALLOC_HL_METRICS_01_039: [ Each consecutive bucket shall be [1 << n, (1 << (n + 1)) - 1], where n starts at 8. ]*/
 static const GBALLOC_LATENCY_BUCKET_METADATA latency_buckets_metadata[GBALLOC_LATENCY_BUCKET_COUNT] =
 {
     { "Bucket [0-511]", 0, 511 },
@@ -125,33 +125,33 @@ static void internal_copy_latency_data(GBALLOC_LATENCY_BUCKETS* latency_buckets_
     }
 }
 
+static int wasInitialized = 0;
+
 int gballoc_hl_init(void* hl_params, void* ll_params)
 {
     (void)hl_params;
-    (void)ll_params;
     int result;
 
-    /* Codes_SRS_GBALLOC_HL_01_001: [ If the module is already initialized, gballoc_hl_init shall fail and return a non-zero value. ]*/
-    if (custom_heap != NULL)
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_001: [ If the module is already initialized, gballoc_hl_init shall fail and return a non-zero value. ]*/
+    if (wasInitialized != 0)
     {
         LogError("Already initialized");
         result = MU_FAILURE;
     }
     else
     {
-        /* Codes_SRS_GBALLOC_HL_01_002: [ Otherwise, gballoc_hl_init shall call HeapCreate to create a new heap with the initial size and maximum size set to 0. ]*/
-        custom_heap = HeapCreate(0, 0, 0);
-        if (custom_heap == NULL)
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_002: [ Otherwise, gballoc_hl_init shall call gballoc_ll_init(ll_params) . ]*/
+        if (gballoc_ll_init(ll_params) != 0)
         {
-            /* Codes_SRS_GBALLOC_HL_01_004: [ If any error occurs, gballoc_hl_init shall fail and return a non-zero value. ]*/
-            LogLastError("HeapCreate failed");
+            /*Codes_SRS_GBALLOC_HL_METRICS_01_004: [ If any error occurs, gballoc_hl_init shall fail and return a non-zero value. ]*/
+            LogError("failure in gballoc_ll_init(ll_params=%p)", ll_params);
             result = MU_FAILURE;
         }
         else
         {
             internal_init_latency_counters();
-
-            /* Codes_SRS_GBALLOC_HL_01_003: [ On success, gballoc_hl_init shall return 0. ]*/
+            wasInitialized = 1;
+            /* Codes_SRS_GBALLOC_HL_METRICS_01_003: [ On success, gballoc_hl_init shall return 0. ]*/
             result = 0;
         }
     }
@@ -161,26 +161,23 @@ int gballoc_hl_init(void* hl_params, void* ll_params)
 
 void gballoc_hl_deinit(void)
 {
-    if (custom_heap == NULL)
+    if (wasInitialized == 0)
     {
-        /* Codes_SRS_GBALLOC_HL_01_005: [ If gballoc_hl_deinit is called while not initialized, gballoc_hl_deinit shall return. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_005: [ If gballoc_hl_deinit is called while not initialized, gballoc_hl_deinit shall return. ]*/
         LogError("Not initialized");
     }
     else
     {
-        /* Codes_SRS_GBALLOC_HL_01_006: [ Otherwise it shall call HeapDestroy to destroy the heap created in gballoc_hl_init. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_006: [ Otherwise it shall call gballoc_ll_deinit to deinitialize the ll layer. ]*/
         // error ignored as we can't do much with it
-        if (!HeapDestroy(custom_heap))
-        {
-            LogLastError("failure in HeapDestroy(custom_heap=%p)", custom_heap);
-        }
-        custom_heap = NULL;
+        gballoc_ll_deinit();
+        wasInitialized = 0;
     }
 }
 
 void gballoc_hl_reset_counters(void)
 {
-    /* Codes_SRS_GBALLOC_HL_01_036: [ gballoc_hl_reset_counters shall reset the latency counters for all buckets for the APIs (malloc, calloc, realloc and free). ]*/
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_036: [ gballoc_hl_reset_counters shall reset the latency counters for all buckets for the APIs (malloc, calloc, realloc and free). ]*/
     internal_init_latency_counters();
 }
 
@@ -190,13 +187,13 @@ int gballoc_hl_get_malloc_latency_buckets(GBALLOC_LATENCY_BUCKETS* latency_bucke
 
     if (latency_buckets_out == NULL)
     {
-        /* Codes_SRS_GBALLOC_HL_01_020: [ If latency_buckets_out is NULL, gballoc_hl_get_malloc_latency_buckets shall fail and return a non-zero value. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_020: [ If latency_buckets_out is NULL, gballoc_hl_get_malloc_latency_buckets shall fail and return a non-zero value. ]*/
         LogError("Invalid arguments: GBALLOC_LATENCY_BUCKETS* latency_buckets_out=%p", latency_buckets_out);
         result = MU_FAILURE;
     }
     else
     {
-        /* Codes_SRS_GBALLOC_HL_01_021: [ Otherwise, gballoc_hl_get_malloc_latency_buckets shall copy the latency stats maintained by the module for the malloc API into latency_buckets_out. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_021: [ Otherwise, gballoc_hl_get_malloc_latency_buckets shall copy the latency stats maintained by the module for the malloc API into latency_buckets_out. ]*/
         internal_copy_latency_data(latency_buckets_out, malloc_latency_buckets);
         result = 0;
     }
@@ -210,13 +207,13 @@ int gballoc_hl_get_calloc_latency_buckets(GBALLOC_LATENCY_BUCKETS* latency_bucke
 
     if (latency_buckets_out == NULL)
     {
-        /* Codes_SRS_GBALLOC_HL_01_022: [ If latency_buckets_out is NULL, gballoc_hl_get_calloc_latency_buckets shall fail and return a non-zero value. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_022: [ If latency_buckets_out is NULL, gballoc_hl_get_calloc_latency_buckets shall fail and return a non-zero value. ]*/
         LogError("Invalid arguments: GBALLOC_LATENCY_BUCKETS* latency_buckets_out=%p", latency_buckets_out);
         result = MU_FAILURE;
     }
     else
     {
-        /* Codes_SRS_GBALLOC_HL_01_023: [ Otherwise, gballoc_hl_get_calloc_latency_buckets shall copy the latency stats maintained by the module for the calloc API into latency_buckets_out. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_023: [ Otherwise, gballoc_hl_get_calloc_latency_buckets shall copy the latency stats maintained by the module for the calloc API into latency_buckets_out. ]*/
         internal_copy_latency_data(latency_buckets_out, calloc_latency_buckets);
         result = 0;
     }
@@ -230,13 +227,13 @@ int gballoc_hl_get_realloc_latency_buckets(GBALLOC_LATENCY_BUCKETS* latency_buck
 
     if (latency_buckets_out == NULL)
     {
-        /* Codes_SRS_GBALLOC_HL_01_024: [ If latency_buckets_out is NULL, gballoc_hl_get_realloc_latency_buckets shall fail and return a non-zero value. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_024: [ If latency_buckets_out is NULL, gballoc_hl_get_realloc_latency_buckets shall fail and return a non-zero value. ]*/
         LogError("Invalid arguments: GBALLOC_LATENCY_BUCKETS* latency_buckets_out=%p", latency_buckets_out);
         result = MU_FAILURE;
     }
     else
     {
-        /* Codes_SRS_GBALLOC_HL_01_025: [ Otherwise, gballoc_hl_get_realloc_latency_buckets shall copy the latency stats maintained by the module for the realloc API into latency_buckets_out. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_025: [ Otherwise, gballoc_hl_get_realloc_latency_buckets shall copy the latency stats maintained by the module for the realloc API into latency_buckets_out. ]*/
         internal_copy_latency_data(latency_buckets_out, realloc_latency_buckets);
         result = 0;
     }
@@ -250,13 +247,13 @@ int gballoc_hl_get_free_latency_buckets(GBALLOC_LATENCY_BUCKETS* latency_buckets
 
     if (latency_buckets_out == NULL)
     {
-        /* Codes_SRS_GBALLOC_HL_01_026: [ If latency_buckets_out is NULL, gballoc_hl_get_free_latency_buckets shall fail and return a non-zero value. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_026: [ If latency_buckets_out is NULL, gballoc_hl_get_free_latency_buckets shall fail and return a non-zero value. ]*/
         LogError("Invalid arguments: GBALLOC_LATENCY_BUCKETS* latency_buckets_out=%p", latency_buckets_out);
         result = MU_FAILURE;
     }
     else
     {
-        /* Codes_SRS_GBALLOC_HL_01_027: [ Otherwise, gballoc_hl_get_free_latency_buckets shall copy the latency stats maintained by the module for the free API into latency_buckets_out. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_027: [ Otherwise, gballoc_hl_get_free_latency_buckets shall copy the latency stats maintained by the module for the free API into latency_buckets_out. ]*/
         internal_copy_latency_data(latency_buckets_out, free_latency_buckets);
         result = 0;
     }
@@ -266,7 +263,7 @@ int gballoc_hl_get_free_latency_buckets(GBALLOC_LATENCY_BUCKETS* latency_buckets
 
 const GBALLOC_LATENCY_BUCKET_METADATA* gballoc_hl_get_latency_bucket_metadata(void)
 {
-    /* Codes_SRS_GBALLOC_HL_01_037: [ gballoc_hl_get_latency_bucket_metadata shall return an array of size GBALLOC_LATENCY_BUCKET_COUNT that contains the metadata for each latency bucket. ]*/
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_037: [ gballoc_hl_get_latency_bucket_metadata shall return an array of size GBALLOC_LATENCY_BUCKET_COUNT that contains the metadata for each latency bucket. ]*/
     return latency_buckets_metadata;
 }
 
@@ -312,21 +309,26 @@ void* gballoc_hl_malloc(size_t size)
 {
     void* result;
 
-    if (custom_heap == NULL)
+    if (wasInitialized == 0)
     {
-        /* Codes_SRS_GBALLOC_HL_01_008: [ If the module was not initialized, gballoc_hl_malloc shall return NULL. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_008: [ If the module was not initialized, gballoc_hl_malloc shall return NULL. ]*/
         LogError("Not initialized");
         result = NULL;
     }
     else
     {
-        /* Codes_SRS_GBALLOC_HL_01_028: [ gballoc_hl_malloc shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_028: [ gballoc_hl_malloc shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
         double start_time = timer_global_get_elapsed_us();
 
-        /* Codes_SRS_GBALLOC_HL_01_007: [ gballoc_hl_malloc shall call HeapAlloc for the heap created in gballoc_hl_init, allocating size bytes and return the result of HeapAlloc. ]*/
-        result = HeapAlloc(custom_heap, 0, size);
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_007: [ gballoc_hl_malloc shall call gballoc_ll_malloc(size) and return the result of gballoc_ll_malloc. ]*/
+        result = gballoc_ll_malloc(size);
 
-        /* Codes_SRS_GBALLOC_HL_01_029: [ gballoc_hl_malloc shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
+        if (result == NULL)
+        {
+            LogError("failure in gballoc_ll_malloc(size=%zu)", size);
+        }
+
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_029: [ gballoc_hl_malloc shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
         double end_time = timer_global_get_elapsed_us();
 
         LONG latency = (LONG)(end_time - start_time);
@@ -340,32 +342,26 @@ void* gballoc_hl_calloc(size_t nmemb, size_t size)
 {
     void* result;
 
-    if (custom_heap == NULL)
+    if (wasInitialized == 0)
     {
-        /* Codes_SRS_GBALLOC_HL_01_011: [ If the module was not initialized, gballoc_hl_calloc shall return NULL. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_011: [ If the module was not initialized, gballoc_hl_calloc shall return NULL. ]*/
         LogError("Not initialized");
         result = NULL;
     }
     else
     {
-        /* Codes_SRS_GBALLOC_HL_01_030: [ gballoc_hl_calloc shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_030: [ gballoc_hl_calloc shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
         double start_time = timer_global_get_elapsed_us();
 
-        /* Codes_SRS_GBALLOC_HL_01_009: [ gballoc_hl_calloc shall call HeapAlloc for the heap created in gballoc_hl_init, allocating size * nmemb bytes. ]*/
-        result = HeapAlloc(custom_heap, 0, nmemb * size);
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_009: [ gballoc_hl_calloc shall call gballoc_ll_calloc(nmemb, size) and return the result of gballoc_ll_calloc. ]*/
+        result = gballoc_ll_calloc(nmemb, size);
 
         if (result == NULL)
         {
-            /* Codes_SRS_GBALLOC_HL_01_012: [ If HeapAlloc fails, gballoc_hl_calloc shall return NULL. ]*/
-            LogError("HeapAlloc failed");
-        }
-        else
-        {
-            /* Codes_SRS_GBALLOC_HL_01_010: [ If HeapAlloc succeeds, gballoc_hl_calloc shall zero the allocated memory and return the pointer to it. ]*/
-            (void)memset(result, 0, nmemb * size);
+            LogError("failure in gballoc_ll_calloc(nmemb=%zu, size=%zu)", nmemb, size);
         }
 
-        /* Codes_SRS_GBALLOC_HL_01_031: [ gballoc_hl_calloc shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_031: [ gballoc_hl_calloc shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
         double end_time = timer_global_get_elapsed_us();
 
         LONG latency = (LONG)(end_time - start_time);
@@ -379,39 +375,30 @@ void* gballoc_hl_realloc(void* ptr, size_t size)
 {
     void* result;
 
-    if (custom_heap == NULL)
+    if (wasInitialized == 0)
     {
-        /* Codes_SRS_GBALLOC_HL_01_015: [ If the module was not initialized, gballoc_hl_realloc shall return NULL. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_015: [ If the module was not initialized, gballoc_hl_realloc shall return NULL. ]*/
         LogError("Not initialized");
         result = NULL;
     }
     else
     {
-        /* Codes_SRS_GBALLOC_HL_01_032: [ gballoc_hl_realloc shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_032: [ gballoc_hl_realloc shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
         double start_time = timer_global_get_elapsed_us();
 
-        if (ptr == NULL)
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_013: [ gballoc_hl_realloc shall call gballoc_ll_realloc(ptr, size) and return the result of gballoc_ll_realloc ]*/
+        result = gballoc_ll_realloc(ptr, size);
+
+        if (result == NULL)
         {
-            /* Codes_SRS_GBALLOC_HL_01_013: [ If ptr is NULL, gballoc_hl_realloc shall call HeapAlloc for the heap created in gballoc_hl_init, allocating size bytes and return the result of HeapAlloc. ]*/
-            result = HeapAlloc(custom_heap, 0, size);
-        }
-        else
-        {
-            /* Codes_SRS_GBALLOC_HL_01_014: [ If ptr is not NULL, gballoc_hl_realloc shall call HeapReAlloc for the heap created in gballoc_hl_init, passing ptr and size as arguments and return the result of HeapReAlloc. ]*/
-            result = HeapReAlloc(custom_heap, 0, ptr, size);
+            LogError("failure in gballoc_ll_realloc(ptr=%p, size=%zu)", ptr, size);
         }
 
-        /* Codes_SRS_GBALLOC_HL_01_033: [ gballoc_hl_realloc shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_033: [ gballoc_hl_realloc shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
         double end_time = timer_global_get_elapsed_us();
 
         LONG latency = (LONG)(end_time - start_time);
         internal_add_call_latency(realloc_latency_buckets, size, latency);
-
-        if (result == NULL)
-        {
-            /* Codes_SRS_GBALLOC_HL_01_018: [ If any error occurs, gballoc_hl_realloc shall fail and return NULL. ]*/
-            LogError("HeapReAlloc failed");
-        }
     }
 
     return result;
@@ -419,29 +406,26 @@ void* gballoc_hl_realloc(void* ptr, size_t size)
 
 void gballoc_hl_free(void* ptr)
 {
-    if (custom_heap == NULL)
+    if (wasInitialized == 0)
     {
-        /* Codes_SRS_GBALLOC_HL_01_016: [ If the module was not initialized, gballoc_hl_free shall return. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_016: [ If the module was not initialized, gballoc_hl_free shall return. ]*/
         LogError("Not initialized");
     }
     else
     {
         if (ptr != NULL)
         {
-            /* Codes_SRS_GBALLOC_HL_01_034: [ gballoc_hl_free shall call timer_global_get_elapsed_us to obtain the start time of the free. ]*/
+            /* Codes_SRS_GBALLOC_HL_METRICS_01_034: [ gballoc_hl_free shall call timer_global_get_elapsed_us to obtain the start time of the free. ]*/
             double start_time = timer_global_get_elapsed_us();
             size_t size;
 
-            /* Codes_SRS_GBALLOC_HL_01_019: [ gballoc_hl_free shall call HeapSize to obtain the size of the allocation (used for latency counters). ]*/
-            size = HeapSize(custom_heap, 0, ptr);
+            /* Codes_SRS_GBALLOC_HL_METRICS_01_019: [ gballoc_hl_free shall call gballoc_ll_size to obtain the size of the allocation (used for latency counters). ]*/
+            size = gballoc_ll_size(ptr);
 
-            /* Codes_SRS_GBALLOC_HL_01_017: [ gballoc_hl_free shall call HeapFree for the heap created in gballoc_hl_init, freeing the memory at ptr. ]*/
-            if (!HeapFree(custom_heap, 0, ptr))
-            {
-                LogLastError("failure in HeapFree(custom_heap=%p, 0, ptr=%p)", custom_heap, 0, ptr);
-            }
+            /* Codes_SRS_GBALLOC_HL_METRICS_01_017: [ gballoc_hl_free shall call gballoc_ll_free(ptr). ]*/
+            gballoc_ll_free(ptr);
 
-            /* Codes_SRS_GBALLOC_HL_01_035: [ gballoc_hl_free shall call timer_global_get_elapsed_us to obtain the end time of the free. ]*/
+            /* Codes_SRS_GBALLOC_HL_METRICS_01_035: [ gballoc_hl_free shall call timer_global_get_elapsed_us to obtain the end time of the free. ]*/
             double end_time = timer_global_get_elapsed_us();
 
             LONG latency = (LONG)(end_time - start_time);

@@ -8,7 +8,7 @@
 
 #include "azure_macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
-#include "windows.h"
+
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umocktypes.h"
@@ -20,6 +20,10 @@
 #pragma warning(disable : 4189)
 #endif
 
+#define ENABLE_MOCKS
+#include "azure_c_pal/gballoc_ll.h"
+#undef ENABLE_MOCKS
+
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
@@ -28,25 +32,6 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-MOCK_FUNCTION_WITH_CODE(, HANDLE, mock_HeapCreate, DWORD, flOptions, SIZE_T, dwInitialSize, SIZE_T, dwMaximumSize)
-MOCK_FUNCTION_END(HeapCreate(flOptions, dwInitialSize, dwMaximumSize));
-MOCK_FUNCTION_WITH_CODE(, BOOL, mock_HeapDestroy, HANDLE, hHeap)
-MOCK_FUNCTION_END(HeapDestroy(hHeap));
-MOCK_FUNCTION_WITH_CODE(, LPVOID, mock_HeapAlloc, HANDLE, hHeap, DWORD, dwFlags, SIZE_T, dwBytes)
-MOCK_FUNCTION_END(HeapAlloc(hHeap, dwFlags, dwBytes));
-MOCK_FUNCTION_WITH_CODE(, LPVOID, mock_HeapReAlloc, HANDLE, hHeap, DWORD, dwFlags, LPVOID, lpMem, SIZE_T, dwBytes)
-MOCK_FUNCTION_END(HeapReAlloc(hHeap, dwFlags, lpMem, dwBytes));
-MOCK_FUNCTION_WITH_CODE(, BOOL, mock_HeapFree, HANDLE, hHeap, DWORD, dwFlags, LPVOID, lpMem)
-MOCK_FUNCTION_END(HeapFree(hHeap, dwFlags, lpMem));
-
-#ifdef __cplusplus
-}
-#endif
 
 BEGIN_TEST_SUITE(gballoc_hl_metrics_wout_init_unittests)
 
@@ -58,11 +43,6 @@ TEST_SUITE_INITIALIZE(suite_init)
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error), "umock_c_init");
 
     ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types(), "umocktypes_stdint_register_types");
-
-    REGISTER_UMOCK_ALIAS_TYPE(HANDLE, void*);
-    REGISTER_UMOCK_ALIAS_TYPE(DWORD, unsigned long);
-    REGISTER_UMOCK_ALIAS_TYPE(SIZE_T, size_t);
-    REGISTER_UMOCK_ALIAS_TYPE(LPVOID, void*);
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
@@ -166,10 +146,8 @@ TEST_FUNCTION(gballoc_realloc_when_not_initialized_fails)
 TEST_FUNCTION(gballoc_free_when_not_initialized_returns)
 {
     // arrange
-    HANDLE heap_handle;
     void* ptr;
-    STRICT_EXPECTED_CALL(mock_HeapCreate(0, 0, 0))
-        .CaptureReturn(&heap_handle);
+    STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
     (void)gballoc_hl_init(NULL, NULL);
     ptr = gballoc_hl_calloc(3, 4);
     ptr = gballoc_hl_realloc(ptr, 1);
