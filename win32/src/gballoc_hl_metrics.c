@@ -15,7 +15,7 @@ static HANDLE custom_heap;
 //static void generate_metadata_as_text(void)
 //{
 //    printf("{ \"Bucket [0-511]\", 0, 511 }, \r\n");
-//    for (size_t i = 1; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+//    for (size_t i = 1; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
 //    {
 //        uint32_t size_low = (uint32_t)1 << (8 + i);
 //        uint32_t size_high = ((uint64_t)1 << (9 + i)) - 1;
@@ -26,7 +26,7 @@ static HANDLE custom_heap;
 
 /* Codes_SRS_GBALLOC_HL_01_038: [ The first latency bucket shall be [0-511]. ]*/
 /* Codes_SRS_GBALLOC_HL_01_039: [ Each consecutive bucket shall be [1 << n, (1 << (n + 1)) - 1], where n starts at 8. ]*/
-const GBALLOC_WIN32_LATENCY_BUCKET_METADATA latency_buckets_metadata[GBALLOC_WIN32_LATENCY_BUCKET_COUNT] =
+const GBALLOC_LATENCY_BUCKET_METADATA latency_buckets_metadata[GBALLOC_LATENCY_BUCKET_COUNT] =
 {
     { "Bucket [0-511]", 0, 511 },
     { "Bucket [512-1023]", 512, 1023 },
@@ -62,10 +62,10 @@ typedef struct LATENCY_BUCKET_TAG
     volatile LONG count;
 } LATENCY_BUCKET;
 
-static LATENCY_BUCKET malloc_latency_buckets[GBALLOC_WIN32_LATENCY_BUCKET_COUNT];
-static LATENCY_BUCKET calloc_latency_buckets[GBALLOC_WIN32_LATENCY_BUCKET_COUNT];
-static LATENCY_BUCKET realloc_latency_buckets[GBALLOC_WIN32_LATENCY_BUCKET_COUNT];
-static LATENCY_BUCKET free_latency_buckets[GBALLOC_WIN32_LATENCY_BUCKET_COUNT];
+static LATENCY_BUCKET malloc_latency_buckets[GBALLOC_LATENCY_BUCKET_COUNT];
+static LATENCY_BUCKET calloc_latency_buckets[GBALLOC_LATENCY_BUCKET_COUNT];
+static LATENCY_BUCKET realloc_latency_buckets[GBALLOC_LATENCY_BUCKET_COUNT];
+static LATENCY_BUCKET free_latency_buckets[GBALLOC_LATENCY_BUCKET_COUNT];
 
 static size_t determine_latency_bucket_for_size(size_t size)
 {
@@ -74,7 +74,7 @@ static size_t determine_latency_bucket_for_size(size_t size)
 #if SIZE_MAX != UINT32_MAX
     if (size > UINT32_MAX)
     {
-        bucket = GBALLOC_WIN32_LATENCY_BUCKET_COUNT - 1;
+        bucket = GBALLOC_LATENCY_BUCKET_COUNT - 1;
     }
     else
 #endif
@@ -103,7 +103,7 @@ static void internal_init_latency_counters(void)
 {
     size_t i;
 
-    for (i = 0; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (i = 0; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         init_latency_bucket(&malloc_latency_buckets[i]);
         init_latency_bucket(&calloc_latency_buckets[i]);
@@ -112,11 +112,11 @@ static void internal_init_latency_counters(void)
     }
 }
 
-static void internal_copy_latency_data(GBALLOC_WIN32_LATENCY_BUCKETS* latency_buckets_out, LATENCY_BUCKET* source_latency_buckets)
+static void internal_copy_latency_data(GBALLOC_LATENCY_BUCKETS* latency_buckets_out, LATENCY_BUCKET* source_latency_buckets)
 {
     size_t i;
 
-    for (i = 0; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (i = 0; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         latency_buckets_out->buckets[i].count = InterlockedAdd(&source_latency_buckets[i].count, 0);
         latency_buckets_out->buckets[i].latency_avg = (latency_buckets_out->buckets[i].count == 0) ? 0 : (double)InterlockedAdd64(&source_latency_buckets[i].latency_sum, 0) / latency_buckets_out->buckets[i].count;
@@ -139,11 +139,11 @@ int gballoc_hl_init(void* hl_params, void* ll_params)
     }
     else
     {
-        /* Codes_SRS_GBALLOC_HL_01_002: [ Otherwise, gballoc_win32_heap_init shall call HeapCreate to create a new heap with the initial size and maximum size set to 0. ]*/
+        /* Codes_SRS_GBALLOC_HL_01_002: [ Otherwise, gballoc_hl_init shall call HeapCreate to create a new heap with the initial size and maximum size set to 0. ]*/
         custom_heap = HeapCreate(0, 0, 0);
         if (custom_heap == NULL)
         {
-            /* Codes_SRS_GBALLOC_HL_01_004: [ If any error occurs, gballoc_win32_heap_init shall fail and return a non-zero value. ]*/
+            /* Codes_SRS_GBALLOC_HL_01_004: [ If any error occurs, gballoc_hl_init shall fail and return a non-zero value. ]*/
             LogLastError("HeapCreate failed");
             result = MU_FAILURE;
         }
@@ -151,7 +151,7 @@ int gballoc_hl_init(void* hl_params, void* ll_params)
         {
             internal_init_latency_counters();
 
-            /* Codes_SRS_GBALLOC_HL_01_003: [ On success, gballoc_win32_heap_init shall return 0. ]*/
+            /* Codes_SRS_GBALLOC_HL_01_003: [ On success, gballoc_hl_init shall return 0. ]*/
             result = 0;
         }
     }
@@ -168,7 +168,7 @@ void gballoc_hl_deinit(void)
     }
     else
     {
-        /* Codes_SRS_GBALLOC_HL_01_006: [ Otherwise it shall call HeapDestroy to destroy the heap created in gballoc_win32_heap_init. ]*/
+        /* Codes_SRS_GBALLOC_HL_01_006: [ Otherwise it shall call HeapDestroy to destroy the heap created in gballoc_hl_init. ]*/
         // error ignored as we can't do much with it
         if (!HeapDestroy(custom_heap))
         {
@@ -184,14 +184,14 @@ void gballoc_hl_reset_counters(void)
     internal_init_latency_counters();
 }
 
-int gballoc_hl_get_malloc_latency_buckets(GBALLOC_WIN32_LATENCY_BUCKETS* latency_buckets_out)
+int gballoc_hl_get_malloc_latency_buckets(GBALLOC_LATENCY_BUCKETS* latency_buckets_out)
 {
     int result;
 
     if (latency_buckets_out == NULL)
     {
         /* Codes_SRS_GBALLOC_HL_01_020: [ If latency_buckets_out is NULL, gballoc_hl_get_malloc_latency_buckets shall fail and return a non-zero value. ]*/
-        LogError("Invalid arguments: GBALLOC_WIN32_LATENCY_BUCKETS* latency_buckets_out=%p", latency_buckets_out);
+        LogError("Invalid arguments: GBALLOC_LATENCY_BUCKETS* latency_buckets_out=%p", latency_buckets_out);
         result = MU_FAILURE;
     }
     else
@@ -204,14 +204,14 @@ int gballoc_hl_get_malloc_latency_buckets(GBALLOC_WIN32_LATENCY_BUCKETS* latency
     return result;
 }
 
-int gballoc_hl_get_calloc_latency_buckets(GBALLOC_WIN32_LATENCY_BUCKETS* latency_buckets_out)
+int gballoc_hl_get_calloc_latency_buckets(GBALLOC_LATENCY_BUCKETS* latency_buckets_out)
 {
     int result;
 
     if (latency_buckets_out == NULL)
     {
         /* Codes_SRS_GBALLOC_HL_01_022: [ If latency_buckets_out is NULL, gballoc_hl_get_calloc_latency_buckets shall fail and return a non-zero value. ]*/
-        LogError("Invalid arguments: GBALLOC_WIN32_LATENCY_BUCKETS* latency_buckets_out=%p", latency_buckets_out);
+        LogError("Invalid arguments: GBALLOC_LATENCY_BUCKETS* latency_buckets_out=%p", latency_buckets_out);
         result = MU_FAILURE;
     }
     else
@@ -224,14 +224,14 @@ int gballoc_hl_get_calloc_latency_buckets(GBALLOC_WIN32_LATENCY_BUCKETS* latency
     return result;
 }
 
-int gballoc_hl_get_realloc_latency_buckets(GBALLOC_WIN32_LATENCY_BUCKETS* latency_buckets_out)
+int gballoc_hl_get_realloc_latency_buckets(GBALLOC_LATENCY_BUCKETS* latency_buckets_out)
 {
     int result;
 
     if (latency_buckets_out == NULL)
     {
         /* Codes_SRS_GBALLOC_HL_01_024: [ If latency_buckets_out is NULL, gballoc_hl_get_realloc_latency_buckets shall fail and return a non-zero value. ]*/
-        LogError("Invalid arguments: GBALLOC_WIN32_LATENCY_BUCKETS* latency_buckets_out=%p", latency_buckets_out);
+        LogError("Invalid arguments: GBALLOC_LATENCY_BUCKETS* latency_buckets_out=%p", latency_buckets_out);
         result = MU_FAILURE;
     }
     else
@@ -244,14 +244,14 @@ int gballoc_hl_get_realloc_latency_buckets(GBALLOC_WIN32_LATENCY_BUCKETS* latenc
     return result;
 }
 
-int gballoc_hl_get_free_latency_buckets(GBALLOC_WIN32_LATENCY_BUCKETS* latency_buckets_out)
+int gballoc_hl_get_free_latency_buckets(GBALLOC_LATENCY_BUCKETS* latency_buckets_out)
 {
     int result;
 
     if (latency_buckets_out == NULL)
     {
         /* Codes_SRS_GBALLOC_HL_01_026: [ If latency_buckets_out is NULL, gballoc_hl_get_free_latency_buckets shall fail and return a non-zero value. ]*/
-        LogError("Invalid arguments: GBALLOC_WIN32_LATENCY_BUCKETS* latency_buckets_out=%p", latency_buckets_out);
+        LogError("Invalid arguments: GBALLOC_LATENCY_BUCKETS* latency_buckets_out=%p", latency_buckets_out);
         result = MU_FAILURE;
     }
     else
@@ -264,9 +264,9 @@ int gballoc_hl_get_free_latency_buckets(GBALLOC_WIN32_LATENCY_BUCKETS* latency_b
     return result;
 }
 
-const GBALLOC_WIN32_LATENCY_BUCKET_METADATA* gballoc_win32_heap_get_latency_bucket_metadata(void)
+const GBALLOC_LATENCY_BUCKET_METADATA* gballoc_hl_get_latency_bucket_metadata(void)
 {
-    /* Codes_SRS_GBALLOC_HL_01_037: [ gballoc_win32_heap_get_latency_bucket_metadata shall return an array of size GBALLOC_WIN32_LATENCY_BUCKET_COUNT that contains the metadata for each latency bucket. ]*/
+    /* Codes_SRS_GBALLOC_HL_01_037: [ gballoc_hl_get_latency_bucket_metadata shall return an array of size GBALLOC_LATENCY_BUCKET_COUNT that contains the metadata for each latency bucket. ]*/
     return latency_buckets_metadata;
 }
 
@@ -323,7 +323,7 @@ void* gballoc_hl_malloc(size_t size)
         /* Codes_SRS_GBALLOC_HL_01_028: [ gballoc_hl_malloc shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
         double start_time = timer_global_get_elapsed_us();
 
-        /* Codes_SRS_GBALLOC_HL_01_007: [ gballoc_hl_malloc shall call HeapAlloc for the heap created in gballoc_win32_heap_init, allocating size bytes and return the result of HeapAlloc. ]*/
+        /* Codes_SRS_GBALLOC_HL_01_007: [ gballoc_hl_malloc shall call HeapAlloc for the heap created in gballoc_hl_init, allocating size bytes and return the result of HeapAlloc. ]*/
         result = HeapAlloc(custom_heap, 0, size);
 
         /* Codes_SRS_GBALLOC_HL_01_029: [ gballoc_hl_malloc shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
@@ -351,7 +351,7 @@ void* gballoc_hl_calloc(size_t nmemb, size_t size)
         /* Codes_SRS_GBALLOC_HL_01_030: [ gballoc_hl_calloc shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
         double start_time = timer_global_get_elapsed_us();
 
-        /* Codes_SRS_GBALLOC_HL_01_009: [ gballoc_hl_calloc shall call HeapAlloc for the heap created in gballoc_win32_heap_init, allocating size * nmemb bytes. ]*/
+        /* Codes_SRS_GBALLOC_HL_01_009: [ gballoc_hl_calloc shall call HeapAlloc for the heap created in gballoc_hl_init, allocating size * nmemb bytes. ]*/
         result = HeapAlloc(custom_heap, 0, nmemb * size);
 
         if (result == NULL)
@@ -392,12 +392,12 @@ void* gballoc_hl_realloc(void* ptr, size_t size)
 
         if (ptr == NULL)
         {
-            /* Codes_SRS_GBALLOC_HL_01_013: [ If ptr is NULL, gballoc_hl_realloc shall call HeapAlloc for the heap created in gballoc_win32_heap_init, allocating size bytes and return the result of HeapAlloc. ]*/
+            /* Codes_SRS_GBALLOC_HL_01_013: [ If ptr is NULL, gballoc_hl_realloc shall call HeapAlloc for the heap created in gballoc_hl_init, allocating size bytes and return the result of HeapAlloc. ]*/
             result = HeapAlloc(custom_heap, 0, size);
         }
         else
         {
-            /* Codes_SRS_GBALLOC_HL_01_014: [ If ptr is not NULL, gballoc_hl_realloc shall call HeapReAlloc for the heap created in gballoc_win32_heap_init, passing ptr and size as arguments and return the result of HeapReAlloc. ]*/
+            /* Codes_SRS_GBALLOC_HL_01_014: [ If ptr is not NULL, gballoc_hl_realloc shall call HeapReAlloc for the heap created in gballoc_hl_init, passing ptr and size as arguments and return the result of HeapReAlloc. ]*/
             result = HeapReAlloc(custom_heap, 0, ptr, size);
         }
 
@@ -435,7 +435,7 @@ void gballoc_hl_free(void* ptr)
             /* Codes_SRS_GBALLOC_HL_01_019: [ gballoc_hl_free shall call HeapSize to obtain the size of the allocation (used for latency counters). ]*/
             size = HeapSize(custom_heap, 0, ptr);
 
-            /* Codes_SRS_GBALLOC_HL_01_017: [ gballoc_hl_free shall call HeapFree for the heap created in gballoc_win32_heap_init, freeing the memory at ptr. ]*/
+            /* Codes_SRS_GBALLOC_HL_01_017: [ gballoc_hl_free shall call HeapFree for the heap created in gballoc_hl_init, freeing the memory at ptr. ]*/
             if (!HeapFree(custom_heap, 0, ptr))
             {
                 LogLastError("failure in HeapFree(custom_heap=%p, 0, ptr=%p)", custom_heap, 0, ptr);

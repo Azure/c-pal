@@ -73,12 +73,12 @@ TEST_FUNCTION(alloc_performance)
     double end_time = timer_global_get_elapsed_ms();
     LogInfo("%" PRIu32 " allocations done in %.02f ms", ALLOC_COUNT, (end_time - start_time));
 
-    GBALLOC_WIN32_LATENCY_BUCKETS latency_buckets;
+    GBALLOC_LATENCY_BUCKETS latency_buckets;
     gballoc_hl_get_malloc_latency_buckets(&latency_buckets);
 
-    const GBALLOC_WIN32_LATENCY_BUCKET_METADATA* latency_buckets_metadata = gballoc_win32_heap_get_latency_bucket_metadata();
+    const GBALLOC_LATENCY_BUCKET_METADATA* latency_buckets_metadata = gballoc_hl_get_latency_bucket_metadata();
 
-    for (i = 0; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (i = 0; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         LogInfo("Bucket %" PRIu32 " (%" PRIu32 "-%" PRIu32 ") had %" PRIu32 " allocations, latency avg=%.02f us, min=%" PRIu32 ", max=%" PRIu32,
             i, latency_buckets_metadata[i].size_range_low, latency_buckets_metadata[i].size_range_high, latency_buckets.buckets[i].count,
@@ -121,12 +121,12 @@ TEST_FUNCTION(free_performance)
     double end_time = timer_global_get_elapsed_ms();
     LogInfo("%" PRIu32 " frees done in %.02f ms", ALLOC_COUNT, (end_time - start_time));
 
-    GBALLOC_WIN32_LATENCY_BUCKETS latency_buckets;
+    GBALLOC_LATENCY_BUCKETS latency_buckets;
     gballoc_hl_get_free_latency_buckets(&latency_buckets);
 
-    const GBALLOC_WIN32_LATENCY_BUCKET_METADATA* latency_buckets_metadata = gballoc_win32_heap_get_latency_bucket_metadata();
+    const GBALLOC_LATENCY_BUCKET_METADATA* latency_buckets_metadata = gballoc_hl_get_latency_bucket_metadata();
 
-    for (i = 0; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (i = 0; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         LogInfo("Bucket %" PRIu32 " (%" PRIu32 "-%" PRIu32 ") had %" PRIu32 " frees, latency avg=%.02f us, min=%" PRIu32 ", max=%" PRIu32,
             i, latency_buckets_metadata[i].size_range_low, latency_buckets_metadata[i].size_range_high, latency_buckets.buckets[i].count,

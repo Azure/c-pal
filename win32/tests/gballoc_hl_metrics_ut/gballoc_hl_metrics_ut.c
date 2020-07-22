@@ -931,10 +931,10 @@ TEST_FUNCTION(gballoc_hl_reset_counters_resets_the_counters)
     gballoc_hl_reset_counters();
     umock_c_reset_all_calls();
 
-    GBALLOC_WIN32_LATENCY_BUCKETS malloc_latency_buckets;
-    GBALLOC_WIN32_LATENCY_BUCKETS calloc_latency_buckets;
-    GBALLOC_WIN32_LATENCY_BUCKETS realloc_latency_buckets;
-    GBALLOC_WIN32_LATENCY_BUCKETS free_latency_buckets;
+    GBALLOC_LATENCY_BUCKETS malloc_latency_buckets;
+    GBALLOC_LATENCY_BUCKETS calloc_latency_buckets;
+    GBALLOC_LATENCY_BUCKETS realloc_latency_buckets;
+    GBALLOC_LATENCY_BUCKETS free_latency_buckets;
 
     // act
     (void)gballoc_hl_get_malloc_latency_buckets(&malloc_latency_buckets);
@@ -942,7 +942,7 @@ TEST_FUNCTION(gballoc_hl_reset_counters_resets_the_counters)
     (void)gballoc_hl_get_realloc_latency_buckets(&realloc_latency_buckets);
     (void)gballoc_hl_get_free_latency_buckets(&free_latency_buckets);
 
-    for (i = 0; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (i = 0; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         ASSERT_ARE_EQUAL(uint32_t, 0, malloc_latency_buckets.buckets[i].count);
         ASSERT_ARE_EQUAL(uint32_t, 0, calloc_latency_buckets.buckets[i].count);
@@ -999,7 +999,7 @@ TEST_FUNCTION(gballoc_hl_get_malloc_latency_buckets_with_one_call_returns_the_co
     ptr = gballoc_hl_malloc(1);
     umock_c_reset_all_calls();
 
-    GBALLOC_WIN32_LATENCY_BUCKETS malloc_latency_buckets;
+    GBALLOC_LATENCY_BUCKETS malloc_latency_buckets;
 
     // act
     int result = gballoc_hl_get_malloc_latency_buckets(&malloc_latency_buckets);
@@ -1009,7 +1009,7 @@ TEST_FUNCTION(gballoc_hl_get_malloc_latency_buckets_with_one_call_returns_the_co
     ASSERT_ARE_EQUAL(uint32_t, 42, malloc_latency_buckets.buckets[0].latency_max);
     ASSERT_ARE_EQUAL(uint32_t, 42, malloc_latency_buckets.buckets[0].latency_avg);
 
-    for (size_t i = 1; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (size_t i = 1; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         ASSERT_ARE_EQUAL(uint32_t, 0, malloc_latency_buckets.buckets[i].count);
     }
@@ -1050,7 +1050,7 @@ TEST_FUNCTION(gballoc_hl_get_malloc_latency_buckets_with_2_calls_returns_the_ave
     ptr2 = gballoc_hl_malloc(1);
     umock_c_reset_all_calls();
 
-    GBALLOC_WIN32_LATENCY_BUCKETS malloc_latency_buckets;
+    GBALLOC_LATENCY_BUCKETS malloc_latency_buckets;
 
     // act
     int result = gballoc_hl_get_malloc_latency_buckets(&malloc_latency_buckets);
@@ -1060,7 +1060,7 @@ TEST_FUNCTION(gballoc_hl_get_malloc_latency_buckets_with_2_calls_returns_the_ave
     ASSERT_ARE_EQUAL(uint32_t, 42, malloc_latency_buckets.buckets[0].latency_max);
     ASSERT_ARE_EQUAL(uint32_t, 22, malloc_latency_buckets.buckets[0].latency_avg);
 
-    for (size_t i = 1; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (size_t i = 1; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         ASSERT_ARE_EQUAL(uint32_t, 0, malloc_latency_buckets.buckets[i].count);
     }
@@ -1088,7 +1088,7 @@ TEST_FUNCTION(gballoc_hl_get_malloc_latency_buckets_with_one_call_in_each_bucket
         .CaptureReturn(&heap_handle);
     (void)gballoc_hl_init(NULL, NULL);
 
-    for (size_t i = 0; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (size_t i = 0; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         umock_c_reset_all_calls();
         STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
@@ -1101,12 +1101,12 @@ TEST_FUNCTION(gballoc_hl_get_malloc_latency_buckets_with_one_call_in_each_bucket
     }
     umock_c_reset_all_calls();
 
-    GBALLOC_WIN32_LATENCY_BUCKETS malloc_latency_buckets;
+    GBALLOC_LATENCY_BUCKETS malloc_latency_buckets;
 
     // act
     int result = gballoc_hl_get_malloc_latency_buckets(&malloc_latency_buckets);
 
-    for (size_t i = 0; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (size_t i = 0; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         ASSERT_ARE_EQUAL(uint32_t, 1, malloc_latency_buckets.buckets[i].count);
         ASSERT_ARE_EQUAL(uint32_t, 42, malloc_latency_buckets.buckets[i].latency_min);
@@ -1167,7 +1167,7 @@ TEST_FUNCTION(gballoc_hl_get_calloc_latency_buckets_with_one_call_returns_the_co
     ptr = gballoc_hl_calloc(1, 1);
     umock_c_reset_all_calls();
 
-    GBALLOC_WIN32_LATENCY_BUCKETS calloc_latency_buckets;
+    GBALLOC_LATENCY_BUCKETS calloc_latency_buckets;
 
     // act
     int result = gballoc_hl_get_calloc_latency_buckets(&calloc_latency_buckets);
@@ -1177,7 +1177,7 @@ TEST_FUNCTION(gballoc_hl_get_calloc_latency_buckets_with_one_call_returns_the_co
     ASSERT_ARE_EQUAL(uint32_t, 42, calloc_latency_buckets.buckets[0].latency_max);
     ASSERT_ARE_EQUAL(uint32_t, 42, calloc_latency_buckets.buckets[0].latency_avg);
 
-    for (size_t i = 1; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (size_t i = 1; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         ASSERT_ARE_EQUAL(uint32_t, 0, calloc_latency_buckets.buckets[i].count);
     }
@@ -1218,7 +1218,7 @@ TEST_FUNCTION(gballoc_hl_get_calloc_latency_buckets_with_2_calls_returns_the_ave
     ptr2 = gballoc_hl_calloc(1, 1);
     umock_c_reset_all_calls();
 
-    GBALLOC_WIN32_LATENCY_BUCKETS calloc_latency_buckets;
+    GBALLOC_LATENCY_BUCKETS calloc_latency_buckets;
 
     // act
     int result = gballoc_hl_get_calloc_latency_buckets(&calloc_latency_buckets);
@@ -1228,7 +1228,7 @@ TEST_FUNCTION(gballoc_hl_get_calloc_latency_buckets_with_2_calls_returns_the_ave
     ASSERT_ARE_EQUAL(uint32_t, 42, calloc_latency_buckets.buckets[0].latency_max);
     ASSERT_ARE_EQUAL(uint32_t, 22, calloc_latency_buckets.buckets[0].latency_avg);
 
-    for (size_t i = 1; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (size_t i = 1; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         ASSERT_ARE_EQUAL(uint32_t, 0, calloc_latency_buckets.buckets[i].count);
     }
@@ -1256,7 +1256,7 @@ TEST_FUNCTION(gballoc_hl_get_calloc_latency_buckets_with_one_call_in_each_bucket
         .CaptureReturn(&heap_handle);
     (void)gballoc_hl_init(NULL, NULL);
 
-    for (size_t i = 0; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (size_t i = 0; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         umock_c_reset_all_calls();
         STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
@@ -1269,12 +1269,12 @@ TEST_FUNCTION(gballoc_hl_get_calloc_latency_buckets_with_one_call_in_each_bucket
     }
     umock_c_reset_all_calls();
 
-    GBALLOC_WIN32_LATENCY_BUCKETS calloc_latency_buckets;
+    GBALLOC_LATENCY_BUCKETS calloc_latency_buckets;
 
     // act
     int result = gballoc_hl_get_calloc_latency_buckets(&calloc_latency_buckets);
 
-    for (size_t i = 0; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (size_t i = 0; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         ASSERT_ARE_EQUAL(uint32_t, 1, calloc_latency_buckets.buckets[i].count);
         ASSERT_ARE_EQUAL(uint32_t, 42, calloc_latency_buckets.buckets[i].latency_min);
@@ -1335,7 +1335,7 @@ TEST_FUNCTION(gballoc_hl_get_realloc_latency_buckets_with_one_call_returns_the_c
     ptr = gballoc_hl_realloc(NULL, 1);
     umock_c_reset_all_calls();
 
-    GBALLOC_WIN32_LATENCY_BUCKETS realloc_latency_buckets;
+    GBALLOC_LATENCY_BUCKETS realloc_latency_buckets;
 
     // act
     int result = gballoc_hl_get_realloc_latency_buckets(&realloc_latency_buckets);
@@ -1345,7 +1345,7 @@ TEST_FUNCTION(gballoc_hl_get_realloc_latency_buckets_with_one_call_returns_the_c
     ASSERT_ARE_EQUAL(uint32_t, 42, realloc_latency_buckets.buckets[0].latency_max);
     ASSERT_ARE_EQUAL(uint32_t, 42, realloc_latency_buckets.buckets[0].latency_avg);
 
-    for (size_t i = 1; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (size_t i = 1; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         ASSERT_ARE_EQUAL(uint32_t, 0, realloc_latency_buckets.buckets[i].count);
     }
@@ -1386,7 +1386,7 @@ TEST_FUNCTION(gballoc_hl_get_realloc_latency_buckets_with_2_calls_returns_the_av
     ptr2 = gballoc_hl_realloc(NULL, 1);
     umock_c_reset_all_calls();
 
-    GBALLOC_WIN32_LATENCY_BUCKETS realloc_latency_buckets;
+    GBALLOC_LATENCY_BUCKETS realloc_latency_buckets;
 
     // act
     int result = gballoc_hl_get_realloc_latency_buckets(&realloc_latency_buckets);
@@ -1396,7 +1396,7 @@ TEST_FUNCTION(gballoc_hl_get_realloc_latency_buckets_with_2_calls_returns_the_av
     ASSERT_ARE_EQUAL(uint32_t, 42, realloc_latency_buckets.buckets[0].latency_max);
     ASSERT_ARE_EQUAL(uint32_t, 22, realloc_latency_buckets.buckets[0].latency_avg);
 
-    for (size_t i = 1; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (size_t i = 1; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         ASSERT_ARE_EQUAL(uint32_t, 0, realloc_latency_buckets.buckets[i].count);
     }
@@ -1424,7 +1424,7 @@ TEST_FUNCTION(gballoc_hl_get_realloc_latency_buckets_with_one_call_in_each_bucke
         .CaptureReturn(&heap_handle);
     (void)gballoc_hl_init(NULL, NULL);
 
-    for (size_t i = 0; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (size_t i = 0; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         umock_c_reset_all_calls();
         STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
@@ -1437,12 +1437,12 @@ TEST_FUNCTION(gballoc_hl_get_realloc_latency_buckets_with_one_call_in_each_bucke
     }
     umock_c_reset_all_calls();
 
-    GBALLOC_WIN32_LATENCY_BUCKETS realloc_latency_buckets;
+    GBALLOC_LATENCY_BUCKETS realloc_latency_buckets;
 
     // act
     int result = gballoc_hl_get_realloc_latency_buckets(&realloc_latency_buckets);
 
-    for (size_t i = 0; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (size_t i = 0; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         ASSERT_ARE_EQUAL(uint32_t, 1, realloc_latency_buckets.buckets[i].count);
         ASSERT_ARE_EQUAL(uint32_t, 42, realloc_latency_buckets.buckets[i].latency_min);
@@ -1506,7 +1506,7 @@ TEST_FUNCTION(gballoc_hl_get_free_latency_buckets_with_one_call_returns_the_corr
     gballoc_hl_free(ptr);
     umock_c_reset_all_calls();
 
-    GBALLOC_WIN32_LATENCY_BUCKETS free_latency_buckets;
+    GBALLOC_LATENCY_BUCKETS free_latency_buckets;
 
     // act
     int result = gballoc_hl_get_free_latency_buckets(&free_latency_buckets);
@@ -1516,7 +1516,7 @@ TEST_FUNCTION(gballoc_hl_get_free_latency_buckets_with_one_call_returns_the_corr
     ASSERT_ARE_EQUAL(uint32_t, 42, free_latency_buckets.buckets[0].latency_max);
     ASSERT_ARE_EQUAL(uint32_t, 42, free_latency_buckets.buckets[0].latency_avg);
 
-    for (size_t i = 1; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (size_t i = 1; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         ASSERT_ARE_EQUAL(uint32_t, 0, free_latency_buckets.buckets[i].count);
     }
@@ -1559,7 +1559,7 @@ TEST_FUNCTION(gballoc_hl_get_free_latency_buckets_with_2_calls_returns_the_avera
     gballoc_hl_free(ptr2);
     umock_c_reset_all_calls();
 
-    GBALLOC_WIN32_LATENCY_BUCKETS free_latency_buckets;
+    GBALLOC_LATENCY_BUCKETS free_latency_buckets;
 
     // act
     int result = gballoc_hl_get_free_latency_buckets(&free_latency_buckets);
@@ -1569,7 +1569,7 @@ TEST_FUNCTION(gballoc_hl_get_free_latency_buckets_with_2_calls_returns_the_avera
     ASSERT_ARE_EQUAL(uint32_t, 42, free_latency_buckets.buckets[0].latency_max);
     ASSERT_ARE_EQUAL(uint32_t, 22, free_latency_buckets.buckets[0].latency_avg);
 
-    for (size_t i = 1; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (size_t i = 1; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         ASSERT_ARE_EQUAL(uint32_t, 0, free_latency_buckets.buckets[i].count);
     }
@@ -1593,7 +1593,7 @@ TEST_FUNCTION(gballoc_hl_get_free_latency_buckets_with_one_call_in_each_bucket_r
         .CaptureReturn(&heap_handle);
     (void)gballoc_hl_init(NULL, NULL);
 
-    for (size_t i = 0; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (size_t i = 0; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         ptr = gballoc_hl_malloc(((size_t)1 << (9 + i)) - 1);
         umock_c_reset_all_calls();
@@ -1607,12 +1607,12 @@ TEST_FUNCTION(gballoc_hl_get_free_latency_buckets_with_one_call_in_each_bucket_r
     }
     umock_c_reset_all_calls();
 
-    GBALLOC_WIN32_LATENCY_BUCKETS free_latency_buckets;
+    GBALLOC_LATENCY_BUCKETS free_latency_buckets;
 
     // act
     int result = gballoc_hl_get_free_latency_buckets(&free_latency_buckets);
 
-    for (size_t i = 0; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (size_t i = 0; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         ASSERT_ARE_EQUAL(uint32_t, 1, free_latency_buckets.buckets[i].count);
         ASSERT_ARE_EQUAL(uint32_t, 42, free_latency_buckets.buckets[i].latency_min);
@@ -1628,18 +1628,18 @@ TEST_FUNCTION(gballoc_hl_get_free_latency_buckets_with_one_call_in_each_bucket_r
     gballoc_hl_deinit();
 }
 
-/* Tests_SRS_GBALLOC_HL_METRICS_01_037: [ gballoc_win32_heap_get_latency_bucket_metadata shall return an array of size GBALLOC_WIN32_LATENCY_BUCKET_COUNT that contains the metadata for each latency bucket. ]*/
+/* Tests_SRS_GBALLOC_HL_METRICS_01_037: [ gballoc_hl_get_latency_bucket_metadata shall return an array of size GBALLOC_LATENCY_BUCKET_COUNT that contains the metadata for each latency bucket. ]*/
 /* Tests_SRS_GBALLOC_HL_METRICS_01_038: [ The first latency bucket shall be [0-511]. ]*/
 /* Tests_SRS_GBALLOC_HL_METRICS_01_039: [ Each consecutive bucket shall be [1 << n, (1 << (n + 1)) - 1], where n starts at 8. ]*/
-TEST_FUNCTION(gballoc_win32_heap_get_latency_bucket_metadata_returns_the_array_with_the_latency_buckets_metadata)
+TEST_FUNCTION(gballoc_hl_get_latency_bucket_metadata_returns_the_array_with_the_latency_buckets_metadata)
 {
     // arrange
 
     // act
-    const GBALLOC_WIN32_LATENCY_BUCKET_METADATA* latency_buckets_metadata = gballoc_win32_heap_get_latency_bucket_metadata();
+    const GBALLOC_LATENCY_BUCKET_METADATA* latency_buckets_metadata = gballoc_hl_get_latency_bucket_metadata();
 
     // assert
-    for (size_t i = 0; i < GBALLOC_WIN32_LATENCY_BUCKET_COUNT; i++)
+    for (size_t i = 0; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         ASSERT_IS_NOT_NULL(latency_buckets_metadata[i].bucket_name);
         if (i == 0)

@@ -1,9 +1,9 @@
-`gballoc_win32_heap` requirements
+`gballoc_hl_metrics` requirements
 ================
 
 ## Overview
 
-`gballoc_win32_heap` is a module that directs the malloc/free family of functions to a custom Win32 heap.
+`gballoc_hl_metrics` is a module that computes metrics for calls with destination `gballoc_ll`.
 
 ## Exposed API
 
