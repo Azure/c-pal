@@ -39,12 +39,12 @@ TEST_FUNCTION_INITIALIZE(method_init)
         ASSERT_FAIL("Could not acquire test serialization mutex.");
     }
 
-    gballoc_win32_heap_init();
+    gballoc_hl_init(NULL, NULL);
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
 {
-    gballoc_win32_heap_deinit();
+    gballoc_hl_deinit();
 
     TEST_MUTEX_RELEASE(test_serialize_mutex);
 }
@@ -74,7 +74,7 @@ TEST_FUNCTION(alloc_performance)
     LogInfo("%" PRIu32 " allocations done in %.02f ms", ALLOC_COUNT, (end_time - start_time));
 
     GBALLOC_WIN32_LATENCY_BUCKETS latency_buckets;
-    gballoc_win32_heap_get_malloc_latency_buckets(&latency_buckets);
+    gballoc_hl_get_malloc_latency_buckets(&latency_buckets);
 
     const GBALLOC_WIN32_LATENCY_BUCKET_METADATA* latency_buckets_metadata = gballoc_win32_heap_get_latency_bucket_metadata();
 
@@ -122,7 +122,7 @@ TEST_FUNCTION(free_performance)
     LogInfo("%" PRIu32 " frees done in %.02f ms", ALLOC_COUNT, (end_time - start_time));
 
     GBALLOC_WIN32_LATENCY_BUCKETS latency_buckets;
-    gballoc_win32_heap_get_free_latency_buckets(&latency_buckets);
+    gballoc_hl_get_free_latency_buckets(&latency_buckets);
 
     const GBALLOC_WIN32_LATENCY_BUCKET_METADATA* latency_buckets_metadata = gballoc_win32_heap_get_latency_bucket_metadata();
 

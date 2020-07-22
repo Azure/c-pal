@@ -40,22 +40,22 @@ extern "C" {
         GBALLOC_WIN32_LATENCY_BUCKET buckets[GBALLOC_WIN32_LATENCY_BUCKET_COUNT];
     } GBALLOC_WIN32_LATENCY_BUCKETS;
 
-    MOCKABLE_FUNCTION(, int, gballoc_win32_heap_init);
-    MOCKABLE_FUNCTION(, void, gballoc_win32_heap_deinit);
+    MOCKABLE_FUNCTION(, int, gballoc_hl_init, void*, hl_params, void*, ll_params);
+    MOCKABLE_FUNCTION(, void, gballoc_hl_deinit);
 
-    MOCKABLE_FUNCTION(, void, gballoc_win32_heap_reset_counters);
+    MOCKABLE_FUNCTION(, void, gballoc_hl_reset_counters);
 
-    MOCKABLE_FUNCTION(, int, gballoc_win32_heap_get_malloc_latency_buckets, GBALLOC_WIN32_LATENCY_BUCKETS*, latency_buckets_out);
-    MOCKABLE_FUNCTION(, int, gballoc_win32_heap_get_realloc_latency_buckets, GBALLOC_WIN32_LATENCY_BUCKETS*, latency_buckets_out);
-    MOCKABLE_FUNCTION(, int, gballoc_win32_heap_get_calloc_latency_buckets, GBALLOC_WIN32_LATENCY_BUCKETS*, latency_buckets_out);
-    MOCKABLE_FUNCTION(, int, gballoc_win32_heap_get_free_latency_buckets, GBALLOC_WIN32_LATENCY_BUCKETS*, latency_buckets_out);
+    MOCKABLE_FUNCTION(, int, gballoc_hl_get_malloc_latency_buckets, GBALLOC_WIN32_LATENCY_BUCKETS*, latency_buckets_out);
+    MOCKABLE_FUNCTION(, int, gballoc_hl_get_realloc_latency_buckets, GBALLOC_WIN32_LATENCY_BUCKETS*, latency_buckets_out);
+    MOCKABLE_FUNCTION(, int, gballoc_hl_get_calloc_latency_buckets, GBALLOC_WIN32_LATENCY_BUCKETS*, latency_buckets_out);
+    MOCKABLE_FUNCTION(, int, gballoc_hl_get_free_latency_buckets, GBALLOC_WIN32_LATENCY_BUCKETS*, latency_buckets_out);
 
     MOCKABLE_FUNCTION(, const GBALLOC_WIN32_LATENCY_BUCKET_METADATA*, gballoc_win32_heap_get_latency_bucket_metadata);
 
-    MOCKABLE_FUNCTION(, void*, gballoc_malloc, size_t, size);
-    MOCKABLE_FUNCTION(, void*, gballoc_calloc, size_t, nmemb, size_t, size);
-    MOCKABLE_FUNCTION(, void*, gballoc_realloc, void*, ptr, size_t, size);
-    MOCKABLE_FUNCTION(, void, gballoc_free, void*, ptr);
+    MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_hl_calloc, size_t, nmemb, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc, void*, ptr, size_t, size);
+    MOCKABLE_FUNCTION(, void, gballoc_hl_free, void*, ptr);
 
 #ifdef __cplusplus
 }

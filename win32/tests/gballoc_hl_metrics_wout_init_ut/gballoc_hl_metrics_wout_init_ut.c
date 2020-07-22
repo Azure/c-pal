@@ -92,15 +92,15 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
     TEST_MUTEX_RELEASE(test_serialize_mutex);
 }
 
-/* gballoc_win32_heap_deinit */
+/* gballoc_hl_deinit */
 
-/* Tests_SRS_GBALLOC_WIN32_HEAP_01_005: [ If gballoc_win32_heap_deinit is called while not initialized, gballoc_win32_heap_deinit shall return. ]*/
-TEST_FUNCTION(gballoc_win32_heap_deinit_when_not_initialized_returns)
+/* Tests_SRS_GBALLOC_HL_METRICS_01_005: [ If gballoc_hl_deinit is called while not initialized, gballoc_hl_deinit shall return. ]*/
+TEST_FUNCTION(gballoc_hl_deinit_when_not_initialized_returns)
 {
     // arrange
 
     // act
-    gballoc_win32_heap_deinit();
+    gballoc_hl_deinit();
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -108,14 +108,14 @@ TEST_FUNCTION(gballoc_win32_heap_deinit_when_not_initialized_returns)
 
 /* gballoc_malloc */
 
-/* Tests_SRS_GBALLOC_WIN32_HEAP_01_008: [ If the module was not initialized, gballoc_malloc shall return NULL. ]*/
+/* Tests_SRS_GBALLOC_HL_METRICS_01_008: [ If the module was not initialized, gballoc_malloc shall return NULL. ]*/
 TEST_FUNCTION(gballoc_malloc_when_not_initialized_returns_NULL)
 {
     // arrange
     void* result;
 
     // act
-    result = gballoc_malloc(1);
+    result = gballoc_hl_malloc(1);
 
     // assert
     ASSERT_IS_NULL(result);
@@ -124,14 +124,14 @@ TEST_FUNCTION(gballoc_malloc_when_not_initialized_returns_NULL)
 
 /* gballoc_calloc */
 
-/* Tests_SRS_GBALLOC_WIN32_HEAP_01_011: [ If the module was not initialized, gballoc_calloc shall return NULL. ]*/
+/* Tests_SRS_GBALLOC_HL_METRICS_01_011: [ If the module was not initialized, gballoc_calloc shall return NULL. ]*/
 TEST_FUNCTION(gballoc_calloc_when_not_initialized_fails)
 {
     // arrange
     void* result;
 
     // act
-    result = gballoc_calloc(1, 1);
+    result = gballoc_hl_calloc(1, 1);
 
     // assert
     ASSERT_IS_NULL(result);
@@ -140,20 +140,20 @@ TEST_FUNCTION(gballoc_calloc_when_not_initialized_fails)
 
 /* gballoc_realloc */
 
-/* Tests_SRS_GBALLOC_WIN32_HEAP_01_015: [ If the module was not initialized, gballoc_realloc shall return NULL. ]*/
+/* Tests_SRS_GBALLOC_HL_METRICS_01_015: [ If the module was not initialized, gballoc_realloc shall return NULL. ]*/
 TEST_FUNCTION(gballoc_realloc_when_not_initialized_fails)
 {
     // arrange
     void* result;
     void* ptr;
-    (void)gballoc_win32_heap_init();
-    ptr = gballoc_malloc(42);
-    gballoc_free(ptr);
-    gballoc_win32_heap_deinit();
+    (void)gballoc_hl_init(NULL, NULL);
+    ptr = gballoc_hl_malloc(42);
+    gballoc_hl_free(ptr);
+    gballoc_hl_deinit();
     umock_c_reset_all_calls();
 
     // act
-    result = gballoc_realloc(ptr, 1);
+    result = gballoc_hl_realloc(ptr, 1);
 
     // assert
     ASSERT_IS_NULL(result);
@@ -162,7 +162,7 @@ TEST_FUNCTION(gballoc_realloc_when_not_initialized_fails)
 
 /* gballoc_free */
 
-/* Tests_SRS_GBALLOC_WIN32_HEAP_01_016: [ If the module was not initialized, gballoc_free shall return. ]*/
+/* Tests_SRS_GBALLOC_HL_METRICS_01_016: [ If the module was not initialized, gballoc_free shall return. ]*/
 TEST_FUNCTION(gballoc_free_when_not_initialized_returns)
 {
     // arrange
@@ -170,15 +170,15 @@ TEST_FUNCTION(gballoc_free_when_not_initialized_returns)
     void* ptr;
     STRICT_EXPECTED_CALL(mock_HeapCreate(0, 0, 0))
         .CaptureReturn(&heap_handle);
-    (void)gballoc_win32_heap_init();
-    ptr = gballoc_calloc(3, 4);
-    ptr = gballoc_realloc(ptr, 1);
-    gballoc_free(ptr);
-    gballoc_win32_heap_deinit();
+    (void)gballoc_hl_init(NULL, NULL);
+    ptr = gballoc_hl_calloc(3, 4);
+    ptr = gballoc_hl_realloc(ptr, 1);
+    gballoc_hl_free(ptr);
+    gballoc_hl_deinit();
     umock_c_reset_all_calls();
 
     // act
-    gballoc_free(ptr);
+    gballoc_hl_free(ptr);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
