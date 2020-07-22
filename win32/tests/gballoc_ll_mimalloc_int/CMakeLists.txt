@@ -16,4 +16,4 @@ set(${theseTestsName}_c_files
 set(${theseTestsName}_h_files
 )
 
-build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS mimalloc-obj) 
+build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS mimalloc-obj pal_interfaces) 

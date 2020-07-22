@@ -25,8 +25,8 @@ set(${theseTestsName}_h_files
 )
 
 if(${GBALOC_LL_IMPL} STREQUAL "MIMALLOC")
-    build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS mimalloc-obj)
+    build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS pal_interfaces mimalloc-obj)
 else()
-    build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/common")
+    build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS pal_interfaces)
 endif()
 
