@@ -1,32 +1,64 @@
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#ifndef GBALLOC_HL_H
-#define GBALLOC_HL_H
+#ifndef GBALLOC_WIN32_HEAP_H
+#define GBALLOC_WIN32_HEAP_H
 
 #ifdef __cplusplus
 #include <cstddef>
+#include <cstdint>
 #else
 #include <stddef.h>
+#include <stdint.h>
 #endif
 
+#include "windows.h"
 #include "umock_c/umock_c_prod.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-    MOCKABLE_FUNCTION(, int, gballoc_hl_init, void*, gballoc_hl_init_params, void*, gballoc_ll_init_params);
-    MOCKABLE_FUNCTION(, void, gballoc_hl_deinit);
+    #define GBALLOC_WIN32_LATENCY_BUCKET_COUNT 24
 
-    MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc, size_t, size);
-    MOCKABLE_FUNCTION(, void, gballoc_hl_free, void*, ptr);
-    MOCKABLE_FUNCTION(, void*, gballoc_hl_calloc, size_t, nmemb, size_t, size);
-    MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc, void*, ptr, size_t, size);
+    typedef struct GBALLOC_WIN32_LATENCY_BUCKET_METADATA_TAG
+    {
+        const char* bucket_name;
+        uint32_t size_range_low;
+        uint32_t size_range_high;
+    } GBALLOC_WIN32_LATENCY_BUCKET_METADATA;
+
+    typedef struct GBALLOC_WIN32_LATENCY_BUCKET_TAG
+    {
+        double latency_avg;
+        uint32_t latency_min;
+        uint32_t latency_max;
+        uint32_t count;
+    } GBALLOC_WIN32_LATENCY_BUCKET;
+
+    typedef struct GBALLOC_WIN32_LATENCY_BUCKETS_TAG
+    {
+        GBALLOC_WIN32_LATENCY_BUCKET buckets[GBALLOC_WIN32_LATENCY_BUCKET_COUNT];
+    } GBALLOC_WIN32_LATENCY_BUCKETS;
+
+    MOCKABLE_FUNCTION(, int, gballoc_win32_heap_init);
+    MOCKABLE_FUNCTION(, void, gballoc_win32_heap_deinit);
+
+    MOCKABLE_FUNCTION(, void, gballoc_win32_heap_reset_counters);
+
+    MOCKABLE_FUNCTION(, int, gballoc_win32_heap_get_malloc_latency_buckets, GBALLOC_WIN32_LATENCY_BUCKETS*, latency_buckets_out);
+    MOCKABLE_FUNCTION(, int, gballoc_win32_heap_get_realloc_latency_buckets, GBALLOC_WIN32_LATENCY_BUCKETS*, latency_buckets_out);
+    MOCKABLE_FUNCTION(, int, gballoc_win32_heap_get_calloc_latency_buckets, GBALLOC_WIN32_LATENCY_BUCKETS*, latency_buckets_out);
+    MOCKABLE_FUNCTION(, int, gballoc_win32_heap_get_free_latency_buckets, GBALLOC_WIN32_LATENCY_BUCKETS*, latency_buckets_out);
+
+    MOCKABLE_FUNCTION(, const GBALLOC_WIN32_LATENCY_BUCKET_METADATA*, gballoc_win32_heap_get_latency_bucket_metadata);
+
+    MOCKABLE_FUNCTION(, void*, gballoc_malloc, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_calloc, size_t, nmemb, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_realloc, void*, ptr, size_t, size);
+    MOCKABLE_FUNCTION(, void, gballoc_free, void*, ptr);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* GBALLOC_HL_H */
+#endif // GBALLOC_WIN32_HEAP_H

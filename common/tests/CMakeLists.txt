@@ -11,6 +11,9 @@ if(${run_unittests})
     add_subdirectory(gballoc_ut)
     add_subdirectory(gballoc_without_init_ut)
     add_subdirectory(refcount_ut)
+    add_subdirectory(gballoc_hl_metrics_ut)
+    add_subdirectory(gballoc_hl_metrics_wout_init_ut)
+    
     if(
         (${PAL_OS} STREQUAL "pal_win32") AND
         (${ARCHITECTURE} STREQUAL "x86_64")
@@ -41,3 +44,5 @@ if(${run_int_tests})
         
     endif()
 endif()
+
+add_subdirectory(gballoc_hl_perf)
