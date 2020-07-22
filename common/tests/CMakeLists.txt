@@ -35,9 +35,8 @@ if(${run_int_tests})
         #this builds and runs the same test for gballoc_hl but with all the implementations of the underlying gballoc_ll.
         #this scripts sets a variable (GBALOC_LL_IMPL) that is picked as underlying implementatio of gballoc_ll and consequentially as file name (gballoc_ll_${GBALOC_LL_IMPL})
         foreach(GBALOC_LL_IMPL ${GBALLOC_LL_TYPE_VALUES})
-        #set(GBALOC_LL_IMPL "PASSTHROUGH")
             STRING(TOLOWER ${GBALOC_LL_IMPL} gballoc_ll_impl_lower)
-            build_test_folder(gballoc_hl_passthrough_int BINARY_DIR _${gballoc_ll_impl_lower})
+            build_test_folder(gballoc_hl_passthrough_int BINARY_DIR ${gballoc_ll_impl_lower})
         endforeach()
         
     endif()

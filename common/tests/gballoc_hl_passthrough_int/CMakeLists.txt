@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 2.8.11)
 
 set(theseTestsNameBase gballoc_hl_passthrough_int) 
 
-set(theseTestsName ${theseTestsNameBase}${BINARY_DIR})
+set(theseTestsName ${theseTestsNameBase}_${BINARY_DIR})
 
 set(${theseTestsName}_test_files
     ${theseTestsNameBase}.c
