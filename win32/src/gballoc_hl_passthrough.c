@@ -146,3 +146,4 @@ const GBALLOC_LATENCY_BUCKET_METADATA* gballoc_hl_get_latency_bucket_metadata(vo
 {
     return latency_buckets_metadata;
 }
+ 
