@@ -15,6 +15,7 @@ if(${run_unittests})
     add_subdirectory(srw_lock_win32_ut)
     add_subdirectory(reals_win32_ut)
     add_subdirectory(sync_win32_ut)
+    add_subdirectory(file_win32_ut)
 endif()
 
 if(${run_int_tests})

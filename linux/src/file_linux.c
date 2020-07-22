@@ -13,7 +13,7 @@ typedef struct FILE_HANDLE_DATA_TAG
 typedef struct FILE_LINUX_WRITE_TAG
 {
     FILE_HANDLE handle;
-    FILE_WRITE_CB user_callback;
+    FILE_CB user_callback;
     void* user_context;
     const unsigned char* source;
     uint32_t size;
@@ -22,7 +22,7 @@ typedef struct FILE_LINUX_WRITE_TAG
 typedef struct FILE_LINUX_READ_TAG
 {
     FILE_HANDLE handle;
-    FILE_READ_CB user_callback;
+    FILE_CB user_callback;
     void* user_context;
     unsigned char* destination;
     uint32_t size;

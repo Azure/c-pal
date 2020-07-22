@@ -258,7 +258,7 @@ void async_socket_destroy(ASYNC_SOCKET_HANDLE async_socket)
     }
     else
     {
-        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_093: [ While async_socket is OPENING or CLOSING, async_socket_destroy shall wait for the open to complete either succesfully or with error. ]*/
+        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_093: [ While async_socket is OPENING or CLOSING, async_socket_destroy shall wait for the open to complete either successfully or with error. ]*/
         do
         {
             LONG current_state = InterlockedCompareExchange(&async_socket->state, (LONG)ASYNC_SOCKET_WIN32_STATE_CLOSING, (LONG)ASYNC_SOCKET_WIN32_STATE_OPEN);
