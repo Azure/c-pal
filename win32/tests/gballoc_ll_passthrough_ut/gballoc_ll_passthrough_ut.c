@@ -27,6 +27,8 @@ extern "C" {
     MOCKABLE_FUNCTION(, void*, mock_calloc, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, mock_realloc, void*, ptr, size_t, size);
     MOCKABLE_FUNCTION(, void, mock_free, void*, ptr);
+
+    MOCKABLE_FUNCTION(, size_t, mock__msize, void*, ptr);
 #ifdef __cplusplus
 }
 #endif
@@ -192,6 +194,22 @@ TEST_FUNCTION(gballoc_ll_realloc_calls_realloc)
 
     ///clean
     gballoc_ll_free(ptr);
+}
+
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_007: [ gballoc_ll_size shall return what _msize returns. ]*/
+TEST_FUNCTION(gballoc_ll_size_returns)
+{
+    ///arrange
+    size_t size;
+
+    STRICT_EXPECTED_CALL(mock__msize(TEST_MALLOC_RESULT))
+        .SetReturn(32);
+
+    ///act
+    size = gballoc_ll_size(TEST_MALLOC_RESULT);
+
+    ///assert
+    ASSERT_ARE_EQUAL(size_t, 32, size);
 }
 
 END_TEST_SUITE(gballoc_ll_passthrough_ut)

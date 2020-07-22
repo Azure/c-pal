@@ -5,5 +5,6 @@
 #define mi_free mock_mi_free
 #define mi_calloc mock_mi_calloc
 #define mi_realloc mock_mi_realloc
+#define mi_usable_size mock_mi_usable_size
 
 #include "../../src/gballoc_ll_mimalloc.c"

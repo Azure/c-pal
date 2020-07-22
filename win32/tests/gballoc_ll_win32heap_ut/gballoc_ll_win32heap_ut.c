@@ -29,8 +29,9 @@ extern "C" {
     MOCKABLE_FUNCTION(, void*, mock_HeapCreate, DWORD, flOptions, SIZE_T, dwInitialSize, SIZE_T, dwMaximumSize);
     MOCKABLE_FUNCTION(, void*, mock_HeapDestroy, HANDLE, hHeap);
     MOCKABLE_FUNCTION(, void*, mock_HeapAlloc, HANDLE, hHeap, DWORD, dwFlags, SIZE_T, dwBytes);
-    MOCKABLE_FUNCTION(, void*, mock_HeapFree, HANDLE, hHeap, DWORD, dwFlags, LPVOID, lpMem);
+    MOCKABLE_FUNCTION(, void, mock_HeapFree, HANDLE, hHeap, DWORD, dwFlags, LPVOID, lpMem);
     MOCKABLE_FUNCTION(, void*, mock_HeapReAlloc, HANDLE, hHeap, DWORD, dwFlags, LPVOID, lpMem, SIZE_T, dwBytes);
+    MOCKABLE_FUNCTION(, size_t, mock_HeapSize, HANDLE, hHeap, DWORD, dwFlags, LPVOID, lpMem);
 #ifdef __cplusplus
 }
 #endif
@@ -336,6 +337,50 @@ TEST_FUNCTION(gballoc_ll_realloc_with_ptr_non_NULL)
 
     ///assert
     ASSERT_ARE_EQUAL(void_ptr, TEST_REALLOC_RESULT, ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_ll_deinit();
+}
+
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_017: [ gballoc_ll_size shall call HeapSize and return what HeapSize returns. ]*/
+TEST_FUNCTION(gballoc_ll_size_returns_what_HeapSize_returned)
+{
+    ///arrange
+    int result = gballoc_ll_init(NULL);
+    ASSERT_ARE_EQUAL(int, 0, result);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(mock_HeapSize(TEST_HEAP, 0, TEST_MALLOC_RESULT))
+        .SetReturn(1);
+
+    ///act
+    size_t size = gballoc_ll_size(TEST_MALLOC_RESULT);
+
+    ///assert
+    ASSERT_ARE_EQUAL(size_t, 1, size);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_ll_deinit();
+}
+
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_017: [ gballoc_ll_size shall call HeapSize and return what HeapSize returns. ]*/
+TEST_FUNCTION(gballoc_ll_size_returns_what_HeapSize_returned_when_it_fails)
+{
+    ///arrange
+    int result = gballoc_ll_init(NULL);
+    ASSERT_ARE_EQUAL(int, 0, result);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(mock_HeapSize(TEST_HEAP, 0, TEST_MALLOC_RESULT))
+        .SetReturn((SIZE_T)(-1));
+
+    ///act
+    size_t size = gballoc_ll_size(TEST_MALLOC_RESULT);
+
+    ///assert
+    ASSERT_ARE_EQUAL(size_t, (size_t)(-1), size);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean

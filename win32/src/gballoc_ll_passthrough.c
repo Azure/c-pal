@@ -67,3 +67,13 @@ void* gballoc_ll_realloc(void* ptr, size_t size)
 
     return result;
 }
+
+size_t gballoc_ll_size(void* ptr)
+{
+    size_t result;
+
+    /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_007: [ gballoc_ll_size shall return what _msize returns. ]*/
+    result = _msize(ptr);
+
+    return result;
+}

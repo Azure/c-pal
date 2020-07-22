@@ -19,6 +19,8 @@ gballoc_ll_win32heap is a module that delegates all call of its APIs to the ones
     MOCKABLE_FUNCTION(, void, gballoc_ll_free, void*, ptr);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_calloc, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc, void*, ptr, size_t, size);
+
+    MOCKABLE_FUNCTION(, size_t, gballoc_ll_size, void*, ptr);
 ```
 
 ### gballoc_ll_init
@@ -98,6 +100,14 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc, void*, ptr, size_t, size);
 
 **SRS_GBALLOC_LL_WIN32HEAP_02_015: [** If `ptr` is not `NULL` then `gballoc_ll_realloc` shall call `HeapReAlloc` and return what `HeapReAlloc` returns. **]**
 
+### gballoc_ll_size
+```c
+MOCKABLE_FUNCTION(, size_t, gballoc_ll_size, void*, ptr);
+```
+
+`gballoc_ll_size` returns `ptr`'s size.
+
+**SRS_GBALLOC_LL_WIN32HEAP_02_017: [** `gballoc_ll_size` shall call `HeapSize` and return what `HeapSize` returns.  **]**
 
 
 

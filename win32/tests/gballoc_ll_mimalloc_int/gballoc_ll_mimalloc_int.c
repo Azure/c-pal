@@ -140,4 +140,22 @@ TEST_FUNCTION(gballoc_ll_calloc_works)
     gballoc_ll_free(ptr);
 }
 
+TEST_FUNCTION(gballoc_ll_size_works)
+{
+    /// arrange
+    void* ptr = gballoc_ll_malloc(1);
+    ASSERT_IS_NOT_NULL(ptr);
+
+    size_t size;
+
+    ///act
+    size = gballoc_ll_size(ptr);
+
+    ///assert
+    ASSERT_ARE_EQUAL(size_t, 1, size);
+
+    ///clean
+    gballoc_ll_free(ptr);
+
+}
 END_TEST_SUITE(gballoc_ll_mimalloc_int)

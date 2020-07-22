@@ -151,3 +151,18 @@ void* gballoc_ll_realloc(void* ptr, size_t size)
     }
     return result;
 }
+
+size_t gballoc_ll_size(void* ptr)
+{
+    size_t result;
+    
+    /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_017: [ gballoc_ll_size shall call HeapSize and return what HeapSize returns. ]*/
+    result = HeapSize(the_heap, 0, ptr);
+
+    if (result == (size_t)(-1))
+    {
+        LogError("failure in HeapSize(the_heap=%p, 0, ptr=%p);", the_heap,  ptr);
+    }
+
+    return result;
+}

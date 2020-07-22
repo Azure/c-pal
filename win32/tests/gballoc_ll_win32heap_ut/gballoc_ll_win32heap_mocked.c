@@ -6,5 +6,6 @@
 #define HeapAlloc mock_HeapAlloc
 #define HeapFree mock_HeapFree
 #define HeapReAlloc mock_HeapReAlloc
+#define HeapSize mock_HeapSize
 
 #include "../../src/gballoc_ll_win32heap.c"

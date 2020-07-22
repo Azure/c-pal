@@ -19,6 +19,9 @@ gballoc_ll_mimalloc is a module that delegates all call of its APIs to the ones 
     MOCKABLE_FUNCTION(, void, gballoc_ll_free, void*, ptr);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_calloc, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc, void*, ptr, size_t, size);
+
+    MOCKABLE_FUNCTION(, size_t, gballoc_ll_size, void*, ptr);
+
 ```
 
 ### gballoc_ll_init
@@ -79,8 +82,14 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc, void*, ptr, size_t, size);
 
 **SRS_GBALLOC_LL_MIMALLOC_02_006: [** `gballoc_ll_realloc` calls `mi_realloc(ptr, size)` and returns what `mi_realloc` returned. **]**
 
+### gballoc_ll_size
+```c
+MOCKABLE_FUNCTION(, size_t, gballoc_ll_size, void*, ptr);
+```
 
+`gballoc_ll_size` returns the size of the memory block at `ptr`.
 
+**SRS_GBALLOC_LL_MIMALLOC_02_007: [** `gballoc_ll_size` shall call `mi_usable_size` and return what `mi_usable_size` returned. **]**
 
 
 

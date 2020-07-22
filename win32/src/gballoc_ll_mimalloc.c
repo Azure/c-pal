@@ -64,3 +64,13 @@ void* gballoc_ll_realloc(void* ptr, size_t size)
 
     return result;
 }
+
+size_t gballoc_ll_size(void* ptr)
+{
+    size_t result;
+
+    result = mi_usable_size(ptr);
+
+    return result;
+}
+
