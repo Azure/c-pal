@@ -21,7 +21,7 @@
 #include "azure_c_pal/timer.h"
 #undef ENABLE_MOCKS
 
-#include "gballoc_win32_heap.h"
+#include "azure_c_pal/gballoc_hl.h"
 
 #if defined(_MSC_VER)
 #pragma warning(disable : 4189)

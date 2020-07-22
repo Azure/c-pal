@@ -8,12 +8,14 @@
 #include <inttypes.h>
 #endif
 
-#include "azure_c_pal/timer.h"
+
 #include "azure_c_logging/xlogging.h"
 #include "azure_c_pal/gballoc.h"
 #include "testrunnerswitcher.h"
 
-#include "gballoc_win32_heap.h"
+#include "azure_c_pal/timer.h"
+
+#include "azure_c_pal/gballoc_hl.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 

@@ -120,12 +120,12 @@ set(run_perf_tests ${original_run_perf_tests})
 
 add_subdirectory(interfaces)
 add_subdirectory(common)
+
 if(WIN32)
     add_subdirectory(win32)
 else()
     add_subdirectory(linux)
 endif()
-
 
 add_library(azure_c_pal INTERFACE)
 

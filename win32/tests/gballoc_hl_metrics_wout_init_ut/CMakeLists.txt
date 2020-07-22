@@ -3,21 +3,21 @@
 cmake_minimum_required(VERSION 2.8.11)
 
 compileAsC11()
-set(theseTestsName gballoc_win32_heap_wout_init_ut)
+set(theseTestsName gballoc_hl_metrics_wout_init_ut)
 
 set(${theseTestsName}_test_files
 ${theseTestsName}.c
 )
 
 set(${theseTestsName}_c_files
-./gballoc_win32_heap_mocked.c
+./gballoc_hl_metrics_mocked.c
 )
 
 set(${theseTestsName}_h_files
-../../inc/gballoc_win32_heap.h
+
 )
 
-build_test_artifacts(${theseTestsName} ON "tests/custom_heap" ADDITIONAL_LIBS azure_c_util)
+build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS pal_interfaces)
 
 if("${building}" STREQUAL "exe")
     set_target_properties(${theseTestsName}_exe PROPERTIES LINK_FLAGS "/ignore:4217")
