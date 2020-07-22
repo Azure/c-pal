@@ -44,6 +44,14 @@ if(${run_int_tests})
         STRING(TOLOWER ${GBALOC_LL_IMPL} gballoc_ll_impl_lower)
         build_test_folder(gballoc_hl_passthrough_int BINARY_DIR ${gballoc_ll_impl_lower})
     endforeach()
+    
+    foreach(GBALOC_HL_IMPL ${GBALLOC_HL_TYPE_VALUES})
+        STRING(TOLOWER ${GBALOC_HL_IMPL} gballoc_hl_impl_lower)
+        foreach(GBALOC_LL_IMPL ${GBALLOC_LL_TYPE_VALUES})
+            STRING(TOLOWER ${GBALOC_LL_IMPL} gballoc_ll_impl_lower)
+            build_test_folder(gballoc_hl_int BINARY_DIR ${gballoc_hl_impl_lower}_${gballoc_ll_impl_lower})
+        endforeach()
+    endforeach()
         
 endif()
 
