@@ -90,10 +90,10 @@ endif()
 
 if (
     (NOT TARGET mimalloc) AND 
-    (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/mimalloc/CMakeLists.txt) AND
-    (${ARCHITECTURE} STREQUAL "x86_64")
+    (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/mimalloc/CMakeLists.txt)
     )
-        set(MI_BUILD_TESTS OFF)
+        set(MI_BUILD_SHARED OFF CACHE BOOL "Build shared library" FORCE) #not building a dll allows building on 32 bit, otherwise there's some errors on init.c about not finding a imported symbol
+        set(MI_BUILD_TESTS OFF CACHE BOOL "Build test executables" FORCE) 
         #for mimalloc disable this warning: Warning C4459: declaration of 'os_page_size' hides global declaration
         #for mimalloc disable this warning: Warning C4100: 'try_alignment': unreferenced formal parameter
         #for mimalloc disable this warning: warning C4505: 'mi_os_get_aligned_hint': unreferenced local function has been removed
@@ -120,12 +120,12 @@ set(run_perf_tests ${original_run_perf_tests})
 
 add_subdirectory(interfaces)
 add_subdirectory(common)
+
 if(WIN32)
     add_subdirectory(win32)
 else()
     add_subdirectory(linux)
 endif()
-
 
 add_library(azure_c_pal INTERFACE)
 

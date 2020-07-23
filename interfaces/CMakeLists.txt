@@ -17,6 +17,8 @@ set(pal_interfaces_h_files
     inc/azure_c_pal/sync.h
     inc/azure_c_pal/file.h
     inc/azure_c_pal/refcount.h
+    inc/azure_c_pal/gballoc_ll.h
+    inc/azure_c_pal/gballoc_hl.h
 )
 
 FILE(GLOB pal_interfaces_md_files "devdoc/*.md")

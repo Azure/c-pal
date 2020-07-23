@@ -14,3 +14,7 @@ if(${run_int_tests})
         add_subdirectory(file_int)
     endif()
 endif()
+
+if(${run_perf_tests} AND WIN32)
+    build_test_folder(gballoc_hl_perf)
+endif()
