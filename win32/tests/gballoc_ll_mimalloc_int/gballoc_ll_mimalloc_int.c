@@ -151,8 +151,10 @@ TEST_FUNCTION(gballoc_ll_size_works)
     ///act
     size = gballoc_ll_size(ptr);
 
-    ///assert
-    ASSERT_ARE_EQUAL(size_t, 4, size);
+    ///assert - this is less than ideal, but the original size asked to be malloc'd is lost
+    ///see - (mimalloc) https://microsoft.github.io/mimalloc/group__extended.html#ga089c859d9eddc5f9b4bd946cd53cebee - "The returned size is always at least equal to the allocated size of p..."
+    ///see - (linux has that too...) https://man7.org/linux/man-pages/man3/malloc_usable_size.3.html - "The value returned by malloc_usable_size() may be greater than the requested size of the allocation[...]"
+    ASSERT_IS_TRUE(size>=4);
 
     ///clean
     gballoc_ll_free(ptr);
