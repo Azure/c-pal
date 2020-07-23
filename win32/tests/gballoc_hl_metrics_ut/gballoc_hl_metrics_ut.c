@@ -127,8 +127,6 @@ TEST_FUNCTION(gballoc_hl_init_succeeds)
     gballoc_hl_deinit();
 }
 
-
-
 /* Tests_SRS_GBALLOC_HL_METRICS_01_004: [ If any error occurs, gballoc_hl_init shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(when_gballoc_ll_init_fails_gballoc_hl_init_fails)
 {
@@ -146,7 +144,6 @@ TEST_FUNCTION(when_gballoc_ll_init_fails_gballoc_hl_init_fails)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
-    gballoc_hl_deinit();
 }
 
 /* gballoc_hl_deinit */

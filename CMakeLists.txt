@@ -90,10 +90,10 @@ endif()
 
 if (
     (NOT TARGET mimalloc) AND 
-    (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/mimalloc/CMakeLists.txt) AND
-    (${ARCHITECTURE} STREQUAL "x86_64")
+    (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/mimalloc/CMakeLists.txt)
     )
         set(MI_BUILD_TESTS OFF)
+        set(MI_BUILD_SHARED OFF)
         #for mimalloc disable this warning: Warning C4459: declaration of 'os_page_size' hides global declaration
         #for mimalloc disable this warning: Warning C4100: 'try_alignment': unreferenced formal parameter
         #for mimalloc disable this warning: warning C4505: 'mi_os_get_aligned_hint': unreferenced local function has been removed

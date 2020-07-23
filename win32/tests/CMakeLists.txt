@@ -22,6 +22,7 @@ if(${run_unittests})
     
     build_test_folder(gballoc_ll_passthrough_ut)
     build_test_folder(gballoc_ll_win32heap_ut)
+    
     build_test_folder(gballoc_ll_mimalloc_ut)
         
     build_test_folder(gballoc_hl_passthrough_ut)
@@ -43,11 +44,24 @@ if(${run_int_tests})
     foreach(GBALOC_HL_IMPL ${GBALLOC_HL_TYPE_VALUES})
         STRING(TOLOWER ${GBALOC_HL_IMPL} gballoc_hl_impl_lower)
         foreach(GBALOC_LL_IMPL ${GBALLOC_LL_TYPE_VALUES})
+            
             STRING(TOLOWER ${GBALOC_LL_IMPL} gballoc_ll_impl_lower)
+        
+            #if(${GBALOC_LL_IMPL} STREQUAL "MIMALLOC")
+            #    if(${ARCHITECTURE} STREQUAL "x86_64")
+            #        build_test_folder(gballoc_hl_int BINARY_DIR ${gballoc_hl_impl_lower}_${gballoc_ll_impl_lower})
+            #    else()
+            #        # do nothing, MIMALLOC only on 64 bit
+            #    endif()
+            #else()
+            #    build_test_folder(gballoc_hl_int BINARY_DIR ${gballoc_hl_impl_lower}_${gballoc_ll_impl_lower})
+            #endif()
+            
             build_test_folder(gballoc_hl_int BINARY_DIR ${gballoc_hl_impl_lower}_${gballoc_ll_impl_lower})
+            
         endforeach()
     endforeach()
-        
+    
 endif()
 
 if(${run_perf_tests} AND WIN32)

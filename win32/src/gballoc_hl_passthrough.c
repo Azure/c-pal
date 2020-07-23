@@ -10,6 +10,8 @@
 
 #include "azure_c_pal/gballoc_hl.h"
 
+static int wasInitialized = 0;
+
 int gballoc_hl_init(void* gballoc_hl_init_params, void* gballoc_ll_init_params)
 {
     int result;
@@ -27,6 +29,7 @@ int gballoc_hl_init(void* gballoc_hl_init_params, void* gballoc_ll_init_params)
     {
         /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_002: [ gballoc_hl_init shall succeed and return 0. ]*/
         result = 0;
+        wasInitialized = 1;
     }
 
     return result;
@@ -36,7 +39,11 @@ void gballoc_hl_deinit(void)
 {
     /*no work for this layer, it is passthough*/
     /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_004: [ gballoc_hl_deinit shall call gballoc_ll_deinit. ]*/
-    gballoc_ll_deinit();
+    if (wasInitialized)
+    {
+        gballoc_ll_deinit();
+        wasInitialized = 0;
+    }
 }
 
 void* gballoc_hl_malloc(size_t size)

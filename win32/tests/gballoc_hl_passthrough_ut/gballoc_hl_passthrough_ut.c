@@ -124,17 +124,15 @@ TEST_FUNCTION(gballoc_hl_init_unhappy_path)
 }
 
 /*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_004: [ gballoc_hl_deinit shall call gballoc_ll_deinit. ]*/
-TEST_FUNCTION(gballoc_hl_deinit_succeds)
+TEST_FUNCTION(gballoc_hl_deinit_does_nothing_when_not_init)
 {
     ///arrange
     int result;
     STRICT_EXPECTED_CALL(gballoc_ll_init((void*)0x33))
-        .SetReturn(1);
+        .SetReturn(MU_FAILURE);
     result = gballoc_hl_init(NULL, (void*)0x33);
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
     umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(gballoc_ll_deinit());
 
     ///act
     gballoc_hl_deinit();

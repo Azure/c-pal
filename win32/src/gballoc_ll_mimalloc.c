@@ -18,7 +18,6 @@ int gballoc_ll_init(void* params)
 
 void gballoc_ll_deinit(void)
 {
-
     /*Codes_SRS_GBALLOC_LL_MIMALLOC_02_002: [ gballoc_ll_deinit shall return. ] */
 }
 
