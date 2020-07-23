@@ -10,12 +10,17 @@
 
 
 #include "azure_c_logging/xlogging.h"
-#include "azure_c_pal/gballoc.h"
+#include "azure_c_pal/gballoc_hl.h"
 #include "testrunnerswitcher.h"
 
 #include "azure_c_pal/timer.h"
 
 #include "azure_c_pal/gballoc_hl.h"
+
+#define malloc gballoc_hl_malloc
+#define calloc gballoc_hl_calloc
+#define realloc gballoc_hl_realloc
+#define free gballoc_hl_free
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 
@@ -51,7 +56,7 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 
 /* alloc_perf */
 
-#define ALLOC_COUNT 1000000
+#define ALLOC_COUNT ((sizeof(size_t)==4) ? 10000:1000000) /*run only 10000 allocations of 16K on 32 bit... or else malloc will return NULL*/
 
 TEST_FUNCTION(alloc_performance)
 {
@@ -67,7 +72,8 @@ TEST_FUNCTION(alloc_performance)
     for (i = 0; i < ALLOC_COUNT; i++)
     {
         blocks[i] = malloc(16384);
-        ASSERT_IS_NOT_NULL(blocks[i]);
+        ASSERT_IS_NOT_NULL(blocks[i], "block i=%" PRIu32 "", i);
+
     }
 
     double end_time = timer_global_get_elapsed_ms();

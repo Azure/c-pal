@@ -37,6 +37,8 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
 
+static char pretend_to_be_allocated[100000];
+
 BEGIN_TEST_SUITE(gballoc_hl_metrics_unittests)
 
 TEST_SUITE_INITIALIZE(suite_init)
@@ -51,12 +53,9 @@ TEST_SUITE_INITIALIZE(suite_init)
 
     REGISTER_UMOCK_ALIAS_TYPE(SIZE_T, size_t);
 
-    REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_malloc, malloc);
-    REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_realloc, realloc);
-    REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_calloc, calloc);
-    REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_free, free);
-
-
+    REGISTER_GLOBAL_MOCK_RETURN(gballoc_ll_malloc, pretend_to_be_allocated);
+    REGISTER_GLOBAL_MOCK_RETURN(gballoc_ll_realloc, pretend_to_be_allocated);
+    REGISTER_GLOBAL_MOCK_RETURN(gballoc_ll_calloc, pretend_to_be_allocated);
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
@@ -807,6 +806,9 @@ TEST_FUNCTION(gballoc_hl_reset_counters_resets_the_counters)
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_hl_deinit();
 }
 
 /* gballoc_hl_get_malloc_latency_buckets */
@@ -943,7 +945,7 @@ TEST_FUNCTION(gballoc_hl_get_malloc_latency_buckets_with_one_call_in_each_bucket
         STRICT_EXPECTED_CALL(gballoc_ll_malloc(IGNORED_ARG));
         STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
             .SetReturn(43.0);
-        ptr = gballoc_hl_malloc(((size_t)1 << (9 + i)) - 1);
+        ptr = gballoc_hl_malloc((1ULL << (9 + i)) - 1);
         gballoc_hl_free(ptr);
     }
     umock_c_reset_all_calls();
@@ -1103,7 +1105,7 @@ TEST_FUNCTION(gballoc_hl_get_calloc_latency_buckets_with_one_call_in_each_bucket
         STRICT_EXPECTED_CALL(gballoc_ll_calloc(IGNORED_ARG, IGNORED_ARG));
         STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
             .SetReturn(43.0);
-        ptr = gballoc_hl_calloc(((size_t)1 << (9 + i)) - 1, 1);
+        ptr = gballoc_hl_calloc((1ULL << (9 + i)) - 1, 1);
         gballoc_hl_free(ptr);
     }
     umock_c_reset_all_calls();
@@ -1263,7 +1265,7 @@ TEST_FUNCTION(gballoc_hl_get_realloc_latency_buckets_with_one_call_in_each_bucke
         STRICT_EXPECTED_CALL(gballoc_ll_realloc(IGNORED_ARG, IGNORED_ARG));
         STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
             .SetReturn(43.0);
-        ptr = gballoc_hl_realloc(NULL, ((size_t)1 << (9 + i)) - 1);
+        ptr = gballoc_hl_realloc(NULL, (1ULL << (9 + i)) - 1);
         gballoc_hl_free(ptr);
     }
     umock_c_reset_all_calls();
@@ -1418,12 +1420,12 @@ TEST_FUNCTION(gballoc_hl_get_free_latency_buckets_with_one_call_in_each_bucket_r
 
     for (size_t i = 0; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
-        ptr = gballoc_hl_malloc(((size_t)1 << (9 + i)) - 1);
+        ptr = gballoc_hl_malloc((1ULL << (9 + i)) - 1);
         umock_c_reset_all_calls();
         STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
             .SetReturn(1.0);
         STRICT_EXPECTED_CALL(gballoc_ll_size(IGNORED_ARG))
-            .SetReturn(((size_t)1 << (9 + i)) - 1);
+            .SetReturn((1ULL << (9 + i)) - 1);
         STRICT_EXPECTED_CALL(gballoc_ll_free(IGNORED_ARG));
         STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
             .SetReturn(43.0);

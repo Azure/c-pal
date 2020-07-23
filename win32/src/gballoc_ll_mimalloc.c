@@ -69,7 +69,7 @@ size_t gballoc_ll_size(void* ptr)
     size_t result;
 
     /*Codes_SRS_GBALLOC_LL_MIMALLOC_02_007: [ gballoc_ll_size shall call mi_usable_size and return what mi_usable_size returned. ]*/
-    result = mi_usable_size(ptr);
+    result = mi_good_size(ptr);
 
     return result;
 }

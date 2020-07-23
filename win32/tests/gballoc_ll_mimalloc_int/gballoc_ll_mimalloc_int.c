@@ -143,7 +143,7 @@ TEST_FUNCTION(gballoc_ll_calloc_works)
 TEST_FUNCTION(gballoc_ll_size_works)
 {
     /// arrange
-    void* ptr = gballoc_ll_malloc(1);
+    void* ptr = gballoc_ll_malloc(4);
     ASSERT_IS_NOT_NULL(ptr);
 
     size_t size;
@@ -152,7 +152,7 @@ TEST_FUNCTION(gballoc_ll_size_works)
     size = gballoc_ll_size(ptr);
 
     ///assert
-    ASSERT_ARE_EQUAL(size_t, 1, size);
+    ASSERT_ARE_EQUAL(size_t, 4, size);
 
     ///clean
     gballoc_ll_free(ptr);
