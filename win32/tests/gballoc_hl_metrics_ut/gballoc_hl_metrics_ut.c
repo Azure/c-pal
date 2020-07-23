@@ -1456,10 +1456,12 @@ TEST_FUNCTION(gballoc_hl_get_free_latency_buckets_with_one_call_in_each_bucket_r
 
 /* Tests_SRS_GBALLOC_HL_METRICS_01_037: [ gballoc_hl_get_latency_bucket_metadata shall return an array of size GBALLOC_LATENCY_BUCKET_COUNT that contains the metadata for each latency bucket. ]*/
 /* Tests_SRS_GBALLOC_HL_METRICS_01_038: [ The first latency bucket shall be [0-511]. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_039: [ Each consecutive bucket shall be [1 << n, (1 << (n + 1)) - 1], where n starts at 8. ]*/
+/* Tests_SRS_GBALLOC_HL_METRICS_01_039: [ Each consecutive bucket shall be [1 << n, (1 << (n + 1)) - 1], where n starts at 9. ]*/
 TEST_FUNCTION(gballoc_hl_get_latency_bucket_metadata_returns_the_array_with_the_latency_buckets_metadata)
 {
     // arrange
+    (void)gballoc_hl_init(NULL, NULL);
+    umock_c_reset_all_calls();
 
     // act
     const GBALLOC_LATENCY_BUCKET_METADATA* latency_buckets_metadata = gballoc_hl_get_latency_bucket_metadata();
@@ -1481,6 +1483,9 @@ TEST_FUNCTION(gballoc_hl_get_latency_bucket_metadata_returns_the_array_with_the_
     }
 
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_hl_deinit();
 }
 
 END_TEST_SUITE(gballoc_hl_metrics_unittests)

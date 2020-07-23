@@ -92,36 +92,36 @@ void* gballoc_hl_realloc(void* ptr, size_t size)
     return result;
 }
 
-/*vld.h add specs and tests*/
 void gballoc_hl_reset_counters(void)
 {
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_009: [ gballoc_hl_reset_counters shall return. ]*/
     return;
 }
 
-/*vld.h add specs and tests*/
 int gballoc_hl_get_malloc_latency_buckets(GBALLOC_LATENCY_BUCKETS* latency_buckets_out)
 {
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_010: [ gballoc_hl_get_malloc_latency_buckets shall set latency_buckets_out's bytes all to 0 and return 0. ]*/
     (void)memset(latency_buckets_out, 0, sizeof(GBALLOC_LATENCY_BUCKETS));
     return 0;
 }
 
-/*vld.h add specs and tests*/
 int gballoc_hl_get_realloc_latency_buckets(GBALLOC_LATENCY_BUCKETS* latency_buckets_out)
 {
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_011: [ gballoc_hl_get_realloc_latency_buckets shall set latency_buckets_out's bytes all to 0 and return 0. ]*/
     (void)memset(latency_buckets_out, 0, sizeof(GBALLOC_LATENCY_BUCKETS));
     return 0;
 }
 
-/*vld.h add specs and tests*/
 int gballoc_hl_get_calloc_latency_buckets(GBALLOC_LATENCY_BUCKETS* latency_buckets_out)
 {
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_012: [ gballoc_hl_get_calloc_latency_buckets shall set latency_buckets_out's bytes all to 0 and return 0. ]*/
     (void)memset(latency_buckets_out, 0, sizeof(GBALLOC_LATENCY_BUCKETS));
     return 0;
 }
 
-/*vld.h add specs and tests*/
 int gballoc_hl_get_free_latency_buckets(GBALLOC_LATENCY_BUCKETS* latency_buckets_out)
 {
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_013: [ gballoc_hl_get_free_latency_buckets shall set latency_buckets_out's bytes all to 0 and return 0. ]*/
     (void)memset(latency_buckets_out, 0, sizeof(GBALLOC_LATENCY_BUCKETS));
     return 0;
 }
@@ -155,9 +155,12 @@ static const GBALLOC_LATENCY_BUCKET_METADATA latency_buckets_metadata[GBALLOC_LA
     { "Bucket [2147483648-4294967295]", 2147483648, 4294967295 }
 };
 
-/*vld.h add specs and tests*/
+
 const GBALLOC_LATENCY_BUCKET_METADATA* gballoc_hl_get_latency_bucket_metadata(void)
 {
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_014: [ gballoc_hl_get_latency_bucket_metadata shall return an array of size LATENCY_BUCKET_COUNT that contains the metadata for each latency bucket. ]*/
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_015: [ The first latency bucket shall be [0-511]. ]*/
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_016: [ Each consecutive bucket shall be [1 << n, (1 << (n + 1)) - 1], where n starts at 9. ]*/
     return latency_buckets_metadata;
 }
  
