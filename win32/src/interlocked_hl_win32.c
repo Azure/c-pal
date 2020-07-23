@@ -150,7 +150,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue6
             if (!WaitOnAddress(address, &current_value, sizeof(current_value), milliseconds))
             {
                 LogLastError("failure in WaitOnAddress(address=%p, &current_value=%p, sizeof(current_value)=%zu, milliseconds=%" PRIu32 ")",
-                    address, current_value, sizeof(current_value), milliseconds);
+                    address, &current_value, sizeof(current_value), milliseconds);
                 /* Codes_SRS_INTERLOCKED_HL_02_027: [ If WaitOnAddress fails, InterlockedHL_WaitForValue64 shall fail and return INTERLOCKED_HL_ERROR. ]*/
                 result = INTERLOCKED_HL_ERROR;
                 break;
