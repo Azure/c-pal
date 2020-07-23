@@ -184,8 +184,6 @@ MOCKABLE_FUNCTION(, void*, gballoc_hl_calloc, size_t, nmemb, size_t, size);
 
 **SRS_GBALLOC_HL_METRICS_01_031: [** `gballoc_hl_calloc` shall call `timer_global_get_elapsed_us` to obtain the end time of the allocate. **]**
 
-**SRS_GBALLOC_HL_METRICS_01_012: [** If `gballoc_ll_calloc` fails, `gballoc_hl_calloc` shall return `NULL`. **]**
-
 ### gballoc_hl_realloc
 
 ```c
@@ -201,8 +199,6 @@ MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc, void*, ptr, size_t, size);
 **SRS_GBALLOC_HL_METRICS_01_013: [** `gballoc_hl_realloc` shall call `gballoc_ll_realloc(ptr, size)` and return the result of `gballoc_ll_realloc` **]**
 
 **SRS_GBALLOC_HL_METRICS_01_033: [** `gballoc_hl_realloc` shall call `timer_global_get_elapsed_us` to obtain the end time of the allocate. **]**
-
-**SRS_GBALLOC_HL_METRICS_01_018: [** If any error occurs, `gballoc_hl_realloc` shall fail and return NULL. **]**
 
 ### gballoc_hl_free
 

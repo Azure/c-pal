@@ -130,7 +130,7 @@ TEST_FUNCTION(gballoc_hl_init_succeeds)
 
 
 /* Tests_SRS_GBALLOC_HL_METRICS_01_004: [ If any error occurs, gballoc_hl_init shall fail and return a non-zero value. ]*/
-TEST_FUNCTION(when_HeapCreate_fails_gballoc_hl_init_fails)
+TEST_FUNCTION(when_gballoc_ll_init_fails_gballoc_hl_init_fails)
 {
     // arrange
     int result;
@@ -212,9 +212,9 @@ TEST_FUNCTION(gballoc_hl_malloc_calls_gballoc_ll_malloc_and_returns_the_result)
 }
 
 /* Tests_SRS_GBALLOC_HL_METRICS_01_028: [ gballoc_hl_malloc shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_007: [ gballoc_hl_malloc shall call HeapAlloc for the heap created in gballoc_hl_init, allocating size bytes and return the result of HeapAlloc. ]*/
+/* Tests_SRS_GBALLOC_HL_METRICS_01_007: [ gballoc_hl_malloc shall call gballoc_ll_malloc(size) and return the result of gballoc_ll_malloc. ]*/
 /* Tests_SRS_GBALLOC_HL_METRICS_01_029: [ gballoc_hl_malloc shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
-TEST_FUNCTION(gballoc_hl_malloc_with_1_byte_calls_HeapAlloc_and_returns_the_result)
+TEST_FUNCTION(gballoc_hl_malloc_with_1_byte_calls_gballoc_ll_malloc_and_returns_the_result)
 {
     // arrange
     void* result;
@@ -242,7 +242,7 @@ TEST_FUNCTION(gballoc_hl_malloc_with_1_byte_calls_HeapAlloc_and_returns_the_resu
 }
 
 /* Tests_SRS_GBALLOC_HL_METRICS_01_028: [ gballoc_hl_malloc shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_007: [ gballoc_hl_malloc shall call HeapAlloc for the heap created in gballoc_hl_init, allocating size bytes and return the result of HeapAlloc. ]*/
+/* Tests_SRS_GBALLOC_HL_METRICS_01_007: [ gballoc_hl_malloc shall call gballoc_ll_malloc(size) and return the result of gballoc_ll_malloc. ]*/
 /* Tests_SRS_GBALLOC_HL_METRICS_01_029: [ gballoc_hl_malloc shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
 TEST_FUNCTION(gballoc_hl_malloc_with_0_bytes_calls_gballoc_ll_malloc_and_returns_the_result)
 {
@@ -464,31 +464,6 @@ TEST_FUNCTION(gballoc_hl_calloc_when_not_initialized_fails)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/* Tests_SRS_GBALLOC_HL_METRICS_01_012: [ If HeapAlloc fails, gballoc_hl_calloc shall return NULL. ]*/
-TEST_FUNCTION(when_HeapAlloc_fails_gballoc_hl_calloc_also_fails)
-{
-    // arrange
-    void* result;
-    STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
-    (void)gballoc_hl_init(NULL, NULL);
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(timer_global_get_elapsed_us());
-    STRICT_EXPECTED_CALL(gballoc_ll_calloc(1, 1))
-        .SetReturn(NULL);
-    STRICT_EXPECTED_CALL(timer_global_get_elapsed_us());
-
-    // act
-    result = gballoc_hl_calloc(1, 1);
-
-    // assert
-    ASSERT_IS_NULL(result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    // cleanup
-    gballoc_hl_deinit();
-}
-
 /* gballoc_hl_realloc */
 
 /* Tests_SRS_GBALLOC_HL_METRICS_01_032: [ gballoc_hl_realloc shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
@@ -554,7 +529,7 @@ TEST_FUNCTION(gballoc_hl_realloc_with_1_byte_size_with_NULL_ptr_calls_gballoc_ll
 /* Tests_SRS_GBALLOC_HL_METRICS_01_032: [ gballoc_hl_realloc shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
 /* Tests_SRS_GBALLOC_HL_METRICS_01_013: [ gballoc_hl_realloc shall call gballoc_ll_realloc(ptr, size) and return the result of gballoc_ll_realloc ]*/
 /* Tests_SRS_GBALLOC_HL_METRICS_01_033: [ gballoc_hl_realloc shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
-TEST_FUNCTION(gballoc_hl_realloc_with_0_bytes_size_with_NULL_ptr_calls_HeapAlloc_and_returns_the_result)
+TEST_FUNCTION(gballoc_hl_realloc_with_0_bytes_size_with_NULL_ptr_calls_gballoc_ll_realloc_and_returns_the_result)
 {
     // arrange
     void* result;
@@ -582,7 +557,7 @@ TEST_FUNCTION(gballoc_hl_realloc_with_0_bytes_size_with_NULL_ptr_calls_HeapAlloc
 }
 
 /* Tests_SRS_GBALLOC_HL_METRICS_01_013: [ gballoc_hl_realloc shall call gballoc_ll_realloc(ptr, size) and return the result of gballoc_ll_realloc ]*/
-TEST_FUNCTION(gballoc_hl_realloc_with_non_NULL_ptr_calls_HeapReAlloc_and_returns_the_result)
+TEST_FUNCTION(gballoc_hl_realloc_with_non_NULL_ptr_calls_gballoc_ll_realloc_and_returns_the_result)
 {
     // arrange
     void* result;
@@ -612,7 +587,7 @@ TEST_FUNCTION(gballoc_hl_realloc_with_non_NULL_ptr_calls_HeapReAlloc_and_returns
 }
 
 /* Tests_SRS_GBALLOC_HL_METRICS_01_013: [ gballoc_hl_realloc shall call gballoc_ll_realloc(ptr, size) and return the result of gballoc_ll_realloc ]*/
-TEST_FUNCTION(gballoc_hl_realloc_with_non_NULL_ptr_and_1_size_calls_HeapReAlloc_and_returns_the_result)
+TEST_FUNCTION(gballoc_hl_realloc_with_non_NULL_ptr_and_1_size_calls_gballoc_ll_realloc_and_returns_the_result)
 {
     // arrange
     void* result;
@@ -688,59 +663,6 @@ TEST_FUNCTION(gballoc_hl_realloc_when_not_initialized_fails)
     // assert
     ASSERT_IS_NULL(result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* Tests_SRS_GBALLOC_HL_METRICS_01_018: [ If any error occurs, gballoc_hl_realloc shall fail and return NULL. ]*/
-TEST_FUNCTION(when_HeapAlloc_fails_gballoc_hl_realloc_also_fails)
-{
-    // arrange
-    void* result;
-    STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
-    (void)gballoc_hl_init(NULL, NULL);
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(timer_global_get_elapsed_us());
-    STRICT_EXPECTED_CALL(gballoc_ll_realloc(NULL, 1))
-        .SetReturn(NULL);
-    STRICT_EXPECTED_CALL(timer_global_get_elapsed_us());
-
-    // act
-    result = gballoc_hl_realloc(NULL, 1);
-
-    // assert
-    ASSERT_IS_NULL(result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    // cleanup
-    gballoc_hl_deinit();
-}
-
-/* Tests_SRS_GBALLOC_HL_METRICS_01_018: [ If any error occurs, gballoc_hl_realloc shall fail and return NULL. ]*/
-TEST_FUNCTION(when_HeapReAlloc_fails_gballoc_hl_realloc_also_fails)
-{
-    // arrange
-    void* result;
-    void* ptr;
-    STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
-    (void)gballoc_hl_init(NULL, NULL);
-    ptr = gballoc_hl_malloc(42);
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(timer_global_get_elapsed_us());
-    STRICT_EXPECTED_CALL(gballoc_ll_realloc(ptr, 1))
-        .SetReturn(NULL);
-    STRICT_EXPECTED_CALL(timer_global_get_elapsed_us());
-
-    // act
-    result = gballoc_hl_realloc(ptr, 1);
-
-    // assert
-    ASSERT_IS_NULL(result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    // cleanup
-    gballoc_hl_free(ptr);
-    gballoc_hl_deinit();
 }
 
 /* gballoc_hl_free */
