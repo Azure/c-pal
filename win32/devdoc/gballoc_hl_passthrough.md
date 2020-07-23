@@ -57,7 +57,7 @@ gballoc_hl_passthrough is a module that delegates all call of its APIs to the on
 MOCKABLE_FUNCTION(, int, gballoc_hl_init, void*, gballoc_hl_init_params, void*, gballoc_ll_init_params);
 ```
 
-`gballoc_hl_init` calls `gballoc_ll_init(gballoc_ll_init_params)`. Since `gballoc_hl` is passthrough it has no other functionality and `gballoc_hl_init_params` is ignored 
+`gballoc_hl_init` calls `gballoc_ll_init(gballoc_ll_init_params)`. Since `gballoc_hl` is passthrough it has no other functionality and `gballoc_hl_init_params` is ignored. This function is not thread-safe.
 
 **SRS_GBALLOC_HL_PASSTHROUGH_02_001: [** `gballoc_hl_init` shall call `gballoc_ll_init(gballoc_ll_init_params)`. **]**
 

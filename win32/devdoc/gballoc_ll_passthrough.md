@@ -83,7 +83,7 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc, void*, ptr, size_t, size);
 MOCKABLE_FUNCTION(, size_t, gballoc_ll_size, void*, ptr);
 ```
 
-`gballoc_ll_size` returns 0 because stdlib has no API that provides back to the user the size of the allocated block.
+`gballoc_ll_size` returns what `_msize` returns.
 
 **SRS_GBALLOC_LL_PASSTHROUGH_02_007: [** `gballoc_ll_size` shall return what `_msize` returns. **]**
 

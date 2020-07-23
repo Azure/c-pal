@@ -37,7 +37,6 @@ int gballoc_hl_init(void* gballoc_hl_init_params, void* gballoc_ll_init_params)
 
 void gballoc_hl_deinit(void)
 {
-    /*no work for this layer, it is passthough*/
     /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_004: [ gballoc_hl_deinit shall call gballoc_ll_deinit. ]*/
     if (wasInitialized)
     {

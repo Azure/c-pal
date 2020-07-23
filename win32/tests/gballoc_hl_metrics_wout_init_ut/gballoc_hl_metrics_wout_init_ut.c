@@ -12,13 +12,8 @@
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umocktypes.h"
-#include "umock_c/umock_c_negative_tests.h"
 
 #include "azure_c_pal/gballoc_hl.h"
-
-#if defined(_MSC_VER)
-#pragma warning(disable : 4189)
-#endif
 
 #define ENABLE_MOCKS
 #include "azure_c_pal/gballoc_ll.h"
@@ -54,7 +49,6 @@ TEST_SUITE_CLEANUP(suite_cleanup)
 
 TEST_FUNCTION_INITIALIZE(method_init)
 {
-    int result;
 
     if (TEST_MUTEX_ACQUIRE(test_serialize_mutex))
     {
@@ -62,13 +56,10 @@ TEST_FUNCTION_INITIALIZE(method_init)
     }
 
     umock_c_reset_all_calls();
-    result = umock_c_negative_tests_init();
-    ASSERT_ARE_EQUAL(int, 0, result, "umock_c_negative_tests_init");
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
 {
-    umock_c_negative_tests_deinit();
     TEST_MUTEX_RELEASE(test_serialize_mutex);
 }
 

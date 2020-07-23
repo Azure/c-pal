@@ -54,7 +54,7 @@
     MOCKABLE_FUNCTION(, int, gballoc_hl_init, void*, hl_params, void*, ll_params);
 ```
 
-`gballoc_hl_init` initializes the module. `hl_params` is ignored. `ll_params` is passed to `gballoc_ll_init`.
+`gballoc_hl_init` initializes the module. `hl_params` is ignored. `ll_params` is passed to `gballoc_ll_init`. This function is not thread-safe.
 
 **SRS_GBALLOC_HL_METRICS_01_001: [** If the module is already initialized, `gballoc_hl_init` shall fail and return a non-zero value. **]**
 
@@ -70,7 +70,7 @@
 MOCKABLE_FUNCTION(, void, gballoc_hl_deinit);
 ```
 
-`gballoc_hl_deinit` deinitializes the heap created in `gballoc_hl_init`.
+`gballoc_hl_deinit` deinitializes the module. This function is not thread-safe.
 
 **SRS_GBALLOC_HL_METRICS_01_005: [** If `gballoc_hl_deinit` is called while not initialized, `gballoc_hl_deinit` shall return. **]**
 

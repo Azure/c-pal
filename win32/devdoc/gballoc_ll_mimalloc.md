@@ -29,7 +29,7 @@ gballoc_ll_mimalloc is a module that delegates all call of its APIs to the ones 
 MOCKABLE_FUNCTION(, int, gballoc_ll_init, void*, params);
 ```
 
-`gballoc_ll_init` returns. `params` exists as a placeholder and is ignored.
+`gballoc_ll_init` returns. `params` exists as a placeholder and is ignored. This function is not thread-safe.
 
 **SRS_GBALLOC_LL_MIMALLOC_02_001: [** `gballoc_ll_init` shall return 0. **]**
 
