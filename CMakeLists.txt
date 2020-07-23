@@ -92,8 +92,8 @@ if (
     (NOT TARGET mimalloc) AND 
     (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/mimalloc/CMakeLists.txt)
     )
-        set(MI_BUILD_TESTS OFF)
-        set(MI_BUILD_SHARED OFF)
+        set(MI_BUILD_SHARED OFF CACHE BOOL "dont build a dll" FORCE) #not building a dll allows building on 32 bit, otherwise there's some errors on init.c about not finding a imported symbol
+        set(MI_BUILD_TESTS OFF CACHE BOOL "dont build mimalloc's tests" FORCE) 
         #for mimalloc disable this warning: Warning C4459: declaration of 'os_page_size' hides global declaration
         #for mimalloc disable this warning: Warning C4100: 'try_alignment': unreferenced formal parameter
         #for mimalloc disable this warning: warning C4505: 'mi_os_get_aligned_hint': unreferenced local function has been removed
