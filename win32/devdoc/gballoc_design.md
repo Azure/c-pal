@@ -3,7 +3,7 @@ gballoc design
 
 `gballoc` is a layer that abstracts memory allocators. The need to have and be able to compare multiple memory allocators stems from performance requirements. Not all memory allocators have the same performance and for the sake of being able to compare them gballoc exists.
 
-`gballoc` is dvided in 2 layers (`ll` stand for `lower layer`, `hl` stands for `higher layer`):
+`gballoc` is divided in 2 layers (`ll` stands for `lower layer`, `hl` stands for `higher layer`):
 a) `gballoc_ll` - contains software wrappers over the memory allocation as provided by other components. For example, `gballoc_malloc/free` will redirect to `HeapAlloc/Free` when Windows APIs are directly used.
 b) `gballoc_hl` - contains performance measurements for `gballoc_ll` and it is build on top of `gballoc_ll`.
 
