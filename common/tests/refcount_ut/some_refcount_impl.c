@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include "azure_c_pal/refcount.h"
+#include "azure_c_pal/gballoc.h"
 #include "some_refcount_impl.h"
 
 typedef struct pos_TAG
@@ -50,7 +51,7 @@ void Pos_Destroy(POS_HANDLE posHandle)
     if (posHandle != NULL)
     {
         pos* p = posHandle;
-        if (DEC_REF(pos, p) == DEC_RETURN_ZERO)
+        if (DEC_REF(pos, p) == 0)
         {
             REFCOUNT_TYPE_DESTROY(pos, p);
         }

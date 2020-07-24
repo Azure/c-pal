@@ -39,8 +39,8 @@ static void on_open_complete_do_nothing(void* context, THREADPOOL_OPEN_RESULT op
 
 static void work_function(void* context)
 {
-    volatile LONG* call_count = (volatile LONG*)context;
-    (void)InterlockedIncrement(call_count);
+    volatile LONG64* call_count = (volatile LONG64*)context;
+    (void)InterlockedIncrement64(call_count);
     WakeByAddressSingle((PVOID)call_count);
 }
 

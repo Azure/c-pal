@@ -10,7 +10,8 @@ ${theseTestsName}.c
 )
 
 set(${theseTestsName}_c_files
-execution_engine_win32_mocked.c
+    execution_engine_win32_mocked.c
+    ../../src/interlocked_win32.c
 )
 
 set(${theseTestsName}_h_files
