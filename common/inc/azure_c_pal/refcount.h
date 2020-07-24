@@ -23,7 +23,6 @@ will interact with deallocated memory / resources resulting in an undefined beha
 #endif
 
 #include "azure_macro_utils/macro_utils.h"
-#include "azure_c_pal/gballoc.h"
 
 // Include the platform-specific file that defines atomic functionality
 #include "azure_c_pal/interlocked.h"
@@ -110,7 +109,7 @@ then in order to see "count" / "counted" this is a good string to paste in Visua
 
 #define INC_REF(type, var) interlocked_increment(&((REFCOUNT_TYPE(type)*)((unsigned char*)var - offsetof(REFCOUNT_TYPE(type), counted)))->count)
 #define DEC_REF(type, var) interlocked_decrement(&((REFCOUNT_TYPE(type)*)((unsigned char*)var - offsetof(REFCOUNT_TYPE(type), counted)))->count)
-#define INIT_REF(type, var) do { ((REFCOUNT_TYPE(type)*)((unsigned char*)var - offsetof(REFCOUNT_TYPE(type), counted)))->count  = 1; }while(0)
+#define INIT_REF(type, var) interlocked_exchange(&((REFCOUNT_TYPE(type)*)((unsigned char*)var - offsetof(REFCOUNT_TYPE(type), counted)))->count, 1)
 
 #ifdef __cplusplus
 }
