@@ -16,8 +16,8 @@
 #define R2(X) REGISTER_GLOBAL_MOCK_HOOK(X, real_##X);
 
 #ifdef _WIN64 
-#define REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK() \
-    MU_FOR_EACH_1(R2, \
+#define REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK()     \
+    MU_FOR_EACH_1(R2,                               \
         interlocked_add                             ,\
         interlocked_add_64                          ,\
         interlocked_and                             ,\
@@ -52,7 +52,8 @@
         interlocked_xor_8                           \
     )
 #else
-    MU_FOR_EACH_1(R2, \
+#define REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK()     \
+    MU_FOR_EACH_1(R2,                               \
         interlocked_add                             ,\
         interlocked_add_64                          ,\
         interlocked_and                             ,\
@@ -93,8 +94,8 @@ extern "C" {
 int32_t real_interlocked_add(volatile_atomic int32_t* addend, int32_t value);
 int64_t real_interlocked_add_64(volatile_atomic int64_t* addend, int64_t value);
 int32_t real_interlocked_and(volatile_atomic int32_t* destination, int32_t value);
-int16_t real_interlocked_and_16( volatile_atomic int16_t* destination, int16_t value);
-int64_t real_interlocked_and_64( volatile_atomic int64_t* destination, int64_t value);
+int16_t real_interlocked_and_16(volatile_atomic int16_t* destination, int16_t value);
+int64_t real_interlocked_and_64(volatile_atomic int64_t* destination, int64_t value);
 int8_t real_interlocked_and_8(volatile_atomic int8_t* destination, int8_t value);
 int32_t real_interlocked_compare_exchange(volatile_atomic int32_t* destination, int32_t exchange, int32_t comperand);
 #ifdef _WIN64

@@ -10,7 +10,6 @@ set(pal_common_c_files
 
 set(pal_linux_h_files
     ${pal_common_h_files}
-    inc/refcount_os.h
 )
 
 set(pal_linux_c_files
