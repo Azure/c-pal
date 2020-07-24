@@ -160,7 +160,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE,
         {
             /*Codes_SRS_FILE_43_003: [ If a file with name full_file_name does not exist, file_create shall create a file with that name.]*/
             /*Codes_SRS_FILE_LINUX_43_001: [ file_create shall call open with full_file_name as pathname and flags O_CREAT, O_RDWR, O_DIRECT and O_LARGEFILE. ]*/
-            result->h_file = open(full_file_name, O_CREAT | O_RDWR | __O_DIRECT | __O_LARGEFILE, 0777);
+            result->h_file = open(full_file_name, O_CREAT | O_RDWR | __O_DIRECT | __O_LARGEFILE, 0700);
             if ( result->h_file == -1)
             {
                 /*Codes_SRS_FILE_43_034: [ If there are any failures, file_create shall fail and return NULL. ]*/

@@ -72,7 +72,7 @@ static EXECUTION_ENGINE_HANDLE fake_execution_engine = (EXECUTION_ENGINE_HANDLE)
 static void setup_file_create_expectations(const char* filename)
 {
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mock_open(filename, O_CREAT | O_RDWR | __O_DIRECT | __O_LARGEFILE));
+    STRICT_EXPECTED_CALL(mock_open(filename, O_CREAT | O_RDWR | __O_DIRECT | __O_LARGEFILE, 0700));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0))
         .CallCannotFail();
 }
@@ -288,8 +288,11 @@ TEST_FUNCTION(file_destroy_succeeds)
     ASSERT_IS_NOT_NULL(file_handle);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
+        .SetReturn(1);
     STRICT_EXPECTED_CALL(wait_on_address(IGNORED_ARG, IGNORED_ARG, UINT32_MAX));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
+        .SetReturn(0);
     STRICT_EXPECTED_CALL(mock_close(fake_fildes));
     STRICT_EXPECTED_CALL(free(file_handle));
 
