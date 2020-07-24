@@ -4,12 +4,36 @@
 
 #ifdef __cplusplus
 #include <cstdlib>
+#include <cstdio>
+#include <cstring>
 #else
 #include <stdlib.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
 #endif
 #include "file_int_helpers.h"
 
-void delete_all_txt_files()
+int delete_file(const char* filename)
 {
-    system("rm *.txt");
+    char* command = malloc(strlen(filename) + 7);
+    if (command == NULL)
+    {
+        return -1;
+    }
+    (void)sprintf(command, "rm -f %s", filename);
+    (void)system(command);
+    free(command);
+    return 0;
+}
+
+bool check_file_exists(const char* filename)
+{
+    FILE* file = fopen(filename, "r");
+    if (file != NULL)
+    {
+        fclose(file);
+        return true;
+    }
+    return false;
 }

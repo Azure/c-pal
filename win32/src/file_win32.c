@@ -81,7 +81,6 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE,
 {
     FILE_HANDLE result;
     if (
-        /*Codes_SRS_FILE_43_033: [ If execution_engine is NULL, file_create shall fail and return NULL. ]*/
         /*Codes_SRS_FILE_WIN32_43_040: [ If execution_engine is NULL, file_create shall fail and return NULL. ]*/
         (execution_engine == NULL) ||
         /*Codes_SRS_FILE_43_002: [ If full_file_name is NULL then file_create shall fail and return NULL. ]*/

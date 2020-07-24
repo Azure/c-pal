@@ -205,7 +205,6 @@ TEST_FUNCTION_CLEANUP(cleans)
     TEST_MUTEX_RELEASE(g_testByTest);
 }
 
-/*Tests_SRS_FILE_43_033: [ If execution_engine is NULL, file_create shall fail and return NULL. ]*/
 /*Tests_SRS_FILE_WIN32_43_040: [ If execution_engine is NULL, file_create shall fail and return NULL. ]*/
 TEST_FUNCTION(file_create_fails_on_null_execution_engine)
 {

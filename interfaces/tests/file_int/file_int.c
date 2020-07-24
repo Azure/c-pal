@@ -80,7 +80,6 @@ static FILE_HANDLE file_create_helper(const char* filename)
     ASSERT_IS_FALSE(check_file_exists(filename));
 
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
-    ASSERT_IS_NOT_NULL(execution_engine);
     FILE_HANDLE file_handle = file_create(execution_engine, filename, NULL, NULL);
     ASSERT_IS_NOT_NULL(file_handle);
 
@@ -124,7 +123,6 @@ TEST_FUNCTION(file_create_creates_new_file)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
-    ASSERT_IS_NOT_NULL(execution_engine);
     char filename[] = "file_create_creates_new_file.txt";
     (void)delete_file(filename);
     ASSERT_IS_FALSE(check_file_exists(filename));
@@ -373,7 +371,6 @@ TEST_FUNCTION(perform_operations_open_write_close_open_read_close)
     (void)delete_file(filename);
     ASSERT_IS_FALSE(check_file_exists(filename));
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
-    ASSERT_IS_NOT_NULL(execution_engine);
 
     ///act
     FILE_HANDLE file_handle1 = file_create(execution_engine, filename, NULL, NULL);

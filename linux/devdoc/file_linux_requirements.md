@@ -48,17 +48,19 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend, FILE_HANDLE, handle, uint64_t
 MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name, FILE_REPORT_FAULT, user_report_fault_callback, void*, user_report_fault_context);
 ```
 
-**SRS_FILE_LINUX_43_037: [** If `execution_engine` is `NULL`, `file_create` shall fail and return `NULL`. **]**
-
 **SRS_FILE_LINUX_43_038: [** If `full_file_name` is `NULL` then `file_create` shall fail and return `NULL`. **]**
 
 **SRS_FILE_LINUX_43_050: [** If full_file_name is an empty string, `file_create` shall fail and return `NULL`.  **]**
 
 **SRS_FILE_LINUX_43_029: [** `file_create` shall allocate a `FILE_HANDLE`. **]**
 
+**SRS_FILE_LINUX_43_055: [** `file_create` shall initialize a counter for pending asynchronous operations to 0. **]**
+
 **SRS_FILE_LINUX_43_001: [** `file_create` shall call `open` with `full_file_name` as `pathname` and flags `O_CREAT`, `O_RDWR`, `O_DIRECT` and `O_LARGEFILE`. **]**
 
-**SRS_FILE_LINUX_43_002: [** `file_create` shall return the file handle returned by the call to `open`.**]**
+**SRS_FILE_LINUX_43_053: [** If there are any other failures, `file_create` shall fail and return `NULL`.  **]**
+
+**SRS_FILE_LINUX_43_002: [** `file_create` shall succeed and return a non-`NULL` value.**]**
 
 ## file_destroy
 
@@ -68,7 +70,9 @@ MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 
 **SRS_FILE_LINUX_43_036: [** If `handle` is `NULL`, `file_destroy` shall return. **]**
 
-**SRS_FILE_LINUX_43_003: [** `file_destroy` shall call `close` with `fd` as `handle`.**]**
+**SRS_FILE_LINUX_43_054: [** `file_destroy` shall wait for the pending asynchronous operations counter to become equal to zero. **]**
+
+**SRS_FILE_LINUX_43_003: [** `file_destroy` shall call `close`.**]**
 
 **SRS_FILE_LINUX_43_030: [** `file_destroy` shall free the `FILE_HANDLE`. **]**
 
@@ -85,19 +89,21 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE
 
 **SRS_FILE_LINUX_43_051: [** If `position` + `size` is greater than `INT64_MAX`, then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
 
-**SRS_FILE_LINUX_43_049: [** **SRS_FILE_LINUX_43_033: [** If `user_callback` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]** **]**
+**SRS_FILE_LINUX_43_049: [** If `user_callback` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
 
 **SRS_FILE_LINUX_43_048: [** If `size` is 0 then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
 
 **SRS_FILE_LINUX_43_019: [** `file_write_async` shall allocate a struct to hold `handle`, `source`, `size`, `user_callback` and `user_context`. **]**
 
-**SRS_FILE_LINUX_43_004: [** `file_write_async` shall allocate a `sigevent` struct with `SIGEV_THREAD` as `sigev_notify`, the allocated struct as `sigev_value`, `on_file_write_complete_linux` as `sigev_notify_function`, `NULL` as `sigev_notify_attributes`. **]**
+**SRS_FILE_LINUX_43_005: [** `file_write_async` shall allocate an `aiocb` struct with the file descriptor from `file_handle` as `aio_fildes`, `position` as `aio_offset`, source as `aio_buf`, `size` as `aio_nbytes`. **]**
 
-**SRS_FILE_LINUX_43_005: [** `file_write_async` shall allocate an `aiocb` struct with `handle` as `aio_fildes`, `position` as `aio_offset`, source as `aio_buf`, `size` as `aio_nbytes`, and the allocated `sigevent` struct as `aio_sigevent`. **]**
+**SRS_FILE_LINUX_43_004: [** `file_write_async` shall initialize the `sigevent` struct on the allocated `aiocb` struct with `SIGEV_THREAD` as `sigev_notify`, the allocated struct as `sigev_value`, `on_file_write_complete_linux` as `sigev_notify_function`, `NULL` as `sigev_notify_attributes`. **]**
 
 **SRS_FILE_LINUX_43_006: [** `file_write_async` shall call `aio_write` with the allocated `aiocb` struct as `aiocbp`.**]**
 
 **SRS_FILE_LINUX_43_012: [** If `aio_write` fails, `file_write_async` shall return `FILE_WRITE_ASYNC_WRITE_ERROR`. **]**
+
+**SRS_FILE_LINUX_43_056: [** If `aio_write` succeeds, `file_write_async` shall increment the pending asynchronous operations counter on `file_handle`. **]**
 
 **SRS_FILE_LINUX_43_007: [** If `aio_write` succeeds, `file_write_async` shall return `FILE_WRITE_ASYNC_OK`. **]**
 
@@ -119,17 +125,19 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_H
 
 **SRS_FILE_LINUX_43_045: [** `file_read_async` shall allocate a struct to hold `handle`, `destination`, `user_callback` and `user_context`. **]**
 
-**SRS_FILE_LINUX_43_008: [** `file_read_async` shall allocate a `sigevent` struct with `SIGEV_THREAD` as `sigev_notify`, `user_context` as `sigev_value`, `on_file_read_complete_linux` as `sigev_notify_function`, `NULL` as `sigev_notify_attributes`. **]**
+**SRS_FILE_LINUX_43_009: [** `file_read_async` shall allocate an `aiocb` struct with the file descriptor from `file_handle` as `aio_fildes`, `position` as `aio_offset`, the allocated buffer as `aio_buf`, `size` as `aio_nbytes`. **]**
 
-**SRS_FILE_LINUX_43_009: [** `file_read_async` shall allocate an `aiocb` struct with `handle` as `aio_fildes`, `position` as `aio_offset`, the allocated buffer as `aio_buf`, `size` as `aio_nbytes`, and the allocated `sigevent` struct as `aio_sigevent`. **]**
+**SRS_FILE_LINUX_43_008: [** `file_read_async` shall initialize the `sigevent` struct on the allocated `aiocb` struct with `SIGEV_THREAD` as `sigev_notify`, `user_context` as `sigev_value`, `on_file_read_complete_linux` as `sigev_notify_function`, `NULL` as `sigev_notify_attributes`. **]**
 
 **SRS_FILE_LINUX_43_010: [** `file_read_async` shall call `aio_read` with the allocated `aiocb` struct as `aiocbp`.  **]**
 
 **SRS_FILE_LINUX_43_011: [** If `aio_read` fails, `file_read_async` shall return `FILE_READ_ASYNC_READ_ERROR`. **]**
 
+**SRS_FILE_LINUX_43_057: [** If `aio_read` succeeds, `file_read_async` shall increment the pending asynchronous operations counter on `file_handle`. **]**
+
 **SRS_FILE_LINUX_43_014: [** If `aio_read` succeeds, `file_read_async` shall return `FILE_READ_ASYNC_OK`. **]**
 
-**SRS_FILE_LINUX_43_015: [** If there are any failures, `file_read_async` shall return `FILE_READ_ASYNC_ERROR`. **]**
+**SRS_FILE_LINUX_43_015: [** If there are any other failures, `file_read_async` shall return `FILE_READ_ASYNC_ERROR`. **]**
 
 
 ## file_extend
@@ -149,13 +157,20 @@ static void on_file_write_complete_linux( FILE_LINUX_WRITE* write_info);
 
 `on_file_write_complete_linux` is called when an asynchronous write operation completes. `on_file_write_complete_linux` calls the user-specified callback with the user-specified context and a bool indicating the success or failure of the asynchronous operation.
 
-**SRS_FILE_LINUX_43_047: [** If `write_info` is `NULL`, `on_file_write_complete_linux` shall call `user_report_fault_callback` with `user_report_fault_context`. **]**
+**SRS_FILE_LINUX_43_058: [** `on_file_write_complete_linux` shall decrement the pending asynchronous operations counter on the `FILE_HANDLE` contained in `write_info`. **]**
 
-**SRS_FILE_LINUX_43_021: [** `on_file_write_complete_linux` shall recover the `aiocb` struct that was used to create the current asynchronous write operation. **]**
+**SRS_FILE_LINUX_43_066: [** `on_file_write_complete_linux` shall wake all threads waiting on the address of the pending asynchronous operations counter. **]**
 
 **SRS_FILE_LINUX_43_022: [** `on_file_write_complete_linux` shall call `aio_return` to determine if the asynchronous write operation succeeded. **]**
 
-**SRS_FILE_LINUX_43_023: [** If the asynchronous write operation did not succeed, `on_file_io_complete_linux` shall call `user_callback` with `user_context` and `false` as `is_successful`. **]**
+**SRS_FILE_LINUX_43_062: [** `on_file_write_complete_linux` shall free the `aiocb` struct associated with the current asynchronous write operation. **]**
+
+**SRS_FILE_LINUX_43_063: [** `on_file_write_complete_linux` shall free `write_info`. **]**
+
+**SRS_FILE_LINUX_43_023: [** If the asynchronous write operation did not succeed, `on_file_write_complete_linux` shall call `user_callback` with `user_context` and `false` as `is_successful`. **]**
+
+**SRS_FILE_LINUX_43_064: [** If the number of bytes written are less than the bytes requested by the user, `on_file_write_complete_linux` shall call `user_callback` with `user_context` and `false` as `is_successful`. **]**
+
 
 **SRS_FILE_LINUX_43_027: [** If the asynchronous write operation succeeded, `on_file_write_complete_linux` shall call `user_callback` with `user_context` and `true` as `is_successful`. **]**
 
@@ -165,14 +180,21 @@ static void on_file_write_complete_linux( FILE_LINUX_WRITE* write_info);
 static void on_file_read_complete_linux( FILE_LINUX_READ* read_info);
 ```
 
-`on_file_read_complete_linux` is called when an asynchronous read operation completes. `on_file_write_complete_linux` calls the user-specified callback with the user-specified context and a bool indicating the success or failure of the asynchronous operation.
+`on_file_read_complete_linux` is called when an asynchronous read operation completes. `on_file_read_complete_linux` calls the user-specified callback with the user-specified context and a bool indicating the success or failure of the asynchronous operation.
 
-**SRS_FILE_LINUX_43_046: [** If `read_info` is `NULL`, `on_file_write_complete_linux` shall call `user_report_fault_callback` with `user_report_fault_context`. **]**
 
-**SRS_FILE_LINUX_43_039: [** `on_file_read_complete_linux` shall recover the `aiocb` struct that was used to create the current asynchronous read operation. **]**
+**SRS_FILE_LINUX_43_059: [** `on_file_read_complete_linux` shall decrement the pending asynchronous operations counter on the `FILE_HANDLE` contained in `read_info`. **]**
+
+**SRS_FILE_LINUX_43_067: [** `on_file_read_complete_linux` shall wake all threads waiting on the address of the pending asynchronous operations counter. **]**
 
 **SRS_FILE_LINUX_43_040: [** `on_file_read_complete_linux` shall call `aio_return` to determine if the asynchronous read operation succeeded. **]**
 
-**SRS_FILE_LINUX_43_041: [** If the asynchronous read operation did not succeed, `on_file_io_complete_linux` shall call `user_callback` with `user_context` and `false` as `is_successful`. **]**
+**SRS_FILE_LINUX_43_060: [** `on_file_read_complete_linux` shall free the `aiocb` struct associated with the current asynchronous read operation. **]**
+
+**SRS_FILE_LINUX_43_061: [** `on_file_read_complete_linux` shall free `read_info`. **]**
+
+**SRS_FILE_LINUX_43_041: [** If the asynchronous read operation did not succeed, `on_file_read_complete_linux` shall call `user_callback` with `user_context` and `false` as `is_successful`. **]**
+
+**SRS_FILE_LINUX_43_065: [** If the number of bytes read are less than the bytes requested by the user, `on_file_read_complete_linux` shall call `user_callback` with `user_context` and `false` as `is_successful`. **]**
 
 **SRS_FILE_LINUX_43_042: [** If the asynchronous read operation succeeded, `on_file_read_complete_linux` shall call `user_callback` with `user_context` and `false` as `is_successful`. **]**
