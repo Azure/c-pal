@@ -25,6 +25,7 @@ will interact with deallocated memory / resources resulting in an undefined beha
 #include "azure_macro_utils/macro_utils.h"
 
 // Include the platform-specific file that defines atomic functionality
+#include "azure_c_pal/gballoc.h"
 #include "azure_c_pal/interlocked.h"
 
 #ifdef __cplusplus

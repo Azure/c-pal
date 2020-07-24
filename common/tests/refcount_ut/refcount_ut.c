@@ -23,12 +23,17 @@ void my_gballoc_free(void* ptr)
 #include "testrunnerswitcher.h"
 #include "some_refcount_impl.h"
 #include "umock_c/umock_c.h"
-
-static TEST_MUTEX_HANDLE g_testByTest;
+#include "umock_c/umocktypes_stdint.h"
 
 #define ENABLE_MOCKS
-
+#include "umock_c/umock_c_prod.h"
+#include "azure_c_pal/interlocked.h"
 #include "azure_c_pal/gballoc.h"
+#undef ENABLE_MOCKS
+
+#include "real_interlocked.h"
+
+static TEST_MUTEX_HANDLE g_testByTest;
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
@@ -50,6 +55,10 @@ BEGIN_TEST_SUITE(refcount_unittests)
 
         REGISTER_GLOBAL_MOCK_HOOK(gballoc_malloc, my_gballoc_malloc);
         REGISTER_GLOBAL_MOCK_HOOK(gballoc_free, my_gballoc_free);
+
+        ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types());
+
+        REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK();
     }
 
     TEST_SUITE_CLEANUP(TestClassCleanup)
@@ -83,6 +92,7 @@ BEGIN_TEST_SUITE(refcount_unittests)
         ///arrange
         POS_HANDLE p;
         STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG));
+        STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
 
         ///act
         p = Pos_Create(4);
@@ -120,6 +130,7 @@ BEGIN_TEST_SUITE(refcount_unittests)
         ///arrange
         POS_HANDLE p;
         STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG));
+        STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
 
         ///act
         p = Pos_Create_With_Extra_Size(4, 42);
@@ -156,10 +167,12 @@ BEGIN_TEST_SUITE(refcount_unittests)
         ///arrange
         POS_HANDLE p;
         STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG));
+        STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
         p = Pos_Create(4);
         umock_c_reset_all_calls();
 
         ///act
+        STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
         STRICT_EXPECTED_CALL(gballoc_free(IGNORED_ARG));
         Pos_Destroy(p);
 
@@ -189,6 +202,7 @@ BEGIN_TEST_SUITE(refcount_unittests)
         clone_of_p = Pos_Clone(p);
         umock_c_reset_all_calls();
 
+        STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
         ///act
         Pos_Destroy(p);
 
@@ -209,6 +223,7 @@ BEGIN_TEST_SUITE(refcount_unittests)
         umock_c_reset_all_calls();
 
         ///act
+        STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
         STRICT_EXPECTED_CALL(gballoc_free(IGNORED_ARG));
         Pos_Destroy(clone_of_p);
 

@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include "azure_c_pal/refcount.h"
+#include "azure_c_pal/gballoc.h"
 #include "some_refcount_impl.h"
 
 typedef struct pos_TAG
