@@ -50,8 +50,6 @@ MOCKABLE_FUNCTION(, FILE_HANDLE, file_create,FILE_REPORT_FAULT, user_report_faul
 
 If a file by the name `full_file_name` does not exist, `file_create` creates a file by that name, opens it and returns its handle. If the file does exist, `file_create` opens the file and returns its handle. `file_create` shall register `user_report_fault_callback` with argument `user_report_fault_context` as the callback function to be called when the callback specified by the user for a specific asynchronous operation cannot be called.
 
-**SRS_FILE_43_033: [** If `execution_engine` is `NULL`, `file_create` shall fail and return `NULL`. **]**
-
 **SRS_FILE_43_002: [** If `full_file_name` is `NULL` then `file_create` shall fail and return `NULL`. **]**
 
 **SRS_FILE_43_037: [** If `full_file_name` is an empty string, `file_create` shall fail and return `NULL`. **]**
