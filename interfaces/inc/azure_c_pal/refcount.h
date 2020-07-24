@@ -26,7 +26,7 @@ will interact with deallocated memory / resources resulting in an undefined beha
 #include "azure_c_pal/gballoc.h"
 
 // Include the platform-specific file that defines atomic functionality
-#include "refcount_os.h"
+#include "azure_c_pal/interlocked.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -93,7 +93,7 @@ static void REFCOUNT_TYPE_DECLARE_DESTROY(type)(type* counted_type) \
 #define DEFINE_REFCOUNT_TYPE(type) \
 REFCOUNT_TYPE(type) \
 { \
-    COUNT_TYPE count; \
+    volatile_atomic int32_t count; \
     type counted; \
 }; \
 DEFINE_CREATE_WITH_EXTRA_SIZE(type) \
@@ -108,22 +108,9 @@ then in order to see "count" / "counted" this is a good string to paste in Visua
 
 */
 
-#ifndef DEC_RETURN_ZERO
-#error refcount_os.h does not define DEC_RETURN_ZERO
-#endif // !DEC_RETURN_ZERO
-#ifndef INC_REF_VAR
-#error refcount_os.h does not define INC_REF_VAR
-#endif // !INC_REF
-#ifndef DEC_REF_VAR
-#error refcount_os.h does not define DEC_REF_VAR
-#endif // !DEC_REF
-#ifndef INIT_REF_VAR
-#error refcount_os.h does not define INIT_REF_VAR
-#endif // !INIT_REF
-
-#define INC_REF(type, var) INC_REF_VAR(((REFCOUNT_TYPE(type)*)((unsigned char*)var - offsetof(REFCOUNT_TYPE(type), counted)))->count)
-#define DEC_REF(type, var) DEC_REF_VAR(((REFCOUNT_TYPE(type)*)((unsigned char*)var - offsetof(REFCOUNT_TYPE(type), counted)))->count)
-#define INIT_REF(type, var) INIT_REF_VAR(((REFCOUNT_TYPE(type)*)((unsigned char*)var - offsetof(REFCOUNT_TYPE(type), counted)))->count)
+#define INC_REF(type, var) interlocked_increment(&((REFCOUNT_TYPE(type)*)((unsigned char*)var - offsetof(REFCOUNT_TYPE(type), counted)))->count)
+#define DEC_REF(type, var) interlocked_decrement(&((REFCOUNT_TYPE(type)*)((unsigned char*)var - offsetof(REFCOUNT_TYPE(type), counted)))->count)
+#define INIT_REF(type, var) do { ((REFCOUNT_TYPE(type)*)((unsigned char*)var - offsetof(REFCOUNT_TYPE(type), counted)))->count  = 1; }while(0)
 
 #ifdef __cplusplus
 }
