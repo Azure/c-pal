@@ -2,4 +2,4 @@
 
 #include "real_interlocked_renames.h"
 
-#include "../../../win32/src/interlocked_win32.c"
+#include "../../../linux/src/interlocked_linux.c"
