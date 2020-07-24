@@ -263,6 +263,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HA
                 /*Codes_SRS_FILE_43_015: [ If there are any failures, file_write_async shall fail and return FILE_WRITE_ASYNC_ERROR. ]*/
                 /*Codes_SRS_FILE_LINUX_43_013: [ If there are any other failures, file_write_async shall return FILE_WRITE_ASYNC_ERROR. ]*/
                 LogError("Failure in malloc.");
+                callback_will_be_called = false;
                 result = FILE_WRITE_ASYNC_ERROR;
             }
             else
