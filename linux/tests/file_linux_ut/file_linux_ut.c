@@ -90,7 +90,7 @@ static FILE_HANDLE get_file_handle(const char* filename)
 }
 
 
-static FILE_HANDLE start_file_write_async(const unsigned char* buffer, uint32_t size, uint64_t position, FILE_CB user_callback, void* user_context, void** captured_aiocbp, void (**captured_callback)(__sigval_t), __sigval_t* captured_write_context)
+static FILE_HANDLE start_file_write_async(const unsigned char* buffer, uint32_t size, uint64_t position, FILE_CB user_callback, void* user_context, void** captured_aiocbp, void (**captured_callback)(sigval_t), sigval_t* captured_write_context)
 {
     FILE_HANDLE file_handle = get_file_handle("test_file.txt");
 
@@ -112,7 +112,7 @@ static FILE_HANDLE start_file_write_async(const unsigned char* buffer, uint32_t 
     return file_handle;
 }
 
-static FILE_HANDLE start_file_read_async(unsigned char* buffer, uint32_t size, uint64_t position, FILE_CB user_callback, void* user_context, void** captured_aiocbp, void (**captured_callback)(__sigval_t), __sigval_t* captured_read_context)
+static FILE_HANDLE start_file_read_async(unsigned char* buffer, uint32_t size, uint64_t position, FILE_CB user_callback, void* user_context, void** captured_aiocbp, void (**captured_callback)(sigval_t), sigval_t* captured_read_context)
 {
     FILE_HANDLE file_handle = get_file_handle("test_file.txt");
 
@@ -715,8 +715,8 @@ TEST_FUNCTION(on_file_write_complete_linux_calls_callback_successfully)
     void* user_context = (void*)20;
 
     void* captured_aiocbp;
-    void (*captured_callback)(__sigval_t);
-    __sigval_t captured_write_context;
+    void (*captured_callback)(sigval_t);
+    sigval_t captured_write_context;
 
     FILE_HANDLE file_handle = start_file_write_async(source, sizeof(source), position, mock_user_callback, user_context, &captured_aiocbp, &captured_callback, &captured_write_context);
 
@@ -758,8 +758,8 @@ TEST_FUNCTION(on_file_write_complete_linux_calls_callback_unsuccessfully_because
     void* user_context = (void*)20;
 
     void* captured_aiocbp;
-    void (*captured_callback)(__sigval_t);
-    __sigval_t captured_write_context;
+    void (*captured_callback)(sigval_t);
+    sigval_t captured_write_context;
 
     FILE_HANDLE file_handle = start_file_write_async(source, sizeof(source), position, mock_user_callback, user_context, &captured_aiocbp, &captured_callback, &captured_write_context);
 
@@ -799,8 +799,8 @@ TEST_FUNCTION(on_file_write_complete_linux_calls_callback_unsuccessfully_because
     void* user_context = (void*)20;
 
     void* captured_aiocbp;
-    void (*captured_callback)(__sigval_t);
-    __sigval_t captured_write_context;
+    void (*captured_callback)(sigval_t);
+    sigval_t captured_write_context;
 
     FILE_HANDLE file_handle = start_file_write_async(source, sizeof(source), position, mock_user_callback, user_context, &captured_aiocbp, &captured_callback, &captured_write_context);
 
@@ -840,8 +840,8 @@ TEST_FUNCTION(on_file_read_complete_linux_calls_callback_successfully)
     void* user_context = (void*)20;
 
     void* captured_aiocbp;
-    void (*captured_callback)(__sigval_t);
-    __sigval_t captured_write_context;
+    void (*captured_callback)(sigval_t);
+    sigval_t captured_write_context;
 
     FILE_HANDLE file_handle = start_file_read_async(source, sizeof(source), position, mock_user_callback, user_context, &captured_aiocbp, &captured_callback, &captured_write_context);
 
@@ -881,8 +881,8 @@ TEST_FUNCTION(on_file_read_complete_linux_calls_callback_unsuccessfully_because_
     void* user_context = (void*)20;
 
     void* captured_aiocbp;
-    void (*captured_callback)(__sigval_t);
-    __sigval_t captured_write_context;
+    void (*captured_callback)(sigval_t);
+    sigval_t captured_write_context;
 
     FILE_HANDLE file_handle = start_file_read_async(source, sizeof(source), position, mock_user_callback, user_context, &captured_aiocbp, &captured_callback, &captured_write_context);
 
@@ -922,8 +922,8 @@ TEST_FUNCTION(on_file_read_complete_linux_calls_callback_unsuccessfully_because_
     void* user_context = (void*)20;
 
     void* captured_aiocbp;
-    void (*captured_callback)(__sigval_t);
-    __sigval_t captured_write_context;
+    void (*captured_callback)(sigval_t);
+    sigval_t captured_write_context;
 
     FILE_HANDLE file_handle = start_file_read_async(source, sizeof(source), position, mock_user_callback, user_context, &captured_aiocbp, &captured_callback, &captured_write_context);
 
