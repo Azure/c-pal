@@ -47,7 +47,7 @@ typedef struct FILE_LINUX_READ_TAG
     uint32_t size;
 }FILE_LINUX_READ;
 
-static void on_file_write_complete_linux(__sigval_t sigval)
+static void on_file_write_complete_linux(sigval_t sigval)
 {
     FILE_LINUX_WRITE* write_info = (FILE_LINUX_WRITE*)sigval.sival_ptr;
     uint32_t size = write_info->size;
@@ -88,7 +88,7 @@ static void on_file_write_complete_linux(__sigval_t sigval)
     user_callback(user_context, succeeded);
 }
 
-static void on_file_read_complete_linux(__sigval_t sigval)
+static void on_file_read_complete_linux(sigval_t sigval)
 {
     FILE_LINUX_READ* read_info = (FILE_LINUX_READ*)sigval.sival_ptr;
     uint32_t size = read_info->size;
