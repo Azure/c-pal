@@ -15,9 +15,8 @@
 
 #define R2(X) REGISTER_GLOBAL_MOCK_HOOK(X, real_##X);
 
-#ifdef _WIN64 
-#define REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK()     \
-    MU_FOR_EACH_1(R2,                               \
+/*a list of interlocked APIs that are common on x86 and x64*/
+#define ALL_COMMON_APIS                             \
         interlocked_add                             ,\
         interlocked_add_64                          ,\
         interlocked_and                             ,\
@@ -25,7 +24,6 @@
         interlocked_and_64                          ,\
         interlocked_and_8                           ,\
         interlocked_compare_exchange                ,\
-        interlocked_compare_exchange_128            ,\
         interlocked_compare_exchange_16             ,\
         interlocked_compare_exchange_64             ,\
         interlocked_compare_exchange_pointer        ,\
@@ -50,43 +48,19 @@
         interlocked_xor_16                          ,\
         interlocked_xor_64                          ,\
         interlocked_xor_8                           \
-    )
+
+#ifdef _WIN64
+/*add interlocked_compare_exchange_128 to the list of APIs*/
+#define ALL_APIS ALL_COMMON_APIS, interlocked_compare_exchange_128
 #else
+/*for win32 there's no additional APIs*/
+#define ALL_APIS ALL_COMMON_APIS
+#endif
+
 #define REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK()     \
     MU_FOR_EACH_1(R2,                               \
-        interlocked_add                             ,\
-        interlocked_add_64                          ,\
-        interlocked_and                             ,\
-        interlocked_and_16                          ,\
-        interlocked_and_64                          ,\
-        interlocked_and_8                           ,\
-        interlocked_compare_exchange                ,\
-        interlocked_compare_exchange_16             ,\
-        interlocked_compare_exchange_64             ,\
-        interlocked_compare_exchange_pointer        ,\
-        interlocked_decrement                       ,\
-        interlocked_decrement_16                    ,\
-        interlocked_decrement_64                    ,\
-        interlocked_exchange                        ,\
-        interlocked_exchange_16                     ,\
-        interlocked_exchange_64                     ,\
-        interlocked_exchange_8                      ,\
-        interlocked_exchange_add                    ,\
-        interlocked_exchange_add_64                 ,\
-        interlocked_exchange_pointer                ,\
-        interlocked_increment                       ,\
-        interlocked_increment_16                    ,\
-        interlocked_increment_64                    ,\
-        interlocked_or                              ,\
-        interlocked_or_16                           ,\
-        interlocked_or_64                           ,\
-        interlocked_or_8                            ,\
-        interlocked_xor                             ,\
-        interlocked_xor_16                          ,\
-        interlocked_xor_64                          ,\
-        interlocked_xor_8                           \
+        ALL_APIS                                    \
     )
-#endif
 
 #ifdef __cplusplus
 extern "C" {

@@ -7,9 +7,6 @@
 #define interlocked_and_64                     real_interlocked_and_64
 #define interlocked_and_8                      real_interlocked_and_8
 #define interlocked_compare_exchange           real_interlocked_compare_exchange
-#ifdef _WIN64                          
-#define interlocked_compare_exchange_128       real_interlocked_compare_exchange_128
-#endif                                 
 #define interlocked_compare_exchange_16        real_interlocked_compare_exchange_16
 #define interlocked_compare_exchange_64        real_interlocked_compare_exchange_64
 #define interlocked_compare_exchange_pointer   real_interlocked_compare_exchange_pointer
