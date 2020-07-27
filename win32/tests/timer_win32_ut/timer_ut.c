@@ -29,8 +29,10 @@ static void my_gballoc_free(void* s)
 #include "azure_c_pal/timer.h"
 
 #define ENABLE_MOCKS
-#include "azure_c_pal/gballoc.h"
+#include "azure_c_pal/gballoc_ll.h"
 #undef ENABLE_MOCKS
+
+#include "azure_c_pal/gballoc_ll_renames.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -71,8 +73,8 @@ TEST_SUITE_INITIALIZE(suite_init)
     result = umocktypes_bool_register_types();
     ASSERT_ARE_EQUAL(int, 0, result, "umocktypes_bool_register_types failed");
 
-    REGISTER_GLOBAL_MOCK_HOOK(gballoc_malloc, my_gballoc_malloc);
-    REGISTER_GLOBAL_MOCK_HOOK(gballoc_free, my_gballoc_free);
+    REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_malloc, my_gballoc_malloc);
+    REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_free, my_gballoc_free);
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
