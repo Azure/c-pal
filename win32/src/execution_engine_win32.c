@@ -108,7 +108,7 @@ void execution_engine_dec_ref(EXECUTION_ENGINE_HANDLE execution_engine)
     else
     {
         /* Codes_SRS_EXECUTION_ENGINE_WIN32_03_001: [ Otherwise execution_engine_dec_ref shall decrement the refcount.]*/
-        if (DEC_REF(EXECUTION_ENGINE, execution_engine) == DEC_RETURN_ZERO)
+        if (DEC_REF(EXECUTION_ENGINE, execution_engine) == 0)
         {
             /* Codes_SRS_EXECUTION_ENGINE_WIN32_03_002: [ If the refcount is zero execution_engine_dec_ref shall close the threadpool. ]*/
             CloseThreadpool(execution_engine->ptp_pool);

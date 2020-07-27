@@ -3,20 +3,28 @@
 
 #include "testrunnerswitcher.h"
 
-#define REGISTER_GLOBAL_MOCK_HOOK(original, real) \
-    (original == real) ? (void)0 : (void)1;
-
 #include "azure_c_pal/threadapi.h"
 #include "azure_c_pal/srw_lock.h"
 #include "azure_c_pal/string_utils.h"
 #include "azure_c_pal/timer.h"
 #include "azure_c_pal/interlocked_hl.h"
+#include "azure_c_pal/interlocked.h"
+
+#include "azure_macro_utils/macro_utils.h"
+
+#ifdef REGISTER_GLOBAL_MOCK_HOOK
+#undef REGISTER_GLOBAL_MOCK_HOOK
+#endif 
+
+#define REGISTER_GLOBAL_MOCK_HOOK(original, real) \
+    (original == real) ? (void)0 : (void)1;
 
 #include "real_threadapi.h"
 #include "real_srw_lock.h"
 #include "real_string_utils.h"
 #include "real_timer.h"
 #include "real_interlocked_hl.h"
+#include "real_interlocked.h"
 
 BEGIN_TEST_SUITE(reals_win32_ut)
 
@@ -32,6 +40,7 @@ TEST_FUNCTION(check_all_c_pal_reals)
     REGISTER_STRING_UTILS_GLOBAL_MOCK_HOOK();
     REGISTER_TIMER_GLOBAL_MOCK_HOOK();
     REGISTER_INTERLOCKED_HL_GLOBAL_MOCK_HOOK();
+    REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK();
 
     // assert
     // no explicit assert, if it builds it works

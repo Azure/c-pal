@@ -16,6 +16,7 @@
 #include "azure_c_pal/gballoc_hl.h"
 
 #define ENABLE_MOCKS
+#include "umock_c/umock_c_prod.h"
 #include "azure_c_pal/gballoc_ll.h"
 #undef ENABLE_MOCKS
 

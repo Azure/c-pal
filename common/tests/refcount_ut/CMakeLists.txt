@@ -17,4 +17,4 @@ set(${theseTestsName}_h_files
     some_refcount_impl.h
 )
 
-build_c_tests(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS ${PAL_OS})
+build_c_tests(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS ${PAL_OS} azure_c_pal_reals)
