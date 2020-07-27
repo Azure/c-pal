@@ -11,8 +11,4 @@
 #define calloc gballoc_ll_calloc
 #define realloc gballoc_ll_realloc
 
-#ifdef __cplusplus
-}
-#endif
-
 #endif /* GBALLOC_LL_RENAMES_H */
