@@ -22,10 +22,12 @@ MOCKABLE_FUNCTION(, SRW_LOCK_HANDLE, srw_lock_create, bool, do_statistics, const
 
 /*writer APIs*/
 MOCKABLE_FUNCTION(, void, srw_lock_acquire_exclusive, SRW_LOCK_HANDLE, handle);
+MOCKABLE_FUNCTION(, int, srw_lock_try_acquire_exclusive, SRW_LOCK_HANDLE, handle);
 MOCKABLE_FUNCTION(, void, srw_lock_release_exclusive, SRW_LOCK_HANDLE, handle);
 
 /*reader APIs*/
 MOCKABLE_FUNCTION(, void, srw_lock_acquire_shared, SRW_LOCK_HANDLE, handle);
+MOCKABLE_FUNCTION(, int, srw_lock_try_acquire_shared, SRW_LOCK_HANDLE, handle);
 MOCKABLE_FUNCTION(, void, srw_lock_release_shared, SRW_LOCK_HANDLE, handle);
 
 MOCKABLE_FUNCTION(, void, srw_lock_destroy, SRW_LOCK_HANDLE, handle);

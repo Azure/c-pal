@@ -4,6 +4,8 @@
 #define srw_lock_create real_srw_lock_create
 #define srw_lock_destroy real_srw_lock_destroy
 #define srw_lock_acquire_exclusive real_srw_lock_acquire_exclusive
+#define srw_lock_try_acquire_exclusive real_srw_lock_try_acquire_exclusive
 #define srw_lock_release_exclusive real_srw_lock_release_exclusive
 #define srw_lock_acquire_shared real_srw_lock_acquire_shared
+#define srw_lock_try_acquire_shared real_srw_lock_try_acquire_shared
 #define srw_lock_release_shared real_srw_lock_release_shared
