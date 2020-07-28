@@ -24,6 +24,7 @@ static void my_gballoc_free(void* s)
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes.h"
+#include "umock_c/umocktypes_windows.h"
 
 #define ENABLE_MOCKS
 #include "azure_c_pal/gballoc.h"
@@ -35,8 +36,10 @@ extern "C"{
 
 MOCKABLE_FUNCTION(, void, mocked_InitializeSRWLock, PSRWLOCK, SRWLock);
 MOCKABLE_FUNCTION(, void, mocked_AcquireSRWLockExclusive, PSRWLOCK, SRWLock);
+MOCKABLE_FUNCTION(, BOOLEAN, mocked_TryAcquireSRWLockExclusive, PSRWLOCK, SRWLock);
 MOCKABLE_FUNCTION(, void, mocked_ReleaseSRWLockExclusive, PSRWLOCK, SRWLock);
 MOCKABLE_FUNCTION(, void, mocked_AcquireSRWLockShared, PSRWLOCK, SRWLock);
+MOCKABLE_FUNCTION(, BOOLEAN, mocked_TryAcquireSRWLockShared, PSRWLOCK, SRWLock);
 MOCKABLE_FUNCTION(, void, mocked_ReleaseSRWLockShared, PSRWLOCK, SRWLock);
 
 #ifdef __cplusplus
@@ -112,18 +115,19 @@ BEGIN_TEST_SUITE(srw_lock_unittests)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
-    int result;
-
     test_serialize_mutex = TEST_MUTEX_CREATE();
     ASSERT_IS_NOT_NULL(test_serialize_mutex);
 
-    result = umock_c_init(on_umock_c_error);
-    ASSERT_ARE_EQUAL(int, 0, result, "umock_c_init");
+    ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error), "umock_c_init");
+    ASSERT_ARE_EQUAL(int, 0, umocktypes_windows_register_types(), "umocktypes_windows_register_types");
 
     REGISTER_GLOBAL_MOCK_HOOK(gballoc_malloc, my_gballoc_malloc);
     REGISTER_GLOBAL_MOCK_HOOK(gballoc_free, my_gballoc_free);
     REGISTER_GLOBAL_MOCK_HOOK(timer_destroy, my_timer_destroy);
-    
+
+    REGISTER_GLOBAL_MOCK_RETURNS(mocked_TryAcquireSRWLockExclusive, TRUE, FALSE);
+    REGISTER_GLOBAL_MOCK_RETURNS(mocked_TryAcquireSRWLockShared, TRUE, FALSE);
+
     REGISTER_UMOCK_ALIAS_TYPE(TIMER_HANDLE, void*);
     REGISTER_UMOCK_ALIAS_TYPE(PSRWLOCK, void*);
     
@@ -151,6 +155,7 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
     TEST_MUTEX_RELEASE(test_serialize_mutex);
 }
 
+/* srw_lock_create */
 
 /*Tests_SRS_SRW_LOCK_02_001: [ srw_lock_create shall allocate memory for SRW_LOCK_HANDLE. ]*/
 /*Tests_SRS_SRW_LOCK_02_023: [ If do_statistics is true then srw_lock_create shall copy lock_name. ]*/
@@ -259,6 +264,8 @@ TEST_FUNCTION(srw_lock_create_fails_3)
     ///clean
 }
 
+/* srw_lock_acquire_exclusive */
+
 /*Tests_SRS_SRW_LOCK_02_022: [ If handle is NULL then srw_lock_acquire_exclusive shall return. ]*/
 TEST_FUNCTION(srw_lock_acquire_exclusive_with_handle_NULL_returns)
 {
@@ -338,6 +345,114 @@ TEST_FUNCTION(srw_lock_acquire_exclusive_restarts_timer_succeeds)
     srw_lock_destroy(bsdlLock);
 }
 
+/* srw_lock_try_acquire_exclusive */
+
+/* Tests_SRS_SRW_LOCK_01_006: [ If handle is NULL then srw_lock_try_acquire_exclusive shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(srw_lock_try_acquire_exclusive_with_handle_NULL_returns)
+{
+    ///arrange
+
+    ///act
+    int result = srw_lock_try_acquire_exclusive(NULL);
+
+    ///assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_SRS_SRW_LOCK_01_007: [ Otherwise srw_lock_acquire_exclusive shall call TryAcquireSRWLockExclusive. ]*/
+/*Tests_SRS_SRW_LOCK_01_009: [ If TryAcquireSRWLockExclusive returns TRUE, srw_lock_acquire_exclusive shall return 0. ]*/
+/*Tests_SRS_SRW_LOCK_01_010: [ If do_statistics is true and if the timer created has recorded more than TIME_BETWEEN_STATISTICS_LOG seconds then statistics will be logged and the timer shall be started again. ]*/
+TEST_FUNCTION(srw_lock_try_acquire_exclusive_succeeds)
+{
+    ///arrange
+    SRW_LOCK_HANDLE bsdlLock = TEST_srw_lock_create(true, "test_lock");
+
+    STRICT_EXPECTED_CALL(mocked_TryAcquireSRWLockExclusive(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(timer_get_elapsed(IGNORED_ARG))
+        .SetReturn(0);
+
+    ///act
+    int result = srw_lock_try_acquire_exclusive(bsdlLock);
+
+    ///assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    srw_lock_release_exclusive(bsdlLock);
+    srw_lock_destroy(bsdlLock);
+}
+
+/*Tests_SRS_SRW_LOCK_01_007: [ Otherwise srw_lock_acquire_exclusive shall call TryAcquireSRWLockExclusive. ]*/
+/*Tests_SRS_SRW_LOCK_01_009: [ If TryAcquireSRWLockExclusive returns TRUE, srw_lock_acquire_exclusive shall return 0. ]*/
+/*Tests_SRS_SRW_LOCK_01_010: [ If do_statistics is true and if the timer created has recorded more than TIME_BETWEEN_STATISTICS_LOG seconds then statistics will be logged and the timer shall be started again. ]*/
+TEST_FUNCTION(srw_lock_try_acquire_exclusive_with_do_statistics_false_succeeds)
+{
+    ///arrange
+    SRW_LOCK_HANDLE bsdlLock = TEST_srw_lock_create(false, "test_lock");
+
+    STRICT_EXPECTED_CALL(mocked_TryAcquireSRWLockExclusive(IGNORED_ARG));
+
+    ///act
+    int result = srw_lock_try_acquire_exclusive(bsdlLock);
+
+    ///assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    srw_lock_release_exclusive(bsdlLock);
+    srw_lock_destroy(bsdlLock);
+}
+
+
+/*Tests_SRS_SRW_LOCK_02_025: [ If do_statistics is true and if the timer created has recorded more than TIME_BETWEEN_STATISTICS_LOG seconds then statistics will be logged and the timer shall be started again. ]*/
+TEST_FUNCTION(srw_lock_try_acquire_exclusive_restarts_timer_succeeds)
+{
+    ///arrange
+    SRW_LOCK_HANDLE bsdlLock = TEST_srw_lock_create(true, "test_lock");
+
+    STRICT_EXPECTED_CALL(mocked_TryAcquireSRWLockExclusive(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(timer_get_elapsed(IGNORED_ARG))
+        .SetReturn(10000);
+    STRICT_EXPECTED_CALL(timer_start(IGNORED_ARG));
+
+    ///act
+    int result = srw_lock_try_acquire_exclusive(bsdlLock);
+
+    ///assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    srw_lock_release_exclusive(bsdlLock);
+    srw_lock_destroy(bsdlLock);
+}
+
+/* Tests_SRS_SRW_LOCK_01_008: [ If TryAcquireSRWLockExclusive returns FALSE, srw_lock_acquire_exclusive shall return a non-zero value. ]*/
+TEST_FUNCTION(when_underlying_TryAcquireSRWLockExclusive_returns_FALSE_srw_lock_try_acquire_exclusive_returns_non_zero_and_does_no_time_measurement)
+{
+    ///arrange
+    SRW_LOCK_HANDLE bsdlLock = TEST_srw_lock_create(true, "test_lock");
+
+    STRICT_EXPECTED_CALL(mocked_TryAcquireSRWLockExclusive(IGNORED_ARG))
+        .SetReturn(FALSE);
+
+    ///act
+    int result = srw_lock_try_acquire_exclusive(bsdlLock);
+
+    ///assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    srw_lock_release_exclusive(bsdlLock);
+    srw_lock_destroy(bsdlLock);
+}
+
+/* srw_lock_release_exclusive */
+
 /*Tests_SRS_SRW_LOCK_02_009: [ If handle is NULL then srw_lock_release_exclusive shall return. ]*/
 TEST_FUNCTION(srw_lock_release_exclusive_with_handle_NULL_returns)
 {
@@ -372,6 +487,7 @@ TEST_FUNCTION(srw_lock_release_exclusive_succeeds)
     srw_lock_destroy(bsdlLock);
 }
 
+/* srw_lock_destroy */
 
 /*Tests_SRS_SRW_LOCK_02_011: [ If handle is NULL then srw_lock_destroy shall return. ]*/
 TEST_FUNCTION(srw_lock_destroy_with_handle_NULL_returns)
@@ -400,6 +516,8 @@ TEST_FUNCTION(srw_lock_destroy_free_used_resources)
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
+
+/* srw_lock_acquire_shared */
 
 /*Tests_SRS_SRW_LOCK_02_017: [ If handle is NULL then srw_lock_acquire_shared shall return. ]*/
 TEST_FUNCTION(srw_lock_acquire_shared_with_handle_NULL_returns)
@@ -476,6 +594,114 @@ TEST_FUNCTION(srw_lock_acquire_shared_with_do_statistic_false_succeeds)
     srw_lock_release_shared(bsdlLock);
     srw_lock_destroy(bsdlLock);
 }
+
+/* srw_lock_try_acquire_shared */
+
+/* Tests_SRS_SRW_LOCK_01_001: [ If handle is NULL then srw_lock_try_acquire_shared shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(srw_lock_try_acquire_shared_with_handle_NULL_returns)
+{
+    ///arrange
+
+    ///act
+    int result = srw_lock_try_acquire_shared(NULL);
+
+    ///assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_SRS_SRW_LOCK_01_002: [ Otherwise srw_lock_try_acquire_shared shall call TryAcquireSRWLockShared. ]*/
+/*Tests_SRS_SRW_LOCK_01_004: [ If TryAcquireSRWLockShared returns TRUE, srw_lock_try_acquire_shared shall return 0. ]*/
+/*Tests_SRS_SRW_LOCK_01_005: [ If do_statistics is true and the timer created has recorded more than TIME_BETWEEN_STATISTICS_LOG seconds then statistics will be logged and the timer shall be started again. ]*/
+TEST_FUNCTION(srw_lock_try_acquire_shared_succeeds)
+{
+    ///arrange
+    SRW_LOCK_HANDLE bsdlLock = TEST_srw_lock_create(true, "test_lock");
+
+    STRICT_EXPECTED_CALL(mocked_TryAcquireSRWLockShared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(timer_get_elapsed(IGNORED_ARG))
+        .SetReturn(0);
+
+    ///act
+    int result = srw_lock_try_acquire_shared(bsdlLock);
+
+    ///assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    srw_lock_release_shared(bsdlLock);
+    srw_lock_destroy(bsdlLock);
+}
+
+/*Tests_SRS_SRW_LOCK_01_007: [ Otherwise srw_lock_acquire_shared shall call TryAcquireSRWLockShared. ]*/
+/*Tests_SRS_SRW_LOCK_01_004: [ If TryAcquireSRWLockShared returns TRUE, srw_lock_try_acquire_shared shall return 0. ]*/
+/*Tests_SRS_SRW_LOCK_01_005: [ If do_statistics is true and the timer created has recorded more than TIME_BETWEEN_STATISTICS_LOG seconds then statistics will be logged and the timer shall be started again. ]*/
+TEST_FUNCTION(srw_lock_try_acquire_shared_with_do_statistics_false_succeeds)
+{
+    ///arrange
+    SRW_LOCK_HANDLE bsdlLock = TEST_srw_lock_create(false, "test_lock");
+
+    STRICT_EXPECTED_CALL(mocked_TryAcquireSRWLockShared(IGNORED_ARG));
+
+    ///act
+    int result = srw_lock_try_acquire_shared(bsdlLock);
+
+    ///assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    srw_lock_release_shared(bsdlLock);
+    srw_lock_destroy(bsdlLock);
+}
+
+
+/*Tests_SRS_SRW_LOCK_01_005: [ If do_statistics is true and the timer created has recorded more than TIME_BETWEEN_STATISTICS_LOG seconds then statistics will be logged and the timer shall be started again. ]*/
+TEST_FUNCTION(srw_lock_try_acquire_shared_restarts_timer_succeeds)
+{
+    ///arrange
+    SRW_LOCK_HANDLE bsdlLock = TEST_srw_lock_create(true, "test_lock");
+
+    STRICT_EXPECTED_CALL(mocked_TryAcquireSRWLockShared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(timer_get_elapsed(IGNORED_ARG))
+        .SetReturn(10000);
+    STRICT_EXPECTED_CALL(timer_start(IGNORED_ARG));
+
+    ///act
+    int result = srw_lock_try_acquire_shared(bsdlLock);
+
+    ///assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    srw_lock_release_shared(bsdlLock);
+    srw_lock_destroy(bsdlLock);
+}
+
+/* Tests_SRS_SRW_LOCK_01_003: [ If TryAcquireSRWLockShared returns FALSE, srw_lock_try_acquire_shared shall return a non-zero value. ]*/
+TEST_FUNCTION(when_underlying_TryAcquireSRWLockShared_returns_FALSE_srw_lock_try_acquire_shared_returns_non_zero_and_does_no_time_measurement)
+{
+    ///arrange
+    SRW_LOCK_HANDLE bsdlLock = TEST_srw_lock_create(true, "test_lock");
+
+    STRICT_EXPECTED_CALL(mocked_TryAcquireSRWLockShared(IGNORED_ARG))
+        .SetReturn(FALSE);
+
+    ///act
+    int result = srw_lock_try_acquire_shared(bsdlLock);
+
+    ///assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    srw_lock_release_shared(bsdlLock);
+    srw_lock_destroy(bsdlLock);
+}
+
+/* srw_lock_release_shared */
 
 /*Tests_SRS_SRW_LOCK_02_020: [ If handle is NULL then srw_lock_release_shared shall return. ]*/
 TEST_FUNCTION(srw_lock_release_shared_with_handle_NULL_returns)
