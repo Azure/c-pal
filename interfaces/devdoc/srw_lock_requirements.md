@@ -104,7 +104,7 @@ MOCKABLE_FUNCTION(, void, srw_lock_acquire_shared, SRW_LOCK_HANDLE, handle);
 MOCKABLE_FUNCTION(, int, srw_lock_try_acquire_shared, SRW_LOCK_HANDLE, handle);
 ```
 
-`srw_lock_try_acquire_shared` attempts to acquires the SRWLOCK in shared (read) mode.
+`srw_lock_try_acquire_shared` attempts to acquire the SRWLOCK in shared (read) mode.
 
 **SRS_SRW_LOCK_01_001: [** If `handle` is `NULL` then `srw_lock_try_acquire_shared` shall fail and return a non-zero value. **]**
 

@@ -175,6 +175,63 @@ allOk:;
     
 }
 
+static void do_start_statistics(SRW_LOCK_HANDLE handle, LARGE_INTEGER* start)
+{
+    if (handle->doStatistics)
+    {
+        (void)QueryPerformanceCounter(start);
+    }
+}
+
+static void do_stop_statistics_acquire_exclusive(SRW_LOCK_HANDLE handle, LARGE_INTEGER* start)
+{
+    LARGE_INTEGER stop;
+
+    if (handle->doStatistics)
+    {
+        (void)QueryPerformanceCounter(&stop); /*measure acquire time*/
+
+        (void)InterlockedIncrement64(&handle->nCalls_AcquireSRWLockExclusive);
+        (void)InterlockedAdd64(&handle->totalCounts_AcquireSRWLockExclusive, stop.QuadPart - start->QuadPart);
+
+        /*piggyback on the lock itself to print the statistics "until now" - note - does not include the current Lock call*/
+        if (timer_get_elapsed(handle->timer) >= TIME_BETWEEN_STATISTICS_LOG)
+        {
+            timer_start(handle->timer);
+            LogStatistics(handle, "periodic logging almost every " MU_TOSTRING(TIME_BETWEEN_STATISTICS_LOG) " seconds");
+        }
+
+        (void)InterlockedExchange64(&handle->lastCount_AcquireSRWLockExclusive, stop.QuadPart);
+    }
+}
+
+static void do_stop_statistics_acquire_shared(SRW_LOCK_HANDLE handle, LARGE_INTEGER* start)
+{
+    LARGE_INTEGER stop;
+
+    if (handle->doStatistics)
+    {
+        (void)QueryPerformanceCounter(&stop); /*measure acquire time*/
+
+        /*there is one more shared reader*/
+        /*is this the first reader?*/
+        if (InterlockedIncrement(&handle->nSharedReaders) == 1)
+        {
+            (void)InterlockedExchange64(&handle->firstCount_AcquireSRWLockShared, stop.QuadPart);
+        }
+
+        (void)InterlockedIncrement64(&handle->nCalls_AcquireSRWLockShared);
+        (void)InterlockedAdd64(&handle->totalCounts_AcquireSRWLockShared, stop.QuadPart - start->QuadPart);
+
+        /*Codes_SRS_SRW_LOCK_02_026: [ If do_statistics is true and the timer created has recorded more than TIME_BETWEEN_STATISTICS_LOG seconds then statistics will be logged and the timer shall be started again. ]*/
+        if (timer_get_elapsed(handle->timer) >= TIME_BETWEEN_STATISTICS_LOG)
+        {
+            timer_start(handle->timer);
+            LogStatistics(handle, "periodic logging almost every " MU_TOSTRING(TIME_BETWEEN_STATISTICS_LOG) " seconds");
+        }
+    }
+}
+
 void srw_lock_acquire_exclusive(SRW_LOCK_HANDLE handle)
 {
     /*Codes_SRS_SRW_LOCK_02_022: [ If handle is NULL then srw_lock_acquire_exclusive shall return. ]*/
@@ -190,24 +247,15 @@ void srw_lock_acquire_exclusive(SRW_LOCK_HANDLE handle)
         }
         else
         {
-            LARGE_INTEGER start, stop;
-            (void)QueryPerformanceCounter(&start);
+            LARGE_INTEGER start;
+
+            do_start_statistics(handle, &start);
+
             /*Codes_SRS_SRW_LOCK_02_006: [ srw_lock_acquire_exclusive shall call AcquireSRWLockExclusive. ]*/
             AcquireSRWLockExclusive(&handle->lock);
-            (void)QueryPerformanceCounter(&stop); /*measure acquire time*/
 
-            (void)InterlockedIncrement64(&handle->nCalls_AcquireSRWLockExclusive);
-            (void)InterlockedAdd64(&handle->totalCounts_AcquireSRWLockExclusive, stop.QuadPart - start.QuadPart);
-
-            /*piggyback on the lock itself to print the statistics "until now" - note - does not include the current Lock call*/
             /*Codes_SRS_SRW_LOCK_02_025: [ If do_statistics is true and if the timer created has recorded more than TIME_BETWEEN_STATISTICS_LOG seconds then statistics will be logged and the timer shall be started again. ]*/
-            if (timer_get_elapsed(handle->timer) >= TIME_BETWEEN_STATISTICS_LOG)
-            {
-                timer_start(handle->timer);
-                LogStatistics(handle, "periodic logging almost every " MU_TOSTRING(TIME_BETWEEN_STATISTICS_LOG) " seconds");
-            }
-
-            (void)InterlockedExchange64(&handle->lastCount_AcquireSRWLockExclusive, stop.QuadPart);
+            do_stop_statistics_acquire_exclusive(handle, &start);
         }
     }
 }
@@ -224,12 +272,9 @@ int srw_lock_try_acquire_exclusive(SRW_LOCK_HANDLE handle)
     }
     else
     {
-        LARGE_INTEGER start = { 0 }, stop;
+        LARGE_INTEGER start = { 0 };
 
-        if (handle->doStatistics)
-        {
-            (void)QueryPerformanceCounter(&start);
-        }
+        do_start_statistics(handle, &start);
 
         /*Codes_SRS_SRW_LOCK_01_007: [ Otherwise srw_lock_acquire_exclusive shall call TryAcquireSRWLockExclusive. ]*/
         if (!TryAcquireSRWLockExclusive(&handle->lock))
@@ -239,23 +284,8 @@ int srw_lock_try_acquire_exclusive(SRW_LOCK_HANDLE handle)
         }
         else
         {
-            /*Codes_SRS_SRW_LOCK_01_010: [ If do_statistics is true and if the timer created has recorded more than TIME_BETWEEN_STATISTICS_LOG seconds then statistics will be logged and the timer shall be started again. ]*/
-            if (handle->doStatistics)
-            {
-                (void)QueryPerformanceCounter(&stop); /*measure acquire time*/
-
-                (void)InterlockedIncrement64(&handle->nCalls_AcquireSRWLockExclusive);
-                (void)InterlockedAdd64(&handle->totalCounts_AcquireSRWLockExclusive, stop.QuadPart - start.QuadPart);
-
-                /*piggyback on the lock itself to print the statistics "until now" - note - does not include the current Lock call*/
-                if (timer_get_elapsed(handle->timer) >= TIME_BETWEEN_STATISTICS_LOG)
-                {
-                    timer_start(handle->timer);
-                    LogStatistics(handle, "periodic logging almost every " MU_TOSTRING(TIME_BETWEEN_STATISTICS_LOG) " seconds");
-                }
-
-                (void)InterlockedExchange64(&handle->lastCount_AcquireSRWLockExclusive, stop.QuadPart);
-            }
+            /*Codes_SRS_SRW_LOCK_01_010: [ If do_statistics is true and if the timer created has recorded more than TIME_BETWEEN_STATISTICS_LOG seconds then statistics will be logged and the timer shall be started again. ]*/\
+            do_stop_statistics_acquire_exclusive(handle, &start);
 
             /*Codes_SRS_SRW_LOCK_01_009: [ If TryAcquireSRWLockExclusive returns TRUE, srw_lock_acquire_exclusive shall return 0. ]*/
             result = 0;
@@ -311,29 +341,15 @@ void srw_lock_acquire_shared(SRW_LOCK_HANDLE handle)
         }
         else
         {
-            LARGE_INTEGER start, stop;
+            LARGE_INTEGER start;
 
-            (void)QueryPerformanceCounter(&start);
+            do_start_statistics(handle, &start);
+
             /*Codes_SRS_SRW_LOCK_02_018: [ srw_lock_acquire_shared shall call AcquireSRWLockShared. ]*/
             AcquireSRWLockShared(&handle->lock);
-            (void)QueryPerformanceCounter(&stop); /*measure acquire time*/
-
-            /*there is one more shared reader*/
-            /*is this the first reader?*/
-            if (InterlockedIncrement(&handle->nSharedReaders) == 1)
-            {
-                (void)InterlockedExchange64(&handle->firstCount_AcquireSRWLockShared, stop.QuadPart);
-            }
-
-            (void)InterlockedIncrement64(&handle->nCalls_AcquireSRWLockShared);
-            (void)InterlockedAdd64(&handle->totalCounts_AcquireSRWLockShared, stop.QuadPart - start.QuadPart);
 
             /*Codes_SRS_SRW_LOCK_02_026: [ If do_statistics is true and the timer created has recorded more than TIME_BETWEEN_STATISTICS_LOG seconds then statistics will be logged and the timer shall be started again. ]*/
-            if (timer_get_elapsed(handle->timer) >= TIME_BETWEEN_STATISTICS_LOG)
-            {
-                timer_start(handle->timer);
-                LogStatistics(handle, "periodic logging almost every " MU_TOSTRING(TIME_BETWEEN_STATISTICS_LOG) " seconds");
-            }
+            do_stop_statistics_acquire_shared(handle, &start);
         }
     }
 }
@@ -350,12 +366,9 @@ int srw_lock_try_acquire_shared(SRW_LOCK_HANDLE handle)
     }
     else
     {
-        LARGE_INTEGER start = { 0 }, stop;
+        LARGE_INTEGER start = { 0 };
 
-        if (handle->doStatistics)
-        {
-            (void)QueryPerformanceCounter(&start);
-        }
+        do_start_statistics(handle, &start);
 
         /*Codes_SRS_SRW_LOCK_01_002: [ Otherwise srw_lock_try_acquire_shared shall call TryAcquireSRWLockShared. ]*/
         if (!TryAcquireSRWLockShared(&handle->lock))
@@ -366,27 +379,7 @@ int srw_lock_try_acquire_shared(SRW_LOCK_HANDLE handle)
         else
         {
             /*Codes_SRS_SRW_LOCK_01_005: [ If do_statistics is true and the timer created has recorded more than TIME_BETWEEN_STATISTICS_LOG seconds then statistics will be logged and the timer shall be started again. ]*/
-            if (handle->doStatistics)
-            {
-                (void)QueryPerformanceCounter(&stop); /*measure acquire time*/
-
-                /*there is one more shared reader*/
-                /*is this the first reader?*/
-                if (InterlockedIncrement(&handle->nSharedReaders) == 1)
-                {
-                    (void)InterlockedExchange64(&handle->firstCount_AcquireSRWLockShared, stop.QuadPart);
-                }
-
-                (void)InterlockedIncrement64(&handle->nCalls_AcquireSRWLockShared);
-                (void)InterlockedAdd64(&handle->totalCounts_AcquireSRWLockShared, stop.QuadPart - start.QuadPart);
-
-                /*Codes_SRS_SRW_LOCK_02_026: [ If do_statistics is true and the timer created has recorded more than TIME_BETWEEN_STATISTICS_LOG seconds then statistics will be logged and the timer shall be started again. ]*/
-                if (timer_get_elapsed(handle->timer) >= TIME_BETWEEN_STATISTICS_LOG)
-                {
-                    timer_start(handle->timer);
-                    LogStatistics(handle, "periodic logging almost every " MU_TOSTRING(TIME_BETWEEN_STATISTICS_LOG) " seconds");
-                }
-            }
+            do_stop_statistics_acquire_shared(handle, &start);
 
             /*Codes_SRS_SRW_LOCK_01_004: [ If TryAcquireSRWLockShared returns TRUE, srw_lock_try_acquire_shared shall return 0. ]*/
             result = 0;
