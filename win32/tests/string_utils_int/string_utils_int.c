@@ -23,7 +23,7 @@ BEGIN_TEST_SUITE(string_utils_int_tests)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
-    gballoc_hl_init(NULL, NULL);
+    ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
