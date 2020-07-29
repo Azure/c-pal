@@ -11,12 +11,12 @@
 
 #include "azure_macro_utils/macro_utils.h"
 
-static void* my_gballoc_malloc(size_t size)
+static void* my_malloc(size_t size)
 {
     return malloc(size);
 }
 
-static void my_gballoc_free(void* s)
+static void my_free(void* s)
 {
     free(s);
 }
@@ -26,7 +26,8 @@ static void my_gballoc_free(void* s)
 #include "umock_c/umocktypes.h"
 
 #define ENABLE_MOCKS
-#include "azure_c_pal/gballoc.h"
+#include "azure_c_pal/gballoc_hl.h"
+#include "azure_c_pal/gballoc_hl_redirect.h"
 #include "azure_c_pal/timer.h"
 
 #ifdef __cplusplus
@@ -58,18 +59,18 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 
 static void my_timer_destroy(TIMER_HANDLE timer)
 {
-    my_gballoc_free(timer);
+    my_free(timer);
 }
 
 static SRW_LOCK_HANDLE TEST_srw_lock_create(bool do_statistics, const char* lock_name)
 {
     SRW_LOCK_HANDLE result;
-    STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     if (do_statistics)
     {
-        STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG));
+        STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
         STRICT_EXPECTED_CALL(timer_create())
-            .SetReturn((TIMER_HANDLE)my_gballoc_malloc(2));
+            .SetReturn((TIMER_HANDLE)my_malloc(2));
     }
     STRICT_EXPECTED_CALL(mocked_InitializeSRWLock(IGNORED_ARG));
     result = srw_lock_create(do_statistics, lock_name);
@@ -120,8 +121,8 @@ TEST_SUITE_INITIALIZE(suite_init)
     result = umock_c_init(on_umock_c_error);
     ASSERT_ARE_EQUAL(int, 0, result, "umock_c_init");
 
-    REGISTER_GLOBAL_MOCK_HOOK(gballoc_malloc, my_gballoc_malloc);
-    REGISTER_GLOBAL_MOCK_HOOK(gballoc_free, my_gballoc_free);
+    REGISTER_GLOBAL_MOCK_HOOK(malloc, my_malloc);
+    REGISTER_GLOBAL_MOCK_HOOK(free, my_free);
     REGISTER_GLOBAL_MOCK_HOOK(timer_destroy, my_timer_destroy);
     
     REGISTER_UMOCK_ALIAS_TYPE(TIMER_HANDLE, void*);
@@ -161,10 +162,10 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 TEST_FUNCTION(srw_lock_create_succeeds)
 {
     ///arrange
-    STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(timer_create())
-        .SetReturn((TIMER_HANDLE)my_gballoc_malloc(2));
+        .SetReturn((TIMER_HANDLE)my_malloc(2));
     STRICT_EXPECTED_CALL(mocked_InitializeSRWLock(IGNORED_ARG));
 
     ///act
@@ -187,7 +188,7 @@ TEST_FUNCTION(srw_lock_create_succeeds)
 TEST_FUNCTION(srw_lock_create_with_do_statistics_false_succeeds)
 {
     ///arrange
-    STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_InitializeSRWLock(IGNORED_ARG));
 
     ///act
@@ -206,12 +207,12 @@ TEST_FUNCTION(srw_lock_create_with_do_statistics_false_succeeds)
 TEST_FUNCTION(srw_lock_create_fails_1)
 {
     ///arrange
-    STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(timer_create())
         .SetReturn(NULL);
-    STRICT_EXPECTED_CALL(gballoc_free(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(gballoc_free(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
     ///act
     SRW_LOCK_HANDLE bsdlLock = srw_lock_create(true, "test_lock");
@@ -227,10 +228,10 @@ TEST_FUNCTION(srw_lock_create_fails_1)
 TEST_FUNCTION(srw_lock_create_fails_2)
 {
     ///arrange
-    STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG))
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG))
         .SetReturn(NULL);
-    STRICT_EXPECTED_CALL(gballoc_free(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
     ///act
     SRW_LOCK_HANDLE bsdlLock = srw_lock_create(true, "test_lock");
@@ -246,7 +247,7 @@ TEST_FUNCTION(srw_lock_create_fails_2)
 TEST_FUNCTION(srw_lock_create_fails_3)
 {
     ///arrange
-    STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG))
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG))
         .SetReturn(NULL);
 
     ///act
@@ -391,8 +392,8 @@ TEST_FUNCTION(srw_lock_destroy_free_used_resources)
     SRW_LOCK_HANDLE bsdlLock = TEST_srw_lock_create(true, "test_lock");
     
     STRICT_EXPECTED_CALL(timer_destroy(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(gballoc_free(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(gballoc_free(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
     ///act
     srw_lock_destroy(bsdlLock);

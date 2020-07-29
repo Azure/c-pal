@@ -29,7 +29,8 @@ void real_free(void* ptr)
 
 #define ENABLE_MOCKS
 
-#include "azure_c_pal/gballoc.h"
+#include "azure_c_pal/gballoc_hl.h"
+#include "azure_c_pal/gballoc_hl_redirect.h"
 
 #undef ENABLE_MOCKS
 
@@ -126,7 +127,7 @@ TEST_FUNCTION(execution_engine_create_with_NULL_arguments_uses_Defaults)
         .CaptureReturn(&ptp_pool);
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolThreadMinimum(IGNORED_ARG, DEFAULT_MIN_THREAD_COUNT))
         .ValidateArgumentValue_ptpp(&ptp_pool);
-    STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
 
     // act
     execution_engine = execution_engine_create(NULL);
@@ -155,7 +156,7 @@ TEST_FUNCTION(execution_engine_create_succeeds)
         .CaptureReturn(&ptp_pool);
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolThreadMinimum(IGNORED_ARG, 1))
         .ValidateArgumentValue_ptpp(&ptp_pool);
-    STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
 
     // act
     execution_engine = execution_engine_create(&execution_engine_params_win32);
@@ -182,7 +183,7 @@ TEST_FUNCTION(execution_engine_create_with_max_thread_count_succeeds)
         .ValidateArgumentValue_ptpp(&ptp_pool);
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolThreadMaximum(IGNORED_ARG, 42))
         .ValidateArgumentValue_ptpp(&ptp_pool);
-    STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
 
     // act
     execution_engine = execution_engine_create(&execution_engine_params_win32);
@@ -303,7 +304,7 @@ TEST_FUNCTION(execution_engine_dec_ref_frees_resources)
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(mocked_CloseThreadpool(ptp_pool));
-    STRICT_EXPECTED_CALL(gballoc_free(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
     // act
     execution_engine_dec_ref(execution_engine);

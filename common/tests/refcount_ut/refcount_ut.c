@@ -9,12 +9,12 @@
 #include <stddef.h>
 #endif
 
-void* my_gballoc_malloc(size_t size)
+void* my_malloc(size_t size)
 {
     return malloc(size);
 }
 
-void my_gballoc_free(void* ptr)
+void my_free(void* ptr)
 {
     free(ptr);
 }
@@ -28,7 +28,8 @@ void my_gballoc_free(void* ptr)
 #define ENABLE_MOCKS
 #include "umock_c/umock_c_prod.h"
 #include "azure_c_pal/interlocked.h"
-#include "azure_c_pal/gballoc.h"
+#include "azure_c_pal/gballoc_hl.h"
+#include "azure_c_pal/gballoc_hl_redirect.h"
 #undef ENABLE_MOCKS
 
 #include "real_interlocked.h"
@@ -53,8 +54,8 @@ BEGIN_TEST_SUITE(refcount_unittests)
 
         REGISTER_UMOCK_ALIAS_TYPE(POS_HANDLE, void*);
 
-        REGISTER_GLOBAL_MOCK_HOOK(gballoc_malloc, my_gballoc_malloc);
-        REGISTER_GLOBAL_MOCK_HOOK(gballoc_free, my_gballoc_free);
+        REGISTER_GLOBAL_MOCK_HOOK(malloc, my_malloc);
+        REGISTER_GLOBAL_MOCK_HOOK(free, my_free);
 
         ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types());
 
@@ -91,7 +92,7 @@ BEGIN_TEST_SUITE(refcount_unittests)
     {
         ///arrange
         POS_HANDLE p;
-        STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG));
+        STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
         STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
 
         ///act
@@ -110,7 +111,7 @@ BEGIN_TEST_SUITE(refcount_unittests)
     {
         ///arrange
         POS_HANDLE p;
-        STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG))
+        STRICT_EXPECTED_CALL(malloc(IGNORED_ARG))
             .SetReturn(NULL);
 
         ///act
@@ -129,7 +130,7 @@ BEGIN_TEST_SUITE(refcount_unittests)
     {
         ///arrange
         POS_HANDLE p;
-        STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG));
+        STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
         STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
 
         ///act
@@ -148,7 +149,7 @@ BEGIN_TEST_SUITE(refcount_unittests)
     {
         ///arrange
         POS_HANDLE p;
-        STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG))
+        STRICT_EXPECTED_CALL(malloc(IGNORED_ARG))
             .SetReturn(NULL);
 
         ///act
@@ -166,14 +167,14 @@ BEGIN_TEST_SUITE(refcount_unittests)
     {
         ///arrange
         POS_HANDLE p;
-        STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_ARG));
+        STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
         STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
         p = Pos_Create(4);
         umock_c_reset_all_calls();
 
         ///act
         STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
-        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_ARG));
+        STRICT_EXPECTED_CALL(free(IGNORED_ARG));
         Pos_Destroy(p);
 
         ///assert
@@ -224,7 +225,7 @@ BEGIN_TEST_SUITE(refcount_unittests)
 
         ///act
         STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
-        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_ARG));
+        STRICT_EXPECTED_CALL(free(IGNORED_ARG));
         Pos_Destroy(clone_of_p);
 
         ///assert

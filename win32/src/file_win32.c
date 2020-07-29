@@ -9,7 +9,8 @@
 
 #include "azure_c_logging/xlogging.h"
 #include "execution_engine_win32.h"
-#include "azure_c_pal/gballoc.h"
+#include "azure_c_pal/gballoc_hl.h"
+#include "azure_c_pal/gballoc_hl_redirect.h"
 #include "azure_c_pal/file.h"
 
 typedef struct FILE_HANDLE_DATA_TAG

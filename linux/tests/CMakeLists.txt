@@ -1,6 +1,6 @@
 #Copyright (C) Microsoft Corporation. All rights reserved.
 
-add_subdirectory(reals_linux)
+add_subdirectory(linux_reals)
 # unit tests
 if(${run_unittests})
     add_subdirectory(interlocked_linux_ut)

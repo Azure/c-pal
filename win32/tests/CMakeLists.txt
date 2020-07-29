@@ -1,6 +1,5 @@
 #Copyright (C) Microsoft Corporation. All rights reserved.
 
-add_subdirectory(reals_win32)
 # unit tests
 if(${run_unittests})
     add_subdirectory(execution_engine_win32_ut)

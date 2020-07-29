@@ -10,9 +10,9 @@
 #error only one of gballoc_ll_redirect.h / gballoc_hl_redirect.h can be included at a time. gballoc_ll_redirect.h was included before gballoc_hl_redirect.h (this file)
 #endif
 
-#define malloc gballoc_ll_malloc
-#define free gballoc_ll_free
-#define calloc gballoc_ll_calloc
-#define realloc gballoc_ll_realloc
+#define malloc gballoc_hl_malloc
+#define free gballoc_hl_free
+#define calloc gballoc_hl_calloc
+#define realloc gballoc_hl_realloc
 
 #endif /* GBALLOC_HL_REDIRECT_H */

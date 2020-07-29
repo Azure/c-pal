@@ -20,7 +20,6 @@ set(${theseTestsName}_c_files
     ../../src/gballoc_ll_${gballoc_ll_impl_lower}.c
     ../../src/gballoc_hl_${gballoc_hl_impl_lower}.c
     ../../src/timer.c #needed because gballoc_hl needs timer to compute "how much time it takes"
-    ../../../common/src/gballoc.c #because timer will allocate memory with gballoc... 
     ../../src/lock_win32.c #because timer uses locking... 
 )
 
