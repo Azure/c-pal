@@ -27,13 +27,6 @@ Project structure:
 - interfaces - project that contains all the interface headers (no specific platform implementations exist in this folder/project)
 - win32 - project that contains concrete Windows implementations for the components (execution_engine_win32.c, ...).
 
-
-```mermaid
-%% use this extension https://marketplace.visualstudio.com/items?itemName=bierner.markdown-mermaid in Visual Studio Code for rendering of the below graph. Double "%" introduce a comment in mermaid:).
-
-
-```
-
 For design details of specific platforms see the design document for that platform.
 
 ### Execution engine
