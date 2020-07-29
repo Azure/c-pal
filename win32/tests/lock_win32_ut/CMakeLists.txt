@@ -17,4 +17,4 @@ set(${theseTestsName}_h_files
     ../../../interfaces/inc/azure_c_pal/lock.h
 )
 
-build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/win32" ADDITIONAL_LIBS pal_interfaces pal_interfaces_reals azure_c_pal_reals) #- asta nu gaseste pe real_interlocked.h
+build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/win32" ADDITIONAL_LIBS pal_interfaces azure_c_pal_reals)

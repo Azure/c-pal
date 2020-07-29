@@ -124,6 +124,7 @@ BEGIN_TEST_SUITE(threadpool_win32_inttests)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
+    xlogging_set_log_function(NULL);
     test_serialize_mutex = TEST_MUTEX_CREATE();
     ASSERT_IS_NOT_NULL(test_serialize_mutex);
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));

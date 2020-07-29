@@ -3,6 +3,8 @@
 
 #define GBALLOC_H
 
+#include "real_gballoc_ll_renames.h"
+
 #include "real_timer_renames.h"
 
 #include "timer.c"
