@@ -260,15 +260,15 @@ void srw_lock_acquire_exclusive(SRW_LOCK_HANDLE handle)
     }
 }
 
-int srw_lock_try_acquire_exclusive(SRW_LOCK_HANDLE handle)
+SRW_LOCK_TRY_ACQUIRE_RESULT srw_lock_try_acquire_exclusive(SRW_LOCK_HANDLE handle)
 {
-    int result;
+    SRW_LOCK_TRY_ACQUIRE_RESULT result;
 
     if (handle == NULL)
     {
-        /* Codes_SRS_SRW_LOCK_01_006: [ If handle is NULL then srw_lock_try_acquire_exclusive shall fail and return a non-zero value. ]*/
+        /* Codes_SRS_SRW_LOCK_01_006: [ If handle is NULL then srw_lock_try_acquire_exclusive shall fail and return SRW_LOCK_TRY_ACQUIRE_INVALID_ARGS. ]*/
         LogError("invalid argument SRW_LOCK_HANDLE handle=%p", handle);
-        result = MU_FAILURE;
+        result = SRW_LOCK_TRY_ACQUIRE_INVALID_ARGS;
     }
     else
     {
@@ -279,16 +279,16 @@ int srw_lock_try_acquire_exclusive(SRW_LOCK_HANDLE handle)
         /*Codes_SRS_SRW_LOCK_01_007: [ Otherwise srw_lock_acquire_exclusive shall call TryAcquireSRWLockExclusive. ]*/
         if (!TryAcquireSRWLockExclusive(&handle->lock))
         {
-            /* Codes_SRS_SRW_LOCK_01_008: [ If TryAcquireSRWLockExclusive returns FALSE, srw_lock_acquire_exclusive shall return a non-zero value. ]*/
-            result = MU_FAILURE;
+            /* Codes_SRS_SRW_LOCK_01_008: [ If TryAcquireSRWLockExclusive returns FALSE, srw_lock_acquire_exclusive shall return SRW_LOCK_TRY_ACQUIRE_COULD_NOT_ACQUIRE. ]*/
+            result = SRW_LOCK_TRY_ACQUIRE_COULD_NOT_ACQUIRE;
         }
         else
         {
             /*Codes_SRS_SRW_LOCK_01_010: [ If do_statistics is true and if the timer created has recorded more than TIME_BETWEEN_STATISTICS_LOG seconds then statistics will be logged and the timer shall be started again. ]*/\
             do_stop_statistics_acquire_exclusive(handle, &start);
 
-            /*Codes_SRS_SRW_LOCK_01_009: [ If TryAcquireSRWLockExclusive returns TRUE, srw_lock_acquire_exclusive shall return 0. ]*/
-            result = 0;
+            /*Codes_SRS_SRW_LOCK_01_009: [ If TryAcquireSRWLockExclusive returns TRUE, srw_lock_acquire_exclusive shall return SRW_LOCK_TRY_ACQUIRE_OK. ]*/
+            result = SRW_LOCK_TRY_ACQUIRE_OK;
         }
     }
 
@@ -354,15 +354,15 @@ void srw_lock_acquire_shared(SRW_LOCK_HANDLE handle)
     }
 }
 
-int srw_lock_try_acquire_shared(SRW_LOCK_HANDLE handle)
+SRW_LOCK_TRY_ACQUIRE_RESULT srw_lock_try_acquire_shared(SRW_LOCK_HANDLE handle)
 {
-    int result;
+    SRW_LOCK_TRY_ACQUIRE_RESULT result;
 
     if (handle == NULL)
     {
-        /* Codes_SRS_SRW_LOCK_01_001: [ If handle is NULL then srw_lock_try_acquire_shared shall fail and return a non-zero value. ]*/
+        /* Codes_SRS_SRW_LOCK_01_001: [ If handle is NULL then srw_lock_try_acquire_shared shall fail and return SRW_LOCK_TRY_ACQUIRE_INVALID_ARGS. ]*/
         LogError("invalid argument SRW_LOCK_HANDLE handle=%p", handle);
-        result = MU_FAILURE;
+        result = SRW_LOCK_TRY_ACQUIRE_INVALID_ARGS;
     }
     else
     {
@@ -373,16 +373,16 @@ int srw_lock_try_acquire_shared(SRW_LOCK_HANDLE handle)
         /*Codes_SRS_SRW_LOCK_01_002: [ Otherwise srw_lock_try_acquire_shared shall call TryAcquireSRWLockShared. ]*/
         if (!TryAcquireSRWLockShared(&handle->lock))
         {
-            /* Codes_SRS_SRW_LOCK_01_003: [ If TryAcquireSRWLockShared returns FALSE, srw_lock_try_acquire_shared shall return a non-zero value. ]*/
-            result = MU_FAILURE;
+            /* Codes_SRS_SRW_LOCK_01_003: [ If TryAcquireSRWLockShared returns FALSE, srw_lock_try_acquire_shared shall return SRW_LOCK_TRY_ACQUIRE_COULD_NOT_ACQUIRE. ]*/
+            result = SRW_LOCK_TRY_ACQUIRE_COULD_NOT_ACQUIRE;
         }
         else
         {
             /*Codes_SRS_SRW_LOCK_01_005: [ If do_statistics is true and the timer created has recorded more than TIME_BETWEEN_STATISTICS_LOG seconds then statistics will be logged and the timer shall be started again. ]*/
             do_stop_statistics_acquire_shared(handle, &start);
 
-            /*Codes_SRS_SRW_LOCK_01_004: [ If TryAcquireSRWLockShared returns TRUE, srw_lock_try_acquire_shared shall return 0. ]*/
-            result = 0;
+            /*Codes_SRS_SRW_LOCK_01_004: [ If TryAcquireSRWLockShared returns TRUE, srw_lock_try_acquire_shared shall return SRW_LOCK_TRY_ACQUIRE_OK. ]*/
+            result = SRW_LOCK_TRY_ACQUIRE_OK;
         }
     }
 
