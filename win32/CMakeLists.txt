@@ -51,7 +51,7 @@ include_directories(../common/inc)
 add_library(pal_win32 ${pal_win32_h_files} ${pal_win32_c_files} ${pal_win32_md_files} ${pal_common_md_files})
 
 target_link_libraries(pal_win32 pal_interfaces ws2_32 synchronization rpcrt4 azure_c_logging)
-if(${GBALLOC_LL_TYPE} STREQUAL GBALLOC_LL_MIMALLOC)
+if(${GBALLOC_LL_TYPE} STREQUAL "MIMALLOC")
     target_link_libraries(pal_win32 mimalloc-obj)
 endif()
 

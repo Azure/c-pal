@@ -22,6 +22,4 @@ else()
     )
 endif()
 
-
-
-build_c_tests(${theseTestsName} ON "tests/azure_c_pal/int" ADDITIONAL_LIBS azure_c_pal)
+build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/int" ADDITIONAL_LIBS azure_c_pal)

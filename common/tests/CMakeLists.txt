@@ -8,7 +8,7 @@ endif()
 
 # unit tests
 if(${run_unittests})
-    add_subdirectory(refcount_ut)
+    build_test_folder(refcount_ut)
 endif()
 
 if(${run_int_tests})
