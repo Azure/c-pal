@@ -40,10 +40,13 @@ TEST_SUITE_INITIALIZE(a)
     umock_c_init(on_umock_c_error);
 
     REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
+
+    ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
 }
 
 TEST_SUITE_CLEANUP(b)
 {
+    real_gballoc_hl_deinit();
     umock_c_deinit();
 }
 

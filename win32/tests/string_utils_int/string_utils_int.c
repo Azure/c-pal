@@ -13,6 +13,9 @@
 
 #include "testrunnerswitcher.h"
 
+#include "azure_c_pal/gballoc_hl.h"
+#include "azure_c_pal/gballoc_hl_redirect.h"
+
 #include "azure_c_pal/string_utils.h"
 
 
@@ -20,7 +23,12 @@ BEGIN_TEST_SUITE(string_utils_int_tests)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
+    gballoc_hl_init(NULL, NULL);
+}
 
+TEST_SUITE_CLEANUP(suite_cleanup)
+{
+    gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(init)

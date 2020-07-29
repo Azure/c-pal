@@ -11,10 +11,13 @@
 #include "winsock2.h"
 #include "ws2tcpip.h"
 #include "windows.h"
-#include "azure_macro_utils/macro_utils.h"
+
 #include "testrunnerswitcher.h"
+
+#include "azure_macro_utils/macro_utils.h"
 #include "azure_c_pal/async_socket.h"
 #include "azure_c_pal/execution_engine.h"
+#include "azure_c_pal/gballoc_hl.h"
 #include "execution_engine_win32.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
@@ -124,10 +127,14 @@ TEST_SUITE_INITIALIZE(suite_init)
 
     test_serialize_mutex = TEST_MUTEX_CREATE();
     ASSERT_IS_NOT_NULL(test_serialize_mutex);
+
+    ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
 {
+    gballoc_hl_deinit();
+
     TEST_MUTEX_DESTROY(test_serialize_mutex);
 
     (void)WSACleanup();
