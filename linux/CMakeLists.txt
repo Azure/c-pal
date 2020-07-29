@@ -32,5 +32,6 @@ add_library(pal_linux ${pal_linux_h_files} ${pal_linux_c_files} ${pal_linux_md_f
 target_link_libraries(pal_linux pal_interfaces rt uuid)
 target_include_directories(pal_linux PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc)
 
+add_subdirectory(linux_reals)
 add_subdirectory(tests)
 add_subdirectory(../common/tests common/tests)

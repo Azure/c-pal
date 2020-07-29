@@ -14,6 +14,6 @@ set(linux_reals_h_files
 )
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../src)
-add_library(reals_linux ${linux_reals_c_files} ${linux_reals_h_files})
+add_library(linux_reals ${linux_reals_c_files} ${linux_reals_h_files})
 target_include_directories(linux_reals PUBLIC .)
 target_link_libraries(linux_reals pal_interfaces_reals)
