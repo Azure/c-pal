@@ -19,6 +19,8 @@
 IMPLEMENT_MOCKABLE_FUNCTION(, char*, vsprintf_char, const char*, format, va_list, va)
 {
     char* result;
+    va_list va_clone;
+    va_copy(va_clone, va);
     int neededSize = vsnprintf(NULL, 0, format, va);
     if (neededSize < 0)
     {
@@ -35,21 +37,23 @@ IMPLEMENT_MOCKABLE_FUNCTION(, char*, vsprintf_char, const char*, format, va_list
         }
         else
         {
-            int neededSize2 = vsnprintf(result, neededSize + 1, format, va);
-            if (neededSize2 != neededSize)
+            if (vsnprintf(result, neededSize + 1, format, va_clone) != neededSize)
             {
-                LogError("inconsistent vsnprintf behavior, neededSize=%d != neededSize2=%d", neededSize, neededSize2);
+                LogError("inconsistent vsnprintf behavior");
                 free(result);
                 result = NULL;
             }
         }
     }
+    va_end(va_clone);
     return result;
 }
 
 IMPLEMENT_MOCKABLE_FUNCTION(, wchar_t*, vsprintf_wchar, const wchar_t*, format, va_list, va)
 {
     wchar_t* result;
+    va_list va_clone;
+    va_copy(va_clone, va);
     int neededSize = vswprintf(NULL, 0, format, va);
     if (neededSize < 0)
     {
@@ -66,7 +70,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, wchar_t*, vsprintf_wchar, const wchar_t*, format, 
         }
         else
         {
-            if (vswprintf(result, neededSize + 1, format, va) != neededSize)
+            if (vswprintf(result, neededSize + 1, format, va_clone) != neededSize)
             {
                 LogError("inconsistent vswprintf behavior");
                 free(result);
@@ -74,6 +78,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, wchar_t*, vsprintf_wchar, const wchar_t*, format, 
             }
         }
     }
+    va_end(va_clone);
     return result;
 }
 
