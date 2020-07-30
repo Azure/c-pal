@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include <stdlib.h>
-#include <windows.h>
+#include "windows.h"
 #include "azure_c_logging/xlogging.h"
 #include "azure_macro_utils/macro_utils.h"
 #include "azure_c_pal/lock.h"
