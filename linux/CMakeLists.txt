@@ -26,6 +26,7 @@ set(pal_linux_c_files
     src/threadapi_pthreads.c
     src/uniqueid_linux.c
     src/sync_linux.c
+    src/string_utils.c
     src/file_linux.c
     src/${gballoc_ll_c}
     src/${gballoc_hl_c}
