@@ -18,8 +18,6 @@
 
 #define REGISTER_STRING_UTILS_GLOBAL_MOCK_HOOK() \
     MU_FOR_EACH_1(R2, \
-        sprintf_char_function, \
-        sprintf_wchar_function, \
         vsprintf_char, \
         vsprintf_wchar, \
         FILETIME_toAsciiArray, \
