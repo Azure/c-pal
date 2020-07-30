@@ -16,7 +16,7 @@ threadpool_win32_mocked.c
 
 set(${theseTestsName}_h_files
 ../../../interfaces/inc/azure_c_pal/threadpool.h
-../../../interfaces/inc/azure_c_pal/string_utils.h
+../../inc/azure_c_pal/string_utils.h
 )
 
 build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/win32" ADDITIONAL_LIBS pal_interfaces synchronization)

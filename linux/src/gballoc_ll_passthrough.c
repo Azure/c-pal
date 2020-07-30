@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdlib.h>
+#include <malloc.h>
 
 #include "azure_c_logging/xlogging.h"
 #include "azure_c_pal/gballoc_ll.h"
@@ -48,7 +49,7 @@ void* gballoc_ll_calloc(size_t nmemb, size_t size)
 
     if (result == NULL)
     {
-        LogError("failure in calloc(nmemb=%zu, size=%zu)", nmemb, size);
+        LogError("failure in calloc(size=%zu)", size);
     }
 
     return result;
@@ -73,7 +74,7 @@ size_t gballoc_ll_size(void* ptr)
     size_t result;
 
     /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_007: [ gballoc_ll_size shall return what _msize returns. ]*/
-    result = _msize(ptr);
+    result = malloc_usable_size(ptr);
 
     return result;
 }

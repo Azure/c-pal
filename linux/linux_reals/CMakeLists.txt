@@ -6,6 +6,8 @@ cmake_minimum_required(VERSION 2.8.11)
 set(linux_reals_c_files
     real_threadapi_linux.c
     real_interlocked.c
+    real_gballoc_ll_${gballoc_ll_type_lower}.c
+    real_gballoc_hl_${gballoc_hl_type_lower}.c
 )
 
 set(linux_reals_h_files

@@ -18,7 +18,7 @@
 #include "azure_c_pal/async_socket.h"
 #include "azure_c_pal/execution_engine.h"
 #include "azure_c_pal/gballoc_hl.h"
-#include "execution_engine_win32.h"
+#include "azure_c_pal/execution_engine_win32.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 
