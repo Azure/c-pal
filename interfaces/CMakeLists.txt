@@ -13,7 +13,6 @@ set(pal_interfaces_h_files
     inc/azure_c_pal/timer.h
     inc/azure_c_pal/uniqueid.h
     inc/azure_c_pal/srw_lock.h
-    inc/azure_c_pal/string_utils.h
     inc/azure_c_pal/sync.h
     inc/azure_c_pal/file.h
     inc/azure_c_pal/gballoc_ll.h

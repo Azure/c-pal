@@ -7,8 +7,6 @@
 #include <errno.h>
 #include <string.h>
 
-#include "windows.h"
-
 #include "azure_macro_utils/macro_utils.h"
 
 #include "azure_c_logging/xlogging.h"
@@ -103,59 +101,6 @@ wchar_t* sprintf_wchar_function(const wchar_t* format, ...)
     va_start(va, format);
     result = vsprintf_wchar(format, va);
     va_end(va);
-    return result;
-}
-
-/*takes a FILETIME, returns a nice string representation of it*/
-char* FILETIME_toAsciiArray(const FILETIME* fileTime)
-{
-    char* result;
-    if (fileTime == NULL)
-    {
-        LogError("invalid argument const FILETIME* fileTime=%p", fileTime);
-        result = NULL;
-    }
-    else
-    {
-        FILETIME localFileTime;
-        if (FileTimeToLocalFileTime(fileTime, &localFileTime) == 0)
-        {
-            LogLastError("failure in FileTimeToLocalFileTime");
-            result = NULL;
-        }
-        else
-        {
-            SYSTEMTIME systemTime;
-            if (FileTimeToSystemTime(&localFileTime, &systemTime) == 0)
-            {
-                LogLastError("failure in FileTimeToLocalFileTime");
-                result = NULL;
-            }
-            else
-            {
-                char localDate[255];
-                if (GetDateFormat(LOCALE_USER_DEFAULT, DATE_LONGDATE, &systemTime, NULL, localDate, sizeof(localDate)/sizeof(localDate[0])) == 0)
-                {
-                    LogLastError("failure in GetDateFormat");
-                    result = NULL;
-                }
-                else
-                {
-                    char localTime[255];
-                    if (GetTimeFormat(LOCALE_USER_DEFAULT, 0, &systemTime, NULL, localTime, sizeof(localTime)/sizeof(localTime[0])) == 0)
-                    {
-                        LogLastError("failure in GetTimeFormat");
-                        result = NULL;
-                    }
-                    else
-                    {
-                        result = sprintf_char("%s %s", localDate, localTime);
-                        /*return as is*/
-                    }
-                }
-            }
-        }
-    }
     return result;
 }
 

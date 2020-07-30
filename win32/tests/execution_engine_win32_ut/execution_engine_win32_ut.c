@@ -34,7 +34,7 @@ void real_free(void* ptr)
 
 #undef ENABLE_MOCKS
 
-#include "execution_engine_win32.h"
+#include "azure_c_pal/execution_engine_win32.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 

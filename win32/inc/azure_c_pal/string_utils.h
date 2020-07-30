@@ -16,6 +16,7 @@
 #include <stdio.h>
 #endif
 
+
 #include "windows.h"
 
 #include "azure_macro_utils/macro_utils.h"

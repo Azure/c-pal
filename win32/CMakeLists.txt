@@ -18,7 +18,7 @@ set(gballoc_hl_c gballoc_hl_${gballoc_hl_type_lower}.c)
 
 set(pal_win32_h_files
     ${pal_common_h_files}
-    inc/execution_engine_win32.h
+    inc/azure_c_pal/execution_engine_win32.h
 )
 
 set(pal_win32_c_files
