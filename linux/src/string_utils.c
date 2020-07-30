@@ -35,9 +35,10 @@ IMPLEMENT_MOCKABLE_FUNCTION(, char*, vsprintf_char, const char*, format, va_list
         }
         else
         {
-            if (vsnprintf(result, neededSize + 1, format, va) != neededSize)
+            int neededSize2 = vsnprintf(result, neededSize + 1, format, va);
+            if (neededSize2 != neededSize)
             {
-                LogError("inconsistent vsnprintf behavior");
+                LogError("inconsistent vsnprintf behavior, neededSize=%d != neededSize2=%d", neededSize, neededSize2);
                 free(result);
                 result = NULL;
             }
