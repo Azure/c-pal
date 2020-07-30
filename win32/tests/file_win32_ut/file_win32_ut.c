@@ -34,7 +34,7 @@ void real_free(void* ptr)
 #include "azure_c_pal/execution_engine.h"
 #include "azure_c_pal/gballoc_hl.h"
 #include "azure_c_pal/gballoc_hl_redirect.h"
-#include "execution_engine_win32.h"
+#include "azure_c_pal/execution_engine_win32.h"
 #include "mock_file.h"
 
 MOCKABLE_FUNCTION(, void, mock_user_callback, void*, user_context, bool, is_successful);

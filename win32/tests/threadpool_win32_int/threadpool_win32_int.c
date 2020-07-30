@@ -23,7 +23,7 @@
 #include "azure_c_pal/gballoc_hl.h"
 #include "azure_c_pal/gballoc_hl_redirect.h"
 
-#include "execution_engine_win32.h"
+#include "azure_c_pal/execution_engine_win32.h"
 
 TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
 

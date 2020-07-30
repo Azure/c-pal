@@ -11,7 +11,7 @@
 #include "azure_c_pal/gballoc_hl_redirect.h"
 #include "azure_c_pal/async_socket.h"
 #include "azure_c_pal/execution_engine.h"
-#include "execution_engine_win32.h"
+#include "azure_c_pal/execution_engine_win32.h"
 
 #define ASYNC_SOCKET_WIN32_STATE_VALUES \
     ASYNC_SOCKET_WIN32_STATE_CLOSED, \

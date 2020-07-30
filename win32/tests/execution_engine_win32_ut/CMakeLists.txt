@@ -15,7 +15,7 @@ set(${theseTestsName}_c_files
 )
 
 set(${theseTestsName}_h_files
-../../inc/execution_engine_win32.h
+../../inc/azure_c_pal/execution_engine_win32.h
 ../../../interfaces/inc/azure_c_pal/execution_engine.h
 )
 

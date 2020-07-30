@@ -48,7 +48,7 @@ void* gballoc_ll_calloc(size_t nmemb, size_t size)
 
     if (result == NULL)
     {
-        LogError("failure in calloc(size=%zu)", size);
+        LogError("failure in calloc(nmemb=%zu, size=%zu)", nmemb, size);
     }
 
     return result;
