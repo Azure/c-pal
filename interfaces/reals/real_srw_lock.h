@@ -21,8 +21,10 @@
         srw_lock_create, \
         srw_lock_destroy, \
         srw_lock_acquire_exclusive, \
+        srw_lock_try_acquire_exclusive, \
         srw_lock_release_exclusive, \
         srw_lock_acquire_shared, \
+        srw_lock_try_acquire_shared, \
         srw_lock_release_shared \
 )
 
@@ -37,9 +39,13 @@ void real_srw_lock_destroy(SRW_LOCK_HANDLE handle);
 
 void real_srw_lock_acquire_exclusive(SRW_LOCK_HANDLE handle);
 
+SRW_LOCK_TRY_ACQUIRE_RESULT real_srw_lock_try_acquire_exclusive(SRW_LOCK_HANDLE handle);
+
 void real_srw_lock_release_exclusive(SRW_LOCK_HANDLE handle);
 
 void real_srw_lock_acquire_shared(SRW_LOCK_HANDLE handle);
+
+SRW_LOCK_TRY_ACQUIRE_RESULT real_srw_lock_try_acquire_shared(SRW_LOCK_HANDLE handle);
 
 void real_srw_lock_release_shared(SRW_LOCK_HANDLE handle);
 
