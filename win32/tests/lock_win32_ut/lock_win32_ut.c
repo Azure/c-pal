@@ -12,19 +12,12 @@
 #include "umock_c/umock_c.h"
 #include "azure_c_pal/lock.h"
 
-static void* my_gballoc_malloc(size_t size)
-{
-    return malloc(size);
-}
-
-static void my_gballoc_free(void* ptr)
-{
-    free(ptr);
-}
-
 #define ENABLE_MOCKS
-#include "azure_c_pal/gballoc.h"
+#include "azure_c_pal/gballoc_hl.h"
+#include "azure_c_pal/gballoc_hl_redirect.h"
 #undef ENABLE_MOCKS
+
+#include "real_gballoc_hl.h"
 
 TEST_DEFINE_ENUM_TYPE(LOCK_RESULT, LOCK_RESULT_VALUES);
 
@@ -46,12 +39,14 @@ TEST_SUITE_INITIALIZE(a)
 
     umock_c_init(on_umock_c_error);
 
-    REGISTER_GLOBAL_MOCK_HOOK(gballoc_malloc, my_gballoc_malloc);
-    REGISTER_GLOBAL_MOCK_HOOK(gballoc_free, my_gballoc_free);
+    REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
+
+    ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
 }
 
 TEST_SUITE_CLEANUP(b)
 {
+    real_gballoc_hl_deinit();
     umock_c_deinit();
 }
 

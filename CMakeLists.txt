@@ -148,9 +148,9 @@ endif()
 
 add_library(azure_c_pal_reals INTERFACE)
 if(MSVC)
-    target_link_libraries(azure_c_pal_reals INTERFACE reals_win32)
+    target_link_libraries(azure_c_pal_reals INTERFACE win32_reals)
 else()
-    target_link_libraries(azure_c_pal_reals INTERFACE reals_linux)
+    target_link_libraries(azure_c_pal_reals INTERFACE linux_reals)
 endif()
 
 include(CMakePackageConfigHelpers)

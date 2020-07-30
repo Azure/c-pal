@@ -19,4 +19,4 @@ set(${theseTestsName}_h_files
 mock_sync.h
 )
 
-build_c_tests(${theseTestsName} ON "tests/azure_c_pal/linux" ADDITIONAL_LIBS pal_interfaces)
+build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/linux" ADDITIONAL_LIBS pal_interfaces)

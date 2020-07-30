@@ -11,13 +11,18 @@
 #endif
 
 #include "windows.h"
+
+#include "testrunnerswitcher.h"
+
 #include "azure_macro_utils/macro_utils.h"
 #include "azure_c_logging/xlogging.h"
-#include "testrunnerswitcher.h"
 #include "azure_c_pal/interlocked_hl.h"
 #include "azure_c_pal/timer.h"
 #include "azure_c_pal/threadpool.h"
 #include "azure_c_pal/execution_engine.h"
+#include "azure_c_pal/gballoc_hl.h"
+#include "azure_c_pal/gballoc_hl_redirect.h"
+
 #include "execution_engine_win32.h"
 
 TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
@@ -119,12 +124,15 @@ BEGIN_TEST_SUITE(threadpool_win32_inttests)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
+    xlogging_set_log_function(NULL);
     test_serialize_mutex = TEST_MUTEX_CREATE();
     ASSERT_IS_NOT_NULL(test_serialize_mutex);
+    ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
 {
+    gballoc_hl_deinit();
     TEST_MUTEX_DESTROY(test_serialize_mutex);
 }
 

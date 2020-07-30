@@ -20,5 +20,5 @@ set(${theseTestsName}_h_files
     ../../../interfaces/inc/azure_c_pal/uniqueid.h
 )
 
-build_c_tests(${theseTestsName} ON "tests/azure_c_pal" ADDITIONAL_LIBS pal_interfaces uuid)
+build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal" ADDITIONAL_LIBS pal_interfaces uuid)
 

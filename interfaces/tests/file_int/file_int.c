@@ -19,11 +19,13 @@
 static TEST_MUTEX_HANDLE g_testByTest;
 
 #include "azure_c_pal/sync.h"
-#include "azure_c_pal/file.h"
+#include "azure_c_pal/gballoc_hl.h"
 #include "azure_c_pal/interlocked.h"
+
 
 #include "file_int_helpers.h"
 
+#include "azure_c_pal/file.h"
 
 TEST_DEFINE_ENUM_TYPE(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_RESULT)
 TEST_DEFINE_ENUM_TYPE(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_RESULT)
@@ -91,11 +93,13 @@ TEST_SUITE_INITIALIZE(a)
 {
     g_testByTest = TEST_MUTEX_CREATE();
     ASSERT_IS_NOT_NULL(g_testByTest);
+
+    ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 }
 
 TEST_SUITE_CLEANUP(b)
 {
-
+    gballoc_hl_deinit();
     TEST_MUTEX_DESTROY(g_testByTest);
 }
 

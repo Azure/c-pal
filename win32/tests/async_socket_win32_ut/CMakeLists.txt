@@ -17,9 +17,12 @@ set(${theseTestsName}_h_files
 ../../../interfaces/inc/azure_c_pal/async_socket.h
 )
 
-build_c_tests(${theseTestsName} ON "tests/azure_c_pal/win32" ADDITIONAL_LIBS pal_interfaces synchronization ws2_32)
+build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/win32" ADDITIONAL_LIBS pal_interfaces synchronization ws2_32)
 
-set_target_properties(${theseTestsName}_exe PROPERTIES LINK_FLAGS "/ignore:4217")
-if(use_cppunittest)
+if("${building}" STREQUAL "exe")
+    set_target_properties(${theseTestsName}_exe PROPERTIES LINK_FLAGS "/ignore:4217")
+endif()
+
+if("${building}" STREQUAL "dll")
     set_target_properties(${theseTestsName}_dll PROPERTIES LINK_FLAGS "/ignore:4217")
 endif()

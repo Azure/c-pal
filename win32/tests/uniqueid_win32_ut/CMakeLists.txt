@@ -17,5 +17,5 @@ set(${theseTestsName}_h_files
     ../../../interfaces/inc/azure_c_pal/uniqueid.h
 )
 
-build_c_tests(${theseTestsName} ON "tests/azure_c_pal/win32" ADDITIONAL_LIBS rpcrt4.lib pal_interfaces)
+build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/win32" ADDITIONAL_LIBS rpcrt4.lib pal_interfaces)
 

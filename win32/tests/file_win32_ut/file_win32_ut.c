@@ -32,7 +32,8 @@ void real_free(void* ptr)
 #define ENABLE_MOCKS
 
 #include "azure_c_pal/execution_engine.h"
-#include "azure_c_pal/gballoc.h"
+#include "azure_c_pal/gballoc_hl.h"
+#include "azure_c_pal/gballoc_hl_redirect.h"
 #include "execution_engine_win32.h"
 #include "mock_file.h"
 

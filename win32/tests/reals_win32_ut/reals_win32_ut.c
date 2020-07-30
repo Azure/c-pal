@@ -9,6 +9,8 @@
 #include "azure_c_pal/timer.h"
 #include "azure_c_pal/interlocked_hl.h"
 #include "azure_c_pal/interlocked.h"
+#include "azure_c_pal/gballoc_ll.h"
+#include "azure_c_pal/gballoc_hl.h"
 
 #include "azure_macro_utils/macro_utils.h"
 
@@ -25,6 +27,8 @@
 #include "real_timer.h"
 #include "real_interlocked_hl.h"
 #include "real_interlocked.h"
+#include "real_gballoc_ll.h"
+#include "real_gballoc_hl.h"
 
 BEGIN_TEST_SUITE(reals_win32_ut)
 
@@ -41,6 +45,8 @@ TEST_FUNCTION(check_all_c_pal_reals)
     REGISTER_TIMER_GLOBAL_MOCK_HOOK();
     REGISTER_INTERLOCKED_HL_GLOBAL_MOCK_HOOK();
     REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK();
+    REGISTER_GBALLOC_LL_GLOBAL_MOCK_HOOK();
+    REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
 
     // assert
     // no explicit assert, if it builds it works

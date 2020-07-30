@@ -10,16 +10,14 @@
 #include <stdbool.h>
 #endif
 
-#include "azure_macro_utils/macro_utils.h"
+#include "windows.h"
 
-#include "azure_c_pal/srw_lock.h"
+#include "azure_macro_utils/macro_utils.h"
 
 #define R2(X) REGISTER_GLOBAL_MOCK_HOOK(X, real_##X);
 
 #define REGISTER_STRING_UTILS_GLOBAL_MOCK_HOOK() \
     MU_FOR_EACH_1(R2, \
-        sprintf_char_function, \
-        sprintf_wchar_function, \
         vsprintf_char, \
         vsprintf_wchar, \
         FILETIME_toAsciiArray, \
@@ -30,8 +28,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "windows.h"
 
 char* real_sprintf_char_function(const char* format, ...);
 

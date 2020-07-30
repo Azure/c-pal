@@ -32,7 +32,7 @@ static void my_gballoc_free(void* s)
 #include "azure_c_pal/gballoc_ll.h"
 #undef ENABLE_MOCKS
 
-#include "azure_c_pal/gballoc_ll_renames.h"
+#include "azure_c_pal/gballoc_ll_redirect.h"
 
 #ifdef __cplusplus
 extern "C" {

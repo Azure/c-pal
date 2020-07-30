@@ -17,4 +17,4 @@ set(${theseTestsName}_h_files
 
 include_directories(BEFORE SYSTEM ../mocked/inc)
 
-build_c_tests(${theseTestsName} ON "tests/azure_c_pal/win32" ADDITIONAL_LIBS pal_interfaces)
+build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/win32" ADDITIONAL_LIBS pal_interfaces)

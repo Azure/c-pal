@@ -43,7 +43,7 @@ TEST_FUNCTION_INITIALIZE(method_init)
         ASSERT_FAIL("Could not acquire test serialization mutex.");
     }
 
-    gballoc_hl_init(NULL, NULL);
+    ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
