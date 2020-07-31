@@ -13,13 +13,12 @@
 #include <aio.h>
 #include <signal.h>
 
-
-
 #include "c_logging/xlogging.h"
 #include "c_pal/file.h"
 #include "c_pal/interlocked.h"
 #include "c_pal/sync.h"
-#include "c_pal/gballoc.h"
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"
 
 typedef struct FILE_HANDLE_DATA_TAG
 {
@@ -240,7 +239,6 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HA
     }
     else
     {
-        bool callback_will_be_called;
         /*Codes_SRS_FILE_LINUX_43_019: [ file_write_async shall allocate a struct to hold handle, source, size, user_callback and user_context. ]*/
         FILE_LINUX_WRITE* io_context = malloc(sizeof(FILE_LINUX_WRITE));
         if (io_context == NULL)
@@ -251,6 +249,8 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HA
         }
         else
         {
+            bool callback_will_be_called;
+
             io_context->handle = handle;
             io_context->size = size;
             io_context->user_callback = user_callback;
@@ -268,7 +268,6 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HA
             }
             else
             {
-            
                 (void)memset(io_context->aiocbp, 0, sizeof(struct aiocb));
                 io_context->aiocbp->aio_fildes = handle->h_file;
                 io_context->aiocbp->aio_buf = (unsigned char*)source;

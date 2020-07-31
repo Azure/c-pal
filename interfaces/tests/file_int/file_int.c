@@ -403,6 +403,7 @@ TEST_FUNCTION(perform_operations_open_write_close_open_read_close)
 
     // cleanup
     execution_engine_dec_ref(execution_engine);
+    (void)delete_file(filename);
 }
 
 /*Tests_SRS_FILE_43_039: [ If position + size exceeds the size of the file, user_callback shall be called with success as false. ]*/
