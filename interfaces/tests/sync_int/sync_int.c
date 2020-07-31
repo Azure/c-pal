@@ -12,6 +12,9 @@
 #endif
 
 #include "testrunnerswitcher.h"
+
+#include "azure_c_pal/gballoc_hl.h"
+#include "azure_c_pal/gballoc_hl_redirect.h"
 #include "azure_c_pal/interlocked.h"
 #include "azure_c_pal/threadapi.h"
 #include "azure_c_pal/sync.h"
@@ -76,14 +79,16 @@ BEGIN_TEST_SUITE(sync_int)
 
 TEST_SUITE_INITIALIZE(a)
 {
+    ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
+
     g_testByTest = TEST_MUTEX_CREATE();
     ASSERT_IS_NOT_NULL(g_testByTest);
 }
 
 TEST_SUITE_CLEANUP(b)
 {
-
     TEST_MUTEX_DESTROY(g_testByTest);
+    gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(c)
