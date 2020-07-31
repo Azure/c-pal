@@ -396,6 +396,9 @@ TEST_FUNCTION(perform_operations_open_write_close_open_read_close)
     ASSERT_ARE_EQUAL(int32_t, read_context.post_callback_value, interlocked_or(&read_context.value, 0), "value should be post_callback_value");
     ASSERT_IS_TRUE(read_context.did_read_succeed);
     ASSERT_ARE_EQUAL(char_ptr, source, destination);
+
+    ///cleanup
+    (void)delete_file(filename);
 }
 
 /*Tests_SRS_FILE_43_039: [ If position + size exceeds the size of the file, user_callback shall be called with success as false. ]*/
