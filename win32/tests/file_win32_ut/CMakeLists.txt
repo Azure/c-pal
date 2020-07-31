@@ -19,4 +19,4 @@ set(${theseTestsName}_h_files
 mock_file.h
 )
 
-build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/win32" ADDITIONAL_LIBS pal_interfaces)
+build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/win32" ADDITIONAL_LIBS pal_interfaces azure_c_pal_reals)
