@@ -7,7 +7,6 @@ set(pal_interfaces_h_files
     inc/azure_c_pal/threadpool.h
     inc/azure_c_pal/interlocked.h
     inc/azure_c_pal/interlocked_hl.h
-    inc/azure_c_pal/lock.h
     inc/azure_c_pal/platform.h
     inc/azure_c_pal/threadapi.h
     inc/azure_c_pal/timer.h
