@@ -41,6 +41,8 @@ MOCKABLE_FUNCTION(, void, mock_user_callback, void*, user_context, bool, is_succ
 
 #undef ENABLE_MOCKS
 
+#include "real_gballoc_hl.h"
+
 #include "azure_c_pal/file.h"
 
 static TEST_MUTEX_HANDLE g_testByTest;
@@ -154,6 +156,8 @@ BEGIN_TEST_SUITE(file_win32_unittests)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
+    ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
+
     g_testByTest = TEST_MUTEX_CREATE();
     ASSERT_IS_NOT_NULL(g_testByTest);
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error));
@@ -186,6 +190,8 @@ TEST_SUITE_CLEANUP(TestClassCleanup)
     umock_c_deinit();
 
     TEST_MUTEX_DESTROY(g_testByTest);
+
+    real_gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(f)

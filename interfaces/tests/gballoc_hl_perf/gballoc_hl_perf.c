@@ -27,6 +27,9 @@ BEGIN_TEST_SUITE(custom_heap_perf_tests)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
+
+    ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
+
     test_serialize_mutex = TEST_MUTEX_CREATE();
     ASSERT_IS_NOT_NULL(test_serialize_mutex);
 }
@@ -34,6 +37,7 @@ TEST_SUITE_INITIALIZE(suite_init)
 TEST_SUITE_CLEANUP(suite_cleanup)
 {
     TEST_MUTEX_DESTROY(test_serialize_mutex);
+    gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(method_init)
@@ -43,13 +47,11 @@ TEST_FUNCTION_INITIALIZE(method_init)
         ASSERT_FAIL("Could not acquire test serialization mutex.");
     }
 
-    ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
+    ;
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
 {
-    gballoc_hl_deinit();
-
     TEST_MUTEX_RELEASE(test_serialize_mutex);
 }
 

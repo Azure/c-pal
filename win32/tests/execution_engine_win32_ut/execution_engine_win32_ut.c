@@ -34,6 +34,8 @@ void real_free(void* ptr)
 
 #undef ENABLE_MOCKS
 
+#include "real_gballoc_hl.h"
+
 #include "azure_c_pal/execution_engine_win32.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
@@ -70,11 +72,13 @@ TEST_SUITE_INITIALIZE(suite_init)
 {
     int result;
 
+    ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
+
     test_serialize_mutex = TEST_MUTEX_CREATE();
     ASSERT_IS_NOT_NULL(test_serialize_mutex);
 
     result = umock_c_init(on_umock_c_error);
-	ASSERT_ARE_EQUAL(int, 0, result, "umock_c_init failed");
+    ASSERT_ARE_EQUAL(int, 0, result, "umock_c_init failed");
 
     result = umocktypes_stdint_register_types();
     ASSERT_ARE_EQUAL(int, 0, result, "umocktypes_stdint_register_types failed");
@@ -95,6 +99,8 @@ TEST_SUITE_CLEANUP(suite_cleanup)
     umock_c_deinit();
 
     TEST_MUTEX_DESTROY(test_serialize_mutex);
+
+    real_gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(method_init)

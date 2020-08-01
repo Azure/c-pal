@@ -26,24 +26,27 @@ static void my_gballoc_free(void* s)
 #include "umock_c/umocktypes.h"
 #include "umock_c/umock_c_negative_tests.h"
 #include "umock_c/umocktypes_bool.h"
-#include "azure_c_pal/timer.h"
 
 #define ENABLE_MOCKS
 #include "azure_c_pal/gballoc_ll.h"
-#undef ENABLE_MOCKS
-
 #include "azure_c_pal/gballoc_ll_redirect.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-   MOCKABLE_FUNCTION(, BOOLEAN, mocked_QueryPerformanceCounter, LARGE_INTEGER*, lpPerformanceCount)
-   MOCKABLE_FUNCTION(, BOOLEAN, mocked_QueryPerformanceFrequency, LARGE_INTEGER*, lpFrequency)
+    MOCKABLE_FUNCTION(, BOOLEAN, mocked_QueryPerformanceCounter, LARGE_INTEGER*, lpPerformanceCount)
+        MOCKABLE_FUNCTION(, BOOLEAN, mocked_QueryPerformanceFrequency, LARGE_INTEGER*, lpFrequency)
 #ifdef __cplusplus
 }
 #endif
-static TEST_MUTEX_HANDLE test_serialize_mutex;
 
+#undef ENABLE_MOCKS
+
+#include "real_gballoc_ll.h"
+
+#include "azure_c_pal/timer.h"
+
+static TEST_MUTEX_HANDLE test_serialize_mutex;
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
@@ -57,6 +60,8 @@ BEGIN_TEST_SUITE(timer_unittests)
 TEST_SUITE_INITIALIZE(suite_init)
 {
     int result;
+
+    ASSERT_ARE_EQUAL(int, 0, real_gballoc_ll_init(NULL));
 
     test_serialize_mutex = TEST_MUTEX_CREATE();
     ASSERT_IS_NOT_NULL(test_serialize_mutex);
@@ -82,6 +87,8 @@ TEST_SUITE_CLEANUP(suite_cleanup)
     umock_c_deinit();
     umock_c_negative_tests_deinit();
     TEST_MUTEX_DESTROY(test_serialize_mutex);
+
+    real_gballoc_ll_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(init)

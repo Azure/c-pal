@@ -12,6 +12,7 @@
 #include "ws2tcpip.h"
 #include "windows.h"
 #include "azure_macro_utils/macro_utils.h"
+#include "azure_c_logging/xlogging.h"
 
 void* real_malloc(size_t size)
 {
@@ -38,7 +39,7 @@ void real_free(void* ptr)
 
 #undef ENABLE_MOCKS
 
-#include "azure_c_logging/xlogging.h"
+#include "real_gballoc_hl.h"
 
 #include "azure_c_pal/string_utils.h"
 #include "azure_c_pal/threadpool.h"
@@ -270,6 +271,8 @@ BEGIN_TEST_SUITE(threadpool_win32_unittests)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
+    ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
+
     test_serialize_mutex = TEST_MUTEX_CREATE();
     ASSERT_IS_NOT_NULL(test_serialize_mutex);
 
@@ -300,6 +303,8 @@ TEST_SUITE_CLEANUP(suite_cleanup)
     umock_c_deinit();
 
     TEST_MUTEX_DESTROY(test_serialize_mutex);
+
+    real_gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(method_init)

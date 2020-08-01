@@ -16,8 +16,6 @@
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_windows.h"
 
-#include "azure_c_pal/sync.h"
-
 static TEST_MUTEX_HANDLE g_testByTest;
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
@@ -34,16 +32,25 @@ extern "C"
 
 #define ENABLE_MOCKS
 #include "mock_sync.h"
+#include "azure_c_pal/gballoc_hl.h"
+#include "azure_c_pal/gballoc_hl_redirect.h"
 #undef ENABLE_MOCKS
 
 #ifdef __cplusplus
 }
 #endif
 
+#include "real_gballoc_hl.h"
+
+
+#include "azure_c_pal/sync.h"
+
 BEGIN_TEST_SUITE(sync_win32_unittests)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
+    ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
+
     g_testByTest = TEST_MUTEX_CREATE();
     ASSERT_IS_NOT_NULL(g_testByTest);
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error));
@@ -56,6 +63,8 @@ TEST_SUITE_CLEANUP(TestClassCleanup)
     umock_c_deinit();
 
     TEST_MUTEX_DESTROY(g_testByTest);
+
+    real_gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(f)
