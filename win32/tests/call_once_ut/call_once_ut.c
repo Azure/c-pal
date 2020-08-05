@@ -125,7 +125,6 @@ TEST_FUNCTION(call_once_begin_after_local_init_succeeds)
 }
 
 /*Tests_SRS_CALL_ONCE_02_002: [ If interlocked_compare_exchange returns 2 then call_once_begin shall return CALL_ONCE_ALREADY_CALLED. ]*/
-
 TEST_FUNCTION(call_once_begin_after_begin_end_fails)
 {
     ///arrange

@@ -16,6 +16,7 @@
         InterlockedHL_WaitForValue, \
         InterlockedHL_WaitForNotValue, \
         InterlockedHL_SetAndWake, \
+        InterlockedHL_SetAndWakeAll, \
         InterlockedHL_CompareExchange64If \
     )
 
