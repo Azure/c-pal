@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#ifndef REAL_CALLONCE_H
-#define REAL_CALLONCE_H
+#ifndef REAL_CALL_ONCE_H
+#define REAL_CALL_ONCE_H
 
 #ifdef __cplusplus
 #include <cstdint>
@@ -13,7 +13,7 @@
 
 #define R2(X) REGISTER_GLOBAL_MOCK_HOOK(X, real_##X);
 
-#define REGISTER_CALLONCE_GLOBAL_MOCK_HOOK()        \
+#define REGISTER_CALL_ONCE_GLOBAL_MOCK_HOOK()        \
     MU_FOR_EACH_1(R2,                               \
         call_once_begin,                            \
         call_once_end                               \
@@ -29,4 +29,4 @@ extern "C" {
 }
 #endif
 
-#endif //REAL_CALLONCE_H
+#endif //REAL_CALL_ONCE_H

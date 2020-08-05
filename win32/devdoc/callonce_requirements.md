@@ -1,9 +1,9 @@
-# callonce requirements
+# call_once requirements
 ================
 
 ## Overview
 
-callonce is a module that provides a pair of functions callonce_begin/callonce_end to be used to have some code executed just once. This is useful for lazy init for example. It uses a int32_t variable to store the state of the called code (called/not called/calling). The state is opaque to the user, and only the return from `call_once_begin` should be examined. The user is responsible to either statically initialize state to `CALL_ONCE_NOT_CALLED` [compiler might end up setting it to zero anyway] or to initialize it at code execution time by `interlocked_exchange`. When the user is done executing the call once code, it needs to indicate that by a call to `call_once_end`.
+call_once is a module that provides a pair of functions callonce_begin/callonce_end to be used to have some code executed just once. 
 
 Typical usage is:
 
@@ -15,6 +15,19 @@ volatile_atomic int32_t wasInit = CALL_ONCE_NOT_CALLED;
 
 void initialize(...)
 {
+    /*one time attempt*/
+    if(call_once_begin(&wasInit) == CALL_ONCE_PROCEED)
+    {
+        /*here is user code called from 1 thread, this one*/
+        call_once_end(&wasInit, true); /*or call_once_end(&wasInit, false)*/
+    }
+}
+
+or
+
+void initialize(...)
+{
+    /*with retries.. */
     while(call_once_begin(&wasInit) == CALL_ONCE_PROCEED)
     {
         /*here is user code called from 1 thread, this one*/

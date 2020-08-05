@@ -146,7 +146,7 @@ TEST_FUNCTION(call_once_chaos_knight)
     for (i = 0; i < N_THREADS_FOR_CHAOS; i++)
     {
         threads[i] = CreateThread(NULL, 0, chaosThread, NULL, 0, NULL);
-        ASSERT_IS_NOT_NULL(threads[0]);
+        ASSERT_IS_NOT_NULL(threads[i]);
     }
 
     DWORD dw = WaitForMultipleObjects(N_THREADS_FOR_CHAOS, threads, TRUE, INFINITE);

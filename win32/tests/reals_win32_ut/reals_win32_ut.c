@@ -12,6 +12,7 @@
 #include "azure_c_pal/gballoc_ll.h"
 #include "azure_c_pal/gballoc_hl.h"
 #include "azure_c_pal/call_once.h"
+#include "azure_c_pal/lazy_init.h"
 
 #include "azure_macro_utils/macro_utils.h"
 
@@ -31,6 +32,7 @@
 #include "real_gballoc_ll.h"
 #include "real_gballoc_hl.h"
 #include "real_call_once.h"
+#include "real_lazy_init.h"
 
 BEGIN_TEST_SUITE(reals_win32_ut)
 
@@ -49,7 +51,8 @@ TEST_FUNCTION(check_all_c_pal_reals)
     REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK();
     REGISTER_GBALLOC_LL_GLOBAL_MOCK_HOOK();
     REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
-    REGISTER_CALLONCE_GLOBAL_MOCK_HOOK();
+    REGISTER_CALL_ONCE_GLOBAL_MOCK_HOOK();
+    REGISTER_LAZY_INIT_GLOBAL_MOCK_HOOK();
 
     // assert
     // no explicit assert, if it builds it works

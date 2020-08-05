@@ -20,14 +20,17 @@ set(${theseTestsName}_c_files
     ../../src/gballoc_ll_${gballoc_ll_impl_lower}.c
     ../../src/gballoc_hl_${gballoc_hl_impl_lower}.c
     ../../src/timer.c #needed because gballoc_hl needs timer to compute "how much time it takes"
+    ../../src/call_once.c
+    ../../src/interlocked_win32.c
+    ../../src/interlocked_hl_win32.c
 )
 
 set(${theseTestsName}_h_files
 )
 
 if(${GBALOC_LL_IMPL} STREQUAL "MIMALLOC")
-    build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS pal_interfaces mimalloc-obj)
+    build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS pal_interfaces synchronization mimalloc-obj)
 else()
-    build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS pal_interfaces)
+    build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS pal_interfaces synchronization)
 endif()
 

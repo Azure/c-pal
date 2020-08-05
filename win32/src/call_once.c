@@ -22,7 +22,7 @@ CALL_ONCE_RESULT call_once_begin(volatile_atomic int32_t* state)
     
     int32_t state_local;
 
-    /* 0 - not called*/
+    /* 0 - (CALL_ONCE_NOT_CALLED) = not called*/
     /* 1 - calling... */
     /* 2 - already called*/
 
