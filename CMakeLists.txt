@@ -29,7 +29,7 @@ endif()
 
 #canon way of limiting an option to a predefined set of values
 set(GBALLOC_HL_TYPE_VALUES PASSTHROUGH METRICS) #the list of values which are allowed
-set(GBALLOC_HL_TYPE METRICS CACHE STRING "Value of GBALLOC_HL_TYPE") #build a property that can have only the allowed values
+set(GBALLOC_HL_TYPE PASSTHROUGH CACHE STRING "Value of GBALLOC_HL_TYPE") #build a property that can have only the allowed values
 set_property(CACHE GBALLOC_HL_TYPE PROPERTY STRINGS ${GBALLOC_HL_TYPE_VALUES}) #setting the property's default value in case none is taken from the command line
 
 list(FIND GBALLOC_HL_TYPE_VALUES ${GBALLOC_HL_TYPE} index) #check that the received value (either the default or the one from command line) matches one of the allowed values.
