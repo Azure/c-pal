@@ -18,6 +18,7 @@ set(gballoc_hl_c gballoc_hl_${gballoc_hl_type_lower}.c)
 
 set(pal_win32_h_files
     ${pal_common_h_files}
+    inc/azure_c_pal/call_once.h
     inc/azure_c_pal/execution_engine_win32.h
 )
 
@@ -25,6 +26,7 @@ set(pal_win32_c_files
     ${pal_common_c_files}
     src/execution_engine_win32.c
     src/async_socket_win32.c
+    src/call_once.c
     src/threadpool_win32.c
     src/interlocked_win32.c
     src/interlocked_hl_win32.c

@@ -274,3 +274,28 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWake, L
     return result;
 
 }
+
+IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWakeAll, LONG volatile*, address, LONG, value)
+{
+    INTERLOCKED_HL_RESULT result;
+    if (address == NULL)
+    {
+        /*Codes_SRS_INTERLOCKED_HL_02_028: [ If address is NULL then InterlockedHL_SetAndWakeAll shall fail and return INTERLOCKED_HL_ERROR. ]*/
+        LogError("invalid arguments LONG volatile* address=%p, LONG value=%" PRId32 "",
+            address, value);
+        result = INTERLOCKED_HL_ERROR;
+    }
+    else
+    {
+        /*Codes_SRS_INTERLOCKED_HL_02_029: [ InterlockedHL_SetAndWakeAll shall set address to value. ]*/
+        (void)InterlockedExchange(address, value);
+
+        /*Codes_SRS_INTERLOCKED_HL_02_030: [ InterlockedHL_SetAndWakeAll shall call WakeByAddressAll. ]*/
+        WakeByAddressAll((void*)address);
+
+        /*Codes_SRS_INTERLOCKED_HL_02_031: [ InterlockedHL_SetAndWakeAll shall succeed and return INTERLOCKED_HL_OK. ]*/
+        result = INTERLOCKED_HL_OK;
+    }
+    return result;
+
+}

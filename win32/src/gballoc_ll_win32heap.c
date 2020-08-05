@@ -6,15 +6,31 @@
 #include "windows.h"
 
 #include "azure_c_logging/xlogging.h"
+//#include "azure_c_pal/interlocked.h"
 #include "azure_c_pal/gballoc_ll.h"
 
 static HANDLE the_heap = NULL;
 
+//static volatile_atomic int32_t gballoc_ll_win32heap_state = 0; /*0 - not intialized, 1 - initializing, 2 - initialized*/
+
 /*not thread safe, only supports 1 call to init*/
 int gballoc_ll_init(void* params)
 {
+
     (void)params;
     int result;
+
+    //int32_t state;
+
+    //while ((state = interlocked_compare_exchange(&gballoc_ll_win32heap_state, 1, 0)) != 2)
+    //{
+    //    if (state == 0)
+    //    {
+    //        /*only 1 thread gets to execute this part*/
+    //
+    //    }
+    //}
+
 
     /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_001: [ gballoc_ll_init shall call HeapCreate(0,0,0) and store the returned heap handle in a global variable. ]*/
     the_heap = HeapCreate(0, 0, 0);

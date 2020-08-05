@@ -19,6 +19,7 @@ typedef bool (*INTERLOCKED_COMPARE_EXCHANGE_64_IF)(int64_t target, int64_t excha
 
 MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_Add64WithCeiling, int64_t volatile*, Addend, int64_t, Ceiling, int64_t, Value, int64_t*, originalAddend)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWake, int32_t volatile*, address, int32_t, value)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWakeAll, int32_t volatile*, address, int32_t, value)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue, int32_t volatile*, address, int32_t, value, DWORD, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotValue, int32_t volatile*, address, int32_t, value, DWORD, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_CompareExchange64If, int64_t volatile*, target, int64_t, exchange, INTERLOCKED_COMPARE_EXCHANGE_64_IF, compare, int64_t *, original_target)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
@@ -155,3 +156,18 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWake
 **SRS_INTERLOCKED_HL_02_018: [** `InterlockedHL_SetAndWake` shall call `WakeByAddressSingle`. **]**
 
 **SRS_INTERLOCKED_HL_02_019: [** `InterlockedHL_SetAndWake` shall succeed and return `INTERLOCKED_HL_OK`. **]**
+
+### InterlockedHL_SetAndWake
+```c
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWakeAll, int32_t volatile*, address, int32_t, value)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+```
+
+`InterlockedHL_SetAndWakeAll` set the value at `address` to `value` and signals the change of value in `address` to all waiting threads. This can be commonly used with `InterlockedHL_WaitForValue` to signal a waiting thread.
+
+**SRS_INTERLOCKED_HL_02_028: [** If `address` is `NULL` then `InterlockedHL_SetAndWakeAll` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
+
+**SRS_INTERLOCKED_HL_02_029: [** `InterlockedHL_SetAndWakeAll` shall set `address` to `value`. **]**
+
+**SRS_INTERLOCKED_HL_02_030: [** `InterlockedHL_SetAndWakeAll` shall call `WakeByAddressAll`. **]**
+
+**SRS_INTERLOCKED_HL_02_031: [** `InterlockedHL_SetAndWakeAll` shall succeed and return `INTERLOCKED_HL_OK`. **]**
