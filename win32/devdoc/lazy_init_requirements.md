@@ -37,7 +37,7 @@ MOCKABLE_FUNCTION(, LAZY_INIT_RESULT, lazy_init, volatile_atomic int32_t*, lazy,
 **SRS_LAZY_INIT_02_002: [** If `do_init` is `NULL` then `lazy_init` shall fail and return `LAZY_INIT_ERROR`.
  **]**
 
-`**SRS_LAZY_INIT_02_003: [** lazy_init` shall call `call_once_begin(lazy)`. **]**
+**SRS_LAZY_INIT_02_003: [** `lazy_init` shall call `call_once_begin(lazy)`. **]**
 
 **SRS_LAZY_INIT_02_004: [** If `call_once_begin` returns `CALL_ONCE_ALREADY_CALLED` then `lazy_init` shall succeed and return `LAZY_INIT_OK`. **]**
 
