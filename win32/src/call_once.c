@@ -57,8 +57,8 @@ CALL_ONCE_RESULT call_once_begin(volatile_atomic int32_t* state)
 
 void call_once_end(volatile_atomic int32_t* state, bool success)
 {
-    /*Codes_SRS_CALL_ONCE_02_005: [ If success is true then call_once_end shall call InterlockedHL_SetAndWake(state, 2). ]*/
-    /*Codes_SRS_CALL_ONCE_02_006: [ If success is false then call_once_end shall call InterlockedHL_SetAndWake(state, 0). ]*/
+    /*Codes_SRS_CALL_ONCE_02_005: [ If success is true then call_once_end shall call InterlockedHL_SetAndWakeAll(state, 2). ]*/
+    /*Codes_SRS_CALL_ONCE_02_006: [ If success is false then call_once_end shall call InterlockedHL_SetAndWakeAll(state, 0). ]*/
     if (InterlockedHL_SetAndWakeAll((LONG*)state, success ? 2 : 0) != INTERLOCKED_HL_OK)
     {
         LogError("failure in InterlockedHL_SetAndWake((LONG*)state=%p, success ? 2 : 0)", state);

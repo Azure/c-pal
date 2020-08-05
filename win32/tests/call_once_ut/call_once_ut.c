@@ -134,7 +134,7 @@ TEST_FUNCTION(call_once_begin_after_begin_end_fails)
     (void)real_interlocked_exchange(&state, CALL_ONCE_NOT_CALLED);
     
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(&state, 1, 0));
-    STRICT_EXPECTED_CALL(InterlockedHL_SetAndWake((LONG*)&state, 2));
+    STRICT_EXPECTED_CALL(InterlockedHL_SetAndWakeAll((LONG*)&state, 2));
     canProceed = call_once_begin(&state);
     ASSERT_ARE_EQUAL(CALL_ONCE_RESULT, CALL_ONCE_PROCEED, canProceed);
     call_once_end(&state, true);
@@ -153,7 +153,7 @@ TEST_FUNCTION(call_once_begin_after_begin_end_fails)
 
 }
 
-/*Tests_SRS_CALL_ONCE_02_005: [ If success is true then call_once_end shall call InterlockedHL_SetAndWake(state, 2). ]*/
+/*Tests_SRS_CALL_ONCE_02_005: [ If success is true then call_once_end shall call InterlockedHL_SetAndWakeAll(state, 2). ]*/
 TEST_FUNCTION(call_once_end_with_success_switches_state_to_2)
 {
     ///arrange
@@ -166,7 +166,7 @@ TEST_FUNCTION(call_once_end_with_success_switches_state_to_2)
     ASSERT_ARE_EQUAL(CALL_ONCE_RESULT, CALL_ONCE_PROCEED, canProceed);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
-    STRICT_EXPECTED_CALL(InterlockedHL_SetAndWake((LONG*)&state, 2));
+    STRICT_EXPECTED_CALL(InterlockedHL_SetAndWakeAll((LONG*)&state, 2));
 
     ///act
     call_once_end(&state, true);
@@ -177,7 +177,7 @@ TEST_FUNCTION(call_once_end_with_success_switches_state_to_2)
     ///clean
 }
 
-/*Tests_SRS_CALL_ONCE_02_006: [ If success is false then call_once_end shall call InterlockedHL_SetAndWake(state, 0). ]*/
+/*Tests_SRS_CALL_ONCE_02_006: [ If success is false then call_once_end shall call InterlockedHL_SetAndWakeAll(state, 0). ]*/
 TEST_FUNCTION(call_once_end_without_success_switches_state_to_0)
 {
     ///arrange
@@ -190,7 +190,7 @@ TEST_FUNCTION(call_once_end_without_success_switches_state_to_0)
     ASSERT_ARE_EQUAL(CALL_ONCE_RESULT, CALL_ONCE_PROCEED, canProceed);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
-    STRICT_EXPECTED_CALL(InterlockedHL_SetAndWake((LONG*)&state, 0));
+    STRICT_EXPECTED_CALL(InterlockedHL_SetAndWakeAll((LONG*)&state, 0));
 
     ///act
     call_once_end(&state, false);
