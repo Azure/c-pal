@@ -65,9 +65,9 @@ MOCKABLE_FUNCTION(, void, call_once_end, volatile_atomic int32_t*, state, bool, 
 `call_once_end` is called by the user to signal a succesful or failure of the call once code. If `success` is `false` then `state` is reset to its initialized state thus allowing another attempt. If `success` is `true` then all ongoing and all further calls to `call_once_begin` return `CALL_ONCE_ALREADY_CALLED`.
 
 
-**SRS_CALL_ONCE_02_005: [** If `success` is `true` then `call_once_end` shall call `InterlockedHL_SetAndWake(state, 2)`. **]**
+**SRS_CALL_ONCE_02_005: [** If `success` is `true` then `call_once_end` shall call `InterlockedHL_SetAndWakeAll(state, 2)`. **]**
 
-**SRS_CALL_ONCE_02_006: [** If `success` is `false` then `call_once_end` shall call `InterlockedHL_SetAndWake(state, 0)`. **]**
+**SRS_CALL_ONCE_02_006: [** If `success` is `false` then `call_once_end` shall call `InterlockedHL_SetAndWakeAll(state, 0)`. **]**
 
 
 
