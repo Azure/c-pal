@@ -14,7 +14,7 @@
 MU_DEFINE_ENUM_STRINGS(CALL_ONCE_RESULT, CALL_ONCE_RESULT_VALUES);
 
 /*a weak check to ensure that nobody has the idea to change call_once_t type to int8_t (or other type...  to save some memory for example)*/
-static int check_call_once_t_is_the_same_as_volatile_atomic_int_t_because_we_are_going_to_pass_it_to_wait_on_address_or_wake_by_address_all[sizeof(volatile_atomic int32_t) == sizeof(call_once_t)];
+static int check_call_once_t_is_the_same_as_volatile_atomic_int32_t_because_we_are_going_to_pass_it_to_wait_on_address_or_wake_by_address_all[sizeof(volatile_atomic int32_t) == sizeof(call_once_t)];
 
 static int32_t CALL_ONCE_CALLING = CALL_ONCE_NOT_CALLED + 1; /*at least CALL_ONCE_CALLING needs to be a variable because it will have its address taken (wait_on_address needs that). So it cannot be an enum or #define or "2"*/
 static const int32_t CALL_ONCE_CALLED = CALL_ONCE_NOT_CALLED + 2;
