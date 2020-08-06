@@ -193,6 +193,25 @@ TEST_FUNCTION(gballoc_ll_init_unhappy)
     ///clean
 }
 
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_021: [ If there are any failures then heap_init shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(gballoc_ll_init_fails_when_HeapCreate_fails)
+{
+    ///arrange
+    int result;
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mock_HeapCreate(0, 0, 0))
+        .SetReturn(NULL);
+
+    ///act
+    result = gballoc_ll_init((void*)0x24);
+
+    ///assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_016: [ If the global state is not initialized then gballoc_ll_deinit shall return. ]*/
 TEST_FUNCTION(gballoc_ll_deinit_without_init)
 {
@@ -227,6 +246,7 @@ TEST_FUNCTION(gballoc_ll_deinit_success)
     ///clean
 }
 
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_022: [ gballoc_ll_malloc shall call lazy_init with parameter do_init set to heap_init. ]*/
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_006: [ gballoc_ll_malloc shall call HeapAlloc. ]*/
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_007: [ gballoc_ll_malloc shall return what HeapAlloc returned. ]*/
 TEST_FUNCTION(gballoc_ll_malloc_succeeds)
@@ -243,6 +263,26 @@ TEST_FUNCTION(gballoc_ll_malloc_succeeds)
 
     ///assert
     ASSERT_ARE_EQUAL(void_ptr, TEST_MALLOC_RESULT, malloc_result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_ll_deinit();
+}
+
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_023: [ If lazy_init fails then gballoc_ll_mallocshall return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_fails_when_lazy_init_fails)
+{
+    ///arrange
+    TEST_gballoc_ll_init();
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(LAZY_INIT_ERROR);
+
+    ///act
+    void* malloc_result = gballoc_ll_malloc(1);
+
+    ///assert
+    ASSERT_IS_NULL(malloc_result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
@@ -272,6 +312,7 @@ TEST_FUNCTION(gballoc_ll_free_success)
     gballoc_ll_deinit();
 }
 
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_024: [ gballoc_ll_calloc shall call lazy_init with parameter do_init set to heap_init. ]*/
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_011: [ gballoc_ll_calloc shall call HeapAlloc with flags set to HEAP_ZERO_MEMORY. ]*/
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_012: [ gballoc_ll_calloc shall return what HeapAlloc returns. ]*/
 TEST_FUNCTION(gballoc_ll_calloc_succeeds)
@@ -294,8 +335,28 @@ TEST_FUNCTION(gballoc_ll_calloc_succeeds)
     gballoc_ll_deinit();
 }
 
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_025: [ If lazy_init fails then gballoc_ll_calloc shall return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_calloc_fails_when_lazy_init_fails)
+{
+    ///arrange
+    TEST_gballoc_ll_init();
 
-TEST_FUNCTION(gballoc_ll_realloc_without_init_returns_NULL)
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(LAZY_INIT_ERROR);
+
+    ///act
+    void* malloc_result = gballoc_ll_calloc(1, 2);
+
+    ///assert
+    ASSERT_IS_NULL(malloc_result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_ll_deinit();
+}
+
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_026: [ gballoc_ll_realloc shall call lazy_init with parameter do_init set to heap_init. ]*/
+TEST_FUNCTION(gballoc_ll_realloc_without_init)
 {
     ///arrange
 
@@ -314,6 +375,26 @@ TEST_FUNCTION(gballoc_ll_realloc_without_init_returns_NULL)
     ///clean
     gballoc_ll_deinit();
 }
+
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_027: [ If lazy_init fails then gballoc_ll_realloc shall return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_realloc_fails_when_lazy_init_fails)
+{
+    ///arrange
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(LAZY_INIT_ERROR);
+
+    ///act
+    void* ptr = gballoc_ll_realloc((void*)3, 1);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_ll_deinit();
+}
+
 
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_014: [ If ptr is NULL then gballoc_ll_realloc shall call HeapAlloc and return what HeapAlloc returns. ]*/
 TEST_FUNCTION(gballoc_ll_realloc_with_ptr_NULL)

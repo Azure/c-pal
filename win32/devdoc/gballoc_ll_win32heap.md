@@ -70,7 +70,7 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc, size_t, size);
 
 **SRS_GBALLOC_LL_WIN32HEAP_02_022: [** `gballoc_ll_malloc` shall call `lazy_init` with parameter `do_init` set to `heap_init`. **]**
 
-**SRS_GBALLOC_LL_WIN32HEAP_02_023: [** If `lazy_init` fails then `gballoc_ll_malloc`shall return `NULL`. **]**
+**SRS_GBALLOC_LL_WIN32HEAP_02_023: [** If `lazy_init` fails then `gballoc_ll_malloc` shall return `NULL`. **]**
 
 **SRS_GBALLOC_LL_WIN32HEAP_02_006: [** `gballoc_ll_malloc` shall call `HeapAlloc`. **]**
 
@@ -95,7 +95,7 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_calloc, size_t, nmemb, size_t, size);
 
 **SRS_GBALLOC_LL_WIN32HEAP_02_024: [** `gballoc_ll_calloc` shall call `lazy_init` with parameter `do_init` set to `heap_init`. **]**
 
-**SRS_GBALLOC_LL_WIN32HEAP_02_025: [** If `lazy_init` fails then `gballoc_ll_calloc`shall return `NULL`. **]**
+**SRS_GBALLOC_LL_WIN32HEAP_02_025: [** If `lazy_init` fails then `gballoc_ll_calloc` shall return `NULL`. **]**
 
 **SRS_GBALLOC_LL_WIN32HEAP_02_011: [** `gballoc_ll_calloc` shall call `HeapAlloc` with `flags` set to `HEAP_ZERO_MEMORY`. **]**
 
@@ -110,7 +110,7 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc, void*, ptr, size_t, size);
 
 **SRS_GBALLOC_LL_WIN32HEAP_02_026: [** `gballoc_ll_realloc` shall call `lazy_init` with parameter `do_init` set to `heap_init`. **]**
 
-**SRS_GBALLOC_LL_WIN32HEAP_02_027: [** If `lazy_init` fails then `gballoc_ll_realloc`shall return `NULL`. **]**
+**SRS_GBALLOC_LL_WIN32HEAP_02_027: [** If `lazy_init` fails then `gballoc_ll_realloc` shall return `NULL`. **]**
 
 **SRS_GBALLOC_LL_WIN32HEAP_02_014: [** If `ptr` is `NULL` then `gballoc_ll_realloc` shall call `HeapAlloc` and return what `HeapAlloc` returns. **]**
 
