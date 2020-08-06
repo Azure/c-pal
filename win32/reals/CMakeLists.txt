@@ -7,6 +7,7 @@ cmake_minimum_required(VERSION 2.8.11)
 set(reals_win32_c_files
     real_call_once.c
     real_lazy_init.c
+    real_sync.c
     real_threadapi.c
     real_interlocked_hl_win32.c
     real_srw_lock_win32.c
