@@ -63,6 +63,7 @@ MOCK_FUNCTION_END(*Addend + Value)
 
 MOCKABLE_FUNCTION(, LONG, InterlockedExchange, LONG volatile*, Addend, LONG, Value);
 MOCKABLE_FUNCTION(, void, WakeByAddressSingle, PVOID, Address);
+MOCKABLE_FUNCTION(, void, WakeByAddressAll, PVOID, Address);
 
 MOCK_FUNCTION_WITH_CODE(, LONGLONG, InterlockedAdd64, LONGLONG volatile *, Addend, LONGLONG, Value)
 MOCK_FUNCTION_END(*Addend + Value)
@@ -839,5 +840,39 @@ TEST_FUNCTION(InterlockedHL_SetAndWake_succeeds)
     ///assert
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, result);
 }
+
+/*Tests_SRS_INTERLOCKED_HL_02_028: [ If address is NULL then InterlockedHL_SetAndWakeAll shall fail and return INTERLOCKED_HL_ERROR. ]*/
+TEST_FUNCTION(InterlockedHL_SetAndWakeAll_with_address_NULL_fails)
+{
+    ///arrange
+    INTERLOCKED_HL_RESULT result;
+
+    ///act
+    result = InterlockedHL_SetAndWakeAll(NULL, 3);
+
+    ///assert
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_ERROR, result);
+}
+
+/*Tests_SRS_INTERLOCKED_HL_02_029: [ InterlockedHL_SetAndWakeAll shall set address to value. ]*/
+/*Tests_SRS_INTERLOCKED_HL_02_030: [ InterlockedHL_SetAndWakeAll shall call WakeByAddressAll. ]*/
+/*Tests_SRS_INTERLOCKED_HL_02_031: [ InterlockedHL_SetAndWakeAll shall succeed and return INTERLOCKED_HL_OK. ]*/
+TEST_FUNCTION(InterlockedHL_SetAndWakeAll_succeeds)
+{
+    ///arrange
+    LONG hereLiesAThree = 3;
+    LONG thatIsGoingToTurn4 = 4;
+    INTERLOCKED_HL_RESULT result;
+
+    STRICT_EXPECTED_CALL(InterlockedExchange(&hereLiesAThree, thatIsGoingToTurn4));
+    STRICT_EXPECTED_CALL(WakeByAddressAll(&hereLiesAThree));
+
+    ///act
+    result = InterlockedHL_SetAndWakeAll(&hereLiesAThree, thatIsGoingToTurn4);
+
+    ///assert
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, result);
+}
+
 
 END_TEST_SUITE(interlocked_hl_win32_ut)

@@ -6,6 +6,7 @@
 #define InterlockedHL_WaitForValue64 real_InterlockedHL_WaitForValue64
 #define InterlockedHL_WaitForNotValue real_InterlockedHL_WaitForNotValue
 #define InterlockedHL_SetAndWake real_InterlockedHL_SetAndWake
+#define InterlockedHL_SetAndWakeAll real_InterlockedHL_SetAndWakeAll
 #define InterlockedHL_CompareExchange64If real_InterlockedHL_CompareExchange64If
 
 #define INTERLOCKED_HL_RESULT real_INTERLOCKED_HL_RESULT

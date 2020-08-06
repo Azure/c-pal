@@ -18,11 +18,15 @@ set(gballoc_hl_c gballoc_hl_${gballoc_hl_type_lower}.c)
 
 set(pal_win32_h_files
     ${pal_common_h_files}
+    inc/azure_c_pal/call_once.h
+    inc/azure_c_pal/lazy_init.h
     inc/azure_c_pal/execution_engine_win32.h
 )
 
 set(pal_win32_c_files
     ${pal_common_c_files}
+    src/call_once.c
+    src/lazy_init.c
     src/execution_engine_win32.c
     src/async_socket_win32.c
     src/threadpool_win32.c
