@@ -400,6 +400,7 @@ TEST_FUNCTION(gballoc_hl_realloc_fails_when_lazy_init_fails)
     gballoc_hl_free(result);
     TEST_gballoc_hl_deinit();
 }
+
 /*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_008: [ gballoc_hl_realloc shall call gballoc_ll_realloc(ptr, size) and return what gballoc_ll_realloc returned. ]*/
 TEST_FUNCTION(gballoc_hl_realloc_when_ll_fails)
 {
