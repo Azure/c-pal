@@ -22,7 +22,7 @@
 extern "C" {
 #endif
 
-    LAZY_INIT_RESULT real_lazy_init(volatile_atomic int32_t* lazy, LAZY_INIT_FUNCTION do_init, void* init_params);
+    LAZY_INIT_RESULT real_lazy_init(call_once_t* lazy, LAZY_INIT_FUNCTION do_init, void* init_params);
 
 #ifdef __cplusplus
 }

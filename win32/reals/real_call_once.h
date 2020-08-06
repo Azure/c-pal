@@ -22,8 +22,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    CALL_ONCE_RESULT real_call_once_begin(volatile_atomic int32_t* state);
-    void real_call_once_end(volatile_atomic int32_t* state, bool success);
+    CALL_ONCE_RESULT real_call_once_begin(call_once_t* state);
+    void real_call_once_end(call_once_t* state, bool success);
 
 #ifdef __cplusplus
 }

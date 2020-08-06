@@ -19,8 +19,8 @@
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 
-static volatile_atomic int32_t g_stateSleep = CALL_ONCE_NOT_CALLED;
-static volatile_atomic int32_t threadThatSleeps_executions = 0;
+static call_once_t g_stateSleep = CALL_ONCE_NOT_CALLED;
+static call_once_t threadThatSleeps_executions = 0;
 
 static DWORD WINAPI sleepThread(
     _In_ LPVOID lpParameter
@@ -38,10 +38,10 @@ static DWORD WINAPI sleepThread(
 
 #define N_THREADS_FOR_CHAOS 16
 #define N_AT_LEAST_TIME_MS 2000 /*ms*/
-static volatile_atomic int32_t n_threads_that_failed = 0;
+static call_once_t n_threads_that_failed = 0;
 static double startTime;
-static volatile_atomic int32_t chaosThread_executions = 0;
-static volatile_atomic int32_t g_stateChaos = CALL_ONCE_NOT_CALLED;
+static call_once_t chaosThread_executions = 0;
+static call_once_t g_stateChaos = CALL_ONCE_NOT_CALLED;
 
 static DWORD WINAPI chaosThread(
     _In_ LPVOID lpParameter

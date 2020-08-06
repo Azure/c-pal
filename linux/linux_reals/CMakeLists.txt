@@ -8,6 +8,7 @@ set(linux_reals_c_files
     real_interlocked.c
     real_gballoc_ll_${gballoc_ll_type_lower}.c
     real_gballoc_hl_${gballoc_hl_type_lower}.c
+    real_sync.c
 )
 
 set(linux_reals_h_files

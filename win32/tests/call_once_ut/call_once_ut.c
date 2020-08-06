@@ -7,8 +7,6 @@
 #include <stdlib.h>
 #endif
 
-#include "windows.h"
-
 #include "azure_macro_utils/macro_utils.h"
 
 #include "testrunnerswitcher.h"
@@ -16,17 +14,14 @@
 #include "umock_c/umocktypes.h"
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umocktypes_bool.h"
-#include "umock_c/umocktypes_windows.h"
-
 
 #define ENABLE_MOCKS
 #include "azure_c_pal/interlocked.h"
-#include "azure_c_pal/interlocked_hl.h"
-
+#include "azure_c_pal/sync.h"
 #undef ENABLE_MOCKS
 
 #include "real_interlocked.h"
-#include "real_interlocked_hl.h"
+#include "real_sync.h"
 #include "azure_c_pal/call_once.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
@@ -42,7 +37,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 TEST_DEFINE_ENUM_TYPE(CALL_ONCE_RESULT, CALL_ONCE_RESULT_VALUES);
 IMPLEMENT_UMOCK_C_ENUM_TYPE(CALL_ONCE_RESULT, CALL_ONCE_RESULT_VALUES);
 
-static volatile_atomic int32_t g_state = CALL_ONCE_NOT_CALLED;
+static call_once_t g_state = CALL_ONCE_NOT_CALLED;
 
 BEGIN_TEST_SUITE(call_once_unittests)
 
@@ -53,13 +48,12 @@ TEST_SUITE_INITIALIZE(suite_init)
 
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error), "umock_c_init");
     ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types());
-    ASSERT_ARE_EQUAL(int, 0, umocktypes_windows_register_types());
     ASSERT_ARE_EQUAL(int, 0, umocktypes_bool_register_types());
 
     REGISTER_TYPE(CALL_ONCE_RESULT, CALL_ONCE_RESULT);
 
     REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK();
-    REGISTER_INTERLOCKED_HL_GLOBAL_MOCK_HOOK();
+    REGISTER_SYNC_GLOBAL_MOCK_HOOK();
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
@@ -109,7 +103,7 @@ TEST_FUNCTION(call_once_begin_after_static_init_succeeds)
 TEST_FUNCTION(call_once_begin_after_local_init_succeeds)
 {
     ///arrange
-    volatile_atomic int32_t state;
+    call_once_t state;
     (void)real_interlocked_exchange(&state, CALL_ONCE_NOT_CALLED);
     CALL_ONCE_RESULT canProceed;
 
@@ -130,12 +124,13 @@ TEST_FUNCTION(call_once_begin_after_local_init_succeeds)
 TEST_FUNCTION(call_once_begin_after_begin_end_fails)
 {
     ///arrange
-    volatile_atomic int32_t state;
+    call_once_t state;
     CALL_ONCE_RESULT canProceed;
     (void)real_interlocked_exchange(&state, CALL_ONCE_NOT_CALLED);
     
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(&state, 1, 0));
-    STRICT_EXPECTED_CALL(InterlockedHL_SetAndWakeAll((LONG*)&state, 2));
+    STRICT_EXPECTED_CALL(interlocked_exchange(&state, 2));
+    STRICT_EXPECTED_CALL(wake_by_address_all(&state));
     canProceed = call_once_begin(&state);
     ASSERT_ARE_EQUAL(CALL_ONCE_RESULT, CALL_ONCE_PROCEED, canProceed);
     call_once_end(&state, true);
@@ -158,7 +153,7 @@ TEST_FUNCTION(call_once_begin_after_begin_end_fails)
 TEST_FUNCTION(call_once_end_with_success_switches_state_to_2)
 {
     ///arrange
-    volatile_atomic int32_t state;
+    call_once_t state;
     CALL_ONCE_RESULT canProceed;
     (void)real_interlocked_exchange(&state, CALL_ONCE_NOT_CALLED);
 
@@ -167,7 +162,8 @@ TEST_FUNCTION(call_once_end_with_success_switches_state_to_2)
     ASSERT_ARE_EQUAL(CALL_ONCE_RESULT, CALL_ONCE_PROCEED, canProceed);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
-    STRICT_EXPECTED_CALL(InterlockedHL_SetAndWakeAll((LONG*)&state, 2));
+    STRICT_EXPECTED_CALL(interlocked_exchange(&state, 2));
+    STRICT_EXPECTED_CALL(wake_by_address_all(&state));
 
     ///act
     call_once_end(&state, true);
@@ -182,7 +178,7 @@ TEST_FUNCTION(call_once_end_with_success_switches_state_to_2)
 TEST_FUNCTION(call_once_end_without_success_switches_state_to_0)
 {
     ///arrange
-    volatile_atomic int32_t state;
+    call_once_t state;
     CALL_ONCE_RESULT canProceed;
     (void)real_interlocked_exchange(&state, CALL_ONCE_NOT_CALLED);
 
@@ -191,7 +187,8 @@ TEST_FUNCTION(call_once_end_without_success_switches_state_to_0)
     ASSERT_ARE_EQUAL(CALL_ONCE_RESULT, CALL_ONCE_PROCEED, canProceed);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
-    STRICT_EXPECTED_CALL(InterlockedHL_SetAndWakeAll((LONG*)&state, 0));
+    STRICT_EXPECTED_CALL(interlocked_exchange(&state, 0));
+    STRICT_EXPECTED_CALL(wake_by_address_all(&state));
 
     ///act
     call_once_end(&state, false);

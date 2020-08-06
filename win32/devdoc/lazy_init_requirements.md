@@ -21,21 +21,20 @@ MU_DEFINE_ENUM(LAZY_INIT_RESULT, LAZY_INIT_RESULT_VALUES)
 
     typedef int (*LAZY_INIT_FUNCTION)(void* params);
 
-    MOCKABLE_FUNCTION(, LAZY_INIT_RESULT, lazy_init, volatile_atomic int32_t*, lazy, LAZY_INIT_FUNCTION, do_init, void*, init_params);
+    MOCKABLE_FUNCTION(, LAZY_INIT_RESULT, lazy_init, call_once_t*, lazy, LAZY_INIT_FUNCTION, do_init, void*, init_params);
 
 ```
 
 ### lazy_init
 ```c
-MOCKABLE_FUNCTION(, LAZY_INIT_RESULT, lazy_init, volatile_atomic int32_t*, lazy, LAZY_INIT_FUNCTION, do_init, void*, init_params);
+MOCKABLE_FUNCTION(, LAZY_INIT_RESULT, lazy_init, call_once_t*, lazy, LAZY_INIT_FUNCTION, do_init, void*, init_params);
 ```
 
 `lazy_init` executes `do_init` function with `init_params` only once. 
 
 **SRS_LAZY_INIT_02_001: [** If `lazy` is `NULL` then `lazy_init` shall fail and return `LAZY_INIT_ERROR`. **]**
 
-**SRS_LAZY_INIT_02_002: [** If `do_init` is `NULL` then `lazy_init` shall fail and return `LAZY_INIT_ERROR`.
- **]**
+**SRS_LAZY_INIT_02_002: [** If `do_init` is `NULL` then `lazy_init` shall fail and return `LAZY_INIT_ERROR`. **]**
 
 **SRS_LAZY_INIT_02_003: [** `lazy_init` shall call `call_once_begin(lazy)`. **]**
 

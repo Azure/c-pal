@@ -21,7 +21,7 @@ static TEST_MUTEX_HANDLE test_serialize_mutex;
 
 #define N_THREADS_FOR_CHAOS 16
 
-static volatile_atomic int32_t lazy_chaos = LAZY_INIT_NOT_DONE;
+static call_once_t lazy_chaos = LAZY_INIT_NOT_DONE;
 static volatile_atomic int32_t n_spawned_chaos = 0;
 static volatile_atomic int32_t data_chaos = 0;
 
