@@ -13,6 +13,8 @@
 #include "azure_macro_utils/macro_utils.h"
 #include "azure_c_pal/interlocked.h"
 
+typedef volatile_atomic int32_t call_once_t;
+
 #define CALL_ONCE_NOT_CALLED 0 /*to only be used in static initialization, rest of initializations need to use interlocked_exchange*/
 
 #define CALL_ONCE_RESULT_VALUES \
@@ -26,8 +28,8 @@ MU_DEFINE_ENUM(CALL_ONCE_RESULT, CALL_ONCE_RESULT_VALUES)
 extern "C" {
 #endif
 
-    MOCKABLE_FUNCTION(, CALL_ONCE_RESULT, call_once_begin, volatile_atomic int32_t*, state);
-    MOCKABLE_FUNCTION(, void, call_once_end, volatile_atomic int32_t*, state, bool, success);
+    MOCKABLE_FUNCTION(, CALL_ONCE_RESULT, call_once_begin, call_once_t*, state);
+    MOCKABLE_FUNCTION(, void, call_once_end, call_once_t*, state, bool, success);
 
 #ifdef __cplusplus
 }

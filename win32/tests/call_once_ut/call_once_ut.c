@@ -42,7 +42,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 TEST_DEFINE_ENUM_TYPE(CALL_ONCE_RESULT, CALL_ONCE_RESULT_VALUES);
 IMPLEMENT_UMOCK_C_ENUM_TYPE(CALL_ONCE_RESULT, CALL_ONCE_RESULT_VALUES);
 
-static volatile_atomic int32_t g_state = CALL_ONCE_NOT_CALLED;
+static call_once_t g_state = CALL_ONCE_NOT_CALLED;
 
 BEGIN_TEST_SUITE(call_once_unittests)
 
@@ -109,7 +109,7 @@ TEST_FUNCTION(call_once_begin_after_static_init_succeeds)
 TEST_FUNCTION(call_once_begin_after_local_init_succeeds)
 {
     ///arrange
-    volatile_atomic int32_t state;
+    call_once_t state;
     (void)real_interlocked_exchange(&state, CALL_ONCE_NOT_CALLED);
     CALL_ONCE_RESULT canProceed;
 
@@ -130,7 +130,7 @@ TEST_FUNCTION(call_once_begin_after_local_init_succeeds)
 TEST_FUNCTION(call_once_begin_after_begin_end_fails)
 {
     ///arrange
-    volatile_atomic int32_t state;
+    call_once_t state;
     CALL_ONCE_RESULT canProceed;
     (void)real_interlocked_exchange(&state, CALL_ONCE_NOT_CALLED);
     
@@ -158,7 +158,7 @@ TEST_FUNCTION(call_once_begin_after_begin_end_fails)
 TEST_FUNCTION(call_once_end_with_success_switches_state_to_2)
 {
     ///arrange
-    volatile_atomic int32_t state;
+    call_once_t state;
     CALL_ONCE_RESULT canProceed;
     (void)real_interlocked_exchange(&state, CALL_ONCE_NOT_CALLED);
 
@@ -182,7 +182,7 @@ TEST_FUNCTION(call_once_end_with_success_switches_state_to_2)
 TEST_FUNCTION(call_once_end_without_success_switches_state_to_0)
 {
     ///arrange
-    volatile_atomic int32_t state;
+    call_once_t state;
     CALL_ONCE_RESULT canProceed;
     (void)real_interlocked_exchange(&state, CALL_ONCE_NOT_CALLED);
 

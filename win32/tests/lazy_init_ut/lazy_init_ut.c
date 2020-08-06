@@ -103,7 +103,7 @@ TEST_FUNCTION(lazy_init_with_do_init_NULL_fails)
 {
     ///arrange
     LAZY_INIT_RESULT result;
-    volatile_atomic int32_t lazy = LAZY_INIT_NOT_DONE;
+    call_once_t lazy = LAZY_INIT_NOT_DONE;
 
     ///act
     result = lazy_init(&lazy, NULL, NULL);

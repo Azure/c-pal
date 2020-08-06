@@ -14,7 +14,7 @@
 
 MU_DEFINE_ENUM_STRINGS(LAZY_INIT_RESULT, LAZY_INIT_RESULT_VALUES)
 
-LAZY_INIT_RESULT lazy_init(volatile_atomic int32_t* lazy, LAZY_INIT_FUNCTION do_init, void* init_params)
+LAZY_INIT_RESULT lazy_init(call_once_t* lazy, LAZY_INIT_FUNCTION do_init, void* init_params)
 {
     LAZY_INIT_RESULT result;
     if (
@@ -24,7 +24,7 @@ LAZY_INIT_RESULT lazy_init(volatile_atomic int32_t* lazy, LAZY_INIT_FUNCTION do_
         (do_init == NULL)
         )
     {
-        LogError("invalid arguments volatile_atomic int32_t* lazy=%p, LAZY_INIT_FUNCTION do_init=%p, void* init_params=%p",
+        LogError("invalid arguments call_once_t* lazy=%p, LAZY_INIT_FUNCTION do_init=%p, void* init_params=%p",
             lazy, do_init, init_params);
         result = LAZY_INIT_ERROR;
     }

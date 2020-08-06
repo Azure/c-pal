@@ -9,7 +9,7 @@ Typical usage is:
 
 ```c
 
-volatile_atomic int32_t wasInit = CALL_ONCE_NOT_CALLED;
+call_once_t wasInit = CALL_ONCE_NOT_CALLED;
 
 ...
 
@@ -49,13 +49,13 @@ void initialize(...)
     CALL_ONCE_PROCEED, \
     CALL_ONCE_ALREADY_CALLED \
 
-    MOCKABLE_FUNCTION(, CALL_ONCE_RESULT, call_once_begin, volatile_atomic int32_t*, state);
-    MOCKABLE_FUNCTION(, void, call_once_end, volatile_atomic int32_t*, state, bool, success);
+    MOCKABLE_FUNCTION(, CALL_ONCE_RESULT, call_once_begin, call_once_t*, state);
+    MOCKABLE_FUNCTION(, void, call_once_end, call_once_t*, state, bool, success);
 ```
 
-### call_once_begin, volatile_atomic int32_t*, state);
+### call_once_begin, call_once_t*, state);
 ```c
-MOCKABLE_FUNCTION(, CALL_ONCE_RESULT, call_once_begin, volatile_atomic int32_t*, state);
+MOCKABLE_FUNCTION(, CALL_ONCE_RESULT, call_once_begin, call_once_t*, state);
 ```
 
 `call_once_begin` returns `CALL_ONCE_PROCEED` when the user is allowed to call the "execute once" code.
@@ -72,7 +72,7 @@ MOCKABLE_FUNCTION(, CALL_ONCE_RESULT, call_once_begin, volatile_atomic int32_t*,
 
 ### call_once_end
 ```c
-MOCKABLE_FUNCTION(, void, call_once_end, volatile_atomic int32_t*, state, bool, success);
+MOCKABLE_FUNCTION(, void, call_once_end, call_once_t*, state, bool, success);
 ```
 
 `call_once_end` is called by the user to signal a succesful or failure of the call once code. If `success` is `false` then `state` is reset to its initialized state thus allowing another attempt. If `success` is `true` then all ongoing and all further calls to `call_once_begin` return `CALL_ONCE_ALREADY_CALLED`.

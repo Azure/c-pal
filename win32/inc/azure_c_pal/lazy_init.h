@@ -7,7 +7,6 @@
 #include <cstdint>
 #else
 #include <stdint.h>
-#include <stdbool.h>
 #endif
 
 #include "azure_macro_utils/macro_utils.h"
@@ -29,7 +28,7 @@ extern "C" {
 
     typedef int (*LAZY_INIT_FUNCTION)(void* params);
 
-    MOCKABLE_FUNCTION(, LAZY_INIT_RESULT, lazy_init, volatile_atomic int32_t*, lazy, LAZY_INIT_FUNCTION, do_init, void*, init_params);
+    MOCKABLE_FUNCTION(, LAZY_INIT_RESULT, lazy_init, call_once_t*, lazy, LAZY_INIT_FUNCTION, do_init, void*, init_params);
 
 #ifdef __cplusplus
 }
