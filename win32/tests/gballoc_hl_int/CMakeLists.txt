@@ -20,9 +20,11 @@ set(${theseTestsName}_c_files
     ../../src/gballoc_ll_${gballoc_ll_impl_lower}.c
     ../../src/gballoc_hl_${gballoc_hl_impl_lower}.c
     ../../src/timer.c #needed because gballoc_hl needs timer to compute "how much time it takes"
-    ../../src/call_once.c
+    ../../../common/src/call_once.c
+    ../../../common/src/lazy_init.c
     ../../src/interlocked_win32.c
     ../../src/interlocked_hl_win32.c
+    ../../src/sync_win32.c
 )
 
 set(${theseTestsName}_h_files

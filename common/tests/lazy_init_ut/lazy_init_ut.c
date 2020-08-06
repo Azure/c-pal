@@ -7,8 +7,6 @@
 #include <stdlib.h>
 #endif
 
-#include "windows.h"
-
 #include "azure_macro_utils/macro_utils.h"
 
 #include "testrunnerswitcher.h"
@@ -16,7 +14,6 @@
 #include "umock_c/umocktypes.h"
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umocktypes_bool.h"
-#include "umock_c/umocktypes_windows.h"
 
 
 #define ENABLE_MOCKS
@@ -53,7 +50,6 @@ TEST_SUITE_INITIALIZE(suite_init)
 
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error), "umock_c_init");
     ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types());
-    ASSERT_ARE_EQUAL(int, 0, umocktypes_windows_register_types());
     ASSERT_ARE_EQUAL(int, 0, umocktypes_bool_register_types());
 
     REGISTER_TYPE(CALL_ONCE_RESULT, CALL_ONCE_RESULT);

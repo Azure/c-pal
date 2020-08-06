@@ -11,9 +11,13 @@ set(${theseTestsName}_test_files
 
 set(${theseTestsName}_c_files
     ../../src/gballoc_ll_win32heap.c
+    ../../src/interlocked_win32.c
+    ../../../common/src/lazy_init.c
+    ../../../common/src/call_once.c
+    ../../src/sync_win32.c
 )
 
 set(${theseTestsName}_h_files
 )
 
-build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS pal_interfaces) 
+build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS pal_interfaces synchronization) 

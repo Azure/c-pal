@@ -3,56 +3,59 @@
 
 #ifdef __cplusplus
 #include <cstdlib>
+#include <ctime>
 #else
 #include <stdlib.h>
+#include <time.h>
 #endif
-
-#include "windows.h"
 
 #include "azure_macro_utils/macro_utils.h"
 
 #include "testrunnerswitcher.h"
 
-#include "azure_c_pal/timer.h"
+#include "azure_c_pal/threadapi.h"
 
 #include "azure_c_pal/call_once.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 
+TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES)
+
 static call_once_t g_stateSleep = CALL_ONCE_NOT_CALLED;
 static call_once_t threadThatSleeps_executions = 0;
 
-static DWORD WINAPI sleepThread(
-    _In_ LPVOID lpParameter
+static int sleepThread(
+    void* lpParameter
 )
 {
     (void)lpParameter;
     while (call_once_begin(&g_stateSleep) == CALL_ONCE_PROCEED)
     {
         (void)interlocked_increment(&threadThatSleeps_executions);
-        Sleep(4000);
+        ThreadAPI_Sleep(4000);
         call_once_end(&g_stateSleep, true);
     }
     return 0;
 }
 
 #define N_THREADS_FOR_CHAOS 16
-#define N_AT_LEAST_TIME_MS 2000 /*ms*/
+#define N_AT_LEAST_TIME_MS 3000 /*ms*/
 static call_once_t n_threads_that_failed = 0;
-static double startTime;
+static time_t startTime;
 static call_once_t chaosThread_executions = 0;
 static call_once_t g_stateChaos = CALL_ONCE_NOT_CALLED;
 
-static DWORD WINAPI chaosThread(
-    _In_ LPVOID lpParameter
+static int chaosThread(
+    void* lpParameter
 )
 {
     (void)lpParameter;
     bool shouldIncrementThreadsThatFailed = true;
     while (call_once_begin(&g_stateChaos) != CALL_ONCE_ALREADY_CALLED)
     {
+        double elapsed = difftime(time(NULL), startTime);
         if (
-            (timer_global_get_elapsed_ms() - startTime <= N_AT_LEAST_TIME_MS) ||
+            (elapsed * 1000 <= N_AT_LEAST_TIME_MS) ||
             (interlocked_add(&n_threads_that_failed, 0) != N_THREADS_FOR_CHAOS)
             )
         {
@@ -101,7 +104,7 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
     TEST_MUTEX_RELEASE(test_serialize_mutex);
 }
 
-/*Tests_SRS_CALL_ONCE_02_003: [ If interlocked_compare_exchange returns 1 then call_once_begin shall call InterlockedHL_WaitForNotValue(state, 1, INFINITE) and call again interlocked_compare_exchange(state, 1, 0). ]*/
+/*Tests_SRS_CALL_ONCE_02_003: [ If interlocked_compare_exchange returns 1 then call_once_begin shall call wait_on_address(state) with timeout UINT32_MAX and call again interlocked_compare_exchange(state, 1, 0). ]*/
 TEST_FUNCTION(call_once_will_wake_a_waiting_thread)
 {
     /*this test spawns 2 threads*/
@@ -113,23 +116,20 @@ TEST_FUNCTION(call_once_will_wake_a_waiting_thread)
     /*the first thread will exit succesfully, thus unblocking the second thread*/
 
     ///arrange
-    HANDLE threads[2];
+    THREAD_HANDLE threads[2];
 
     ///act
-    threads[0] = CreateThread(NULL, 0, sleepThread, NULL, 0, NULL);
+    ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&threads[0], sleepThread, NULL));
     ASSERT_IS_NOT_NULL(threads[0]);
 
-    threads[1] = CreateThread(NULL, 0, sleepThread, NULL, 0, NULL);
+    ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&threads[1], sleepThread, NULL));
     ASSERT_IS_NOT_NULL(threads[1]);
 
-    DWORD dw = WaitForMultipleObjects(2, threads, TRUE, INFINITE);
-    ASSERT_IS_TRUE((WAIT_OBJECT_0 <= dw) && (dw <= WAIT_OBJECT_0 + 2 - 1));
+    ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(threads[0], NULL));
+    ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(threads[1], NULL));
 
     ///assert
     ASSERT_ARE_EQUAL(int32_t, 1, interlocked_add(&threadThatSleeps_executions, 0));
-
-    (void)CloseHandle(threads[0]);
-    (void)CloseHandle(threads[1]);
 }
 
 TEST_FUNCTION(call_once_chaos_knight)
@@ -140,25 +140,23 @@ TEST_FUNCTION(call_once_chaos_knight)
 
     ///arrange
     size_t i;
-    HANDLE threads[N_THREADS_FOR_CHAOS];
-    startTime = timer_global_get_elapsed_ms();
+    THREAD_HANDLE threads[N_THREADS_FOR_CHAOS];
+    startTime = time(NULL);
 
     for (i = 0; i < N_THREADS_FOR_CHAOS; i++)
     {
-        threads[i] = CreateThread(NULL, 0, chaosThread, NULL, 0, NULL);
+        ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&threads[i], chaosThread, NULL));
         ASSERT_IS_NOT_NULL(threads[i]);
     }
 
-    DWORD dw = WaitForMultipleObjects(N_THREADS_FOR_CHAOS, threads, TRUE, INFINITE);
-    ASSERT_IS_TRUE((WAIT_OBJECT_0 <= dw) && (dw <= WAIT_OBJECT_0 + N_THREADS_FOR_CHAOS - 1));
+    for (i = 0; i < N_THREADS_FOR_CHAOS; i++)
+    {
+        ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(threads[i], NULL));
+    }
 
     ///assert
     ASSERT_ARE_EQUAL(int32_t, 1, interlocked_add(&chaosThread_executions, 0));
 
-    for (i = 0; i < N_THREADS_FOR_CHAOS; i++)
-    {
-        (void)CloseHandle(threads[i]);
-    }
 }
 
 

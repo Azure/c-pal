@@ -149,7 +149,7 @@ TEST_FUNCTION(call_once_begin_after_begin_end_fails)
 
 }
 
-/*Tests_SRS_CALL_ONCE_02_005: [ If success is true then call_once_end shall call InterlockedHL_SetAndWakeAll(state, 2). ]*/
+/*Tests_SRS_CALL_ONCE_02_005: [ If success is true then call_once_end shall call interlocked_exchange setting state to CALL_ONCE_CALLED and shall call wake_by_address_all(state). ]*/
 TEST_FUNCTION(call_once_end_with_success_switches_state_to_2)
 {
     ///arrange
@@ -174,7 +174,7 @@ TEST_FUNCTION(call_once_end_with_success_switches_state_to_2)
     ///clean
 }
 
-/*Tests_SRS_CALL_ONCE_02_006: [ If success is false then call_once_end shall call InterlockedHL_SetAndWakeAll(state, 0). ]*/
+/*Tests_SRS_CALL_ONCE_02_006: [ If success is false then call_once_end shall call interlocked_exchange setting state to CALL_ONCE_NOT_CALLED and shall call wake_by_address_all(state). ]*/
 TEST_FUNCTION(call_once_end_without_success_switches_state_to_0)
 {
     ///arrange

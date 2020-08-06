@@ -1,11 +1,13 @@
 #Copyright (C) Microsoft Corporation. All rights reserved.
 
 set(pal_common_h_files
-
+    ../common/inc/azure_c_pal/call_once.h
+    ../common/inc/azure_c_pal/lazy_init.h
 )
 
 set(pal_common_c_files
-
+    ../common/src/call_once.c
+    ../common/src/lazy_init.c
 )
 
 #determining which one of the GBALLOC_LL implementations to use. By convention the file is called "gballoc_ll_" followed by "type".
@@ -18,15 +20,11 @@ set(gballoc_hl_c gballoc_hl_${gballoc_hl_type_lower}.c)
 
 set(pal_win32_h_files
     ${pal_common_h_files}
-    inc/azure_c_pal/call_once.h
-    inc/azure_c_pal/lazy_init.h
     inc/azure_c_pal/execution_engine_win32.h
 )
 
 set(pal_win32_c_files
     ${pal_common_c_files}
-    src/call_once.c
-    src/lazy_init.c
     src/execution_engine_win32.c
     src/async_socket_win32.c
     src/threadpool_win32.c
