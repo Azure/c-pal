@@ -11,7 +11,7 @@
 
 #include "azure_c_pal/gballoc_ll.h"
 
-static volatile_atomic int32_t g_lazy = LAZY_INIT_NOT_DONE;
+static call_once_t g_lazy = LAZY_INIT_NOT_DONE;
 static HANDLE the_heap = NULL;
 
 static int heap_init(void* init_params)
@@ -67,6 +67,7 @@ void gballoc_ll_deinit(void)
     }
     else
     {
+        interlocked_exchange(&g_lazy, LAZY_INIT_NOT_DONE);
         /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_004: [ gballoc_ll_deinit shall call HeapDestroy on the handle stored by gballoc_ll_init in the global variable. ]*/
         if (!HeapDestroy(the_heap))
         {
@@ -75,7 +76,7 @@ void gballoc_ll_deinit(void)
         the_heap = NULL;
     }
 }
-    MOCKABLE_FUNCTION(, void*, gballoc_ll_calloc, size_t, nmemb, size_t, size);
+
 
 void* gballoc_ll_malloc(size_t size)
 {

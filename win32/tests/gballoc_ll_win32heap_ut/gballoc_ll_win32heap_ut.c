@@ -39,14 +39,30 @@ extern "C" {
 #include "azure_c_pal/lazy_init.h"
 #undef ENABLE_MOCKS
 
-static LAZY_INIT_RESULT my_lazy_init(volatile_atomic int32_t* lazy, LAZY_INIT_FUNCTION do_init, void* init_params)
+static LAZY_INIT_RESULT my_lazy_init(call_once_t* lazy, LAZY_INIT_FUNCTION do_init, void* init_params)
 {
-    (void)lazy;
-    
-    return do_init(init_params) == 0 ? LAZY_INIT_OK : LAZY_INIT_ERROR;
+    if (*lazy == 0)
+    {
+        if (do_init(init_params) == 0)
+        {
+            *lazy = 2;
+            return LAZY_INIT_OK;
+        }
+        else
+        {
+            *lazy = 0;
+            return LAZY_INIT_ERROR;
+        }
+    }
+    else
+    {
+        return LAZY_INIT_OK;
+    }
 }
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
+
+#include "real_interlocked.h"
 
 #include "azure_c_pal/gballoc_ll.h"
 
@@ -58,6 +74,14 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 TEST_DEFINE_ENUM_TYPE(LAZY_INIT_RESULT, LAZY_INIT_RESULT_RESULT);
 IMPLEMENT_UMOCK_C_ENUM_TYPE(LAZY_INIT_RESULT, LAZY_INIT_RESULT_VALUES);
 MU_DEFINE_ENUM_STRINGS(LAZY_INIT_RESULT, LAZY_INIT_RESULT_RESULT);
+
+static void TEST_gballoc_ll_init(void)
+{
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mock_HeapCreate(0, 0, 0));
+    ASSERT_ARE_EQUAL(int, 0, gballoc_ll_init(NULL));
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
 
 BEGIN_TEST_SUITE(gballoc_ll_win32heap_ut)
 
@@ -78,8 +102,9 @@ TEST_SUITE_INITIALIZE(TestClassInitialize)
 
     REGISTER_UMOCK_ALIAS_TYPE(SIZE_T, size_t);
     REGISTER_UMOCK_ALIAS_TYPE(LAZY_INIT_FUNCTION, size_t);
-    REGISTER_GLOBAL_MOCK_HOOK(lazy_init, my_lazy_init)
-    
+    REGISTER_GLOBAL_MOCK_HOOK(lazy_init, my_lazy_init);
+
+    REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK();
 
 }
 
@@ -137,7 +162,7 @@ TEST_FUNCTION(gballoc_ll_init_with_non_NULL_pointer_returns_0)
 {
     ///arrange
     int result;
-
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mock_HeapCreate(0, 0, 0));
 
     ///act
@@ -155,8 +180,8 @@ TEST_FUNCTION(gballoc_ll_init_with_non_NULL_pointer_returns_0)
 TEST_FUNCTION(gballoc_ll_init_unhappy)
 {
     ///arrange
-    STRICT_EXPECTED_CALL(mock_HeapCreate(0, 0, 0))
-        .SetReturn(NULL);
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(LAZY_INIT_ERROR);
 
     ///act
     int result = gballoc_ll_init(NULL);
@@ -186,9 +211,10 @@ TEST_FUNCTION(gballoc_ll_deinit_without_init)
 TEST_FUNCTION(gballoc_ll_deinit_success)
 {
     ///arrange
-    int result = gballoc_ll_init(NULL);
-    ASSERT_ARE_EQUAL(int, 0, result);
-    umock_c_reset_all_calls();
+    TEST_gballoc_ll_init();
+
+
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
 
     STRICT_EXPECTED_CALL(mock_HeapDestroy(TEST_HEAP));
 
@@ -201,29 +227,14 @@ TEST_FUNCTION(gballoc_ll_deinit_success)
     ///clean
 }
 
-
-TEST_FUNCTION(gballoc_ll_malloc_without_init_fails)
-{
-    ///arrange
-
-    ///act
-    void* result = gballoc_ll_malloc(1);
-
-    ///assert
-    ASSERT_IS_NULL(result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///clean
-}
-
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_006: [ gballoc_ll_malloc shall call HeapAlloc. ]*/
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_007: [ gballoc_ll_malloc shall return what HeapAlloc returned. ]*/
 TEST_FUNCTION(gballoc_ll_malloc_succeeds)
 {
     ///arrange
-    int result = gballoc_ll_init(NULL);
-    ASSERT_ARE_EQUAL(int, 0, result);
-    umock_c_reset_all_calls();
+    TEST_gballoc_ll_init();
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
 
     STRICT_EXPECTED_CALL(mock_HeapAlloc(TEST_HEAP, 0, 1));
 
@@ -236,20 +247,6 @@ TEST_FUNCTION(gballoc_ll_malloc_succeeds)
 
     ///clean
     gballoc_ll_deinit();
-}
-
-
-TEST_FUNCTION(gballoc_ll_free_without_init_returns)
-{
-    ///arrange
-
-    ///act
-    gballoc_ll_free(TEST_MALLOC_RESULT);
-
-    ///assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///clean
 }
 
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_009: [ gballoc_ll_free shall call HeapFree. ]*/
@@ -275,29 +272,14 @@ TEST_FUNCTION(gballoc_ll_free_success)
     gballoc_ll_deinit();
 }
 
-
-TEST_FUNCTION(gballoc_ll_calloc_without_init_returns_NULL)
-{
-    ///arrange
-
-    ///act
-    void* ptr = gballoc_ll_calloc(1, 1);
-
-    ///assert
-    ASSERT_IS_NULL(ptr);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///clean
-}
-
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_011: [ gballoc_ll_calloc shall call HeapAlloc with flags set to HEAP_ZERO_MEMORY. ]*/
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_012: [ gballoc_ll_calloc shall return what HeapAlloc returns. ]*/
 TEST_FUNCTION(gballoc_ll_calloc_succeeds)
 {
     ///arrange
-    int result = gballoc_ll_init(NULL);
-    ASSERT_ARE_EQUAL(int, 0, result);
-    umock_c_reset_all_calls();
+    TEST_gballoc_ll_init();
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
 
     STRICT_EXPECTED_CALL(mock_HeapAlloc(TEST_HEAP, HEAP_ZERO_MEMORY, 2));
 
@@ -317,23 +299,29 @@ TEST_FUNCTION(gballoc_ll_realloc_without_init_returns_NULL)
 {
     ///arrange
 
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mock_HeapCreate(0, 0, 0));
+
+    STRICT_EXPECTED_CALL(mock_HeapReAlloc(TEST_HEAP, 0, (void*)3, 1));
+
     ///act
     void* ptr = gballoc_ll_realloc((void*)3, 1);
 
     ///assert
-    ASSERT_IS_NULL(ptr);
+    ASSERT_IS_NOT_NULL(ptr);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
+    gballoc_ll_deinit();
 }
 
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_014: [ If ptr is NULL then gballoc_ll_realloc shall call HeapAlloc and return what HeapAlloc returns. ]*/
 TEST_FUNCTION(gballoc_ll_realloc_with_ptr_NULL)
 {
     ///arrange
-    int result = gballoc_ll_init(NULL);
-    ASSERT_ARE_EQUAL(int, 0, result);
-    umock_c_reset_all_calls();
+    TEST_gballoc_ll_init();
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
 
     STRICT_EXPECTED_CALL(mock_HeapAlloc(TEST_HEAP, 0, 1));
 
@@ -352,9 +340,9 @@ TEST_FUNCTION(gballoc_ll_realloc_with_ptr_NULL)
 TEST_FUNCTION(gballoc_ll_realloc_with_ptr_non_NULL)
 {
     ///arrange
-    int result = gballoc_ll_init(NULL);
-    ASSERT_ARE_EQUAL(int, 0, result);
-    umock_c_reset_all_calls();
+    TEST_gballoc_ll_init();
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
 
     STRICT_EXPECTED_CALL(mock_HeapReAlloc(TEST_HEAP, 0, TEST_MALLOC_RESULT, 1));
 
@@ -373,9 +361,7 @@ TEST_FUNCTION(gballoc_ll_realloc_with_ptr_non_NULL)
 TEST_FUNCTION(gballoc_ll_size_returns_what_HeapSize_returned)
 {
     ///arrange
-    int result = gballoc_ll_init(NULL);
-    ASSERT_ARE_EQUAL(int, 0, result);
-    umock_c_reset_all_calls();
+    TEST_gballoc_ll_init();
 
     STRICT_EXPECTED_CALL(mock_HeapSize(TEST_HEAP, 0, TEST_MALLOC_RESULT))
         .SetReturn(1);
