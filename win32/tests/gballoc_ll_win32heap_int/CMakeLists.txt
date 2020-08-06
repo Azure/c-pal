@@ -12,8 +12,8 @@ set(${theseTestsName}_test_files
 set(${theseTestsName}_c_files
     ../../src/gballoc_ll_win32heap.c
     ../../src/interlocked_win32.c
-    ../../src/lazy_init.c
-    ../../src/call_once.c
+    ../../../common/src/lazy_init.c
+    ../../../common/src/call_once.c
     ../../src/sync_win32.c
 )
 

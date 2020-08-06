@@ -7,15 +7,15 @@
 #include <stdlib.h>
 #endif
 
-#include "windows.h"
-
 #include "azure_macro_utils/macro_utils.h"
 
 #include "testrunnerswitcher.h"
+#include "azure_c_pal/threadapi.h"
 
 #include "azure_c_pal/lazy_init.h"
 
 TEST_DEFINE_ENUM_TYPE(LAZY_INIT_RESULT, LAZY_INIT_RESULT_VALUES);
+TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES)
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 
@@ -32,8 +32,8 @@ static int do_init(void* params)
     return 0;
 }
 
-static DWORD WINAPI chaosThread(
-    _In_ LPVOID lpParameter
+static int chaosThread(
+    void* lpParameter
 )
 {
     (void)lpParameter;
@@ -89,24 +89,23 @@ TEST_FUNCTION(lazy_init_chaos_knight)
 
     ///arrange
     size_t i;
-    HANDLE threads[N_THREADS_FOR_CHAOS];
+    THREAD_HANDLE threads[N_THREADS_FOR_CHAOS];
 
     for (i = 0; i < N_THREADS_FOR_CHAOS; i++)
     {
-        threads[i] = CreateThread(NULL, 0, chaosThread, NULL, 0, NULL);
+        ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&threads[i], chaosThread, NULL));
         ASSERT_IS_NOT_NULL(threads[i]);
+
     }
 
-    DWORD dw = WaitForMultipleObjects(N_THREADS_FOR_CHAOS, threads, TRUE, INFINITE);
-    ASSERT_IS_TRUE((WAIT_OBJECT_0 <= dw) && (dw <= WAIT_OBJECT_0 + N_THREADS_FOR_CHAOS - 1));
+    for (i = 0; i < N_THREADS_FOR_CHAOS; i++)
+    {
+        ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(threads[i], NULL));
+    }
 
     ///assert - all done in the threads themselves
     
     ///clean
-    for (i = 0; i < N_THREADS_FOR_CHAOS; i++)
-    {
-        (void)CloseHandle(threads[i]);
-    }
 }
 
 

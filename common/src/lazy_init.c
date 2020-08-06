@@ -4,8 +4,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "windows.h"
-
 #include "azure_c_logging/xlogging.h"
 
 #include "azure_c_pal/call_once.h"

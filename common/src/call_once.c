@@ -43,7 +43,7 @@ CALL_ONCE_RESULT call_once_begin(call_once_t* state)
         }
         else
         {
-            /*Codes_SRS_CALL_ONCE_02_003: [ If interlocked_compare_exchange returns 1 then call_once_begin shall call InterlockedHL_WaitForNotValue(state, 1, INFINITE) and call again interlocked_compare_exchange(state, 1, 0). ]*/
+            /*Codes_SRS_CALL_ONCE_02_003: [ If interlocked_compare_exchange returns 1 then call_once_begin shall call wait_on_address(state) with timeout UINT32_MAX and call again interlocked_compare_exchange(state, 1, 0). ]*/
             /*state cannot be "2" because while condition, so that means state is "1", and that means, need to wait until it is not 1*/
             if (!wait_on_address(state, &CALL_ONCE_CALLING, UINT32_MAX))
             {
@@ -61,8 +61,8 @@ CALL_ONCE_RESULT call_once_begin(call_once_t* state)
 
 void call_once_end(call_once_t* state, bool success)
 {
-    /*Codes_SRS_CALL_ONCE_02_005: [ If success is true then call_once_end shall call InterlockedHL_SetAndWakeAll(state, 2). ]*/
-    /*Codes_SRS_CALL_ONCE_02_006: [ If success is false then call_once_end shall call InterlockedHL_SetAndWakeAll(state, 0). ]*/
+    /*Codes_SRS_CALL_ONCE_02_005: [ If success is true then call_once_end shall call interlocked_exchange setting state to CALL_ONCE_CALLED and shall call wake_by_address_all(state). ]*/
+    /*Codes_SRS_CALL_ONCE_02_006: [ If success is false then call_once_end shall call interlocked_exchange setting state to CALL_ONCE_NOT_CALLED and shall call wake_by_address_all(state). ]*/
     (void)interlocked_exchange(state, success ? CALL_ONCE_CALLED : CALL_ONCE_NOT_CALLED);
     wake_by_address_all(state);
 }
