@@ -8,6 +8,7 @@
 
 #include "azure_c_pal/timer.h"
 #include "azure_c_pal/gballoc_ll.h"
+#include "azure_c_pal/lazy_init.h"
 
 #include "azure_c_pal/gballoc_hl.h"
 
@@ -62,10 +63,10 @@ typedef struct LATENCY_BUCKET_TAG
     volatile LONG count;
 } LATENCY_BUCKET;
 
-static LATENCY_BUCKET malloc_latency_buckets[GBALLOC_LATENCY_BUCKET_COUNT];
-static LATENCY_BUCKET calloc_latency_buckets[GBALLOC_LATENCY_BUCKET_COUNT];
-static LATENCY_BUCKET realloc_latency_buckets[GBALLOC_LATENCY_BUCKET_COUNT];
-static LATENCY_BUCKET free_latency_buckets[GBALLOC_LATENCY_BUCKET_COUNT];
+static LATENCY_BUCKET malloc_latency_buckets[GBALLOC_LATENCY_BUCKET_COUNT] = { 0 };
+static LATENCY_BUCKET calloc_latency_buckets[GBALLOC_LATENCY_BUCKET_COUNT] = { 0 };
+static LATENCY_BUCKET realloc_latency_buckets[GBALLOC_LATENCY_BUCKET_COUNT] = { 0 };
+static LATENCY_BUCKET free_latency_buckets[GBALLOC_LATENCY_BUCKET_COUNT] = { 0 };
 
 static size_t determine_latency_bucket_for_size(size_t size)
 {
@@ -125,35 +126,44 @@ static void internal_copy_latency_data(GBALLOC_LATENCY_BUCKETS* latency_buckets_
     }
 }
 
-static int wasInitialized = 0;
+static call_once_t g_lazy = LAZY_INIT_NOT_DONE;
+
+static int do_init(void* ll_params)
+{
+    int result;
+    /* Codes_SRS_GBALLOC_HL_METRICS_02_005: [ do_init shall call gballoc_ll_init(ll_params) ]*/
+    if (gballoc_ll_init(ll_params) != 0)
+    {
+        /*Codes_SRS_GBALLOC_HL_METRICS_02_007: [ If gballoc_ll_init fails then do_init shall return a non-zero value. ]*/
+        LogError("failure in gballoc_ll_init(ll_params=%p)", ll_params);
+        result = MU_FAILURE;
+    }
+    else
+    {
+        /*Codes_SRS_GBALLOC_HL_METRICS_02_006: [ do_init shall succeed and return 0. ]*/
+        internal_init_latency_counters();
+        result = 0;
+    }
+    return result;
+}
 
 int gballoc_hl_init(void* hl_params, void* ll_params)
 {
     (void)hl_params;
     int result;
 
-    /* Codes_SRS_GBALLOC_HL_METRICS_01_001: [ If the module is already initialized, gballoc_hl_init shall fail and return a non-zero value. ]*/
-    if (wasInitialized != 0)
+    /*Codes_SRS_GBALLOC_HL_METRICS_02_004: [ gballoc_hl_init shall call lazy_init with do_init as initialization function. ]*/
+    if (lazy_init(&g_lazy, do_init, ll_params) != LAZY_INIT_OK)
     {
-        LogError("Already initialized");
+        /*Codes_SRS_GBALLOC_HL_METRICS_01_004: [ If any error occurs, gballoc_hl_init shall fail and return a non-zero value. ]*/
+        LogError("failure in lazy_init(&g_lazy=%p, do_init=%p, ll_params=%p)", &g_lazy, do_init, ll_params);
         result = MU_FAILURE;
     }
     else
     {
-        /* Codes_SRS_GBALLOC_HL_METRICS_01_002: [ Otherwise, gballoc_hl_init shall call gballoc_ll_init(ll_params) . ]*/
-        if (gballoc_ll_init(ll_params) != 0)
-        {
-            /*Codes_SRS_GBALLOC_HL_METRICS_01_004: [ If any error occurs, gballoc_hl_init shall fail and return a non-zero value. ]*/
-            LogError("failure in gballoc_ll_init(ll_params=%p)", ll_params);
-            result = MU_FAILURE;
-        }
-        else
-        {
-            internal_init_latency_counters();
-            wasInitialized = 1;
-            /* Codes_SRS_GBALLOC_HL_METRICS_01_003: [ On success, gballoc_hl_init shall return 0. ]*/
-            result = 0;
-        }
+        /*Codes_SRS_GBALLOC_HL_METRICS_01_001: [ If the module is already initialized, gballoc_hl_init shall succeed and return 0. ]*/
+        /*Codes_SRS_GBALLOC_HL_METRICS_01_003: [ On success, gballoc_hl_init shall return 0. ]*/
+        result = 0;
     }
 
     return result;
@@ -161,18 +171,15 @@ int gballoc_hl_init(void* hl_params, void* ll_params)
 
 void gballoc_hl_deinit(void)
 {
-    if (wasInitialized == 0)
+    /*Codes_SRS_GBALLOC_HL_METRICS_01_005: [ If gballoc_hl_deinit is called while not initialized, gballoc_hl_deinit shall return. ]*/
+    if (interlocked_add(&g_lazy, 0) != LAZY_INIT_NOT_DONE)
     {
-        /* Codes_SRS_GBALLOC_HL_METRICS_01_005: [ If gballoc_hl_deinit is called while not initialized, gballoc_hl_deinit shall return. ]*/
-        LogError("Not initialized");
-    }
-    else
-    {
-        /* Codes_SRS_GBALLOC_HL_METRICS_01_006: [ Otherwise it shall call gballoc_ll_deinit to deinitialize the ll layer. ]*/
-        // error ignored as we can't do much with it
+        interlocked_exchange(&g_lazy, LAZY_INIT_NOT_DONE);
+
+        /*Codes_SRS_GBALLOC_HL_METRICS_01_006: [ Otherwise it shall call gballoc_ll_deinit to deinitialize the ll layer. ]*/
         gballoc_ll_deinit();
-        wasInitialized = 0;
     }
+    
 }
 
 void gballoc_hl_reset_counters(void)
@@ -309,7 +316,8 @@ void* gballoc_hl_malloc(size_t size)
 {
     void* result;
 
-    if (wasInitialized == 0)
+    /*Codes_SRS_GBALLOC_HL_METRICS_02_001: [ gballoc_hl_malloc shall call lazy_init to initialize. ]*/
+    if (lazy_init(&g_lazy, do_init, NULL) != LAZY_INIT_OK)
     {
         /* Codes_SRS_GBALLOC_HL_METRICS_01_008: [ If the module was not initialized, gballoc_hl_malloc shall return NULL. ]*/
         LogError("Not initialized");
@@ -342,7 +350,8 @@ void* gballoc_hl_calloc(size_t nmemb, size_t size)
 {
     void* result;
 
-    if (wasInitialized == 0)
+    /*Codes_SRS_GBALLOC_HL_METRICS_02_002: [ gballoc_hl_calloc shall call lazy_init to initialize. ]*/
+    if (lazy_init(&g_lazy, do_init, NULL) != LAZY_INIT_OK)
     {
         /* Codes_SRS_GBALLOC_HL_METRICS_01_011: [ If the module was not initialized, gballoc_hl_calloc shall return NULL. ]*/
         LogError("Not initialized");
@@ -375,7 +384,8 @@ void* gballoc_hl_realloc(void* ptr, size_t size)
 {
     void* result;
 
-    if (wasInitialized == 0)
+    /*Codes_SRS_GBALLOC_HL_METRICS_02_003: [ gballoc_hl_realloc shall call lazy_init to initialize. ]*/
+    if (lazy_init(&g_lazy, do_init, NULL) != LAZY_INIT_OK)
     {
         /* Codes_SRS_GBALLOC_HL_METRICS_01_015: [ If the module was not initialized, gballoc_hl_realloc shall return NULL. ]*/
         LogError("Not initialized");
@@ -406,7 +416,7 @@ void* gballoc_hl_realloc(void* ptr, size_t size)
 
 void gballoc_hl_free(void* ptr)
 {
-    if (wasInitialized == 0)
+    if (interlocked_add(&g_lazy,0) == LAZY_INIT_NOT_DONE)
     {
         /* Codes_SRS_GBALLOC_HL_METRICS_01_016: [ If the module was not initialized, gballoc_hl_free shall return. ]*/
         LogError("Not initialized");

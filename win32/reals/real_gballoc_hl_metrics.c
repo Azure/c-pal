@@ -3,6 +3,9 @@
 
 #include "real_gballoc_ll_renames.h"
 #include "real_timer_renames.h"
+#include "real_lazy_init_renames.h"
+#include "real_call_once_renames.h"
+#include "real_interlocked_renames.h"
 
 #include "real_gballoc_hl_renames.h"
 

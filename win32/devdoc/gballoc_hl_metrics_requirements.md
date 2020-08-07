@@ -56,9 +56,15 @@
 
 `gballoc_hl_init` initializes the module. `hl_params` is ignored. `ll_params` is passed to `gballoc_ll_init`. This function is not thread-safe.
 
-**SRS_GBALLOC_HL_METRICS_01_001: [** If the module is already initialized, `gballoc_hl_init` shall fail and return a non-zero value. **]**
+**SRS_GBALLOC_HL_METRICS_01_001: [** If the module is already initialized, `gballoc_hl_init` shall succeed and return 0. **]**
 
-**SRS_GBALLOC_HL_METRICS_01_002: [** Otherwise, `gballoc_hl_init` shall call `gballoc_ll_init(ll_params)` . **]**
+**SRS_GBALLOC_HL_METRICS_02_004: [** `gballoc_hl_init` shall call `lazy_init` with `do_init` as initialization function. **]**
+
+**SRS_GBALLOC_HL_METRICS_02_005: [** `do_init` shall call `gballoc_ll_init(ll_params)`. **]**
+
+**SRS_GBALLOC_HL_METRICS_02_006: [** `do_init` shall succeed and return 0. **]**
+
+**SRS_GBALLOC_HL_METRICS_02_007: [** If `gballoc_ll_init` fails then `do_init` shall return a non-zero value. **]**
 
 **SRS_GBALLOC_HL_METRICS_01_003: [** On success, `gballoc_hl_init` shall return 0. **]**
 
@@ -84,6 +90,8 @@ MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc, size_t, size);
 
 `gballoc_hl_malloc` allocates `size` bytes of memory.
 
+**SRS_GBALLOC_HL_METRICS_02_001: [** `gballoc_hl_malloc` shall call `lazy_init` to initialize. **]**
+
 **SRS_GBALLOC_HL_METRICS_01_008: [** If the module was not initialized, `gballoc_hl_malloc` shall return NULL. **]**
 
 **SRS_GBALLOC_HL_METRICS_01_028: [** `gballoc_hl_malloc` shall call `timer_global_get_elapsed_us` to obtain the start time of the allocate. **]**
@@ -100,6 +108,8 @@ MOCKABLE_FUNCTION(, void*, gballoc_hl_calloc, size_t, nmemb, size_t, size);
 
 `gballoc_hl_calloc` allocates `size` * `nmemb` bytes of memory and initializes the memory with 0.
 
+**SRS_GBALLOC_HL_METRICS_02_002: [** `gballoc_hl_calloc` shall call `lazy_init` to initialize. **]**
+
 **SRS_GBALLOC_HL_METRICS_01_011: [** If the module was not initialized, `gballoc_hl_calloc` shall return NULL. **]**
 
 **SRS_GBALLOC_HL_METRICS_01_030: [** `gballoc_hl_calloc` shall call `timer_global_get_elapsed_us` to obtain the start time of the allocate. **]**
@@ -115,6 +125,8 @@ MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc, void*, ptr, size_t, size);
 ```
 
 `gballoc_hl_realloc` allocates `size` bytes of memory making sure that the original memory at `ptr` is copied to the new reallocated memory block.
+
+**SRS_GBALLOC_HL_METRICS_02_003: [** `gballoc_hl_realloc` shall call lazy_init to initialize. **]**
 
 **SRS_GBALLOC_HL_METRICS_01_015: [** If the module was not initialized, `gballoc_hl_realloc` shall return NULL. **]**
 
