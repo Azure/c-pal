@@ -126,7 +126,7 @@ static void internal_copy_latency_data(GBALLOC_LATENCY_BUCKETS* latency_buckets_
     }
 }
 
-static call_once_t g_lazy = 0;
+static call_once_t g_lazy = LAZY_INIT_NOT_DONE;
 
 static int do_init(void* ll_params)
 {
