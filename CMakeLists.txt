@@ -89,7 +89,7 @@ if ((NOT TARGET umock_c) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/umock-c/CMak
 endif()
 
 if (
-    (NOT TARGET mimalloc) AND 
+    (NOT TARGET mimalloc-obj) AND 
     (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/mimalloc/CMakeLists.txt)
     )
         set(MI_BUILD_SHARED OFF CACHE BOOL "Build shared library" FORCE) #not building a dll allows building on 32 bit, otherwise there's some errors on init.c about not finding a imported symbol
