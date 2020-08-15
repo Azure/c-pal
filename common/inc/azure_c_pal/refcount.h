@@ -58,7 +58,7 @@ MU_C2(REFCOUNT_, type)
 #define DEFINE_CREATE_WITH_EXTRA_SIZE(type, malloc_func) \
 static type* REFCOUNT_TYPE_DECLARE_CREATE_WITH_EXTRA_SIZE(type)(size_t size) \
 { \
-    /* Codes_SRS_REFCOUNT_01_010: [ Memory allocation/free shall be performed by using the functions malloc_func and free_func. ]*/ \
+    /* Codes_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func and free_func for memory allocation and free.  ]*/ \
     REFCOUNT_TYPE(type)* ref_counted = (REFCOUNT_TYPE(type)*)malloc_func(sizeof(REFCOUNT_TYPE(type)) + size); \
     type* result; \
     if (ref_counted == NULL) \
@@ -88,12 +88,12 @@ static type* REFCOUNT_TYPE_DECLARE_CREATE(type) (void) \
 static void REFCOUNT_TYPE_DECLARE_DESTROY(type)(type* counted_type) \
 { \
     void* ref_counted = (void*)((unsigned char*)counted_type - offsetof(REFCOUNT_TYPE(type), counted)); \
-    /* Codes_SRS_REFCOUNT_01_010: [ Memory allocation/free shall be performed by using the functions malloc_func and free_func. ]*/ \
+    /* Codes_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func and free_func for memory allocation and free.  ]*/ \
     free_func(ref_counted); \
 }
 
-/* Codes_SRS_REFCOUNT_01_001: [ DEFINE_REFCOUNT_TYPE shall define the create/create_with_Extra_size/destroy functions for the type type. ]*/
-#define DEFINE_REFCOUNT_TYPE(type, malloc_func, free_func) \
+/* Codes_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func and free_func for memory allocation and free.  ]*/ \
+#define DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC(type, malloc_func, free_func) \
 REFCOUNT_TYPE(type) \
 { \
     volatile_atomic int32_t count; \
@@ -102,6 +102,11 @@ REFCOUNT_TYPE(type) \
 DEFINE_CREATE_WITH_EXTRA_SIZE(type, malloc_func) \
 DEFINE_CREATE(type, malloc_func) \
 DEFINE_DESTROY(type, free_func) \
+
+/* Codes_SRS_REFCOUNT_01_001: [ DEFINE_REFCOUNT_TYPE shall define the create/create_with_Extra_size/destroy functions for the type type. ]*/
+#define DEFINE_REFCOUNT_TYPE(type) \
+    /* Codes_SRS_REFCOUNT_01_010: [ Memory allocation/free shall be performed by using the functions malloc and free. ]*/ \
+    DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC(type, malloc, free)
 
 /*assuming that CONSTBUFFER_ARRAY_HANDLE is a type introduced with DEFINE_REFCOUNT_TYPE(CONSTBUFFER_ARRAY_HANDLE_DATA);
 and "checkpointContent" is a variable of type CONSTBUFFER_ARRAY_HANDLE
