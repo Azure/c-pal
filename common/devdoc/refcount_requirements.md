@@ -27,7 +27,7 @@ It wraps the structure that needs to be ref counted into another structure that 
 ### DEFINE_REFCOUNT_TYPE
 
 ```c
-#define DEFINE_REFCOUNT_TYPE(type, malloc_func, free_func) \
+#define DEFINE_REFCOUNT_TYPE(type) \
 ```
 
 **SRS_REFCOUNT_01_001: [** `DEFINE_REFCOUNT_TYPE` shall define the create/create_with_Extra_size/destroy functions for the type `type`. **]**
