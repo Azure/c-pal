@@ -55,10 +55,11 @@ MU_C2(REFCOUNT_, type)
 /* Codes_SRS_REFCOUNT_01_005: [ REFCOUNT_TYPE_CREATE_WITH_EXTRA_SIZE shall allocate memory for the type that is ref counted (type) plus extra memory enough to hold size bytes. ]*/
 /* Codes_SRS_REFCOUNT_01_006: [ On success it shall return a non-NULL handle to the allocated ref counted type type. ]*/
 /* Codes_SRS_REFCOUNT_01_007: [ If any error occurs, REFCOUNT_TYPE_CREATE_WITH_EXTRA_SIZE shall return NULL. ]*/
-#define DEFINE_CREATE_WITH_EXTRA_SIZE(type) \
+#define DEFINE_CREATE_WITH_EXTRA_SIZE(type, malloc_func) \
 static type* REFCOUNT_TYPE_DECLARE_CREATE_WITH_EXTRA_SIZE(type)(size_t size) \
 { \
-    REFCOUNT_TYPE(type)* ref_counted = (REFCOUNT_TYPE(type)*)malloc(sizeof(REFCOUNT_TYPE(type)) + size); \
+    /* Codes_SRS_REFCOUNT_01_010: [ Memory allocation/free shall be performed by using the functions malloc_func and free_func. ]*/ \
+    REFCOUNT_TYPE(type)* ref_counted = (REFCOUNT_TYPE(type)*)malloc_func(sizeof(REFCOUNT_TYPE(type)) + size); \
     type* result; \
     if (ref_counted == NULL) \
     { \
@@ -75,7 +76,7 @@ static type* REFCOUNT_TYPE_DECLARE_CREATE_WITH_EXTRA_SIZE(type)(size_t size) \
 /* Codes_SRS_REFCOUNT_01_002: [ REFCOUNT_TYPE_CREATE shall allocate memory for the type that is ref counted. ]*/
 /* Codes_SRS_REFCOUNT_01_003: [ On success it shall return a non-NULL handle to the allocated ref counted type type. ]*/
 /* Codes_SRS_REFCOUNT_01_004: [ If any error occurs, REFCOUNT_TYPE_CREATE shall return NULL. ]*/
-#define DEFINE_CREATE(type) \
+#define DEFINE_CREATE(type, malloc_func) \
 static type* REFCOUNT_TYPE_DECLARE_CREATE(type) (void) \
 { \
     return REFCOUNT_TYPE_DECLARE_CREATE_WITH_EXTRA_SIZE(type)(0); \
@@ -83,23 +84,24 @@ static type* REFCOUNT_TYPE_DECLARE_CREATE(type) (void) \
 
 /* Codes_SRS_REFCOUNT_01_008: [ REFCOUNT_TYPE_DESTROY shall free the memory allocated by REFCOUNT_TYPE_CREATE or REFCOUNT_TYPE_CREATE_WITH_EXTRA_SIZE. ]*/
 /* Codes_SRS_REFCOUNT_01_009: [ If counted_type is NULL, REFCOUNT_TYPE_DESTROY shall return. ]*/
-#define DEFINE_DESTROY(type) \
+#define DEFINE_DESTROY(type, free_func) \
 static void REFCOUNT_TYPE_DECLARE_DESTROY(type)(type* counted_type) \
 { \
     void* ref_counted = (void*)((unsigned char*)counted_type - offsetof(REFCOUNT_TYPE(type), counted)); \
-    free(ref_counted); \
+    /* Codes_SRS_REFCOUNT_01_010: [ Memory allocation/free shall be performed by using the functions malloc_func and free_func. ]*/ \
+    free_func(ref_counted); \
 }
 
 /* Codes_SRS_REFCOUNT_01_001: [ DEFINE_REFCOUNT_TYPE shall define the create/create_with_Extra_size/destroy functions for the type type. ]*/
-#define DEFINE_REFCOUNT_TYPE(type) \
+#define DEFINE_REFCOUNT_TYPE(type, malloc_func, free_func) \
 REFCOUNT_TYPE(type) \
 { \
     volatile_atomic int32_t count; \
     type counted; \
 }; \
-DEFINE_CREATE_WITH_EXTRA_SIZE(type) \
-DEFINE_CREATE(type) \
-DEFINE_DESTROY(type) \
+DEFINE_CREATE_WITH_EXTRA_SIZE(type, malloc_func) \
+DEFINE_CREATE(type, malloc_func) \
+DEFINE_DESTROY(type, free_func) \
 
 /*assuming that CONSTBUFFER_ARRAY_HANDLE is a type introduced with DEFINE_REFCOUNT_TYPE(CONSTBUFFER_ARRAY_HANDLE_DATA);
 and "checkpointContent" is a variable of type CONSTBUFFER_ARRAY_HANDLE

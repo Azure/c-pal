@@ -14,7 +14,7 @@ typedef struct EXECUTION_ENGINE_TAG
     PTP_POOL ptp_pool;
 }EXECUTION_ENGINE;
 
-DEFINE_REFCOUNT_TYPE(EXECUTION_ENGINE);
+DEFINE_REFCOUNT_TYPE(EXECUTION_ENGINE, malloc, free);
 
 EXECUTION_ENGINE_HANDLE execution_engine_create(void* execution_engine_parameters)
 {
