@@ -14,8 +14,7 @@ typedef struct pos_TAG
 } pos;
 
 /* Tests_SRS_REFCOUNT_01_001: [ DEFINE_REFCOUNT_TYPE shall define the create/create_with_Extra_size/destroy functions for the type type. ]*/
-/* Tests_SRS_REFCOUNT_01_010: [ Memory allocation/free shall be performed by using the functions `malloc_func` and `free_func`. ]*/ \
-DEFINE_REFCOUNT_TYPE(pos, malloc, free);
+DEFINE_REFCOUNT_TYPE(pos);
 
 POS_HANDLE Pos_Create(int x)
 {

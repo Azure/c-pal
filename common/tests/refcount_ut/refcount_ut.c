@@ -58,7 +58,8 @@ MOCK_FUNCTION_WITH_CODE(, void, test_free, void*, ptr)
     my_free(ptr);
 MOCK_FUNCTION_END()
 
-DEFINE_REFCOUNT_TYPE(TEST_STRUCT, test_malloc, test_free);
+/* Tests_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func and free_func for memory allocation and free.  ]*/
+DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC(TEST_STRUCT, test_malloc, test_free);
 
 BEGIN_TEST_SUITE(refcount_unittests)
 
@@ -110,6 +111,7 @@ BEGIN_TEST_SUITE(refcount_unittests)
 
     /* Tests_SRS_REFCOUNT_01_002: [ REFCOUNT_TYPE_CREATE shall allocate memory for the type that is ref counted. ]*/
     /* Tests_SRS_REFCOUNT_01_003: [ On success it shall return a non-NULL handle to the allocated ref counted type type. ]*/
+    /* Tests_SRS_REFCOUNT_01_010: [ Memory allocation/free shall be performed by using the functions malloc and free. ]*/
     TEST_FUNCTION(refcount_create_returns_non_NULL)
     {
         ///arrange
@@ -185,6 +187,7 @@ BEGIN_TEST_SUITE(refcount_unittests)
     /* REFCOUNT_TYPE_DESTROY */
 
     /* Tests_SRS_REFCOUNT_01_008: [ REFCOUNT_TYPE_DESTROY shall free the memory allocated by REFCOUNT_TYPE_CREATE or REFCOUNT_TYPE_CREATE_WITH_EXTRA_SIZE. ]*/
+    /* Tests_SRS_REFCOUNT_01_010: [ Memory allocation/free shall be performed by using the functions malloc and free. ]*/
     TEST_FUNCTION(refcount_DEC_REF_after_create_says_we_should_free)
     {
         ///arrange
@@ -254,7 +257,7 @@ BEGIN_TEST_SUITE(refcount_unittests)
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     }
 
-    /* Tests_SRS_REFCOUNT_01_010: [ Memory allocation/free shall be performed by using the functions malloc_func and free_func. ]*/ \
+    /* Tests_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func and free_func for memory allocation and free.  ]*/
     TEST_FUNCTION(the_specified_malloc_function_from_the_define_is_used)
     {
         ///arrange
@@ -269,7 +272,7 @@ BEGIN_TEST_SUITE(refcount_unittests)
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     }
 
-    /* Tests_SRS_REFCOUNT_01_010: [ Memory allocation/free shall be performed by using the functions malloc_func and free_func. ]*/ \
+    /* Tests_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func and free_func for memory allocation and free.  ]*/
     TEST_FUNCTION(the_specified_malloc_function_from_the_define_is_used_by_create_with_extra_size)
     {
         ///arrange
@@ -284,7 +287,7 @@ BEGIN_TEST_SUITE(refcount_unittests)
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     }
 
-    /* Tests_SRS_REFCOUNT_01_010: [ Memory allocation/free shall be performed by using the functions malloc_func and free_func. ]*/ \
+    /* Tests_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func and free_func for memory allocation and free.  ]*/
     TEST_FUNCTION(the_specified_free_function_from_the_define_is_used)
     {
         ///arrange

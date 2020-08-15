@@ -17,7 +17,10 @@ It wraps the structure that needs to be ref counted into another structure that 
 #define DEC_REF(type, var) interlocked_decrement(&((REFCOUNT_TYPE(type)*)((unsigned char*)var - offsetof(REFCOUNT_TYPE(type), counted)))->count)
 #define INIT_REF(type, var) interlocked_exchange(&((REFCOUNT_TYPE(type)*)((unsigned char*)var - offsetof(REFCOUNT_TYPE(type), counted)))->count, 1)
 
-#define DEFINE_REFCOUNT_TYPE(type, malloc_func, free_func) \
+#define DEFINE_REFCOUNT_TYPE(type) \
+...
+
+#define DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC(type, malloc_func, free_func) \
 ...
 ```
 
@@ -25,12 +28,19 @@ It wraps the structure that needs to be ref counted into another structure that 
 
 ```c
 #define DEFINE_REFCOUNT_TYPE(type, malloc_func, free_func) \
-...
 ```
 
 **SRS_REFCOUNT_01_001: [** `DEFINE_REFCOUNT_TYPE` shall define the create/create_with_Extra_size/destroy functions for the type `type`. **]**
 
-**SRS_REFCOUNT_01_010: [** Memory allocation/free shall be performed by using the functions `malloc_func` and `free_func`. **]**
+**SRS_REFCOUNT_01_010: [** Memory allocation/free shall be performed by using the functions `malloc` and `free`. **]**
+
+### DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC
+
+```c
+#define DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC(type, malloc_func, free_func) \
+```
+
+**SRS_REFCOUNT_01_011: [** `DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC` shall behave like `DEFINE_REFCOUNT_TYPE`, but use `malloc_func` and `free_func` for memory allocation and free.  **]**
 
 ### REFCOUNT_TYPE_CREATE
 
