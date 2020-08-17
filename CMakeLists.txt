@@ -17,7 +17,7 @@ option(use_cppunittest "set use_cppunittest to ON to build CppUnitTest tests on 
 option(run_traceability "run traceability tool (default is ON)" ON)
 
 #canon way of limiting an option to a predefined set of values
-set(GBALLOC_LL_TYPE_VALUES PASSTHROUGH WIN32HEAP MIMALLOC) #the list of values which are allowed
+set(GBALLOC_LL_TYPE_VALUES PASSTHROUGH WIN32HEAP MIMALLOC JEMALLOC) #the list of values which are allowed
 set(GBALLOC_LL_TYPE PASSTHROUGH CACHE STRING "Value of GBALLOC_LL_TYPE") #setting the property's default value in case none is taken from the command line
 set_property(CACHE GBALLOC_LL_TYPE PROPERTY STRINGS ${GBALLOC_LL_TYPE_VALUES}) #build a property that can have only the allowed values
 
@@ -110,6 +110,13 @@ if (
         
         set(CMAKE_C_FLAGS ${PREV_CMAKE_C_FLAGS})
         set(CMAKE_CXX_FLAGS ${PREV_CMAKE_CXX_FLAGS})
+endif()
+
+if (
+    (NOT TARGET jemalloc) AND 
+    (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/jemalloc/README)
+    )
+    add_subdirectory(jemalloc_build)
 endif()
 
 set(run_e2e_tests ${original_run_e2e_tests})
