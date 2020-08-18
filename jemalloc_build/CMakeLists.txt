@@ -61,4 +61,4 @@ include_directories(../deps/jemalloc/include)
 
 add_library(jemalloc ${jemalloc_h_files} ${jemalloc_c_files})
 
-target_include_directories(pal_win32 PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../deps/jemalloc/include)
+target_include_directories(jemalloc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../deps/jemalloc/include)
