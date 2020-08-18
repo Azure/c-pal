@@ -22,6 +22,7 @@ if(${run_unittests})
     build_test_folder(gballoc_ll_win32heap_ut)
     
     build_test_folder(gballoc_ll_mimalloc_ut)
+    build_test_folder(gballoc_ll_jemalloc_ut)
         
     build_test_folder(gballoc_hl_passthrough_ut)
     
