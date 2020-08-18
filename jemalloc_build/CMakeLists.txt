@@ -58,6 +58,8 @@ set(jemalloc_c_files
 )
 
 include_directories(../deps/jemalloc/include)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/include/msvc_compat)
 
 add_library(jemalloc ${jemalloc_h_files} ${jemalloc_c_files})
 
