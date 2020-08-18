@@ -35,6 +35,7 @@ if(${run_int_tests})
     build_test_folder(string_utils_int)
         
     build_test_folder(gballoc_ll_mimalloc_int)
+    build_test_folder(gballoc_ll_jemalloc_int)
     build_test_folder(gballoc_ll_win32heap_int) 
     build_test_folder(gballoc_ll_passthrough_int)
     
