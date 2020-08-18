@@ -116,7 +116,19 @@ if (
     (NOT TARGET jemalloc) AND 
     (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/jemalloc/README)
     )
+    set(PREV_CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
+    set(PREV_CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+
+    if(WIN32)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd4100 /wd4127 /wd4459 /wd4201 /wd4456 /wd4457 /wd4702 /wd4244 /wd4701 /wd4706 /wd4703 /wd4189 /wd4267 /DJEMALLOC_NO_PRIVATE_NAMESPACE /D_REENTRANT /DDLLEXPORT")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4100 /wd4127 /wd4459 /wd4201 /wd4456 /wd4457 /wd4702 /wd4244 /wd4701 /wd4706 /wd4703 /wd4189 /wd4267 /DJEMALLOC_NO_PRIVATE_NAMESPACE /D_REENTRANT /DDLLEXPORT")
+    endif()
+
     add_subdirectory(jemalloc_build)
+
+    set(CMAKE_C_FLAGS ${PREV_CMAKE_C_FLAGS})
+    set(CMAKE_CXX_FLAGS ${PREV_CMAKE_CXX_FLAGS})
+
 endif()
 
 set(run_e2e_tests ${original_run_e2e_tests})
