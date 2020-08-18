@@ -113,6 +113,7 @@ if (
 endif()
 
 if (
+    (WIN32) AND
     (NOT TARGET jemalloc) AND 
     (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/jemalloc/README)
     )
