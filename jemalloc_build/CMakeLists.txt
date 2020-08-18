@@ -63,4 +63,4 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/include/msvc_compat)
 
 add_library(jemalloc ${jemalloc_h_files} ${jemalloc_c_files})
 
-target_include_directories(jemalloc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../deps/jemalloc/include)
+target_include_directories(jemalloc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../deps/jemalloc/include ${CMAKE_CURRENT_LIST_DIR}/include ${CMAKE_CURRENT_LIST_DIR}/include/msvc_compat)

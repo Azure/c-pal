@@ -56,6 +56,10 @@ if(${GBALLOC_LL_TYPE} STREQUAL "MIMALLOC")
     target_link_libraries(pal_win32 mimalloc-obj)
 endif()
 
+if(${GBALLOC_LL_TYPE} STREQUAL "JEMALLOC")
+    target_link_libraries(pal_win32 jemalloc)
+endif()
+
 target_include_directories(pal_win32 PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc ${CMAKE_CURRENT_LIST_DIR}/src)
 
 
