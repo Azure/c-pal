@@ -180,18 +180,6 @@ static const bool config_opt_safety_checks =
 #endif
     ;
 
-/*
- * Extra debugging of sized deallocations too onerous to be included in the
- * general safety checks.
- */
-static const bool config_opt_size_checks =
-#if defined(JEMALLOC_OPT_SIZE_CHECKS) || defined(JEMALLOC_DEBUG)
-    true
-#else
-    false
-#endif
-    ;
-
 #if defined(_WIN32) || defined(JEMALLOC_HAVE_SCHED_GETCPU)
 /* Currently percpu_arena depends on sched_getcpu. */
 #define JEMALLOC_PERCPU_ARENA
@@ -216,21 +204,6 @@ static const bool force_ivsalloc =
     ;
 static const bool have_background_thread =
 #ifdef JEMALLOC_BACKGROUND_THREAD
-    true
-#else
-    false
-#endif
-    ;
-static const bool config_high_res_timer =
-#ifdef JEMALLOC_HAVE_CLOCK_REALTIME
-    true
-#else
-    false
-#endif
-    ;
-
-static const bool have_memcntl =
-#ifdef JEMALLOC_HAVE_MEMCNTL
     true
 #else
     false

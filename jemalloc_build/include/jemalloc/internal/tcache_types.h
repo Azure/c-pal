@@ -3,7 +3,6 @@
 
 #include "jemalloc/internal/sc.h"
 
-typedef struct tcache_slow_s tcache_slow_t;
 typedef struct tcache_s tcache_t;
 typedef struct tcaches_s tcaches_t;
 
@@ -17,9 +16,39 @@ typedef struct tcaches_s tcaches_t;
 #define TCACHE_STATE_PURGATORY		((tcache_t *)(uintptr_t)3)
 #define TCACHE_STATE_MAX		TCACHE_STATE_PURGATORY
 
-/* Used in TSD static initializer only. Real init in tsd_tcache_data_init(). */
+/*
+ * Absolute minimum number of cache slots for each small bin.
+ */
+#define TCACHE_NSLOTS_SMALL_MIN		20
+
+/*
+ * Absolute maximum number of cache slots for each small bin in the thread
+ * cache.  This is an additional constraint beyond that imposed as: twice the
+ * number of regions per slab for this size class.
+ *
+ * This constant must be an even number.
+ */
+#define TCACHE_NSLOTS_SMALL_MAX		200
+
+/* Number of cache slots for large size classes. */
+#define TCACHE_NSLOTS_LARGE		20
+
+/* (1U << opt_lg_tcache_max) is used to compute tcache_maxclass. */
+#define LG_TCACHE_MAXCLASS_DEFAULT	15
+
+/*
+ * TCACHE_GC_SWEEP is the approximate number of allocation events between
+ * full GC sweeps.  Integer rounding may cause the actual number to be
+ * slightly higher, since GC is performed incrementally.
+ */
+#define TCACHE_GC_SWEEP			8192
+
+/* Number of tcache allocation/deallocation events between incremental GCs. */
+#define TCACHE_GC_INCR							\
+    ((TCACHE_GC_SWEEP / SC_NBINS) + ((TCACHE_GC_SWEEP / SC_NBINS == 0) ? 0 : 1))
+
+/* Used in TSD static initializer only. Real init in tcache_data_init(). */
 #define TCACHE_ZERO_INITIALIZER {0}
-#define TCACHE_SLOW_ZERO_INITIALIZER {0}
 
 /* Used in TSD static initializer only. Will be initialized to opt_tcache. */
 #define TCACHE_ENABLED_ZERO_INITIALIZER false

@@ -3,7 +3,6 @@
 
 #include "jemalloc/internal/atomic.h"
 #include "jemalloc/internal/tsd_types.h"
-#include "jemalloc/internal/nstime.h"
 
 /* TSD checks this to set thread local slow state accordingly. */
 extern bool malloc_slow;
@@ -15,15 +14,10 @@ extern bool opt_confirm_conf;
 extern const char *opt_junk;
 extern bool opt_junk_alloc;
 extern bool opt_junk_free;
-extern void (*junk_free_callback)(void *ptr, size_t size);
-extern void (*junk_alloc_callback)(void *ptr, size_t size);
 extern bool opt_utrace;
 extern bool opt_xmalloc;
 extern bool opt_zero;
 extern unsigned opt_narenas;
-extern zero_realloc_action_t opt_zero_realloc_action;
-extern const char *zero_realloc_mode_names[];
-extern atomic_zu_t zero_realloc_count;
 
 /* Number of CPUs. */
 extern unsigned ncpus;
@@ -54,7 +48,6 @@ void arena_migrate(tsd_t *tsd, unsigned oldind, unsigned newind);
 void iarena_cleanup(tsd_t *tsd);
 void arena_cleanup(tsd_t *tsd);
 void arenas_tdata_cleanup(tsd_t *tsd);
-size_t batch_alloc(void **ptrs, size_t num, size_t size, int flags);
 void jemalloc_prefork(void);
 void jemalloc_postfork_parent(void);
 void jemalloc_postfork_child(void);
