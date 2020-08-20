@@ -101,11 +101,6 @@
 #undef JEMALLOC_HAVE_MACH_ABSOLUTE_TIME
 
 /*
- * Defined if clock_gettime(CLOCK_REALTIME, ...) is available.
- */
-#undef JEMALLOC_HAVE_CLOCK_REALTIME
-
-/*
  * Defined if _malloc_thread_cleanup() exists.  At least in the case of
  * FreeBSD, pthread_key_create() allocates, which if used during malloc
  * bootstrapping will cause recursion into the pthreads library.  Therefore, if
@@ -301,11 +296,6 @@
  */
 #undef JEMALLOC_THP
 
-/*
- * Defined if memcntl page admin call is supported
- */
-#undef JEMALLOC_HAVE_MEMCNTL
-
 /* Define if operating system has alloca.h header. */
 #undef JEMALLOC_HAS_ALLOCA_H
 
@@ -372,8 +362,5 @@
 
 /* Performs additional safety checks when defined. */
 #undef JEMALLOC_OPT_SAFETY_CHECKS
-
-/* Performs additional size checks when defined. */
-#undef JEMALLOC_OPT_SIZE_CHECKS
 
 #endif /* JEMALLOC_INTERNAL_DEFS_H_ */

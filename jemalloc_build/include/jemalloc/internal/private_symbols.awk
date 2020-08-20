@@ -12,12 +12,11 @@ BEGIN {
         je_mallctlnametomib \
         je_malloc \
         je_malloc_conf \
-        je_malloc_conf_2_conf_harder \
         je_malloc_message \
         je_malloc_stats_print \
         je_malloc_usable_size \
         je_mallocx \
-        je_smallocx_b399463fba68d7098d52123b513ab51a2e1ace49 \
+        je_smallocx_ea6b3e973b477b8061e0076bb257dbd7f3faa756 \
         je_nallocx \
         je_posix_memalign \
         je_rallocx \

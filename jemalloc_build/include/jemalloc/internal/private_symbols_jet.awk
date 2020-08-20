@@ -12,12 +12,11 @@ BEGIN {
         jet_mallctlnametomib \
         jet_malloc \
         jet_malloc_conf \
-        jet_malloc_conf_2_conf_harder \
         jet_malloc_message \
         jet_malloc_stats_print \
         jet_malloc_usable_size \
         jet_mallocx \
-        jet_smallocx_b399463fba68d7098d52123b513ab51a2e1ace49 \
+        jet_smallocx_ea6b3e973b477b8061e0076bb257dbd7f3faa756 \
         jet_nallocx \
         jet_posix_memalign \
         jet_rallocx \

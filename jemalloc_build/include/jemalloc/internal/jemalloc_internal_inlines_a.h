@@ -91,7 +91,7 @@ arena_get(tsdn_t *tsdn, unsigned ind, bool init_if_missing) {
 	if (unlikely(ret == NULL)) {
 		if (init_if_missing) {
 			ret = arena_init(tsdn, ind,
-			    (extent_hooks_t *)&ehooks_default_extent_hooks);
+			    (extent_hooks_t *)&extent_hooks_default);
 		}
 	}
 	return ret;
@@ -108,6 +108,18 @@ decay_ticker_get(tsd_t *tsd, unsigned ind) {
 	return &tdata->decay_ticker;
 }
 
+JEMALLOC_ALWAYS_INLINE cache_bin_t *
+tcache_small_bin_get(tcache_t *tcache, szind_t binind) {
+	assert(binind < SC_NBINS);
+	return &tcache->bins_small[binind];
+}
+
+JEMALLOC_ALWAYS_INLINE cache_bin_t *
+tcache_large_bin_get(tcache_t *tcache, szind_t binind) {
+	assert(binind >= SC_NBINS &&binind < nhbins);
+	return &tcache->bins_large[binind - SC_NBINS];
+}
+
 JEMALLOC_ALWAYS_INLINE bool
 tcache_available(tsd_t *tsd) {
 	/*
@@ -117,9 +129,9 @@ tcache_available(tsd_t *tsd) {
 	 */
 	if (likely(tsd_tcache_enabled_get(tsd))) {
 		/* Associated arena == NULL implies tcache init in progress. */
-		if (config_debug && tsd_tcache_slowp_get(tsd)->arena != NULL) {
-			tcache_assert_initialized(tsd_tcachep_get(tsd));
-		}
+		assert(tsd_tcachep_get(tsd)->arena == NULL ||
+		    tcache_small_bin_get(tsd_tcachep_get(tsd), 0)->avail !=
+		    NULL);
 		return true;
 	}
 
@@ -135,25 +147,28 @@ tcache_get(tsd_t *tsd) {
 	return tsd_tcachep_get(tsd);
 }
 
-JEMALLOC_ALWAYS_INLINE tcache_slow_t *
-tcache_slow_get(tsd_t *tsd) {
-	if (!tcache_available(tsd)) {
-		return NULL;
-	}
-
-	return tsd_tcache_slowp_get(tsd);
-}
-
 static inline void
 pre_reentrancy(tsd_t *tsd, arena_t *arena) {
 	/* arena is the current context.  Reentry from a0 is not allowed. */
 	assert(arena != arena_get(tsd_tsdn(tsd), 0, false));
-	tsd_pre_reentrancy_raw(tsd);
+
+	bool fast = tsd_fast(tsd);
+	assert(tsd_reentrancy_level_get(tsd) < INT8_MAX);
+	++*tsd_reentrancy_levelp_get(tsd);
+	if (fast) {
+		/* Prepare slow path for reentrancy. */
+		tsd_slow_update(tsd);
+		assert(tsd_state_get(tsd) == tsd_state_nominal_slow);
+	}
 }
 
 static inline void
 post_reentrancy(tsd_t *tsd) {
-	tsd_post_reentrancy_raw(tsd);
+	int8_t *reentrancy_level = tsd_reentrancy_levelp_get(tsd);
+	assert(*reentrancy_level > 0);
+	if (--*reentrancy_level == 0) {
+		tsd_slow_update(tsd);
+	}
 }
 
 #endif /* JEMALLOC_INTERNAL_INLINES_A_H */
