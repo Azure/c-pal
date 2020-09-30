@@ -290,6 +290,8 @@ jobs:
     displayName: 'Build traceabilitytool only'
     inputs:
       solution: 'build\azure_c_pal.sln'
+      vsVersion: 16.0
+      platform: x64
       configuration: RelWithDebInfo
       msbuildArgs: '/t:restore /t:traceabilitytool'
       clean: true
