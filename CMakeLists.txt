@@ -3,6 +3,13 @@
 
 cmake_minimum_required(VERSION 2.8.11)
 
+# canon way of using azure-c-pal from another repo is below. It assumes the using repo has placed azure-c-pal in "deps"
+
+#if ((NOT TARGET azure_c_pal) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/azure-c-pal/CMakeLists.txt))
+#    add_subdirectory(deps/azure-c-pal)
+#    include_directories(${C_PAL_INC_FOLDER})
+#endif() 
+
 if (TARGET azure_c_pal)
     RETURN()
 endif()
@@ -37,7 +44,8 @@ if(index EQUAL -1)
     message(FATAL_ERROR "GBALLOC_HL_TYPE must be one of '${GBALLOC_HL_TYPE_VALUES}'. It was actually '${GBALLOC_HL_TYPE}'")
 endif()
 
-
+#bring in dependencies
+#do not add or build any tests of the dependencies
 set(original_run_e2e_tests ${run_e2e_tests})
 set(original_run_unittests ${run_unittests})
 set(original_run_int_tests ${run_int_tests})
@@ -50,43 +58,36 @@ set(run_int_tests OFF)
 set(run_traceability OFF)
 set(run_perf_tests OFF)
 
+
 if ((NOT TARGET azure_c_build_tools) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/azure-c-build-tools/CMakeLists.txt))
-        add_subdirectory(deps/azure-c-build-tools)
-endif()
-set_default_build_options()
-
-include(CTest)
-enable_testing()
-
-set(C_PAL_INC_FOLDER 
-    ${CMAKE_CURRENT_LIST_DIR}/interfaces/inc
-    ${CMAKE_CURRENT_LIST_DIR}/common/inc
-    CACHE INTERNAL "this is what needs to be included if using azure_c_pal" FORCE)
+    add_subdirectory(deps/azure-c-build-tools)
+    set_default_build_options()
+endif() 
 
 if ((NOT TARGET azure_macro_utils_c) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/azure-macro-utils-c/CMakeLists.txt))
-        add_subdirectory(deps/azure-macro-utils-c)
-        include_directories(deps/azure-macro-utils-c/inc)
-endif()
+    add_subdirectory(deps/azure-macro-utils-c)
+    include_directories(${MACRO_UTILS_INC_FOLDER})
+endif() 
 
 if ((NOT TARGET azure_c_logging) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/azure-c-logging/CMakeLists.txt))
-        add_subdirectory(deps/azure-c-logging)
-        include_directories(deps/azure-c-logging/inc)
-endif()
+    add_subdirectory(deps/azure-c-logging)
+    include_directories(deps/azure-c-logging/inc)
+endif() 
 
 if ((NOT TARGET ctest) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/azure-ctest/CMakeLists.txt))
-        add_subdirectory(deps/azure-ctest)
-        include_directories(deps/azure-ctest/inc)
-endif()
+    add_subdirectory(deps/azure-ctest)
+    include_directories(${CTEST_INC_FOLDER})
+endif() 
 
 if ((NOT TARGET testrunnerswitcher) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/azure-c-testrunnerswitcher/CMakeLists.txt))
-        add_subdirectory(deps/azure-c-testrunnerswitcher)
-        include_directories(deps/azure-c-testrunnerswitcher/inc)
-endif()
+    add_subdirectory(deps/azure-c-testrunnerswitcher)
+    include_directories(${TESTRUNNERSWITCHER_INC_FOLDER})
+endif() 
 
 if ((NOT TARGET umock_c) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/umock-c/CMakeLists.txt))
-        add_subdirectory(deps/umock-c)
-        include_directories(deps/umock-c/inc)
-endif()
+    add_subdirectory(deps/umock-c)
+    include_directories(${UMOCK_C_INC_FOLDER})
+endif() 
 
 if (
     (NOT TARGET mimalloc-obj) AND 
@@ -143,6 +144,15 @@ set(run_unittests ${original_run_unittests})
 set(run_int_tests ${original_run_int_tests})
 set(run_traceability ${original_run_traceability})
 set(run_perf_tests ${original_run_perf_tests})
+
+
+include(CTest)
+enable_testing()
+
+set(C_PAL_INC_FOLDER 
+    ${CMAKE_CURRENT_LIST_DIR}/interfaces/inc
+    ${CMAKE_CURRENT_LIST_DIR}/common/inc
+    CACHE INTERNAL "this is what needs to be included if using azure_c_pal" FORCE)
 
 add_subdirectory(interfaces)
 add_subdirectory(common)
