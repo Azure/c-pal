@@ -38,7 +38,7 @@ static int increment_on_odd_values(void* address)
         (void)interlocked_increment(ptr);
         wake_by_address_all(ptr);
     }
-    ThreadAPI_Exit(0);
+
     return 0;
 }
 
@@ -56,7 +56,7 @@ static int increment_on_even_values(void* address)
         (void)interlocked_increment(ptr);
         wake_by_address_all(ptr);
     }
-    ThreadAPI_Exit(0);
+
     return 0;
 }
 
@@ -69,7 +69,7 @@ static int increment_on_wake_up(void* address)
     wake_by_address_single(&create_count);
     ASSERT_IS_TRUE(wait_on_address(ptr, &value, UINT32_MAX));
     (void)interlocked_increment(ptr);
-    ThreadAPI_Exit(0);
+
     return 0;
 }
 
