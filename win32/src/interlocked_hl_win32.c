@@ -8,11 +8,12 @@
 
 #include "azure_c_logging/xlogging.h"
 
+#include "azure_c_pal/interlocked.h"
 #include "azure_c_pal/interlocked_hl.h"
 
 MU_DEFINE_ENUM_STRINGS(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES)
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_Add64WithCeiling, LONG64 volatile*, Addend, LONG64, Ceiling, LONG64, Value, LONG64*, originalAddend)
+IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_Add64WithCeiling, int64_t volatile*, Addend, int64_t, Ceiling, int64_t, Value, int64_t*, originalAddend)
 {
     INTERLOCKED_HL_RESULT result;
     /*Codes_SRS_INTERLOCKED_HL_02_001: [ If Addend is NULL then InterlockedHL_Add64WithCeiling shall fail and return INTERLOCKED_HL_ERROR. ]*/
@@ -22,7 +23,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_Add64WithCeil
         (originalAddend == NULL)
         )
     {
-        LogError("invalid arguments LONGLONG volatile * Addend=%p, LONGLONG Ceiling=%I64d, LONGLONG Value=%I64d, LONGLONG* originalAddend=%p",
+        LogError("invalid arguments int64_t volatile * Addend=%p, int64_t Ceiling=%I64d, int64_t Value=%I64d, int64_t* originalAddend=%p",
             Addend, Ceiling, Value, originalAddend);
         result = INTERLOCKED_HL_ERROR;
     }
@@ -31,15 +32,15 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_Add64WithCeil
         while(1)
         {
             /*checking if Addend + Value is representable*/
-            LONGLONG addend_copy;
-            LONGLONG expected_operation_result;
+            int64_t addend_copy;
+            int64_t expected_operation_result;
 
-            addend_copy = InterlockedAdd64(Addend, 0);
+            addend_copy = interlocked_add_64(Addend, 0);
 
             /*Codes_SRS_INTERLOCKED_HL_02_003: [ If Addend + Value would overflow then InterlockedHL_Add64WithCeiling shall fail and return INTERLOCKED_HL_ERROR. ]*/
             if (
-                ((addend_copy >= 0) && (Value > LLONG_MAX - addend_copy)) ||
-                ((addend_copy < 0) && (Value < LLONG_MIN - addend_copy))
+                ((addend_copy >= 0) && (Value > INT64_MAX - addend_copy)) ||
+                ((addend_copy < 0) && (Value < INT64_MIN - addend_copy))
                 )
             {
                 /*Codes_SRS_INTERLOCKED_HL_02_002: [ If Addend + Value would underflow then InterlockedHL_Add64WithCeiling shall fail and return INTERLOCKED_HL_ERROR. ]*/
@@ -59,7 +60,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_Add64WithCeil
                 else
                 {
                     /*Codes_SRS_INTERLOCKED_HL_02_005: [ Otherwise, InterlockedHL_Add64WithCeiling shall atomically write in Addend the sum of Addend and Value, succeed and return INTERLOCKED_HL_OK. ]*/
-                    if (InterlockedCompareExchange64(Addend, expected_operation_result, addend_copy) == addend_copy)
+                    if (interlocked_compare_exchange_64(Addend, expected_operation_result, addend_copy) == addend_copy)
                     {
                         /*Codes_SRS_INTERLOCKED_HL_02_007: [ In all failure cases InterlockedHL_Add64WithCeiling shall not modify Addend or originalAddend*/
                         *originalAddend = addend_copy;
@@ -77,7 +78,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_Add64WithCeil
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue, LONG volatile*, address, LONG, value, DWORD, milliseconds)
+IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue, int32_t volatile*, address, int32_t, value, uint32_t, milliseconds)
 {
     INTERLOCKED_HL_RESULT result;
 
@@ -88,12 +89,12 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue,
     }
     else
     {
-        LONG current_value;
+        int32_t current_value;
 
         do
         {
-            /* Codes_SRS_INTERLOCKED_HL_01_007: [ When WaitOnAddress succeeds, the value at address shall be compared to the target value passed in value by using InterlockedAdd. ]*/
-            current_value = InterlockedAdd(address, 0);
+            /* Codes_SRS_INTERLOCKED_HL_01_007: [ When WaitOnAddress succeeds, the value at address shall be compared to the target value passed in value by using interlocked_add. ]*/
+            current_value = interlocked_add(address, 0);
             if (current_value == value)
             {
                 /* Codes_SRS_INTERLOCKED_HL_01_003: [ If the value at address is equal to value, InterlockedHL_WaitForValue shall return INTERLOCKED_HL_OK. ]*/
@@ -117,25 +118,25 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue,
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue64, LONG64 volatile*, address, LONG64, value, DWORD, milliseconds)
+IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue64, int64_t volatile*, address, int64_t, value, uint32_t, milliseconds)
 {
     INTERLOCKED_HL_RESULT result;
 
     /*Codes_SRS_INTERLOCKED_HL_02_021: [ If address is NULL then InterlockedHL_WaitForValue64 shall fail and return INTERLOCKED_HL_ERROR. ]*/
     if (address == NULL)
     {
-        LogError("invalid arguments LONG64 volatile*, address=%p, LONG64, value=%" PRId64 ", DWORD, milliseconds=%" PRIu32 "",
+        LogError("invalid arguments int64_t volatile*, address=%p, int64_t, value=%" PRId64 ", uint32_t, milliseconds=%" PRIu32 "",
             address, value, milliseconds);
         result = INTERLOCKED_HL_ERROR;
     }
     else
     {
-        LONG64 current_value;
+        int64_t current_value;
 
         do
         {
-            /* Codes_SRS_INTERLOCKED_HL_02_025: [ When WaitOnAddress succeeds, the value at address shall be compared to the target value passed in value by using InterlockedAdd64. ]*/
-            current_value = InterlockedAdd64(address, 0);
+            /* Codes_SRS_INTERLOCKED_HL_02_025: [ When WaitOnAddress succeeds, the value at address shall be compared to the target value passed in value by using interlocked_add_64. ]*/
+            current_value = interlocked_add_64(address, 0);
             if (current_value == value)
             {
                 /* Codes_SRS_INTERLOCKED_HL_02_022: [ If the value at address is equal to value then InterlockedHL_WaitForValue64 shall return INTERLOCKED_HL_OK. ]*/
@@ -162,7 +163,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue6
 }
 
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotValue, LONG volatile*, address, LONG, value, DWORD, milliseconds)
+IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotValue, int32_t volatile*, address, int32_t, value, uint32_t, milliseconds)
 {
     INTERLOCKED_HL_RESULT result;
 
@@ -173,12 +174,12 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotVal
     }
     else
     {
-        LONG current_value;
+        int32_t current_value;
 
         do
         {
-            /* Codes_SRS_INTERLOCKED_HL_42_005: [ When WaitOnAddress succeeds, the value at address shall be compared to the target value passed in value by using InterlockedAdd. ]*/
-            current_value = InterlockedAdd(address, 0);
+            /* Codes_SRS_INTERLOCKED_HL_42_005: [ When WaitOnAddress succeeds, the value at address shall be compared to the target value passed in value by using interlocked_add. ]*/
+            current_value = interlocked_add(address, 0);
             if (current_value != value)
             {
                 /* Codes_SRS_INTERLOCKED_HL_42_002: [ If the value at address is not equal to value, InterlockedHL_WaitForNotValue shall return INTERLOCKED_HL_OK. ]*/
@@ -204,7 +205,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotVal
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_CompareExchange64If, LONG64 volatile*, target, LONG64, exchange, INTERLOCKED_COMPARE_EXCHANGE_64_IF, compare, LONG64*, original_target)
+IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_CompareExchange64If, int64_t volatile*, target, int64_t, exchange, INTERLOCKED_COMPARE_EXCHANGE_64_IF, compare, int64_t*, original_target)
 {
     INTERLOCKED_HL_RESULT result;
     if (
@@ -216,21 +217,21 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_CompareExchan
         (original_target == NULL)
         )
     {
-        LogError("invalid arguments LONG64 volatile* target=%p, LONG64 exchange=%" PRId64 ", INTERLOCKED_COMPARE_EXCHANGE_IF compare=%p original_target=%p",
+        LogError("invalid arguments int64_t volatile* target=%p, int64_t exchange=%" PRId64 ", INTERLOCKED_COMPARE_EXCHANGE_IF compare=%p original_target=%p",
             target, exchange, compare, original_target);
         result = INTERLOCKED_HL_ERROR;
     }
     else
     {
         /*Codes_SRS_INTERLOCKED_HL_02_011: [ InterlockedHL_CompareExchange64If shall acquire the initial value of target. ]*/
-        LONG64 copyOfTarget = InterlockedAdd64(target, 0);
+        int64_t copyOfTarget = interlocked_add_64(target, 0);
 
         /*Codes_SRS_INTERLOCKED_HL_02_012: [ If compare(target, exchange) returns true then InterlockedHL_CompareExchange64If shall exchange target with exchange. ]*/
         if (compare(copyOfTarget, exchange))
         {
             /*Codes_SRS_INTERLOCKED_HL_02_013: [ If target changed meanwhile then InterlockedHL_CompareExchange64If shall return return INTERLOCKED_HL_CHANGED and shall not peform any exchange of values. ]*/
             /*Codes_SRS_INTERLOCKED_HL_02_014: [ If target did not change meanwhile then InterlockedHL_CompareExchange64If shall return return INTERLOCKED_HL_OK and shall peform the exchange of values. ]*/
-            if (InterlockedCompareExchange64(target, exchange, copyOfTarget) == copyOfTarget)
+            if (interlocked_compare_exchange_64(target, exchange, copyOfTarget) == copyOfTarget)
             {
                 result = INTERLOCKED_HL_OK;
             }
@@ -250,20 +251,20 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_CompareExchan
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWake, LONG volatile*, address, LONG, value)
+IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWake, int32_t volatile*, address, int32_t, value)
 {
     INTERLOCKED_HL_RESULT result;
     if (address == NULL)
     {
         /*Codes_SRS_INTERLOCKED_HL_02_020: [ If address is NULL then InterlockedHL_SetAndWake shall fail and return INTERLOCKED_HL_ERROR. ]*/
-        LogError("invalid arguments LONG volatile* address=%p, LONG value=%" PRId32 "",
+        LogError("invalid arguments int32_t volatile* address=%p, int32_t value=%" PRId32 "",
             address, value);
         result = INTERLOCKED_HL_ERROR;
     }
     else
     {
         /*Codes_SRS_INTERLOCKED_HL_02_017: [ InterlockedHL_SetAndWake shall set address to value. ]*/
-        (void)InterlockedExchange(address, value);
+        (void)interlocked_exchange(address, value);
 
         /*Codes_SRS_INTERLOCKED_HL_02_018: [ InterlockedHL_SetAndWake shall call WakeByAddressSingle. ]*/
         WakeByAddressSingle((void*)address);
@@ -275,20 +276,20 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWake, L
 
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWakeAll, LONG volatile*, address, LONG, value)
+IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWakeAll, int32_t volatile*, address, int32_t, value)
 {
     INTERLOCKED_HL_RESULT result;
     if (address == NULL)
     {
         /*Codes_SRS_INTERLOCKED_HL_02_028: [ If address is NULL then InterlockedHL_SetAndWakeAll shall fail and return INTERLOCKED_HL_ERROR. ]*/
-        LogError("invalid arguments LONG volatile* address=%p, LONG value=%" PRId32 "",
+        LogError("invalid arguments int32_t volatile* address=%p, int32_t value=%" PRId32 "",
             address, value);
         result = INTERLOCKED_HL_ERROR;
     }
     else
     {
         /*Codes_SRS_INTERLOCKED_HL_02_029: [ InterlockedHL_SetAndWakeAll shall set address to value. ]*/
-        (void)InterlockedExchange(address, value);
+        (void)interlocked_exchange(address, value);
 
         /*Codes_SRS_INTERLOCKED_HL_02_030: [ InterlockedHL_SetAndWakeAll shall call WakeByAddressAll. ]*/
         WakeByAddressAll((void*)address);

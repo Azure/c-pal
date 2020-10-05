@@ -20,10 +20,10 @@ typedef bool (*INTERLOCKED_COMPARE_EXCHANGE_64_IF)(int64_t target, int64_t excha
 MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_Add64WithCeiling, int64_t volatile*, Addend, int64_t, Ceiling, int64_t, Value, int64_t*, originalAddend)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWake, int32_t volatile*, address, int32_t, value)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWakeAll, int32_t volatile*, address, int32_t, value)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue, int32_t volatile*, address, int32_t, value, DWORD, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotValue, int32_t volatile*, address, int32_t, value, DWORD, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_CompareExchange64If, int64_t volatile*, target, int64_t, exchange, INTERLOCKED_COMPARE_EXCHANGE_64_IF, compare, int64_t *, original_target)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
-
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue, int32_t volatile*, address, int32_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue64, int64_t volatile*, address, int64_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotValue, int32_t volatile*, address, int32_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_CompareExchange64If, int64_t volatile*, target, int64_t, exchange, INTERLOCKED_COMPARE_EXCHANGE_64_IF, compare, int64_t*, original_target)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 ```
 
 ###  InterlockedHL_Add64WithCeiling
@@ -53,7 +53,7 @@ then `InterlockedHL_Add64WithCeiling` fails and returns `INTERLOCKED_HL_ERROR`.
 ###  InterlockedHL_WaitForValue
 
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue, int32_t volatile*, address, int32_t, value, DWORD, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue, int32_t volatile*, address, int32_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 ```
 
 `InterlockedHL_WaitForValue` waits for the value at a given address to be equal to a target value.
@@ -66,7 +66,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForVal
 
 **SRS_INTERLOCKED_HL_01_005: [** When waiting for the value at address to change, the `milliseconds` argument value shall be used as timeout. **]**
 
-**SRS_INTERLOCKED_HL_01_007: [** When `WaitOnAddress` succeeds, the value at address shall be compared to the target value passed in `value` by using `InterlockedAdd`. **]**
+**SRS_INTERLOCKED_HL_01_007: [** When `WaitOnAddress` succeeds, the value at address shall be compared to the target value passed in `value` by using `interlocked_add`. **]**
 
 **SRS_INTERLOCKED_HL_01_008: [** If the value at `address` does not match, `InterlockedHL_WaitForValue` shall issue another call to `WaitOnAddress`. **]**
 
@@ -75,7 +75,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForVal
 ###  InterlockedHL_WaitForValue64
 
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue64, int64_t volatile*, address, int64_t, value, DWORD, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue64, int64_t volatile*, address, int64_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 ```
 
 `InterlockedHL_WaitForValue64` waits for the value at a given address to be equal to a target value.
@@ -88,7 +88,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForVal
 
 **SRS_INTERLOCKED_HL_02_024: [** When waiting for the value at address to change, the `milliseconds` argument value shall be used as timeout. **]**
 
-**SRS_INTERLOCKED_HL_02_025: [** When `WaitOnAddress` succeeds, the value at address shall be compared to the target value passed in `value` by using `InterlockedAdd64`. **]**
+**SRS_INTERLOCKED_HL_02_025: [** When `WaitOnAddress` succeeds, the value at address shall be compared to the target value passed in `value` by using `interlocked_add_64`. **]**
 
 **SRS_INTERLOCKED_HL_02_026: [** If the value at `address` does not match, `InterlockedHL_WaitForValue64` shall issue another call to `WaitOnAddress`. **]**
 
@@ -97,7 +97,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForVal
 ### InterlockedHL_WaitForNotValue
 
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotValue, int32_t volatile*, address, int32_t, value, DWORD, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotValue, int32_t volatile*, address, int32_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 ```
 
 `InterlockedHL_WaitForNotValue` waits for the value at a given address to not be equal to a target value.
@@ -110,7 +110,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNot
 
 **SRS_INTERLOCKED_HL_42_004: [** When waiting for the value at address to change, the `milliseconds` argument value shall be used as timeout. **]**
 
-**SRS_INTERLOCKED_HL_42_005: [** When `WaitOnAddress` succeeds, the value at address shall be compared to the target value passed in `value` by using `InterlockedAdd`. **]**
+**SRS_INTERLOCKED_HL_42_005: [** When `WaitOnAddress` succeeds, the value at address shall be compared to the target value passed in `value` by using `interlocked_add`. **]**
 
 **SRS_INTERLOCKED_HL_42_006: [** If the value at `address` matches, `InterlockedHL_WaitForNotValue` shall issue another call to `WaitOnAddress`. **]**
 
@@ -118,7 +118,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNot
 
 ### InterlockedHL_CompareExchange64If
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_CompareExchange64If, int64_t volatile*, target, int64_t, exchange, INTERLOCKED_COMPARE_EXCHANGE_64_IF, compare, int64_t *, original_target)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_CompareExchange64If, int64_t volatile*, target, int64_t, exchange, INTERLOCKED_COMPARE_EXCHANGE_64_IF, compare, int64_t*, original_target)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 ```
 
 `InterlockedHL_CompareExchange64If` attempts to change `target` to `exchange` if `compare` that takes the value of `target` and `exchange` evaluates to `true`. `InterlockedHL_CompareExchange64If` will write `original_target` with the initial value of `target`.

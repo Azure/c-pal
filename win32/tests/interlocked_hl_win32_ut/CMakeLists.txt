@@ -4,7 +4,7 @@ set(theseTestsName interlocked_hl_win32_ut)
 
 set(${theseTestsName}_test_files
 ${theseTestsName}.c
-    )
+)
 
 set(${theseTestsName}_c_files
 ../../src/interlocked_hl_win32.c
@@ -17,4 +17,4 @@ set(${theseTestsName}_h_files
 
 include_directories(BEFORE SYSTEM ../mocked/inc)
 
-build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/win32" ADDITIONAL_LIBS pal_interfaces)
+build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/win32" ADDITIONAL_LIBS azure_c_pal pal_interfaces azure_c_pal_reals)
