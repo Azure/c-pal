@@ -18,19 +18,19 @@
         InterlockedHL_CompareExchange64If \
     )
 
+#include "azure_c_pal/interlocked.h"
 #include "azure_c_pal/interlocked_hl.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-    INTERLOCKED_HL_RESULT real_InterlockedHL_Add64WithCeiling(int64_t volatile * Addend, int64_t Ceiling, int64_t Value, int64_t* originalAddend);
-    INTERLOCKED_HL_RESULT real_InterlockedHL_WaitForValue(int32_t volatile* address, int32_t value, uint32_t milliseconds);
-    INTERLOCKED_HL_RESULT real_InterlockedHL_WaitForValue64(int64_t volatile* address, int64_t value, uint32_t milliseconds);
-    INTERLOCKED_HL_RESULT real_InterlockedHL_WaitForNotValue(int32_t volatile* address, int32_t value, uint32_t milliseconds);
-    INTERLOCKED_HL_RESULT real_InterlockedHL_SetAndWake(int32_t volatile* address, int32_t value);
-    INTERLOCKED_HL_RESULT real_InterlockedHL_SetAndWakeAll(int32_t volatile* address, int32_t value);
-    INTERLOCKED_HL_RESULT real_InterlockedHL_CompareExchange64If(int64_t volatile* target, int64_t exchange, INTERLOCKED_COMPARE_EXCHANGE_64_IF compare, int64_t* original_target);
+    INTERLOCKED_HL_RESULT real_InterlockedHL_Add64WithCeiling(int64_t volatile_atomic* Addend, int64_t Ceiling, int64_t Value, int64_t* originalAddend);
+    INTERLOCKED_HL_RESULT real_InterlockedHL_WaitForValue(int32_t volatile_atomic* address, int32_t value, uint32_t milliseconds);
+    INTERLOCKED_HL_RESULT real_InterlockedHL_WaitForNotValue(int32_t volatile_atomic* address, int32_t value, uint32_t milliseconds);
+    INTERLOCKED_HL_RESULT real_InterlockedHL_SetAndWake(int32_t volatile_atomic* address, int32_t value);
+    INTERLOCKED_HL_RESULT real_InterlockedHL_SetAndWakeAll(int32_t volatile_atomic* address, int32_t value);
+    INTERLOCKED_HL_RESULT real_InterlockedHL_CompareExchange64If(int64_t volatile_atomic* target, int64_t exchange, INTERLOCKED_COMPARE_EXCHANGE_64_IF compare, int64_t* original_target);
 
 #ifdef __cplusplus
 }
