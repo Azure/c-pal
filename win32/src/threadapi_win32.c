@@ -78,11 +78,6 @@ THREADAPI_RESULT ThreadAPI_Join(THREAD_HANDLE threadHandle, int *res)
     return result;
 }
 
-void ThreadAPI_Exit(int res)
-{
-    ExitThread(res);
-}
-
 void ThreadAPI_Sleep(unsigned int milliseconds)
 {
     Sleep(milliseconds);

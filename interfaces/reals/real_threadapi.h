@@ -14,7 +14,6 @@
     MU_FOR_EACH_1(R2, \
         ThreadAPI_Create, \
         ThreadAPI_Join, \
-        ThreadAPI_Exit, \
         ThreadAPI_Sleep \
 )
 
@@ -25,8 +24,6 @@ extern "C" {
 THREADAPI_RESULT real_ThreadAPI_Create(THREAD_HANDLE* threadHandle, THREAD_START_FUNC func, void* arg);
 
 THREADAPI_RESULT real_ThreadAPI_Join(THREAD_HANDLE threadHandle, int* res);
-
-void real_ThreadAPI_Exit(int res);
 
 void real_ThreadAPI_Sleep(unsigned int milliseconds);
 
