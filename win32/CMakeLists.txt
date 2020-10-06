@@ -29,7 +29,6 @@ set(pal_win32_c_files
     src/async_socket_win32.c
     src/threadpool_win32.c
     src/interlocked_win32.c
-    src/interlocked_hl_win32.c
     src/platform_win32.c
     src/threadapi_win32.c
     src/uniqueid_win32.c
