@@ -223,7 +223,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWake, i
         (void)interlocked_exchange(address, value);
 
         /*Codes_SRS_INTERLOCKED_HL_02_018: [ InterlockedHL_SetAndWake shall call wake_by_address_single. ]*/
-        wake_by_address_single((void*)address);
+        wake_by_address_single(address);
 
         /*Codes_SRS_INTERLOCKED_HL_02_019: [ InterlockedHL_SetAndWake shall succeed and return INTERLOCKED_HL_OK. ]*/
         result = INTERLOCKED_HL_OK;
@@ -248,7 +248,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWakeAll
         (void)interlocked_exchange(address, value);
 
         /*Codes_SRS_INTERLOCKED_HL_02_030: [ InterlockedHL_SetAndWakeAll shall call wake_by_address_all. ]*/
-        wake_by_address_all((void*)address);
+        wake_by_address_all(address);
 
         /*Codes_SRS_INTERLOCKED_HL_02_031: [ InterlockedHL_SetAndWakeAll shall succeed and return INTERLOCKED_HL_OK. ]*/
         result = INTERLOCKED_HL_OK;

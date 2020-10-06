@@ -675,7 +675,7 @@ TEST_FUNCTION(InterlockedHL_SetAndWake_with_address_NULL_fails)
 TEST_FUNCTION(InterlockedHL_SetAndWake_succeeds)
 {
     ///arrange
-    int32_t hereLiesAThree = 3;
+    volatile_atomic int32_t hereLiesAThree = 3;
     int32_t thatIsGoingToTurn4 = 4;
     INTERLOCKED_HL_RESULT result;
 
@@ -708,7 +708,7 @@ TEST_FUNCTION(InterlockedHL_SetAndWakeAll_with_address_NULL_fails)
 TEST_FUNCTION(InterlockedHL_SetAndWakeAll_succeeds)
 {
     ///arrange
-    int32_t hereLiesAThree = 3;
+    volatile_atomic int32_t hereLiesAThree = 3;
     int32_t thatIsGoingToTurn4 = 4;
     INTERLOCKED_HL_RESULT result;
 
