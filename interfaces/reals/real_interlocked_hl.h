@@ -6,8 +6,6 @@
 
 #include "azure_macro_utils/macro_utils.h"
 
-#include "windows.h"
-
 #define R2(X) REGISTER_GLOBAL_MOCK_HOOK(X, real_##X);
 
 #define REGISTER_INTERLOCKED_HL_GLOBAL_MOCK_HOOK()                    \

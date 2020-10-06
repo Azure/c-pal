@@ -17,19 +17,19 @@ MU_DEFINE_ENUM(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
 
 typedef bool (*INTERLOCKED_COMPARE_EXCHANGE_64_IF)(int64_t target, int64_t exchange);
 
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_Add64WithCeiling, int64_t volatile*, Addend, int64_t, Ceiling, int64_t, Value, int64_t*, originalAddend)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWake, int32_t volatile*, address, int32_t, value)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWakeAll, int32_t volatile*, address, int32_t, value)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue, int32_t volatile*, address, int32_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue64, int64_t volatile*, address, int64_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotValue, int32_t volatile*, address, int32_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_CompareExchange64If, int64_t volatile*, target, int64_t, exchange, INTERLOCKED_COMPARE_EXCHANGE_64_IF, compare, int64_t*, original_target)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_Add64WithCeiling, int64_t volatile_atomic*, Addend, int64_t, Ceiling, int64_t, Value, int64_t*, originalAddend)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWake, int32_t volatile_atomic*, address, int32_t, value)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWakeAll, int32_t volatile_atomic*, address, int32_t, value)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue, int32_t volatile_atomic*, address, int32_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue64, int64_t volatile_atomic*, address, int64_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotValue, int32_t volatile_atomic*, address, int32_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_CompareExchange64If, int64_t volatile_atomic*, target, int64_t, exchange, INTERLOCKED_COMPARE_EXCHANGE_64_IF, compare, int64_t*, original_target)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 ```
 
 ###  InterlockedHL_Add64WithCeiling
 
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_Add64WithCeiling, int64_t volatile*, Addend, int64_t, Ceiling, int64_t, Value, int64_t*, originalAddend)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_Add64WithCeiling, int64_t volatile_atomic*, Addend, int64_t, Ceiling, int64_t, Value, int64_t*, originalAddend)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 ```
 
 `InterlockedHL_Add64WithCeiling` computes the sum of `Addend` and `Value` updates `Addend` with it and writes in `originalAddend` the original value of `Addend`.
@@ -53,7 +53,7 @@ then `InterlockedHL_Add64WithCeiling` fails and returns `INTERLOCKED_HL_ERROR`.
 ###  InterlockedHL_WaitForValue
 
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue, int32_t volatile*, address, int32_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue, int32_t volatile_atomic*, address, int32_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 ```
 
 `InterlockedHL_WaitForValue` waits for the value at a given address to be equal to a target value.
@@ -75,7 +75,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForVal
 ###  InterlockedHL_WaitForValue64
 
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue64, int64_t volatile*, address, int64_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue64, int64_t volatile_atomic*, address, int64_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 ```
 
 `InterlockedHL_WaitForValue64` waits for the value at a given address to be equal to a target value.
@@ -97,7 +97,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForVal
 ### InterlockedHL_WaitForNotValue
 
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotValue, int32_t volatile*, address, int32_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotValue, int32_t volatile_atomic*, address, int32_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 ```
 
 `InterlockedHL_WaitForNotValue` waits for the value at a given address to not be equal to a target value.
@@ -118,7 +118,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNot
 
 ### InterlockedHL_CompareExchange64If
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_CompareExchange64If, int64_t volatile*, target, int64_t, exchange, INTERLOCKED_COMPARE_EXCHANGE_64_IF, compare, int64_t*, original_target)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_CompareExchange64If, int64_t volatile_atomic*, target, int64_t, exchange, INTERLOCKED_COMPARE_EXCHANGE_64_IF, compare, int64_t*, original_target)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 ```
 
 `InterlockedHL_CompareExchange64If` attempts to change `target` to `exchange` if `compare` that takes the value of `target` and `exchange` evaluates to `true`. `InterlockedHL_CompareExchange64If` will write `original_target` with the initial value of `target`.
@@ -144,7 +144,7 @@ If `target` changes while the function executes then `InterlockedHL_CompareExcha
 
 ### InterlockedHL_SetAndWake
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWake, int32_t volatile*, address, int32_t, value)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWake, int32_t volatile_atomic*, address, int32_t, value)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 ```
 
 `InterlockedHL_SetAndWake` set the value at `address` to `value` and signals the change of value in `address`. This can be commonly used with `InterlockedHL_WaitForValue` to signal a waiting thread.
@@ -159,7 +159,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWake
 
 ### InterlockedHL_SetAndWake
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWakeAll, int32_t volatile*, address, int32_t, value)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWakeAll, int32_t volatile_atomic*, address, int32_t, value)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 ```
 
 `InterlockedHL_SetAndWakeAll` set the value at `address` to `value` and signals the change of value in `address` to all waiting threads. This can be commonly used with `InterlockedHL_WaitForValue` to signal a waiting thread.
