@@ -37,7 +37,7 @@ typedef void* THREAD_HANDLE;
  *
  * @param   threadHandle    The handle to the new thread is returned in this
  *                             pointer.
- * @param    func            A function pointer that indicates the entry point
+ * @param   func            A function pointer that indicates the entry point
  *                             to the new thread.
  * @param   arg                A void pointer that must be passed to the function
  *                             pointed to by @p func.
@@ -52,8 +52,7 @@ MOCKABLE_FUNCTION(, THREADAPI_RESULT, ThreadAPI_Create, THREAD_HANDLE*, threadHa
  *             the @p threadHandle argument to complete.
  *
  * @param    threadHandle    The handle of the thread to wait for completion.
- * @param   res             The result returned by the thread which is passed
- *                             to the ::ThreadAPI_Exit function.
+ * @param    res             The result returned by the thread
  *
  *            When the @p threadHandle thread completes, all resources associated
  *            with the thread must be released and the thread handle will no
@@ -63,18 +62,6 @@ MOCKABLE_FUNCTION(, THREADAPI_RESULT, ThreadAPI_Create, THREAD_HANDLE*, threadHa
  *             code in case it fails.
  */
 MOCKABLE_FUNCTION(, THREADAPI_RESULT, ThreadAPI_Join, THREAD_HANDLE, threadHandle, int*, res);
-
-/**
- * @brief    This function is called by a thread when the thread exits.
- *
- * @param    res        An integer that represents the exit status of the thread.
- *
- *             This function is called by a thread when the thread exits in order
- *             to return a result value to the caller of the ::ThreadAPI_Join
- *             function. The @p res value must be copied into the @p res out
- *             argument passed to the ::ThreadAPI_Join function.
- */
-MOCKABLE_FUNCTION(, void, ThreadAPI_Exit, int, res);
 
 /**
  * @brief    Sleeps the current thread for the given number of milliseconds.

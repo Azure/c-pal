@@ -81,29 +81,3 @@ THREADAPI_RESULT ThreadAPI_Join(THREAD_HANDLE threadHandle, int* result);
 **SRS_THREADAPI_30_025: [** On success, if `result` is non-NULL then the result of the `THREAD_START_FUNC` shall be returned in `result`. **]**
 
 **SRS_THREADAPI_30_026: [** On success, `ThreadAPI_Join` shall return `THREADAPI_OK`. **]**
-
-###   ThreadAPI_Exit
-
-This function is called by the `THREAD_START_FUNC` when it exits. If another thread has called
-`ThreadAPI_Join` then that thread will be unblocked when `ThreadAPI_Exit` is called. 
-
-The implementation must maintain the relationship between the
-`THREAD_HANDLE` passed into `ThreadAPI_Join` and the running thread so that
-`ThreadAPI_Exit` unblocks the correct waiting thread when when more than one `THREAD_HANDLE`
-has been created. This relationship will need to be maintained in thread-local storage
-or the equivalent; the thread function cannot be used for disambiguation
-because there is no guarantee that multiple threads are not using the same thread function.
-
-
-```c
-void ThreadAPI_Exit(int result);
-```
-For this `ThreadAPI_Exit` specification, the phrase _"associated `ThreadAPI_Join`"_ means a
-`ThreadAPI_Join` which was provided with the same `THREAD_HANDLE` parameter 
-that was returned during the creation of the thread from which `ThreadAPI_Exit` was called.
-
-**SRS_THREADAPI_30_030: [** If the **threadapi** adapter is not implemented, `ThreadAPI_Exit` shall do nothing. **]**
-
-**SRS_THREADAPI_30_031: [** If another thread has made an _associated `ThreadAPI_Join`_ call, then that thread shall be unblocked when `ThreadAPI_Exit` is called. **]**
-
-**SRS_THREADAPI_30_032: [** The `result` parameter supplied to `ThreadAPI_Exit` shall be returned in the `result` parameter of the _associated `ThreadAPI_Join`_ call. **]**
