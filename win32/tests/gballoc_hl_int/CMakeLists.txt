@@ -23,7 +23,6 @@ set(${theseTestsName}_c_files
     ../../../common/src/call_once.c
     ../../../common/src/lazy_init.c
     ../../src/interlocked_win32.c
-    ../../src/interlocked_hl_win32.c
     ../../src/sync_win32.c
 )
 

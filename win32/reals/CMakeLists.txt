@@ -9,7 +9,6 @@ set(reals_win32_c_files
     real_lazy_init.c
     real_sync.c
     real_threadapi.c
-    real_interlocked_hl_win32.c
     real_srw_lock_win32.c
     real_string_utils_win32.c
     real_timer_win32.c
