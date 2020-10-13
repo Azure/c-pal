@@ -123,13 +123,13 @@ SRW_LOCK_HANDLE srw_lock_create(bool do_statistics, const char* lock_name)
         }
         else
         {
-            /*Codes_SRS_SRW_LOCK_02_024: [ If do_statistics is true then srw_lock_create shall create a new TIMER_HANDLE by calling timer_create. ]*/
+            /*Codes_SRS_SRW_LOCK_02_024: [ If do_statistics is true then srw_lock_create shall create a new TIMER_HANDLE by calling timer_create_new. ]*/
             if(
                 do_statistics &&
-                ((result->timer = timer_create())==NULL)
+                ((result->timer = timer_create_new())==NULL)
                 )
             {
-                LogError("failure in timer_create()");
+                LogError("failure in timer_create_new()");
             }
             else
             {
