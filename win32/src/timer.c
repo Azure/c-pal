@@ -14,7 +14,7 @@ typedef struct TIMER_HANDLE_DATA_TAG
     LARGE_INTEGER startTime;
 }TIMER_HANDLE_DATA;
 
-TIMER_HANDLE timer_create(void)
+TIMER_HANDLE timer_create_new(void)
 {
     TIMER_HANDLE result;
     result = malloc(sizeof(TIMER_HANDLE_DATA));

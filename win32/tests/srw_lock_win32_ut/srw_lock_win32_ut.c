@@ -76,7 +76,7 @@ static SRW_LOCK_HANDLE TEST_srw_lock_create(bool do_statistics, const char* lock
     if (do_statistics)
     {
         STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-        STRICT_EXPECTED_CALL(timer_create())
+        STRICT_EXPECTED_CALL(timer_create_new())
             .SetReturn((TIMER_HANDLE)my_malloc(2));
     }
     STRICT_EXPECTED_CALL(mocked_InitializeSRWLock(IGNORED_ARG));
@@ -168,16 +168,15 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 
 /*Tests_SRS_SRW_LOCK_02_001: [ srw_lock_create shall allocate memory for SRW_LOCK_HANDLE. ]*/
 /*Tests_SRS_SRW_LOCK_02_023: [ If do_statistics is true then srw_lock_create shall copy lock_name. ]*/
-/*Tests_SRS_SRW_LOCK_02_024: [ If do_statistics is true then srw_lock_create shall create a new TIMER_HANDLE by calling timer_create. ]*/
+/*Tests_SRS_SRW_LOCK_02_024: [ If do_statistics is true then srw_lock_create shall create a new TIMER_HANDLE by calling timer_create_new. ]*/
 /*Tests_SRS_SRW_LOCK_02_015: [ srw_lock_create shall call InitializeSRWLock. ]*/
-/*Tests_SRS_SRW_LOCK_02_024: [ If do_statistics is true then srw_lock_create shall create a new TIMER_HANDLE by calling timer_create. ]*/
 /*Tests_SRS_SRW_LOCK_02_003: [ srw_lock_create shall succeed and return a non-NULL value. ]*/
 TEST_FUNCTION(srw_lock_create_succeeds)
 {
     ///arrange
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(timer_create())
+    STRICT_EXPECTED_CALL(timer_create_new())
         .SetReturn((TIMER_HANDLE)my_malloc(2));
     STRICT_EXPECTED_CALL(mocked_InitializeSRWLock(IGNORED_ARG));
 
@@ -194,9 +193,8 @@ TEST_FUNCTION(srw_lock_create_succeeds)
 
 /*Tests_SRS_SRW_LOCK_02_001: [ srw_lock_create shall allocate memory for SRW_LOCK_HANDLE. ]*/
 /*Tests_SRS_SRW_LOCK_02_023: [ If do_statistics is true then srw_lock_create shall copy lock_name. ]*/
-/*Tests_SRS_SRW_LOCK_02_024: [ If do_statistics is true then srw_lock_create shall create a new TIMER_HANDLE by calling timer_create. ]*/
+/*Tests_SRS_SRW_LOCK_02_024: [ If do_statistics is true then srw_lock_create shall create a new TIMER_HANDLE by calling timer_create_new. ]*/
 /*Tests_SRS_SRW_LOCK_02_015: [ srw_lock_create shall call InitializeSRWLock. ]*/
-/*Tests_SRS_SRW_LOCK_02_024: [ If do_statistics is true then srw_lock_create shall create a new TIMER_HANDLE by calling timer_create. ]*/
 /*Tests_SRS_SRW_LOCK_02_003: [ srw_lock_create shall succeed and return a non-NULL value. ]*/
 TEST_FUNCTION(srw_lock_create_with_do_statistics_false_succeeds)
 {
@@ -222,7 +220,7 @@ TEST_FUNCTION(srw_lock_create_fails_1)
     ///arrange
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(timer_create())
+    STRICT_EXPECTED_CALL(timer_create_new())
         .SetReturn(NULL);
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));

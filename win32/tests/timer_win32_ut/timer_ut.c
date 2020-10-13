@@ -101,7 +101,7 @@ TEST_FUNCTION_INITIALIZE(init)
     umock_c_reset_all_calls();
 }
 
-/* timer_create */
+/* timer_create_new */
 TEST_FUNCTION(timer_create_malloc_fails)
 {
     //arrange
@@ -109,10 +109,10 @@ TEST_FUNCTION(timer_create_malloc_fails)
         .SetReturn(NULL);
 
     //act
-    TIMER_HANDLE timer = timer_create();
+    TIMER_HANDLE timer = timer_create_new();
 
     //assert
-    ASSERT_IS_NULL(timer, "timer_create failed.");
+    ASSERT_IS_NULL(timer, "timer_create_new failed.");
 }
 
 static void test_timer_create_success_expectations(void)
@@ -133,11 +133,11 @@ TEST_FUNCTION(timer_create_succeeds)
     test_timer_create_success_expectations();
 
     //act
-    TIMER_HANDLE timer = timer_create();
+    TIMER_HANDLE timer = timer_create_new();
 
     //assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_IS_NOT_NULL(timer, "timer_create failed.");
+    ASSERT_IS_NOT_NULL(timer, "timer_create_new failed.");
 
     //cleanup
     timer_destroy(timer);
@@ -160,7 +160,7 @@ TEST_FUNCTION(timer_start_succeeds)
     LARGE_INTEGER stop_time;
     stop_time.QuadPart = 100;
     test_timer_create_success_expectations();
-    TIMER_HANDLE timer = timer_create();
+    TIMER_HANDLE timer = timer_create_new();
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_QueryPerformanceCounter(IGNORED_ARG))
         .CopyOutArgumentBuffer_lpPerformanceCount(&stop_time, sizeof(stop_time));
@@ -192,7 +192,7 @@ TEST_FUNCTION(timer_get_elapsed_success)
     LARGE_INTEGER stop_time;
     stop_time.QuadPart = 100;
     test_timer_create_success_expectations();
-    TIMER_HANDLE timer = timer_create();
+    TIMER_HANDLE timer = timer_create_new();
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_QueryPerformanceCounter(IGNORED_ARG))
         .CopyOutArgumentBuffer_lpPerformanceCount(&stop_time, sizeof(stop_time));
@@ -224,7 +224,7 @@ TEST_FUNCTION(timer_get_elapsed_ms_success)
     LARGE_INTEGER stop_time;
     stop_time.QuadPart = 100;
     test_timer_create_success_expectations();
-    TIMER_HANDLE timer = timer_create();
+    TIMER_HANDLE timer = timer_create_new();
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_QueryPerformanceCounter(IGNORED_ARG))
         .CopyOutArgumentBuffer_lpPerformanceCount(&stop_time, sizeof(stop_time));
@@ -254,7 +254,7 @@ TEST_FUNCTION(timer_destroy_frees_handle)
 {
     //arrange
     test_timer_create_success_expectations();
-    TIMER_HANDLE timer = timer_create();
+    TIMER_HANDLE timer = timer_create_new();
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 

@@ -12,7 +12,7 @@
 
 #define REGISTER_TIMER_GLOBAL_MOCK_HOOK() \
     MU_FOR_EACH_1(R2, \
-        timer_create, \
+        timer_create_new, \
         timer_start, \
         timer_get_elapsed, \
         timer_global_get_elapsed_ms, \
@@ -24,7 +24,7 @@ extern "C" {
 #endif
 
 
-TIMER_HANDLE real_timer_create(void);
+TIMER_HANDLE real_timer_create_new(void);
 
 void real_timer_start(TIMER_HANDLE handle);
 
