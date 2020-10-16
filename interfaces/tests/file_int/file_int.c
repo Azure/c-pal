@@ -65,14 +65,14 @@ static void read_callback(void* context, bool is_successful)
     wake_by_address_single(&read_context->value);
 }
 
-static void wait_on_address_helper(volatile_atomic int32_t* address, int32_t* old_value, uint32_t timeout)
+static void wait_on_address_helper(volatile_atomic int32_t* address, int32_t old_value, uint32_t timeout)
 {
     int32_t current_value;
     do
     {
         wait_on_address(address, old_value, timeout);
         current_value = interlocked_add(address, 0);
-    } while (current_value == *old_value);
+    } while (current_value == old_value);
 }
 
 static FILE_HANDLE file_create_helper(const char* filename)
@@ -177,7 +177,7 @@ TEST_FUNCTION(write_to_a_file_and_read_from_it)
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, file_write_async(file_handle, source, size, 0, write_callback, &write_context));
     
     ///assert
-    wait_on_address_helper(&write_context.value, &write_context.pre_callback_value, UINT32_MAX);
+    wait_on_address_helper(&write_context.value, write_context.pre_callback_value, UINT32_MAX);
     ASSERT_ARE_EQUAL(int32_t, write_context.post_callback_value, interlocked_or(&write_context.value, 0), "value should be post_callback_value");
     ASSERT_IS_TRUE(write_context.did_write_succeed);
 
@@ -185,7 +185,7 @@ TEST_FUNCTION(write_to_a_file_and_read_from_it)
     ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_OK, file_read_async(file_handle, destination, sizeof(destination), 0, read_callback, &read_context));
 
     ///assert
-    wait_on_address_helper(&read_context.value, &read_context.pre_callback_value, UINT32_MAX);
+    wait_on_address_helper(&read_context.value, read_context.pre_callback_value, UINT32_MAX);
     ASSERT_ARE_EQUAL(int32_t, read_context.post_callback_value, interlocked_or(&read_context.value, 0), "value should be post_callback_value");
     ASSERT_IS_TRUE(read_context.did_read_succeed);
     ASSERT_ARE_EQUAL(char_ptr, source, destination);
@@ -237,11 +237,11 @@ TEST_FUNCTION(write_twice_to_a_file_contiguously_and_read_from_it)
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, file_write_async(file_handle, source2, size, 4, write_callback, &write_context2));
    
     ///assert
-    wait_on_address_helper(&write_context1.value, &write_context1.pre_callback_value, UINT32_MAX);
+    wait_on_address_helper(&write_context1.value, write_context1.pre_callback_value, UINT32_MAX);
     ASSERT_ARE_EQUAL(int32_t, write_context1.post_callback_value, interlocked_or(&write_context1.value, 0), "value should be post_callback_value");
     ASSERT_IS_TRUE(write_context1.did_write_succeed);
 
-    wait_on_address_helper(&write_context2.value, &write_context2.pre_callback_value, UINT32_MAX);
+    wait_on_address_helper(&write_context2.value, write_context2.pre_callback_value, UINT32_MAX);
     ASSERT_ARE_EQUAL(int32_t, write_context2.post_callback_value, interlocked_or(&write_context2.value, 0), "value should be post_callback_value");
     ASSERT_IS_TRUE(write_context2.did_write_succeed);
 
@@ -249,7 +249,7 @@ TEST_FUNCTION(write_twice_to_a_file_contiguously_and_read_from_it)
     ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_OK, file_read_async(file_handle, destination, sizeof(destination), 0, read_callback, &read_context));
 
     ///assert
-    wait_on_address_helper(&read_context.value, &read_context.pre_callback_value, UINT32_MAX);
+    wait_on_address_helper(&read_context.value, read_context.pre_callback_value, UINT32_MAX);
     ASSERT_ARE_EQUAL(int32_t, read_context.post_callback_value, interlocked_or(&read_context.value, 0), "value should be post_callback_value");
     ASSERT_IS_TRUE(read_context.did_read_succeed);
     ASSERT_ARE_EQUAL(char_ptr, "abcdefgh", destination);
@@ -312,11 +312,11 @@ TEST_FUNCTION(write_twice_to_a_file_non_contiguously_and_read_from_it)
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, file_write_async(file_handle, source2, size, second_write_position, write_callback, &write_context2));
    
     ///assert
-    wait_on_address_helper(&write_context1.value, &write_context1.pre_callback_value, UINT32_MAX);
+    wait_on_address_helper(&write_context1.value, write_context1.pre_callback_value, UINT32_MAX);
     ASSERT_ARE_EQUAL(int32_t, write_context1.post_callback_value, interlocked_or(&write_context1.value, 0), "value should be post_callback_value");
     ASSERT_IS_TRUE(write_context1.did_write_succeed);
 
-    wait_on_address_helper(&write_context2.value, &write_context2.pre_callback_value, UINT32_MAX);
+    wait_on_address_helper(&write_context2.value, write_context2.pre_callback_value, UINT32_MAX);
     ASSERT_ARE_EQUAL(int32_t, write_context2.post_callback_value, interlocked_or(&write_context2.value, 0), "value should be post_callback_value");
     ASSERT_IS_TRUE(write_context2.did_write_succeed);
 
@@ -325,11 +325,11 @@ TEST_FUNCTION(write_twice_to_a_file_non_contiguously_and_read_from_it)
     ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_OK, file_read_async(file_handle, destination2, sizeof(destination2), second_write_position, read_callback, &read_context2));
 
     ///assert
-    wait_on_address_helper(&read_context1.value, &read_context1.pre_callback_value, UINT32_MAX);
+    wait_on_address_helper(&read_context1.value, read_context1.pre_callback_value, UINT32_MAX);
     ASSERT_ARE_EQUAL(int32_t, read_context1.post_callback_value, interlocked_or(&read_context1.value, 0), "value should be post_callback_value");
     ASSERT_IS_TRUE(read_context1.did_read_succeed);
 
-    wait_on_address_helper(&read_context2.value, &read_context2.pre_callback_value, UINT32_MAX);
+    wait_on_address_helper(&read_context2.value, read_context2.pre_callback_value, UINT32_MAX);
     ASSERT_ARE_EQUAL(int32_t, read_context2.post_callback_value, interlocked_or(&read_context2.value, 0), "value should be post_callback_value");
     ASSERT_IS_TRUE(read_context2.did_read_succeed);
 
@@ -381,7 +381,7 @@ TEST_FUNCTION(perform_operations_open_write_close_open_read_close)
     ASSERT_IS_NOT_NULL(file_handle1);
 
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, file_write_async(file_handle1, source, size, 0, write_callback, &write_context));
-    wait_on_address_helper(&write_context.value, &write_context.pre_callback_value, UINT32_MAX);
+    wait_on_address_helper(&write_context.value, write_context.pre_callback_value, UINT32_MAX);
     file_destroy(file_handle1);
    
     ///assert
@@ -396,7 +396,7 @@ TEST_FUNCTION(perform_operations_open_write_close_open_read_close)
     file_destroy(file_handle2);
 
     ///assert
-    wait_on_address_helper(&read_context.value, &read_context.pre_callback_value, UINT32_MAX);
+    wait_on_address_helper(&read_context.value, read_context.pre_callback_value, UINT32_MAX);
     ASSERT_ARE_EQUAL(int32_t, read_context.post_callback_value, interlocked_or(&read_context.value, 0), "value should be post_callback_value");
     ASSERT_IS_TRUE(read_context.did_read_succeed);
     ASSERT_ARE_EQUAL(char_ptr, source, destination);
@@ -430,7 +430,7 @@ TEST_FUNCTION(read_across_eof_fails)
 
     ///assert
 
-    wait_on_address_helper(&write_context.value, &write_context.pre_callback_value, UINT32_MAX);
+    wait_on_address_helper(&write_context.value, write_context.pre_callback_value, UINT32_MAX);
     ASSERT_ARE_EQUAL(int32_t, write_context.post_callback_value, interlocked_or(&write_context.value, 0), "value should be post_callback_value");
     ASSERT_IS_TRUE(write_context.did_write_succeed);
 
@@ -438,7 +438,7 @@ TEST_FUNCTION(read_across_eof_fails)
     file_read_async(file_handle, destination, sizeof(destination), read_position, read_callback, &read_context);
 
     ///assert
-    wait_on_address_helper(&read_context.value, &read_context.pre_callback_value, UINT32_MAX);
+    wait_on_address_helper(&read_context.value, read_context.pre_callback_value, UINT32_MAX);
     ASSERT_ARE_EQUAL(int32_t, read_context.post_callback_value, interlocked_or(&read_context.value, 0), "value should be post_callback_value");
     ASSERT_IS_FALSE(read_context.did_read_succeed);
 
@@ -473,7 +473,7 @@ TEST_FUNCTION(read_beyond_eof_fails)
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, file_write_async(file_handle, source, size, 0, write_callback, &write_context));
     
 
-    wait_on_address_helper(&write_context.value, &write_context.pre_callback_value, UINT32_MAX);
+    wait_on_address_helper(&write_context.value, write_context.pre_callback_value, UINT32_MAX);
     ASSERT_ARE_EQUAL(int32_t, write_context.post_callback_value, interlocked_or(&write_context.value, 0), "value should be post_callback_value");
     ASSERT_IS_TRUE(write_context.did_write_succeed);
 
@@ -481,7 +481,7 @@ TEST_FUNCTION(read_beyond_eof_fails)
     file_read_async(file_handle, destination, sizeof(destination), read_position, read_callback, &read_context);
 
     ///assert
-    wait_on_address_helper(&read_context.value, &read_context.pre_callback_value, UINT32_MAX);
+    wait_on_address_helper(&read_context.value, read_context.pre_callback_value, UINT32_MAX);
     ASSERT_ARE_EQUAL(int32_t, read_context.post_callback_value, interlocked_or(&read_context.value, 0), "value should be post_callback_value");
     ASSERT_IS_FALSE(read_context.did_read_succeed);
 
@@ -528,7 +528,7 @@ TEST_FUNCTION(large_simultaneous_writes_succeed)
 
     for (int i = 0; i < num_blocks; ++i)
     {
-        wait_on_address_helper(&contexts[i].value, &contexts[i].pre_callback_value, UINT32_MAX);
+        wait_on_address_helper(&contexts[i].value, contexts[i].pre_callback_value, UINT32_MAX);
         ASSERT_ARE_EQUAL(int32_t, contexts[i].post_callback_value, interlocked_or(&contexts[i].value, 0), "value should be post_callback_value");
         ASSERT_IS_TRUE(contexts[i].did_write_succeed);
     }
@@ -542,7 +542,7 @@ TEST_FUNCTION(large_simultaneous_writes_succeed)
     read_context.post_callback_value = 1;
 
     ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, file_read_async(file_handle, destination, block_size * num_blocks, 0, read_callback, &read_context));
-    wait_on_address_helper(&read_context.value, &read_context.pre_callback_value, UINT32_MAX);
+    wait_on_address_helper(&read_context.value, read_context.pre_callback_value, UINT32_MAX);
     ASSERT_ARE_EQUAL(int32_t, read_context.post_callback_value, interlocked_or(&read_context.value, 0), "value should be post_callback_value");
     ASSERT_IS_TRUE(read_context.did_read_succeed);
 
@@ -596,7 +596,7 @@ TEST_FUNCTION(large_simultaneous_reads_succeed)
     FILE_HANDLE file_handle = file_create_helper(filename);
 
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, file_write_async(file_handle, source, block_size * num_blocks, 0, write_callback, &write_context));
-    wait_on_address_helper(&write_context.value, &write_context.pre_callback_value, UINT32_MAX);
+    wait_on_address_helper(&write_context.value, write_context.pre_callback_value, UINT32_MAX);
 
     ASSERT_ARE_EQUAL(int32_t, write_context.post_callback_value, interlocked_or(&write_context.value, 0), "value should be post_callback_value");
     ASSERT_IS_TRUE(write_context.did_write_succeed);
@@ -618,7 +618,7 @@ TEST_FUNCTION(large_simultaneous_reads_succeed)
 
     for (int i = 0; i < num_blocks; ++i)
     {
-        wait_on_address_helper(&contexts[i].value, &contexts[i].pre_callback_value, UINT32_MAX);
+        wait_on_address_helper(&contexts[i].value, contexts[i].pre_callback_value, UINT32_MAX);
         ASSERT_ARE_EQUAL(int32_t, contexts[i].post_callback_value, interlocked_or(&contexts[i].value, 0), "value should be post_callback_value");
         ASSERT_IS_TRUE(contexts[i].did_read_succeed);
     }

@@ -32,7 +32,7 @@ static int increment_on_odd_values(void* address)
         int32_t value = interlocked_add(ptr, 0);
         while (value % 2 != 1)
         {
-            ASSERT_IS_TRUE(wait_on_address(ptr, &value, UINT32_MAX));
+            ASSERT_IS_TRUE(wait_on_address(ptr, value, UINT32_MAX));
             value = interlocked_add(ptr, 0);
         }
         (void)interlocked_increment(ptr);
@@ -50,7 +50,7 @@ static int increment_on_even_values(void* address)
         int value = interlocked_add(ptr, 0);
         while(value % 2 != 0)
         {
-            ASSERT_IS_TRUE(wait_on_address(ptr, &value, UINT32_MAX));
+            ASSERT_IS_TRUE(wait_on_address(ptr, value, UINT32_MAX));
             value = interlocked_add(ptr, 0);
         }
         (void)interlocked_increment(ptr);
@@ -67,7 +67,7 @@ static int increment_on_wake_up(void* address)
     int32_t value = interlocked_add(ptr, 0);
     (void)interlocked_increment(&create_count);
     wake_by_address_single(&create_count);
-    ASSERT_IS_TRUE(wait_on_address(ptr, &value, UINT32_MAX));
+    ASSERT_IS_TRUE(wait_on_address(ptr, value, UINT32_MAX));
     (void)interlocked_increment(ptr);
 
     return 0;
@@ -149,7 +149,7 @@ TEST_FUNCTION(wake_up_all_threads)
     int current_create_count = interlocked_add(&create_count, 0);
     while (current_create_count < 100)
     {
-        ASSERT_IS_TRUE(wait_on_address(&create_count, &current_create_count, UINT32_MAX));
+        ASSERT_IS_TRUE(wait_on_address(&create_count, current_create_count, UINT32_MAX));
         current_create_count = interlocked_add(&create_count, 0);
     }
     wake_by_address_all(&var);
@@ -173,7 +173,7 @@ TEST_FUNCTION(wait_on_address_returns_immediately)
     int value = 1;
 
     ///act
-    bool return_val = wait_on_address(&var, &value, UINT32_MAX);
+    bool return_val = wait_on_address(&var, value, UINT32_MAX);
 
     ///assert
     ASSERT_IS_TRUE(return_val, "wait_on_address should have returned true");
@@ -194,7 +194,7 @@ TEST_FUNCTION(wait_on_address_returns_after_timeout_elapses)
 
     /// act
     double start_time = timer_global_get_elapsed_ms();
-    bool return_val = wait_on_address(&var, &value, timeout);
+    bool return_val = wait_on_address(&var, value, timeout);
     double time_elapsed = timer_global_get_elapsed_ms() - start_time;
 
     ///assert

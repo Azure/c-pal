@@ -89,22 +89,21 @@ TEST_FUNCTION_CLEANUP(cleans)
     TEST_MUTEX_RELEASE(g_testByTest);
 }
 
-/*Tests_SRS_SYNC_LINUX_43_002: [ wait_on_address shall call syscall from sys/syscall.h with arguments SYS_futex, address, FUTEX_WAIT_PRIVATE, *compare_address, timeout_struct, NULL, NULL. ]*/
+/*Tests_SRS_SYNC_LINUX_43_002: [ wait_on_address shall call syscall from sys/syscall.h with arguments SYS_futex, address, FUTEX_WAIT_PRIVATE, compare_value, timeout_struct, NULL, NULL. ]*/
 /*Tests_SRS_SYNC_LINUX_43_003: [ wait_on_address shall return true if syscall returns 0.]*/
 
 TEST_FUNCTION(wait_on_address_calls_syscall_successfully)
 {
     ///arrange
     volatile_atomic int32_t var;
-    int32_t val = INT32_MAX;
-    (void)atomic_exchange(&var, val);
+    (void)atomic_exchange(&var, INT32_MAX);
     check_timeout = true;
     expected_timeout_ms = 100;
     expected_return_val = 0;
-    STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int32_t*)&var, FUTEX_WAIT_PRIVATE, val, IGNORED_ARG, NULL, 0));
+    STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int32_t*)&var, FUTEX_WAIT_PRIVATE, INT32_MAX, IGNORED_ARG, NULL, 0));
 
     ///act
-    bool return_val = wait_on_address(&var, &val, expected_timeout_ms);
+    bool return_val = wait_on_address(&var, INT32_MAX, expected_timeout_ms);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
@@ -125,7 +124,7 @@ TEST_FUNCTION(wait_on_address_calls_sycall_unsuccessfully)
     STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int*)&var, FUTEX_WAIT_PRIVATE, val, IGNORED_ARG, NULL, 0));
 
     ///act
-    bool return_val = wait_on_address(&var, &val, expected_timeout_ms);
+    bool return_val = wait_on_address(&var, val, expected_timeout_ms);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");

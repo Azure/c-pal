@@ -82,40 +82,42 @@ TEST_FUNCTION_CLEANUP(cleans)
     TEST_MUTEX_RELEASE(g_testByTest);
 }
 
-/*Tests_SRS_SYNC_WIN32_43_001: [ wait_on_address shall call WaitOnAddress from windows.h with address as Address, compare_address as CompareAddress, 4 as AddressSize and timeout_ms as dwMilliseconds. ]*/
+/*Tests_SRS_SYNC_WIN32_43_001: [ wait_on_address shall call WaitOnAddress from windows.h with address as Address, a pointer to the value compare_value as CompareAddress, 4 as AddressSize and timeout_ms as dwMilliseconds. ]*/
 /*Tests_SRS_SYNC_WIN32_43_002: [ wait_on_address shall return the return value of WaitOnAddress ]*/
 TEST_FUNCTION(wait_on_address_calls_WaitOnAddress_successfully)
 {
     ///arrange
     volatile int32_t var;
-    int32_t val = INT32_MAX;
-    (void)InterlockedExchange((volatile LONG*)&var, val);
+    int32_t expected_val = INT32_MAX;
+    (void)InterlockedExchange((volatile LONG*)&var, INT32_MAX);
     uint32_t timeout = 1000;
-    STRICT_EXPECTED_CALL(mock_WaitOnAddress((volatile VOID*)&var, (PVOID)&val, (SIZE_T)4, (DWORD)timeout))
+    STRICT_EXPECTED_CALL(mock_WaitOnAddress((volatile VOID*)&var, IGNORED_ARG, (SIZE_T)4, (DWORD)timeout))
+        .ValidateArgumentBuffer(2, &expected_val, sizeof(expected_val))
         .SetReturn(true);
 
     ///act
-    bool return_val = wait_on_address(&var, &val, timeout);
+    bool return_val = wait_on_address(&var, INT32_MAX, timeout);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
     ASSERT_IS_TRUE(return_val, "Return value is incorrect");
 }
 
-/*Tests_SRS_SYNC_WIN32_43_001: [ wait_on_address shall call WaitOnAddress from windows.h with address as Address, compare_address as CompareAddress, 4 as AddressSize and timeout_ms as dwMilliseconds. ]*/
+/*Tests_SRS_SYNC_WIN32_43_001: [ wait_on_address shall call WaitOnAddress from windows.h with address as Address, a pointer to the value compare_value as CompareAddress, 4 as AddressSize and timeout_ms as dwMilliseconds. ]*/
 /*Tests_SRS_SYNC_WIN32_43_002: [ wait_on_address shall return the return value of WaitOnAddress ]*/
 TEST_FUNCTION(wait_on_address_calls_WaitOnAddress_unsuccessfully)
 {
     ///arrange
     volatile int32_t var;
-    int32_t val = INT32_MAX;
-    (void)InterlockedExchange((volatile LONG*)&var, val);
+    int32_t expected_val = INT32_MAX;
+    (void)InterlockedExchange((volatile LONG*)&var, INT32_MAX);
     uint32_t timeout = 1000;
-    STRICT_EXPECTED_CALL(mock_WaitOnAddress((volatile VOID*)&var, (PVOID)&val, (SIZE_T)4, (DWORD)timeout))
+    STRICT_EXPECTED_CALL(mock_WaitOnAddress((volatile VOID*)&var, IGNORED_ARG, (SIZE_T)4, (DWORD)timeout))
+        .ValidateArgumentBuffer(2, &expected_val, sizeof(expected_val))
         .SetReturn(false);
 
     ///act
-    bool return_val = wait_on_address(&var, &val, timeout);
+    bool return_val = wait_on_address(&var, INT32_MAX, timeout);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
