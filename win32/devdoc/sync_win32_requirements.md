@@ -8,7 +8,7 @@
 ## Exposed API
 
 ```c
-MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, int32_t*, compare_address, uint32_t, timeout_ms);
+MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, int32_t, compare_value, uint32_t, timeout_ms);
 MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t*, address);
 MOCKABLE_FUNCTION(, void, wake_by_address_single, volatile_atomic int32_t*, address);
 ```
@@ -16,10 +16,10 @@ MOCKABLE_FUNCTION(, void, wake_by_address_single, volatile_atomic int32_t*, addr
 ## wait_on_address
 
 ```c
-MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, int32_t*, compare_address, uint32_t, timeout_ms)
+MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, int32_t, compare_value, uint32_t, timeout_ms)
 ```
 
-**SRS_SYNC_WIN32_43_001: [** `wait_on_address` shall call `WaitOnAddress` from `windows.h` with `address` as `Address`, `compare_address` as `CompareAddress`, `4` as `AddressSize` and `timeout_ms` as `dwMilliseconds`. **]**
+**SRS_SYNC_WIN32_43_001: [** `wait_on_address` shall call `WaitOnAddress` from `windows.h` with `address` as `Address`, a pointer to the value `compare_value` as `CompareAddress`, `4` as `AddressSize` and `timeout_ms` as `dwMilliseconds`. **]**
 
 **SRS_SYNC_WIN32_43_002: [** `wait_on_address` shall return the return value of `WaitOnAddress` **]**
 
