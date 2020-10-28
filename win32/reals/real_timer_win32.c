@@ -5,4 +5,4 @@
 
 #include "real_timer_renames.h"
 
-#include "timer.c"
+#include "timer_win32.c"

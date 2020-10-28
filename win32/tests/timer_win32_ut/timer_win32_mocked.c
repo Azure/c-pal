@@ -10,4 +10,4 @@
 extern BOOLEAN mocked_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount);
 extern BOOLEAN mocked_QueryPerformanceFrequency(LARGE_INTEGER* lpFrequency);
 
-#include "../../src/timer.c"
+#include "../../src/timer_win32.c"
