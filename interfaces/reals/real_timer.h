@@ -26,7 +26,7 @@ extern "C" {
 
 TIMER_HANDLE real_timer_create_new(void);
 
-void real_timer_start(TIMER_HANDLE handle);
+int real_timer_start(TIMER_HANDLE handle);
 
 double real_timer_get_elapsed(TIMER_HANDLE handle);
 

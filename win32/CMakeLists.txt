@@ -34,7 +34,7 @@ set(pal_win32_c_files
     src/uniqueid_win32.c
     src/srw_lock_win32.c
     src/string_utils.c
-    src/timer.c
+    src/timer_win32.c
     src/sync_win32.c
     src/file_win32.c
     src/${gballoc_ll_c}

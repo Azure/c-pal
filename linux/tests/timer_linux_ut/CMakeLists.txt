@@ -3,14 +3,14 @@
 
 cmake_minimum_required(VERSION 2.8.11)
 
-set(theseTestsName timer_win32_ut)
+set(theseTestsName timer_linux_ut)
 
 set(${theseTestsName}_test_files
     ${theseTestsName}.c
 )
 
 set(${theseTestsName}_c_files
-    timer_win32_mocked.c
+    timer_linux_mocked.c
 )
 
 set(${theseTestsName}_h_files

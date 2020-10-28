@@ -35,7 +35,7 @@ static void my_gballoc_free(void* s)
 extern "C" {
 #endif
     MOCKABLE_FUNCTION(, BOOLEAN, mocked_QueryPerformanceCounter, LARGE_INTEGER*, lpPerformanceCount)
-        MOCKABLE_FUNCTION(, BOOLEAN, mocked_QueryPerformanceFrequency, LARGE_INTEGER*, lpFrequency)
+    MOCKABLE_FUNCTION(, BOOLEAN, mocked_QueryPerformanceFrequency, LARGE_INTEGER*, lpFrequency)
 #ifdef __cplusplus
 }
 #endif
@@ -55,7 +55,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
 
-BEGIN_TEST_SUITE(timer_unittests)
+BEGIN_TEST_SUITE(timer_win32_unittests)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -302,4 +302,4 @@ TEST_FUNCTION_CLEANUP(cleanup)
     TEST_MUTEX_RELEASE(test_serialize_mutex);
 }
 
-END_TEST_SUITE(timer_unittests)
+END_TEST_SUITE(timer_win32_unittests)
