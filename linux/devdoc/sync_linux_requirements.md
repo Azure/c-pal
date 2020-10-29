@@ -26,8 +26,9 @@ MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, in
 
 **SRS_SYNC_LINUX_43_003: [** `wait_on_address` shall return `true` if `syscall` returns `0`.**]**
 
+**SRS_SYNC_LINUX_01_001: [** if `syscall` returns a non-zero value and `errno` is `EAGAIN`, `wait_on_address` shall return `true`. **]**
 
-**SRS_SYNC_LINUX_43_004: [** `wait_on_address` shall return `false` if `syscall` does not return `0`.**]**
+**SRS_SYNC_LINUX_43_004: [** Otherwise, `wait_on_address` shall return `false`.**]**
 
 ## wake_by_address_all
 

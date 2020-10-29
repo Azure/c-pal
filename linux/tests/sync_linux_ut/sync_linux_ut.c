@@ -7,6 +7,7 @@
 #include <cstdatomic>
 #include <climits>
 #include <ctime>
+#include <cerrno>
 #else
 #include <stdlib.h>
 #include <stddef.h>
@@ -14,6 +15,7 @@
 #include <stdatomic.h>
 #include <limits.h>
 #include <time.h>
+#include <errno.h>
 #endif
 
 
@@ -44,6 +46,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 static bool check_timeout;
 static uint32_t expected_timeout_ms;
 static int expected_return_val;
+int mock_errno;
 static int hook_mock_syscall(long call_code, int* uaddr, int futex_op, int val, const struct timespec* timeout, int* uaddr2, int val3)
 {
     /*Tests_SRS_SYNC_LINUX_43_001: [ wait_on_address shall initialize a timespec struct with .tv_nsec equal to timeout_ms* 10^6. ]*/
@@ -80,6 +83,7 @@ TEST_FUNCTION_INITIALIZE(f)
         ASSERT_FAIL("our mutex is ABANDONED. Failure in test framework");
     }
     expected_return_val = 0;
+    mock_errno = 0;
     check_timeout = false;
     umock_c_reset_all_calls();
 }
@@ -111,7 +115,7 @@ TEST_FUNCTION(wait_on_address_calls_syscall_successfully)
 }
 
 /*Tests_SRS_SYNC_LINUX_43_002: [ wait_on_address shall call syscall from sys/syscall.h with arguments SYS_futex, address, FUTEX_WAIT_PRIVATE, *compare_address, timeout_struct, NULL, NULL. ]*/
-/*Tests_SRS_SYNC_LINUX_43_004: [ wait_on_address shall return false if syscall does not return 0.]*/
+/*Tests_SRS_SYNC_LINUX_43_004: [ Otherwise, wait_on_address shall return false.*/
 TEST_FUNCTION(wait_on_address_calls_sycall_unsuccessfully)
 {
     ///arrange
@@ -129,6 +133,26 @@ TEST_FUNCTION(wait_on_address_calls_sycall_unsuccessfully)
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
     ASSERT_IS_FALSE(return_val, "Return value is incorrect.");
+}
+
+/* Tests_SRS_SYNC_LINUX_01_001: [ if syscall returns a non-zero value and errno is EAGAIN, wait_on_address shall return true. ]*/
+TEST_FUNCTION(when_syscall_fails_and_errno_is_EAGAIN_wait_on_address_succeeds)
+{
+    ///arrange
+    volatile_atomic int32_t var;
+    int32_t val = INT32_MAX;
+    (void)atomic_exchange(&var, val);
+    mock_errno = EAGAIN;
+
+    STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int*)&var, FUTEX_WAIT_PRIVATE, val, IGNORED_ARG, NULL, 0))
+        .SetReturn(-1);
+
+    ///act
+    bool return_val = wait_on_address(&var, val, expected_timeout_ms);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
+    ASSERT_IS_TRUE(return_val, "Return value is incorrect.");
 }
 
 /*Tests_SRS_SYNC_LINUX_43_005: [ wake_by_address_all shall call syscall from sys/syscall.h with arguments SYS_futex, address, FUTEX_WAKE_PRIVATE, INT_MAX, NULL, NULL, NULL. ]*/

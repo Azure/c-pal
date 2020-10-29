@@ -1,15 +1,23 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#include "sys/syscall.h"
-#include "linux/futex.h"
+#include <stdbool.h>
 #include <unistd.h>
 #include <limits.h>
 #include <time.h>
+#include <errno.h>
+
+#include "sys/syscall.h"
+#include "linux/futex.h"
+
+#include "azure_c_logging/xlogging.h"
+
 #include "azure_c_pal/sync.h"
 
 IMPLEMENT_MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, int32_t, compare_value, uint32_t, timeout_ms)
 {
+    bool result;
+
     /*Codes_SRS_SYNC_43_001: [ wait_on_address shall atomically compare *address and *compare_address.]*/
     /*Codes_SRS_SYNC_43_002: [ wait_on_address shall immediately return true if *address is not equal to *compare_address.]*/
     /*Codes_SRS_SYNC_43_007: [ If *address is equal to *compare_address, wait_on_address shall cause the thread to sleep. ]*/
@@ -20,11 +28,29 @@ IMPLEMENT_MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, a
     struct timespec timeout = {timeout_ms / 1000, (timeout_ms % 1000) * 1e6 };
 
     /*Codes_SRS_SYNC_LINUX_43_002: [ wait_on_address shall call syscall from sys/syscall.h with arguments SYS_futex, address, FUTEX_WAIT_PRIVATE, compare_value, *timeout_struct, NULL, 0. ]*/
-    /*Codes_SRS_SYNC_LINUX_43_003: [ wait_on_address shall return true if syscall returns 0.]*/
-    /*Codes_SRS_SYNC_LINUX_43_004: [ wait_on_address shall return false if syscall does not return 0.]*/
-    return syscall(SYS_futex, address, FUTEX_WAIT_PRIVATE, compare_value, &timeout, NULL, 0) == 0;
-    
+    int syscall_result = syscall(SYS_futex, address, FUTEX_WAIT_PRIVATE, compare_value, &timeout, NULL, 0);
+    if (syscall_result == 0)
+    {
+        /*Codes_SRS_SYNC_LINUX_43_003: [ wait_on_address shall return true if syscall returns 0.]*/
+        result = true;
+    }
+    else
+    {
+        if (errno == EAGAIN)
+        {
+            /* Codes_SRS_SYNC_LINUX_01_001: [ if syscall returns a non-zero value and errno is EAGAIN, wait_on_address shall return true. ]*/
+            result = true;
+        }
+        else
+        {
+            /*Codes_SRS_SYNC_LINUX_43_004: [ Otherwise, wait_on_address shall return false.*/
+            result = false;
+        }
+    }
+
+    return result;
 }
+
 IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t*, address)
 {
     /*Codes_SRS_SYNC_43_004: [ wake_by_address_all shall cause all the thread(s) waiting on a call to wait_on_address with argument address to continue execution. ]*/
