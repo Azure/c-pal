@@ -22,8 +22,8 @@ MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, in
 MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t*, address);
 MOCKABLE_FUNCTION(, void, wake_by_address_single, volatile_atomic int32_t*, address);
 
-
 #ifdef __cplusplus
 }
 #endif
+
 #endif
