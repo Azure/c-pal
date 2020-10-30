@@ -3,18 +3,18 @@
 
 cmake_minimum_required(VERSION 2.8.11)
 
-# canon way of using azure-c-pal from another repo is below. It assumes the using repo has placed azure-c-pal in "deps"
+# canon way of using c-pal from another repo is below. It assumes the using repo has placed c-pal in "deps"
 
-#if ((NOT TARGET azure_c_pal) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/azure-c-pal/CMakeLists.txt))
-#    add_subdirectory(deps/azure-c-pal)
+#if ((NOT TARGET c_pal) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/c-pal/CMakeLists.txt))
+#    add_subdirectory(deps/c-pal)
 #    include_directories(${C_PAL_INC_FOLDER})
 #endif() 
 
-if (TARGET azure_c_pal)
+if (TARGET c_pal)
     RETURN()
 endif()
 
-project(azure_c_pal)
+project(c_pal)
 
 #the following variables are project-wide and can be used with cmake-gui
 option(run_unittests "set run_unittests to ON to run unittests (default is OFF)" OFF)
@@ -59,28 +59,28 @@ set(run_traceability OFF)
 set(run_perf_tests OFF)
 
 
-if ((NOT TARGET azure_c_build_tools) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/azure-c-build-tools/CMakeLists.txt))
-    add_subdirectory(deps/azure-c-build-tools)
+if ((NOT TARGET c_build_tools) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/c-build-tools/CMakeLists.txt))
+    add_subdirectory(deps/c-build-tools)
     set_default_build_options()
 endif() 
 
-if ((NOT TARGET azure_macro_utils_c) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/azure-macro-utils-c/CMakeLists.txt))
-    add_subdirectory(deps/azure-macro-utils-c)
+if ((NOT TARGET macro_utils_c) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/macro-utils-c/CMakeLists.txt))
+    add_subdirectory(deps/macro-utils-c)
     include_directories(${MACRO_UTILS_INC_FOLDER})
 endif() 
 
-if ((NOT TARGET azure_c_logging) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/azure-c-logging/CMakeLists.txt))
-    add_subdirectory(deps/azure-c-logging)
-    include_directories(deps/azure-c-logging/inc)
+if ((NOT TARGET c_logging) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/c-logging/CMakeLists.txt))
+    add_subdirectory(deps/c-logging)
+    include_directories(deps/c-logging/inc)
 endif() 
 
-if ((NOT TARGET ctest) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/azure-ctest/CMakeLists.txt))
-    add_subdirectory(deps/azure-ctest)
+if ((NOT TARGET ctest) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/ctest/CMakeLists.txt))
+    add_subdirectory(deps/ctest)
     include_directories(${CTEST_INC_FOLDER})
 endif() 
 
-if ((NOT TARGET testrunnerswitcher) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/azure-c-testrunnerswitcher/CMakeLists.txt))
-    add_subdirectory(deps/azure-c-testrunnerswitcher)
+if ((NOT TARGET testrunnerswitcher) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/c-testrunnerswitcher/CMakeLists.txt))
+    add_subdirectory(deps/c-testrunnerswitcher)
     include_directories(${TESTRUNNERSWITCHER_INC_FOLDER})
 endif() 
 
@@ -152,7 +152,7 @@ enable_testing()
 set(C_PAL_INC_FOLDER 
     ${CMAKE_CURRENT_LIST_DIR}/interfaces/inc
     ${CMAKE_CURRENT_LIST_DIR}/common/inc
-    CACHE INTERNAL "this is what needs to be included if using azure_c_pal" FORCE)
+    CACHE INTERNAL "this is what needs to be included if using c_pal" FORCE)
 
 add_subdirectory(interfaces)
 add_subdirectory(common)
@@ -163,30 +163,30 @@ else()
     add_subdirectory(linux)
 endif()
 
-add_library(azure_c_pal INTERFACE)
+add_library(c_pal INTERFACE)
 
-FILE(GLOB azure_c_pal_md_files "doc/*.md")
-SOURCE_GROUP(devdoc FILES ${azure_c_pal_md_files})
+FILE(GLOB c_pal_md_files "doc/*.md")
+SOURCE_GROUP(devdoc FILES ${c_pal_md_files})
 
 if(MSVC)
-    target_link_libraries(azure_c_pal INTERFACE pal_win32)
+    target_link_libraries(c_pal INTERFACE pal_win32)
 else()
-    target_link_libraries(azure_c_pal INTERFACE pal_linux)
+    target_link_libraries(c_pal INTERFACE pal_linux)
 endif()
 
 
 if((WIN32) AND (${run_traceability}))
     #add traceability custom target
-    add_custom_target(azure_c_pal_traceability ALL
+    add_custom_target(c_pal_traceability ALL
         COMMAND traceabilitytool -buildcheck -e ${CMAKE_CURRENT_LIST_DIR}/deps -i ${CMAKE_CURRENT_LIST_DIR})
-    add_dependencies(azure_c_pal_traceability traceabilitytool)
+    add_dependencies(c_pal_traceability traceabilitytool)
 endif()
 
-add_library(azure_c_pal_reals INTERFACE)
+add_library(c_pal_reals INTERFACE)
 if(MSVC)
-    target_link_libraries(azure_c_pal_reals INTERFACE win32_reals)
+    target_link_libraries(c_pal_reals INTERFACE win32_reals)
 else()
-    target_link_libraries(azure_c_pal_reals INTERFACE linux_reals)
+    target_link_libraries(c_pal_reals INTERFACE linux_reals)
 endif()
 
 include(CMakePackageConfigHelpers)

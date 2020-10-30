@@ -18,7 +18,7 @@ static TEST_MUTEX_HANDLE g_testByTest;
 
 
 
-#include "azure_c_pal/interlocked.h"
+#include "c_pal/interlocked.h"
 
 
 BEGIN_TEST_SUITE(interlocked_int)

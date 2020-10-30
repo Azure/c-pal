@@ -21,7 +21,7 @@ void my_free(void* ptr)
     real_gballoc_ll_free(ptr);
 }
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
 #include "some_refcount_impl.h"
 #include "umock_c/umock_c.h"
@@ -29,10 +29,10 @@ void my_free(void* ptr)
 
 #define ENABLE_MOCKS
 #include "umock_c/umock_c_prod.h"
-#include "azure_c_pal/interlocked.h"
-#include "azure_c_pal/gballoc_hl.h"
-#include "azure_c_pal/gballoc_hl_redirect.h"
-#include "azure_c_pal/refcount.h"
+#include "c_pal/interlocked.h"
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/refcount.h"
 #undef ENABLE_MOCKS
 
 #include "real_gballoc_hl.h"

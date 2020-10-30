@@ -10,7 +10,7 @@
 #endif
 
 #include "windows.h"
-#include "azure_c_pal/execution_engine.h"
+#include "c_pal/execution_engine.h"
 
 #include "umock_c/umock_c_prod.h"
 

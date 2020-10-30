@@ -14,15 +14,15 @@
 
 #include "testrunnerswitcher.h"
 
-#include "azure_macro_utils/macro_utils.h"
-#include "azure_c_logging/xlogging.h"
-#include "azure_c_pal/timer.h"
-#include "azure_c_pal/threadpool.h"
-#include "azure_c_pal/execution_engine.h"
-#include "azure_c_pal/gballoc_hl.h"
-#include "azure_c_pal/gballoc_hl_redirect.h"
+#include "macro_utils/macro_utils.h"
+#include "c_logging/xlogging.h"
+#include "c_pal/timer.h"
+#include "c_pal/threadpool.h"
+#include "c_pal/execution_engine.h"
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"
 
-#include "azure_c_pal/execution_engine_win32.h"
+#include "c_pal/execution_engine_win32.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 

@@ -7,12 +7,12 @@
 #include <stdlib.h>
 #endif
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 
 #include "testrunnerswitcher.h"
-#include "azure_c_pal/threadapi.h"
+#include "c_pal/threadapi.h"
 
-#include "azure_c_pal/lazy_init.h"
+#include "c_pal/lazy_init.h"
 
 TEST_DEFINE_ENUM_TYPE(LAZY_INIT_RESULT, LAZY_INIT_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);

@@ -22,12 +22,12 @@ will interact with deallocated memory / resources resulting in an undefined beha
 #include <stdint.h>
 #endif
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 
 // Include the platform-specific file that defines atomic functionality
-#include "azure_c_pal/gballoc_hl.h"
-#include "azure_c_pal/gballoc_hl_redirect.h"
-#include "azure_c_pal/interlocked.h"
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/interlocked.h"
 
 #ifdef __cplusplus
 extern "C"

@@ -14,11 +14,11 @@
 
 #include "testrunnerswitcher.h"
 
-#include "azure_macro_utils/macro_utils.h"
-#include "azure_c_pal/async_socket.h"
-#include "azure_c_pal/execution_engine.h"
-#include "azure_c_pal/gballoc_hl.h"
-#include "azure_c_pal/execution_engine_win32.h"
+#include "macro_utils/macro_utils.h"
+#include "c_pal/async_socket.h"
+#include "c_pal/execution_engine.h"
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/execution_engine_win32.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 

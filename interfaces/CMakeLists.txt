@@ -1,22 +1,22 @@
 #Copyright (C) Microsoft Corporation. All rights reserved.
 
 set(pal_interfaces_h_files
-    inc/azure_c_pal/execution_engine.h
-    inc/azure_c_pal/async_socket.h
-    inc/azure_c_pal/socket_handle.h
-    inc/azure_c_pal/threadpool.h
-    inc/azure_c_pal/interlocked.h
-    inc/azure_c_pal/platform.h
-    inc/azure_c_pal/threadapi.h
-    inc/azure_c_pal/timer.h
-    inc/azure_c_pal/uniqueid.h
-    inc/azure_c_pal/srw_lock.h
-    inc/azure_c_pal/sync.h
-    inc/azure_c_pal/file.h
-    inc/azure_c_pal/gballoc_ll.h
-    inc/azure_c_pal/gballoc_ll_redirects.h
-    inc/azure_c_pal/gballoc_hl.h
-    inc/azure_c_pal/gballoc_hl_redirects.h
+    inc/c_pal/execution_engine.h
+    inc/c_pal/async_socket.h
+    inc/c_pal/socket_handle.h
+    inc/c_pal/threadpool.h
+    inc/c_pal/interlocked.h
+    inc/c_pal/platform.h
+    inc/c_pal/threadapi.h
+    inc/c_pal/timer.h
+    inc/c_pal/uniqueid.h
+    inc/c_pal/srw_lock.h
+    inc/c_pal/sync.h
+    inc/c_pal/file.h
+    inc/c_pal/gballoc_ll.h
+    inc/c_pal/gballoc_ll_redirects.h
+    inc/c_pal/gballoc_hl.h
+    inc/c_pal/gballoc_hl_redirects.h
 )
 
 FILE(GLOB pal_interfaces_md_files "devdoc/*.md")

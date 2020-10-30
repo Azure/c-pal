@@ -3,13 +3,13 @@
 
 #include <stddef.h>
 
-#include "azure_macro_utils/macro_utils.h"
-#include "azure_c_logging/xlogging.h"
+#include "macro_utils/macro_utils.h"
+#include "c_logging/xlogging.h"
 
-#include "azure_c_pal/lazy_init.h"
-#include "azure_c_pal/gballoc_ll.h"
+#include "c_pal/lazy_init.h"
+#include "c_pal/gballoc_ll.h"
 
-#include "azure_c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl.h"
 
 static call_once_t g_lazy;
 

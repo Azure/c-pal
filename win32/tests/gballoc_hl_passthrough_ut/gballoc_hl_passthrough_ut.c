@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #endif
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
 
 static TEST_MUTEX_HANDLE g_testByTest;
@@ -16,9 +16,9 @@ static TEST_MUTEX_HANDLE g_testByTest;
 #include "umock_c/umocktypes_stdint.h"
 
 #define ENABLE_MOCKS
-#include "azure_c_pal/gballoc_ll.h"
-#include "azure_c_pal/interlocked.h"
-#include "azure_c_pal/lazy_init.h"
+#include "c_pal/gballoc_ll.h"
+#include "c_pal/interlocked.h"
+#include "c_pal/lazy_init.h"
 #undef ENABLE_MOCKS
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
@@ -27,7 +27,7 @@ MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 #include "real_interlocked.h"
 #include "real_lazy_init.h"
 
-#include "azure_c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl.h"
 
 MU_DEFINE_ENUM_STRINGS(LAZY_INIT_RESULT, LAZY_INIT_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(LAZY_INIT_RESULT, LAZY_INIT_RESULT_VALUES);

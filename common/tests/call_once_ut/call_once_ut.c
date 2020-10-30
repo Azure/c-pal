@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #endif
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
@@ -16,13 +16,13 @@
 #include "umock_c/umocktypes_bool.h"
 
 #define ENABLE_MOCKS
-#include "azure_c_pal/interlocked.h"
-#include "azure_c_pal/sync.h"
+#include "c_pal/interlocked.h"
+#include "c_pal/sync.h"
 #undef ENABLE_MOCKS
 
 #include "real_interlocked.h"
 #include "real_sync.h"
-#include "azure_c_pal/call_once.h"
+#include "c_pal/call_once.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 

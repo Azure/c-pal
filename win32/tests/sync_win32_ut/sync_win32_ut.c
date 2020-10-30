@@ -10,7 +10,7 @@
 #include <stdbool.h>
 #endif
 #include "windows.h"
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
 
 #include "umock_c/umock_c.h"
@@ -32,8 +32,8 @@ extern "C"
 
 #define ENABLE_MOCKS
 #include "mock_sync.h"
-#include "azure_c_pal/gballoc_hl.h"
-#include "azure_c_pal/gballoc_hl_redirect.h"
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"
 #undef ENABLE_MOCKS
 
 #ifdef __cplusplus
@@ -43,7 +43,7 @@ extern "C"
 #include "real_gballoc_hl.h"
 
 
-#include "azure_c_pal/sync.h"
+#include "c_pal/sync.h"
 
 BEGIN_TEST_SUITE(sync_win32_unittests)
 

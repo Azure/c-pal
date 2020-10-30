@@ -3,7 +3,7 @@
 
 #define _DEFAULT_SOURCE
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -17,9 +17,9 @@
 
 #include <pthread.h>
 #include <time.h>
-#include "azure_c_logging/xlogging.h"
+#include "c_logging/xlogging.h"
 
-#include "azure_c_pal/threadapi.h"
+#include "c_pal/threadapi.h"
 
 
 MU_DEFINE_ENUM_STRINGS(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);

@@ -8,7 +8,7 @@
 #include <time.h>
 #endif
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 
 static void* my_gballoc_malloc(size_t size)
 {
@@ -25,8 +25,8 @@ static void my_gballoc_free(void* s)
 #include "umock_c/umock_c_negative_tests.h"
 
 #define ENABLE_MOCKS
-#include "azure_c_pal/gballoc_ll.h"
-#include "azure_c_pal/gballoc_ll_redirect.h"
+#include "c_pal/gballoc_ll.h"
+#include "c_pal/gballoc_ll_redirect.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,7 +40,7 @@ extern "C" {
 
 #include "real_gballoc_ll.h"
 
-#include "azure_c_pal/timer.h"
+#include "c_pal/timer.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 

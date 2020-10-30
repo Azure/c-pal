@@ -2,11 +2,11 @@
 
 #include <inttypes.h>
 #include "windows.h"
-#include "azure_macro_utils/macro_utils.h"
-#include "azure_c_pal/refcount.h"
-#include "azure_c_logging/xlogging.h"
-#include "azure_c_pal/execution_engine.h"
-#include "azure_c_pal/execution_engine_win32.h"
+#include "macro_utils/macro_utils.h"
+#include "c_pal/refcount.h"
+#include "c_logging/xlogging.h"
+#include "c_pal/execution_engine.h"
+#include "c_pal/execution_engine_win32.h"
 
 
 typedef struct EXECUTION_ENGINE_TAG

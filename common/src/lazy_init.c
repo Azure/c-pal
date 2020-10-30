@@ -4,11 +4,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "azure_c_logging/xlogging.h"
+#include "c_logging/xlogging.h"
 
-#include "azure_c_pal/call_once.h"
+#include "c_pal/call_once.h"
 
-#include "azure_c_pal/lazy_init.h"
+#include "c_pal/lazy_init.h"
 
 MU_DEFINE_ENUM_STRINGS(LAZY_INIT_RESULT, LAZY_INIT_RESULT_VALUES)
 

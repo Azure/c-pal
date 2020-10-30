@@ -14,12 +14,12 @@
 
 #include "testrunnerswitcher.h"
 
-#include "azure_c_pal/gballoc_hl.h"
-#include "azure_c_pal/gballoc_hl_redirect.h"
-#include "azure_c_pal/interlocked.h"
-#include "azure_c_pal/threadapi.h"
-#include "azure_c_pal/sync.h"
-#include "azure_c_pal/timer.h"
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/interlocked.h"
+#include "c_pal/threadapi.h"
+#include "c_pal/sync.h"
+#include "c_pal/timer.h"
 
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES)
 

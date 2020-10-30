@@ -2,13 +2,13 @@
 
 #include <time.h>
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 
-#include "azure_c_logging/xlogging.h"
-#include "azure_c_pal/gballoc_ll.h"
-#include "azure_c_pal/gballoc_ll_redirect.h"
+#include "c_logging/xlogging.h"
+#include "c_pal/gballoc_ll.h"
+#include "c_pal/gballoc_ll_redirect.h"
 
-#include "azure_c_pal/timer.h"
+#include "c_pal/timer.h"
 
 typedef struct TIMER_HANDLE_DATA_TAG
 {

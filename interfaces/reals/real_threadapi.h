@@ -4,9 +4,9 @@
 #ifndef REAL_THREADAPI_H
 #define REAL_THREADAPI_H
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 
-#include "azure_c_pal/threadapi.h"
+#include "c_pal/threadapi.h"
 
 #define R2(X) REGISTER_GLOBAL_MOCK_HOOK(X, real_##X);
 

@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <malloc.h>
 
-#include "azure_c_logging/xlogging.h"
-#include "azure_c_pal/gballoc_ll.h"
+#include "c_logging/xlogging.h"
+#include "c_pal/gballoc_ll.h"
 
 int gballoc_ll_init(void* params)
 {

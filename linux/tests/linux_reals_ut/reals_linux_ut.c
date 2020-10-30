@@ -6,8 +6,8 @@
 #define REGISTER_GLOBAL_MOCK_HOOK(original, real) \
     (original == real) ? (void)0 : (void)1;
 
-#include "azure_c_pal/threadapi.h"
-#include "azure_c_pal/sync.h"
+#include "c_pal/threadapi.h"
+#include "c_pal/sync.h"
 
 
 #include "real_threadapi.h"

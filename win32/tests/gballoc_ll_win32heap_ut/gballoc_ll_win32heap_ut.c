@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #endif
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
 
 #include "windows.h"
@@ -36,7 +36,7 @@ extern "C" {
 }
 #endif
 
-#include "azure_c_pal/lazy_init.h"
+#include "c_pal/lazy_init.h"
 #undef ENABLE_MOCKS
 
 static LAZY_INIT_RESULT my_lazy_init(call_once_t* lazy, LAZY_INIT_FUNCTION do_init, void* init_params)
@@ -64,7 +64,7 @@ MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
 #include "real_interlocked.h"
 
-#include "azure_c_pal/gballoc_ll.h"
+#include "c_pal/gballoc_ll.h"
 
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {

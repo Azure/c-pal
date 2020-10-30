@@ -9,9 +9,9 @@
 #include <stdint.h>
 #endif
 
-#include "azure_macro_utils/macro_utils.h"
-#include "azure_c_pal/interlocked.h"
-#include "azure_c_pal/call_once.h"
+#include "macro_utils/macro_utils.h"
+#include "c_pal/interlocked.h"
+#include "c_pal/call_once.h"
 
 #define LAZY_INIT_NOT_DONE CALL_ONCE_NOT_CALLED /*to only be used in static initialization, rest of initializations need to use interlocked_exchange*/
 
