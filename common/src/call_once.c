@@ -4,14 +4,14 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 
-#include "azure_c_logging/xlogging.h"
+#include "c_logging/xlogging.h"
 
-#include "azure_c_pal/interlocked.h"
-#include "azure_c_pal/sync.h"
+#include "c_pal/interlocked.h"
+#include "c_pal/sync.h"
 
-#include "azure_c_pal/call_once.h"
+#include "c_pal/call_once.h"
 
 MU_DEFINE_ENUM_STRINGS(CALL_ONCE_RESULT, CALL_ONCE_RESULT_VALUES);
 

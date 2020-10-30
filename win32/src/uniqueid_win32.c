@@ -3,9 +3,9 @@
 
 #include <stdlib.h>
 #include <stdint.h>
-#include "azure_c_logging/xlogging.h"
+#include "c_logging/xlogging.h"
 #include "rpc.h"
-#include "azure_c_pal/uniqueid.h"
+#include "c_pal/uniqueid.h"
 
 MU_DEFINE_ENUM_STRINGS(UNIQUEID_RESULT, UNIQUEID_RESULT_VALUES);
 

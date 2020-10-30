@@ -19,7 +19,7 @@
 /*note: linux implementation is missing all the wide char functions that can be found on windows implementation because the wide char functions have a completely different functionality on linux
 regarding their return value. Basically, they (swprintf and vswprintf) will return -1 when called with NULL, 0 first two arguments*/
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 
 #include "umock_c/umock_c_prod.h"
 

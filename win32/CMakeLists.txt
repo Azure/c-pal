@@ -1,8 +1,8 @@
 #Copyright (C) Microsoft Corporation. All rights reserved.
 
 set(pal_common_h_files
-    ../common/inc/azure_c_pal/call_once.h
-    ../common/inc/azure_c_pal/lazy_init.h
+    ../common/inc/c_pal/call_once.h
+    ../common/inc/c_pal/lazy_init.h
 )
 
 set(pal_common_c_files
@@ -20,7 +20,7 @@ set(gballoc_hl_c gballoc_hl_${gballoc_hl_type_lower}.c)
 
 set(pal_win32_h_files
     ${pal_common_h_files}
-    inc/azure_c_pal/execution_engine_win32.h
+    inc/c_pal/execution_engine_win32.h
 )
 
 set(pal_win32_c_files
@@ -50,7 +50,7 @@ include_directories(../common/inc)
 
 add_library(pal_win32 ${pal_win32_h_files} ${pal_win32_c_files} ${pal_win32_md_files} ${pal_common_md_files})
 
-target_link_libraries(pal_win32 pal_interfaces ws2_32 synchronization rpcrt4 azure_c_logging)
+target_link_libraries(pal_win32 pal_interfaces ws2_32 synchronization rpcrt4 c_logging)
 if(${GBALLOC_LL_TYPE} STREQUAL "MIMALLOC")
     target_link_libraries(pal_win32 mimalloc-obj)
 endif()

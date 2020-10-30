@@ -6,7 +6,7 @@
 #include <stdbool.h>
 
 #include "windows.h"
-#include "azure_c_pal/sync.h"
+#include "c_pal/sync.h"
 
 IMPLEMENT_MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, int32_t, compare_value, uint32_t, timeout_ms)
 {

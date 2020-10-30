@@ -10,8 +10,8 @@
 #include <stdbool.h>
 #endif
 
-#include "azure_macro_utils/macro_utils.h"
-#include "azure_c_pal/interlocked.h"
+#include "macro_utils/macro_utils.h"
+#include "c_pal/interlocked.h"
 
 typedef volatile_atomic int32_t call_once_t;
 

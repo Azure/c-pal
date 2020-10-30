@@ -23,11 +23,11 @@
 #include <linux/futex.h>
 
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
 
-#include "azure_c_pal/sync.h"
+#include "c_pal/sync.h"
 
 static TEST_MUTEX_HANDLE g_testByTest;
 

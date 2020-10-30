@@ -9,7 +9,7 @@
 #endif
 
 #include "windows.h"
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 
 #include "real_gballoc_ll.h"
 void* real_malloc(size_t size)
@@ -26,18 +26,18 @@ void real_free(void* ptr)
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umock_c_negative_tests.h"
-#include "azure_c_pal/execution_engine.h"
+#include "c_pal/execution_engine.h"
 
 #define ENABLE_MOCKS
 
-#include "azure_c_pal/gballoc_hl.h"
-#include "azure_c_pal/gballoc_hl_redirect.h"
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"
 
 #undef ENABLE_MOCKS
 
 #include "real_gballoc_hl.h"
 
-#include "azure_c_pal/execution_engine_win32.h"
+#include "c_pal/execution_engine_win32.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 

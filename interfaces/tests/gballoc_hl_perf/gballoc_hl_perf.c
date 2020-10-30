@@ -9,12 +9,12 @@
 #endif
 
 
-#include "azure_c_logging/xlogging.h"
+#include "c_logging/xlogging.h"
 #include "testrunnerswitcher.h"
 
-#include "azure_c_pal/timer.h"
+#include "c_pal/timer.h"
 
-#include "azure_c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl.h"
 
 #define malloc gballoc_hl_malloc
 #define calloc gballoc_hl_calloc

@@ -18,15 +18,15 @@
 
 static TEST_MUTEX_HANDLE g_testByTest;
 
-#include "azure_c_pal/sync.h"
-#include "azure_c_pal/gballoc_hl.h"
-#include "azure_c_pal/gballoc_hl_redirect.h"
-#include "azure_c_pal/interlocked.h"
+#include "c_pal/sync.h"
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/interlocked.h"
 
 
 #include "file_int_helpers.h"
 
-#include "azure_c_pal/file.h"
+#include "c_pal/file.h"
 
 TEST_DEFINE_ENUM_TYPE(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_RESULT)
 TEST_DEFINE_ENUM_TYPE(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_RESULT)

@@ -6,7 +6,7 @@
 #else
 #include <stdatomic.h>
 #endif
-#include "azure_c_pal/interlocked.h"
+#include "c_pal/interlocked.h"
 
 IMPLEMENT_MOCKABLE_FUNCTION(, int32_t, interlocked_add, volatile_atomic int32_t*, addend, int32_t, value)
 {

@@ -11,13 +11,13 @@
 #include <stdbool.h>
 #include <stdatomic.h>
 #endif
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
 
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_stdint.h"
 
-#include "azure_c_pal/interlocked.h"
+#include "c_pal/interlocked.h"
 
 
 static TEST_MUTEX_HANDLE g_testByTest;

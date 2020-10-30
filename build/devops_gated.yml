@@ -314,7 +314,7 @@ jobs:
     displayName: 'Git submodule update'
     inputs:
       filename: 'C:\Program Files\Git\bin\git.exe'
-      arguments: 'submodule update --init --force deps/azure-c-build-tools'
+      arguments: 'submodule update --init --force deps/c-build-tools'
 
   - task: BatchScript@1
     displayName: 'Git submodule clean'
@@ -343,7 +343,7 @@ jobs:
   - task: VSBuild@1
     displayName: 'Build traceabilitytool only'
     inputs:
-      solution: 'build\azure_c_pal.sln'
+      solution: 'build\c_pal.sln'
       vsVersion: 16.0
       platform: x64
       configuration: RelWithDebInfo
@@ -354,7 +354,7 @@ jobs:
   - task: BatchScript@1
     displayName: 'Run traceability tool'
     inputs:
-      filename: 'build/deps/azure-c-build-tools/traceabilitytool/RelWithDebInfo/traceabilitytool.exe'
+      filename: 'build/deps/c-build-tools/traceabilitytool/RelWithDebInfo/traceabilitytool.exe'
       arguments: '-i $(Build.SourcesDirectory) -buildcheck -e $(Build.SourcesDirectory)\deps'
       modifyEnvironment: false
       workingFolder: '$(Build.SourcesDirectory)'

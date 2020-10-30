@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #endif
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
@@ -17,12 +17,12 @@
 
 
 #define ENABLE_MOCKS
-#include "azure_c_pal/call_once.h"
+#include "c_pal/call_once.h"
 MOCKABLE_FUNCTION(, int, do_init, void*, params);
 #undef ENABLE_MOCKS
 
 
-#include "azure_c_pal/lazy_init.h"
+#include "c_pal/lazy_init.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 

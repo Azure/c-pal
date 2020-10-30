@@ -8,7 +8,7 @@
 #include <inttypes.h>
 #endif
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
 #include "windows.h"
 #include "umock_c/umock_c.h"
@@ -17,16 +17,16 @@
 #include "umock_c/umocktypes.h"
 
 #define ENABLE_MOCKS
-#include "azure_c_pal/timer.h"
-#include "azure_c_pal/gballoc_ll.h"
-#include "azure_c_pal/lazy_init.h"
-#include "azure_c_pal/interlocked.h"
+#include "c_pal/timer.h"
+#include "c_pal/gballoc_ll.h"
+#include "c_pal/lazy_init.h"
+#include "c_pal/interlocked.h"
 #undef ENABLE_MOCKS
 
 #include "real_lazy_init.h"
 #include "real_interlocked.h"
 
-#include "azure_c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 

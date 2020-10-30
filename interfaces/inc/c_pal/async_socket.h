@@ -3,8 +3,8 @@
 #ifndef ASYNC_SOCKET_H
 #define ASYNC_SOCKET_H
 
-#include "azure_macro_utils/macro_utils.h"
-#include "azure_c_pal/execution_engine.h"
+#include "macro_utils/macro_utils.h"
+#include "c_pal/execution_engine.h"
 #include "socket_handle.h"
 #include "umock_c/umock_c_prod.h"
 

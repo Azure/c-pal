@@ -3,14 +3,14 @@
 
 #include <stdlib.h>
 #include "windows.h"
-#include "azure_macro_utils/macro_utils.h"
-#include "azure_c_logging/xlogging.h"
+#include "macro_utils/macro_utils.h"
+#include "c_logging/xlogging.h"
 
-#include "azure_c_pal/timer.h"
-#include "azure_c_pal/gballoc_ll.h"
-#include "azure_c_pal/lazy_init.h"
+#include "c_pal/timer.h"
+#include "c_pal/gballoc_ll.h"
+#include "c_pal/lazy_init.h"
 
-#include "azure_c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl.h"
 
 // This code snippet generates the below structure
 //static void generate_metadata_as_text(void)

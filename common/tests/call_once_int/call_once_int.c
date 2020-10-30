@@ -9,13 +9,13 @@
 #include <time.h>
 #endif
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 
 #include "testrunnerswitcher.h"
 
-#include "azure_c_pal/threadapi.h"
+#include "c_pal/threadapi.h"
 
-#include "azure_c_pal/call_once.h"
+#include "c_pal/call_once.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 

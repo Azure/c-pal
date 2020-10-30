@@ -3,66 +3,66 @@ REM very useful on dev machine
 
 cmake . -DGBALLOC_HL_TYPE:STRING=PASSTHROUGH -DGBALLOC_LL_TYPE:STRING=PASSTHROUGH
 IF %ERRORLEVEL% NEQ 0 goto myerr
-msbuild /t:restore /t:build /p:Configuration=RelWithDebInfo /m azure_c_pal.sln
+msbuild /t:restore /t:build /p:Configuration=RelWithDebInfo /m c_pal.sln
 IF %ERRORLEVEL% NEQ 0 goto myerr
 ctest -C "RelWithDebInfo" -j 128
 IF %ERRORLEVEL% NEQ 0 goto myerr
-msbuild /t:restore /t:build /p:Configuration=Debug /m azure_c_pal.sln
+msbuild /t:restore /t:build /p:Configuration=Debug /m c_pal.sln
 IF %ERRORLEVEL% NEQ 0 goto myerr
 ctest -C "RelWithDebInfo" -j 128
 IF %ERRORLEVEL% NEQ 0 goto myerr
 
 cmake . -DGBALLOC_HL_TYPE:STRING=PASSTHROUGH -DGBALLOC_LL_TYPE:STRING=WIN32HEAP
 IF %ERRORLEVEL% NEQ 0 goto myerr
-msbuild /t:restore /t:build /p:Configuration=RelWithDebInfo /m azure_c_pal.sln
+msbuild /t:restore /t:build /p:Configuration=RelWithDebInfo /m c_pal.sln
 IF %ERRORLEVEL% NEQ 0 goto myerr
 ctest -C "RelWithDebInfo" -j 128
 IF %ERRORLEVEL% NEQ 0 goto myerr
-msbuild /t:restore /t:build /p:Configuration=Debug /m azure_c_pal.sln
+msbuild /t:restore /t:build /p:Configuration=Debug /m c_pal.sln
 IF %ERRORLEVEL% NEQ 0 goto myerr
 ctest -C "RelWithDebInfo" -j 128
 IF %ERRORLEVEL% NEQ 0 goto myerr
 
 cmake . -DGBALLOC_HL_TYPE:STRING=PASSTHROUGH -DGBALLOC_LL_TYPE:STRING=MIMALLOC
 IF %ERRORLEVEL% NEQ 0 goto myerr
-msbuild /t:restore /t:build /p:Configuration=RelWithDebInfo /m azure_c_pal.sln
+msbuild /t:restore /t:build /p:Configuration=RelWithDebInfo /m c_pal.sln
 IF %ERRORLEVEL% NEQ 0 goto myerr
 ctest -C "RelWithDebInfo" -j 128
 IF %ERRORLEVEL% NEQ 0 goto myerr
-msbuild /t:restore /t:build /p:Configuration=Debug /m azure_c_pal.sln
+msbuild /t:restore /t:build /p:Configuration=Debug /m c_pal.sln
 IF %ERRORLEVEL% NEQ 0 goto myerr
 ctest -C "RelWithDebInfo" -j 128
 IF %ERRORLEVEL% NEQ 0 goto myerr
 
 cmake . -DGBALLOC_HL_TYPE:STRING=METRICS -DGBALLOC_LL_TYPE:STRING=PASSTHROUGH
 IF %ERRORLEVEL% NEQ 0 goto myerr
-msbuild /t:restore /t:build /p:Configuration=RelWithDebInfo /m azure_c_pal.sln
+msbuild /t:restore /t:build /p:Configuration=RelWithDebInfo /m c_pal.sln
 IF %ERRORLEVEL% NEQ 0 goto myerr
 ctest -C "RelWithDebInfo" -j 128
 IF %ERRORLEVEL% NEQ 0 goto myerr
-msbuild /t:restore /t:build /p:Configuration=Debug /m azure_c_pal.sln
+msbuild /t:restore /t:build /p:Configuration=Debug /m c_pal.sln
 IF %ERRORLEVEL% NEQ 0 goto myerr
 ctest -C "RelWithDebInfo" -j 128
 IF %ERRORLEVEL% NEQ 0 goto myerr
 
 cmake . -DGBALLOC_HL_TYPE:STRING=METRICS -DGBALLOC_LL_TYPE:STRING=WIN32HEAP
 IF %ERRORLEVEL% NEQ 0 goto myerr
-msbuild /t:restore /t:build /p:Configuration=RelWithDebInfo /m azure_c_pal.sln
+msbuild /t:restore /t:build /p:Configuration=RelWithDebInfo /m c_pal.sln
 IF %ERRORLEVEL% NEQ 0 goto myerr
 ctest -C "RelWithDebInfo" -j 128
 IF %ERRORLEVEL% NEQ 0 goto myerr
-msbuild /t:restore /t:build /p:Configuration=Debug /m azure_c_pal.sln
+msbuild /t:restore /t:build /p:Configuration=Debug /m c_pal.sln
 IF %ERRORLEVEL% NEQ 0 goto myerr
 ctest -C "RelWithDebInfo" -j 128
 IF %ERRORLEVEL% NEQ 0 goto myerr
 
 cmake . -DGBALLOC_HL_TYPE:STRING=METRICS -DGBALLOC_LL_TYPE:STRING=MIMALLOC
 IF %ERRORLEVEL% NEQ 0 goto myerr
-msbuild /t:restore /t:build /p:Configuration=RelWithDebInfo /m azure_c_pal.sln
+msbuild /t:restore /t:build /p:Configuration=RelWithDebInfo /m c_pal.sln
 IF %ERRORLEVEL% NEQ 0 goto myerr
 ctest -C "RelWithDebInfo" -j 128
 IF %ERRORLEVEL% NEQ 0 goto myerr
-msbuild /t:restore /t:build /p:Configuration=Debug /m azure_c_pal.sln
+msbuild /t:restore /t:build /p:Configuration=Debug /m c_pal.sln
 IF %ERRORLEVEL% NEQ 0 goto myerr
 ctest -C "RelWithDebInfo" -j 128
 IF %ERRORLEVEL% NEQ 0 goto myerr

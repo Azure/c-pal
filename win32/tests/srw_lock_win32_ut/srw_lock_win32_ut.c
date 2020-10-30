@@ -9,7 +9,7 @@
 
 #include "windows.h"
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 
 #include "real_gballoc_ll.h"
 static void* my_malloc(size_t size)
@@ -28,9 +28,9 @@ static void my_free(void* s)
 #include "umock_c/umocktypes_windows.h"
 
 #define ENABLE_MOCKS
-#include "azure_c_pal/gballoc_hl.h"
-#include "azure_c_pal/gballoc_hl_redirect.h"
-#include "azure_c_pal/timer.h"
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/timer.h"
 
 #ifdef __cplusplus
 extern "C"{
@@ -51,7 +51,7 @@ MOCKABLE_FUNCTION(, void, mocked_ReleaseSRWLockShared, PSRWLOCK, SRWLock);
 #undef ENABLE_MOCKS
 
 #include "real_gballoc_hl.h"
-#include "azure_c_pal/srw_lock.h"
+#include "c_pal/srw_lock.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 

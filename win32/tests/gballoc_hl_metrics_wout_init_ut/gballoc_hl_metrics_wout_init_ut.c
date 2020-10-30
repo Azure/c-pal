@@ -6,20 +6,20 @@
 #include <stddef.h>
 #endif
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
 
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umocktypes.h"
 
-#include "azure_c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl.h"
 
 #define ENABLE_MOCKS
 #include "umock_c/umock_c_prod.h"
-#include "azure_c_pal/gballoc_ll.h"
-#include "azure_c_pal/lazy_init.h"
-#include "azure_c_pal/interlocked.h"
+#include "c_pal/gballoc_ll.h"
+#include "c_pal/lazy_init.h"
+#include "c_pal/interlocked.h"
 #undef ENABLE_MOCKS
 
 #include "real_lazy_init.h"

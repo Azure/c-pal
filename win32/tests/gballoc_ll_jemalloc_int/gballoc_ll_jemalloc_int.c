@@ -9,12 +9,12 @@
 #include <stddef.h>
 #endif
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
 
 static TEST_MUTEX_HANDLE g_testByTest;
 
-#include "azure_c_pal/gballoc_ll.h"
+#include "c_pal/gballoc_ll.h"
 
 #include "jemalloc/jemalloc.h"
 
