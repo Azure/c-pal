@@ -26,21 +26,21 @@ MU_DEFINE_ENUM(ASYNC_SOCKET_OPEN_RESULT, ASYNC_SOCKET_OPEN_RESULT_VALUES)
 #define ASYNC_SOCKET_SEND_SYNC_RESULT_VALUES \
     ASYNC_SOCKET_SEND_SYNC_OK, \
     ASYNC_SOCKET_SEND_SYNC_ERROR, \
-    ASYNC_SOCKET_SEND_SYNC_BECAUSE_CLOSE
+    ASYNC_SOCKET_SEND_SYNC_ABANDONED
 
 MU_DEFINE_ENUM(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_RESULT_VALUES)
 
 #define ASYNC_SOCKET_SEND_RESULT_VALUES \
     ASYNC_SOCKET_SEND_OK, \
     ASYNC_SOCKET_SEND_ERROR, \
-    ASYNC_SOCKET_SEND_BECAUSE_CLOSE
+    ASYNC_SOCKET_SEND_ABANDONED
 
 MU_DEFINE_ENUM(ASYNC_SOCKET_SEND_RESULT, ASYNC_SOCKET_SEND_RESULT_VALUES)
 
 #define ASYNC_SOCKET_RECEIVE_RESULT_VALUES \
     ASYNC_SOCKET_RECEIVE_OK, \
     ASYNC_SOCKET_RECEIVE_ERROR, \
-    ASYNC_SOCKET_RECEIVE_BECAUSE_CLOSE
+    ASYNC_SOCKET_RECEIVE_ABANDONED
 
 MU_DEFINE_ENUM(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_RESULT_VALUES)
 
@@ -131,9 +131,9 @@ MOCKABLE_FUNCTION(, void, async_socket_close, ASYNC_SOCKET_HANDLE, async_socket)
 
 **SRS_ASYNC_SOCKET_01_019: [** Otherwise, `async_socket_close` shall switch the state to CLOSING. **]**
 
-**SRS_ASYNC_SOCKET_01_035: [** Any sends that are not completed shall be indicated as complete with `ASYNC_SOCKET_SEND_BECAUSE_CLOSE`. **]**
+**SRS_ASYNC_SOCKET_01_035: [** Any sends that are not completed shall be indicated as complete with `ASYNC_SOCKET_SEND_ABANDONED`. **]**
 
-**SRS_ASYNC_SOCKET_01_036: [** Any receives that are not completed shall be indicated as complete with `ASYNC_SOCKET_RECEIVE_BECAUSE_CLOSE`. **]**
+**SRS_ASYNC_SOCKET_01_036: [** Any receives that are not completed shall be indicated as complete with `ASYNC_SOCKET_RECEIVE_ABANDONED`. **]**
 
 **SRS_ASYNC_SOCKET_01_021: [** Then `async_socket_close` shall close the async socket, leaving it in a state where an `async_socket_open_async` can be performed. **]**
 
