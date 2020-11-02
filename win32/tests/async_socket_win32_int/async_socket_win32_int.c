@@ -52,7 +52,7 @@ static void on_receive_complete(void* context, ASYNC_SOCKET_RECEIVE_RESULT recei
 static void on_receive_complete_with_error(void* context, ASYNC_SOCKET_RECEIVE_RESULT receive_result, uint32_t bytes_received)
 {
     HANDLE* event = (HANDLE*)context;
-    ASSERT_ARE_EQUAL(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_BECAUSE_CLOSE, receive_result);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_ABANDONED, receive_result);
     (void)SetEvent(*event);
     (void)receive_result;
     (void)bytes_received;

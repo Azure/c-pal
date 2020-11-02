@@ -139,9 +139,9 @@ static VOID WINAPI on_io_complete(PTP_CALLBACK_INSTANCE instance, PVOID context,
                 case ERROR_NETNAME_DELETED:
                 case ERROR_CONNECTION_ABORTED:
                 {
-                    /* Codes_SRS_ASYNC_SOCKET_WIN32_42_001: [ If io_result is ERROR_NETNAME_DELETED or ERROR_CONNECTION_ABORTED, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_BECAUSE_CLOSE as result and 0 for bytes_received. ]*/
+                    /* Codes_SRS_ASYNC_SOCKET_WIN32_42_001: [ If io_result is ERROR_NETNAME_DELETED or ERROR_CONNECTION_ABORTED, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_ABANDONED as result and 0 for bytes_received. ]*/
                     LogInfo("Receive IO completed with error %lu (socket seems to be closed)", io_result);
-                    receive_result = ASYNC_SOCKET_RECEIVE_BECAUSE_CLOSE;
+                    receive_result = ASYNC_SOCKET_RECEIVE_ABANDONED;
                     bytes_received = 0;
                     break;
                 }
@@ -464,9 +464,9 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
 
                 if (InterlockedAdd(&async_socket->state, 0) != (LONG)ASYNC_SOCKET_WIN32_STATE_OPEN)
                 {
-                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_097: [ If async_socket is not OPEN, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_BECAUSE_CLOSE. ]*/
+                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_097: [ If async_socket is not OPEN, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ABANDONED. ]*/
                     LogWarning("Not open");
-                    result = ASYNC_SOCKET_SEND_SYNC_BECAUSE_CLOSE;
+                    result = ASYNC_SOCKET_SEND_SYNC_ABANDONED;
                 }
                 else
                 {
@@ -542,9 +542,9 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                                         }
                                         case WSAECONNRESET:
                                         {
-                                            /* Codes_SRS_ASYNC_SOCKET_WIN32_42_002: [ If WSAGetLastError returns WSAECONNRESET, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_BECAUSE_CLOSE. ]*/
+                                            /* Codes_SRS_ASYNC_SOCKET_WIN32_42_002: [ If WSAGetLastError returns WSAECONNRESET, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ABANDONED. ]*/
                                             LogLastError("WSASend failed with %d, WSAGetLastError returned %lu", wsa_send_result, (unsigned long)wsa_last_error);
-                                            result = ASYNC_SOCKET_SEND_SYNC_BECAUSE_CLOSE;
+                                            result = ASYNC_SOCKET_SEND_SYNC_ABANDONED;
 
                                             break;
                                         }

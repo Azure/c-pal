@@ -26,21 +26,21 @@ MU_DEFINE_ENUM(ASYNC_SOCKET_OPEN_RESULT, ASYNC_SOCKET_OPEN_RESULT_VALUES)
 #define ASYNC_SOCKET_SEND_SYNC_RESULT_VALUES \
     ASYNC_SOCKET_SEND_SYNC_OK, \
     ASYNC_SOCKET_SEND_SYNC_ERROR, \
-    ASYNC_SOCKET_SEND_SYNC_BECAUSE_CLOSE
+    ASYNC_SOCKET_SEND_SYNC_ABANDONED
 
 MU_DEFINE_ENUM(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_RESULT_VALUES)
 
 #define ASYNC_SOCKET_SEND_RESULT_VALUES \
     ASYNC_SOCKET_SEND_OK, \
     ASYNC_SOCKET_SEND_ERROR, \
-    ASYNC_SOCKET_SEND_BECAUSE_CLOSE
+    ASYNC_SOCKET_SEND_ABANDONED
 
 MU_DEFINE_ENUM(ASYNC_SOCKET_SEND_RESULT, ASYNC_SOCKET_SEND_RESULT_VALUES)
 
 #define ASYNC_SOCKET_RECEIVE_RESULT_VALUES \
     ASYNC_SOCKET_RECEIVE_OK, \
     ASYNC_SOCKET_RECEIVE_ERROR, \
-    ASYNC_SOCKET_RECEIVE_BECAUSE_CLOSE
+    ASYNC_SOCKET_RECEIVE_ABANDONED
 
 MU_DEFINE_ENUM(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_RESULT_VALUES)
 
@@ -181,7 +181,7 @@ MOCKABLE_FUNCTION(, ASYNC_SOCKET_SEND_SYNC_RESULT, async_socket_send_async, ASYN
 
 **SRS_ASYNC_SOCKET_WIN32_01_027: [** `on_send_complete_context` shall be allowed to be NULL. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_097: [** If `async_socket` is not OPEN, `async_socket_send_async` shall fail and return `ASYNC_SOCKET_SEND_SYNC_BECAUSE_CLOSE`. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_097: [** If `async_socket` is not OPEN, `async_socket_send_async` shall fail and return `ASYNC_SOCKET_SEND_SYNC_ABANDONED`. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_028: [** Otherwise `async_socket_send_async` shall create a context for the send where the `payload`, `on_send_complete` and `on_send_complete_context` shall be stored. **]**
 
@@ -203,7 +203,7 @@ MOCKABLE_FUNCTION(, ASYNC_SOCKET_SEND_SYNC_RESULT, async_socket_send_async, ASYN
 
 **SRS_ASYNC_SOCKET_WIN32_01_100: [** If `WSAGetLastError` returns any other error, `async_socket_send_async` shall call `CancelThreadpoolIo`. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_42_002: [** If `WSAGetLastError` returns `WSAECONNRESET`, `async_socket_send_async` shall fail and return `ASYNC_SOCKET_SEND_SYNC_BECAUSE_CLOSE`. **]**
+**SRS_ASYNC_SOCKET_WIN32_42_002: [** If `WSAGetLastError` returns `WSAECONNRESET`, `async_socket_send_async` shall fail and return `ASYNC_SOCKET_SEND_SYNC_ABANDONED`. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_106: [** If `WSASend` fails with any other error, `async_socket_send_async` shall call `CancelThreadpoolIo` and return `ASYNC_SOCKET_SEND_SYNC_ERROR`. **]**
 
@@ -287,7 +287,7 @@ static VOID CALLBACK on_io_complete(PTP_CALLBACK_INSTANCE instance, PVOID contex
 
    - **SRS_ASYNC_SOCKET_WIN32_01_069: [** If `io_result` is `NO_ERROR`, the `on_receive_complete` callback passed to `async_socket_receive_async` shall be called with `on_receive_complete_context` as context, `ASYNC_SOCKET_RECEIVE_OK` as result and `number_of_bytes_transferred` as `bytes_received`. **]**
 
-   - **SRS_ASYNC_SOCKET_WIN32_42_001: [** If `io_result` is `ERROR_NETNAME_DELETED` or `ERROR_CONNECTION_ABORTED`, the `on_receive_complete` callback passed to `async_socket_receive_async` shall be called with `on_receive_complete_context` as context, `ASYNC_SOCKET_RECEIVE_BECAUSE_CLOSE` as result and 0 for `bytes_received`. **]**
+   - **SRS_ASYNC_SOCKET_WIN32_42_001: [** If `io_result` is `ERROR_NETNAME_DELETED` or `ERROR_CONNECTION_ABORTED`, the `on_receive_complete` callback passed to `async_socket_receive_async` shall be called with `on_receive_complete_context` as context, `ASYNC_SOCKET_RECEIVE_ABANDONED` as result and 0 for `bytes_received`. **]**
 
    - **SRS_ASYNC_SOCKET_WIN32_01_070: [** If `io_result` is not `NO_ERROR`, the `on_receive_complete` callback passed to `async_socket_receive_async` shall be called with `on_receive_complete_context` as context, `ASYNC_SOCKET_RECEIVE_ERROR` as result and 0 for `bytes_received`. **]**
 
