@@ -23,17 +23,24 @@ typedef struct ASYNC_SOCKET* ASYNC_SOCKET_HANDLE;
 
 MU_DEFINE_ENUM(ASYNC_SOCKET_OPEN_RESULT, ASYNC_SOCKET_OPEN_RESULT_VALUES)
 
+#define ASYNC_SOCKET_SEND_SYNC_RESULT_VALUES \
+    ASYNC_SOCKET_SEND_SYNC_OK, \
+    ASYNC_SOCKET_SEND_SYNC_ERROR, \
+    ASYNC_SOCKET_SEND_SYNC_ABANDONED
+
+MU_DEFINE_ENUM(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_RESULT_VALUES)
+
 #define ASYNC_SOCKET_SEND_RESULT_VALUES \
     ASYNC_SOCKET_SEND_OK, \
     ASYNC_SOCKET_SEND_ERROR, \
-    ASYNC_SOCKET_SEND_BECAUSE_CLOSE
+    ASYNC_SOCKET_SEND_ABANDONED
 
 MU_DEFINE_ENUM(ASYNC_SOCKET_SEND_RESULT, ASYNC_SOCKET_SEND_RESULT_VALUES)
 
 #define ASYNC_SOCKET_RECEIVE_RESULT_VALUES \
     ASYNC_SOCKET_RECEIVE_OK, \
     ASYNC_SOCKET_RECEIVE_ERROR, \
-    ASYNC_SOCKET_RECEIVE_BECAUSE_CLOSE
+    ASYNC_SOCKET_RECEIVE_ABANDONED
 
 MU_DEFINE_ENUM(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_RESULT_VALUES)
 
@@ -52,7 +59,7 @@ MOCKABLE_FUNCTION(, void, async_socket_destroy, ASYNC_SOCKET_HANDLE, async_socke
 
 MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_socket, ON_ASYNC_SOCKET_OPEN_COMPLETE, on_open_complete, void*, on_open_complete_context);
 MOCKABLE_FUNCTION(, void, async_socket_close, ASYNC_SOCKET_HANDLE, async_socket);
-MOCKABLE_FUNCTION(, int, async_socket_send_async, ASYNC_SOCKET_HANDLE, async_socket, const ASYNC_SOCKET_BUFFER*, payload, uint32_t, buffer_count, ON_ASYNC_SOCKET_SEND_COMPLETE, on_send_complete, void*, on_send_complete_context);
+MOCKABLE_FUNCTION(, ASYNC_SOCKET_SEND_SYNC_RESULT, async_socket_send_async, ASYNC_SOCKET_HANDLE, async_socket, const ASYNC_SOCKET_BUFFER*, payload, uint32_t, buffer_count, ON_ASYNC_SOCKET_SEND_COMPLETE, on_send_complete, void*, on_send_complete_context);
 MOCKABLE_FUNCTION(, int, async_socket_receive_async, ASYNC_SOCKET_HANDLE, async_socket, ASYNC_SOCKET_BUFFER*, payload, uint32_t, buffer_count, ON_ASYNC_SOCKET_RECEIVE_COMPLETE, on_receive_complete, void*, on_receive_complete_context);
 ```
 
@@ -124,9 +131,9 @@ MOCKABLE_FUNCTION(, void, async_socket_close, ASYNC_SOCKET_HANDLE, async_socket)
 
 **SRS_ASYNC_SOCKET_01_019: [** Otherwise, `async_socket_close` shall switch the state to CLOSING. **]**
 
-**SRS_ASYNC_SOCKET_01_035: [** Any sends that are not completed shall be indicated as complete with `ASYNC_SOCKET_SEND_BECAUSE_CLOSE`. **]**
+**SRS_ASYNC_SOCKET_01_035: [** Any sends that are not completed shall be indicated as complete with `ASYNC_SOCKET_SEND_ABANDONED`. **]**
 
-**SRS_ASYNC_SOCKET_01_036: [** Any receives that are not completed shall be indicated as complete with `ASYNC_SOCKET_RECEIVE_BECAUSE_CLOSE`. **]**
+**SRS_ASYNC_SOCKET_01_036: [** Any receives that are not completed shall be indicated as complete with `ASYNC_SOCKET_RECEIVE_ABANDONED`. **]**
 
 **SRS_ASYNC_SOCKET_01_021: [** Then `async_socket_close` shall close the async socket, leaving it in a state where an `async_socket_open_async` can be performed. **]**
 
@@ -135,30 +142,30 @@ MOCKABLE_FUNCTION(, void, async_socket_close, ASYNC_SOCKET_HANDLE, async_socket)
 ### async_socket_send_async
 
 ```c
-MOCKABLE_FUNCTION(, int, async_socket_send_async, ASYNC_SOCKET_HANDLE, async_socket, const ASYNC_SOCKET_BUFFER*, payload, uint32_t, buffer_count, ON_ASYNC_SOCKET_SEND_COMPLETE, on_send_complete, void*, on_send_complete_context);
+MOCKABLE_FUNCTION(, ASYNC_SOCKET_SEND_SYNC_RESULT, async_socket_send_async, ASYNC_SOCKET_HANDLE, async_socket, const ASYNC_SOCKET_BUFFER*, payload, uint32_t, buffer_count, ON_ASYNC_SOCKET_SEND_COMPLETE, on_send_complete, void*, on_send_complete_context);
 ```
 
 `async_socket_send_async` sends a number of buffers asynchronously.
 
 Note: It is the responsibility of the caller to ensure the order of the send calls.
 
-**SRS_ASYNC_SOCKET_01_024: [** If `async_socket` is NULL, `async_socket_send_async` shall fail and return a non-zero value. **]**
+**SRS_ASYNC_SOCKET_01_024: [** If `async_socket` is NULL, `async_socket_send_async` shall fail and return `ASYNC_SOCKET_SEND_SYNC_ERROR`. **]**
 
-**SRS_ASYNC_SOCKET_01_025: [** If `payload` is NULL, `async_socket_send_async` shall fail and return a non-zero value. **]**
+**SRS_ASYNC_SOCKET_01_025: [** If `payload` is NULL, `async_socket_send_async` shall fail and return `ASYNC_SOCKET_SEND_SYNC_ERROR`. **]**
 
-**SRS_ASYNC_SOCKET_01_034: [** If `buffer_count` is 0, `async_socket_send_async` shall fail and return a non-zero value. **]**
+**SRS_ASYNC_SOCKET_01_034: [** If `buffer_count` is 0, `async_socket_send_async` shall fail and return `ASYNC_SOCKET_SEND_SYNC_ERROR`. **]**
 
-**SRS_ASYNC_SOCKET_01_046: [** If any of the buffers in `payload` has `buffer` set to NULL, `async_socket_send_async` shall fail and return a non-zero value. **]**
+**SRS_ASYNC_SOCKET_01_046: [** If any of the buffers in `payload` has `buffer` set to NULL, `async_socket_send_async` shall fail and return `ASYNC_SOCKET_SEND_SYNC_ERROR`. **]**
 
-**SRS_ASYNC_SOCKET_01_047: [** If any of the buffers in `payload` has `length` set to 0, `async_socket_send_async` shall fail and return a non-zero value. **]**
+**SRS_ASYNC_SOCKET_01_047: [** If any of the buffers in `payload` has `length` set to 0, `async_socket_send_async` shall fail and return `ASYNC_SOCKET_SEND_SYNC_ERROR`. **]**
 
-**SRS_ASYNC_SOCKET_01_026: [** If `on_send_complete` is NULL, `async_socket_send_async` shall fail and return a non-zero value. **]**
+**SRS_ASYNC_SOCKET_01_026: [** If `on_send_complete` is NULL, `async_socket_send_async` shall fail and return `ASYNC_SOCKET_SEND_SYNC_ERROR`. **]**
 
 **SRS_ASYNC_SOCKET_01_027: [** `on_send_complete_context` shall be allowed to be NULL. **]**
 
-**SRS_ASYNC_SOCKET_01_028: [** Otherwise `async_socket_send_async` shall send the bytes via the socket passed to `async_socket_create` and on success it shall return 0. **]**
+**SRS_ASYNC_SOCKET_01_028: [** Otherwise `async_socket_send_async` shall send the bytes via the socket passed to `async_socket_create` and on success it shall return `ASYNC_SOCKET_SEND_SYNC_OK`. **]**
 
-**SRS_ASYNC_SOCKET_01_029: [** If any error occurs, `async_socket_send_async` shall fail and return a non-zero value. **]**
+**SRS_ASYNC_SOCKET_01_029: [** If any error occurs, `async_socket_send_async` shall fail and return `ASYNC_SOCKET_SEND_SYNC_ERROR`. **]**
 
 **SRS_ASYNC_SOCKET_01_030: [** When sending completes successfully, `on_send_complete` shall be called with `ASYNC_SOCKET_SEND_OK`. **]**
 

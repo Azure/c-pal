@@ -52,8 +52,13 @@ MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
 TEST_DEFINE_ENUM_TYPE(ASYNC_SOCKET_OPEN_RESULT, ASYNC_SOCKET_OPEN_RESULT_VALUES)
 IMPLEMENT_UMOCK_C_ENUM_TYPE(ASYNC_SOCKET_OPEN_RESULT, ASYNC_SOCKET_OPEN_RESULT_VALUES)
+
 TEST_DEFINE_ENUM_TYPE(ASYNC_SOCKET_SEND_RESULT, ASYNC_SOCKET_SEND_RESULT_VALUES)
 IMPLEMENT_UMOCK_C_ENUM_TYPE(ASYNC_SOCKET_SEND_RESULT, ASYNC_SOCKET_SEND_RESULT_VALUES)
+
+TEST_DEFINE_ENUM_TYPE(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_RESULT_VALUES)
+IMPLEMENT_UMOCK_C_ENUM_TYPE(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_RESULT_VALUES)
+
 TEST_DEFINE_ENUM_TYPE(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_RESULT_VALUES)
 IMPLEMENT_UMOCK_C_ENUM_TYPE(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_RESULT_VALUES)
 
@@ -166,7 +171,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_UMOCK_ALIAS_TYPE(LPDWORD, void*);
     REGISTER_UMOCK_ALIAS_TYPE(LPWSAOVERLAPPED, void*);
     REGISTER_UMOCK_ALIAS_TYPE(LPWSAOVERLAPPED_COMPLETION_ROUTINE, void*);
-    
+
     REGISTER_TYPE(ASYNC_SOCKET_OPEN_RESULT, ASYNC_SOCKET_OPEN_RESULT);
     REGISTER_TYPE(ASYNC_SOCKET_SEND_RESULT, ASYNC_SOCKET_SEND_RESULT);
     REGISTER_TYPE(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_RESULT);
@@ -634,11 +639,11 @@ TEST_FUNCTION(async_socket_close_after_close_returns)
 
 /* async_socket_send_async */
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_024: [ If async_socket is NULL, async_socket_send_async shall fail and return a non-zero value. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_024: [ If async_socket is NULL, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
 TEST_FUNCTION(async_socket_send_async_with_NULL_async_socket_fails)
 {
     // arrange
-    int result;
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
@@ -649,16 +654,16 @@ TEST_FUNCTION(async_socket_send_async_with_NULL_async_socket_fails)
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_ERROR, result);
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_025: [ If buffers is NULL, async_socket_send_async shall fail and return a non-zero value. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_025: [ If buffers is NULL, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
 TEST_FUNCTION(async_socket_send_async_with_NULL_payload_fails)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
-    int result;
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
     umock_c_reset_all_calls();
 
     // act
@@ -666,19 +671,19 @@ TEST_FUNCTION(async_socket_send_async_with_NULL_payload_fails)
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_ERROR, result);
 
     // cleanup
     async_socket_destroy(async_socket);
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_085: [ If buffer_count is 0, async_socket_send_async shall fail and return a non-zero value. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_085: [ If buffer_count is 0, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
 TEST_FUNCTION(async_socket_send_async_with_0_payload_count_fails)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
-    int result;
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
@@ -690,19 +695,19 @@ TEST_FUNCTION(async_socket_send_async_with_0_payload_count_fails)
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_ERROR, result);
 
     // cleanup
     async_socket_destroy(async_socket);
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_089: [ If any of the buffers in payload has buffer set to NULL, async_socket_send_async shall fail and return a non-zero value. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_089: [ If any of the buffers in payload has buffer set to NULL, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
 TEST_FUNCTION(async_socket_send_async_with_first_out_of_2_buffers_having_buffer_NULL_fails)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
-    int result;
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[2];
     payload_buffers[0].buffer = NULL;
@@ -716,19 +721,19 @@ TEST_FUNCTION(async_socket_send_async_with_first_out_of_2_buffers_having_buffer_
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_ERROR, result);
 
     // cleanup
     async_socket_destroy(async_socket);
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_089: [ If any of the buffers in payload has buffer set to NULL, async_socket_send_async shall fail and return a non-zero value. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_089: [ If any of the buffers in payload has buffer set to NULL, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
 TEST_FUNCTION(async_socket_send_async_with_second_out_of_2_buffers_having_buffer_NULL_fails)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
-    int result;
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[2];
     payload_buffers[0].buffer = payload_bytes;
@@ -742,19 +747,19 @@ TEST_FUNCTION(async_socket_send_async_with_second_out_of_2_buffers_having_buffer
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_ERROR, result);
 
     // cleanup
     async_socket_destroy(async_socket);
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_090: [ If any of the buffers in payload has length set to 0, async_socket_send_async shall fail and return a non-zero value. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_090: [ If any of the buffers in payload has length set to 0, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
 TEST_FUNCTION(async_socket_send_async_with_first_out_of_2_buffers_having_length_0_fails)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
-    int result;
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[2];
     payload_buffers[0].buffer = payload_bytes;
@@ -768,19 +773,19 @@ TEST_FUNCTION(async_socket_send_async_with_first_out_of_2_buffers_having_length_
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_ERROR, result);
 
     // cleanup
     async_socket_destroy(async_socket);
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_090: [ If any of the buffers in payload has length set to 0, async_socket_send_async shall fail and return a non-zero value. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_090: [ If any of the buffers in payload has length set to 0, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
 TEST_FUNCTION(async_socket_send_async_with_second_out_of_2_buffers_having_length_0_fails)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
-    int result;
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[2];
     payload_buffers[0].buffer = payload_bytes;
@@ -794,19 +799,19 @@ TEST_FUNCTION(async_socket_send_async_with_second_out_of_2_buffers_having_length
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_ERROR, result);
 
     // cleanup
     async_socket_destroy(async_socket);
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_103: [ If the amount of memory needed to allocate the context and the WSABUF items is exceeding UINT32_MAX, async_socket_send_async shall fail and return a non-zero value. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_103: [ If the amount of memory needed to allocate the context and the WSABUF items is exceeding UINT32_MAX, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
 TEST_FUNCTION(async_socket_send_async_with_UINT32_MAX_buffers_fails)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
-    int result;
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[2];
     payload_buffers[0].buffer = payload_bytes;
@@ -821,19 +826,19 @@ TEST_FUNCTION(async_socket_send_async_with_UINT32_MAX_buffers_fails)
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_ERROR, result);
 
     // cleanup
     async_socket_destroy(async_socket);
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_026: [ If on_send_complete is NULL, async_socket_send_async shall fail and return a non-zero value. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_026: [ If on_send_complete is NULL, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
 TEST_FUNCTION(async_socket_send_async_with_on_send_complete_NULL_fails)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
-    int result;
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
@@ -845,18 +850,18 @@ TEST_FUNCTION(async_socket_send_async_with_on_send_complete_NULL_fails)
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_ERROR, result);
 
     // cleanup
     async_socket_destroy(async_socket);
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_097: [ If async_socket is not OPEN, async_socket_send_async shall fail and return a non-zero value. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_097: [ If async_socket is not OPEN, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ABANDONED. ]*/
 TEST_FUNCTION(async_socket_send_async_when_not_open_fails)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    int result;
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
@@ -868,18 +873,18 @@ TEST_FUNCTION(async_socket_send_async_when_not_open_fails)
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_ABANDONED, result);
 
     // cleanup
     async_socket_destroy(async_socket);
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_097: [ If async_socket is not OPEN, async_socket_send_async shall fail and return a non-zero value. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_097: [ If async_socket is not OPEN, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ABANDONED. ]*/
 TEST_FUNCTION(async_socket_send_async_after_close_fails)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    int result;
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
@@ -893,7 +898,7 @@ TEST_FUNCTION(async_socket_send_async_after_close_fails)
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_ABANDONED, result);
 
     // cleanup
     async_socket_destroy(async_socket);
@@ -905,12 +910,12 @@ TEST_FUNCTION(async_socket_send_async_after_close_fails)
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_057: [ An event to be used for the OVERLAPPED structure passed to WSASend shall be created and stored in the context. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_060: [ An asynchronous IO shall be started by calling StartThreadpoolIo. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_061: [ The WSABUF array associated with the context shall be sent by calling WSASend and passing to it the OVERLAPPED structure with the event that was just created, dwFlags set to 0, lpNumberOfBytesSent set to NULL and lpCompletionRoutine set to NULL. ]*/
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_045: [ On success, async_socket_send_async shall return 0. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_045: [ On success, async_socket_send_async shall return ASYNC_SOCKET_SEND_SYNC_OK. ]*/
 TEST_FUNCTION(async_socket_send_async_succeeds)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    int result;
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     PTP_IO test_ptp_io;
@@ -941,7 +946,7 @@ TEST_FUNCTION(async_socket_send_async_succeeds)
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, result);
 
     // cleanup
     test_on_io_complete(NULL, test_ptp_io_context, overlapped, NO_ERROR, (ULONG_PTR)1, test_ptp_io);
@@ -953,7 +958,7 @@ TEST_FUNCTION(async_socket_send_async_with_NULL_on_send_complete_context_succeed
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    int result;
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     PTP_IO test_ptp_io;
@@ -984,20 +989,20 @@ TEST_FUNCTION(async_socket_send_async_with_NULL_on_send_complete_context_succeed
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, result);
 
     // cleanup
     test_on_io_complete(NULL, test_ptp_io_context, overlapped, NO_ERROR, (ULONG_PTR)1, test_ptp_io);
     async_socket_destroy(async_socket);
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_029: [ If any error occurs, async_socket_send_async shall fail and return a non-zero value. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_029: [ If any error occurs, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_062: [ If WSASend fails, async_socket_send_async shall call WSAGetLastError. ]*/
 TEST_FUNCTION(when_underlying_calls_fail_async_socket_send_async_fails)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    int result;
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     PTP_IO test_ptp_io;
@@ -1034,7 +1039,7 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_send_async_fails)
             result = async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, NULL);
 
             // assert
-            ASSERT_ARE_NOT_EQUAL(int, 0, result, "On failed call %zu", i);
+            ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_ERROR, result, "On failed call %zu", i);
         }
     }
 
@@ -1048,7 +1053,7 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_WSA_IO_PENDING_it_is_treated_
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    int result;
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     PTP_IO test_ptp_io;
@@ -1082,7 +1087,7 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_WSA_IO_PENDING_it_is_treated_
     result = async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, NULL);
 
     // assert
-    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
@@ -1095,7 +1100,59 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_an_error_then_async_socket_se
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    int result;
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
+    uint8_t payload_bytes[] = { 0x42 };
+    ASYNC_SOCKET_BUFFER payload_buffers[1];
+    PTP_IO test_ptp_io;
+    PTP_WIN32_IO_CALLBACK test_on_io_complete;
+    PVOID test_ptp_io_context;
+    LPOVERLAPPED overlapped;
+    HANDLE overlapped_event;
+
+    payload_buffers[0].buffer = payload_bytes;
+    payload_buffers[0].length = sizeof(payload_bytes);
+    umock_c_reset_all_calls();
+    STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
+    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
+    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CaptureReturn(&test_ptp_io)
+        .CaptureArgumentValue_pv(&test_ptp_io_context)
+        .CaptureArgumentValue_pfnio(&test_on_io_complete);
+    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL))
+        .CaptureReturn(&overlapped_event);
+    STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
+    STRICT_EXPECTED_CALL(mocked_WSASend((SOCKET)test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG, NULL))
+        .CaptureArgumentValue_lpOverlapped(&overlapped)
+        .SetReturn(SOCKET_ERROR);
+    STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
+        .SetReturn(WSAENOBUFS);
+    STRICT_EXPECTED_CALL(mocked_CancelThreadpoolIo(test_ptp_io));
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
+        .ValidateArgumentValue_hObject(&overlapped_event);
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+
+    // act
+    result = async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, NULL);
+
+    // assert
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_ERROR, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    async_socket_destroy(async_socket);
+}
+
+/* Tests_SRS_ASYNC_SOCKET_WIN32_42_002: [ If WSAGetLastError returns WSAECONNRESET, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ABANDONED. ]*/
+TEST_FUNCTION(when_get_last_error_for_send_returns_WSAGetLastError_then_async_socket_send_async_cancels_the_IO_and_returns_ABANDONED)
+{
+    // arrange
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     PTP_IO test_ptp_io;
@@ -1135,19 +1192,19 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_an_error_then_async_socket_se
     result = async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, NULL);
 
     // assert
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_ABANDONED, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
     async_socket_destroy(async_socket);
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_106: [ If WSASend fails with any other error, async_socket_send_async shall call CancelThreadpoolIo and return a non-zero value. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_106: [ If WSASend fails with any other error, async_socket_send_async shall call CancelThreadpoolIo and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
 TEST_FUNCTION(when_WSASend_returns_an_error_different_than_SOCKET_ERROR_async_socket_send_async_cancels_the_IO)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    int result;
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     PTP_IO test_ptp_io;
@@ -1184,20 +1241,20 @@ TEST_FUNCTION(when_WSASend_returns_an_error_different_than_SOCKET_ERROR_async_so
     result = async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, NULL);
 
     // assert
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_ERROR, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
     async_socket_destroy(async_socket);
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_101: [ If the sum of buffer lengths for all the buffers in payload is greater than UINT32_MAX, async_socket_send_async shall fail and return a non-zero value. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_101: [ If the sum of buffer lengths for all the buffers in payload is greater than UINT32_MAX, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
 TEST_FUNCTION(async_socket_send_async_with_sum_of_buffer_lengths_exceeding_UINT32_MAX_fails)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
-    int result;
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[2];
     payload_buffers[0].buffer = payload_bytes;
@@ -1211,7 +1268,7 @@ TEST_FUNCTION(async_socket_send_async_with_sum_of_buffer_lengths_exceeding_UINT3
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_ERROR, result);
 
     // cleanup
     async_socket_destroy(async_socket);
@@ -2312,6 +2369,74 @@ TEST_FUNCTION(on_io_complete_with_error_indicates_the_receive_as_complete_with_E
 
     // cleanup
     async_socket_destroy(async_socket);
+}
+
+static void on_io_complete_with_error_indicates_the_receive_as_complete_with_ABANDONED(ULONG error_code)
+{
+    // arrange
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    uint8_t payload_bytes[1];
+    ASYNC_SOCKET_BUFFER payload_buffers[1];
+    PTP_IO test_ptp_io;
+    PTP_WIN32_IO_CALLBACK test_on_io_complete;
+    PVOID test_ptp_io_context;
+    LPOVERLAPPED overlapped;
+    payload_buffers[0].buffer = payload_bytes;
+    payload_buffers[0].length = sizeof(payload_bytes);
+    umock_c_reset_all_calls();
+    STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
+    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
+    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CaptureReturn(&test_ptp_io)
+        .CaptureArgumentValue_pv(&test_ptp_io_context)
+        .CaptureArgumentValue_pfnio(&test_on_io_complete);
+    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
+    STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
+    STRICT_EXPECTED_CALL(mocked_WSARecv((SOCKET)test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG, NULL))
+        .CaptureArgumentValue_lpOverlapped(&overlapped)
+        .SetReturn(SOCKET_ERROR);
+    STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
+        .SetReturn(WSA_IO_PENDING);
+    (void)async_socket_receive_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_receive_complete, (void*)0x4244);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(test_on_receive_complete((void*)0x4244, ASYNC_SOCKET_RECEIVE_ABANDONED, 0));
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+
+    // act
+    test_on_io_complete(NULL, test_ptp_io_context, overlapped, error_code, (ULONG_PTR)1, test_ptp_io);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    async_socket_destroy(async_socket);
+}
+
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_064: [ overlapped shall be used to determine the context of the IO. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_071: [ If the context of the IO indicates that a receive has completed: ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_42_001: [ If io_result is ERROR_NETNAME_DELETED or ERROR_CONNECTION_ABORTED, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_ABANDONED as result and 0 for bytes_received. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_068: [ on_io_complete shall close the event handle created in async_socket_send_async/async_socket_receive_async. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_072: [ on_io_complete shall free the IO context. ]*/
+TEST_FUNCTION(on_io_complete_with_ERROR_NETNAME_DELETED_indicates_the_receive_as_complete_with_ABANDONED)
+{
+    on_io_complete_with_error_indicates_the_receive_as_complete_with_ABANDONED(ERROR_NETNAME_DELETED);
+}
+
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_064: [ overlapped shall be used to determine the context of the IO. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_071: [ If the context of the IO indicates that a receive has completed: ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_42_001: [ If io_result is ERROR_NETNAME_DELETED or ERROR_CONNECTION_ABORTED, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_ABANDONED as result and 0 for bytes_received. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_068: [ on_io_complete shall close the event handle created in async_socket_send_async/async_socket_receive_async. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_072: [ on_io_complete shall free the IO context. ]*/
+TEST_FUNCTION(on_io_complete_with_ERROR_CONNECTION_ABORTED_indicates_the_receive_as_complete_with_ABANDONED)
+{
+    on_io_complete_with_error_indicates_the_receive_as_complete_with_ABANDONED(ERROR_CONNECTION_ABORTED);
 }
 
 END_TEST_SUITE(async_socket_win32_unittests)
