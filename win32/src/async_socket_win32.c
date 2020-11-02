@@ -29,6 +29,8 @@ MU_DEFINE_ENUM_STRINGS(ASYNC_SOCKET_WIN32_STATE, ASYNC_SOCKET_WIN32_STATE_VALUES
 MU_DEFINE_ENUM(ASYNC_SOCKET_IO_TYPE, ASYNC_SOCKET_IO_TYPE_VALUES)
 MU_DEFINE_ENUM_STRINGS(ASYNC_SOCKET_IO_TYPE, ASYNC_SOCKET_IO_TYPE_VALUES)
 
+MU_DEFINE_ENUM_STRINGS(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_RESULT_VALUES)
+
 typedef struct ASYNC_SOCKET_TAG
 {
     SOCKET_HANDLE socket_handle;
@@ -123,41 +125,44 @@ static VOID WINAPI on_io_complete(PTP_CALLBACK_INSTANCE instance, PVOID context,
         {
             ASYNC_SOCKET_RECEIVE_RESULT receive_result;
             uint32_t bytes_received;
-            
-            if (io_result == NO_ERROR)
-            {
-                bytes_received = (uint32_t)number_of_bytes_transferred;
 
-                if (bytes_received > io_context->total_buffer_bytes)
-                {
-                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_095: [If io_result is NO_ERROR, but the number of bytes received is greater than the sum of all buffer sizes passed to async_socket_receive_async, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_ERROR as result and number_of_bytes_transferred for bytes_received. ]*/
-                    LogError("Invalid number of bytes received: %" PRIu32 " expected max: %" PRIu32,
-                        bytes_received, io_context->total_buffer_bytes);
-                    receive_result = ASYNC_SOCKET_RECEIVE_ERROR;
-                }
-                else
-                {
-                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_069: [ If io_result is NO_ERROR, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_OK as result and number_of_bytes_transferred as bytes_received. ]*/
-                    receive_result = ASYNC_SOCKET_RECEIVE_OK;
-                }
-            }
-            else
+            switch (io_result)
             {
-                /* Codes_SRS_ASYNC_SOCKET_WIN32_01_070: [ If io_result is not NO_ERROR, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_ERROR as result and 0 for bytes_received. ]*/
-                if (
-                    (io_result == ERROR_NETNAME_DELETED) ||
-                    (io_result == ERROR_CONNECTION_ABORTED)
-                    )
+                default:
                 {
-                    LogInfo("Receive IO completed with error %lu", io_result);
-                }
-                else
-                {
+                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_070: [ If io_result is not NO_ERROR, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_ERROR as result and 0 for bytes_received. ]*/
                     LogError("Receive IO completed with error %lu", io_result);
+                    receive_result = ASYNC_SOCKET_RECEIVE_ERROR;
+                    bytes_received = 0;
+                    break;
                 }
+                case ERROR_NETNAME_DELETED:
+                case ERROR_CONNECTION_ABORTED:
+                {
+                    /* Codes_SRS_ASYNC_SOCKET_WIN32_42_001: [ If io_result is ERROR_NETNAME_DELETED or ERROR_CONNECTION_ABORTED, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_BECAUSE_CLOSE as result and 0 for bytes_received. ]*/
+                    LogInfo("Receive IO completed with error %lu (socket seems to be closed)", io_result);
+                    receive_result = ASYNC_SOCKET_RECEIVE_BECAUSE_CLOSE;
+                    bytes_received = 0;
+                    break;
+                }
+                case NO_ERROR:
+                {
+                    bytes_received = (uint32_t)number_of_bytes_transferred;
 
-                receive_result = ASYNC_SOCKET_RECEIVE_ERROR;
-                bytes_received = 0;
+                    if (bytes_received > io_context->total_buffer_bytes)
+                    {
+                        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_095: [If io_result is NO_ERROR, but the number of bytes received is greater than the sum of all buffer sizes passed to async_socket_receive_async, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_ERROR as result and number_of_bytes_transferred for bytes_received. ]*/
+                        LogError("Invalid number of bytes received: %" PRIu32 " expected max: %" PRIu32,
+                            bytes_received, io_context->total_buffer_bytes);
+                        receive_result = ASYNC_SOCKET_RECEIVE_ERROR;
+                    }
+                    else
+                    {
+                        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_069: [ If io_result is NO_ERROR, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_OK as result and number_of_bytes_transferred as bytes_received. ]*/
+                        receive_result = ASYNC_SOCKET_RECEIVE_OK;
+                    }
+                    break;
+                }
             }
 
             io_context->io.receive.on_receive_complete(io_context->io.receive.on_receive_complete_context, receive_result, bytes_received);
@@ -345,7 +350,7 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, ON_ASYNC_SOCKET_OP
 
                     /* Codes_SRS_ASYNC_SOCKET_WIN32_01_017: [ On success async_socket_open_async shall call on_open_complete_context with ASYNC_SOCKET_OPEN_OK. ]*/
                     on_open_complete(on_open_complete_context, ASYNC_SOCKET_OPEN_OK);
-                    
+
                     /* Codes_SRS_ASYNC_SOCKET_WIN32_01_014: [ On success, async_socket_open_async shall return 0. ]*/
                     result = 0;
 
@@ -388,35 +393,35 @@ void async_socket_close(ASYNC_SOCKET_HANDLE async_socket)
     }
 }
 
-int async_socket_send_async(ASYNC_SOCKET_HANDLE async_socket, const ASYNC_SOCKET_BUFFER* buffers, uint32_t buffer_count, ON_ASYNC_SOCKET_SEND_COMPLETE on_send_complete, void* on_send_complete_context)
+ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_socket, const ASYNC_SOCKET_BUFFER* buffers, uint32_t buffer_count, ON_ASYNC_SOCKET_SEND_COMPLETE on_send_complete, void* on_send_complete_context)
 {
-    int result;
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
 
     /* Codes_SRS_ASYNC_SOCKET_WIN32_01_027: [ on_send_complete_context shall be allowed to be NULL. ]*/
 
     if (
-        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_024: [ If async_socket is NULL, async_socket_send_async shall fail and return a non-zero value. ]*/
+        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_024: [ If async_socket is NULL, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
         (async_socket == NULL) ||
-        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_025: [ If buffers is NULL, async_socket_send_async shall fail and return a non-zero value. ]*/
+        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_025: [ If buffers is NULL, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
         (buffers == NULL) ||
-        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_085: [ If buffer_count is 0, async_socket_send_async shall fail and return a non-zero value. ]*/
+        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_085: [ If buffer_count is 0, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
         (buffer_count == 0) ||
-        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_026: [ If on_send_complete is NULL, async_socket_send_async shall fail and return a non-zero value. ]*/
+        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_026: [ If on_send_complete is NULL, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
         (on_send_complete == NULL)
         )
     {
         LogError("Invalid arguments: ASYNC_SOCKET_HANDLE async_socket=%p, const ASYNC_SOCKET_BUFFER* payload=%p, uint32_t buffer_count=%" PRIu32 ", ON_ASYNC_SOCKET_SEND_COMPLETE on_send_complete=%p, void*, on_send_complete_context=%p",
             async_socket, buffers, buffer_count, on_send_complete, on_send_complete_context);
-        result = MU_FAILURE;
+        result = ASYNC_SOCKET_SEND_SYNC_ERROR;
     }
     else
     {
         // limit memory needed to UINT32_MAX
         if (buffer_count > (UINT32_MAX - sizeof(ASYNC_SOCKET_IO_CONTEXT)) / sizeof(WSABUF))
         {
-            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_103: [ If the amount of memory needed to allocate the context and the WSABUF items is exceeding UINT32_MAX, async_socket_send_async shall fail and return a non-zero value. ]*/
+            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_103: [ If the amount of memory needed to allocate the context and the WSABUF items is exceeding UINT32_MAX, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
             LogError("Buffer count too big: %" PRIu32, buffer_count);
-            result = MU_FAILURE;
+            result = ASYNC_SOCKET_SEND_SYNC_ERROR;
         }
         else
         {
@@ -426,9 +431,9 @@ int async_socket_send_async(ASYNC_SOCKET_HANDLE async_socket, const ASYNC_SOCKET
             for (i = 0; i < buffer_count; i++)
             {
                 if (
-                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_089: [ If any of the buffers in payload has buffer set to NULL, async_socket_send_async shall fail and return a non-zero value. ]*/
+                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_089: [ If any of the buffers in payload has buffer set to NULL, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
                     (buffers[i].buffer == NULL) ||
-                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_090: [ If any of the buffers in payload has length set to 0, async_socket_send_async shall fail and return a non-zero value. ]*/
+                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_090: [ If any of the buffers in payload has length set to 0, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
                     (buffers[i].length == 0)
                     )
                 {
@@ -438,7 +443,7 @@ int async_socket_send_async(ASYNC_SOCKET_HANDLE async_socket, const ASYNC_SOCKET
 
                 if (total_buffer_bytes + buffers[i].length < total_buffer_bytes)
                 {
-                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_101: [ If the sum of buffer lengths for all the buffers in payload is greater than UINT32_MAX, async_socket_send_async shall fail and return a non-zero value. ]*/
+                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_101: [ If the sum of buffer lengths for all the buffers in payload is greater than UINT32_MAX, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
                     LogError("Overflow in total buffer length computation");
                     break;
                 }
@@ -451,7 +456,7 @@ int async_socket_send_async(ASYNC_SOCKET_HANDLE async_socket, const ASYNC_SOCKET
             if (i < buffer_count)
             {
                 LogError("Invalid buffers passed to async_socket_send_async");
-                result = MU_FAILURE;
+                result = ASYNC_SOCKET_SEND_SYNC_ERROR;
             }
             else
             {
@@ -459,9 +464,9 @@ int async_socket_send_async(ASYNC_SOCKET_HANDLE async_socket, const ASYNC_SOCKET
 
                 if (InterlockedAdd(&async_socket->state, 0) != (LONG)ASYNC_SOCKET_WIN32_STATE_OPEN)
                 {
-                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_097: [ If async_socket is not OPEN, async_socket_send_async shall fail and return a non-zero value. ]*/
+                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_097: [ If async_socket is not OPEN, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_BECAUSE_CLOSE. ]*/
                     LogWarning("Not open");
-                    result = MU_FAILURE;
+                    result = ASYNC_SOCKET_SEND_SYNC_BECAUSE_CLOSE;
                 }
                 else
                 {
@@ -470,9 +475,9 @@ int async_socket_send_async(ASYNC_SOCKET_HANDLE async_socket, const ASYNC_SOCKET
                     ASYNC_SOCKET_IO_CONTEXT* send_context = malloc(sizeof(ASYNC_SOCKET_IO_CONTEXT) + (sizeof(WSABUF) * buffer_count));
                     if (send_context == NULL)
                     {
-                        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_029: [ If any error occurs, async_socket_send_async shall fail and return a non-zero value. ]*/
+                        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_029: [ If any error occurs, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
                         LogError("malloc failed");
-                        result = MU_FAILURE;
+                        result = ASYNC_SOCKET_SEND_SYNC_ERROR;
                     }
                     else
                     {
@@ -491,9 +496,9 @@ int async_socket_send_async(ASYNC_SOCKET_HANDLE async_socket, const ASYNC_SOCKET
                         send_context->overlapped.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
                         if (send_context->overlapped.hEvent == NULL)
                         {
-                            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_029: [ If any error occurs, async_socket_send_async shall fail and return a non-zero value. ]*/
+                            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_029: [ If any error occurs, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
                             LogLastError("CreateEvent failed");
-                            result = MU_FAILURE;
+                            result = ASYNC_SOCKET_SEND_SYNC_ERROR;
                         }
                         else
                         {
@@ -510,33 +515,68 @@ int async_socket_send_async(ASYNC_SOCKET_HANDLE async_socket, const ASYNC_SOCKET
                             /* Codes_SRS_ASYNC_SOCKET_WIN32_01_061: [ The WSABUF array associated with the context shall be sent by calling WSASend and passing to it the OVERLAPPED structure with the event that was just created, dwFlags set to 0, lpNumberOfBytesSent set to NULL and lpCompletionRoutine set to NULL. ]*/
                             wsa_send_result = WSASend((SOCKET)async_socket->socket_handle, send_context->wsa_buffers, buffer_count, NULL, 0, &send_context->overlapped, NULL);
 
-                            if ((wsa_send_result != 0) && (wsa_send_result != SOCKET_ERROR))
+                            switch (wsa_send_result)
                             {
-                                /* Codes_SRS_ASYNC_SOCKET_WIN32_01_106: [ If WSASend fails with any other error, async_socket_send_async shall call CancelThreadpoolIo and return a non-zero value. ]*/
-                                LogLastError("WSARecv failed with %d", wsa_send_result);
-                                CancelThreadpoolIo(async_socket->tp_io);
+                                default:
+                                {
+                                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_106: [ If WSASend fails with any other error, async_socket_send_async shall call CancelThreadpoolIo and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
+                                    LogLastError("WSASend failed with %d", wsa_send_result);
+                                    result = ASYNC_SOCKET_SEND_SYNC_ERROR;
 
-                                result = MU_FAILURE;
+                                    break;
+                                }
+                                case SOCKET_ERROR:
+                                {
+                                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_062: [ If WSASend fails, async_socket_send_async shall call WSAGetLastError. ]*/
+                                    wsa_last_error = WSAGetLastError();
+
+                                    switch (wsa_last_error)
+                                    {
+                                        default:
+                                        {
+                                            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_029: [ If any error occurs, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
+                                            LogLastError("WSASend failed with %d, WSAGetLastError returned %lu", wsa_send_result, (unsigned long)wsa_last_error);
+                                            result = ASYNC_SOCKET_SEND_SYNC_ERROR;
+
+                                            break;
+                                        }
+                                        case WSAECONNRESET:
+                                        {
+                                            /* Codes_SRS_ASYNC_SOCKET_WIN32_42_002: [ If WSAGetLastError returns WSAECONNRESET, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_BECAUSE_CLOSE. ]*/
+                                            LogLastError("WSASend failed with %d, WSAGetLastError returned %lu", wsa_send_result, (unsigned long)wsa_last_error);
+                                            result = ASYNC_SOCKET_SEND_SYNC_BECAUSE_CLOSE;
+
+                                            break;
+                                        }
+                                        case WSA_IO_PENDING:
+                                        {
+                                            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_053: [ If WSAGetLastError returns WSA_IO_PENDING, it shall be not treated as an error. ]*/
+                                            result = ASYNC_SOCKET_SEND_SYNC_OK;
+
+                                            break;
+                                        }
+                                    }
+                                    break;
+                                }
+                                case 0:
+                                {
+                                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_045: [ On success, async_socket_send_async shall return ASYNC_SOCKET_SEND_SYNC_OK. ]*/
+                                    result = ASYNC_SOCKET_SEND_SYNC_OK;
+
+                                    break;
+                                }
                             }
-                            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_053: [ If WSAGetLastError returns WSA_IO_PENDING, it shall be not treated as an error. ]*/
-                            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_062: [ If WSASend fails, async_socket_send_async shall call WSAGetLastError. ]*/
-                            else if ((wsa_send_result == SOCKET_ERROR) && ((wsa_last_error = WSAGetLastError()) != WSA_IO_PENDING))
-                            {
-                                /* Codes_SRS_ASYNC_SOCKET_WIN32_01_029: [ If any error occurs, async_socket_send_async shall fail and return a non-zero value. ]*/
-                                LogLastError("WSASend failed with %d, WSAGetLastError returned %lu", wsa_send_result, (unsigned long)wsa_last_error);
 
+                            if (result != ASYNC_SOCKET_SEND_SYNC_OK)
+                            {
                                 /* Codes_SRS_ASYNC_SOCKET_WIN32_01_100: [ If WSAGetLastError returns any other error, async_socket_send_async shall call CancelThreadpoolIo. ]*/
                                 CancelThreadpoolIo(async_socket->tp_io);
-
-                                result = MU_FAILURE;
                             }
                             else
                             {
                                 (void)InterlockedDecrement(&async_socket->pending_api_calls);
                                 WakeByAddressSingle((PVOID)&async_socket->pending_api_calls);
 
-                                /* Codes_SRS_ASYNC_SOCKET_WIN32_01_045: [ On success, async_socket_send_async shall return 0. ]*/
-                                result = 0;
                                 goto all_ok;
                             }
 

@@ -26,6 +26,13 @@ typedef struct ASYNC_SOCKET_TAG* ASYNC_SOCKET_HANDLE;
 
 MU_DEFINE_ENUM(ASYNC_SOCKET_OPEN_RESULT, ASYNC_SOCKET_OPEN_RESULT_VALUES)
 
+#define ASYNC_SOCKET_SEND_SYNC_RESULT_VALUES \
+    ASYNC_SOCKET_SEND_SYNC_OK, \
+    ASYNC_SOCKET_SEND_SYNC_ERROR, \
+    ASYNC_SOCKET_SEND_SYNC_BECAUSE_CLOSE
+
+MU_DEFINE_ENUM(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_RESULT_VALUES)
+
 #define ASYNC_SOCKET_SEND_RESULT_VALUES \
     ASYNC_SOCKET_SEND_OK, \
     ASYNC_SOCKET_SEND_ERROR, \
@@ -55,7 +62,7 @@ MOCKABLE_FUNCTION(, void, async_socket_destroy, ASYNC_SOCKET_HANDLE, async_socke
 
 MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_socket, ON_ASYNC_SOCKET_OPEN_COMPLETE, on_open_complete, void*, on_open_complete_context);
 MOCKABLE_FUNCTION(, void, async_socket_close, ASYNC_SOCKET_HANDLE, async_socket);
-MOCKABLE_FUNCTION(, int, async_socket_send_async, ASYNC_SOCKET_HANDLE, async_socket, const ASYNC_SOCKET_BUFFER*, payload, uint32_t, buffer_count, ON_ASYNC_SOCKET_SEND_COMPLETE, on_send_complete, void*, on_send_complete_context);
+MOCKABLE_FUNCTION(, ASYNC_SOCKET_SEND_SYNC_RESULT, async_socket_send_async, ASYNC_SOCKET_HANDLE, async_socket, const ASYNC_SOCKET_BUFFER*, payload, uint32_t, buffer_count, ON_ASYNC_SOCKET_SEND_COMPLETE, on_send_complete, void*, on_send_complete_context);
 MOCKABLE_FUNCTION(, int, async_socket_receive_async, ASYNC_SOCKET_HANDLE, async_socket, ASYNC_SOCKET_BUFFER*, payload, uint32_t, buffer_count, ON_ASYNC_SOCKET_RECEIVE_COMPLETE, on_receive_complete, void*, on_receive_complete_context);
 
 #ifdef __cplusplus
