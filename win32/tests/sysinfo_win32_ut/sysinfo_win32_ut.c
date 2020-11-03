@@ -77,11 +77,11 @@ TEST_FUNCTION_CLEANUP(cleanup)
     TEST_MUTEX_RELEASE(test_serialize_mutex);
 }
 
-/* timer_create_new */
+/* sysinfo_get_processor_count */
 
 /* Tests_SRS_SYSINFO_WIN32_01_001: [ sysinfo_get_processor_count shall call GetSystemInfo to obtain the system information. ]*/
 /* Tests_SRS_SYSINFO_WIN32_01_002: [ sysinfo_get_processor_count shall return the processor count as returned by GetSystemInfo. ]*/
-TEST_FUNCTION(timer_create_malloc_fails)
+TEST_FUNCTION(sysinfo_get_processor_count_returns_the_processor_count)
 {
     //arrange
     SYSTEM_INFO test_system_info = { 0 };
@@ -98,7 +98,7 @@ TEST_FUNCTION(timer_create_malloc_fails)
 
 /* Tests_SRS_SYSINFO_WIN32_01_001: [ sysinfo_get_processor_count shall call GetSystemInfo to obtain the system information. ]*/
 /* Tests_SRS_SYSINFO_WIN32_01_002: [ sysinfo_get_processor_count shall return the processor count as returned by GetSystemInfo. ]*/
-TEST_FUNCTION(timer_create_malloc_fails_33)
+TEST_FUNCTION(sysinfo_get_processor_count_returns_the_processor_count_33)
 {
     //arrange
     SYSTEM_INFO test_system_info = { 0 };

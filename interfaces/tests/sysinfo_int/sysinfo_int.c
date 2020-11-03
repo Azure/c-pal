@@ -59,4 +59,7 @@ TEST_FUNCTION(sysinfo_get_processor_count_returns_processor_count)
     ASSERT_ARE_NOT_EQUAL(uint32_t, 0, proc_count);
 }
 
+/* Tests_SRS_SYSINFO_01_002: [ If any error occurs, `sysinfo_get_processor_count` shall return 0. ]*/
+/* Can't really be induced on "any" platform, tested independently for each psupported platform */
+
 END_TEST_SUITE(sysinfo_int)
