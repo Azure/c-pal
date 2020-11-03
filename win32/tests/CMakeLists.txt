@@ -12,6 +12,7 @@ if(${run_unittests})
     build_test_folder(srw_lock_win32_ut)
     build_test_folder(reals_win32_ut)
     build_test_folder(sync_win32_ut)
+    build_test_folder(sysinfo_win32_ut)
     build_test_folder(file_win32_ut)
     
     build_test_folder(gballoc_hl_metrics_ut)

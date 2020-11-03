@@ -36,6 +36,7 @@ set(pal_win32_c_files
     src/string_utils.c
     src/timer_win32.c
     src/sync_win32.c
+    src/sysinfo_win32.c
     src/file_win32.c
     src/${gballoc_ll_c}
     src/${gballoc_hl_c}
