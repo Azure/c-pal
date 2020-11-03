@@ -6,16 +6,19 @@
 #include <stdlib.h>
 #endif
 
+#include "windows.h"
+
 #include "macro_utils/macro_utils.h"
 
 #include "testrunnerswitcher.h"
-#include "windows.h"
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umocktypes.h"
 #include "umock_c/umock_c_negative_tests.h"
 
 #define ENABLE_MOCKS
+
+#include "umock_c/umock_c_prod.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -48,6 +51,8 @@ TEST_SUITE_INITIALIZE(suite_init)
 
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error), "umock_c_init failed");
     ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types(), "umocktypes_stdint_register_types failed");
+
+    REGISTER_UMOCK_ALIAS_TYPE(LPSYSTEM_INFO, void*);
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
@@ -74,15 +79,38 @@ TEST_FUNCTION_CLEANUP(cleanup)
 
 /* timer_create_new */
 
+/* Tests_SRS_SYSINFO_WIN32_01_001: [ sysinfo_get_processor_count shall call GetSystemInfo to obtain the system information. ]*/
+/* Tests_SRS_SYSINFO_WIN32_01_002: [ sysinfo_get_processor_count shall return the processor count as returned by GetSystemInfo. ]*/
 TEST_FUNCTION(timer_create_malloc_fails)
 {
     //arrange
+    SYSTEM_INFO test_system_info = { 0 };
+    test_system_info.dwNumberOfProcessors = TEST_PROC_COUNT;
+    STRICT_EXPECTED_CALL(mocked_GetSystemInfo(IGNORED_ARG))
+        .CopyOutArgumentBuffer_lpSystemInfo(&test_system_info, sizeof(test_system_info));
 
     //act
     uint32_t proc_count = sysinfo_get_processor_count();
 
     //assert
     ASSERT_ARE_EQUAL(uint32_t, TEST_PROC_COUNT, proc_count);
+}
+
+/* Tests_SRS_SYSINFO_WIN32_01_001: [ sysinfo_get_processor_count shall call GetSystemInfo to obtain the system information. ]*/
+/* Tests_SRS_SYSINFO_WIN32_01_002: [ sysinfo_get_processor_count shall return the processor count as returned by GetSystemInfo. ]*/
+TEST_FUNCTION(timer_create_malloc_fails_33)
+{
+    //arrange
+    SYSTEM_INFO test_system_info = { 0 };
+    test_system_info.dwNumberOfProcessors = 33;
+    STRICT_EXPECTED_CALL(mocked_GetSystemInfo(IGNORED_ARG))
+        .CopyOutArgumentBuffer_lpSystemInfo(&test_system_info, sizeof(test_system_info));
+
+    //act
+    uint32_t proc_count = sysinfo_get_processor_count();
+
+    //assert
+    ASSERT_ARE_EQUAL(uint32_t, 33, proc_count);
 }
 
 END_TEST_SUITE(sysinfo_win32_unittests)

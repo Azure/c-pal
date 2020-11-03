@@ -47,6 +47,7 @@ TEST_FUNCTION_CLEANUP(d)
 
 /* sysinfo_get_processor_count */
 
+/* Tests_SRS_SYSINFO_01_001: [ sysinfo_get_processor_count shall obtain the processor count as reported by the operating system. ]*/
 TEST_FUNCTION(sysinfo_get_processor_count_returns_processor_count)
 {
     ///arrange
