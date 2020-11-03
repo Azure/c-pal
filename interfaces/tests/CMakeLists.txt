@@ -4,6 +4,7 @@ if(${run_int_tests})
     build_test_folder(interlocked_int)
     build_test_folder(timer_int)
     build_test_folder(sync_int)
+    build_test_folder(sysinfo_int)
     if(MSVC)
         # waiting for timer to be implemented on linux
         build_test_folder(file_int)

@@ -1,6 +1,13 @@
 //Copyright(c) Microsoft.All rights reserved.
 //Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#ifdef __cplusplus
+#include <cstdint>
+#else
+#include <stdint.h>
+#endif
+#include "testrunnerswitcher.h"
+
 #include "testrunnerswitcher.h"
 
 #include "c_pal/gballoc_hl.h"
@@ -9,7 +16,7 @@
 
 static TEST_MUTEX_HANDLE g_testByTest;
 
-BEGIN_TEST_SUITE(timer_int)
+BEGIN_TEST_SUITE(sysinfo_int)
 
 TEST_SUITE_INITIALIZE(a)
 {
@@ -51,4 +58,4 @@ TEST_FUNCTION(sysinfo_get_processor_count_returns_processor_count)
     ASSERT_ARE_NOT_EQUAL(uint32_t, 0, proc_count);
 }
 
-END_TEST_SUITE(timer_int)
+END_TEST_SUITE(sysinfo_int)
