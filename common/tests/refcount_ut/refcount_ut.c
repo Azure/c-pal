@@ -270,6 +270,9 @@ BEGIN_TEST_SUITE(refcount_unittests)
         ///assert
         ASSERT_IS_NOT_NULL(result);
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+        /// cleanup
+        REFCOUNT_TYPE_DESTROY(TEST_STRUCT, result);
     }
 
     /* Tests_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func and free_func for memory allocation and free.  ]*/
@@ -285,6 +288,9 @@ BEGIN_TEST_SUITE(refcount_unittests)
         ///assert
         ASSERT_IS_NOT_NULL(result);
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+        /// clean
+        REFCOUNT_TYPE_DESTROY(TEST_STRUCT, result);
     }
 
     /* Tests_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func and free_func for memory allocation and free.  ]*/

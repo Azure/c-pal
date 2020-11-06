@@ -85,6 +85,8 @@ static FILE_HANDLE file_create_helper(const char* filename)
     FILE_HANDLE file_handle = file_create(execution_engine, filename, NULL, NULL);
     ASSERT_IS_NOT_NULL(file_handle);
 
+    execution_engine_dec_ref(execution_engine);
+
     return file_handle;
 }
 BEGIN_TEST_SUITE(file_int)
@@ -140,6 +142,7 @@ TEST_FUNCTION(file_create_creates_new_file)
     ///cleanup
     file_destroy(file_handle);
     (void)delete_file(filename);
+    execution_engine_dec_ref(execution_engine);
 }
 
 /*Tests_SRS_FILE_43_003: [If a file with name full_file_name does not exist, file_create shall create a file with that name.]*/
@@ -400,6 +403,9 @@ TEST_FUNCTION(perform_operations_open_write_close_open_read_close)
     ASSERT_ARE_EQUAL(int32_t, read_context.post_callback_value, interlocked_or(&read_context.value, 0), "value should be post_callback_value");
     ASSERT_IS_TRUE(read_context.did_read_succeed);
     ASSERT_ARE_EQUAL(char_ptr, source, destination);
+
+    // cleanup
+    execution_engine_dec_ref(execution_engine);
 }
 
 /*Tests_SRS_FILE_43_039: [ If position + size exceeds the size of the file, user_callback shall be called with success as false. ]*/

@@ -4,15 +4,17 @@
 #ifdef __cplusplus
 #include <cstdlib>
 #include <cstddef>
-#include <cstdint>
+#include <cinttypes>
 #else
 #include <stdlib.h>
 #include <stddef.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdbool.h>
 #endif
 
 #include "testrunnerswitcher.h"
+
+#include "c_logging/xlogging.h"
 
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h"
@@ -62,14 +64,16 @@ static int increment_on_even_values(void* address)
 }
 
 static volatile_atomic int32_t create_count;
+static volatile_atomic int32_t woken_threads;
 static int increment_on_wake_up(void* address)
 {
     volatile_atomic int32_t* ptr = (volatile_atomic int32_t*)address;
     int32_t value = interlocked_add(ptr, 0);
     (void)interlocked_increment(&create_count);
     wake_by_address_single(&create_count);
+
     ASSERT_IS_TRUE(wait_on_address(ptr, value, UINT32_MAX));
-    (void)interlocked_increment(ptr);
+    (void)interlocked_increment(&woken_threads);
 
     return 0;
 }
@@ -141,26 +145,42 @@ TEST_FUNCTION(wake_up_all_threads)
     (void)interlocked_exchange(&create_count, 0);
     THREAD_HANDLE threads[100];
 
+    (void)interlocked_exchange(&woken_threads, 0);
+
     ///act
     for (int i = 0; i < 100; ++i)
     {
         ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&threads[i], increment_on_wake_up, (void*)&var));
     }
 
-    int current_create_count = interlocked_add(&create_count, 0);
+    LogInfo("Waiting for threads to spin");
+    int32_t current_create_count = interlocked_add(&create_count, 0);
     while (current_create_count < 100)
     {
         ASSERT_IS_TRUE(wait_on_address(&create_count, current_create_count, UINT32_MAX));
         current_create_count = interlocked_add(&create_count, 0);
     }
-    wake_by_address_all(&var);
+
+    // have a cycle of sleep and wake by address all
+    // we want to check that we wake up more than one thread most of the times as it cannot be make predictable when the threads run
+    // ideally we'd have all threads woken by one call, but it can so happen that not all threads end up in their
+    // wait at the time we call the first wake_by_address_all
+    int32_t wake_by_address_all_call_count = 0;
+    do
+    {
+        // sleep 1s
+        ThreadAPI_Sleep(1000);
+        wake_by_address_all_call_count++;
+
+        // wake all threads
+        wake_by_address_all(&var);
+    } while (interlocked_add(&woken_threads, 0) < 100);
+
+    LogInfo("Joining threads");
     for (int i = 0; i < 100; ++i)
     {
         ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(threads[i], NULL), "ThreadAPI_Join did not work");
     }
-    
-    ///assert
-    ASSERT_ARE_EQUAL(int32_t, 100, interlocked_add(&var, 0), "Return value is incorrect");
 }
 
 
@@ -179,7 +199,6 @@ TEST_FUNCTION(wait_on_address_returns_immediately)
     ///assert
     ASSERT_IS_TRUE(return_val, "wait_on_address should have returned true");
 }
-
 
 /*Tests_SRS_SYNC_43_001: [ wait_on_address shall atomically compare *address and *compare_address.]*/
 /*Tests_SRS_SYNC_43_002: [ wait_on_address shall immediately return true if *address is not equal to *compare_address.]*/
@@ -202,4 +221,5 @@ TEST_FUNCTION(wait_on_address_returns_after_timeout_elapses)
     ASSERT_IS_TRUE(time_elapsed < timeout* tolerance_factor, "Too much time elapsed. Maximum Expected: %lf, Actual: %lf", timeout*tolerance_factor, time_elapsed);
     ASSERT_IS_FALSE(return_val, "wait_on_address should have returned false");
 }
+
 END_TEST_SUITE(sync_int)

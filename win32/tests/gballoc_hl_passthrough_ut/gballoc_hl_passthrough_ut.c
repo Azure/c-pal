@@ -397,7 +397,7 @@ TEST_FUNCTION(gballoc_hl_realloc_fails_when_lazy_init_fails)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
-    gballoc_hl_free(result);
+    gballoc_hl_free(ptr);
     TEST_gballoc_hl_deinit();
 }
 

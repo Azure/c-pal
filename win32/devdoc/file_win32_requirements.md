@@ -50,6 +50,8 @@ MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE, execution
 
 **SRS_FILE_WIN32_43_041: [** `file_create` shall allocate a `FILE_HANDLE`. **]**
 
+**SRS_FILE_WIN32_01_001: [** `file_create` shall increment the reference count of `execution_engine` in order to hold on to it. **]**
+
 **SRS_FILE_WIN32_43_001: [** `file_create` shall call `CreateFileA` with `full_file_name` as `lpFileName`, `GENERIC_READ|GENERIC_WRITE` as `dwDesiredAccess`, `FILE_SHARED_READ` as `dwShareMode`, `NULL` as `lpSecurityAttributes`, `OPEN_ALWAYS` as `dwCreationDisposition`, `FILE_FLAG_OVERLAPPED|FILE_FLAG_WRITE_THROUGH` as `dwFlagsAndAttributes` and `NULL` as `hTemplateFile`. **]**
 
 **SRS_FILE_WIN32_43_002: [** `file_create` shall call `SetFileCompletionNotificationModes` to disable calling the completion port when an async operations finishes synchronously. **]**
@@ -87,6 +89,8 @@ MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 **SRS_FILE_WIN32_43_016: [** `file_destroy` shall call `CloseHandle` on the handle returned by `CreateFileA`. **]**
 
 **SRS_FILE_WIN32_43_015: [** `file_destroy` shall close the threadpool IO by calling `CloseThreadPoolIo`. **]**
+
+**SRS_FILE_WIN32_01_002: [** `file_destroy` shall decrement the reference count for the execution engine. **]**
 
 **SRS_FILE_WIN32_43_042: [** `file_destroy` shall free the `handle`. **]**
 
