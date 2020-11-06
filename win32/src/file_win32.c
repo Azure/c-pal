@@ -15,6 +15,7 @@
 
 typedef struct FILE_HANDLE_DATA_TAG
 {
+    EXECUTION_ENGINE_HANDLE execution_engine;
     PTP_POOL ptp_pool;
     HANDLE h_file;
     TP_CALLBACK_ENVIRON cbe;
@@ -109,6 +110,10 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE,
         else
         {
             bool succeeded;
+            /* Codes_SRS_FILE_WIN32_01_001: [ file_create shall increment the reference count of execution_engine in order to hold on to it. ]*/
+            execution_engine_inc_ref(execution_engine);
+            result->execution_engine = execution_engine;
+
             /*Codes_SRS_FILE_43_003: [ If a file with name full_file_name does not exist, file_create shall create a file with that name.]*/
             /*Codes_SRS_FILE_43_001: [ file_create shall open the file named full_file_name for asynchronous operations and return its handle. ]*/
             /*Codes_SRS_FILE_WIN32_43_001: [ file_create shall call CreateFileA with full_file_name as lpFileName, GENERIC_READ|GENERIC_WRITE as dwDesiredAccess, FILE_SHARED_READ as dwShareMode, NULL as lpSecurityAttributes, OPEN_ALWAYS as dwCreationDisposition, FILE_FLAG_OVERLAPPED|FILE_FLAG_WRITE_THROUGH as dwFlagsAndAttributes and NULL as hTemplateFile. ]*/
@@ -202,6 +207,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE,
             /*Codes_SRS_FILE_43_034: [ If there are any failures, file_create shall fail and return NULL. ]*/
             if (!succeeded)
             {
+                execution_engine_dec_ref(result->execution_engine);
                 free(result);
                 result = NULL;
             }
@@ -237,6 +243,8 @@ IMPLEMENT_MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle)
         }
         /*Codes_SRS_FILE_WIN32_43_015: [ file_destroy shall close the threadpool IO by calling CloseThreadPoolIo. ]*/
         CloseThreadpoolIo(handle->ptp_io);
+        /*Codes_SRS_FILE_WIN32_01_002: [ file_destroy shall decrement the reference count for the execution engine. ]*/
+        execution_engine_dec_ref(handle->execution_engine);
         /*Codes_SRS_FILE_WIN32_43_042: [ file_destroy shall free the handle.]*/
         free(handle);
     }

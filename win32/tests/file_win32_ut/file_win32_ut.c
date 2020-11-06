@@ -76,6 +76,7 @@ static EXECUTION_ENGINE_HANDLE fake_execution_engine = (EXECUTION_ENGINE_HANDLE)
 static void setup_file_create_expectations(const char* filename, PTP_CALLBACK_ENVIRON* captured_ptpcbe,  PTP_WIN32_IO_CALLBACK* captured_callback)
 {
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(execution_engine_inc_ref(fake_execution_engine));
     STRICT_EXPECTED_CALL(mock_CreateFileA(filename, GENERIC_READ|GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_FLAG_OVERLAPPED|FILE_FLAG_WRITE_THROUGH, NULL));
     STRICT_EXPECTED_CALL(mock_SetFileCompletionNotificationModes(fake_handle, FILE_SKIP_COMPLETION_PORT_ON_SUCCESS));
     STRICT_EXPECTED_CALL(mock_InitializeThreadpoolEnvironment(IGNORED_ARG))
@@ -252,6 +253,7 @@ TEST_FUNCTION(file_create_fails_on_empty_full_file_name)
 }
 
 /*Tests_SRS_FILE_WIN32_43_041: [ file_create shall allocate a FILE_HANDLE. ]*/
+/*Tests_SRS_FILE_WIN32_01_001: [ file_create shall increment the reference count of execution_engine in order to hold on to it. ]*/
 /*Tests_SRS_FILE_WIN32_43_001: [ file_create shall call CreateFileA with full_file_name as lpFileName, GENERIC_READ|GENERIC_WRITE as dwDesiredAccess, FILE_SHARED_READ as dwShareMode, NULL as lpSecurityAttributes, OPEN_ALWAYS as dwCreationDisposition, FILE_FLAG_OVERLAPPED|FILE_FLAG_WRITE_THROUGH as dwFlagsAndAttributes and NULL as hTemplateFile. ]*/
 /*Tests_SRS_FILE_WIN32_43_002: [ file_create shall call SetFileCompletionNotificationModes to disable calling the completion port when an async operations finishes synchrounously. ]*/
 /*Tests_SRS_FILE_WIN32_43_003: [ file_create shall initialize a threadpool environment by calling InitializeThreadpolEnvironment. ]*/
@@ -326,6 +328,7 @@ TEST_FUNCTION(file_destroy_called_with_null_handle)
 /*Tests_SRS_FILE_WIN32_43_013: [ file_destroy shall destroy the environment by calling DestroyThreadpoolEnvironment.]*/
 /*Tests_SRS_FILE_WIN32_43_016: [ file_destroy shall call CloseHandle on the handle returned by CreateFileA. ]*/
 /*Tests_SRS_FILE_WIN32_43_015: [ file_destroy shall close the threadpool IO by calling CloseThreadPoolIo.]*/
+/*Tests_SRS_FILE_WIN32_01_002: [ file_destroy shall decrement the reference count for the execution engine. ]*/
 /*Tests_SRS_FILE_WIN32_43_042: [ file_destroy shall free the handle.]*/
 TEST_FUNCTION(file_destroy_succeeds)
 {
@@ -346,6 +349,7 @@ TEST_FUNCTION(file_destroy_succeeds)
     STRICT_EXPECTED_CALL(mock_DestroyThreadpoolEnvironment(captured_ptpcbe));
     STRICT_EXPECTED_CALL(mock_CloseHandle(fake_handle));
     STRICT_EXPECTED_CALL(mock_CloseThreadpoolIo(fake_ptp_io));
+    STRICT_EXPECTED_CALL(execution_engine_dec_ref(fake_execution_engine));
     STRICT_EXPECTED_CALL(free(file_handle));
 
     ///act
@@ -454,7 +458,9 @@ TEST_FUNCTION(file_write_async_fails_if_size_is_zero)
 TEST_FUNCTION(file_write_async_succeeds_asynchronously)
 {
     ///arrange
-    FILE_HANDLE file_handle = get_file_handle("file_write_async_succeeds_asynchronously.txt");
+    PTP_WIN32_IO_CALLBACK captured_callback;
+    LPOVERLAPPED captured_ov;
+    FILE_HANDLE file_handle = get_file_handle_and_callback("file_write_async_succeeds_asynchronously.txt", &captured_callback);
     unsigned char source[10];
     uint32_t size = 10;
     uint64_t position = 5;
@@ -463,6 +469,7 @@ TEST_FUNCTION(file_write_async_succeeds_asynchronously)
     STRICT_EXPECTED_CALL(mock_CreateEvent(IGNORED_ARG, FALSE, FALSE, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mock_StartThreadpoolIo(fake_ptp_io));
     STRICT_EXPECTED_CALL(mock_WriteFile(IGNORED_ARG, source, size, NULL, IGNORED_ARG))
+        .CaptureArgumentValue_lpOverlapped(&captured_ov)
         .SetReturn(FALSE);
     STRICT_EXPECTED_CALL(mock_GetLastError())
         .SetReturn(ERROR_IO_PENDING);
@@ -475,6 +482,7 @@ TEST_FUNCTION(file_write_async_succeeds_asynchronously)
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, result);
     
     ///cleanup
+    captured_callback(NULL, NULL, captured_ov, NO_ERROR, sizeof(source), NULL);
     file_destroy(file_handle);
 }
 
@@ -682,7 +690,10 @@ TEST_FUNCTION(file_read_async_fails_if_size_is_zero)
 TEST_FUNCTION(file_read_async_succeeds_asynchronously)
 {
     ///arrange
-    FILE_HANDLE file_handle = get_file_handle("file_read_async_succeeds_asynchronously.txt");
+    unsigned char source[10];
+    PTP_WIN32_IO_CALLBACK captured_callback;
+    LPOVERLAPPED captured_ov;
+    FILE_HANDLE file_handle = get_file_handle_and_callback("file_read_async_succeeds_asynchronously.txt", &captured_callback);
     unsigned char destination[10];
     uint64_t position = 5;
 
@@ -690,6 +701,7 @@ TEST_FUNCTION(file_read_async_succeeds_asynchronously)
     STRICT_EXPECTED_CALL(mock_CreateEvent(IGNORED_ARG, FALSE, FALSE, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mock_StartThreadpoolIo(fake_ptp_io));
     STRICT_EXPECTED_CALL(mock_ReadFile(fake_handle, destination, sizeof(destination), NULL, IGNORED_ARG))
+        .CaptureArgumentValue_lpOverlapped(&captured_ov)
         .SetReturn(FALSE);
     STRICT_EXPECTED_CALL(mock_GetLastError())
         .SetReturn(ERROR_IO_PENDING);
@@ -702,6 +714,7 @@ TEST_FUNCTION(file_read_async_succeeds_asynchronously)
     ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_OK, result);
     
     ///cleanup
+    captured_callback(NULL, NULL, captured_ov, NO_ERROR, sizeof(source), NULL);
     file_destroy(file_handle);
 }
 
