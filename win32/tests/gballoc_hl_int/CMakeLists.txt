@@ -19,16 +19,21 @@ set(${theseTestsName}_test_files
 set(${theseTestsName}_c_files
     ../../src/gballoc_ll_${gballoc_ll_impl_lower}.c
     ../../src/gballoc_hl_${gballoc_hl_impl_lower}.c
-    ../../src/timer.c #needed because gballoc_hl needs timer to compute "how much time it takes"
-    ../../src/lock_win32.c #because timer uses locking... 
+    ../../src/timer_win32.c #needed because gballoc_hl needs timer to compute "how much time it takes"
+    ../../../common/src/call_once.c
+    ../../../common/src/lazy_init.c
+    ../../src/interlocked_win32.c
+    ../../src/sync_win32.c
 )
 
 set(${theseTestsName}_h_files
 )
 
 if(${GBALOC_LL_IMPL} STREQUAL "MIMALLOC")
-    build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS pal_interfaces mimalloc-obj)
+    build_test_artifacts(${theseTestsName} ON "tests/c_pal/common" ADDITIONAL_LIBS pal_interfaces synchronization mimalloc-obj)
+elseif(${GBALOC_LL_IMPL} STREQUAL "JEMALLOC")
+    build_test_artifacts(${theseTestsName} ON "tests/c_pal/common" ADDITIONAL_LIBS pal_interfaces synchronization jemalloc)
 else()
-    build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS pal_interfaces)
+    build_test_artifacts(${theseTestsName} ON "tests/c_pal/common" ADDITIONAL_LIBS pal_interfaces synchronization)
 endif()
 

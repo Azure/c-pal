@@ -6,23 +6,32 @@
 #include <stddef.h>
 #endif
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
 
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umocktypes.h"
 
-#include "azure_c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl.h"
 
 #define ENABLE_MOCKS
 #include "umock_c/umock_c_prod.h"
-#include "azure_c_pal/gballoc_ll.h"
+#include "c_pal/gballoc_ll.h"
+#include "c_pal/lazy_init.h"
+#include "c_pal/interlocked.h"
 #undef ENABLE_MOCKS
+
+#include "real_lazy_init.h"
+#include "real_interlocked.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
+
+MU_DEFINE_ENUM_STRINGS(LAZY_INIT_RESULT, LAZY_INIT_RESULT_VALUES);
+TEST_DEFINE_ENUM_TYPE(LAZY_INIT_RESULT, LAZY_INIT_RESULT_VALUES);
+IMPLEMENT_UMOCK_C_ENUM_TYPE(LAZY_INIT_RESULT, LAZY_INIT_RESULT_VALUES);
 
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {
@@ -39,6 +48,13 @@ TEST_SUITE_INITIALIZE(suite_init)
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error), "umock_c_init");
 
     ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types(), "umocktypes_stdint_register_types");
+
+    REGISTER_UMOCK_ALIAS_TYPE(LAZY_INIT_FUNCTION, void*);
+
+    REGISTER_TYPE(LAZY_INIT_RESULT, LAZY_INIT_RESULT);
+
+    REGISTER_LAZY_INIT_GLOBAL_MOCK_HOOK();
+    REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK();
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
@@ -62,6 +78,8 @@ TEST_FUNCTION_INITIALIZE(method_init)
 TEST_FUNCTION_CLEANUP(method_cleanup)
 {
     TEST_MUTEX_RELEASE(test_serialize_mutex);
+
+    gballoc_hl_deinit();
 }
 
 /* gballoc_hl_deinit */
@@ -70,6 +88,8 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 TEST_FUNCTION(gballoc_hl_deinit_when_not_initialized_returns)
 {
     // arrange
+
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
 
     // act
     gballoc_hl_deinit();
@@ -86,6 +106,9 @@ TEST_FUNCTION(gballoc_malloc_when_not_initialized_returns_NULL)
     // arrange
     void* result;
 
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL))
+        .SetReturn(LAZY_INIT_ERROR);
+
     // act
     result = gballoc_hl_malloc(1);
 
@@ -101,6 +124,9 @@ TEST_FUNCTION(gballoc_calloc_when_not_initialized_fails)
 {
     // arrange
     void* result;
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL))
+        .SetReturn(LAZY_INIT_ERROR);
 
     // act
     result = gballoc_hl_calloc(1, 1);
@@ -124,6 +150,9 @@ TEST_FUNCTION(gballoc_realloc_when_not_initialized_fails)
     gballoc_hl_deinit();
     umock_c_reset_all_calls();
 
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL))
+        .SetReturn(LAZY_INIT_ERROR);
+
     // act
     result = gballoc_hl_realloc(ptr, 1);
 
@@ -146,6 +175,9 @@ TEST_FUNCTION(gballoc_free_when_not_initialized_returns)
     gballoc_hl_free(ptr);
     gballoc_hl_deinit();
     umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+
 
     // act
     gballoc_hl_free(ptr);

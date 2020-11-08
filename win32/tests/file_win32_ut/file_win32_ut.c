@@ -10,16 +10,17 @@
 #include <stdbool.h>
 #endif
 #include "windows.h"
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 
+#include "real_gballoc_ll.h"
 void* real_malloc(size_t size)
 {
-    return malloc(size);
+    return real_gballoc_ll_malloc(size);
 }
 
 void real_free(void* ptr)
 {
-    free(ptr);
+    real_gballoc_ll_free(ptr);
 }
 
 #include "testrunnerswitcher.h"
@@ -31,17 +32,19 @@ void real_free(void* ptr)
 
 #define ENABLE_MOCKS
 
-#include "azure_c_pal/execution_engine.h"
-#include "azure_c_pal/gballoc_hl.h"
-#include "azure_c_pal/gballoc_hl_redirect.h"
-#include "azure_c_pal/execution_engine_win32.h"
+#include "c_pal/execution_engine.h"
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/execution_engine_win32.h"
 #include "mock_file.h"
 
 MOCKABLE_FUNCTION(, void, mock_user_callback, void*, user_context, bool, is_successful);
 
 #undef ENABLE_MOCKS
 
-#include "azure_c_pal/file.h"
+#include "real_gballoc_hl.h"
+
+#include "c_pal/file.h"
 
 static TEST_MUTEX_HANDLE g_testByTest;
 
@@ -154,6 +157,8 @@ BEGIN_TEST_SUITE(file_win32_unittests)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
+    ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
+
     g_testByTest = TEST_MUTEX_CREATE();
     ASSERT_IS_NOT_NULL(g_testByTest);
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error));
@@ -186,6 +191,8 @@ TEST_SUITE_CLEANUP(TestClassCleanup)
     umock_c_deinit();
 
     TEST_MUTEX_DESTROY(g_testByTest);
+
+    real_gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(f)

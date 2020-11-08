@@ -1,9 +1,13 @@
 #Copyright (C) Microsoft Corporation. All rights reserved.
 
 set(pal_common_h_files
+    ../common/inc/c_pal/call_once.h
+    ../common/inc/c_pal/lazy_init.h
 )
 
 set(pal_common_c_files
+    ../common/src/call_once.c
+    ../common/src/lazy_init.c
 )
 
 #determining which one of the GBALLOC_LL implementations to use. By convention the file is called "gballoc_ll_" followed by "type".
@@ -27,8 +31,10 @@ set(pal_linux_c_files
     src/uniqueid_linux.c
     src/sync_linux.c
     src/string_utils.c
+    src/sysinfo_linux.c
     src/file_linux.c
     src/execution_engine_linux.c
+    src/timer_linux.c
     src/${gballoc_ll_c}
     src/${gballoc_hl_c}
 )
@@ -41,7 +47,7 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/inc)
 include_directories(../common/inc)
 
 add_library(pal_linux ${pal_linux_h_files} ${pal_linux_c_files} ${pal_linux_md_files} ${pal_common_md_files})
-target_link_libraries(pal_linux pal_interfaces rt uuid)
+target_link_libraries(pal_linux pal_interfaces rt uuid pthread)
 target_include_directories(pal_linux PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc)
 
 add_subdirectory(linux_reals)

@@ -9,13 +9,17 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 #endif
 
 #include "testrunnerswitcher.h"
-#include "azure_c_pal/interlocked.h"
-#include "azure_c_pal/threadapi.h"
-#include "azure_c_pal/sync.h"
-#include "azure_c_pal/timer.h"
+
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/interlocked.h"
+#include "c_pal/threadapi.h"
+#include "c_pal/sync.h"
+#include "c_pal/timer.h"
 
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES)
 
@@ -29,13 +33,13 @@ static int increment_on_odd_values(void* address)
         int32_t value = interlocked_add(ptr, 0);
         while (value % 2 != 1)
         {
-            ASSERT_IS_TRUE(wait_on_address(ptr, &value, UINT32_MAX));
+            ASSERT_IS_TRUE(wait_on_address(ptr, value, UINT32_MAX));
             value = interlocked_add(ptr, 0);
         }
         (void)interlocked_increment(ptr);
         wake_by_address_all(ptr);
     }
-    ThreadAPI_Exit(0);
+
     return 0;
 }
 
@@ -47,13 +51,13 @@ static int increment_on_even_values(void* address)
         int value = interlocked_add(ptr, 0);
         while(value % 2 != 0)
         {
-            ASSERT_IS_TRUE(wait_on_address(ptr, &value, UINT32_MAX));
+            ASSERT_IS_TRUE(wait_on_address(ptr, value, UINT32_MAX));
             value = interlocked_add(ptr, 0);
         }
         (void)interlocked_increment(ptr);
         wake_by_address_all(ptr);
     }
-    ThreadAPI_Exit(0);
+
     return 0;
 }
 
@@ -64,9 +68,9 @@ static int increment_on_wake_up(void* address)
     int32_t value = interlocked_add(ptr, 0);
     (void)interlocked_increment(&create_count);
     wake_by_address_single(&create_count);
-    ASSERT_IS_TRUE(wait_on_address(ptr, &value, UINT32_MAX));
+    ASSERT_IS_TRUE(wait_on_address(ptr, value, UINT32_MAX));
     (void)interlocked_increment(ptr);
-    ThreadAPI_Exit(0);
+
     return 0;
 }
 
@@ -76,14 +80,16 @@ BEGIN_TEST_SUITE(sync_int)
 
 TEST_SUITE_INITIALIZE(a)
 {
+    ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
+
     g_testByTest = TEST_MUTEX_CREATE();
     ASSERT_IS_NOT_NULL(g_testByTest);
 }
 
 TEST_SUITE_CLEANUP(b)
 {
-
     TEST_MUTEX_DESTROY(g_testByTest);
+    gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(c)
@@ -144,7 +150,7 @@ TEST_FUNCTION(wake_up_all_threads)
     int current_create_count = interlocked_add(&create_count, 0);
     while (current_create_count < 100)
     {
-        ASSERT_IS_TRUE(wait_on_address(&create_count, &current_create_count, UINT32_MAX));
+        ASSERT_IS_TRUE(wait_on_address(&create_count, current_create_count, UINT32_MAX));
         current_create_count = interlocked_add(&create_count, 0);
     }
     wake_by_address_all(&var);
@@ -168,7 +174,7 @@ TEST_FUNCTION(wait_on_address_returns_immediately)
     int value = 1;
 
     ///act
-    bool return_val = wait_on_address(&var, &value, UINT32_MAX);
+    bool return_val = wait_on_address(&var, value, UINT32_MAX);
 
     ///assert
     ASSERT_IS_TRUE(return_val, "wait_on_address should have returned true");
@@ -189,7 +195,7 @@ TEST_FUNCTION(wait_on_address_returns_after_timeout_elapses)
 
     /// act
     double start_time = timer_global_get_elapsed_ms();
-    bool return_val = wait_on_address(&var, &value, timeout);
+    bool return_val = wait_on_address(&var, value, timeout);
     double time_elapsed = timer_global_get_elapsed_ms() - start_time;
 
     ///assert

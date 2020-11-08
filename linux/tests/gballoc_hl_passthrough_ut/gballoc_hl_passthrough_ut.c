@@ -28,7 +28,7 @@ static void stdlib_free(void* ptr)
 }
 
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
 
 static TEST_MUTEX_HANDLE g_testByTest;
@@ -36,12 +36,12 @@ static TEST_MUTEX_HANDLE g_testByTest;
 #include "umock_c/umock_c.h"
 
 #define ENABLE_MOCKS
-#include "azure_c_pal/gballoc_ll.h"
+#include "c_pal/gballoc_ll.h"
 #undef ENABLE_MOCKS
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
-#include "azure_c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl.h"
 
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {
@@ -85,7 +85,7 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
     TEST_MUTEX_RELEASE(g_testByTest);
 }
 
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_001: [ gballoc_hl_init shall call gballoc_ll_init(gballoc_ll_init_params). ]*/
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_018: [ do_init shall call gballoc_ll_init(params). ]*/
 /*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_002: [ gballoc_hl_init shall succeed and return 0. ]*/
 TEST_FUNCTION(gballoc_hl_init_happy_path)
 {

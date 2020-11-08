@@ -6,9 +6,9 @@
 #include <string.h>
 #include <uuid/uuid.h>
 
-#include "azure_macro_utils/macro_utils.h"
-#include "azure_c_logging/xlogging.h"
-#include "azure_c_pal/uniqueid.h"
+#include "macro_utils/macro_utils.h"
+#include "c_logging/xlogging.h"
+#include "c_pal/uniqueid.h"
 
 MU_DEFINE_ENUM_STRINGS(UNIQUEID_RESULT, UNIQUEID_RESULT_VALUES);
 

@@ -3,12 +3,12 @@
 
 #include <stddef.h>
 
-#include "azure_macro_utils/macro_utils.h"
-#include "azure_c_logging/xlogging.h"
+#include "macro_utils/macro_utils.h"
+#include "c_logging/xlogging.h"
 
-#include "azure_c_pal/gballoc_ll.h"
+#include "c_pal/gballoc_ll.h"
 
-#include "azure_c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl.h"
 
 static int wasInitialized = 0;
 
@@ -17,7 +17,7 @@ int gballoc_hl_init(void* gballoc_hl_init_params, void* gballoc_ll_init_params)
     int result;
     (void)gballoc_hl_init_params; /*are ignored, this is "passthrough*/
 
-    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_001: [ gballoc_hl_init shall call gballoc_ll_init(gballoc_ll_init_params). ]*/
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_018: [ do_init shall call gballoc_ll_init(params). ]*/
 
     if (gballoc_ll_init(gballoc_ll_init_params) != 0)
     {

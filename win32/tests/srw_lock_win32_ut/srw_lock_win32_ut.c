@@ -9,16 +9,17 @@
 
 #include "windows.h"
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 
+#include "real_gballoc_ll.h"
 static void* my_malloc(size_t size)
 {
-    return malloc(size);
+    return real_gballoc_ll_malloc(size);
 }
 
 static void my_free(void* s)
 {
-    free(s);
+    real_gballoc_ll_free(s);
 }
 
 #include "testrunnerswitcher.h"
@@ -27,9 +28,9 @@ static void my_free(void* s)
 #include "umock_c/umocktypes_windows.h"
 
 #define ENABLE_MOCKS
-#include "azure_c_pal/gballoc_hl.h"
-#include "azure_c_pal/gballoc_hl_redirect.h"
-#include "azure_c_pal/timer.h"
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/timer.h"
 
 #ifdef __cplusplus
 extern "C"{
@@ -49,7 +50,8 @@ MOCKABLE_FUNCTION(, void, mocked_ReleaseSRWLockShared, PSRWLOCK, SRWLock);
 
 #undef ENABLE_MOCKS
 
-#include "azure_c_pal/srw_lock.h"
+#include "real_gballoc_hl.h"
+#include "c_pal/srw_lock.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 
@@ -74,7 +76,7 @@ static SRW_LOCK_HANDLE TEST_srw_lock_create(bool do_statistics, const char* lock
     if (do_statistics)
     {
         STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-        STRICT_EXPECTED_CALL(timer_create())
+        STRICT_EXPECTED_CALL(timer_create_new())
             .SetReturn((TIMER_HANDLE)my_malloc(2));
     }
     STRICT_EXPECTED_CALL(mocked_InitializeSRWLock(IGNORED_ARG));
@@ -118,6 +120,8 @@ BEGIN_TEST_SUITE(srw_lock_unittests)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
+    ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
+
     test_serialize_mutex = TEST_MUTEX_CREATE();
     ASSERT_IS_NOT_NULL(test_serialize_mutex);
 
@@ -141,6 +145,8 @@ TEST_SUITE_CLEANUP(suite_cleanup)
     umock_c_deinit();
 
     TEST_MUTEX_DESTROY(test_serialize_mutex);
+
+    real_gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(method_init)
@@ -162,16 +168,15 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 
 /*Tests_SRS_SRW_LOCK_02_001: [ srw_lock_create shall allocate memory for SRW_LOCK_HANDLE. ]*/
 /*Tests_SRS_SRW_LOCK_02_023: [ If do_statistics is true then srw_lock_create shall copy lock_name. ]*/
-/*Tests_SRS_SRW_LOCK_02_024: [ If do_statistics is true then srw_lock_create shall create a new TIMER_HANDLE by calling timer_create. ]*/
+/*Tests_SRS_SRW_LOCK_02_024: [ If do_statistics is true then srw_lock_create shall create a new TIMER_HANDLE by calling timer_create_new. ]*/
 /*Tests_SRS_SRW_LOCK_02_015: [ srw_lock_create shall call InitializeSRWLock. ]*/
-/*Tests_SRS_SRW_LOCK_02_024: [ If do_statistics is true then srw_lock_create shall create a new TIMER_HANDLE by calling timer_create. ]*/
 /*Tests_SRS_SRW_LOCK_02_003: [ srw_lock_create shall succeed and return a non-NULL value. ]*/
 TEST_FUNCTION(srw_lock_create_succeeds)
 {
     ///arrange
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(timer_create())
+    STRICT_EXPECTED_CALL(timer_create_new())
         .SetReturn((TIMER_HANDLE)my_malloc(2));
     STRICT_EXPECTED_CALL(mocked_InitializeSRWLock(IGNORED_ARG));
 
@@ -188,9 +193,8 @@ TEST_FUNCTION(srw_lock_create_succeeds)
 
 /*Tests_SRS_SRW_LOCK_02_001: [ srw_lock_create shall allocate memory for SRW_LOCK_HANDLE. ]*/
 /*Tests_SRS_SRW_LOCK_02_023: [ If do_statistics is true then srw_lock_create shall copy lock_name. ]*/
-/*Tests_SRS_SRW_LOCK_02_024: [ If do_statistics is true then srw_lock_create shall create a new TIMER_HANDLE by calling timer_create. ]*/
+/*Tests_SRS_SRW_LOCK_02_024: [ If do_statistics is true then srw_lock_create shall create a new TIMER_HANDLE by calling timer_create_new. ]*/
 /*Tests_SRS_SRW_LOCK_02_015: [ srw_lock_create shall call InitializeSRWLock. ]*/
-/*Tests_SRS_SRW_LOCK_02_024: [ If do_statistics is true then srw_lock_create shall create a new TIMER_HANDLE by calling timer_create. ]*/
 /*Tests_SRS_SRW_LOCK_02_003: [ srw_lock_create shall succeed and return a non-NULL value. ]*/
 TEST_FUNCTION(srw_lock_create_with_do_statistics_false_succeeds)
 {
@@ -216,7 +220,7 @@ TEST_FUNCTION(srw_lock_create_fails_1)
     ///arrange
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(timer_create())
+    STRICT_EXPECTED_CALL(timer_create_new())
         .SetReturn(NULL);
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));

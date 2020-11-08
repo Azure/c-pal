@@ -17,7 +17,7 @@ set(${theseTestsName}_h_files
 
 )
 
-build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/common" ADDITIONAL_LIBS azure_c_pal)
+build_test_artifacts(${theseTestsName} ON "tests/c_pal/common" ADDITIONAL_LIBS c_pal c_pal_reals)
 
 if("${building}" STREQUAL "exe")
     set_target_properties(${theseTestsName}_exe PROPERTIES LINK_FLAGS "/ignore:4217")

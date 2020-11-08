@@ -6,87 +6,7 @@ jobs:
 - job: windowsx64debug
   displayName: 'Build Windows x64 Debug'
   pool:
-    name: Hosted VS2017
-    demands:
-    - Cmd
-    - msbuild
-    - visualstudio
-
-  steps:
-  - task: BatchScript@1
-    displayName: 'Git submodule update'
-    inputs:
-      filename: 'C:\Program Files\Git\bin\git.exe'
-      arguments: 'submodule update --init --force'
-
-  - task: BatchScript@1
-    displayName: 'Git submodule clean'
-    inputs:
-      filename: 'C:\Program Files\Git\bin\git.exe'
-      arguments: 'submodule foreach --recursive "git clean -xdff"'
-
-  - task: BatchScript@1
-    displayName: 'Git clean'
-    inputs:
-      filename: 'C:\Program Files\Git\bin\git.exe'
-      arguments: 'clean -xdff'
-
-  - powershell: |
-     $url = "https://github.com/KindDragon/vld/releases/download/v2.5.1/vld-2.5.1-setup.exe"
-     $outpath = "$(System.ArtifactsDirectory)/vld-2.5.1-setup.exe"
-   
-     $wc = New-Object System.Net.WebClient
-     $wc.DownloadFile($url, $outpath)
-    displayName: 'Download VLD'
-
-  - task: BatchScript@1
-    displayName: 'Install VLD'
-    inputs:
-      filename: '$(System.ArtifactsDirectory)/vld-2.5.1-setup.exe'
-      arguments: '/suppressmsgboxes /verysilent /norestart'
-      modifyEnvironment: true
-
-  - task: BatchScript@1
-    displayName: 'Set VLD path'
-    inputs:
-      filename: 'set_vld_vars.bat'
-      modifyEnvironment: true
-
-  - task: BatchScript@1
-    displayName: 'Setup VS Vars'
-    inputs:
-      filename: '"c:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\Common7\Tools\VsDevCmd.bat"'
-      modifyEnvironment: true
-
-  - task: NuGetToolInstaller@0
-    displayName: 'Use NuGet 4.3.0 (required for .NET core assemblies)'
-
-  - task: CMake@1
-    displayName: 'CMake .. -Drun_unittests:bool=ON -Drun_int_tests:bool=ON -Duse_cppunittest:bool=OFF -G "Visual Studio 15 2017 Win64"'
-    inputs:
-      workingDirectory: 'build_x64'
-      cmakeArgs: '.. -Drun_unittests:bool=ON -Drun_int_tests:bool=ON -Duse_cppunittest:bool=OFF -G "Visual Studio 15 2017 Win64"'
-
-  - task: VSBuild@1
-    displayName: 'Build solution build_x64\*.sln'
-    inputs:
-      solution: 'build_x64\*.sln'
-      msbuildArgs: '/t:restore /t:build /p:ForceImportBeforeCppTargets=$(Build.SourcesDirectory)/vld.props'
-      platform: x64
-      configuration: Debug
-      maximumCpuCount: true
-
-  - task: CmdLine@1
-    displayName: 'Run ctest'
-    inputs:
-      filename: ctest
-      arguments: '-C "Debug" -V --output-on-failure'
-      workingFolder: 'build_x64'
-
-- job: windowsx64relwithdebinfo
-  displayName: 'Build Windows x86 RelWithDebInfo'
-  pool:
-    name: Hosted VS2017
+    name: Azure-MessagingStore
     demands:
     - Cmd
     - msbuild
@@ -115,44 +35,51 @@ jobs:
   - task: BatchScript@1
     displayName: 'Setup VS Vars'
     inputs:
-      filename: '"c:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\Common7\Tools\VsDevCmd.bat"'
+      filename: '"c:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"'
       modifyEnvironment: true
 
   - task: NuGetToolInstaller@0
     displayName: 'Use NuGet 4.3.0 (required for .NET core assemblies)'
 
   - task: CMake@1
-    displayName: 'CMake .. -Drun_unittests:bool=ON -Drun_int_tests:bool=ON -Duse_cppunittest:bool=ON'
+    displayName: 'CMake .. -Drun_unittests:bool=ON -Drun_int_tests:bool=ON -Duse_cppunittest:bool=ON -G "Visual Studio 16 2019" -A x64'
     inputs:
       workingDirectory: 'build_x64'
-      cmakeArgs: '.. -Drun_unittests:bool=ON -Drun_int_tests:bool=ON -Duse_cppunittest:bool=ON'
+      cmakeArgs: '.. -Drun_unittests:bool=ON -Drun_int_tests:bool=ON -Duse_cppunittest:bool=ON -G "Visual Studio 16 2019" -A x64'
 
   - task: VSBuild@1
     displayName: 'Build solution build_x64\*.sln'
     inputs:
       solution: 'build_x64\*.sln'
       msbuildArgs: '/t:restore /t:build /p:ForceImportBeforeCppTargets=$(Build.SourcesDirectory)/vld.props'
-      platform: Win32
-      configuration: RelWithDebInfo
+      configuration: Debug
       maximumCpuCount: true
 
   - task: VSTest@2
     displayName: 'VsTest - testAssemblies'
     inputs:
       testAssemblyVer2: |
-          **\*test*.dll
-          !**\obj\**
-      vsTestVersion: 15.0
+          **\*_ut_*.dll
+          **\*_int_*.dll
+          **\*_perf_*.dll
       runTestsInIsolation: true
 
-- job: windowsx86debug
-  displayName: 'Build Windows x86 Debug'
+  - task: CmdLine@1
+    displayName: 'Run ctest'
+    inputs:
+      filename: ctest
+      arguments: '-C "Debug" -V --output-on-failure'
+      workingFolder: 'build_x64'
+
+- job: windowsx64relwithdebinfo
+  displayName: 'Build Windows x64 RelWithDebInfo'
   pool:
-    name: Hosted VS2017
-    demands: 
+    name: Azure-MessagingStore
+    demands:
     - Cmd
     - msbuild
     - visualstudio
+    - vstest
 
   steps:
   - task: BatchScript@1
@@ -173,31 +100,78 @@ jobs:
       filename: 'C:\Program Files\Git\bin\git.exe'
       arguments: 'clean -xdff'
 
-  - powershell: |
-     $url = "https://github.com/KindDragon/vld/releases/download/v2.5.1/vld-2.5.1-setup.exe"
-     $outpath = "$(System.ArtifactsDirectory)/vld-2.5.1-setup.exe"
-     
-     $wc = New-Object System.Net.WebClient
-     $wc.DownloadFile($url, $outpath)
-    displayName: 'Download VLD'
-
   - task: BatchScript@1
-    displayName: 'Install VLD'
+    displayName: 'Setup VS Vars'
     inputs:
-      filename: '$(System.ArtifactsDirectory)/vld-2.5.1-setup.exe'
-      arguments: '/suppressmsgboxes /verysilent /norestart'
+      filename: '"c:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"'
       modifyEnvironment: true
 
-  - task: BatchScript@1
-    displayName: 'Set VLD path'
+  - task: NuGetToolInstaller@0
+    displayName: 'Use NuGet 4.3.0 (required for .NET core assemblies)'
+
+  - task: CMake@1
+    displayName: 'CMake .. -Drun_unittests:bool=ON -Drun_int_tests:bool=ON -Duse_cppunittest:bool=ON -G "Visual Studio 16 2019" -A x64'
     inputs:
-      filename: 'set_vld_vars.bat'
-      modifyEnvironment: true
+      workingDirectory: 'build_x64'
+      cmakeArgs: '.. -Drun_unittests:bool=ON -Drun_int_tests:bool=ON -Duse_cppunittest:bool=ON -G "Visual Studio 16 2019" -A x64'
+
+  - task: VSBuild@1
+    displayName: 'Build solution build_x64\*.sln'
+    inputs:
+      solution: 'build_x64\*.sln'
+      msbuildArgs: '/t:restore /t:build'
+      configuration: RelWithDebInfo
+      maximumCpuCount: true
+
+  - task: VSTest@2
+    displayName: 'VsTest - testAssemblies'
+    inputs:
+      testAssemblyVer2: |
+          **\*_ut_*.dll
+          **\*_int_*.dll
+          **\*_perf_*.dll
+      runTestsInIsolation: true
+
+  - task: CmdLine@1
+    displayName: 'Run ctest'
+    inputs:
+      filename: ctest
+      arguments: '-C "RelWithDebInfo" -V --output-on-failure'
+      workingFolder: 'build_x64'
+
+- job: windowsx86debug
+  displayName: 'Build Windows x86 Debug'
+  pool:
+    name: Azure-MessagingStore
+    demands: 
+    - Cmd
+    - msbuild
+    - visualstudio
+    - vstest
+
+  steps:
+  - task: BatchScript@1
+    displayName: 'Git submodule update'
+    inputs:
+      filename: 'C:\Program Files\Git\bin\git.exe'
+      arguments: 'submodule update --init --force'
+
+  - task: BatchScript@1
+    displayName: 'Git submodule clean'
+    inputs:
+      filename: 'C:\Program Files\Git\bin\git.exe'
+      arguments: 'submodule foreach --recursive "git clean -xdff"'
+
+  - task: BatchScript@1
+    displayName: 'Git clean'
+    inputs:
+      filename: 'C:\Program Files\Git\bin\git.exe'
+      arguments: 'clean -xdff'
 
   - task: BatchScript@1
     displayName: 'Setup VS Vars'
     inputs:
-      filename: '"c:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\Common7\Tools\VsDevCmd.bat"'
+      filename: '"c:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"'
       modifyEnvironment: true
 
   - task: NuGetToolInstaller@0
@@ -207,14 +181,13 @@ jobs:
     displayName: CMake
     inputs:
       workingDirectory: 'build_x86'
-      cmakeArgs: '.. -Drun_unittests:bool=ON -Drun_int_tests:bool=ON -Drun_e2e_tests:bool=ON'
+      cmakeArgs: '.. -Drun_unittests:bool=ON -Drun_int_tests:bool=ON -Drun_e2e_tests:bool=ON -Duse_cppunittest:bool=ON -G "Visual Studio 16 2019" -A Win32'
 
   - task: VSBuild@1
     displayName: 'Build solution build_x86\*.sln'
     inputs:
       solution: 'build_x86\*.sln'
       msbuildArgs: '/t:restore /t:build /p:ForceImportBeforeCppTargets=$(Build.SourcesDirectory)/vld.props'
-      platform: Win32
       configuration: Debug
       maximumCpuCount: true
 
@@ -225,16 +198,91 @@ jobs:
       arguments: '-C "Debug" -V --output-on-failure'
       workingFolder: 'build_x86'
 
-- job: linuxubuntu
-  displayName: 'Build Linux Ubuntu 16.04'
+  - task: VSTest@2
+    displayName: 'VsTest - testAssemblies'
+    inputs:
+      testAssemblyVer2: |
+          **\*_ut_*.dll
+          **\*_int_*.dll
+          **\*_perf_*.dll
+      runTestsInIsolation: true
+
+- job: windowsx86relwithdebinfo
+  displayName: 'Build Windows x86 RelWithDebInfo'
   pool:
-    name: Hosted Ubuntu 1604
+    name: Azure-MessagingStore
+    demands: 
+    - Cmd
+    - msbuild
+    - visualstudio
+    - vstest
 
   steps:
-  - bash: |
-      sudo apt-get update
-      sudo apt-get install build-essential pkg-config git cmake uuid-dev valgrind
-    displayName: 'Bash Script'
+  - task: BatchScript@1
+    displayName: 'Git submodule update'
+    inputs:
+      filename: 'C:\Program Files\Git\bin\git.exe'
+      arguments: 'submodule update --init --force'
+
+  - task: BatchScript@1
+    displayName: 'Git submodule clean'
+    inputs:
+      filename: 'C:\Program Files\Git\bin\git.exe'
+      arguments: 'submodule foreach --recursive "git clean -xdff"'
+
+  - task: BatchScript@1
+    displayName: 'Git clean'
+    inputs:
+      filename: 'C:\Program Files\Git\bin\git.exe'
+      arguments: 'clean -xdff'
+
+  - task: BatchScript@1
+    displayName: 'Setup VS Vars'
+    inputs:
+      filename: '"c:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"'
+      modifyEnvironment: true
+
+  - task: NuGetToolInstaller@0
+    displayName: 'Use NuGet 4.3.0 (required for .NET core assemblies)'
+
+  - task: CMake@1
+    displayName: CMake
+    inputs:
+      workingDirectory: 'build_x86'
+      cmakeArgs: '.. -Drun_unittests:bool=ON -Drun_int_tests:bool=ON -Drun_e2e_tests:bool=ON -Duse_cppunittest:bool=ON -G "Visual Studio 16 2019" -A Win32'
+
+  - task: VSBuild@1
+    displayName: 'Build solution build_x86\*.sln'
+    inputs:
+      solution: 'build_x86\*.sln'
+      msbuildArgs: '/t:clean /t:restore /t:build /p:ForceImportBeforeCppTargets=$(Build.SourcesDirectory)/vld.props'
+      configuration: RelWithDebInfo
+      maximumCpuCount: true
+
+  - task: CmdLine@1
+    displayName: 'Run ctest'
+    inputs:
+      filename: ctest
+      arguments: '-C "RelWithDebInfo" -V --output-on-failure'
+      workingFolder: 'build_x86'
+
+  - task: VSTest@2
+    displayName: 'VsTest - testAssemblies'
+    inputs:
+      testAssemblyVer2: |
+          **\*_ut_*.dll
+          **\*_int_*.dll
+          **\*_perf_*.dll
+      runTestsInIsolation: true
+
+- job: linuxubuntu
+  displayName: 'Build Linux Ubuntu 18.04'
+  pool:
+    name: Azure-MessagingStore
+    demands:
+      - linux
+
+  steps:
 
   - bash: |
      pushd $(Build.Repository.LocalPath)
@@ -255,7 +303,7 @@ jobs:
 
 - job: Traceability
   pool:
-    name: Hosted VS2017
+    name: Azure-MessagingStore
     demands:
     - Cmd
     - msbuild
@@ -266,7 +314,7 @@ jobs:
     displayName: 'Git submodule update'
     inputs:
       filename: 'C:\Program Files\Git\bin\git.exe'
-      arguments: 'submodule update --init --force deps/azure-c-build-tools'
+      arguments: 'submodule update --init --force deps/c-build-tools'
 
   - task: BatchScript@1
     displayName: 'Git submodule clean'
@@ -283,19 +331,19 @@ jobs:
   - task: BatchScript@1
     displayName: 'Setup VS Vars'
     inputs:
-      filename: '"c:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\Common7\Tools\VsDevCmd.bat"'
+      filename: '"c:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"'
       modifyEnvironment: true
 
   - task: CMake@1
     displayName: CMake
     inputs:
       workingDirectory: 'build'
-      cmakeArgs: '.. -Ax64'
+      cmakeArgs: '.. -A x64'
 
   - task: VSBuild@1
     displayName: 'Build traceabilitytool only'
     inputs:
-      solution: 'build\azure_c_pal.sln'
+      solution: 'build\c_pal.sln'
       vsVersion: 16.0
       platform: x64
       configuration: RelWithDebInfo
@@ -306,7 +354,7 @@ jobs:
   - task: BatchScript@1
     displayName: 'Run traceability tool'
     inputs:
-      filename: 'build/deps/azure-c-build-tools/traceabilitytool/RelWithDebInfo/traceabilitytool.exe'
-      arguments: '-i $(Build.SourcesDirectory) -buildcheck -e deps'
+      filename: 'build/deps/c-build-tools/traceabilitytool/RelWithDebInfo/traceabilitytool.exe'
+      arguments: '-i $(Build.SourcesDirectory) -buildcheck -e $(Build.SourcesDirectory)\deps'
       modifyEnvironment: false
       workingFolder: '$(Build.SourcesDirectory)'

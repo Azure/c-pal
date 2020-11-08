@@ -6,6 +6,8 @@ cmake_minimum_required(VERSION 2.8.11)
 set(reals_pal_interface_h_files
     real_threadapi.h
     real_threadapi_renames.h
+    real_sync.h
+    real_sync_renames.h
 )
 
 if(WIN32)
@@ -28,4 +30,4 @@ endif()
 
 add_library(pal_interfaces_reals INTERFACE)
 target_include_directories(pal_interfaces_reals INTERFACE ${CMAKE_CURRENT_LIST_DIR})
-target_link_libraries(pal_interfaces_reals INTERFACE azure_c_logging)
+target_link_libraries(pal_interfaces_reals INTERFACE c_logging)

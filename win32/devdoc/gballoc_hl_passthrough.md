@@ -59,11 +59,26 @@ MOCKABLE_FUNCTION(, int, gballoc_hl_init, void*, gballoc_hl_init_params, void*, 
 
 `gballoc_hl_init` calls `gballoc_ll_init(gballoc_ll_init_params)`. Since `gballoc_hl` is passthrough it has no other functionality and `gballoc_hl_init_params` is ignored. This function is not thread-safe.
 
-**SRS_GBALLOC_HL_PASSTHROUGH_02_001: [** `gballoc_hl_init` shall call `gballoc_ll_init(gballoc_ll_init_params)`. **]**
+**SRS_GBALLOC_HL_PASSTHROUGH_02_017: [** `gballoc_hl_init` shall call `lazy_init` with `do_init` as function to execute and `gballoc_ll_init_params` as parameter. **]**
 
 **SRS_GBALLOC_HL_PASSTHROUGH_02_002: [** `gballoc_hl_init` shall succeed and return 0. **]**
 
 **SRS_GBALLOC_HL_PASSTHROUGH_02_003: [** If  there are any failures then `gballoc_hl_init` shall fail and return a non-zero value. **]**
+
+
+### do_init(void* params)
+```c
+static int do_init(void* params)
+```
+
+`do_init` is a one-time-call function that initializes the module. 
+
+**SRS_GBALLOC_HL_PASSTHROUGH_02_018: [** `do_init` shall call `gballoc_ll_init(params)`. **]**
+
+**SRS_GBALLOC_HL_PASSTHROUGH_02_019: [** `do_init` shall return 0. **]**
+
+**SRS_GBALLOC_HL_PASSTHROUGH_02_020: [** If there are any failures then `do_init` shall fail and return a non-zero value. **]**
+
 
 ### gballoc_hl_deinit
 ```c
@@ -72,7 +87,10 @@ MOCKABLE_FUNCTION(, void, gballoc_hl_deinit);
 
 `gballoc_hl_deinit` calls `gballoc_ll_deinit`. Since `gballoc_hl` is passthrough it has no other functionality.
 
+
 **SRS_GBALLOC_HL_PASSTHROUGH_02_004: [** `gballoc_hl_deinit` shall call `gballoc_ll_deinit`. **]**
+
+**SRS_GBALLOC_HL_PASSTHROUGH_02_021: [** `gballoc_hl_deinit` shall switch module's state to `LAZY_INIT_NOT_DONE` **]**
 
 
 ### gballoc_hl_malloc
@@ -82,7 +100,12 @@ MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc, size_t, size);
 
 `gballoc_hl_malloc` calls `gballoc_ll_malloc` and returns what `gballoc_ll_malloc` returned.
 
+**SRS_GBALLOC_HL_PASSTHROUGH_02_022: [** `gballoc_hl_malloc` shall call `lazy_init` passing as execution function `do_init` and `NULL` for argument. **]**
+
+**SRS_GBALLOC_HL_PASSTHROUGH_02_023: [** If `lazy_init` fail then `gballoc_hl_malloc` shall fail and return `NULL`. **]**
+
 **SRS_GBALLOC_HL_PASSTHROUGH_02_005: [** `gballoc_hl_malloc` shall call `gballoc_ll_malloc(size)` and return what `gballoc_ll_malloc` returned. **]**
+
 
 ### gballoc_hl_free
 ```c
@@ -100,6 +123,10 @@ MOCKABLE_FUNCTION(, void*, gballoc_hl_calloc, size_t, nmemb, size_t, size);
 
 `gballoc_hl_calloc` calls `gballoc_ll_calloc`.
 
+**SRS_GBALLOC_HL_PASSTHROUGH_02_024: [** `gballoc_hl_calloc` shall call `lazy_init` passing as execution function `do_init` and `NULL` for argument. **]**
+
+**SRS_GBALLOC_HL_PASSTHROUGH_02_025: [** If `lazy_init` fail then `gballoc_hl_calloc` shall fail and return `NULL`.  **]**
+
 **SRS_GBALLOC_HL_PASSTHROUGH_02_007: [** `gballoc_hl_calloc` shall call `gballoc_ll_calloc(nmemb, size)` and return what `gballoc_ll_calloc` returned. **]**
 
 
@@ -109,6 +136,10 @@ MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc, void*, ptr, size_t, size);
 ```
 
 `gballoc_hl_realloc` calls `gballoc_ll_realloc`.
+
+**SRS_GBALLOC_HL_PASSTHROUGH_02_026: [** `gballoc_hl_realloc` shall call `lazy_init` passing as execution function `do_init` and `NULL` for argument. **]**
+
+**SRS_GBALLOC_HL_PASSTHROUGH_02_027: [** If `lazy_init` fail then `gballoc_hl_realloc` shall fail and return `NULL`. **]**
 
 **SRS_GBALLOC_HL_PASSTHROUGH_02_008: [** `gballoc_hl_realloc` shall call `gballoc_ll_realloc(ptr, size)` and return what `gballoc_ll_realloc` returned. **]**
 
@@ -152,7 +183,6 @@ Since this is a passthough layer without any counter implementation `gballoc_hl_
 **SRS_GBALLOC_HL_PASSTHROUGH_02_012: [** `gballoc_hl_get_calloc_latency_buckets` shall set `latency_buckets_out`'s bytes all to 0 and return 0. **]**
 
 
-
 ### gballoc_hl_get_free_latency_buckets
 ```c
 MOCKABLE_FUNCTION(, int, gballoc_hl_get_free_latency_buckets, GBALLOC_LATENCY_BUCKETS*, latency_buckets_out);
@@ -161,6 +191,7 @@ MOCKABLE_FUNCTION(, int, gballoc_hl_get_free_latency_buckets, GBALLOC_LATENCY_BU
 Since this is a passthough layer without any counter implementation `gballoc_hl_get_free_latency_buckets` returns.
 
 **SRS_GBALLOC_HL_PASSTHROUGH_02_013: [** `gballoc_hl_get_free_latency_buckets` shall set `latency_buckets_out`'s bytes all to 0 and return 0. **]**
+
 
 ### gballoc_hl_get_latency_bucket_metadata
 ```c
@@ -177,4 +208,4 @@ One latency bucket contains a friendly name for the bucket and its low and high 
 
 **SRS_GBALLOC_HL_PASSTHROUGH_02_016: [** Each consecutive bucket shall be `[1 << n, (1 << (n + 1)) - 1]`, where n starts at 9. **]**
 
-Note: buckets are in this case: `[512-1023]`, `1024-2047`, etc.
+Note: buckets are in this case: `[512-1023]`, `[1024-2047]`, etc.

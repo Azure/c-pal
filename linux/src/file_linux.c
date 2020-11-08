@@ -14,7 +14,7 @@
 #include <signal.h>
 
 #include "azure_c_logging/xlogging.h"
-#include "azure_c_pal/file.h"
+#include "c_pal/file.h"
 #include "azure_c_pal/interlocked.h"
 #include "azure_c_pal/sync.h"
 #include "azure_c_pal/gballoc_hl.h"

@@ -11,16 +11,18 @@
 #include "winsock2.h"
 #include "ws2tcpip.h"
 #include "windows.h"
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
+#include "c_logging/xlogging.h"
 
+#include "real_gballoc_ll.h"
 void* real_malloc(size_t size)
 {
-    return malloc(size);
+    return real_gballoc_ll_malloc(size);
 }
 
 void real_free(void* ptr)
 {
-    free(ptr);
+    real_gballoc_ll_free(ptr);
 }
 
 #include "testrunnerswitcher.h"
@@ -31,17 +33,17 @@ void real_free(void* ptr)
 
 #define ENABLE_MOCKS
 
-#include "azure_c_pal/gballoc_hl.h"
-#include "azure_c_pal/gballoc_hl_redirect.h"
-#include "azure_c_pal/execution_engine.h"
-#include "azure_c_pal/execution_engine_win32.h"
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/execution_engine.h"
+#include "c_pal/execution_engine_win32.h"
 
 #undef ENABLE_MOCKS
 
-#include "azure_c_logging/xlogging.h"
+#include "real_gballoc_hl.h"
 
-#include "azure_c_pal/string_utils.h"
-#include "azure_c_pal/threadpool.h"
+#include "c_pal/string_utils.h"
+#include "c_pal/threadpool.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 static EXECUTION_ENGINE_HANDLE test_execution_engine = (EXECUTION_ENGINE_HANDLE)0x4243;
@@ -270,6 +272,8 @@ BEGIN_TEST_SUITE(threadpool_win32_unittests)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
+    ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
+
     test_serialize_mutex = TEST_MUTEX_CREATE();
     ASSERT_IS_NOT_NULL(test_serialize_mutex);
 
@@ -300,6 +304,8 @@ TEST_SUITE_CLEANUP(suite_cleanup)
     umock_c_deinit();
 
     TEST_MUTEX_DESTROY(test_serialize_mutex);
+
+    real_gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(method_init)

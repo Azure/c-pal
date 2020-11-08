@@ -4,9 +4,9 @@
 #ifndef REAL_THREADAPI_H
 #define REAL_THREADAPI_H
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 
-#include "azure_c_pal/threadapi.h"
+#include "c_pal/threadapi.h"
 
 #define R2(X) REGISTER_GLOBAL_MOCK_HOOK(X, real_##X);
 
@@ -14,7 +14,6 @@
     MU_FOR_EACH_1(R2, \
         ThreadAPI_Create, \
         ThreadAPI_Join, \
-        ThreadAPI_Exit, \
         ThreadAPI_Sleep \
 )
 
@@ -25,8 +24,6 @@ extern "C" {
 THREADAPI_RESULT real_ThreadAPI_Create(THREAD_HANDLE* threadHandle, THREAD_START_FUNC func, void* arg);
 
 THREADAPI_RESULT real_ThreadAPI_Join(THREAD_HANDLE threadHandle, int* res);
-
-void real_ThreadAPI_Exit(int res);
 
 void real_ThreadAPI_Sleep(unsigned int milliseconds);
 

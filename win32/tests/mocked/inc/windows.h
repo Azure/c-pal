@@ -60,6 +60,10 @@ extern "C" {
         PVOID Address
     );
 
+    void WakeByAddressAll(
+        PVOID Address
+    );
+
     LONG InterlockedAdd(
         LONG volatile *Addend,
         LONG          Value

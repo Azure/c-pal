@@ -3,16 +3,18 @@
 
 #include "testrunnerswitcher.h"
 
-#include "azure_c_pal/threadapi.h"
-#include "azure_c_pal/srw_lock.h"
-#include "azure_c_pal/string_utils.h"
-#include "azure_c_pal/timer.h"
-#include "azure_c_pal/interlocked_hl.h"
-#include "azure_c_pal/interlocked.h"
-#include "azure_c_pal/gballoc_ll.h"
-#include "azure_c_pal/gballoc_hl.h"
+#include "c_pal/threadapi.h"
+#include "c_pal/srw_lock.h"
+#include "c_pal/string_utils.h"
+#include "c_pal/timer.h"
+#include "c_pal/interlocked.h"
+#include "c_pal/gballoc_ll.h"
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/call_once.h"
+#include "c_pal/lazy_init.h"
+#include "c_pal/sync.h"
 
-#include "azure_macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"
 
 #ifdef REGISTER_GLOBAL_MOCK_HOOK
 #undef REGISTER_GLOBAL_MOCK_HOOK
@@ -25,10 +27,12 @@
 #include "real_srw_lock.h"
 #include "real_string_utils.h"
 #include "real_timer.h"
-#include "real_interlocked_hl.h"
 #include "real_interlocked.h"
 #include "real_gballoc_ll.h"
 #include "real_gballoc_hl.h"
+#include "real_call_once.h"
+#include "real_lazy_init.h"
+#include "real_sync.h"
 
 BEGIN_TEST_SUITE(reals_win32_ut)
 
@@ -43,10 +47,12 @@ TEST_FUNCTION(check_all_c_pal_reals)
     REGISTER_SRW_LOCK_GLOBAL_MOCK_HOOK();
     REGISTER_STRING_UTILS_GLOBAL_MOCK_HOOK();
     REGISTER_TIMER_GLOBAL_MOCK_HOOK();
-    REGISTER_INTERLOCKED_HL_GLOBAL_MOCK_HOOK();
     REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK();
     REGISTER_GBALLOC_LL_GLOBAL_MOCK_HOOK();
     REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
+    REGISTER_CALL_ONCE_GLOBAL_MOCK_HOOK();
+    REGISTER_LAZY_INIT_GLOBAL_MOCK_HOOK();
+    REGISTER_SYNC_GLOBAL_MOCK_HOOK();
 
     // assert
     // no explicit assert, if it builds it works

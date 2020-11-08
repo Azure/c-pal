@@ -15,8 +15,8 @@ mock_sync.c
 )
 
 set(${theseTestsName}_h_files
-../../../interfaces/inc/azure_c_pal/sync.h
+../../../interfaces/inc/c_pal/sync.h
 mock_sync.h
 )
 
-build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/win32" ADDITIONAL_LIBS pal_interfaces)
+build_test_artifacts(${theseTestsName} ON "tests/c_pal/win32" ADDITIONAL_LIBS pal_interfaces c_pal_reals)

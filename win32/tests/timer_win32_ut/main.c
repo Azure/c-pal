@@ -7,6 +7,6 @@
 int main(void)
 {
     size_t failedTestCount = 0;
-    RUN_TEST_SUITE(timer_unittests, failedTestCount);
+    RUN_TEST_SUITE(timer_win32_unittests, failedTestCount);
     return (int)failedTestCount;
 }

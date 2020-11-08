@@ -45,7 +45,7 @@ MOCKABLE_FUNCTION(, SRW_LOCK_HANDLE, srw_lock_create, bool, do_statistics, const
 
 **SRS_SRW_LOCK_02_023: [** If `do_statistics` is `true` then `srw_lock_create` shall copy `lock_name`.  **]**
 
-**SRS_SRW_LOCK_02_024: [** If `do_statistics` is `true` then `srw_lock_create` shall create a new `TIMER_HANDLE` by calling `timer_create`. **]**
+**SRS_SRW_LOCK_02_024: [** If `do_statistics` is `true` then `srw_lock_create` shall create a new `TIMER_HANDLE` by calling `timer_create_new`. **]**
 
 **SRS_SRW_LOCK_02_003: [** `srw_lock_create` shall succeed and return a non-`NULL` value. **]**
 

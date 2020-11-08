@@ -8,7 +8,7 @@ set(${theseTestsName}_test_files
 )
 
 set(${theseTestsName}_h_files
-    ../../inc/azure_c_pal/file.h
+    ../../inc/c_pal/file.h
     file_int_helpers.h
 )
 
@@ -22,4 +22,4 @@ else()
     )
 endif()
 
-build_test_artifacts(${theseTestsName} ON "tests/azure_c_pal/int" ADDITIONAL_LIBS azure_c_pal)
+build_test_artifacts(${theseTestsName} ON "tests/c_pal/int" ADDITIONAL_LIBS c_pal)

@@ -14,17 +14,18 @@
 
 #include "testrunnerswitcher.h"
 
-#include "azure_macro_utils/macro_utils.h"
-#include "azure_c_pal/async_socket.h"
-#include "azure_c_pal/execution_engine.h"
-#include "azure_c_pal/gballoc_hl.h"
-#include "azure_c_pal/execution_engine_win32.h"
+#include "macro_utils/macro_utils.h"
+#include "c_pal/async_socket.h"
+#include "c_pal/execution_engine.h"
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/execution_engine_win32.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 
 #define TEST_PORT 4266
 
 TEST_DEFINE_ENUM_TYPE(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_RESULT_VALUES)
+TEST_DEFINE_ENUM_TYPE(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_RESULT_VALUES)
 
 static void on_open_complete(void* context, ASYNC_SOCKET_OPEN_RESULT open_result)
 {
@@ -51,7 +52,7 @@ static void on_receive_complete(void* context, ASYNC_SOCKET_RECEIVE_RESULT recei
 static void on_receive_complete_with_error(void* context, ASYNC_SOCKET_RECEIVE_RESULT receive_result, uint32_t bytes_received)
 {
     HANDLE* event = (HANDLE*)context;
-    ASSERT_ARE_EQUAL(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_ERROR, receive_result);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_ABANDONED, receive_result);
     (void)SetEvent(*event);
     (void)receive_result;
     (void)bytes_received;
@@ -122,22 +123,22 @@ BEGIN_TEST_SUITE(async_socket_win32_inttests)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
+    ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
+
     WSADATA wsaData;
     ASSERT_ARE_EQUAL(int, 0, WSAStartup(MAKEWORD(2, 2), &wsaData));
 
     test_serialize_mutex = TEST_MUTEX_CREATE();
     ASSERT_IS_NOT_NULL(test_serialize_mutex);
-
-    ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
 {
-    gballoc_hl_deinit();
-
     TEST_MUTEX_DESTROY(test_serialize_mutex);
 
     (void)WSACleanup();
+
+    gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(method_init)
@@ -198,7 +199,7 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
     ASSERT_IS_NOT_NULL(receive_event);
 
     // act (send one byte and receive it)
-    ASSERT_ARE_EQUAL(int, 0, async_socket_send_async(server_async_socket, send_payload_buffers, 1, on_send_complete, &send_event));
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(server_async_socket, send_payload_buffers, 1, on_send_complete, &send_event));
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(client_async_socket, receive_payload_buffers, 1, on_receive_complete, &receive_event));
 
     // assert
@@ -272,7 +273,7 @@ TEST_FUNCTION(receive_and_send_2_buffers_succeeds)
 
     // act (send one byte and receive it)
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(client_async_socket, receive_payload_buffers, 2, on_receive_complete, &receive_event));
-    ASSERT_ARE_EQUAL(int, 0, async_socket_send_async(server_async_socket, send_payload_buffers, 2, on_send_complete, &send_event));
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(server_async_socket, send_payload_buffers, 2, on_send_complete, &send_event));
 
     // assert
     ASSERT_IS_TRUE(WaitForSingleObject(send_event, INFINITE) == WAIT_OBJECT_0);

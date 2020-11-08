@@ -14,18 +14,15 @@
 
 #include "testrunnerswitcher.h"
 
-#include "azure_macro_utils/macro_utils.h"
-#include "azure_c_logging/xlogging.h"
-#include "azure_c_pal/interlocked_hl.h"
-#include "azure_c_pal/timer.h"
-#include "azure_c_pal/threadpool.h"
-#include "azure_c_pal/execution_engine.h"
-#include "azure_c_pal/gballoc_hl.h"
-#include "azure_c_pal/gballoc_hl_redirect.h"
+#include "macro_utils/macro_utils.h"
+#include "c_logging/xlogging.h"
+#include "c_pal/timer.h"
+#include "c_pal/threadpool.h"
+#include "c_pal/execution_engine.h"
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"
 
-#include "azure_c_pal/execution_engine_win32.h"
-
-TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
+#include "c_pal/execution_engine_win32.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 
@@ -120,20 +117,41 @@ static void wait_for_greater_or_equal(volatile LONG* value, LONG expected, DWORD
     } while (1);
 }
 
+static void wait_for_equal(volatile LONG* value, LONG expected, DWORD timeout)
+{
+    double start_time = timer_global_get_elapsed_ms();
+    double current_time = timer_global_get_elapsed_ms();
+    do
+    {
+        if (current_time - start_time >= timeout)
+        {
+            ASSERT_FAIL("Timeout waiting for value");
+        }
+
+        LONG current_value = InterlockedAdd(value, 0);
+        if (current_value == expected)
+        {
+            break;
+        }
+        (void)WaitOnAddress(value, &current_value, sizeof(current_value), timeout - (DWORD)(current_time - start_time));
+    } while (1);
+}
+
 BEGIN_TEST_SUITE(threadpool_win32_inttests)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
+    ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
+
     xlogging_set_log_function(NULL);
     test_serialize_mutex = TEST_MUTEX_CREATE();
     ASSERT_IS_NOT_NULL(test_serialize_mutex);
-    ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
 {
-    gballoc_hl_deinit();
     TEST_MUTEX_DESTROY(test_serialize_mutex);
+    gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(method_init)
@@ -178,7 +196,7 @@ TEST_FUNCTION(one_work_item_schedule_works)
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, work_function, (void*)&call_count));
 
     // assert
-    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&call_count, 1, INFINITE));
+    wait_for_equal(&call_count, 1, INFINITE);
     LogInfo("Work completed");
 
     // cleanup
@@ -223,7 +241,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_works))
     }
 
     // assert
-    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&call_count, N_WORK_ITEMS, INFINITE));
+    wait_for_equal(&call_count, N_WORK_ITEMS, INFINITE);
     LogInfo("Work completed");
 
     // cleanup
@@ -283,7 +301,7 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
             LogInfo("Waiting for timer to execute after short delay of no execution");
 
             // Should eventually run once (wait up to 2.5 seconds, but it should run in 1.5 seconds)
-            ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&call_count, 1, 2000));
+            wait_for_equal(&call_count, 1, 2000);
             LogInfo("Timer completed, make sure it doesn't run again");
 
             // And should not run again
@@ -336,7 +354,7 @@ TEST_FUNCTION(one_start_timer_works_runs_periodically)
     // assert
 
     // Timer should run 4 times in about 2.1 seconds
-    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&call_count, 4, 3000));
+    wait_for_equal(&call_count, 4, 3000);
     LogInfo("Timer completed 4 times");
 
     // cleanup
@@ -495,7 +513,7 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items)
     SetEvent(wait_work_context.wait_event);
 
     // assert
-    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&wait_work_context.call_count, 2, INFINITE));
+    wait_for_equal(&wait_work_context.call_count, 2, INFINITE);
 
     // cleanup
     (void)CloseHandle(open_event);
@@ -550,8 +568,8 @@ TEST_FUNCTION(close_while_closing_still_executes_the_items)
     SetEvent(wait_work_context.wait_event);
 
     // wait for all callbacks to complete
-    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&close_work_context.call_count, 1, INFINITE));
-    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&wait_work_context.call_count, 2, INFINITE));
+    wait_for_equal(&close_work_context.call_count, 1, INFINITE);
+    wait_for_equal(&wait_work_context.call_count, 2, INFINITE);
 
     // cleanup
     (void)CloseHandle(open_event);
@@ -606,8 +624,8 @@ TEST_FUNCTION(open_while_closing_fails)
     SetEvent(wait_work_context.wait_event);
 
     // wait for all callbacks to complete
-    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&open_work_context.call_count, 1, INFINITE));
-    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&wait_work_context.call_count, 2, INFINITE));
+    wait_for_equal(&open_work_context.call_count, 1, INFINITE);
+    wait_for_equal(&wait_work_context.call_count, 2, INFINITE);
 
     // cleanup
     (void)CloseHandle(open_event);
@@ -707,14 +725,14 @@ static DWORD WINAPI chaos_thread_with_timers_func(LPVOID lpThreadParameter)
             if (InterlockedCompareExchange(&chaos_test_data->can_start_timers, 0, 1) == 1)
             {
                 // Wait for any threads that had been starting timers to complete
-                if (InterlockedHL_WaitForValue(&chaos_test_data->timers_starting, 0, INFINITE) == INTERLOCKED_HL_OK)
-                {
-                    // Cleanup all timers
-                    chaos_cleanup_all_timers(chaos_test_data);
+                wait_for_equal(&chaos_test_data->timers_starting, 0, INFINITE);
 
-                    // Do the close
-                    (void)threadpool_close(chaos_test_data->threadpool);
-                }
+                // Cleanup all timers
+                chaos_cleanup_all_timers(chaos_test_data);
+
+                // Do the close
+                (void)threadpool_close(chaos_test_data->threadpool);
+
                 // Now back to normal
                 (void)InterlockedExchange(&chaos_test_data->can_start_timers, 1);
             }

@@ -1,0 +1,4 @@
+The headers are generated from the SHA ea6b3e973b477b8061e0076bb257dbd7f3faa756 (version 5.2.1) of jemalloc
+Obrained from https://github.com/jemalloc/jemalloc/releases/tag/5.2.1.
+
+Note: This is temporary, in the future the headers will be generated as part of the build.
