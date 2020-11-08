@@ -15,7 +15,7 @@ mock_file.c
 )
 
 set(${theseTestsName}_h_files
-../../../interfaces/inc/azure_c_pal/file.h
+../../../interfaces/inc/c_pal/file.h
 mock_file.h
 )
 
