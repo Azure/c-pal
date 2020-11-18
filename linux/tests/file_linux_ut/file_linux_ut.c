@@ -35,17 +35,17 @@ void real_free(void* ptr)
 
 #define ENABLE_MOCKS
 
-#include "azure_c_pal/gballoc_hl.h"
-#include "azure_c_pal/gballoc_hl_redirect.h"
-#include "azure_c_pal/interlocked.h"
-#include "azure_c_pal/sync.h"
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/interlocked.h"
+#include "c_pal/sync.h"
 #include "mock_file.h"
 
 MOCKABLE_FUNCTION(, void, mock_user_callback, void*, user_context, bool, is_successful);
 
 #undef ENABLE_MOCKS
 
-#include "azure_c_pal/file.h"
+#include "c_pal/file.h"
 
 static TEST_MUTEX_HANDLE g_testByTest;
 
@@ -105,7 +105,7 @@ static FILE_HANDLE start_file_write_async(const unsigned char* buffer, uint32_t 
 
     FILE_WRITE_ASYNC_RESULT result = file_write_async(file_handle, buffer, size, position, user_callback, user_context);
 
-    *captured_callback = ((struct aiocb*)(*captured_aiocbp))->aio_sigevent.sigev_notify_function; 
+    *captured_callback = ((struct aiocb*)(*captured_aiocbp))->aio_sigevent.sigev_notify_function;
     *captured_write_context = ((struct aiocb*)(*captured_aiocbp))->aio_sigevent.sigev_value;
 
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, result);
@@ -127,7 +127,7 @@ static FILE_HANDLE start_file_read_async(unsigned char* buffer, uint32_t size, u
 
     FILE_READ_ASYNC_RESULT result = file_read_async(file_handle, buffer, size, position, user_callback, user_context);
 
-    *captured_callback = ((struct aiocb*)(*captured_aiocbp))->aio_sigevent.sigev_notify_function; 
+    *captured_callback = ((struct aiocb*)(*captured_aiocbp))->aio_sigevent.sigev_notify_function;
     *captured_read_context = ((struct aiocb*)(*captured_aiocbp))->aio_sigevent.sigev_value;
 
     ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_OK, result);
@@ -229,7 +229,7 @@ TEST_FUNCTION(file_create_succeeds)
     ///assert
     ASSERT_IS_NOT_NULL(file_handle);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    
+
     ///cleanup
     file_destroy(file_handle);
 }
@@ -240,7 +240,7 @@ TEST_FUNCTION(file_create_fails)
 {
     ///arrange
     const char filename[] = "file_create_succeeds.txt";
-    
+
     setup_file_create_expectations(filename);
 
     umock_c_negative_tests_snapshot();
@@ -408,7 +408,7 @@ TEST_FUNCTION(file_write_async_succeeds_asynchronously)
     unsigned char source[10];
     uint32_t size = 10;
     uint64_t position = 5;
-    
+
     void* captured_aiocbp;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
@@ -465,7 +465,7 @@ TEST_FUNCTION(file_write_async_fails_synchronously)
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_WRITE_ERROR, result);
-    
+
     ///cleanup
     file_destroy(file_handle);
 }
@@ -485,7 +485,7 @@ TEST_FUNCTION(file_write_async_fails)
     STRICT_EXPECTED_CALL(malloc(sizeof(struct aiocb)));
     STRICT_EXPECTED_CALL(mock_aio_write(IGNORED_ARG))
         .CallCannotFail();
-    
+
     umock_c_negative_tests_snapshot();
     for (size_t i = 0; i < umock_c_negative_tests_call_count(); ++i)
     {
@@ -533,7 +533,7 @@ TEST_FUNCTION(file_read_async_fails_with_null_destination)
     ///assert
     ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_INVALID_ARGS, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    
+
     ///cleanup
     file_destroy(file_handle);
 }
@@ -552,7 +552,7 @@ TEST_FUNCTION(file_read_async_fails_with_null_user_callback)
     ///assert
     ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_INVALID_ARGS, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    
+
     ///cleanup
     file_destroy(file_handle);
 }
@@ -571,7 +571,7 @@ TEST_FUNCTION(file_read_async_fails_if_size_is_zero)
     ///assert
     ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_INVALID_ARGS, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    
+
     ///cleanup
     file_destroy(file_handle);
 }
@@ -589,7 +589,7 @@ TEST_FUNCTION(file_read_async_succeeds_asynchronously)
     unsigned char destination[10];
     uint32_t size = 10;
     uint64_t position = 5;
-    
+
     void* captured_aiocbp;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
@@ -647,7 +647,7 @@ TEST_FUNCTION(file_read_async_fails_synchronously)
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_READ_ERROR, result);
-    
+
     ///cleanup
     file_destroy(file_handle);
 }
@@ -667,7 +667,7 @@ TEST_FUNCTION(file_read_async_fails)
     STRICT_EXPECTED_CALL(malloc(sizeof(struct aiocb)));
     STRICT_EXPECTED_CALL(mock_aio_read(IGNORED_ARG))
         .CallCannotFail();
-    
+
     umock_c_negative_tests_snapshot();
     for (size_t i = 0; i < umock_c_negative_tests_call_count(); ++i)
     {
@@ -722,7 +722,7 @@ TEST_FUNCTION(on_file_write_complete_linux_calls_callback_successfully)
 
     FILE_HANDLE file_handle = start_file_write_async(source, sizeof(source), position, mock_user_callback, user_context, &captured_aiocbp, &captured_callback, &captured_write_context);
 
-   
+
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
     STRICT_EXPECTED_CALL(wake_by_address_all(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mock_aio_return(IGNORED_ARG))
