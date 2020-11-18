@@ -198,7 +198,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle)
         int32_t pending = interlocked_add(&handle->pending_io, 0);
         while (pending != 0)
         {
-            wait_on_address(&handle->pending_io, &pending, UINT32_MAX);
+            (void)wait_on_address(&handle->pending_io, pending, UINT32_MAX);
             pending = interlocked_add(&handle->pending_io, 0);
         }
         /*Codes_SRS_FILE_LINUX_43_003: [ file_destroy shall call close.]*/

@@ -4,5 +4,16 @@
 
 EXECUTION_ENGINE_HANDLE execution_engine_create(void* execution_engine_parameters)
 {
-    return (EXECUTION_ENGINE_HANDLE)0;
+    (void)execution_engine_parameters;
+    return NULL;
+}
+
+void execution_engine_dec_ref(EXECUTION_ENGINE_HANDLE execution_engine)
+{
+    (void)execution_engine;
+}
+
+void execution_engine_inc_ref(EXECUTION_ENGINE_HANDLE execution_engine)
+{
+    (void)execution_engine;
 }

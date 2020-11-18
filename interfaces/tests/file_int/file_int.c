@@ -487,7 +487,7 @@ TEST_FUNCTION(read_beyond_eof_fails)
     ///assert
     wait_on_address_helper(&read_context.value, read_context.pre_callback_value, UINT32_MAX);
     ASSERT_ARE_EQUAL(int32_t, read_context.post_callback_value, interlocked_or(&read_context.value, 0), "value should be post_callback_value");
-    ASSERT_ARE_EQUAL(int32_t, 1, interlocked_add(&read_context.did_read_succeed, 0));
+    ASSERT_ARE_EQUAL(int32_t, 0, interlocked_add(&read_context.did_read_succeed, 0));
 
     //cleanup
     file_destroy(file_handle);
