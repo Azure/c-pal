@@ -156,6 +156,12 @@ static VOID WINAPI on_io_complete(PTP_CALLBACK_INSTANCE instance, PVOID context,
                             bytes_received, io_context->total_buffer_bytes);
                         receive_result = ASYNC_SOCKET_RECEIVE_ERROR;
                     }
+                    else if (bytes_received == 0)
+                    {
+                        /* Codes_SRS_ASYNC_SOCKET_WIN32_42_003: [ If io_result is NO_ERROR, but the number of bytes received is 0, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_ABANDONED as result and 0 for bytes_received. ]*/
+                        LogError("Socket received 0 bytes, assuming socket is closed");
+                        receive_result = ASYNC_SOCKET_RECEIVE_ABANDONED;
+                    }
                     else
                     {
                         /* Codes_SRS_ASYNC_SOCKET_WIN32_01_069: [ If io_result is NO_ERROR, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_OK as result and number_of_bytes_transferred as bytes_received. ]*/

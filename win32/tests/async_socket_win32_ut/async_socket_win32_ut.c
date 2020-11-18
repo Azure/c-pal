@@ -2371,6 +2371,55 @@ TEST_FUNCTION(on_io_complete_with_error_indicates_the_receive_as_complete_with_E
     async_socket_destroy(async_socket);
 }
 
+/* Tests_SRS_ASYNC_SOCKET_WIN32_42_003: [ If io_result is NO_ERROR, but the number of bytes received is 0, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_ABANDONED as result and 0 for bytes_received. ]*/
+TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_with_ABANDONED_with_0_bytes_received)
+{
+    // arrange
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    uint8_t payload_bytes[1];
+    ASYNC_SOCKET_BUFFER payload_buffers[1];
+    PTP_IO test_ptp_io;
+    PTP_WIN32_IO_CALLBACK test_on_io_complete;
+    PVOID test_ptp_io_context;
+    LPOVERLAPPED overlapped;
+    payload_buffers[0].buffer = payload_bytes;
+    payload_buffers[0].length = sizeof(payload_bytes);
+    umock_c_reset_all_calls();
+    STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
+    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
+    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CaptureReturn(&test_ptp_io)
+        .CaptureArgumentValue_pv(&test_ptp_io_context)
+        .CaptureArgumentValue_pfnio(&test_on_io_complete);
+    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
+    STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
+    STRICT_EXPECTED_CALL(mocked_WSARecv((SOCKET)test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG, NULL))
+        .CaptureArgumentValue_lpOverlapped(&overlapped)
+        .SetReturn(SOCKET_ERROR);
+    STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
+        .SetReturn(WSA_IO_PENDING);
+    (void)async_socket_receive_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_receive_complete, (void*)0x4244);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(test_on_receive_complete((void*)0x4244, ASYNC_SOCKET_RECEIVE_ABANDONED, 0));
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+
+    // act
+    test_on_io_complete(NULL, test_ptp_io_context, overlapped, NO_ERROR, (ULONG_PTR)0, test_ptp_io);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    async_socket_destroy(async_socket);
+}
+
 static void on_io_complete_with_error_indicates_the_receive_as_complete_with_ABANDONED(ULONG error_code)
 {
     // arrange

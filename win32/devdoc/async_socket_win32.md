@@ -291,7 +291,9 @@ static VOID CALLBACK on_io_complete(PTP_CALLBACK_INSTANCE instance, PVOID contex
 
    - **SRS_ASYNC_SOCKET_WIN32_01_070: [** If `io_result` is not `NO_ERROR`, the `on_receive_complete` callback passed to `async_socket_receive_async` shall be called with `on_receive_complete_context` as context, `ASYNC_SOCKET_RECEIVE_ERROR` as result and 0 for `bytes_received`. **]**
 
-   - **SRS_ASYNC_SOCKET_WIN32_01_095: [**If `io_result` is `NO_ERROR`, but the number of bytes received is greater than the sum of all buffer sizes passed to `async_socket_receive_async`, the `on_receive_complete` callback passed to `async_socket_receive_async` shall be called with `on_receive_complete_context` as context, `ASYNC_SOCKET_RECEIVE_ERROR` as result and `number_of_bytes_transferred` for `bytes_received`. **]**
+   - **SRS_ASYNC_SOCKET_WIN32_01_095: [** If `io_result` is `NO_ERROR`, but the number of bytes received is greater than the sum of all buffer sizes passed to `async_socket_receive_async`, the `on_receive_complete` callback passed to `async_socket_receive_async` shall be called with `on_receive_complete_context` as context, `ASYNC_SOCKET_RECEIVE_ERROR` as result and `number_of_bytes_transferred` for `bytes_received`. **]**
+
+   - **SRS_ASYNC_SOCKET_WIN32_42_003: [** If `io_result` is `NO_ERROR`, but the number of bytes received is 0, the `on_receive_complete` callback passed to `async_socket_receive_async` shall be called with `on_receive_complete_context` as context, `ASYNC_SOCKET_RECEIVE_ABANDONED` as result and 0 for `bytes_received`. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_068: [** `on_io_complete` shall close the event handle created in `async_socket_send_async`/`async_socket_receive_async`. **]**
 

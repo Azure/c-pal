@@ -200,3 +200,5 @@ Note: It is the responsibility of the caller to ensure the order of the receive 
 **SRS_ASYNC_SOCKET_01_044: [** When receiving completes successfully, `on_receive_complete` shall be called with `ASYNC_SOCKET_RECEIVE_OK`. **]**
 
 **SRS_ASYNC_SOCKET_01_045: [** When receiving completes with error, `on_receive_complete` shall be called with `ASYNC_SOCKET_RECEIVE_ERROR`. **]**
+
+**SRS_ASYNC_SOCKET_42_001: [** When receiving completes with 0 bytes received, `on_receive_complete` shall be called with `ASYNC_SOCKET_RECEIVE_ABANDONED`. **]**
