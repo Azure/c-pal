@@ -176,7 +176,7 @@ TEST_FUNCTION(write_to_a_file_and_read_from_it)
 
     ///act
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, file_write_async(file_handle, source, size, 0, write_callback, &write_context));
-    
+
     ///assert
     wait_on_address_helper(&write_context.value, write_context.pre_callback_value, UINT32_MAX);
     ASSERT_ARE_EQUAL(int32_t, write_context.post_callback_value, interlocked_or(&write_context.value, 0), "value should be post_callback_value");
@@ -236,7 +236,7 @@ TEST_FUNCTION(write_twice_to_a_file_contiguously_and_read_from_it)
     ///act
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, file_write_async(file_handle, source1, size, 0, write_callback, &write_context1));
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, file_write_async(file_handle, source2, size, 4, write_callback, &write_context2));
-   
+
     ///assert
     wait_on_address_helper(&write_context1.value, write_context1.pre_callback_value, UINT32_MAX);
     ASSERT_ARE_EQUAL(int32_t, write_context1.post_callback_value, interlocked_or(&write_context1.value, 0), "value should be post_callback_value");
@@ -311,7 +311,7 @@ TEST_FUNCTION(write_twice_to_a_file_non_contiguously_and_read_from_it)
     ///act
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, file_write_async(file_handle, source1, size, 0, write_callback, &write_context1));
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, file_write_async(file_handle, source2, size, second_write_position, write_callback, &write_context2));
-   
+
     ///assert
     wait_on_address_helper(&write_context1.value, write_context1.pre_callback_value, UINT32_MAX);
     ASSERT_ARE_EQUAL(int32_t, write_context1.post_callback_value, interlocked_or(&write_context1.value, 0), "value should be post_callback_value");
@@ -383,7 +383,7 @@ TEST_FUNCTION(perform_operations_open_write_close_open_read_close)
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, file_write_async(file_handle1, source, size, 0, write_callback, &write_context));
     wait_on_address_helper(&write_context.value, write_context.pre_callback_value, UINT32_MAX);
     file_destroy(file_handle1);
-   
+
     ///assert
     ASSERT_ARE_EQUAL(int32_t, write_context.post_callback_value, interlocked_or(&write_context.value, 0), "value should be post_callback_value");
     ASSERT_ARE_EQUAL(int32_t, 1, interlocked_add(&write_context.did_write_succeed, 0));
@@ -444,7 +444,7 @@ TEST_FUNCTION(read_across_eof_fails)
     ///assert
     wait_on_address_helper(&read_context.value, read_context.pre_callback_value, UINT32_MAX);
     ASSERT_ARE_EQUAL(int32_t, read_context.post_callback_value, interlocked_or(&read_context.value, 0), "value should be post_callback_value");
-    ASSERT_ARE_EQUAL(int32_t, 1, interlocked_add(&read_context.did_read_succeed, 0));
+    ASSERT_ARE_EQUAL(int32_t, 0, interlocked_add(&read_context.did_read_succeed, 0));
 
     //cleanup
     file_destroy(file_handle);
@@ -475,7 +475,7 @@ TEST_FUNCTION(read_beyond_eof_fails)
     FILE_HANDLE file_handle = file_create_helper(filename);
 
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, file_write_async(file_handle, source, size, 0, write_callback, &write_context));
-    
+
 
     wait_on_address_helper(&write_context.value, write_context.pre_callback_value, UINT32_MAX);
     ASSERT_ARE_EQUAL(int32_t, write_context.post_callback_value, interlocked_or(&write_context.value, 0), "value should be post_callback_value");
@@ -527,7 +527,7 @@ TEST_FUNCTION(large_simultaneous_writes_succeed)
         contexts[i].post_callback_value = i;
 
         ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, file_write_async(file_handle, sources[i], block_size, block_size * i, write_callback, &contexts[i]));
-    
+
     }
 
     for (int i = 0; i < num_blocks; ++i)
@@ -564,7 +564,7 @@ TEST_FUNCTION(large_simultaneous_writes_succeed)
     }
     file_destroy(file_handle);
     (void)delete_file(filename);
-} 
+}
 
 
 /*Tests_SRS_FILE_43_003: [If a file with name full_file_name does not exist, file_create shall create a file with that name.]*/
