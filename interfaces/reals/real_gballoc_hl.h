@@ -29,6 +29,8 @@
         gballoc_hl_get_latency_bucket_metadata   \
 )
 
+#include "c_pal/gballoc_hl.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
