@@ -287,7 +287,7 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
 
         // act (start a timer to start delayed and then execute once)
         TIMER_INSTANCE_HANDLE timer;
-        ASSERT_ARE_EQUAL(int, 0, threadpool_start_timer(threadpool, 2000, 0, work_function, (void*)&call_count, &timer));
+        ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 2000, 0, work_function, (void*)&call_count, &timer));
 
         // assert
 
@@ -313,7 +313,7 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
             need_to_retry = false;
         }
 
-        threadpool_stop_timer(timer);
+        threadpool_timer_destroy(timer);
     } while (need_to_retry);
 
     // cleanup
@@ -358,10 +358,10 @@ TEST_FUNCTION(restart_timer_works_runs_once)
 
         // start a timer to start delayed after 4 seconds (which would fail test)
         TIMER_INSTANCE_HANDLE timer;
-        ASSERT_ARE_EQUAL(int, 0, threadpool_start_timer(threadpool, 4000, 0, work_function, (void*)&call_count, &timer));
+        ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 4000, 0, work_function, (void*)&call_count, &timer));
 
         // act (restart timer to start delayed instead after 2 seconds)
-        ASSERT_ARE_EQUAL(int, 0, threadpool_restart_timer(timer, 2000, 0));
+        ASSERT_ARE_EQUAL(int, 0, threadpool_timer_restart(timer, 2000, 0));
 
         // assert
 
@@ -387,7 +387,7 @@ TEST_FUNCTION(restart_timer_works_runs_once)
             need_to_retry = false;
         }
 
-        threadpool_stop_timer(timer);
+        threadpool_timer_destroy(timer);
     } while (need_to_retry);
 
     // cleanup
@@ -424,7 +424,7 @@ TEST_FUNCTION(one_start_timer_works_runs_periodically)
     // act (start a timer to start delayed and then execute every 500ms)
     LogInfo("Starting timer");
     TIMER_INSTANCE_HANDLE timer;
-    ASSERT_ARE_EQUAL(int, 0, threadpool_start_timer(threadpool, 100, 500, work_function, (void*)&call_count, &timer));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&call_count, &timer));
 
     // assert
 
@@ -434,7 +434,7 @@ TEST_FUNCTION(one_start_timer_works_runs_periodically)
 
     // cleanup
     (void)CloseHandle(open_event);
-    threadpool_stop_timer(timer);
+    threadpool_timer_destroy(timer);
     threadpool_close(threadpool);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
@@ -467,7 +467,7 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
     // start a timer to start delayed and then execute every 500ms
     LogInfo("Starting timer");
     TIMER_INSTANCE_HANDLE timer;
-    ASSERT_ARE_EQUAL(int, 0, threadpool_start_timer(threadpool, 100, 500, work_function, (void*)&call_count, &timer));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&call_count, &timer));
 
     // Timer should run 4 times in about 2.1 seconds
     wait_for_equal(&call_count, 4, 3000);
@@ -475,9 +475,9 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
 
     // act
     LogInfo("Cancel then restart timer");
-    threadpool_cancel_timer(timer);
+    threadpool_timer_cancel(timer);
     (void)InterlockedExchange(&call_count, 0);
-    ASSERT_ARE_EQUAL(int, 0, threadpool_restart_timer(timer, 100, 1000));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_restart(timer, 100, 1000));
 
     // assert
 
@@ -487,7 +487,7 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
 
     // cleanup
     (void)CloseHandle(open_event);
-    threadpool_stop_timer(timer);
+    threadpool_timer_destroy(timer);
     threadpool_close(threadpool);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
@@ -523,7 +523,7 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
     // schedule one timer that waits
     LogInfo("Starting timer");
     TIMER_INSTANCE_HANDLE timer;
-    ASSERT_ARE_EQUAL(int, 0, threadpool_start_timer(threadpool, 0, 5000, wait_work_function, (void*)&wait_work_context, &timer));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 0, 5000, wait_work_function, (void*)&wait_work_context, &timer));
 
     // act
 
@@ -531,7 +531,7 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
 
     // call stop
     LogInfo("Timer should be running and waiting, now stop timer");
-    threadpool_stop_timer(timer);
+    threadpool_timer_destroy(timer);
 
     LogInfo("Timer stopped");
 
@@ -575,7 +575,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
     // schedule one timer that waits
     LogInfo("Starting timer");
     TIMER_INSTANCE_HANDLE timer;
-    ASSERT_ARE_EQUAL(int, 0, threadpool_start_timer(threadpool, 0, 5000, wait_work_function, (void*)&wait_work_context, &timer));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 0, 5000, wait_work_function, (void*)&wait_work_context, &timer));
 
     // act
 
@@ -583,7 +583,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
 
     // call cancel
     LogInfo("Timer should be running and waiting, now cancel timer");
-    threadpool_cancel_timer(timer);
+    threadpool_timer_cancel(timer);
 
     LogInfo("Timer canceled");
 
@@ -591,7 +591,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
     SetEvent(wait_work_context.wait_event);
 
     // cleanup
-    threadpool_stop_timer(timer);
+    threadpool_timer_destroy(timer);
     (void)CloseHandle(open_event);
     threadpool_close(threadpool);
     threadpool_destroy(threadpool);
@@ -629,7 +629,7 @@ TEST_FUNCTION(MU_C3(starting_, N_TIMERS, _start_timers_work_and_run_periodically
     TIMER_INSTANCE_HANDLE timers[N_TIMERS];
     for (uint32_t i = 0; i < N_TIMERS; i++)
     {
-        ASSERT_ARE_EQUAL(int, 0, threadpool_start_timer(threadpool, 100, 500, work_function, (void*)&call_count, &timers[i]));
+        ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&call_count, &timers[i]));
     }
 
     // assert
@@ -644,7 +644,7 @@ TEST_FUNCTION(MU_C3(starting_, N_TIMERS, _start_timers_work_and_run_periodically
 
     for (uint32_t i = 0; i < N_TIMERS; i++)
     {
-        threadpool_stop_timer(timers[i]);
+        threadpool_timer_destroy(timers[i]);
     }
 
     // cleanup
@@ -880,7 +880,7 @@ static void chaos_cleanup_all_timers(CHAOS_TEST_DATA* chaos_test_data)
     {
         if (InterlockedCompareExchange(&chaos_test_data->timers[i].state, TIMER_STATE_STOPPING, TIMER_STATE_STARTED) == TIMER_STATE_STARTED)
         {
-            threadpool_stop_timer(chaos_test_data->timers[i].timer);
+            threadpool_timer_destroy(chaos_test_data->timers[i].timer);
             chaos_test_data->timers[i].timer = NULL;
             InterlockedExchange(&chaos_test_data->timers[i].state, TIMER_STATE_NONE);
         }
@@ -937,7 +937,7 @@ static DWORD WINAPI chaos_thread_with_timers_func(LPVOID lpThreadParameter)
                     {
                         uint32_t timer_start_delay = TIMER_START_DELAY_MIN + rand() * (TIMER_START_DELAY_MAX - TIMER_START_DELAY_MIN) / (RAND_MAX + 1);
                         uint32_t timer_period = TIMER_PERIOD_MIN + rand() * (TIMER_PERIOD_MAX - TIMER_PERIOD_MIN) / (RAND_MAX + 1);
-                        if (threadpool_start_timer(chaos_test_data->threadpool, timer_start_delay, timer_period, work_function, (void*)&chaos_test_data->executed_timer_functions, &chaos_test_data->timers[which_timer_slot].timer) == 0)
+                        if (threadpool_timer_start(chaos_test_data->threadpool, timer_start_delay, timer_period, work_function, (void*)&chaos_test_data->executed_timer_functions, &chaos_test_data->timers[which_timer_slot].timer) == 0)
                         {
                             InterlockedExchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_STARTED);
                         }
@@ -961,7 +961,7 @@ static DWORD WINAPI chaos_thread_with_timers_func(LPVOID lpThreadParameter)
                     int which_timer_slot = rand() * MAX_TIMER_COUNT / (RAND_MAX + 1);
                     if (InterlockedCompareExchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_STOPPING, TIMER_STATE_STARTED) == TIMER_STATE_STARTED)
                     {
-                        threadpool_stop_timer(chaos_test_data->timers[which_timer_slot].timer);
+                        threadpool_timer_destroy(chaos_test_data->timers[which_timer_slot].timer);
                         chaos_test_data->timers[which_timer_slot].timer = NULL;
                         InterlockedExchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_NONE);
                     }
@@ -980,7 +980,7 @@ static DWORD WINAPI chaos_thread_with_timers_func(LPVOID lpThreadParameter)
                     int which_timer_slot = rand() * MAX_TIMER_COUNT / (RAND_MAX + 1);
                     if (InterlockedCompareExchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_CANCELING, TIMER_STATE_STARTED) == TIMER_STATE_STARTED)
                     {
-                        threadpool_cancel_timer(chaos_test_data->timers[which_timer_slot].timer);
+                        threadpool_timer_cancel(chaos_test_data->timers[which_timer_slot].timer);
                         (void)InterlockedExchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_STARTED);
                     }
                 }
@@ -1000,7 +1000,7 @@ static DWORD WINAPI chaos_thread_with_timers_func(LPVOID lpThreadParameter)
                     {
                         uint32_t timer_start_delay = TIMER_START_DELAY_MIN + rand() * (TIMER_START_DELAY_MAX - TIMER_START_DELAY_MIN) / (RAND_MAX + 1);
                         uint32_t timer_period = TIMER_PERIOD_MIN + rand() * (TIMER_PERIOD_MAX - TIMER_PERIOD_MIN) / (RAND_MAX + 1);
-                        ASSERT_ARE_EQUAL(int, 0, threadpool_restart_timer(chaos_test_data->timers[which_timer_slot].timer, timer_start_delay, timer_period));
+                        ASSERT_ARE_EQUAL(int, 0, threadpool_timer_restart(chaos_test_data->timers[which_timer_slot].timer, timer_start_delay, timer_period));
                         (void)InterlockedExchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_STARTED);
                     }
                 }
