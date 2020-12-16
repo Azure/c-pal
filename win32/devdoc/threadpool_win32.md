@@ -34,6 +34,10 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THREADPOOL_HANDLE, threadpool
 
 MOCKABLE_FUNCTION(, int, threadpool_start_timer, THREADPOOL_HANDLE, threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, TIMER_INSTANCE_HANDLE*, timer_handle);
 
+MOCKABLE_FUNCTION(, int, threadpool_restart_timer, TIMER_INSTANCE_HANDLE, timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
+
+MOCKABLE_FUNCTION(, void, threadpool_cancel_timer, TIMER_INSTANCE_HANDLE, timer);
+
 MOCKABLE_FUNCTION(, void, threadpool_stop_timer, TIMER_INSTANCE_HANDLE, timer);
 ```
 
@@ -190,6 +194,34 @@ MOCKABLE_FUNCTION(, int, threadpool_start_timer, THREADPOOL_HANDLE, threadpool, 
 **SRS_THREADPOOL_WIN32_42_009: [** `threadpool_start_timer` shall return the allocated handle in `timer_handle`. **]**
 
 **SRS_THREADPOOL_WIN32_42_010: [** `threadpool_start_timer` shall succeed and return 0. **]**
+
+### threadpool_restart_timer
+
+```c
+MOCKABLE_FUNCTION(, int, threadpool_restart_timer, TIMER_INSTANCE_HANDLE, timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
+```
+
+`threadpool_restart_timer` changes the delay and period of an existing timer.
+
+**SRS_THREADPOOL_WIN32_42_019: [** If `timer` is `NULL`, `threadpool_restart_timer` shall fail and return a non-zero value. **]**
+
+**SRS_THREADPOOL_WIN32_42_022: [** `threadpool_restart_timer` shall call `SetThreadpoolTimer`, passing negative `start_delay_ms` as `pftDueTime`, `timer_period_ms` as `msPeriod`, and 0 as `msWindowLength`. **]**
+
+**SRS_THREADPOOL_WIN32_42_023: [** `threadpool_restart_timer` shall succeed and return 0. **]**
+
+### threadpool_cancel_timer
+
+```c
+MOCKABLE_FUNCTION(, void, threadpool_cancel_timer, TIMER_INSTANCE_HANDLE, timer);
+```
+
+`threadpool_cancel_timer` stops the timer and waits for any pending callbacks. Afterward, the timer may be resumed with a new time by calling `threadpool_restart_timer` or cleaned up by calling `threadpool_stop_timer`.
+
+**SRS_THREADPOOL_WIN32_42_024: [** If `timer` is `NULL`, `threadpool_cancel_timer` shall fail and return. **]**
+
+**SRS_THREADPOOL_WIN32_42_025: [** `threadpool_cancel_timer` shall call `SetThreadpoolTimer` with `NULL` for `pftDueTime` and 0 for `msPeriod` and `msWindowLength` to cancel ongoing timers. **]**
+
+**SRS_THREADPOOL_WIN32_42_026: [** `threadpool_cancel_timer` shall call `WaitForThreadpoolTimerCallbacks`. **]**
 
 ### threadpool_stop_timer
 

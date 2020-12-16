@@ -364,6 +364,22 @@ static VOID CALLBACK on_timer_callback(PTP_CALLBACK_INSTANCE instance, PVOID con
     }
 }
 
+static void threadpool_internal_set_timer(PTP_TIMER tp_timer, uint32_t start_delay_ms, uint32_t timer_period_ms)
+{
+    ULARGE_INTEGER ularge_due_time;
+    ularge_due_time.QuadPart = (ULONGLONG)-((int64_t)start_delay_ms * 10000);
+    FILETIME filetime_due_time;
+    filetime_due_time.dwHighDateTime = ularge_due_time.HighPart;
+    filetime_due_time.dwLowDateTime = ularge_due_time.LowPart;
+    SetThreadpoolTimer(tp_timer, &filetime_due_time, timer_period_ms, 0);
+}
+
+static void threadpool_internal_cancel_timer_and_wait(PTP_TIMER tp_timer)
+{
+    SetThreadpoolTimer(tp_timer, NULL, 0, 0);
+    WaitForThreadpoolTimerCallbacks(tp_timer, TRUE);
+}
+
 int threadpool_start_timer(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context, TIMER_INSTANCE_HANDLE* timer_handle)
 {
     int result;
@@ -421,12 +437,7 @@ int threadpool_start_timer(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms
                     timer_temp->work_function_context = work_function_context;
 
                     /* Codes_SRS_THREADPOOL_WIN32_42_007: [ threadpool_start_timer shall call SetThreadpoolTimer, passing negative start_delay_ms as pftDueTime, timer_period_ms as msPeriod, and 0 as msWindowLength. ]*/
-                    ULARGE_INTEGER ularge_due_time;
-                    ularge_due_time.QuadPart = (ULONGLONG) -((int64_t)start_delay_ms * 10000);
-                    FILETIME filetime_due_time;
-                    filetime_due_time.dwHighDateTime = ularge_due_time.HighPart;
-                    filetime_due_time.dwLowDateTime= ularge_due_time.LowPart;
-                    SetThreadpoolTimer(tp_timer, &filetime_due_time, timer_period_ms, 0);
+                    threadpool_internal_set_timer(tp_timer, start_delay_ms, timer_period_ms);
 
                     /* Codes_SRS_THREADPOOL_WIN32_42_009: [ threadpool_start_timer shall return the allocated handle in timer_handle. ]*/
                     *timer_handle = timer_temp;
@@ -450,6 +461,46 @@ int threadpool_start_timer(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms
     return result;
 }
 
+int threadpool_restart_timer(TIMER_INSTANCE_HANDLE timer, uint32_t start_delay_ms, uint32_t timer_period_ms)
+{
+    int result;
+
+    if (
+        /* Codes_SRS_THREADPOOL_WIN32_42_019: [ If timer is NULL, threadpool_restart_timer shall fail and return a non-zero value. ]*/
+        timer == NULL
+        )
+    {
+        LogError("Invalid args: TIMER_INSTANCE_HANDLE timer = %p, uint32_t start_delay_ms = %" PRIu32 ", uint32_t timer_period_ms = %" PRIu32 "",
+            timer, start_delay_ms, timer_period_ms);
+        result = MU_FAILURE;
+    }
+    else
+    {
+        /* Codes_SRS_THREADPOOL_WIN32_42_022: [ threadpool_restart_timer shall call SetThreadpoolTimer, passing negative start_delay_ms as pftDueTime, timer_period_ms as msPeriod, and 0 as msWindowLength. ]*/
+        threadpool_internal_set_timer(timer->timer, start_delay_ms, timer_period_ms);
+
+        /* Codes_SRS_THREADPOOL_WIN32_42_023: [ threadpool_restart_timer shall succeed and return 0. ]*/
+        result = 0;
+    }
+
+    return result;
+}
+
+void threadpool_cancel_timer(TIMER_INSTANCE_HANDLE timer)
+{
+    if (timer == NULL)
+    {
+        /* Codes_SRS_THREADPOOL_WIN32_42_024: [ If timer is NULL, threadpool_cancel_timer shall fail and return. ]*/
+        LogError("Invalid args: TIMER_INSTANCE_HANDLE timer = %p", timer);
+    }
+    else
+    {
+        /* Codes_SRS_THREADPOOL_WIN32_42_025: [ threadpool_cancel_timer shall call SetThreadpoolTimer with NULL for pftDueTime and 0 for msPeriod and msWindowLength to cancel ongoing timers. ]*/
+        /* Codes_SRS_THREADPOOL_WIN32_42_026: [ threadpool_cancel_timer shall call WaitForThreadpoolTimerCallbacks. ]*/
+        threadpool_internal_cancel_timer_and_wait(timer->timer);
+    }
+}
+
 void threadpool_stop_timer(TIMER_INSTANCE_HANDLE timer)
 {
     if (timer == NULL)
@@ -460,10 +511,8 @@ void threadpool_stop_timer(TIMER_INSTANCE_HANDLE timer)
     else
     {
         /* Codes_SRS_THREADPOOL_WIN32_42_012: [ threadpool_stop_timer shall call SetThreadpoolTimer with NULL for pftDueTime and 0 for msPeriod and msWindowLength to cancel ongoing timers. ]*/
-        SetThreadpoolTimer(timer->timer, NULL, 0, 0);
-
         /* Codes_SRS_THREADPOOL_WIN32_42_013: [ threadpool_stop_timer shall call WaitForThreadpoolTimerCallbacks. ]*/
-        WaitForThreadpoolTimerCallbacks(timer->timer, TRUE);
+        threadpool_internal_cancel_timer_and_wait(timer->timer);
 
         /* Codes_SRS_THREADPOOL_WIN32_42_014: [ threadpool_stop_timer shall call CloseThreadpoolTimer. ]*/
         CloseThreadpoolTimer(timer->timer);

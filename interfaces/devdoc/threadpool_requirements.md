@@ -9,7 +9,11 @@ A `threadpool` object receives an execution engine at creation time in order to 
 
 The `threadpool` interface supports:
  - Scheduling a single work item (`threadpool_schedule_work`)
- - Scheduling a timer function to execute at a regular interval (`threadpool_start_timer`/`threadpool_stop_timer`)
+ - Scheduling a timer function to execute at a regular interval
+   - `threadpool_start_timer`
+   - `threadpool_stop_timer`
+   - `threadpool_restart_timer`
+   - `threadpool_cancel_timer`
 
 The lifetime of the execution engine should supersede the lifetime of the `threadpool` object.
 
@@ -37,6 +41,10 @@ MOCKABLE_FUNCTION(, void, threadpool_close, THREADPOOL_HANDLE, threadpool);
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THREADPOOL_HANDLE, threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 
 MOCKABLE_FUNCTION(, int, threadpool_start_timer, THREADPOOL_HANDLE, threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, TIMER_INSTANCE_HANDLE*, timer_handle);
+
+MOCKABLE_FUNCTION(, int, threadpool_restart_timer, TIMER_INSTANCE_HANDLE, timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
+
+MOCKABLE_FUNCTION(, void, threadpool_cancel_timer, TIMER_INSTANCE_HANDLE, timer);
 
 MOCKABLE_FUNCTION(, void, threadpool_stop_timer, TIMER_INSTANCE_HANDLE, timer);
 ```
@@ -158,6 +166,36 @@ MOCKABLE_FUNCTION(, int, threadpool_start_timer, THREADPOOL_HANDLE, threadpool, 
 **SRS_THREADPOOL_42_010: [** `threadpool_start_timer` shall return the allocated handle in `timer_handle`. **]**
 
 **SRS_THREADPOOL_42_011: [** `threadpool_start_timer` shall succeed and return 0. **]**
+
+### threadpool_restart_timer
+
+```c
+MOCKABLE_FUNCTION(, int, threadpool_restart_timer, TIMER_INSTANCE_HANDLE, timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
+```
+
+`threadpool_restart_timer` changes the delay and period of an existing timer.
+
+**SRS_THREADPOOL_42_015: [** If `timer` is `NULL`, `threadpool_restart_timer` shall fail and return a non-zero value. **]**
+
+**SRS_THREADPOOL_42_016: [** `threadpool_restart_timer` shall stop execution of the existing timer and wait for any current executions to complete. **]**
+
+**SRS_THREADPOOL_42_017: [** If `timer_period_ms` is 0 then `threadpool_restart_timer` shall queue for execution the function `work_function` to be executed once after `start_delay_ms` pass `context` to it when it executes. **]**
+
+**SRS_THREADPOOL_42_018: [** Otherwise `threadpool_restart_timer` shall queue for execution the function `work_function` to be executed after `start_delay_ms` and every `timer_period_ms` thereafter and pass `context` to it when it executes. **]**
+
+**SRS_THREADPOOL_42_019: [** `threadpool_restart_timer` shall succeed and return 0. **]**
+
+### threadpool_cancel_timer
+
+```c
+MOCKABLE_FUNCTION(, void, threadpool_cancel_timer, TIMER_INSTANCE_HANDLE, timer);
+```
+
+`threadpool_cancel_timer` stops the timer and waits for any pending callbacks. Afterward, the timer may be resumed with a new time by calling `threadpool_restart_timer` or cleaned up by calling `threadpool_stop_timer`.
+
+**SRS_THREADPOOL_42_020: [** If `timer` is `NULL`, `threadpool_cancel_timer` shall fail and return. **]**
+
+**SRS_THREADPOOL_42_021: [** `threadpool_cancel_timer` shall stop further execution of the timer and wait for any current executions to complete. **]**
 
 ### threadpool_stop_timer
 

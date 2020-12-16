@@ -1190,6 +1190,94 @@ TEST_FUNCTION(threadpool_start_timer_fails_when_underlying_functions_fail)
     threadpool_destroy(threadpool);
 }
 
+/* threadpool_restart_timer */
+
+/* Tests_SRS_THREADPOOL_WIN32_42_019: [ If timer is NULL, threadpool_restart_timer shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(threadpool_restart_timer_with_NULL_timer_fails)
+{
+    // arrange
+
+    // act
+    int result = threadpool_restart_timer(NULL, 43, 1000);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+}
+
+/* Tests_SRS_THREADPOOL_WIN32_42_022: [ threadpool_restart_timer shall call SetThreadpoolTimer, passing negative start_delay_ms as pftDueTime, timer_period_ms as msPeriod, and 0 as msWindowLength. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_42_023: [ threadpool_restart_timer shall succeed and return 0. ]*/
+TEST_FUNCTION(threadpool_restart_timer_succeeds)
+{
+    // arrange
+    THREADPOOL_HANDLE threadpool;
+    PTP_TIMER_CALLBACK test_timer_callback;
+    PVOID test_timer_callback_context;
+    PTP_TIMER ptp_timer;
+    TIMER_INSTANCE_HANDLE timer_instance;
+    test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &ptp_timer, &test_timer_callback, &test_timer_callback_context, &timer_instance);
+
+    ULARGE_INTEGER ularge_due_time;
+    ularge_due_time.QuadPart = (ULONGLONG)-((int64_t)43 * 10000);
+    FILETIME filetime_expected;
+    filetime_expected.dwHighDateTime = ularge_due_time.HighPart;
+    filetime_expected.dwLowDateTime = ularge_due_time.LowPart;
+
+    STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(IGNORED_ARG, &filetime_expected, 1000, 0))
+        .ValidateArgumentValue_pti(&ptp_timer);
+
+    // act
+    int result = threadpool_restart_timer(timer_instance, 43, 1000);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(int, 0, result);
+
+    // cleanup
+    threadpool_stop_timer(timer_instance);
+    threadpool_destroy(threadpool);
+}
+
+/* threadpool_cancel_timer */
+
+/*Tests_SRS_THREADPOOL_WIN32_42_024: [ If timer is NULL, threadpool_cancel_timer shall fail and return. ]*/
+TEST_FUNCTION(threadpool_cancel_timer_with_NULL_timer_fails)
+{
+    // arrange
+
+    // act
+    threadpool_cancel_timer(NULL);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_SRS_THREADPOOL_WIN32_42_025: [ threadpool_cancel_timer shall call SetThreadpoolTimer with NULL for pftDueTime and 0 for msPeriod and msWindowLength to cancel ongoing timers. ]*/
+/*Tests_SRS_THREADPOOL_WIN32_42_026: [ threadpool_cancel_timer shall call WaitForThreadpoolTimerCallbacks. ]*/
+TEST_FUNCTION(threadpool_cancel_timer_succeeds)
+{
+    // arrange
+    THREADPOOL_HANDLE threadpool;
+    PTP_TIMER_CALLBACK test_timer_callback;
+    PVOID test_timer_callback_context;
+    PTP_TIMER ptp_timer;
+    TIMER_INSTANCE_HANDLE timer_instance;
+    test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &ptp_timer, &test_timer_callback, &test_timer_callback_context, &timer_instance);
+
+    STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(ptp_timer, NULL, 0, 0));
+    STRICT_EXPECTED_CALL(mocked_WaitForThreadpoolTimerCallbacks(ptp_timer, TRUE));
+
+    // act
+    threadpool_cancel_timer(timer_instance);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    threadpool_stop_timer(timer_instance);
+    threadpool_destroy(threadpool);
+}
+
 /* threadpool_stop_timer */
 
 /* Tests_SRS_THREADPOOL_WIN32_42_011: [ If timer is NULL, threadpool_stop_timer shall fail and return. ]*/
