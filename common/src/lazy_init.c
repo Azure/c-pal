@@ -1,8 +1,10 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#include <stdint.h>
+#include <stddef.h>
 #include <stdbool.h>
+
+#include "macro_utils/macro_utils.h"  // for MU_COUNT_ARG_0, MU_DISPATCH_EMP...
 
 #include "c_logging/xlogging.h"
 

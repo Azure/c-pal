@@ -1,12 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-
 #include <stdint.h>
 #include <stdbool.h>
 
 #include "windows.h"
+
+#include "macro_utils/macro_utils.h"  // for MU_COUNT_ARG_0, MU_DISPATCH_EMP...
+
+#include "c_pal/interlocked.h"
 #include "c_pal/sync.h"
+
+#include "umock_c/umock_c_prod.h"     // for IMPLEMENT_MOCKABLE_FUNCTION
 
 IMPLEMENT_MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, int32_t, compare_value, uint32_t, timeout_ms)
 {
