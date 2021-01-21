@@ -6,8 +6,6 @@
 
 #include "windows.h"
 
-#include "macro_utils/macro_utils.h"  // for MU_COUNT_ARG_0, MU_DISPATCH_EMP...
-
 #include "c_pal/interlocked.h"
 
 #include "umock_c/umock_c_prod.h"     // for IMPLEMENT_MOCKABLE_FUNCTION
