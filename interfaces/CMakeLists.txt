@@ -6,6 +6,7 @@ set(pal_interfaces_h_files
     inc/c_pal/socket_handle.h
     inc/c_pal/threadpool.h
     inc/c_pal/interlocked.h
+    inc/c_pal/pipe.h
     inc/c_pal/platform.h
     inc/c_pal/threadapi.h
     inc/c_pal/timer.h

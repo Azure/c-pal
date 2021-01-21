@@ -25,6 +25,7 @@ set(pal_linux_h_files
 set(pal_linux_c_files
     ${pal_common_c_files}
     src/interlocked_linux.c
+    src/pipe_linux.c
     src/platform_linux.c
     src/threadapi_pthreads.c
     src/uniqueid_linux.c
