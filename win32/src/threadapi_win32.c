@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#include <stddef.h>
 #include "windows.h"
 
 #include "macro_utils/macro_utils.h"
@@ -54,7 +55,7 @@ THREADAPI_RESULT ThreadAPI_Join(THREAD_HANDLE threadHandle, int *res)
         if( returnCode != WAIT_OBJECT_0)
         {
             result = THREADAPI_ERROR;
-            LogLastError("Error waiting for Single Object. Return Code: %d. Error Code: %d", returnCode, result);
+            LogLastError("Error waiting for Single Object. Return Code: %lu. Error Code: %" PRI_MU_ENUM "", returnCode, MU_ENUM_VALUE(THREADAPI_RESULT, result));
         }
         else
         {

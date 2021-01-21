@@ -1,8 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+#include <stdbool.h>                  // for bool
 #include <stdint.h>
+
 #include "windows.h"
+
 #include "c_pal/interlocked.h"
+
+#include "umock_c/umock_c_prod.h"     // for IMPLEMENT_MOCKABLE_FUNCTION
 
 IMPLEMENT_MOCKABLE_FUNCTION(, int32_t, interlocked_add, volatile int32_t*, addend, int32_t, value) 
 {

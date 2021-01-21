@@ -2,9 +2,15 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include <stdlib.h>
-#include <stdint.h>
-#include "c_logging/xlogging.h"
+#include <string.h>                   // for memcpy, memset, strlen
+
+#include "macro_utils/macro_utils.h"  // for MU_COUNT_ARG_0, MU_DISPATCH_EMP...
+
 #include "rpc.h"
+#include "windows.h"                  // for RPC_S_UUID_LOCAL_ONLY
+
+#include "c_logging/xlogging.h"
+
 #include "c_pal/uniqueid.h"
 
 MU_DEFINE_ENUM_STRINGS(UNIQUEID_RESULT, UNIQUEID_RESULT_VALUES);
