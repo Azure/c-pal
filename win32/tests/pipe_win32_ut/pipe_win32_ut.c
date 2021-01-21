@@ -106,6 +106,7 @@ TEST_FUNCTION(pipe_popen_calls_popen_and_succeeds)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
+/*Tests_SRS_PIPE_42_002: [ If any error occurs then pipe_popen shall fail and return NULL. ]*/
 /*Tests_SRS_WIN32_PIPE_42_001: [ pipe_popen shall call _popen with command and "rt" as type. ]*/
 /*Tests_SRS_WIN32_PIPE_42_002: [ pipe_popen shall return the result of _popen. ]*/
 TEST_FUNCTION(pipe_popen_calls_popen_and_fails)
@@ -199,6 +200,7 @@ TEST_FUNCTION(pipe_pclose_succeeds_returns_0_with_negative_exit_code)
     ASSERT_ARE_EQUAL(int, -42, exit_code);
 }
 
+/*Tests_SRS_PIPE_42_004: [ If any error occurs then pipe_pclose shall fail and return a non-zero value. ]*/
 /*Tests_SRS_WIN32_PIPE_42_004: [ pipe_pclose shall return a non-zero value if the return value of _pclose is -1. ]*/
 TEST_FUNCTION(pipe_pclose_fails_when_close_fails)
 {
