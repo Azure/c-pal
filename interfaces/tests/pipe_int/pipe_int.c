@@ -41,10 +41,7 @@ TEST_SUITE_CLEANUP(b)
 
 TEST_FUNCTION_INITIALIZE(c)
 {
-    if (TEST_MUTEX_ACQUIRE(g_testByTest))
-    {
-        ASSERT_FAIL("our mutex is ABANDONED. Failure in test framework");
-    }
+    ASSERT_IS_TRUE(TEST_MUTEX_ACQUIRE(g_testByTest), "our mutex is ABANDONED. Failure in test framework"));
 }
 
 TEST_FUNCTION_CLEANUP(d)
@@ -81,7 +78,7 @@ TEST_FUNCTION(pipe_open_close_succeeds)
 }
 
 /*Tests_SRS_PIPE_42_005: [ pipe_pclose shall store the result of the executed command in exit_code. ]*/
-TEST_FUNCTION(pipe_open_close_succeeds_returns_non_zero_exit)
+TEST_FUNCTION(pipe_open_close_succeeds_returns_non_zero_exit_code)
 {
     // arrange
     const char* command = "exit 42";
