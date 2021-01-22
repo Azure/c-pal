@@ -41,7 +41,7 @@ TEST_SUITE_CLEANUP(b)
 
 TEST_FUNCTION_INITIALIZE(c)
 {
-    ASSERT_IS_TRUE(TEST_MUTEX_ACQUIRE(g_testByTest), "our mutex is ABANDONED. Failure in test framework");
+    ASSERT_ARE_EQUAL(int, 0, TEST_MUTEX_ACQUIRE(g_testByTest), "our mutex is ABANDONED. Failure in test framework");
 }
 
 TEST_FUNCTION_CLEANUP(d)
