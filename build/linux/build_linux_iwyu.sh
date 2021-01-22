@@ -15,9 +15,12 @@ CORES=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 rm -r -f $build_folder
 mkdir -p $build_folder
 pushd $build_folder
-CC="clang" CXX="clang++" cmake $build_root -GNinja -DCMAKE_C_INCLUDE_WHAT_YOU_USE:UNINITIALIZED=include-what-you-use;-Xiwyu;--mapping_file=../deps/c-build-tools/iwyu/rules.imp; -DCMAKE_CXX_INCLUDE_WHAT_YOU_USE:UNINITIALIZED=include-what-you-use;-Xiwyu;--mapping_file=../deps/c-build-tools/iwyu/rules.imp; -Drun_unittests:bool=ON -Drun_int_tests:bool=ON
-cmake --build .
+CC="clang" CXX="clang++" cmake $build_root -GNinja -DCMAKE_C_INCLUDE_WHAT_YOU_USE:UNINITIALIZED="include-what-you-use;-Xiwyu;--mapping_file=$build_root/deps/c-build-tools/iwyu/rules.imp;" -DCMAKE_CXX_INCLUDE_WHAT_YOU_USE:UNINITIALIZED="include-what-you-use;-Xiwyu;--mapping_file=$build_root/deps/c-build-tools/iwyu/rules.imp;" -Drun_unittests:bool=ON -Drun_int_tests:bool=ON
+cmake --build . > >(tee -a $build_folder"/build.log") 2> >(tee -a $build_folder"/builderror.log" >&2)
 
-# This needs to look for the Warning text in the build output
+if grep 'Warning:' $build_folder"/builderror.log"; then
+    echo "Failing build due to iwyu warnings"
+    exit -1
+fi
 
 popd

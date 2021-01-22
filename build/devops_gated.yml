@@ -139,6 +139,7 @@ jobs:
     name: Azure-MessagingStore
     demands:
       - linux
+  condition: false
 
   steps:
 
