@@ -2,10 +2,12 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 
-#include <stdio.h>
-#include <errno.h>
+#include <stdio.h>                 // for FILE, _pclose, _popen, NULL
+#include <errno.h>                 // for errno
 
-#include "windows.h"
+// Tell IWYU to keep macro_utils.h because we have MU_FAILURE (even though we say that can come from umock_c_prod.h)
+#include "macro_utils/macro_utils.h" // IWYU pragma: keep
+#include "umock_c/umock_c_prod.h"
 #include "c_logging/xlogging.h"
 #include "c_pal/pipe.h"
 
