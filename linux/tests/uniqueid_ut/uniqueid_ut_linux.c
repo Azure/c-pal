@@ -3,10 +3,13 @@
 
 #ifdef __cplusplus
 #include <cstdlib>
+#include <cstring>              // for strlen
 #else
 #include <stdlib.h>
+#include <string.h>              // for strlen
 #endif
 
+// IWYU pragma: no_include <wchar.h>
 #include "testrunnerswitcher.h"
 #include "c_pal/uniqueid.h"
 

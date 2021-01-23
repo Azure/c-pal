@@ -2,27 +2,20 @@
 //Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #ifdef __cplusplus
-#include <cstdlib>
 #include <cstddef>
 #include <cstdint>
 #else
-#include <stdlib.h>
 #include <stddef.h>
 #include <stdint.h>
 #endif
-
 
 #include "testrunnerswitcher.h"
 
 static TEST_MUTEX_HANDLE g_testByTest;
 
-
-
 #include "c_pal/interlocked.h"
 
-
 BEGIN_TEST_SUITE(interlocked_int)
-
 
 TEST_SUITE_INITIALIZE(a)
 {

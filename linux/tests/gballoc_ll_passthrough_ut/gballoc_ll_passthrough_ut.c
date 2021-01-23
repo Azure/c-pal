@@ -7,7 +7,8 @@
 #include <stdlib.h>
 #endif
 
-#include "macro_utils/macro_utils.h"
+
+#include "macro_utils/macro_utils.h" // IWYU pragma: keep
 #include "testrunnerswitcher.h"
 
 static TEST_MUTEX_HANDLE g_testByTest;

@@ -2,18 +2,18 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #ifdef __cplusplus
-#include <cstdlib>
 #else
-#include <stdlib.h>
+#include <stdbool.h>
 #endif
 
-#include "macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
+// IWYU pragma: no_include <wchar.h>
 #include "testrunnerswitcher.h"
+
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes.h"
 #include "umock_c/umocktypes_stdint.h"
-#include "umock_c/umocktypes_bool.h"
 
 #define ENABLE_MOCKS
 #include "c_pal/interlocked.h"
@@ -48,7 +48,6 @@ TEST_SUITE_INITIALIZE(suite_init)
 
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error), "umock_c_init");
     ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types());
-    ASSERT_ARE_EQUAL(int, 0, umocktypes_bool_register_types());
 
     REGISTER_TYPE(CALL_ONCE_RESULT, CALL_ONCE_RESULT);
 
@@ -84,7 +83,7 @@ TEST_FUNCTION(call_once_begin_after_static_init_succeeds)
 {
     ///arrange (done globally)
     CALL_ONCE_RESULT canProceed;
-    
+
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(&g_state, 1, 0));
 
     ///act
@@ -127,7 +126,7 @@ TEST_FUNCTION(call_once_begin_after_begin_end_fails)
     call_once_t state;
     CALL_ONCE_RESULT canProceed;
     (void)real_interlocked_exchange(&state, CALL_ONCE_NOT_CALLED);
-    
+
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(&state, 1, 0));
     STRICT_EXPECTED_CALL(interlocked_exchange(&state, 2));
     STRICT_EXPECTED_CALL(wake_by_address_all(&state));

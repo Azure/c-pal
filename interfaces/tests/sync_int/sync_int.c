@@ -2,22 +2,21 @@
 //Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #ifdef __cplusplus
-#include <cstdlib>
 #include <cstddef>
 #include <cinttypes>
 #else
-#include <stdlib.h>
 #include <stddef.h>
 #include <inttypes.h>
 #include <stdbool.h>
 #endif
 
+// IWYU pragma: no_include <wchar.h>
 #include "testrunnerswitcher.h"
 
 #include "c_logging/xlogging.h"
 
 #include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 #include "c_pal/interlocked.h"
 #include "c_pal/threadapi.h"
 #include "c_pal/sync.h"

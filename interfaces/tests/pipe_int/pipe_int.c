@@ -2,22 +2,17 @@
 //Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #ifdef __cplusplus
-#include <cstdlib>
+#include <cstdio>               // for feof, fgets, FILE
 #include <cstddef>
-#include <cinttypes>
 #else
-#include <stdlib.h>
+#include <stdio.h>               // for feof, fgets, FILE
 #include <stddef.h>
-#include <inttypes.h>
-#include <stdbool.h>
 #endif
 
 #include "testrunnerswitcher.h"
 
-#include "c_logging/xlogging.h"
-
 #include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 #include "c_pal/pipe.h"
 
 static TEST_MUTEX_HANDLE g_testByTest;

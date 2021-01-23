@@ -2,6 +2,8 @@
 
 #include <time.h>
 
+// No idea why iwyu warns about this since we include time.h but...
+// IWYU pragma: no_forward_declare timespec
 
 #define clock_gettime mocked_clock_gettime
 

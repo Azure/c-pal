@@ -1,6 +1,8 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#include <stdint.h>
+
 #include "c_pal/file.h"
 
 typedef struct FILE_HANDLE_DATA_TAG

@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <limits.h>
 #include <time.h>
@@ -10,8 +11,9 @@
 #include "sys/syscall.h"
 #include "linux/futex.h"
 
-#include "c_logging/xlogging.h"
+#include "umock_c/umock_c_prod.h"
 
+#include "c_pal/interlocked.h"     // for volatile_atomic
 #include "c_pal/sync.h"
 
 IMPLEMENT_MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, int32_t, compare_value, uint32_t, timeout_ms)

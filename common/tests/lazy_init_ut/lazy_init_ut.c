@@ -2,22 +2,27 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #ifdef __cplusplus
+#include <cstdint>
 #include <cstdlib>
 #else
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #endif
 
-#include "macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
+// IWYU pragma: no_include <wchar.h>
 #include "testrunnerswitcher.h"
+
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes.h"
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umocktypes_bool.h"
 
-
 #define ENABLE_MOCKS
 #include "c_pal/call_once.h"
+#include "c_pal/interlocked.h"          // for volatile_atomic
 MOCKABLE_FUNCTION(, int, do_init, void*, params);
 #undef ENABLE_MOCKS
 

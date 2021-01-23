@@ -6,10 +6,6 @@
 #define REGISTER_GLOBAL_MOCK_HOOK(original, real) \
     (original == real) ? (void)0 : (void)1;
 
-#include "c_pal/threadapi.h"
-#include "c_pal/sync.h"
-
-
 #include "real_threadapi.h"
 #include "real_sync.h"
 

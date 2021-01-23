@@ -1,12 +1,13 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 
+#include <stdlib.h>
 #include <time.h>
 
 #include "macro_utils/macro_utils.h"
 
 #include "c_logging/xlogging.h"
-#include "c_pal/gballoc_ll.h"
-#include "c_pal/gballoc_ll_redirect.h"
+#include "c_pal/gballoc_ll.h" // IWYU pragma: keep
+#include "c_pal/gballoc_ll_redirect.h" // IWYU pragma: keep
 
 #include "c_pal/timer.h"
 

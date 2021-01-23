@@ -1,18 +1,19 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 
-/*poor man's string routines*/
+#include <stdarg.h>                // for va_list, va_end, va_copy, va_start
 #include <stdio.h>
 #include <stdlib.h>
 #include <wchar.h>
 #include <errno.h>
 #include <string.h>
 
-#include "macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h" // IWYU pragma: keep
+#include "umock_c/umock_c_prod.h"
 
 #include "c_logging/xlogging.h"
 
-#include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/gballoc_hl.h" // IWYU pragma: keep
+#include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 
 #include "c_pal/string_utils.h"
 

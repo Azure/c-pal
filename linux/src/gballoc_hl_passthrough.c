@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include <stddef.h>
+#include <string.h>                   // for memset
 
 #include "macro_utils/macro_utils.h"
 #include "c_logging/xlogging.h"
