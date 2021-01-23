@@ -4,6 +4,12 @@
 #ifndef GBALLOC_HL_REDIRECT_H
 #define GBALLOC_HL_REDIRECT_H
 
+#ifdef __cplusplus
+#include <cstdlib> // IWYU pragma: keep
+#else
+#include <stdlib.h> // IWYU pragma: keep
+#endif
+
 /*this file provides a convenient way of having all the malloc/free preprocessor tokens in a source file replaced by their gballoc_hl counterparts*/
 
 #ifdef GBALLOC_LL_REDIRECT_H
