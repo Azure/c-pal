@@ -1,11 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-
 #include <stdio.h>
 #include <errno.h>
 
+#include "umock_c/umock_c_prod.h"
+
 #include "c_logging/xlogging.h"
+
 #include "c_pal/pipe.h"
 
 IMPLEMENT_MOCKABLE_FUNCTION(, FILE*, pipe_popen, const char*, command)

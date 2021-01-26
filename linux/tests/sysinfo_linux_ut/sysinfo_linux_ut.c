@@ -1,19 +1,18 @@
 // Copyright(C) Microsoft Corporation.All rights reserved.
 
 #ifdef __cplusplus
-#include <cstdlib>
+#include <cstdint>
 #else
-#include <stdlib.h>
+#include <stdint.h>
 #endif
 
 #include <unistd.h>
 
-#include "macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_stdint.h"
-#include "umock_c/umocktypes.h"
 
 #define ENABLE_MOCKS
 

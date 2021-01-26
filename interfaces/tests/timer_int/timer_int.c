@@ -1,10 +1,16 @@
 //Copyright(c) Microsoft.All rights reserved.
 //Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#ifdef __cplusplus
+#include <cstddef>
+#else
+#include <stddef.h>
+#endif
+
 #include "testrunnerswitcher.h"
 
 #include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 #include "c_pal/threadapi.h"
 #include "c_pal/timer.h"
 

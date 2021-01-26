@@ -2,9 +2,13 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #ifdef __cplusplus
+#include <ctdint>
 #include <cstdlib>
+#include <cstring>              // for memset, memcmp
 #else
+#include <stdint.h>
 #include <stdlib.h>
+#include <string.h>              // for memset, memcmp
 #endif
 
 static void* stdlib_malloc(size_t size)
@@ -27,8 +31,7 @@ static void stdlib_free(void* ptr)
     free(ptr);
 }
 
-
-#include "macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h" // IWYU pragma: keep
 #include "testrunnerswitcher.h"
 
 static TEST_MUTEX_HANDLE g_testByTest;

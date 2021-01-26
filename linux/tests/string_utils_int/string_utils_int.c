@@ -1,18 +1,20 @@
 // Copyright(C) Microsoft Corporation.All rights reserved.
 
 #ifdef __cplusplus
-#include <cinttypes>
 #include <clocale>
+#include <cstdarg>              // for va_end, va_list, va_start
+#include <cstdlib>
 #else
-#include <inttypes.h>
-#include <stdbool.h>
 #include <locale.h>
+#include <stdarg.h>              // for va_end, va_list, va_start
+#include <stdlib.h>
+#include <wchar.h>               // for wchar_t
 #endif
 
 #include "testrunnerswitcher.h"
 
 #include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 
 #include "c_pal/string_utils.h"
 
