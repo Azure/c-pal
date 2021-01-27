@@ -3,18 +3,13 @@
 
 #ifdef __cplusplus
 #include <cstdio>
-#include <cstdlib>
 #include <cstddef>
-#include <cerrno>
 #else
 #include <stdio.h>
-#include <stdlib.h>
 #include <stddef.h>
-#include <stdbool.h>
-#include <errno.h>
 #endif
 
-#include "macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h" // IWYU pragma: keep
 #include "testrunnerswitcher.h"
 
 #include "umock_c/umock_c.h"
@@ -171,8 +166,9 @@ TEST_FUNCTION(pipe_pclose_succeeds_returns_0_with_negative_exit_code)
     // arrange
     int exit_code;
 
+    int return_value_mock = -42;
     STRICT_EXPECTED_CALL(mock_pclose(test_file_handle))
-        .SetReturn((-42) << 8);
+        .SetReturn(((unsigned int)(-42)) << 8);
 
     // act
     int result = pipe_pclose(test_file_handle, &exit_code);

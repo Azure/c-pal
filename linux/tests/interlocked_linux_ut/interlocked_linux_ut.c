@@ -2,16 +2,16 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #ifdef __cplusplus
-#include <cstdlib>
 #include <cstdint>
 #include <cstdatomic>
 #else
-#include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdatomic.h>
 #endif
-#include "macro_utils/macro_utils.h"
+
+#include "macro_utils/macro_utils.h" // IWYU pragma: keep
+
 #include "testrunnerswitcher.h"
 
 #include "umock_c/umock_c.h"
@@ -144,7 +144,7 @@ TEST_FUNCTION(interlocked_and_calls_atomic_fetch_and)
     volatile_atomic uint32_t destination;
     atomic_exchange(&destination, (uint32_t)0xF0F0F0F0);
     uint32_t value = 0x0F0F0F0F;
-    STRICT_EXPECTED_CALL(mock_atomic_fetch_and_32(&destination, value))
+    STRICT_EXPECTED_CALL(mock_atomic_fetch_and_32((volatile_atomic int32_t*)&destination, value))
         .SetReturn(0xF0F0F0F0);
 
     ///act
@@ -163,7 +163,7 @@ TEST_FUNCTION(interlocked_and_16_calls_atomic_fetch_and)
     volatile_atomic uint16_t destination;
     atomic_exchange(&destination, (uint16_t)0xF0F0);
     uint16_t value = 0x0F0F;
-    STRICT_EXPECTED_CALL(mock_atomic_fetch_and_16(&destination, value))
+    STRICT_EXPECTED_CALL(mock_atomic_fetch_and_16((volatile_atomic int16_t*)&destination, value))
         .SetReturn(0xF0F0);
 
     ///act
@@ -182,7 +182,7 @@ TEST_FUNCTION(interlocked_and_64_calls_atomic_fetch_and)
     volatile_atomic uint64_t destination;
     atomic_exchange(&destination, (uint64_t)0xF0F0F0F0F0F0F0F0);
     uint64_t value = 0x0F0F0F0F0F0F0F0F;
-    STRICT_EXPECTED_CALL(mock_atomic_fetch_and_64(&destination, value))
+    STRICT_EXPECTED_CALL(mock_atomic_fetch_and_64((volatile_atomic int64_t*)&destination, value))
         .SetReturn(0xF0F0F0F0F0F0F0F0);
 
     ///act
@@ -201,7 +201,7 @@ TEST_FUNCTION(interlocked_and_8_calls_atomic_fetch_and)
     volatile_atomic uint8_t destination;
     atomic_exchange(&destination, (uint8_t)0xF0);
     uint8_t value = 0x0F;
-    STRICT_EXPECTED_CALL(mock_atomic_fetch_and_8(&destination, value))
+    STRICT_EXPECTED_CALL(mock_atomic_fetch_and_8((volatile_atomic int8_t*)&destination, value))
         .SetReturn(0xF0);
 
     ///act
@@ -630,7 +630,7 @@ TEST_FUNCTION(interlocked_or_calls_atomic_fetch_or)
     volatile_atomic uint32_t destination;
     atomic_exchange(&destination, (uint32_t)0xF0F0F0F0);
     uint32_t value = 0x0F0F0F0F;
-    STRICT_EXPECTED_CALL(mock_atomic_fetch_or_32(&destination, value))
+    STRICT_EXPECTED_CALL(mock_atomic_fetch_or_32((volatile_atomic int32_t*)&destination, value))
         .SetReturn(0xF0F0F0F0);
 
     ///act
@@ -649,7 +649,7 @@ TEST_FUNCTION(interlocked_or_16_calls_atomic_fetch_or)
     volatile_atomic uint16_t destination;
     atomic_exchange(&destination, (uint16_t)0xF0F0);
     uint16_t value = 0x0F0F;
-    STRICT_EXPECTED_CALL(mock_atomic_fetch_or_16(&destination, value))
+    STRICT_EXPECTED_CALL(mock_atomic_fetch_or_16((volatile_atomic int16_t*)&destination, value))
         .SetReturn((uint16_t)0xF0F0);
 
     ///act
@@ -668,7 +668,7 @@ TEST_FUNCTION(interlocked_or_64_calls_atomic_fetch_or)
     volatile_atomic uint64_t destination;
     atomic_exchange(&destination, (uint64_t)0xF0F0F0F0F0F0F0F0);
     uint64_t value = 0x0F0F0F0F0F0F0F0F;
-    STRICT_EXPECTED_CALL(mock_atomic_fetch_or_64(&destination, value))
+    STRICT_EXPECTED_CALL(mock_atomic_fetch_or_64((volatile_atomic int64_t*)&destination, value))
         .SetReturn(0xF0F0F0F0F0F0F0F0);
 
     ///act
@@ -687,7 +687,7 @@ TEST_FUNCTION(interlocked_or_8_calls_atomic_fetch_or)
     volatile_atomic uint8_t destination;
     atomic_exchange(&destination, (uint8_t)0xF0);
     uint8_t value = 0x0F;
-    STRICT_EXPECTED_CALL(mock_atomic_fetch_or_8(&destination, value))
+    STRICT_EXPECTED_CALL(mock_atomic_fetch_or_8((volatile_atomic int8_t*)&destination, value))
         .SetReturn((uint8_t)0xF0);
 
     ///act
@@ -706,7 +706,7 @@ TEST_FUNCTION(interlocked_xor_calls_atomic_fetch_xor)
     volatile_atomic uint32_t destination;
     atomic_exchange(&destination, (uint32_t)0xF0F0F0F0);
     uint32_t value = 0x0F0F0F0F;
-    STRICT_EXPECTED_CALL(mock_atomic_fetch_xor_32(&destination, value))
+    STRICT_EXPECTED_CALL(mock_atomic_fetch_xor_32((volatile_atomic int32_t*)&destination, value))
         .SetReturn(0xF0F0F0F0);
 
     ///act
@@ -725,7 +725,7 @@ TEST_FUNCTION(interlocked_xor_16_calls_atomic_fetch_xor)
     volatile_atomic uint16_t destination;
     atomic_exchange(&destination, (uint16_t)0xF0F0);
     uint16_t value = 0x0F0F;
-    STRICT_EXPECTED_CALL(mock_atomic_fetch_xor_16(&destination, value))
+    STRICT_EXPECTED_CALL(mock_atomic_fetch_xor_16((volatile_atomic int16_t*)&destination, value))
         .SetReturn((uint16_t)0xF0F0);
 
     ///act
@@ -744,7 +744,7 @@ TEST_FUNCTION(interlocked_xor_64_calls_atomic_fetch_xor)
     volatile_atomic uint64_t destination;
     atomic_exchange(&destination, (uint64_t)0xF0F0F0F0F0F0F0F0);
     uint64_t value = 0x0F0F0F0F0F0F0F0F;
-    STRICT_EXPECTED_CALL(mock_atomic_fetch_xor_64(&destination, value))
+    STRICT_EXPECTED_CALL(mock_atomic_fetch_xor_64((volatile_atomic int64_t*)&destination, value))
         .SetReturn(0xF0F0F0F0F0F0F0F0);
 
     ///act
@@ -763,7 +763,7 @@ TEST_FUNCTION(interlocked_xor_8_calls_atomic_fetch_xor)
     volatile_atomic uint8_t destination;
     atomic_exchange(&destination, (uint8_t)0xF0);
     uint8_t value = 0x0F;
-    STRICT_EXPECTED_CALL(mock_atomic_fetch_xor_8(&destination, value))
+    STRICT_EXPECTED_CALL(mock_atomic_fetch_xor_8((volatile_atomic int8_t*)&destination, value))
         .SetReturn((uint8_t)0xF0);
 
     ///act

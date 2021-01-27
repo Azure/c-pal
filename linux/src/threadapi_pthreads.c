@@ -9,12 +9,6 @@
 #include <stdlib.h>
 #include <errno.h>
 
-#ifdef TI_RTOS
-#include <ti/sysbios/knl/Task.h>
-#else
-#include <unistd.h>
-#endif
-
 #include <pthread.h>
 #include <time.h>
 #include "c_logging/xlogging.h"

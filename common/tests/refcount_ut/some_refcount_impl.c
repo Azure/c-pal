@@ -3,8 +3,8 @@
 
 #include <stddef.h>
 #include "c_pal/refcount.h"
-#include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/gballoc_hl.h" // IWYU pragma: keep
+#include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 #include "some_refcount_impl.h"
 
 typedef struct pos_TAG

@@ -8,7 +8,7 @@
 #include <time.h>
 #endif
 
-#include "macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
 static void* my_gballoc_malloc(size_t size)
 {
@@ -26,7 +26,7 @@ static void my_gballoc_free(void* s)
 
 #define ENABLE_MOCKS
 #include "c_pal/gballoc_ll.h"
-#include "c_pal/gballoc_ll_redirect.h"
+#include "c_pal/gballoc_ll_redirect.h" // IWYU pragma: keep
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,6 +41,9 @@ extern "C" {
 #include "real_gballoc_ll.h"
 
 #include "c_pal/timer.h"
+
+// No idea why iwyu warns about this since we include time.h but...
+// IWYU pragma: no_forward_declare timespec
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 

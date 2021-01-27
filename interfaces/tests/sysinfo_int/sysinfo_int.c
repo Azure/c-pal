@@ -2,16 +2,17 @@
 //Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #ifdef __cplusplus
+#include <cstddef>
 #include <cstdint>
 #else
+#include <stddef.h>
 #include <stdint.h>
 #endif
-#include "testrunnerswitcher.h"
 
 #include "testrunnerswitcher.h"
 
 #include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 #include "c_pal/sysinfo.h"
 
 static TEST_MUTEX_HANDLE g_testByTest;

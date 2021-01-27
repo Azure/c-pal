@@ -2,16 +2,21 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #ifdef __cplusplus
+#include <cstdint>
 #include <cstdlib>
 #else
+#include <stdint.h>
 #include <stdlib.h>
 #endif
 
-#include "macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
+// IWYU pragma: no_include <wchar.h>
 #include "testrunnerswitcher.h"
 #include "c_pal/threadapi.h"
 
+#include "c_pal/call_once.h"     // for call_once_t
+#include "c_pal/interlocked.h"
 #include "c_pal/lazy_init.h"
 
 TEST_DEFINE_ENUM_TYPE(LAZY_INIT_RESULT, LAZY_INIT_RESULT_VALUES);
