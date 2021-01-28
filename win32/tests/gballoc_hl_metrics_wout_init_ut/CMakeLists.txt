@@ -1,7 +1,5 @@
 #Copyright (c) Microsoft. All rights reserved.
 
-cmake_minimum_required(VERSION 2.8.11)
-
 compileAsC11()
 set(theseTestsName gballoc_hl_metrics_wout_init_ut)
 

@@ -1,8 +1,6 @@
 #Copyright (c) Microsoft. All rights reserved.
 #Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-cmake_minimum_required(VERSION 2.8.11)
-
 #this cmakelists.txt in intended to build test for every combination of gballoc_hl and gballoc_ll
 #to do that, it uses GBALOC_LL_IMPL and GBALLOC_HL_IMPL (which are set in a foreach() loop in the folder above). 
 #since it would result in multiple of the same target, it uses ${BINARY_DIR} suffix on the CMake binary build folder AND on the targets that it builds (they all need to be unique)
