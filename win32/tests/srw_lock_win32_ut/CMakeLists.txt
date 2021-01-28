@@ -1,7 +1,5 @@
 #Copyright (c) Microsoft. All rights reserved.
 
-cmake_minimum_required(VERSION 2.8.11)
-
 compileAsC11()
 set(theseTestsName srw_lock_win32_ut)
 
