@@ -62,7 +62,7 @@ MOCK_FUNCTION_END()
 /* Tests_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func and free_func for memory allocation and free.  ]*/
 DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC(TEST_STRUCT, test_malloc, test_free);
 
-BEGIN_TEST_SUITE(refcount_unittests)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
     TEST_SUITE_INITIALIZE(TestClassInitialize)
     {
@@ -310,4 +310,4 @@ BEGIN_TEST_SUITE(refcount_unittests)
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     }
 
-END_TEST_SUITE(refcount_unittests)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

@@ -138,7 +138,7 @@ static void wait_for_equal(volatile LONG* value, LONG expected, DWORD timeout)
     } while (1);
 }
 
-BEGIN_TEST_SUITE(threadpool_win32_inttests)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -1122,4 +1122,4 @@ TEST_FUNCTION(chaos_knight_test_with_timers)
     execution_engine_dec_ref(execution_engine);
 }
 
-END_TEST_SUITE(threadpool_win32_inttests)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

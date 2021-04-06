@@ -7,6 +7,6 @@
 int main(void)
 {
     size_t failedTestCount = 0;
-    RUN_TEST_SUITE(gballoc_ll_win32heap_int, failedTestCount);
+    RUN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE, failedTestCount);
     return failedTestCount;
 }

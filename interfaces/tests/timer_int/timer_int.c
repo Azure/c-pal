@@ -16,7 +16,7 @@
 
 static TEST_MUTEX_HANDLE g_testByTest;
 
-BEGIN_TEST_SUITE(timer_int)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(a)
 {
@@ -304,4 +304,4 @@ TEST_FUNCTION(timer_global_get_elapsed_us_measures_a_seconds)
     ASSERT_IS_TRUE((end - start) < 1500000);
 }
 
-END_TEST_SUITE(timer_int)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

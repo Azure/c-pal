@@ -7,6 +7,6 @@
 int main(void)
 {
     size_t failedTestCount = 0;
-    RUN_TEST_SUITE(call_once_unittests, failedTestCount);
+    RUN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE, failedTestCount);
     return failedTestCount;
 }

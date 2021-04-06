@@ -42,7 +42,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
 
-BEGIN_TEST_SUITE(sysinfo_win32_unittests)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -113,4 +113,4 @@ TEST_FUNCTION(sysinfo_get_processor_count_returns_the_processor_count_33)
     ASSERT_ARE_EQUAL(uint32_t, 33, proc_count);
 }
 
-END_TEST_SUITE(sysinfo_win32_unittests)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

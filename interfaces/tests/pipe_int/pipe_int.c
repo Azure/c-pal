@@ -17,7 +17,7 @@
 
 static TEST_MUTEX_HANDLE g_testByTest;
 
-BEGIN_TEST_SUITE(pipe_int)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 
 TEST_SUITE_INITIALIZE(a)
@@ -88,4 +88,4 @@ TEST_FUNCTION(pipe_open_close_succeeds_returns_non_zero_exit_code)
     ASSERT_ARE_EQUAL(int, 42, exit_code);
 }
 
-END_TEST_SUITE(pipe_int)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

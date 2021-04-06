@@ -40,7 +40,7 @@ extern "C"
 }
 #endif
 
-BEGIN_TEST_SUITE(interlocked_win32_unittests)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -738,4 +738,4 @@ TEST_FUNCTION(interlocked_xor_8_calls_InterlockedXor8)
     ASSERT_ARE_EQUAL(uint8_t, 0xF0, return_val, "Return value is incorrect.");
 }
 
-END_TEST_SUITE(interlocked_win32_unittests)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

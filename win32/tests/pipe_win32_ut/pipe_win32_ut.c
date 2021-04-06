@@ -50,7 +50,7 @@ extern "C"
 static FILE* test_file_handle = (FILE*)0x1001;
 
 
-BEGIN_TEST_SUITE(pipe_win32_unittests)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -218,4 +218,4 @@ TEST_FUNCTION(pipe_pclose_fails_when_close_fails)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-END_TEST_SUITE(pipe_win32_unittests)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

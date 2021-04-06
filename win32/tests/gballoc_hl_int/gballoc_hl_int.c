@@ -16,7 +16,7 @@ static TEST_MUTEX_HANDLE g_testByTest;
 
 #include "c_pal/gballoc_hl.h"
 
-BEGIN_TEST_SUITE(gballoc_hl_passthrough_int)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(TestClassInitialize)
 {
@@ -151,4 +151,4 @@ TEST_FUNCTION(gballoc_hl_calloc_works)
     gballoc_hl_free(ptr);
 }
 
-END_TEST_SUITE(gballoc_hl_passthrough_int)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

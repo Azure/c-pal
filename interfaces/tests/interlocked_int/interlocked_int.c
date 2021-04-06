@@ -15,7 +15,7 @@ static TEST_MUTEX_HANDLE g_testByTest;
 
 #include "c_pal/interlocked.h"
 
-BEGIN_TEST_SUITE(interlocked_int)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(a)
 {
@@ -1045,4 +1045,4 @@ TEST_FUNCTION(interlocked_xor_8_does_bitwise_xor)
     ASSERT_ARE_EQUAL(uint8_t, 0xFF, return_val, "Return value is incorrect");
 }
 
-END_TEST_SUITE(interlocked_int)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

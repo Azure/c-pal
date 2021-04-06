@@ -16,7 +16,7 @@ static TEST_MUTEX_HANDLE g_testByTest;
 
 #include "c_pal/gballoc_ll.h"
 
-BEGIN_TEST_SUITE(gballoc_ll_win32heap_int)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(TestClassInitialize)
 {
@@ -169,4 +169,4 @@ TEST_FUNCTION(gballoc_ll_size_works)
 
 }
 
-END_TEST_SUITE(gballoc_ll_win32heap_int)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

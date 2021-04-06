@@ -116,7 +116,7 @@ static void TEST_srw_lock_acquire_exclusive(SRW_LOCK_HANDLE handle, double prete
     umock_c_reset_all_calls();
 }
 
-BEGIN_TEST_SUITE(srw_lock_unittests)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -739,4 +739,4 @@ TEST_FUNCTION(srw_lock_release_shared_succeeds)
     srw_lock_destroy(bsdlLock);
 }
 
-END_TEST_SUITE(srw_lock_unittests)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

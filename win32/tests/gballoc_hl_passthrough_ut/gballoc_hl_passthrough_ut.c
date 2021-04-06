@@ -53,7 +53,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
 
-BEGIN_TEST_SUITE(gballoc_hl_passthrough_ut)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(init_suite)
 {
@@ -574,4 +574,4 @@ TEST_FUNCTION(gballoc_hl_get_free_latency_buckets_zeroes)
     gballoc_hl_deinit();
 }
 
-END_TEST_SUITE(gballoc_hl_passthrough_ut)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

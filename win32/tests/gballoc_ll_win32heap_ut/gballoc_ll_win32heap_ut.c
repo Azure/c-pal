@@ -83,7 +83,7 @@ static void TEST_gballoc_ll_init(void)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-BEGIN_TEST_SUITE(gballoc_ll_win32heap_ut)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(TestClassInitialize)
 {
@@ -475,4 +475,4 @@ TEST_FUNCTION(gballoc_ll_size_returns_what_HeapSize_returned_when_it_fails)
     ///clean
 }
 
-END_TEST_SUITE(gballoc_ll_win32heap_ut)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
