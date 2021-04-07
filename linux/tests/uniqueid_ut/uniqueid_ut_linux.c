@@ -23,7 +23,7 @@ TEST_DEFINE_ENUM_TYPE(UNIQUEID_RESULT, UNIQUEID_RESULT_VALUES);
 static char* uidBuffer = NULL;
 static char* uidBuffer2 = NULL;
 
-BEGIN_TEST_SUITE(uniqueid_unittests)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -98,4 +98,4 @@ TEST_FUNCTION(UniqueId_Generate_Succeed)
     ASSERT_ARE_EQUAL(size_t, 36, strlen(uid) );
 }
 
-END_TEST_SUITE(uniqueid_unittests)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
