@@ -78,7 +78,7 @@ static int increment_on_wake_up(void* address)
 }
 
 
-BEGIN_TEST_SUITE(sync_int)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 
 TEST_SUITE_INITIALIZE(a)
@@ -221,4 +221,4 @@ TEST_FUNCTION(wait_on_address_returns_after_timeout_elapses)
     ASSERT_IS_FALSE(return_val, "wait_on_address should have returned false");
 }
 
-END_TEST_SUITE(sync_int)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

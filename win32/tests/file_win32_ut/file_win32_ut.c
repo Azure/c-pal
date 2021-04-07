@@ -154,7 +154,7 @@ static FILE_HANDLE start_file_io_async(FILE_IO_ASYNC_TYPE type, unsigned char* b
 
 }
 
-BEGIN_TEST_SUITE(file_win32_unittests)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -1031,4 +1031,4 @@ TEST_FUNCTION(on_file_io_complete_win32_calls_callback_unsuccessfully_for_read_b
     file_destroy(file_handle);
 }
 
-END_TEST_SUITE(file_win32_unittests)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

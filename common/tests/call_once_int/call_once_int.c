@@ -83,7 +83,7 @@ static int chaosThread(
     return 0;
 }
 
-BEGIN_TEST_SUITE(call_once_inttests)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -165,4 +165,4 @@ TEST_FUNCTION(call_once_chaos_knight)
 }
 
 
-END_TEST_SUITE(call_once_inttests)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

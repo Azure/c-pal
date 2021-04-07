@@ -121,7 +121,7 @@ MOCK_FUNCTION_END()
 }
 #endif
 
-BEGIN_TEST_SUITE(async_socket_win32_unittests)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -2488,4 +2488,4 @@ TEST_FUNCTION(on_io_complete_with_ERROR_CONNECTION_ABORTED_indicates_the_receive
     on_io_complete_with_error_indicates_the_receive_as_complete_with_ABANDONED(ERROR_CONNECTION_ABORTED);
 }
 
-END_TEST_SUITE(async_socket_win32_unittests)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

@@ -23,7 +23,7 @@
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 
-BEGIN_TEST_SUITE(custom_heap_perf_tests)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -193,4 +193,4 @@ TEST_FUNCTION(free_performance)
     free(blocks);
 }
 
-END_TEST_SUITE(custom_heap_perf_tests)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

@@ -61,7 +61,7 @@ static bool hook_mock_atomic_compare_exchange_pointer(void* volatile_atomic* obj
     return atomic_compare_exchange_strong(object, expected, desired);
 }
 
-BEGIN_TEST_SUITE(interlocked_linux_unittests)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -773,4 +773,4 @@ TEST_FUNCTION(interlocked_xor_8_calls_atomic_fetch_xor)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
     ASSERT_ARE_EQUAL(uint8_t, 0xF0, return_val, "Return value is incorrect.");
 }
-END_TEST_SUITE(interlocked_linux_unittests)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

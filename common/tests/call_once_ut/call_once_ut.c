@@ -39,7 +39,7 @@ IMPLEMENT_UMOCK_C_ENUM_TYPE(CALL_ONCE_RESULT, CALL_ONCE_RESULT_VALUES);
 
 static call_once_t g_state = CALL_ONCE_NOT_CALLED;
 
-BEGIN_TEST_SUITE(call_once_unittests)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -199,4 +199,4 @@ TEST_FUNCTION(call_once_end_without_success_switches_state_to_0)
 }
 
 
-END_TEST_SUITE(call_once_unittests)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

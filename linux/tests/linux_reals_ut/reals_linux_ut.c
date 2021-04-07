@@ -9,7 +9,7 @@
 #include "real_threadapi.h"
 #include "real_sync.h"
 
-BEGIN_TEST_SUITE(reals_linux_ut)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 // this test makes sure that the mappings work
 // (there is a real_ function corresponding to the original)
@@ -25,4 +25,4 @@ TEST_FUNCTION(check_all_c_pal_reals)
     // no explicit assert, if it builds it works
 }
 
-END_TEST_SUITE(reals_linux_ut)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

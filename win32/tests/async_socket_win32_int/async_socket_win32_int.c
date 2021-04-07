@@ -119,7 +119,7 @@ static void setup_sockets(SOCKET* client_socket, SOCKET* server_socket, SOCKET* 
     ASSERT_ARE_EQUAL(int, 0, ioctlsocket(*server_socket, FIONBIO, &mode));
 }
 
-BEGIN_TEST_SUITE(async_socket_win32_inttests)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -345,4 +345,4 @@ TEST_FUNCTION(when_server_socket_is_closed_receive_errors_on_client_side)
     execution_engine_dec_ref(execution_engine);
 }
 
-END_TEST_SUITE(async_socket_win32_inttests)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

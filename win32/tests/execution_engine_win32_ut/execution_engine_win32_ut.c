@@ -67,7 +67,7 @@ MOCK_FUNCTION_END()
 }
 #endif
 
-BEGIN_TEST_SUITE(execution_engine_win32_unittests)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -386,4 +386,4 @@ TEST_FUNCTION(execution_engine_win32_get_threadpool_returns_the_underlying_PTP_P
     execution_engine_dec_ref(execution_engine);
 }
 
-END_TEST_SUITE(execution_engine_win32_unittests)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

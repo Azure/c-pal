@@ -54,7 +54,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
 
-BEGIN_TEST_SUITE(platform_win32_ut)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -144,4 +144,4 @@ TEST_FUNCTION(platform_deinit_success)
     // cleanup
 }
 
-END_TEST_SUITE(platform_win32_ut)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

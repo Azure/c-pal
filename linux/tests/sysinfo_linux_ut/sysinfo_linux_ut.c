@@ -40,7 +40,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
 
-BEGIN_TEST_SUITE(sysinfo_linux_unittests)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -144,4 +144,4 @@ TEST_FUNCTION(when_sysconf_returns_more_than_UINT32_MAX_sysinfo_get_processor_co
     ASSERT_ARE_EQUAL(uint32_t, 0, proc_count);
 }
 
-END_TEST_SUITE(sysinfo_linux_unittests)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

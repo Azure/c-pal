@@ -89,7 +89,7 @@ static FILE_HANDLE file_create_helper(const char* filename)
 
     return file_handle;
 }
-BEGIN_TEST_SUITE(file_int)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 
 TEST_SUITE_INITIALIZE(a)
@@ -644,4 +644,4 @@ TEST_FUNCTION(large_simultaneous_reads_succeed)
     file_destroy(file_handle);
     (void)delete_file(filename);
 }
-END_TEST_SUITE(file_int)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

@@ -18,7 +18,7 @@ static TEST_MUTEX_HANDLE g_testByTest;
 
 #include "mimalloc.h"
 
-BEGIN_TEST_SUITE(gballoc_ll_mimalloc_int)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(TestClassInitialize)
 {
@@ -160,4 +160,4 @@ TEST_FUNCTION(gballoc_ll_size_works)
     gballoc_ll_free(ptr);
 
 }
-END_TEST_SUITE(gballoc_ll_mimalloc_int)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

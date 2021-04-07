@@ -268,7 +268,7 @@ static void test_create_threadpool_and_start_timer(uint32_t start_delay_ms, uint
     umock_c_reset_all_calls();
 }
 
-BEGIN_TEST_SUITE(threadpool_win32_unittests)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -1403,4 +1403,4 @@ TEST_FUNCTION(on_timer_callback_calls_user_callback_multiple_times_as_timer_fire
     threadpool_destroy(threadpool);
 }
 
-END_TEST_SUITE(threadpool_win32_unittests)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

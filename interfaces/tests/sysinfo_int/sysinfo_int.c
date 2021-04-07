@@ -17,7 +17,7 @@
 
 static TEST_MUTEX_HANDLE g_testByTest;
 
-BEGIN_TEST_SUITE(sysinfo_int)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(a)
 {
@@ -63,4 +63,4 @@ TEST_FUNCTION(sysinfo_get_processor_count_returns_processor_count)
 /* Tests_SRS_SYSINFO_01_002: [ If any error occurs, `sysinfo_get_processor_count` shall return 0. ]*/
 /* Can't really be induced on "any" platform, tested independently for each psupported platform */
 
-END_TEST_SUITE(sysinfo_int)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

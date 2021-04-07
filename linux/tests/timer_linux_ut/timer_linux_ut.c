@@ -54,7 +54,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
 
-BEGIN_TEST_SUITE(timer_linux_unittests)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -559,4 +559,4 @@ TEST_FUNCTION(when_clock_gettime_fails_timer_global_get_elapsed_us_also_fails)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-END_TEST_SUITE(timer_linux_unittests)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

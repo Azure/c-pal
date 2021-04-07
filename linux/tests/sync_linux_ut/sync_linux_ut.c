@@ -61,7 +61,7 @@ static int hook_mock_syscall(long call_code, int* uaddr, int futex_op, int val, 
 }
 
 
-BEGIN_TEST_SUITE(sync_linux_unittests)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -188,4 +188,4 @@ TEST_FUNCTION(wake_by_address_single_calls_sycall)
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
 }
-END_TEST_SUITE(sync_linux_unittests)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

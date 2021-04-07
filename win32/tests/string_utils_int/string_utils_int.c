@@ -19,7 +19,7 @@
 #include "c_pal/string_utils.h"
 
 
-BEGIN_TEST_SUITE(string_utils_int_tests)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
@@ -318,4 +318,4 @@ TEST_FUNCTION(vsprintf_wchar_with_a_non_empty_string_succeeds)
     free(result);
 }
 
-END_TEST_SUITE(string_utils_int_tests)
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
