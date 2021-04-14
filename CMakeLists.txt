@@ -96,6 +96,7 @@ endif()
 if (WIN32)
     if (
         (NOT TARGET mimalloc-obj) AND 
+        (${GBALLOC_LL_TYPE} STREQUAL "MIMALLOC") AND
         (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/mimalloc/CMakeLists.txt)
         )
             set(MI_BUILD_SHARED OFF CACHE BOOL "Build shared library" FORCE) #not building a dll allows building on 32 bit, otherwise there's some errors on init.c about not finding a imported symbol
@@ -122,6 +123,7 @@ endif()
 if (
     (WIN32) AND
     (NOT TARGET jemalloc) AND 
+    (${GBALLOC_LL_TYPE} STREQUAL "JEMALLOC") AND
     (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/jemalloc/README)
     )
     set(PREV_CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
