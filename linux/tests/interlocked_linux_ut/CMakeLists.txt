@@ -16,4 +16,4 @@ set(${theseTestsName}_h_files
 mock_interlocked.h
 )
 
-build_test_artifacts(${theseTestsName} ON "tests/c_pal/linux" ADDITIONAL_LIBS pal_interfaces)
+build_test_artifacts(${theseTestsName} "tests/c_pal/linux" ADDITIONAL_LIBS pal_interfaces)

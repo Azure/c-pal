@@ -18,4 +18,4 @@ set(${theseTestsName}_c_files
 set(${theseTestsName}_h_files
 )
 
-build_test_artifacts(${theseTestsName} ON "tests/c_pal/common" ADDITIONAL_LIBS pal_interfaces synchronization) 
+build_test_artifacts(${theseTestsName} "tests/c_pal/common" ADDITIONAL_LIBS pal_interfaces synchronization) 

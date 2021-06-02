@@ -18,5 +18,5 @@ set(${theseTestsName}_h_files
     ../../../interfaces/inc/c_pal/uniqueid.h
 )
 
-build_test_artifacts(${theseTestsName} ON "tests/c_pal" ADDITIONAL_LIBS pal_interfaces uuid)
+build_test_artifacts(${theseTestsName} "tests/c_pal" ADDITIONAL_LIBS pal_interfaces uuid)
 

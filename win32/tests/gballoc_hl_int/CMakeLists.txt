@@ -28,10 +28,10 @@ set(${theseTestsName}_h_files
 )
 
 if(${GBALOC_LL_IMPL} STREQUAL "MIMALLOC")
-    build_test_artifacts(${theseTestsName} ON "tests/c_pal/common" ADDITIONAL_LIBS pal_interfaces synchronization mimalloc-obj)
+    build_test_artifacts(${theseTestsName} "tests/c_pal/common" ADDITIONAL_LIBS pal_interfaces synchronization mimalloc-obj)
 elseif(${GBALOC_LL_IMPL} STREQUAL "JEMALLOC")
-    build_test_artifacts(${theseTestsName} ON "tests/c_pal/common" ADDITIONAL_LIBS pal_interfaces synchronization jemalloc)
+    build_test_artifacts(${theseTestsName} "tests/c_pal/common" ADDITIONAL_LIBS pal_interfaces synchronization jemalloc)
 else()
-    build_test_artifacts(${theseTestsName} ON "tests/c_pal/common" ADDITIONAL_LIBS pal_interfaces synchronization)
+    build_test_artifacts(${theseTestsName} "tests/c_pal/common" ADDITIONAL_LIBS pal_interfaces synchronization)
 endif()
 
