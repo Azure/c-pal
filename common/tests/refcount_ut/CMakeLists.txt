@@ -15,4 +15,4 @@ set(${theseTestsName}_h_files
     some_refcount_impl.h
 )
 
-build_test_artifacts(${theseTestsName} ON "tests/c_pal/common" ADDITIONAL_LIBS ${PAL_OS} c_pal_reals)
+build_test_artifacts(${theseTestsName} "tests/c_pal/common" ADDITIONAL_LIBS ${PAL_OS} c_pal_reals)

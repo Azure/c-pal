@@ -22,4 +22,4 @@ else()
     )
 endif()
 
-build_test_artifacts(${theseTestsName} ON "tests/c_pal/int" ADDITIONAL_LIBS c_pal)
+build_test_artifacts(${theseTestsName} "tests/c_pal/int" ADDITIONAL_LIBS c_pal)

@@ -17,7 +17,7 @@ set(${theseTestsName}_h_files
 ../../../interfaces/inc/c_pal/execution_engine.h
 )
 
-build_test_artifacts(${theseTestsName} ON "tests/c_pal/win32" ADDITIONAL_LIBS pal_interfaces c_pal_reals)
+build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS pal_interfaces c_pal_reals)
 
 if("${building}" STREQUAL "exe")
     set_target_properties(${theseTestsName}_exe PROPERTIES LINK_FLAGS "/ignore:4217")
