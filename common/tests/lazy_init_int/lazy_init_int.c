@@ -129,7 +129,7 @@ TEST_FUNCTION(lazy_init_chaos_knight)
     /*it is expected that 1) the variable gets to "1" 2) all threads complete execution*/
 
     ///arrange
-    size_t i;
+    int32_t i;
     THREAD_HANDLE* threads = malloc(nThreadsForChaos * sizeof(THREAD_HANDLE));
     ASSERT_IS_NOT_NULL(threads);
 
