@@ -124,7 +124,8 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 
 TEST_FUNCTION(lazy_init_chaos_knight)
 {
-    /*this test spawns 10 threads. The threads are all spinning until they are all created, then they do lazy_init*/
+    /*this test spawns as many threads as there are processors. Once all the threads have been spawned they signal the main thread (this code over here) */
+    /*to lower the bollard. Lowering the bollard will release all the threads from their waiting state and then they each do lazy_init*/
     /*lazy init increments  variable*/
     /*it is expected that 1) the variable gets to "1" 2) all threads complete execution*/
 
