@@ -43,7 +43,7 @@ static int do_init(void* params)
 /*the bollard exists to make sure:
 1) that the threds are started (there can be a delay between ThreadAPI_Create and when the thread actually start to execute)
 2) be a better alternative to while(interlocked_add != nThreadsForChaos){} - which is extremely detrimental to helgrind
-3) and to provide a modicum of "synchronization" between threads (for the purpose of sync spinnig is better, but makes helgrind extremely unhappy)
+3) and to provide a modicum of "synchronization" between threads (for the purpose of sync spinning is better, but makes helgrind extremely unhappy)
 */
 
 static volatile_atomic int32_t theBollardIsLowered=0; /*all thrads wait on this to become "1" and then they call "lazy_init". */
