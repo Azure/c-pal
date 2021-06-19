@@ -26,6 +26,13 @@ option(run_perf_tests "set run_perf_tests to ON to run perf tests (default is OF
 option(use_cppunittest "set use_cppunittest to ON to build CppUnitTest tests on Windows (default is OFF)" OFF)
 option(run_traceability "run traceability tool (default is ON)" ON)
 
+# enabling this option can help with debugging latency issues for the networking
+option(enable_socket_logging "enable logging of each packet send/receive (default is OFF)" OFF)
+
+if(${enable_socket_logging})
+    add_definitions(-DENABLE_SOCKET_LOGGING)
+endif()
+
 #canon way of limiting an option to a predefined set of values
 set(GBALLOC_LL_TYPE_VALUES PASSTHROUGH WIN32HEAP MIMALLOC JEMALLOC) #the list of values which are allowed
 set(GBALLOC_LL_TYPE PASSTHROUGH CACHE STRING "Value of GBALLOC_LL_TYPE") #setting the property's default value in case none is taken from the command line
