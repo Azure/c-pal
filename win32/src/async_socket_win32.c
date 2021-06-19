@@ -12,6 +12,7 @@
 #include "c_pal/async_socket.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_win32.h"
+#include "c_pal/timer.h"
 
 #define ASYNC_SOCKET_WIN32_STATE_VALUES \
     ASYNC_SOCKET_WIN32_STATE_CLOSED, \
@@ -98,6 +99,8 @@ static VOID WINAPI on_io_complete(PTP_CALLBACK_INSTANCE instance, PVOID context,
             {
                 uint32_t bytes_send = (uint32_t)number_of_bytes_transferred;
 
+                LogVerbose("Asynchronous send of %" PRIu32 " bytes completed at %lf", bytes_send, timer_global_get_elapsed_us());
+
                 if (bytes_send != io_context->total_buffer_bytes)
                 {
                     /* Codes_SRS_ASYNC_SOCKET_WIN32_01_102: [ If io_result is NO_ERROR, but the number of bytes send is different than the sum of all buffer sizes passed to async_socket_send_async, the on_send_complete callback passed to async_socket_send_async shall be called with on_send_complete_context as context and ASYNC_SOCKET_SEND_ERROR. ]*/
@@ -148,6 +151,8 @@ static VOID WINAPI on_io_complete(PTP_CALLBACK_INSTANCE instance, PVOID context,
                 case NO_ERROR:
                 {
                     bytes_received = (uint32_t)number_of_bytes_transferred;
+
+                    LogVerbose("Asynchronous receive of %" PRIu32 " bytes completed at %lf", bytes_received, timer_global_get_elapsed_us());
 
                     if (bytes_received > io_context->total_buffer_bytes)
                     {
@@ -518,6 +523,8 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                             /* Codes_SRS_ASYNC_SOCKET_WIN32_01_060: [ An asynchronous IO shall be started by calling StartThreadpoolIo. ]*/
                             StartThreadpoolIo(async_socket->tp_io);
 
+                            LogVerbose("Starting send of %" PRIu32 " bytes at %lf", total_buffer_bytes, timer_global_get_elapsed_us());
+
                             /* Codes_SRS_ASYNC_SOCKET_WIN32_01_061: [ The WSABUF array associated with the context shall be sent by calling WSASend and passing to it the OVERLAPPED structure with the event that was just created, dwFlags set to 0, lpNumberOfBytesSent set to NULL and lpCompletionRoutine set to NULL. ]*/
                             wsa_send_result = WSASend((SOCKET)async_socket->socket_handle, send_context->wsa_buffers, buffer_count, NULL, 0, &send_context->overlapped, NULL);
 
@@ -725,6 +732,8 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
 
                             /* Codes_SRS_ASYNC_SOCKET_WIN32_01_081: [ An asynchronous IO shall be started by calling StartThreadpoolIo. ]*/
                             StartThreadpoolIo(async_socket->tp_io);
+
+                            LogVerbose("Starting receive at %lf", timer_global_get_elapsed_us());
 
                             /* Codes_SRS_ASYNC_SOCKET_WIN32_01_082: [ A receive shall be started for the WSABUF array associated with the context calling WSARecv and passing to it the OVERLAPPED structure with the event that was just created, dwFlags set to 0, lpNumberOfBytesSent set to NULL and lpCompletionRoutine set to NULL. ]*/
                             wsa_receive_result = WSARecv((SOCKET)async_socket->socket_handle, receive_context->wsa_buffers, buffer_count, NULL, &flags, &receive_context->overlapped, NULL);

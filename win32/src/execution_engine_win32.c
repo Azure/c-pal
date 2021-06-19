@@ -38,6 +38,8 @@ EXECUTION_ENGINE_HANDLE execution_engine_create(void* execution_engine_parameter
 
     PTP_POOL ptp_pool;
 
+    LogInfo("Creating execution engine with min thread count=%" PRIu32 ", max thread count=%" PRIu32 "", parameters_to_use.min_thread_count, parameters_to_use.max_thread_count);
+
     /* Codes_SRS_EXECUTION_ENGINE_WIN32_01_013: [ If max_thread_count is non-zero, but less than min_thread_count, execution_engine_create shall fail and return NULL. ]*/
     if ((parameters_to_use.max_thread_count != 0) &&
         (parameters_to_use.max_thread_count < parameters_to_use.min_thread_count))
