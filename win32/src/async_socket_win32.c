@@ -97,13 +97,13 @@ static VOID WINAPI on_io_complete(PTP_CALLBACK_INSTANCE instance, PVOID context,
 
             if (io_result == NO_ERROR)
             {
-                uint32_t bytes_send = (uint32_t)number_of_bytes_transferred;
+                uint32_t bytes_sent = (uint32_t)number_of_bytes_transferred;
 
 #ifdef ENABLE_SOCKET_LOGGING
-                LogVerbose("Asynchronous send of %" PRIu32 " bytes completed at %lf", bytes_send, timer_global_get_elapsed_us());
+                LogVerbose("Asynchronous send of %" PRIu32 " bytes completed at %lf", bytes_sent, timer_global_get_elapsed_us());
 #endif
 
-                if (bytes_send != io_context->total_buffer_bytes)
+                if (bytes_sent != io_context->total_buffer_bytes)
                 {
                     /* Codes_SRS_ASYNC_SOCKET_WIN32_01_102: [ If io_result is NO_ERROR, but the number of bytes send is different than the sum of all buffer sizes passed to async_socket_send_async, the on_send_complete callback passed to async_socket_send_async shall be called with on_send_complete_context as context and ASYNC_SOCKET_SEND_ERROR. ]*/
                     send_result = ASYNC_SOCKET_SEND_ERROR;
@@ -580,6 +580,9 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                                 case 0:
                                 {
                                     /* Codes_SRS_ASYNC_SOCKET_WIN32_01_045: [ On success, async_socket_send_async shall return ASYNC_SOCKET_SEND_SYNC_OK. ]*/
+#ifdef ENABLE_SOCKET_LOGGING
+                                    LogVerbose("Send completed synchronously at %lf", timer_global_get_elapsed_us());
+#endif
                                     result = ASYNC_SOCKET_SEND_SYNC_OK;
 
                                     break;
