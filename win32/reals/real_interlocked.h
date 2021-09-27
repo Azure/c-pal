@@ -12,6 +12,7 @@
 #endif
 
 #include "macro_utils/macro_utils.h"
+#include "c_pal/interlocked.h"
 
 #define R2(X) REGISTER_GLOBAL_MOCK_HOOK(X, real_##X);
 
@@ -98,7 +99,7 @@ int8_t real_interlocked_or_8(volatile_atomic int8_t* destination, int8_t value);
 int32_t real_interlocked_xor(volatile_atomic int32_t* destination, int32_t value);
 int16_t real_interlocked_xor_16(volatile_atomic int16_t* destination, int16_t value);
 int64_t real_interlocked_xor_64(volatile_atomic int64_t* destination, int64_t value);
-int8_t real_interlocked_xor_8(volatile_atomic int8_t* destination, int8_t value); 
+int8_t real_interlocked_xor_8(volatile_atomic int8_t* destination, int8_t value);
 
 #ifdef __cplusplus
 }
