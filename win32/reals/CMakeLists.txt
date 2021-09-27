@@ -22,10 +22,11 @@ set(reals_win32_h_files
     real_interlocked_renames.h
     real_lazy_init.h
     real_lazy_init_renames.h
+    ../../common/reals/real_refcount.h
 )
 
 add_library(win32_reals ${reals_win32_c_files} ${reals_win32_h_files})
-target_include_directories(win32_reals PUBLIC . ${CMAKE_CURRENT_LIST_DIR}/../src "$<TARGET_PROPERTY:pal_win32,INTERFACE_INCLUDE_DIRECTORIES>")
+target_include_directories(win32_reals PUBLIC . ${CMAKE_CURRENT_LIST_DIR}/../../common/reals ${CMAKE_CURRENT_LIST_DIR}/../src "$<TARGET_PROPERTY:pal_win32,INTERFACE_INCLUDE_DIRECTORIES>")
 target_link_libraries(win32_reals pal_interfaces_reals synchronization)
 
 if(${GBALLOC_LL_TYPE} STREQUAL "MIMALLOC")
