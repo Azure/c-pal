@@ -53,6 +53,18 @@ jobs:
       configuration: Debug
       maximumCpuCount: true
 
+  - task: PowerShell@2
+    displayName: Real check reals lib
+    inputs:
+      - filePath: deps\c-build-tools\real_check\real_check.ps1
+      - arguments: 'build_x64\win32\reals\Debug\win32_reals.lib'
+
+  - task: PowerShell@2
+    displayName: Real check lib
+    inputs:
+      - filePath: deps\c-build-tools\real_check\real_check.ps1
+      - arguments: 'build_x64\win32\Debug\pal_win32.lib'
+
   - task: VSTest@2
     displayName: 'VsTest - testAssemblies'
     inputs:
