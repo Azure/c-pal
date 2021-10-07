@@ -53,6 +53,11 @@ jobs:
       configuration: Debug
       maximumCpuCount: true
 
+  - template: ..\deps\c-build-tools\build\templates\real_check_template.yml
+    parameters:
+      lib: 'build_x64\win32\Debug\pal_win32.lib'
+      reals_lib: 'build_x64\win32\reals\Debug\win32_reals.lib'
+
   - task: VSTest@2
     displayName: 'VsTest - testAssemblies'
     inputs:
