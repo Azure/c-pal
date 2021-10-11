@@ -15,9 +15,13 @@ gballoc_ll_passthrough is a module that delegates all call of its APIs to the on
     MOCKABLE_FUNCTION(, void, gballoc_ll_deinit);
 
     MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_2, size_t, nmemb, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_flex, size_t, base, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void, gballoc_ll_free, void*, ptr);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_calloc, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc, void*, ptr, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc_2, void*, ptr, size_t, nmemb, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc_flex, void*, ptr, size_t, base, size_t, nmemb, size_t, size);
 
     MOCKABLE_FUNCTION(, size_t, gballoc_ll_size, void*, ptr);
 ```
@@ -50,6 +54,31 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc, size_t, size);
 
 **SRS_GBALLOC_LL_PASSTHROUGH_02_003: [** `gballoc_ll_malloc` shall call `malloc(size)` and return what `malloc` returned. **]**
 
+### gballoc_ll_malloc_2
+```c
+MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_2, size_t, nmemb, size_t, size);
+```
+
+`gballoc_ll_malloc_2` returns what `malloc` from stdlib returns when called with `nmemb`*`size`. This is useful for example when allocating a pointer to an array of `nmemb` elements each having `size` size.
+
+**SRS_GBALLOC_LL_PASSTHROUGH_02_008: [** If `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_malloc_2` shall fail and return `NULL`. **]**
+
+**SRS_GBALLOC_LL_PASSTHROUGH_02_009: [** `gballoc_ll_malloc_2` shall call `malloc(nmemb*size)` and returns what `malloc` returned. **]**
+
+### gballoc_ll_malloc_flex
+```c
+MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_flex, size_t, base, size_t, nmemb, size_t, size);
+```
+
+`gballoc_ll_malloc_flex` returns what `malloc` from stdlib returns when called with `base + nmemb * size`. This is useful for example when allocating a structure with a flexible array member. 
+
+**SRS_GBALLOC_LL_PASSTHROUGH_02_010: [** If `nmemb`*`size` exceeds `SIZE_MAX` then `gballoc_ll_malloc_flex` shall fail and return `NULL`. **]**
+
+**SRS_GBALLOC_LL_PASSTHROUGH_02_011: [** If `base` + `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_malloc_flex` shall fail and return `NULL`. **]**
+
+**SRS_GBALLOC_LL_PASSTHROUGH_02_012: [** `gballoc_ll_malloc_flex` shall return what `malloc(base +  nmemb * size)` returns.  **]**
+
+
 ### gballoc_ll_free
 ```c
 MOCKABLE_FUNCTION(, void, gballoc_ll_free, void*, ptr);
@@ -75,7 +104,33 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc, void*, ptr, size_t, size);
 
 `gballoc_ll_realloc` calls `realloc` from stdlib.
 
-**SRS_GBALLOC_LL_PASSTHROUGH_02_006: [** `gballoc_ll_realloc` shall call `realloc(nmemb, size)` and return what `realloc` returned. **]**
+**SRS_GBALLOC_LL_PASSTHROUGH_02_006: [** `gballoc_ll_realloc` shall call `realloc(ptr, size)` and return what `realloc` returned. **]**
+
+
+### gballoc_ll_realloc_2
+```c
+MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc_2, void*, ptr, size_t, nmemb, size_t, size);
+```
+
+`gballoc_ll_realloc_2` calls `realloc(ptr, nmemb * size)` from stdlib. This is useful for example when resizing a previously allocated array of elements.
+
+**SRS_GBALLOC_LL_PASSTHROUGH_02_013: [** If `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_realloc_2` shall fail and return `NULL`. **]**
+
+**SRS_GBALLOC_LL_PASSTHROUGH_02_014: [** `gballoc_ll_realloc_2` shall return what `realloc(ptr, nmemb * size)` returns. **]**
+
+
+### gballoc_ll_realloc_flex
+```c
+MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc_flex, void*, ptr, size_t, base, size_t, nmemb, size_t, size);
+```
+
+`gballoc_ll_realloc_flex` calls `realloc(ptr, base + nmemb * size)` from stdlib. This is useful when reallocating a structure that has a flexible array member.
+
+**SRS_GBALLOC_LL_PASSTHROUGH_02_015: [** If `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_realloc_flex` shall fail and return `NULL`. **]**
+
+**SRS_GBALLOC_LL_PASSTHROUGH_02_016: [** If `base` + `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_realloc_flex` shall fail and return `NULL`. **]**
+
+**SRS_GBALLOC_LL_PASSTHROUGH_02_017: [** `gballoc_ll_realloc_flex` shall return what `realloc(ptr, base + nmemb * size)` returns. **]**
 
 
 ### gballoc_ll_size

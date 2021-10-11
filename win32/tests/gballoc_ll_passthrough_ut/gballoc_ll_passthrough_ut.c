@@ -178,7 +178,7 @@ TEST_FUNCTION(gballoc_ll_calloc_calls_calloc)
     gballoc_ll_free(ptr);
 }
 
-/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_006: [ gballoc_ll_realloc shall call realloc(nmemb, size) and return what realloc returned. ]*/
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_006: [ gballoc_ll_realloc shall call realloc(ptr, size) and return what realloc returned. ]*/
 TEST_FUNCTION(gballoc_ll_realloc_calls_realloc)
 {
     ///arrange

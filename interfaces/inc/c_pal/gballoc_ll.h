@@ -11,7 +11,6 @@
 #endif
 
 #include "umock_c/umock_c_prod.h"
-
 #ifdef __cplusplus
 extern "C"
 {
@@ -21,9 +20,13 @@ extern "C"
     MOCKABLE_FUNCTION(, void, gballoc_ll_deinit);
 
     MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_2, size_t, nmemb, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_flex, size_t, base, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void, gballoc_ll_free, void*, ptr);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_calloc, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc, void*, ptr, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc_2, void*, ptr, size_t, nmemb, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc_flex, void*, ptr, size_t, base, size_t, nmemb, size_t, size);
 
     MOCKABLE_FUNCTION(, size_t, gballoc_ll_size, void*, ptr);
 
