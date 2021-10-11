@@ -210,7 +210,7 @@ TEST_FUNCTION(gballoc_ll_malloc_flex_with_overflow_fail_2)
     ///clean
 }
 
-/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_011: [ If base + nmemb * size exceeds SIZE_MAX then gballoc_ll_malloc_flex shall fail and return NULL. ]*/
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_012: [ gballoc_ll_malloc_flex shall return what malloc(base + nmemb * size) returns. ]*/
 TEST_FUNCTION(gballoc_ll_malloc_flex_with_SIZE_MAX_succeeds)
 {
     ///arrange
