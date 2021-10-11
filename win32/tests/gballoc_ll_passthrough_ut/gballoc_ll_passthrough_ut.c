@@ -144,6 +144,39 @@ TEST_FUNCTION(gballoc_ll_malloc_returns_what_malloc_returns)
     gballoc_ll_free(ptr);
 }
 
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_008: [ If nmemb * size exceeds SIZE_MAX then gballoc_ll_malloc_2 shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_2_with_overflow_fails)
+{
+    ///arrange
+    void* ptr;
+
+    ///act
+    ptr = gballoc_ll_malloc_2(2, SIZE_MAX / 2 + 1); /*a clear overflow*/
+
+    ///assert
+    ASSERT_ARE_EQUAL(void_ptr, NULL, ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_009: [ gballoc_ll_malloc_2 shall call malloc(nmemb*size) and return what malloc returned. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_2_with_SIZE_MAX_calls_malloc)
+{
+    ///arrange
+    void* ptr;
+
+    ///act
+    ptr = gballoc_ll_malloc_2(3, SIZE_MAX/3 + 1); /*a clear overflow*/
+
+    ///assert
+    ASSERT_ARE_EQUAL(void_ptr, NULL, ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+
 /*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_004: [ gballoc_ll_free shall call free(ptr). ]*/
 TEST_FUNCTION(gballoc_ll_free_calls_free)
 {
