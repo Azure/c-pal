@@ -46,7 +46,10 @@ void* gballoc_ll_malloc_2(size_t nmemb, size_t size)
 {
     void* result;
     /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_008: [ If nmemb * size exceeds SIZE_MAX then gballoc_ll_malloc_2 shall fail and return NULL. ]*/
-    if (SIZE_MAX / nmemb < size)
+    if (
+        (nmemb!=0) && 
+        (SIZE_MAX / nmemb < size)
+        )
     {
         LogError("overflow in computation of nmemb=%zu * size=%zu",
             nmemb, size);
@@ -64,7 +67,10 @@ void* gballoc_ll_malloc_flex(size_t base, size_t nmemb, size_t size)
 {
     void* result;
     /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_010: [ If nmemb*size exceeds SIZE_MAX then gballoc_ll_malloc_flex shall fail and return NULL. ]*/
-    if (SIZE_MAX / nmemb < size)
+    if (
+        (nmemb!=0) &&
+        (SIZE_MAX / nmemb < size)
+        )
     {
         LogError("overflow in computation of nmemb=%zu * size=%zu",
             nmemb, size);
@@ -134,7 +140,10 @@ void* gballoc_ll_realloc_2(void* ptr, size_t nmemb, size_t size)
 {
     void* result;
     /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_013: [ If nmemb * size exceeds SIZE_MAX then gballoc_ll_realloc_2 shall fail and return NULL. ]*/
-    if (SIZE_MAX / nmemb < size)
+    if (
+        (nmemb != 0) &&
+        (SIZE_MAX / nmemb < size)
+        )
     {
         LogError("overflow in computation of nmemb=%zu * size=%zu",
             nmemb, size);
@@ -152,7 +161,9 @@ void* gballoc_ll_realloc_flex(void* ptr, size_t base, size_t nmemb, size_t size)
 {
     void* result;
     /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_015: [ If nmemb * size exceeds SIZE_MAX then gballoc_ll_realloc_flex shall fail and return NULL. ]*/
-    if (SIZE_MAX / nmemb < size)
+    if ((nmemb != 0) &&
+        (SIZE_MAX / nmemb < size)
+        )
     {
         LogError("overflow in computation of nmemb=%zu * size=%zu",
             nmemb, size);
