@@ -64,6 +64,7 @@ void* gballoc_ll_malloc_2(size_t nmemb, size_t size)
 
 void* gballoc_ll_malloc_flex(size_t base, size_t nmemb, size_t size)
 {
+    void* result;
     /*Codes_SRS_GBALLOC_LL_MIMALLOC_02_010: [ If nmemb * size exceeds SIZE_MAX then gballoc_ll_malloc_flex shall fail and return NULL. ]*/
     if (SIZE_MAX / nmemb < size)
     {
@@ -74,10 +75,19 @@ void* gballoc_ll_malloc_flex(size_t base, size_t nmemb, size_t size)
     else
     {
         /*Codes_SRS_GBALLOC_LL_MIMALLOC_02_011: [ If base + nmemb * size exceeds SIZE_MAX then gballoc_ll_malloc_flex shall fail and return NULL. ]*/
-
-        /*Codes_SRS_GBALLOC_LL_MIMALLOC_02_009: [ gballoc_ll_malloc_2 shall call mi_malloc(nmemb * size) and returns what mi_malloc returned. ]*/
-        result = gballoc_ll_malloc_internal(nmemb * size);
+        if (SIZE_MAX - base < nmemb * size)
+        {
+            LogError("overflow in computation of base=%zu + nmemb=%zu * size=%zu",
+                base, nmemb, size);
+            result = NULL;
+        }
+        else
+        {
+            /*Codes_SRS_GBALLOC_LL_MIMALLOC_02_009: [ gballoc_ll_malloc_2 shall call mi_malloc(nmemb * size) and returns what mi_malloc returned. ]*/
+            result = gballoc_ll_malloc_internal(base + nmemb * size);
+        }
     }
+    return result;
 }
 
 void gballoc_ll_free(void* ptr)
