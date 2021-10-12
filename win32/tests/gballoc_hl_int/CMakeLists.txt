@@ -8,7 +8,7 @@
 
 set(theseTestsNameBase gballoc_hl_int) 
 
-set(theseTestsName ${theseTestsNameBase}_${BINARY_DIR})
+set(theseTestsName ${theseTestsNameBase}_${BINARY_DIR}_int)
 
 set(${theseTestsName}_test_files
     ${theseTestsNameBase}.c
