@@ -296,7 +296,7 @@ TEST_FUNCTION(gballoc_ll_malloc_2_with_overflow_fails)
     void* ptr;
 
     ///act
-    ptr = gballoc_ll_malloc_2(2, SIZE_MAX / 2 + 1); /*a clear overflow*/
+    ptr = gballoc_ll_malloc_2(2, (SIZE_MAX - 1) / 2 + 1); /*a clear overflow. Test cannot write (SIZE_MAX+1)/2 because SIZE_MAX + 1 that's already 2^64 and that cannot be represented*/
 
     ///assert
     ASSERT_IS_NULL(ptr);
@@ -314,7 +314,7 @@ TEST_FUNCTION(gballoc_ll_malloc_2_with_SIZE_MAX_succeeds)
 
     STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
 
-    STRICT_EXPECTED_CALL(mock_HeapAlloc(TEST_HEAP, 0, 1 * 2));
+    STRICT_EXPECTED_CALL(mock_HeapAlloc(TEST_HEAP, 0, SIZE_MAX));
 
     ///act
     void* malloc_result = gballoc_ll_malloc_2(3, SIZE_MAX/3);
@@ -326,6 +326,29 @@ TEST_FUNCTION(gballoc_ll_malloc_2_with_SIZE_MAX_succeeds)
     ///clean
     gballoc_ll_deinit();
 }
+
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_031: [ gballoc_ll_malloc_2 shall call HeapAlloc(nmemb*size) and return what HeapAlloc returned. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_2_with_SIZE_MAX_fails_when_HeapAlloc_fails)
+{
+    ///arrange
+    TEST_gballoc_ll_init();
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+
+    STRICT_EXPECTED_CALL(mock_HeapAlloc(TEST_HEAP, 0, SIZE_MAX))
+        .SetReturn(NULL);
+
+    ///act
+    void* malloc_result = gballoc_ll_malloc_2(3, SIZE_MAX / 3);
+
+    ///assert
+    ASSERT_IS_NULL(malloc_result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_ll_deinit();
+}
+
 
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_030: [ If lazy_init fails then gballoc_ll_malloc_2 shall return NULL. ]*/
 TEST_FUNCTION(gballoc_ll_malloc_2_fails_when_lazy_init_fails)
@@ -341,6 +364,107 @@ TEST_FUNCTION(gballoc_ll_malloc_2_fails_when_lazy_init_fails)
 
     ///assert
     ASSERT_IS_NULL(malloc_result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_ll_deinit();
+}
+
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_032: [ If nmemb*size exceeds SIZE_MAX then gballoc_ll_malloc_flex shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_flex_with_overflow_fail_1)
+{
+    ///arrange
+    void* ptr;
+
+    ///act
+    ptr = gballoc_ll_malloc_flex(4, 2, (SIZE_MAX - 1) / 2 + 1); /*a clear overflow. Test cannot write (SIZE_MAX+1)/2 because SIZE_MAX + 1 that's already 2^64 and that cannot be represented*/
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_033: [ If base + nmemb * size exceeds SIZE_MAX then gballoc_ll_malloc_flex shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_flex_with_overflow_fail_2)
+{
+    ///arrange
+    void* ptr;
+
+    ///act
+    ptr = gballoc_ll_malloc_flex(2, 2, (SIZE_MAX - 3) / 2 + 1); /*a overflow when adding base */
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_034: [ gballoc_ll_malloc_flex shall call lazy_init with parameter do_init set to heap_init. ]*/
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_036: [ gballoc_ll_malloc_flex shall return what HeapAlloc(base + nmemb * size) returns. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_flex_with_SIZE_MAX_succeeds)
+{
+    ///arrange
+    void* ptr;
+    TEST_gballoc_ll_init();
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+
+    STRICT_EXPECTED_CALL(mock_HeapAlloc(TEST_HEAP, 0, SIZE_MAX));
+
+    ///act
+    ptr = gballoc_ll_malloc_flex(1, 2, (SIZE_MAX - 3) / 2 + 1); /*no longer overflow, just SIZE_MAX*/
+
+    ///assert
+    ASSERT_ARE_EQUAL(void_ptr, TEST_MALLOC_RESULT, ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_ll_deinit();
+}
+
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_036: [ gballoc_ll_malloc_flex shall return what HeapAlloc(base + nmemb * size) returns. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_flex_with_SIZE_MAX_retuns_NULL_when_HeapAlloc_returns_NULL)
+{
+    ///arrange
+    TEST_gballoc_ll_init();
+
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+
+    STRICT_EXPECTED_CALL(mock_HeapAlloc(TEST_HEAP, 0, SIZE_MAX))
+        .SetReturn(NULL);
+
+    ///act
+    ptr = gballoc_ll_malloc_flex(1, 2, (SIZE_MAX - 3) / 2 + 1); /*no longer overflow, just SIZE_MAX*/
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_ll_deinit();
+}
+
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_035: [ If lazy_init fails then gballoc_ll_malloc_flex shall return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_flex_with_SIZE_MAX_fails_when_lazy_init_fails)
+{
+    ///arrange
+    TEST_gballoc_ll_init();
+
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(LAZY_INIT_ERROR);
+
+    ///act
+    ptr = gballoc_ll_malloc_flex(1, 2, (SIZE_MAX - 3) / 2 + 1); /*no longer overflow, just SIZE_MAX*/
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean

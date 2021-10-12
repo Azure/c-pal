@@ -192,7 +192,7 @@ TEST_FUNCTION(gballoc_ll_malloc_2_with_SIZE_MAX_calls_malloc_and_succeeds)
     ptr = gballoc_ll_malloc_2(3, SIZE_MAX/3); /*SIZE_MAX is divisible by 3 when size_t is represented on 16 bits, 32 bits or 64 bits.*/
 
     ///assert
-    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(void_ptr, TEST_MALLOC_RESULT, ptr);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
@@ -256,12 +256,12 @@ TEST_FUNCTION(gballoc_ll_malloc_flex_with_SIZE_MAX_succeeds)
     void* ptr;
 
     STRICT_EXPECTED_CALL(mock_malloc(SIZE_MAX));
-
+    
     ///act
     ptr = gballoc_ll_malloc_flex(1, 2, (SIZE_MAX - 3) / 2 + 1); /*no longer overflow, just SIZE_MAX*/
 
     ///assert
-    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(void_ptr, TEST_MALLOC_RESULT, ptr);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
