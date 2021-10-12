@@ -59,18 +59,18 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc, size_t, size);
 MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_2, size_t, nmemb, size_t, size);
 ```
 
-`gballoc_ll_malloc_2` returns what `malloc` from stdlib returns when called with `nmemb`*`size`. This is useful for example when allocating a pointer to an array of `nmemb` elements each having `size` size.
+`gballoc_ll_malloc_2` returns what `malloc` from stdlib returns when called with `nmemb`*`size`. This is useful for example when allocating a pointer to an array of `nmemb` elements each having `size` size. The function checks for arithmetic overflows.
 
 **SRS_GBALLOC_LL_PASSTHROUGH_02_008: [** If `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_malloc_2` shall fail and return `NULL`. **]**
 
-**SRS_GBALLOC_LL_PASSTHROUGH_02_009: [** `gballoc_ll_malloc_2` shall call `malloc(nmemb*size)` and returns what `malloc` returned. **]**
+**SRS_GBALLOC_LL_PASSTHROUGH_02_009: [** `gballoc_ll_malloc_2` shall call `malloc(nmemb*size)` and return what `malloc` returned. **]**
 
 ### gballoc_ll_malloc_flex
 ```c
 MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_flex, size_t, base, size_t, nmemb, size_t, size);
 ```
 
-`gballoc_ll_malloc_flex` returns what `malloc` from stdlib returns when called with `base + nmemb * size`. This is useful for example when allocating a structure with a flexible array member. 
+`gballoc_ll_malloc_flex` returns what `malloc` from stdlib returns when called with `base + nmemb * size`. This is useful for example when allocating a structure with a flexible array member. The function checks for arithmetic overflows.
 
 **SRS_GBALLOC_LL_PASSTHROUGH_02_010: [** If `nmemb`*`size` exceeds `SIZE_MAX` then `gballoc_ll_malloc_flex` shall fail and return `NULL`. **]**
 
@@ -112,7 +112,7 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc, void*, ptr, size_t, size);
 MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc_2, void*, ptr, size_t, nmemb, size_t, size);
 ```
 
-`gballoc_ll_realloc_2` calls `realloc(ptr, nmemb * size)` from stdlib. This is useful for example when resizing a previously allocated array of elements.
+`gballoc_ll_realloc_2` calls `realloc(ptr, nmemb * size)` from stdlib. This is useful for example when resizing a previously allocated array of elements. The function checks for arithmetic overflows.
 
 **SRS_GBALLOC_LL_PASSTHROUGH_02_013: [** If `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_realloc_2` shall fail and return `NULL`. **]**
 
@@ -124,7 +124,7 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc_2, void*, ptr, size_t, nmemb, size
 MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc_flex, void*, ptr, size_t, base, size_t, nmemb, size_t, size);
 ```
 
-`gballoc_ll_realloc_flex` calls `realloc(ptr, base + nmemb * size)` from stdlib. This is useful when reallocating a structure that has a flexible array member.
+`gballoc_ll_realloc_flex` calls `realloc(ptr, base + nmemb * size)` from stdlib. This is useful when reallocating a structure that has a flexible array member. The function checks for arithmetic overflows.
 
 **SRS_GBALLOC_LL_PASSTHROUGH_02_015: [** If `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_realloc_flex` shall fail and return `NULL`. **]**
 
