@@ -207,7 +207,7 @@ TEST_FUNCTION(gballoc_ll_malloc_2_with_nmemb_0_calls_malloc_and_succeeds)
     STRICT_EXPECTED_CALL(mock_malloc(0));
 
     ///act
-    ptr = gballoc_ll_malloc_2(0, SIZE_MAX / 3); /*a test aiming a division by 0.*/
+    ptr = gballoc_ll_malloc_2(0, SIZE_MAX / 3); /*no longer overflow, just a test for a division by 0*/
 
     ///assert
     ASSERT_ARE_EQUAL(void_ptr, TEST_MALLOC_RESULT, ptr);
@@ -451,7 +451,7 @@ TEST_FUNCTION(gballoc_ll_realloc_2_with_nmemb_0_succeeds)
     STRICT_EXPECTED_CALL(mock_realloc(TEST_MALLOC_RESULT, 0));
 
     ///act
-    ptr = gballoc_ll_realloc_2(TEST_MALLOC_RESULT, 0, SIZE_MAX / 3);
+    ptr = gballoc_ll_realloc_2(TEST_MALLOC_RESULT, 0, SIZE_MAX / 3); /*no longer overflow, just a test for a division by 0*/
 
     ///assert
     ASSERT_ARE_EQUAL(void_ptr, TEST_REALLOC_RESULT, ptr);
@@ -528,7 +528,7 @@ TEST_FUNCTION(gballoc_ll_realloc_flex_with_nmemb_0_succeeds)
     STRICT_EXPECTED_CALL(mock_realloc(TEST_MALLOC_RESULT, 3));
 
     ///act
-    ptr = gballoc_ll_realloc_flex(TEST_MALLOC_RESULT, 3, 0, SIZE_MAX / 3 - 1); /*same as above, just 1 byte less*/
+    ptr = gballoc_ll_realloc_flex(TEST_MALLOC_RESULT, 3, 0, SIZE_MAX / 3 - 1); /*no longer overflow, just a test for a division by 0*/
 
     ///assert
     ASSERT_ARE_EQUAL(void_ptr, TEST_REALLOC_RESULT, ptr);
