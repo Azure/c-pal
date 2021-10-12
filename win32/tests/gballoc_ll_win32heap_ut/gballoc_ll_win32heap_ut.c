@@ -830,6 +830,28 @@ TEST_FUNCTION(gballoc_ll_realloc_flex_with_ptr_non_NULL_returns_what_HeapReAlloc
     gballoc_ll_deinit();
 }
 
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_044: [ If lazy_init fails then gballoc_ll_malloc_flex shall return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_realloc_flex_fails_when_lazy_init_fails)
+{
+    ///arrange
+    TEST_gballoc_ll_init();
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(LAZY_INIT_ERROR);
+
+    void* ptr;
+
+    ///act
+    ptr = gballoc_ll_realloc_flex(TEST_MALLOC_RESULT, 3, 3, SIZE_MAX / 3 - 1);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_ll_deinit();
+}
+
 
 
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_017: [ gballoc_ll_size shall call HeapSize and return what HeapSize returns. ]*/

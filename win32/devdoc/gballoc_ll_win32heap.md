@@ -190,7 +190,7 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc_flex, void*, ptr, size_t, base, si
 
 **SRS_GBALLOC_LL_WIN32HEAP_02_043: [** `gballoc_ll_realloc_flex` shall call `lazy_init` with parameter `do_init` set to `heap_init`. **]**
 
-**SRS_GBALLOC_LL_WIN32HEAP_02_044: [** If `gballoc_ll_realloc_flex` fails then `gballoc_ll_malloc_flex` shall return `NULL`. **]**
+**SRS_GBALLOC_LL_WIN32HEAP_02_044: [** If `lazy_init` fails then `gballoc_ll_malloc_flex` shall return `NULL`. **]**
 
 **SRS_GBALLOC_LL_WIN32HEAP_02_048: [** If `ptr` is `NULL` then `gballoc_ll_realloc_flex` shall return what `HeapAlloc(ptr, base + nmemb * size)` returns. **]**
 
