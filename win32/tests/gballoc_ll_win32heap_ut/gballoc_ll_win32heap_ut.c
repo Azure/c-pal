@@ -853,7 +853,6 @@ TEST_FUNCTION(gballoc_ll_realloc_flex_fails_when_lazy_init_fails)
 }
 
 
-
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_017: [ gballoc_ll_size shall call HeapSize and return what HeapSize returns. ]*/
 TEST_FUNCTION(gballoc_ll_size_returns_what_HeapSize_returned)
 {
