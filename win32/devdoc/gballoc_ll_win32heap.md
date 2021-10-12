@@ -16,9 +16,13 @@ gballoc_ll_win32heap is a module that delegates all call of its APIs to the ones
     MOCKABLE_FUNCTION(, void, gballoc_ll_deinit);
 
     MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_2, size_t, nmemb, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_flex, size_t, base, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void, gballoc_ll_free, void*, ptr);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_calloc, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc, void*, ptr, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc_2, void*, ptr, size_t, nmemb, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc_flex, void*, ptr, size_t, base, size_t, nmemb, size_t, size);
 
     MOCKABLE_FUNCTION(, size_t, gballoc_ll_size, void*, ptr);
 ```
@@ -60,7 +64,6 @@ MOCKABLE_FUNCTION(, void, gballoc_ll_deinit);
 **SRS_GBALLOC_LL_WIN32HEAP_02_004: [** `gballoc_ll_deinit` shall call `HeapDestroy` on the handle stored by `gballoc_ll_init` in the global variable. **]**
 
 
-
 ### gballoc_ll_malloc
 ```c
 MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc, size_t, size);
@@ -75,6 +78,45 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc, size_t, size);
 **SRS_GBALLOC_LL_WIN32HEAP_02_006: [** `gballoc_ll_malloc` shall call `HeapAlloc`. **]**
 
 **SRS_GBALLOC_LL_WIN32HEAP_02_007: [** `gballoc_ll_malloc` shall return what `HeapAlloc` returned. **]**
+
+
+### gballoc_ll_malloc_2
+```c
+MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_2, size_t, nmemb, size_t, size);
+```
+
+### gballoc_ll_malloc_2
+```c
+MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_2, size_t, nmemb, size_t, size);
+```
+
+`gballoc_ll_malloc_2` returns what `HeapAlloc` returns when called with `nmemb`*`size`. This is useful for example when allocating a pointer to an array of `nmemb` elements each having `size` size.
+
+**SRS_GBALLOC_LL_WIN32HEAP_02_028: [** If `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_malloc_2` shall fail and return `NULL`. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_02_029: [** `gballoc_ll_malloc_2` shall call `lazy_init` with parameter `do_init` set to `heap_init`. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_02_030: [** If `lazy_init` fails then `gballoc_ll_malloc_2` shall return `NULL`. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_02_031: [** `gballoc_ll_malloc_2` shall call `HeapAlloc(nmemb*size)` and return what `HeapAlloc` returned. **]**
+
+### gballoc_ll_malloc_flex
+```c
+MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_flex, size_t, base, size_t, nmemb, size_t, size);
+```
+
+`gballoc_ll_malloc_flex` returns what `HeapAlloc` from stdlib returns when called with `base + nmemb * size`. This is useful for example when allocating a structure with a flexible array member. 
+
+**SRS_GBALLOC_LL_WIN32HEAP_02_032: [** If `nmemb`*`size` exceeds `SIZE_MAX` then `gballoc_ll_malloc_flex` shall fail and return `NULL`. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_02_033: [** If `base` + `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_malloc_flex` shall fail and return `NULL`. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_02_034: [** `gballoc_ll_malloc_flex` shall call `lazy_init` with parameter `do_init` set to `heap_init`. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_02_035: [** If `lazy_init` fails then `gballoc_ll_malloc_flex` shall return `NULL`. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_02_036: [** `gballoc_ll_malloc_flex` shall return what `HeapAlloc(base +  nmemb * size)` returns. **]**
+
 
 ### gballoc_ll_free
 ```c
@@ -115,6 +157,45 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc, void*, ptr, size_t, size);
 **SRS_GBALLOC_LL_WIN32HEAP_02_014: [** If `ptr` is `NULL` then `gballoc_ll_realloc` shall call `HeapAlloc` and return what `HeapAlloc` returns. **]**
 
 **SRS_GBALLOC_LL_WIN32HEAP_02_015: [** If `ptr` is not `NULL` then `gballoc_ll_realloc` shall call `HeapReAlloc` and return what `HeapReAlloc` returns. **]**
+
+
+### gballoc_ll_realloc_2
+```c
+MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc_2, void*, ptr, size_t, nmemb, size_t, size);
+```
+
+`gballoc_ll_realloc_2` calls `HeapReAlloc(ptr, nmemb * size)`. This is useful for example when resizing a previously allocated array of elements.
+
+**SRS_GBALLOC_LL_WIN32HEAP_02_037: [** If `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_realloc_2` shall fail and return `NULL`. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_02_038: [** `gballoc_ll_realloc_2` shall call `lazy_init` with parameter `do_init` set to `heap_init`. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_02_039: [** If `lazy_init` fails then `gballoc_ll_realloc_2` shall return `NULL`. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_02_046: [** If `ptr` is `NULL` then `gballoc_ll_realloc_2` shall call `HeapAlloc(nmemb * size)` and return what `HeapAlloc` returned. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_02_047: [** If `ptr` is not `NULL` then `gballoc_ll_realloc_2` shall call `HeapReAlloc(ptr, nmemb * size)` and return what `HeapReAlloc` returned. **]**
+
+
+### gballoc_ll_realloc_flex
+```c
+MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc_flex, void*, ptr, size_t, base, size_t, nmemb, size_t, size);
+```
+
+`gballoc_ll_realloc_flex` calls `HeapReAlloc(ptr, base + nmemb * size)`. This is useful when reallocating a structure that has a flexible array member.
+
+**SRS_GBALLOC_LL_WIN32HEAP_02_041: [** If `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_realloc_flex` shall fail and return `NULL`. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_02_042: [** `base` + `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_realloc_flex` shall fail and return `NULL`. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_02_043: [** `gballoc_ll_realloc_flex` shall call `lazy_init` with parameter `do_init` set to `heap_init`. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_02_044: [** If `gballoc_ll_realloc_flex` fails then `gballoc_ll_malloc_flex` shall return `NULL`. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_02_048: [** If `ptr` is `NULL` then `gballoc_ll_realloc_flex` shall return what `HeapAlloc(ptr, base + nmemb * size)` returns. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_02_049: [** If `ptr` is not `NULL` then `gballoc_ll_realloc_flex` shall return what `HeapReAlloc(ptr, base + nmemb * size)` returns. **]**
+
 
 ### gballoc_ll_size
 ```c

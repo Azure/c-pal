@@ -77,6 +77,20 @@ void gballoc_ll_deinit(void)
     }
 }
 
+static void* gballoc_ll_malloc_internal(size_t size)
+{
+    void* result;
+    /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_006: [ gballoc_ll_malloc shall call HeapAlloc. ]*/
+
+    result = HeapAlloc(the_heap, 0, size);
+
+    if (result == NULL)
+    {
+        LogError("failure in HeapAlloc(the_heap=%p, 0, size=%zu)", the_heap, size);
+    }
+
+    return result;
+}
 
 void* gballoc_ll_malloc(size_t size)
 {
@@ -91,13 +105,75 @@ void* gballoc_ll_malloc(size_t size)
     }
     else
     {
-        /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_006: [ gballoc_ll_malloc shall call HeapAlloc. ]*/
         /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_007: [ gballoc_ll_malloc shall return what HeapAlloc returned. ]*/
-        result = HeapAlloc(the_heap, 0, size);
+        result = gballoc_ll_malloc_internal(size);
+    }
+    return result;
+}
 
-        if (result == NULL)
+void* gballoc_ll_malloc_2(size_t nmemb, size_t size)
+{
+    void* result;
+    /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_028: [ If nmemb * size exceeds SIZE_MAX then gballoc_ll_malloc_2 shall fail and return NULL. ]*/
+    if (SIZE_MAX / nmemb < size)
+    {
+        LogError("overflow in computation of nmemb=%zu * size=%zu",
+            nmemb, size);
+        result = NULL;
+    }
+    else
+    {
+        /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_029: [ gballoc_ll_malloc_2 shall call lazy_init with parameter do_init set to heap_init. ]*/
+        if (lazy_init(&g_lazy, heap_init, &the_heap) != LAZY_INIT_OK)
         {
-            LogError("failure in HeapAlloc(the_heap=%p, 0, size=%zu)", the_heap, size);
+            /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_030: [ If lazy_init fails then gballoc_ll_malloc_2 shall return NULL. ]*/
+            LogError("failure in lazy_init(&g_lazy=%p, heap_init=%p, &the_heap=%p)",
+                &g_lazy, heap_init, &the_heap);
+            result = NULL;
+        }
+        else
+        {
+            /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_031: [ gballoc_ll_malloc_2 shall call HeapAlloc(nmemb*size) and return what HeapAlloc returned. ]*/
+            result = gballoc_ll_malloc_internal(nmemb * size);
+        }
+    }
+    return result;
+}
+
+void* gballoc_ll_malloc_flex(size_t base, size_t nmemb, size_t size)
+{
+    void* result;
+    /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_032: [ If nmemb*size exceeds SIZE_MAX then gballoc_ll_malloc_flex shall fail and return NULL. ]*/
+    if (SIZE_MAX / nmemb < size)
+    {
+        LogError("overflow in computation of nmemb=%zu * size=%zu",
+            nmemb, size);
+        result = NULL;
+    }
+    else
+    {
+        /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_033: [ If base + nmemb * size exceeds SIZE_MAX then gballoc_ll_malloc_flex shall fail and return NULL. ]*/
+        if (SIZE_MAX - base < nmemb * size)
+        {
+            LogError("overflow in computation of base=%zu + nmemb=%zu * size=%zu",
+                base, nmemb, size);
+            result = NULL;
+        }
+        else
+        {
+            /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_034: [ gballoc_ll_malloc_flex shall call lazy_init with parameter do_init set to heap_init. ]*/
+            if (lazy_init(&g_lazy, heap_init, &the_heap) != LAZY_INIT_OK)
+            {
+                /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_035: [ If lazy_init fails then gballoc_ll_malloc_flex shall return NULL. ]*/
+                LogError("failure in lazy_init(&g_lazy=%p, heap_init=%p, &the_heap=%p)",
+                    &g_lazy, heap_init, &the_heap);
+                result = NULL;
+            }
+            else
+            {
+                /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_036: [ gballoc_ll_malloc_flex shall return what HeapAlloc(base + nmemb * size) returns. ]*/
+                result = gballoc_ll_malloc_internal(nmemb * size);
+            }
         }
     }
     return result;
@@ -138,6 +214,38 @@ void* gballoc_ll_calloc(size_t nmemb, size_t size)
     return result;
 }
 
+static void* gballoc_ll_realloc_internal(void* ptr, size_t size)
+{
+    void* result;
+    /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_014: [ If ptr is NULL then gballoc_ll_realloc shall call HeapAlloc and return what HeapAlloc returns. ]*/
+    /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_046: [ If ptr is NULL then gballoc_ll_realloc_2 shall call HeapAlloc(nmemb * size) and return what HeapAlloc returned. ]*/
+    /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_048: [ If ptr is NULL then gballoc_ll_realloc_flex shall return what HeapAlloc(ptr, base + nmemb * size) returns. ]*/
+    if (ptr == NULL)
+    {
+        result = HeapAlloc(the_heap, 0, size);
+        /*return as is*/
+
+        if (result == NULL)
+        {
+            LogError("Failure in HeapAlloc(the_heap=%p, 0, size=%zu)", the_heap, size);
+        }
+    }
+    else
+    {
+        /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_015: [ If ptr is not NULL then gballoc_ll_realloc shall call HeapReAlloc and return what HeapReAlloc returns. ]*/
+        /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_047: [ If ptr is not NULL then gballoc_ll_realloc_2 shall call HeapReAlloc(ptr, nmemb * size) and return what HeapReAlloc returned. ]*/
+        /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_049: [ If ptr is not NULL then gballoc_ll_realloc_flex shall return what HeapReAlloc(ptr, base + nmemb * size) returns. ]*/
+        result = HeapReAlloc(the_heap, 0, ptr, size);
+        /*return as is*/
+
+        if (result == NULL)
+        {
+            LogError("Failure in HeapReAlloc(the_heap=%p, 0, ptr=%p, size=%zu)", the_heap, ptr, size);
+        }
+    }
+    return result;
+}
+
 void* gballoc_ll_realloc(void* ptr, size_t size)
 {
     void* result;
@@ -151,26 +259,72 @@ void* gballoc_ll_realloc(void* ptr, size_t size)
     }
     else
     {
-        /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_014: [ If ptr is NULL then gballoc_ll_realloc shall call HeapAlloc and return what HeapAlloc returns. ]*/
-        if (ptr == NULL)
-        {
-            result = HeapAlloc(the_heap, 0, size);
-            /*return as is*/
+        return gballoc_ll_realloc_internal(ptr, size);
+    }
+    return result;
+}
 
-            if (result == NULL)
-            {
-                LogError("Failure in HeapAlloc(the_heap=%p, 0, size=%zu)", the_heap, size);
-            }
+void* gballoc_ll_realloc_2(void* ptr, size_t nmemb, size_t size)
+{
+    void* result;
+    /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_037: [ If nmemb * size exceeds SIZE_MAX then gballoc_ll_realloc_2 shall fail and return NULL. ]*/
+    if (SIZE_MAX / nmemb < size)
+    {
+        LogError("overflow in computation of nmemb=%zu * size=%zu",
+            nmemb, size);
+        result = NULL;
+    }
+    else
+    {
+        /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_038: [ gballoc_ll_realloc_2 shall call lazy_init with parameter do_init set to heap_init. ]*/
+        if (lazy_init(&g_lazy, heap_init, &the_heap) != LAZY_INIT_OK)
+        {
+            /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_039: [ If lazy_init fails then gballoc_ll_realloc_2 shall return NULL. ]*/
+            LogError("failure in lazy_init(&g_lazy=%p, heap_init=%p, &the_heap=%p)",
+                &g_lazy, heap_init, &the_heap);
+            result = NULL;
         }
         else
         {
-            /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_015: [ If ptr is not NULL then gballoc_ll_realloc shall call HeapReAlloc and return what HeapReAlloc returns. ]*/
-            result = HeapReAlloc(the_heap, 0, ptr, size);
-            /*return as is*/
+            result = gballoc_ll_realloc_internal(ptr, nmemb * size);
+        }
+    }
+    return result;
+}
 
-            if (result == NULL)
+void* gballoc_ll_realloc_flex(void* ptr, size_t base, size_t nmemb, size_t size)
+{
+    void* result;
+    
+    /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_041: [ If nmemb * size exceeds SIZE_MAX then gballoc_ll_realloc_flex shall fail and return NULL. ]*/
+    if (SIZE_MAX / nmemb < size)
+    {
+        LogError("overflow in computation of nmemb=%zu * size=%zu",
+            nmemb, size);
+        result = NULL;
+    }
+    else
+    {
+        /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_042: [ base + nmemb * size exceeds SIZE_MAX then gballoc_ll_realloc_flex shall fail and return NULL. ]*/
+        if (SIZE_MAX - base < nmemb * size)
+        {
+            LogError("overflow in computation of base=%zu + nmemb=%zu * size=%zu",
+                base, nmemb, size);
+            result = NULL;
+        }
+        else
+        {
+            /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_043: [ gballoc_ll_realloc_flex shall call lazy_init with parameter do_init set to heap_init. ]*/
+            if (lazy_init(&g_lazy, heap_init, &the_heap) != LAZY_INIT_OK)
             {
-                LogError("Failure in HeapReAlloc(the_heap=%p, 0, ptr=%p, size=%zu)", the_heap, ptr, size);
+                /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_044: [ If gballoc_ll_realloc_flex fails then gballoc_ll_malloc_flex shall return NULL. ]*/
+                LogError("failure in lazy_init(&g_lazy=%p, heap_init=%p, &the_heap=%p)",
+                    &g_lazy, heap_init, &the_heap);
+                result = NULL;
+            }
+            else
+            {
+                result = gballoc_ll_realloc_internal(ptr, nmemb * size);
             }
         }
     }

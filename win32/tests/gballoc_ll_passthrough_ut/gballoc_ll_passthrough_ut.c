@@ -154,7 +154,7 @@ TEST_FUNCTION(gballoc_ll_malloc_2_with_overflow_fails)
     ptr = gballoc_ll_malloc_2(2, SIZE_MAX / 2 + 1); /*a clear overflow*/
 
     ///assert
-    ASSERT_ARE_EQUAL(void_ptr, NULL, ptr);
+    ASSERT_IS_NULL(ptr);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
@@ -166,11 +166,13 @@ TEST_FUNCTION(gballoc_ll_malloc_2_with_SIZE_MAX_calls_malloc)
     ///arrange
     void* ptr;
 
+    STRICT_EXPECTED_CALL(mock_malloc(SIZE_MAX));
+
     ///act
-    ptr = gballoc_ll_malloc_2(3, SIZE_MAX/3 + 1); /*a clear overflow*/
+    ptr = gballoc_ll_malloc_2(3, SIZE_MAX/3);
 
     ///assert
-    ASSERT_ARE_EQUAL(void_ptr, NULL, ptr);
+    ASSERT_IS_NULL(ptr);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
