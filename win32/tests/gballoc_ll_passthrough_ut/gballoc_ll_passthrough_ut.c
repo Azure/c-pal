@@ -126,7 +126,7 @@ TEST_FUNCTION(gballoc_ll_deinit_returns)
 }
 
 /*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_003: [ gballoc_ll_malloc shall call malloc(size) and return what malloc returned. ]*/
-TEST_FUNCTION(gballoc_ll_malloc_returns_what_malloc_returns)
+TEST_FUNCTION(gballoc_ll_malloc_returns_what_malloc_returns_1)
 {
     ///arrange
     void* ptr;
@@ -138,6 +138,26 @@ TEST_FUNCTION(gballoc_ll_malloc_returns_what_malloc_returns)
 
     ///assert
     ASSERT_ARE_EQUAL(void_ptr, TEST_MALLOC_RESULT, ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_ll_free(ptr);
+}
+
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_003: [ gballoc_ll_malloc shall call malloc(size) and return what malloc returned. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_returns_what_malloc_returns_2)
+{
+    ///arrange
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(mock_malloc(1))
+        .SetReturn(NULL);
+
+    ///act
+    ptr = gballoc_ll_malloc(1);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
@@ -173,6 +193,25 @@ TEST_FUNCTION(gballoc_ll_malloc_2_with_SIZE_MAX_calls_malloc_and_succeeds)
 
     ///assert
     ASSERT_ARE_EQUAL(void_ptr, TEST_MALLOC_RESULT, ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_009: [ gballoc_ll_malloc_2 shall call malloc(nmemb*size) and return what malloc returned. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_2_with_SIZE_MAX_calls_malloc_and_fails)
+{
+    ///arrange
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(mock_malloc(SIZE_MAX))
+        .SetReturn(NULL);
+
+    ///act
+    ptr = gballoc_ll_malloc_2(3, SIZE_MAX / 3); /*SIZE_MAX is divisible by 3 when size_t is represented on 16 bits, 32 bits or 64 bits.*/
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
@@ -228,6 +267,25 @@ TEST_FUNCTION(gballoc_ll_malloc_flex_with_SIZE_MAX_succeeds)
     ///clean
 }
 
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_012: [ gballoc_ll_malloc_flex shall return what malloc(base + nmemb * size) returns. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_flex_with_SIZE_MAX_fails)
+{
+    ///arrange
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(mock_malloc(SIZE_MAX))
+        .SetReturn(NULL);
+
+    ///act
+    ptr = gballoc_ll_malloc_flex(1, 2, (SIZE_MAX - 3) / 2 + 1); /*no longer overflow, just SIZE_MAX*/
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
 /*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_004: [ gballoc_ll_free shall call free(ptr). ]*/
 TEST_FUNCTION(gballoc_ll_free_calls_free)
 {
@@ -262,6 +320,25 @@ TEST_FUNCTION(gballoc_ll_calloc_calls_calloc)
     gballoc_ll_free(ptr);
 }
 
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_005: [ gballoc_ll_calloc shall call calloc(nmemb, size) and return what calloc returned. ]*/
+TEST_FUNCTION(gballoc_ll_calloc_calls_calloc_2)
+{
+    ///arrange
+    void* ptr;
+    STRICT_EXPECTED_CALL(mock_calloc(1, 2))
+        .SetReturn(NULL);
+
+    ///act
+    ptr = gballoc_ll_calloc(1, 2);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_ll_free(ptr);
+}
+
 /*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_006: [ gballoc_ll_realloc shall call realloc(ptr, size) and return what realloc returned. ]*/
 TEST_FUNCTION(gballoc_ll_realloc_calls_realloc)
 {
@@ -274,6 +351,25 @@ TEST_FUNCTION(gballoc_ll_realloc_calls_realloc)
 
     ///assert
     ASSERT_ARE_EQUAL(void_ptr, TEST_REALLOC_RESULT, ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_ll_free(ptr);
+}
+
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_006: [ gballoc_ll_realloc shall call realloc(ptr, size) and return what realloc returned. ]*/
+TEST_FUNCTION(gballoc_ll_realloc_calls_realloc_2)
+{
+    ///arrange
+    void* ptr;
+    STRICT_EXPECTED_CALL(mock_realloc(TEST_MALLOC_RESULT, 2))
+        .SetReturn(NULL);
+
+    ///act
+    ptr = gballoc_ll_realloc(TEST_MALLOC_RESULT, 2);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
@@ -307,6 +403,23 @@ TEST_FUNCTION(gballoc_ll_realloc_2_with_SIZE_MAX_succeeds)
 
     ///assert
     ASSERT_ARE_EQUAL(void_ptr, TEST_REALLOC_RESULT, ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_014: [ gballoc_ll_realloc_2 shall return what realloc(ptr, nmemb * size) returns. ]*/
+TEST_FUNCTION(gballoc_ll_realloc_2_with_SIZE_MAX_fails)
+{
+    ///arrange
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(mock_realloc(TEST_MALLOC_RESULT, SIZE_MAX))
+        .SetReturn(NULL);
+
+    ///act
+    ptr = gballoc_ll_realloc_2(TEST_MALLOC_RESULT, 3, SIZE_MAX / 3);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
@@ -351,6 +464,23 @@ TEST_FUNCTION(gballoc_ll_realloc_flex_with_SIZE_MAX_succeeds)
 
     ///assert
     ASSERT_ARE_EQUAL(void_ptr, TEST_REALLOC_RESULT, ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_017: [ gballoc_ll_realloc_flex shall return what realloc(ptr, base + nmemb * size) returns. ]*/
+TEST_FUNCTION(gballoc_ll_realloc_flex_with_SIZE_MAX_fails)
+{
+    ///arrange
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(mock_realloc(TEST_MALLOC_RESULT, SIZE_MAX))
+        .SetReturn(NULL);
+
+    ///act
+    ptr = gballoc_ll_realloc_flex(TEST_MALLOC_RESULT, 3, 3, SIZE_MAX / 3 - 1); /*same as above, just 1 byte less*/
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
