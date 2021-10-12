@@ -324,7 +324,7 @@ void* gballoc_ll_realloc_flex(void* ptr, size_t base, size_t nmemb, size_t size)
             }
             else
             {
-                result = gballoc_ll_realloc_internal(ptr, nmemb * size);
+                result = gballoc_ll_realloc_internal(ptr, base + nmemb * size);
             }
         }
     }
