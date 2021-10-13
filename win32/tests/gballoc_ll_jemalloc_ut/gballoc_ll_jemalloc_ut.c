@@ -128,7 +128,7 @@ TEST_FUNCTION(gballoc_ll_deinit_returns)
 }
 
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_01_003: [ gballoc_ll_malloc shall call je_malloc and returns what je_malloc returned. ]*/
-TEST_FUNCTION(gballoc_ll_malloc_calls_mimalloc)
+TEST_FUNCTION(gballoc_ll_malloc_calls_jemalloc)
 {
     ///arrange
 
@@ -145,8 +145,166 @@ TEST_FUNCTION(gballoc_ll_malloc_calls_mimalloc)
     gballoc_ll_free(ptr);
 }
 
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_001: [ If nmemb * size exceeds SIZE_MAX then gballoc_ll_malloc_2 shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_2_with_overflow_fails)
+{
+    ///arrange
+    void* ptr;
+
+    ///act
+    ptr = gballoc_ll_malloc_2(2, (SIZE_MAX - 1) / 2 + 1); /*a clear overflow. Test cannot write (SIZE_MAX+1)/2 because SIZE_MAX + 1 that's already 2^64 and that cannot be represented*/
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_002: [ gballoc_ll_malloc_2 shall call je_malloc(nmemb*size) and returns what je_malloc returned. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_2_with_SIZE_MAX_calls_je_malloc_and_succeeds)
+{
+    ///arrange
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(mock_je_malloc(SIZE_MAX));
+
+    ///act
+    ptr = gballoc_ll_malloc_2(3, SIZE_MAX / 3); /*SIZE_MAX is divisible by 3 when size_t is represented on 16 bits, 32 bits or 64 bits.*/
+
+    ///assert
+    ASSERT_ARE_EQUAL(void_ptr, TEST_MALLOC_RESULT, ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_002: [ gballoc_ll_malloc_2 shall call je_malloc(nmemb*size) and returns what je_malloc returned. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_2_with_nmemb_0_calls_je_malloc_and_succeeds)
+{
+    ///arrange
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(mock_je_malloc(0));
+
+    ///act
+    ptr = gballoc_ll_malloc_2(0, SIZE_MAX / 3); /*no longer overflow, just a test for a division by 0*/
+
+    ///assert
+    ASSERT_ARE_EQUAL(void_ptr, TEST_MALLOC_RESULT, ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_002: [ gballoc_ll_malloc_2 shall call je_malloc(nmemb*size) and returns what je_malloc returned. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_2_with_SIZE_MAX_calls_je_malloc_and_fails)
+{
+    ///arrange
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(mock_je_malloc(SIZE_MAX))
+        .SetReturn(NULL);
+
+    ///act
+    ptr = gballoc_ll_malloc_2(3, SIZE_MAX / 3); /*SIZE_MAX is divisible by 3 when size_t is represented on 16 bits, 32 bits or 64 bits.*/
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_003: [ If nmemb*size exceeds SIZE_MAX then gballoc_ll_malloc_flex shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_flex_with_overflow_fail_1)
+{
+    ///arrange
+    void* ptr;
+
+    ///act
+    ptr = gballoc_ll_malloc_flex(4, 2, (SIZE_MAX - 1) / 2 + 1); /*a clear overflow. Test cannot write (SIZE_MAX+1)/2 because SIZE_MAX + 1 that's already 2^64 and that cannot be represented*/
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_004: [ If base + nmemb * size exceeds SIZE_MAX then gballoc_ll_malloc_flex shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_flex_with_overflow_fail_2)
+{
+    ///arrange
+    void* ptr;
+
+    ///act
+    ptr = gballoc_ll_malloc_flex(2, 2, (SIZE_MAX - 3) / 2 + 1); /*a overflow when adding base */
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_005: [ gballoc_ll_malloc_flex shall return what je_malloc(base + nmemb * size) returns. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_flex_with_SIZE_MAX_succeeds)
+{
+    ///arrange
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(mock_je_malloc(SIZE_MAX));
+
+    ///act
+    ptr = gballoc_ll_malloc_flex(1, 2, (SIZE_MAX - 3) / 2 + 1); /*no longer overflow, just SIZE_MAX*/
+
+    ///assert
+    ASSERT_ARE_EQUAL(void_ptr, TEST_MALLOC_RESULT, ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_005: [ gballoc_ll_malloc_flex shall return what je_malloc(base + nmemb * size) returns. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_flex_with_nmemb_0_succeeds)
+{
+    ///arrange
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(mock_je_malloc(1));
+
+    ///act
+    ptr = gballoc_ll_malloc_flex(1, 0, (SIZE_MAX - 3) / 2 + 1); /*no longer overflow, just a test for a division by 0*/
+
+    ///assert
+    ASSERT_ARE_EQUAL(void_ptr, TEST_MALLOC_RESULT, ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_005: [ gballoc_ll_malloc_flex shall return what je_malloc(base + nmemb * size) returns. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_flex_with_SIZE_MAX_fails)
+{
+    ///arrange
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(mock_je_malloc(SIZE_MAX))
+        .SetReturn(NULL);
+
+    ///act
+    ptr = gballoc_ll_malloc_flex(1, 2, (SIZE_MAX - 3) / 2 + 1); /*no longer overflow, just SIZE_MAX*/
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_01_004: [ gballoc_ll_free shall call je_free(ptr). ]*/
-TEST_FUNCTION(gballoc_ll_free_calls_mi_free)
+TEST_FUNCTION(gballoc_ll_free_calls_je_free)
 {
     ///arrange
 
@@ -199,6 +357,146 @@ TEST_FUNCTION(gballoc_ll_realloc_calls_mi_realloc)
 
     ///clean
     gballoc_ll_free(ptr2);
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_006: [ If nmemb * size exceeds SIZE_MAX then gballoc_ll_realloc_2 shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_realloc_2_with_overflow_returns_NULL)
+{
+    ///arrange
+    void* ptr;
+
+    ///act
+    ptr = gballoc_ll_realloc_2(TEST_MALLOC_RESULT, 2, (SIZE_MAX - 1) / 2 + 1);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_007: [ gballoc_ll_realloc_2 shall return what je_realloc(ptr, nmemb * size) returns. ]*/
+TEST_FUNCTION(gballoc_ll_realloc_2_with_SIZE_MAX_succeeds)
+{
+    ///arrange
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(mock_je_realloc(TEST_MALLOC_RESULT, SIZE_MAX));
+
+    ///act
+    ptr = gballoc_ll_realloc_2(TEST_MALLOC_RESULT, 3, SIZE_MAX / 3);
+
+    ///assert
+    ASSERT_ARE_EQUAL(void_ptr, TEST_REALLOC_RESULT, ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_007: [ gballoc_ll_realloc_2 shall return what je_realloc(ptr, nmemb * size) returns. ]*/
+TEST_FUNCTION(gballoc_ll_realloc_2_with_nmemb_0_succeeds)
+{
+    ///arrange
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(mock_je_realloc(TEST_MALLOC_RESULT, 0));
+
+    ///act
+    ptr = gballoc_ll_realloc_2(TEST_MALLOC_RESULT, 0, SIZE_MAX / 3); /*no longer overflow, just a test for a division by 0*/
+
+    ///assert
+    ASSERT_ARE_EQUAL(void_ptr, TEST_REALLOC_RESULT, ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_007: [ gballoc_ll_realloc_2 shall return what je_realloc(ptr, nmemb * size) returns. ]*/
+TEST_FUNCTION(gballoc_ll_realloc_2_with_SIZE_MAX_fails)
+{
+    ///arrange
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(mock_je_realloc(TEST_MALLOC_RESULT, SIZE_MAX))
+        .SetReturn(NULL);
+
+    ///act
+    ptr = gballoc_ll_realloc_2(TEST_MALLOC_RESULT, 3, SIZE_MAX / 3);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_008: [ If nmemb * size exceeds SIZE_MAX then gballoc_ll_realloc_flex shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_realloc_flex_with_overflow_fails_1)
+{
+    ///arrange
+    void* ptr;
+
+    ///act
+    ptr = gballoc_ll_realloc_flex(TEST_MALLOC_RESULT, 1, 2, (SIZE_MAX - 1) / 2 + 1);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_009: [ If base + nmemb * size exceeds SIZE_MAX then gballoc_ll_realloc_flex shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_realloc_flex_with_overflow_fails_2)
+{
+    ///arrange
+    void* ptr;
+
+    ///act
+    ptr = gballoc_ll_realloc_flex(TEST_MALLOC_RESULT, 4, 3, SIZE_MAX / 3 - 1);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_010: [ gballoc_ll_realloc_flex shall return what je_realloc(ptr, base + nmemb * size) returns. ]*/
+TEST_FUNCTION(gballoc_ll_realloc_flex_with_SIZE_MAX_succeeds)
+{
+    ///arrange
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(mock_je_realloc(TEST_MALLOC_RESULT, SIZE_MAX));
+
+    ///act
+    ptr = gballoc_ll_realloc_flex(TEST_MALLOC_RESULT, 3, 3, SIZE_MAX / 3 - 1); /*same as above, just 1 byte less*/
+
+    ///assert
+    ASSERT_ARE_EQUAL(void_ptr, TEST_REALLOC_RESULT, ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_010: [ gballoc_ll_realloc_flex shall return what je_realloc(ptr, base + nmemb * size) returns. ]*/
+TEST_FUNCTION(gballoc_ll_realloc_flex_with_nmemb_0_succeeds)
+{
+    ///arrange
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(mock_je_realloc(TEST_MALLOC_RESULT, 3));
+
+    ///act
+    ptr = gballoc_ll_realloc_flex(TEST_MALLOC_RESULT, 3, 0, SIZE_MAX / 3 - 1); /*no longer overflow, just a test for a division by 0*/
+
+    ///assert
+    ASSERT_ARE_EQUAL(void_ptr, TEST_REALLOC_RESULT, ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_010: [ gballoc_ll_realloc_flex shall return what je_realloc(ptr, base + nmemb * size) returns. ]*/
+TEST_FUNCTION(gballoc_ll_realloc_flex_with_SIZE_MAX_fails)
+{
+    ///arrange
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(mock_je_realloc(TEST_MALLOC_RESULT, SIZE_MAX))
+        .SetReturn(NULL);
+
+    ///act
+    ptr = gballoc_ll_realloc_flex(TEST_MALLOC_RESULT, 3, 3, SIZE_MAX / 3 - 1); /*same as above, just 1 byte less*/
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_01_007: [ gballoc_ll_size shall call je_malloc_usable_size and return what je_malloc_usable_size returned. ]*/
