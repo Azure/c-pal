@@ -24,6 +24,7 @@ set(pal_linux_h_files
 
 set(pal_linux_c_files
     ${pal_common_c_files}
+    src/arithmetic_linux.c
     src/interlocked_linux.c
     src/pipe_linux.c
     src/platform_linux.c

@@ -13,6 +13,7 @@
 #include "c_pal/call_once.h"
 #include "c_pal/lazy_init.h"
 #include "c_pal/sync.h"
+#include "c_pal/arithmetic.h"
 
 #include "macro_utils/macro_utils.h"
 
@@ -33,6 +34,7 @@
 #include "real_call_once.h"
 #include "real_lazy_init.h"
 #include "real_sync.h"
+#include "real_arithmetic.h"
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
@@ -53,6 +55,7 @@ TEST_FUNCTION(check_all_c_pal_reals)
     REGISTER_CALL_ONCE_GLOBAL_MOCK_HOOK();
     REGISTER_LAZY_INIT_GLOBAL_MOCK_HOOK();
     REGISTER_SYNC_GLOBAL_MOCK_HOOK();
+    REGISTER_ARITHMETIC_GLOBAL_MOCK_HOOK();
 
     // assert
     // no explicit assert, if it builds it works

@@ -14,6 +14,7 @@ if(${run_unittests})
 endif()
 
 if(${run_int_tests})
+    build_test_folder(arithmetic_int)
     build_test_folder(gballoc_ll_passthrough_int)
     build_test_folder(string_utils_int)
 endif()
