@@ -534,7 +534,7 @@ TEST_FUNCTION(gballoc_ll_realloc_flex_with_nmemb_0_succeeds)
     ASSERT_ARE_EQUAL(void_ptr, TEST_REALLOC_RESULT, ptr);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
-
+#error check for linux
 /*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_017: [ gballoc_ll_realloc_flex shall return what realloc(ptr, base + nmemb * size) returns. ]*/
 TEST_FUNCTION(gballoc_ll_realloc_flex_with_SIZE_MAX_fails)
 {
