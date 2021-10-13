@@ -4,9 +4,11 @@
 #ifdef __cplusplus
 #include <cstdlib>
 #include <cstdint>
+#include <cstring>
 #else
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 #endif
 
 
