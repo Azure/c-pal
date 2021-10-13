@@ -63,7 +63,7 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_2, size_t, nmemb, size_t, size);
 
 **SRS_GBALLOC_LL_PASSTHROUGH_02_008: [** If `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_malloc_2` shall fail and return `NULL`. **]**
 
-**SRS_GBALLOC_LL_PASSTHROUGH_02_009: [** `gballoc_ll_malloc_2` shall call `malloc(nmemb*size)` and return what `malloc` returned. **]**
+**SRS_GBALLOC_LL_PASSTHROUGH_02_009: [** `gballoc_ll_malloc_2` shall call `malloc(nmemb*size)` and returns what `malloc` returned. **]**
 
 ### gballoc_ll_malloc_flex
 ```c

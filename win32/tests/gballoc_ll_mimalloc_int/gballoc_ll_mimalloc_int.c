@@ -70,7 +70,7 @@ TEST_FUNCTION(gballoc_ll_malloc_works)
     ASSERT_IS_NOT_NULL(ptr);
 
     ///act(2)
-    ptr[0] = '3'; /*can be written*/
+    (void)memset(ptr, '3', 1); /*can be written*/
 
     ///assert (2) - doesn't crash
 
@@ -87,7 +87,41 @@ TEST_FUNCTION(gballoc_ll_malloc_1MB_works)
     ASSERT_IS_NOT_NULL(ptr);
 
     ///act(2)
-    ptr[0] = '3'; /*can be written*/
+    (void)memset(ptr, '3', 1024*1024); /*can be written*/
+
+    ///assert (2) - doesn't crash
+
+    ///clean
+    gballoc_ll_free(ptr);
+}
+
+TEST_FUNCTION(gballoc_ll_malloc_2_succeeds)
+{
+    ///act (1)
+    unsigned char* ptr = (unsigned char*)gballoc_ll_malloc_2(1024, 1024);
+
+    ///assert (1)
+    ASSERT_IS_NOT_NULL(ptr);
+
+    ///act(2)
+    (void)memset(ptr, '3', 1024 * 1024); /*can be written*/
+
+    ///assert (2) - doesn't crash
+
+    ///clean
+    gballoc_ll_free(ptr);
+}
+
+TEST_FUNCTION(gballoc_ll_malloc_flex_succeeds)
+{
+    ///act (1)
+    unsigned char* ptr = (unsigned char*)gballoc_ll_malloc_flex(1024, 1024, 1024);
+
+    ///assert (1)
+    ASSERT_IS_NOT_NULL(ptr);
+
+    ///act(2)
+    (void)memset(ptr, '3', 1024+1024 * 1024); /*can be written*/
 
     ///assert (2) - doesn't crash
 
@@ -119,6 +153,46 @@ TEST_FUNCTION(gballoc_ll_realloc_works)
 
     ///assert - doesn't crash
     ASSERT_IS_NOT_NULL(ptr2);
+    ///assert - can be written
+    (void)memset(ptr2, '3', 2); /*can be written*/
+
+    ///clean
+    gballoc_ll_free(ptr2);
+}
+
+TEST_FUNCTION(gballoc_ll_realloc_2_works)
+{
+    ///arrange
+    unsigned char* ptr1 = (unsigned char*)gballoc_ll_malloc(1);
+    ASSERT_IS_NOT_NULL(ptr1);
+    unsigned char* ptr2;
+
+    ///act 
+    ptr2 = (unsigned char*)gballoc_ll_realloc_2(ptr1, 1024, 1024);
+
+    ///assert - doesn't crash
+    ASSERT_IS_NOT_NULL(ptr2);
+    ///assert - can be written
+    (void)memset(ptr2, '3', 1024*1024); /*can be written*/
+
+    ///clean
+    gballoc_ll_free(ptr2);
+}
+
+TEST_FUNCTION(gballoc_ll_realloc_flex_works)
+{
+    ///arrange
+    unsigned char* ptr1 = (unsigned char*)gballoc_ll_malloc_flex(4, 10, 4);
+    ASSERT_IS_NOT_NULL(ptr1);
+    unsigned char* ptr2;
+
+    ///act 
+    ptr2 = (unsigned char*)gballoc_ll_realloc_flex(ptr1, 4, 20, 4);
+
+    ///assert - doesn't crash
+    ASSERT_IS_NOT_NULL(ptr2);
+    ///assert - can be written
+    (void)memset(ptr2, '3', 4 + 20*4); /*can be written*/
 
     ///clean
     gballoc_ll_free(ptr2);
@@ -139,6 +213,7 @@ TEST_FUNCTION(gballoc_ll_calloc_works)
     ///clean
     gballoc_ll_free(ptr);
 }
+
 
 TEST_FUNCTION(gballoc_ll_size_works)
 {
