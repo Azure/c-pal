@@ -143,7 +143,7 @@ MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc_flex, size_t, base, size_t, nmemb, 
 MOCKABLE_FUNCTION(, void, gballoc_hl_free, void*, ptr);
 ```
 
-`gballoc_hl_free` calls `gballoc_hl_free(ptr)`.
+`gballoc_hl_free` calls `gballoc_ll_free(ptr)`.
 
 **SRS_GBALLOC_HL_PASSTHROUGH_02_006: [** `gballoc_hl_free` shall call `gballoc_ll_free(ptr)`. **]**
 
