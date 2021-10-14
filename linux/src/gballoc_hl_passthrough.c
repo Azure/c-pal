@@ -58,6 +58,30 @@ void* gballoc_hl_malloc(size_t size)
     return result;
 }
 
+void* gballoc_hl_malloc_2(size_t nmemb, size_t size)
+{
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_030: [ gballoc_hl_malloc_2 shall call gballoc_ll_malloc_2(size) and return what gballoc_ll_malloc_2 returned. ]*/
+    void* result = gballoc_ll_malloc_2(nmemb, size);
+
+    if (result == NULL)
+    {
+        LogError("failure in gballoc_ll_malloc_2(nmemb=%zu, size=%zu)", nmemb, size);
+    }
+    return result;
+}
+
+void* gballoc_hl_malloc_flex(size_t base, size_t nmemb, size_t size)
+{
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_033: [ gballoc_hl_malloc_flex shall call gballoc_ll_malloc_flex(size) and return what gballoc_hl_malloc_flex returned. ]*/
+    void* result = gballoc_ll_malloc_flex(base, nmemb, size);
+
+    if (result == NULL)
+    {
+        LogError("failure in gballoc_ll_malloc_2(base=%zu, nmemb=%zu, size=%zu)", base, nmemb, size);
+    }
+    return result;
+}
+
 void gballoc_hl_free(void* ptr)
 {
     /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_006: [ gballoc_hl_free shall call gballoc_ll_free(ptr). ]*/
@@ -87,6 +111,32 @@ void* gballoc_hl_realloc(void* ptr, size_t size)
     if (result == NULL)
     {
         LogError("Failure in gballoc_ll_realloc(ptr=%p, size=%zu)", ptr, size);
+    }
+
+    return result;
+}
+
+void* gballoc_hl_realloc_2(void* ptr, size_t nmemb, size_t size)
+{
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_036: [ gballoc_hl_realloc_2 shall call gballoc_ll_realloc_2(ptr, nmemb, size) and return what gballoc_ll_realloc_2 returned. ]*/
+    void* result = gballoc_ll_realloc_2(ptr, nmemb, size);
+
+    if (result == NULL)
+    {
+        LogError("Failure in gballoc_ll_realloc_2(ptr=%p, nmemb=%zu, size=%zu)", ptr, nmemb, size);
+    }
+
+    return result;
+}
+
+void* gballoc_hl_realloc_flex(void* ptr, size_t base, size_t nmemb, size_t size)
+{
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_039: [ gballoc_hl_realloc_flex shall call gballoc_ll_realloc_flex(ptr, base, nmemb, size) and return what gballoc_ll_realloc_flex returned. ]*/
+    void* result = gballoc_ll_realloc_flex(ptr, base, nmemb, size);
+
+    if (result == NULL)
+    {
+        LogError("Failure in gballoc_ll_realloc_flex(ptr=%p, base=%zu, nmemb=%zu, size=%zu)", ptr, base, nmemb, size);
     }
 
     return result;
