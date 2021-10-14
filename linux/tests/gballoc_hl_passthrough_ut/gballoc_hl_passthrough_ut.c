@@ -180,7 +180,7 @@ TEST_FUNCTION(gballoc_hl_malloc_unhappy_path)
     ///clean
 }
 
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_006: [ gballoc_hl_free shall call gballoc_hl_free(ptr). ]*/
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_006: [ gballoc_hl_free shall call gballoc_ll_free(ptr). ]*/
 TEST_FUNCTION(gballoc_hl_free_with_NULL_succeeds)
 {
     ///arrange
@@ -195,7 +195,7 @@ TEST_FUNCTION(gballoc_hl_free_with_NULL_succeeds)
     ///clean
 }
 
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_006: [ gballoc_hl_free shall call gballoc_hl_free(ptr). ]*/
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_006: [ gballoc_hl_free shall call gballoc_ll_free(ptr). ]*/
 TEST_FUNCTION(gballoc_hl_free_with_non_NULL_succeeds)
 {
     ///arrange

@@ -60,7 +60,7 @@ void* gballoc_hl_malloc(size_t size)
 
 void gballoc_hl_free(void* ptr)
 {
-    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_006: [ gballoc_hl_free shall call gballoc_hl_free(ptr). ]*/
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_006: [ gballoc_hl_free shall call gballoc_ll_free(ptr). ]*/
     gballoc_ll_free(ptr);
 }
 
