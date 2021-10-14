@@ -616,7 +616,7 @@ TEST_FUNCTION(gballoc_hl_realloc_2_unhappy_path_1)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
-    gballoc_hl_free(result);
+    gballoc_hl_free(ptr);
     TEST_gballoc_hl_deinit();
 }
 
@@ -641,7 +641,7 @@ TEST_FUNCTION(gballoc_hl_realloc_2_unhappy_path_2)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
-    gballoc_hl_free(result);
+    gballoc_hl_free(ptr);
     TEST_gballoc_hl_deinit();
 }
 
@@ -695,7 +695,7 @@ TEST_FUNCTION(gballoc_hl_realloc_flex_unhappy_path_1)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
-    gballoc_hl_free(result);
+    gballoc_hl_free(ptr);
     TEST_gballoc_hl_deinit();
 }
 
@@ -720,7 +720,7 @@ TEST_FUNCTION(gballoc_hl_realloc_flex_unhappy_path_2)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
-    gballoc_hl_free(result);
+    gballoc_hl_free(ptr);
     TEST_gballoc_hl_deinit();
 }
 
