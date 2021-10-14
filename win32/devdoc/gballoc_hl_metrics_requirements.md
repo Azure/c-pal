@@ -34,8 +34,12 @@
     MOCKABLE_FUNCTION(, void, gballoc_hl_deinit);
 
     MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc_2, size_t, nmemb, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc_flex, size_t, base, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_hl_calloc, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc, void*, ptr, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc_2, void*, ptr, size_t, nmemb, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc_flex, void*, ptr, size_t, base, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void, gballoc_hl_free, void*, ptr);
 
     MOCKABLE_FUNCTION(, void, gballoc_hl_reset_counters);
@@ -100,6 +104,40 @@ MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc, size_t, size);
 
 **SRS_GBALLOC_HL_METRICS_01_029: [** `gballoc_hl_malloc` shall call `timer_global_get_elapsed_us` to obtain the end time of the allocate. **]**
 
+### gballoc_hl_malloc_2
+```c
+MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc_2, size_t, nmemb, size_t, size);
+```
+
+`gballoc_hl_malloc_2` allocates `nmemb` * `size` bytes of memory.
+
+**SRS_GBALLOC_HL_METRICS_02_026: [** `gballoc_hl_malloc_2` shall call `lazy_init` to initialize. **]**
+
+**SRS_GBALLOC_HL_METRICS_02_027: [** If the module was not initialized, `gballoc_hl_malloc_2` shall return NULL. **]**
+
+**SRS_GBALLOC_HL_METRICS_02_022: [** `gballoc_hl_malloc_2` shall call `timer_global_get_elapsed_us` to obtain the start time of the allocate. **]**
+
+**SRS_GBALLOC_HL_METRICS_02_023: [** `gballoc_hl_malloc_2` shall call `gballoc_ll_malloc_2(nmemb, size)` and return the result of `gballoc_ll_malloc_2`. **]**
+
+**SRS_GBALLOC_HL_METRICS_02_024: [** `gballoc_hl_malloc_2` shall call `timer_global_get_elapsed_us` to obtain the end time of the allocate. **]**
+
+### gballoc_hl_malloc_flex
+```c
+MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc_flex, size_t, base, size_t, nmemb, size_t, size);
+```
+
+`gballoc_hl_malloc_flex` allocates `base + nmemb` * `size` bytes of memory.
+
+**SRS_GBALLOC_HL_METRICS_02_025: [** `gballoc_hl_malloc_flex` shall call `lazy_init` to initialize. **]**
+
+**SRS_GBALLOC_HL_METRICS_02_008: [** If the module was not initialized, `gballoc_hl_malloc_flex` shall return NULL. **]**
+
+**SRS_GBALLOC_HL_METRICS_02_009: [** `gballoc_hl_malloc_flex` shall call `timer_global_get_elapsed_us` to obtain the start time of the allocate. **]**
+
+**SRS_GBALLOC_HL_METRICS_02_010: [** `gballoc_hl_malloc_flex` shall call `gballoc_ll_malloc_flex(base, nmemb, size)` and return the result of `gballoc_ll_malloc_flex`. **]**
+
+**SRS_GBALLOC_HL_METRICS_02_011: [** `gballoc_hl_malloc_flex` shall call `timer_global_get_elapsed_us` to obtain the end time of the allocate. **]**
+
 ### gballoc_hl_calloc
 
 ```c
@@ -135,6 +173,42 @@ MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc, void*, ptr, size_t, size);
 **SRS_GBALLOC_HL_METRICS_01_013: [** `gballoc_hl_realloc` shall call `gballoc_ll_realloc(ptr, size)` and return the result of `gballoc_ll_realloc` **]**
 
 **SRS_GBALLOC_HL_METRICS_01_033: [** `gballoc_hl_realloc` shall call `timer_global_get_elapsed_us` to obtain the end time of the allocate. **]**
+
+
+### gballoc_hl_realloc_2
+```c
+MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc_2, void*, ptr, size_t, nmemb, size_t, size);
+```
+
+`gballoc_hl_realloc_2` reallocates `ptr` to have size `nmemb * size`.
+
+**SRS_GBALLOC_HL_METRICS_02_028: [** `gballoc_hl_realloc_2` shall call `lazy_init` to initialize. **]**
+
+**SRS_GBALLOC_HL_METRICS_02_012: [** If the module was not initialized, `gballoc_hl_realloc_2` shall return NULL. **]**
+
+**SRS_GBALLOC_HL_METRICS_02_029: [** `gballoc_hl_realloc_2` shall call `timer_global_get_elapsed_us` to obtain the start time of the allocate. **]**
+
+**SRS_GBALLOC_HL_METRICS_02_014: [** `gballoc_hl_realloc_2` shall call `gballoc_ll_realloc_2(ptr, nmemb, size)` and return the result of `gballoc_ll_realloc_2`. **]**
+
+**SRS_GBALLOC_HL_METRICS_02_015: [** `gballoc_hl_realloc_2` shall call `timer_global_get_elapsed_us` to obtain the end time of the allocate. **]**
+
+### gballoc_hl_realloc_flex
+```c
+MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc_flex, void*, ptr, size_t, base, size_t, nmemb, size_t, size);
+```
+
+`gballoc_hl_realloc_flex` reallocates `ptr` to have size `base + nmemb * size`.
+
+**SRS_GBALLOC_HL_METRICS_02_016: [** `gballoc_hl_realloc_flex` shall call `lazy_init` to initialize. **]**
+
+**SRS_GBALLOC_HL_METRICS_02_017: [** If the module was not initialized, `gballoc_hl_realloc_flex` shall return NULL. **]**
+
+**SRS_GBALLOC_HL_METRICS_02_018: [** `gballoc_hl_realloc_flex` shall call `timer_global_get_elapsed_us` to obtain the start time of the allocate. **]**
+
+**SRS_GBALLOC_HL_METRICS_02_019: [** `gballoc_hl_realloc_flex` shall call `gballoc_hl_realloc_flex(ptr, base, nmemb, size)` and return the result of `gballoc_hl_realloc_flex`. **]**
+
+**SRS_GBALLOC_HL_METRICS_02_020: [** `gballoc_hl_realloc_flex` shall call `timer_global_get_elapsed_us` to obtain the end time of the allocate. **]**
+
 
 ### gballoc_hl_free
 

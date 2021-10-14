@@ -346,6 +346,74 @@ void* gballoc_hl_malloc(size_t size)
     return result;
 }
 
+void* gballoc_hl_malloc_2(size_t nmemb, size_t size)
+{
+    void* result;
+
+    /*Codes_SRS_GBALLOC_HL_METRICS_02_026: [ gballoc_hl_malloc_2 shall call lazy_init to initialize. ]*/
+    if (lazy_init(&g_lazy, do_init, NULL) != LAZY_INIT_OK)
+    {
+        /*Codes_SRS_GBALLOC_HL_METRICS_02_027: [ If the module was not initialized, gballoc_hl_malloc_2 shall return NULL. ]*/
+        LogError("Not initialized");
+        result = NULL;
+    }
+    else
+    {
+        /*Codes_SRS_GBALLOC_HL_METRICS_02_022: [ gballoc_hl_malloc_2 shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
+        double start_time = timer_global_get_elapsed_us();
+
+        /*Codes_SRS_GBALLOC_HL_METRICS_02_023: [ gballoc_hl_malloc_2 shall call gballoc_ll_malloc_2(nmemb, size) and return the result of gballoc_ll_malloc_2. ]*/
+        result = gballoc_ll_malloc_2(nmemb, size);
+
+        if (result == NULL)
+        {
+            LogError("failure in gballoc_ll_malloc_2(nmemb=%zu, size=%zu)", nmemb, size);
+        }
+
+        /*Codes_SRS_GBALLOC_HL_METRICS_02_024: [ gballoc_hl_malloc_2 shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
+        double end_time = timer_global_get_elapsed_us();
+
+        LONG latency = (LONG)(end_time - start_time);
+        internal_add_call_latency(malloc_latency_buckets, nmemb * size, latency);
+    }
+
+    return result;
+}
+
+void* gballoc_hl_malloc_flex(size_t base, size_t nmemb, size_t size)
+{
+    void* result;
+
+    /*Codes_SRS_GBALLOC_HL_METRICS_02_025: [ gballoc_hl_malloc_flex shall call lazy_init to initialize. ]*/
+    if (lazy_init(&g_lazy, do_init, NULL) != LAZY_INIT_OK)
+    {
+        /*Codes_SRS_GBALLOC_HL_METRICS_02_008: [ If the module was not initialized, gballoc_hl_malloc_flex shall return NULL. ]*/
+        LogError("Not initialized");
+        result = NULL;
+    }
+    else
+    {
+        /*Codes_SRS_GBALLOC_HL_METRICS_02_009: [ gballoc_hl_malloc_flex shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
+        double start_time = timer_global_get_elapsed_us();
+
+        /*Codes_SRS_GBALLOC_HL_METRICS_02_010: [ gballoc_hl_malloc_flex shall call gballoc_ll_malloc_flex(base, nmemb, size) and return the result of gballoc_ll_malloc_flex. ]*/
+        result = gballoc_ll_malloc_flex(base, nmemb, size);
+
+        if (result == NULL)
+        {
+            LogError("failure in gballoc_ll_malloc_flex(base=%zu, nmemb=%zu, size=%zu)", base, nmemb, size);
+        }
+
+        /*Codes_SRS_GBALLOC_HL_METRICS_02_011: [ gballoc_hl_malloc_flex shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
+        double end_time = timer_global_get_elapsed_us();
+
+        LONG latency = (LONG)(end_time - start_time);
+        internal_add_call_latency(malloc_latency_buckets, base + nmemb * size, latency);
+    }
+
+    return result;
+}
+
 void* gballoc_hl_calloc(size_t nmemb, size_t size)
 {
     void* result;
@@ -409,6 +477,74 @@ void* gballoc_hl_realloc(void* ptr, size_t size)
 
         LONG latency = (LONG)(end_time - start_time);
         internal_add_call_latency(realloc_latency_buckets, size, latency);
+    }
+
+    return result;
+}
+
+void* gballoc_hl_realloc_2(void* ptr, size_t nmemb, size_t size)
+{
+    void* result;
+
+    /*Codes_SRS_GBALLOC_HL_METRICS_02_028: [ gballoc_hl_realloc_2 shall call lazy_init to initialize. ]*/
+    if (lazy_init(&g_lazy, do_init, NULL) != LAZY_INIT_OK)
+    {
+        /*Codes_SRS_GBALLOC_HL_METRICS_02_012: [ If the module was not initialized, gballoc_hl_realloc_2 shall return NULL. ]*/
+        LogError("Not initialized");
+        result = NULL;
+    }
+    else
+    {
+        /*Codes_SRS_GBALLOC_HL_METRICS_02_029: [ gballoc_hl_realloc_2 shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
+        double start_time = timer_global_get_elapsed_us();
+
+        /*Codes_SRS_GBALLOC_HL_METRICS_02_014: [ gballoc_hl_realloc_2 shall call gballoc_ll_realloc_2(ptr, nmemb, size) and return the result of gballoc_ll_realloc_2. ]*/
+        result = gballoc_ll_realloc_2(ptr, nmemb, size);
+
+        if (result == NULL)
+        {
+            LogError("failure in gballoc_ll_realloc(ptr=%p, nmemb=%zu, size=%zu)", ptr, nmemb, size);
+        }
+
+        /*Codes_SRS_GBALLOC_HL_METRICS_02_015: [ gballoc_hl_realloc_2 shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
+        double end_time = timer_global_get_elapsed_us();
+
+        LONG latency = (LONG)(end_time - start_time);
+        internal_add_call_latency(realloc_latency_buckets, nmemb * size, latency);
+    }
+
+    return result;
+}
+
+void* gballoc_hl_realloc_flex(void* ptr, size_t base, size_t nmemb, size_t size)
+{
+    void* result;
+
+    /*Codes_SRS_GBALLOC_HL_METRICS_02_016: [ gballoc_hl_realloc_flex shall call lazy_init to initialize. ]*/
+    if (lazy_init(&g_lazy, do_init, NULL) != LAZY_INIT_OK)
+    {
+        /*Codes_SRS_GBALLOC_HL_METRICS_02_017: [ If the module was not initialized, gballoc_hl_realloc_flex shall return NULL. ]*/
+        LogError("Not initialized");
+        result = NULL;
+    }
+    else
+    {
+        /*Codes_SRS_GBALLOC_HL_METRICS_02_018: [ gballoc_hl_realloc_flex shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
+        double start_time = timer_global_get_elapsed_us();
+
+        /*Codes_SRS_GBALLOC_HL_METRICS_02_019: [ gballoc_hl_realloc_flex shall call gballoc_hl_realloc_flex(ptr, base, nmemb, size) and return the result of gballoc_hl_realloc_flex. ]*/
+        result = gballoc_ll_realloc_flex(ptr, base, nmemb, size);
+
+        if (result == NULL)
+        {
+            LogError("failure in gballoc_ll_realloc_flex(ptr=%p, nmemb=%zu, size=%zu)", ptr, nmemb, size);
+        }
+
+        /*Codes_SRS_GBALLOC_HL_METRICS_02_020: [ gballoc_hl_realloc_flex shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
+        double end_time = timer_global_get_elapsed_us();
+
+        LONG latency = (LONG)(end_time - start_time);
+        internal_add_call_latency(realloc_latency_buckets, base + nmemb * size, latency);
     }
 
     return result;

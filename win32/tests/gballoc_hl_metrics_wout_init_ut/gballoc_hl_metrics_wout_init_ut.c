@@ -13,10 +13,7 @@
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umocktypes.h"
 
-#include "c_pal/gballoc_hl.h"
-
 #define ENABLE_MOCKS
-#include "umock_c/umock_c_prod.h"
 #include "c_pal/gballoc_ll.h"
 #include "c_pal/lazy_init.h"
 #include "c_pal/interlocked.h"
@@ -24,6 +21,8 @@
 
 #include "real_lazy_init.h"
 #include "real_interlocked.h"
+
+#include "c_pal/gballoc_hl.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 
@@ -117,6 +116,40 @@ TEST_FUNCTION(gballoc_malloc_when_not_initialized_returns_NULL)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
+/*Tests_SRS_GBALLOC_HL_METRICS_02_027: [ If the module was not initialized, gballoc_hl_malloc_2 shall return NULL. ]*/
+TEST_FUNCTION(gballoc_malloc_2_when_not_initialized_returns_NULL)
+{
+    // arrange
+    void* result;
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL))
+        .SetReturn(LAZY_INIT_ERROR);
+
+    // act
+    result = gballoc_hl_malloc_2(2, 3);
+
+    // assert
+    ASSERT_IS_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_SRS_GBALLOC_HL_METRICS_02_008: [ If the module was not initialized, gballoc_hl_malloc_flex shall return NULL. ]*/
+TEST_FUNCTION(gballoc_malloc_flex_when_not_initialized_returns_NULL)
+{
+    // arrange
+    void* result;
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL))
+        .SetReturn(LAZY_INIT_ERROR);
+
+    // act
+    result = gballoc_hl_malloc_flex(2, 3, 5);
+
+    // assert
+    ASSERT_IS_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
 /* gballoc_hl_calloc */
 
 /* Tests_SRS_GBALLOC_HL_METRICS_01_011: [ If the module was not initialized, gballoc_calloc shall return NULL. ]*/
@@ -155,6 +188,52 @@ TEST_FUNCTION(gballoc_realloc_when_not_initialized_fails)
 
     // act
     result = gballoc_hl_realloc(ptr, 1);
+
+    // assert
+    ASSERT_IS_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_SRS_GBALLOC_HL_METRICS_02_012: [ If the module was not initialized, gballoc_hl_realloc_2 shall return NULL. ]*/
+TEST_FUNCTION(gballoc_realloc_2_when_not_initialized_fails)
+{
+    // arrange
+    void* result;
+    void* ptr;
+    (void)gballoc_hl_init(NULL, NULL);
+    ptr = gballoc_hl_malloc(42);
+    gballoc_hl_free(ptr);
+    gballoc_hl_deinit();
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL))
+        .SetReturn(LAZY_INIT_ERROR);
+
+    // act
+    result = gballoc_hl_realloc_2(ptr, 1, 2);
+
+    // assert
+    ASSERT_IS_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_SRS_GBALLOC_HL_METRICS_02_017: [ If the module was not initialized, gballoc_hl_realloc_flex shall return NULL. ]*/
+TEST_FUNCTION(gballoc_realloc_flex_when_not_initialized_fails)
+{
+    // arrange
+    void* result;
+    void* ptr;
+    (void)gballoc_hl_init(NULL, NULL);
+    ptr = gballoc_hl_malloc(42);
+    gballoc_hl_free(ptr);
+    gballoc_hl_deinit();
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL))
+        .SetReturn(LAZY_INIT_ERROR);
+
+    // act
+    result = gballoc_hl_realloc_flex(ptr, 2, 3, 5);
 
     // assert
     ASSERT_IS_NULL(result);
