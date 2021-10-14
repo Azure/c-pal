@@ -162,7 +162,7 @@ TEST_FUNCTION(gballoc_hl_malloc_flex_works)
 TEST_FUNCTION(gballoc_hl_malloc_flex_1MB_works)
 {
     ///act (1)
-    unsigned char* ptr = (unsigned char*)gballoc_hl_malloc_2(1024, 1024, 1024);
+    unsigned char* ptr = (unsigned char*)gballoc_hl_malloc_flex(1024, 1024, 1024);
 
     ///assert (1)
     ASSERT_IS_NOT_NULL(ptr);
