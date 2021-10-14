@@ -42,8 +42,12 @@ extern "C" {
     MOCKABLE_FUNCTION(, void, gballoc_hl_deinit);
 
     MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc_2, size_t, nmemb, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc_flex, size_t, base, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_hl_calloc, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc, void*, ptr, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc_2, void*, ptr, size_t, nmemb, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc_flex, void*, ptr, size_t, base, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void, gballoc_hl_free, void*, ptr);
 
     MOCKABLE_FUNCTION(, void, gballoc_hl_reset_counters);

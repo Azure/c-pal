@@ -89,9 +89,57 @@ void* gballoc_hl_malloc(size_t size)
     return result;
 }
 
+void* gballoc_hl_malloc_2(size_t nmemb, size_t size)
+{
+    void* result;
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_028: [ gballoc_hl_malloc_2 shall call lazy_init passing as execution function do_init and NULL for argument. ]*/
+    if (lazy_init(&g_lazy, do_init, NULL) != LAZY_INIT_OK)
+    {
+        /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_029: [ If lazy_init fail then gballoc_hl_malloc_2 shall fail and return NULL. ]*/
+        LogError("failure in lazy_init(&g_lazy=%p, do_init=%p, gballoc_ll_init_params=%p)",
+            &g_lazy, do_init, NULL);
+        result = NULL;
+    }
+    else
+    {
+        /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_030: [ gballoc_hl_malloc_2 shall call gballoc_ll_malloc_2(size) and return what gballoc_ll_malloc_2 returned. ]*/
+        result = gballoc_ll_malloc_2(nmemb, size);
+
+        if (result == NULL)
+        {
+            LogError("failure in gballoc_ll_malloc_2(nmemb=%zu, size=%zu);", nmemb, size);
+        }
+    }
+    return result;
+}
+
+void* gballoc_hl_malloc_flex(size_t base, size_t nmemb, size_t size)
+{
+    void* result;
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_031: [ gballoc_hl_malloc_flex shall call lazy_init passing as execution function do_init and NULL for argument. ]*/
+    if (lazy_init(&g_lazy, do_init, NULL) != LAZY_INIT_OK)
+    {
+        /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_032: [ If lazy_init fail then gballoc_hl_malloc_flex shall fail and return NULL. ]*/
+        LogError("failure in lazy_init(&g_lazy=%p, do_init=%p, gballoc_ll_init_params=%p)",
+            &g_lazy, do_init, NULL);
+        result = NULL;
+    }
+    else
+    {
+        /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_033: [ gballoc_hl_malloc_flex shall call gballoc_ll_malloc_flex(size) and return what gballoc_hl_malloc_flex returned. ]*/
+        result = gballoc_ll_malloc_flex(base, nmemb, size);
+
+        if (result == NULL)
+        {
+            LogError("failure in gballoc_ll_malloc_flex(base=%zu, nmemb=%zu, size=%zu);", base, nmemb, size);
+        }
+    }
+    return result;
+}
+
 void gballoc_hl_free(void* ptr)
 {
-    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_006: [ gballoc_hl_free shall call gballoc_hl_free(ptr). ]*/
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_006: [ gballoc_hl_free shall call gballoc_ll_free(ptr). ]*/
     gballoc_ll_free(ptr);
 }
 
@@ -140,6 +188,56 @@ void* gballoc_hl_realloc(void* ptr, size_t size)
         if (result == NULL)
         {
             LogError("Failure in gballoc_ll_realloc(ptr=%p, size=%zu)", ptr, size);
+        }
+    }
+
+    return result;
+}
+
+void* gballoc_hl_realloc_2(void* ptr, size_t nmemb, size_t size)
+{
+    void* result;
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_034: [ gballoc_hl_realloc_2 shall call lazy_init passing as execution function do_init and NULL for argument. ]*/
+    if (lazy_init(&g_lazy, do_init, NULL) != LAZY_INIT_OK)
+    {
+        /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_035: [ If lazy_init fail then gballoc_hl_realloc_2 shall fail and return NULL. ]*/
+        LogError("failure in lazy_init(&g_lazy=%p, do_init=%p, gballoc_ll_init_params=%p)",
+            &g_lazy, do_init, NULL);
+        result = NULL;
+    }
+    else
+    {
+        /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_036: [ gballoc_hl_realloc_2 shall call gballoc_ll_realloc_2(ptr, nmemb, size) and return what gballoc_ll_realloc_2 returned. ]*/
+        result = gballoc_ll_realloc_2(ptr, nmemb, size);
+
+        if (result == NULL)
+        {
+            LogError("Failure in gballoc_ll_realloc_2(ptr=%p, nmemb=%zu, size=%zu)", ptr, nmemb, size);
+        }
+    }
+
+    return result;
+}
+
+void* gballoc_hl_realloc_flex(void* ptr, size_t base, size_t nmemb, size_t size)
+{
+    void* result;
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_037: [ gballoc_hl_realloc_flex shall call lazy_init passing as execution function do_init and NULL for argument. ]*/
+    if (lazy_init(&g_lazy, do_init, NULL) != LAZY_INIT_OK)
+    {
+        /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_038: [ If lazy_init fail then gballoc_hl_realloc_flex shall fail and return NULL. ]*/
+        LogError("failure in lazy_init(&g_lazy=%p, do_init=%p, gballoc_ll_init_params=%p)",
+            &g_lazy, do_init, NULL);
+        result = NULL;
+    }
+    else
+    {
+        /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_039: [ gballoc_hl_realloc_flex shall call gballoc_ll_realloc_flex(ptr, base, nmemb, size) and return what gballoc_ll_realloc_flex returned. ]*/
+        result = gballoc_ll_realloc_flex(ptr, base, nmemb, size);
+
+        if (result == NULL)
+        {
+            LogError("Failure in gballoc_ll_realloc_flex(ptr=%p, base=%zu, nmemb=%zu, size=%zu)", ptr, base, nmemb, size);
         }
     }
 

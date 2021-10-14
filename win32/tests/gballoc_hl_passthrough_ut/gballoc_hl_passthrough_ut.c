@@ -247,7 +247,145 @@ TEST_FUNCTION(gballoc_hl_malloc_unhappy_path_2)
     TEST_gballoc_hl_deinit();
 }
 
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_006: [ gballoc_hl_free shall call gballoc_hl_free(ptr). ]*/
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_028: [ gballoc_hl_malloc_2 shall call lazy_init passing as execution function do_init and NULL for argument. ]*/
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_030: [ gballoc_hl_malloc_2 shall call gballoc_ll_malloc_2(size) and return what gballoc_ll_malloc_2 returned. ]*/
+TEST_FUNCTION(gballoc_hl_malloc_2_succeeds)
+{
+    ///arrange
+    TEST_gballoc_hl_init();
+    void* result;
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
+
+    STRICT_EXPECTED_CALL(gballoc_ll_malloc_2(3, 4));
+
+    ///act
+    result = gballoc_hl_malloc_2(3, 4);
+
+    ///assert
+    ASSERT_IS_NOT_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_hl_free(result);
+    TEST_gballoc_hl_deinit();
+}
+
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_029: [ If lazy_init fail then gballoc_hl_malloc_2 shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_hl_malloc_2_unhappy_path_2)
+{
+    ///arrange
+    TEST_gballoc_hl_init();
+    void* result;
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL))
+        .SetReturn(LAZY_INIT_ERROR);
+
+    ///act
+    result = gballoc_hl_malloc_2(3, 4);
+
+    ///assert
+    ASSERT_IS_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    TEST_gballoc_hl_deinit();
+}
+
+/*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_030: [ gballoc_hl_malloc_2 shall call gballoc_ll_malloc_2(size) and return what gballoc_ll_malloc_2 returned. ]*/
+TEST_FUNCTION(gballoc_hl_malloc_2_unhappy_path_1)
+{
+    ///arrange
+    TEST_gballoc_hl_init();
+    void* result;
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
+
+    STRICT_EXPECTED_CALL(gballoc_ll_malloc_2(3, 4))
+        .SetReturn(NULL);
+
+    ///act
+    result = gballoc_hl_malloc_2(3, 4);
+
+    ///assert
+    ASSERT_IS_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    TEST_gballoc_hl_deinit();
+}
+
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_031: [ gballoc_hl_malloc_flex shall call lazy_init passing as execution function do_init and NULL for argument. ]*/
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_033: [ gballoc_hl_malloc_flex shall call gballoc_ll_malloc_flex(size) and return what gballoc_hl_malloc_flex returned. ]*/
+TEST_FUNCTION(gballoc_hl_malloc_flex_succeeds)
+{
+    ///arrange
+    TEST_gballoc_hl_init();
+    void* result;
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
+
+    STRICT_EXPECTED_CALL(gballoc_ll_malloc_flex(2, 3, 4));
+
+    ///act
+    result = gballoc_hl_malloc_flex(2, 3, 4);
+
+    ///assert
+    ASSERT_IS_NOT_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_hl_free(result);
+    TEST_gballoc_hl_deinit();
+}
+
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_033: [ gballoc_hl_malloc_flex shall call gballoc_ll_malloc_flex(size) and return what gballoc_hl_malloc_flex returned. ]*/
+TEST_FUNCTION(gballoc_hl_malloc_flex_unhappy_path_1)
+{
+    ///arrange
+    TEST_gballoc_hl_init();
+    void* result;
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
+
+    STRICT_EXPECTED_CALL(gballoc_ll_malloc_flex(2, 3, 4))
+        .SetReturn(NULL);
+
+    ///act
+    result = gballoc_hl_malloc_flex(2, 3, 4);
+
+    ///assert
+    ASSERT_IS_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_hl_free(result);
+    TEST_gballoc_hl_deinit();
+}
+
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_032: [ If lazy_init fail then gballoc_hl_malloc_flex shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_hl_malloc_flex_unhappy_path_2)
+{
+    ///arrange
+    TEST_gballoc_hl_init();
+    void* result;
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL))
+        .SetReturn(LAZY_INIT_ERROR);
+
+    ///act
+    result = gballoc_hl_malloc_flex(2, 3, 4);
+
+    ///assert
+    ASSERT_IS_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_hl_free(result);
+    TEST_gballoc_hl_deinit();
+}
+
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_006: [ gballoc_hl_free shall call gballoc_ll_free(ptr). ]*/
 TEST_FUNCTION(gballoc_hl_free_with_NULL_succeeds)
 {
     ///arrange
@@ -262,7 +400,7 @@ TEST_FUNCTION(gballoc_hl_free_with_NULL_succeeds)
     ///clean
 }
 
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_006: [ gballoc_hl_free shall call gballoc_hl_free(ptr). ]*/
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_006: [ gballoc_hl_free shall call gballoc_ll_free(ptr). ]*/
 TEST_FUNCTION(gballoc_hl_free_with_non_NULL_succeeds)
 {
     ///arrange
@@ -418,6 +556,164 @@ TEST_FUNCTION(gballoc_hl_realloc_when_ll_fails)
 
     ///act
     result = gballoc_hl_realloc(ptr, 10);
+
+    ///assert
+    ASSERT_IS_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_hl_free(ptr);
+    TEST_gballoc_hl_deinit();
+}
+
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_034: [ gballoc_hl_realloc_2 shall call lazy_init passing as execution function do_init and NULL for argument. ]*/
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_036: [ gballoc_hl_realloc_2 shall call gballoc_ll_realloc_2(ptr, nmemb, size) and return what gballoc_ll_realloc_2 returned. ]*/
+TEST_FUNCTION(gballoc_hl_realloc_2_succeeds)
+{
+    ///arrange
+    TEST_gballoc_hl_init();
+    void* ptr = gballoc_hl_malloc(3);
+    ASSERT_IS_NOT_NULL(ptr);
+    umock_c_reset_all_calls();
+    void* result;
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
+
+    STRICT_EXPECTED_CALL(gballoc_ll_realloc_2(ptr, 10, 10));
+
+    ///act
+    result = gballoc_hl_realloc_2(ptr, 10, 10);
+
+    ///assert
+    ASSERT_IS_NOT_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_hl_free(result);
+    TEST_gballoc_hl_deinit();
+}
+
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_036: [ gballoc_hl_realloc_2 shall call gballoc_ll_realloc_2(ptr, nmemb, size) and return what gballoc_ll_realloc_2 returned. ]*/
+TEST_FUNCTION(gballoc_hl_realloc_2_unhappy_path_1)
+{
+    ///arrange
+    TEST_gballoc_hl_init();
+    void* ptr = gballoc_hl_malloc(3);
+    ASSERT_IS_NOT_NULL(ptr);
+    umock_c_reset_all_calls();
+    void* result;
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
+
+    STRICT_EXPECTED_CALL(gballoc_ll_realloc_2(ptr, 10, 10))
+        .SetReturn(NULL);
+
+    ///act
+    result = gballoc_hl_realloc_2(ptr, 10, 10);
+
+    ///assert
+    ASSERT_IS_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_hl_free(ptr);
+    TEST_gballoc_hl_deinit();
+}
+
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_035: [ If lazy_init fail then gballoc_hl_realloc_2 shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_hl_realloc_2_unhappy_path_2)
+{
+    ///arrange
+    TEST_gballoc_hl_init();
+    void* ptr = gballoc_hl_malloc(3);
+    ASSERT_IS_NOT_NULL(ptr);
+    umock_c_reset_all_calls();
+    void* result;
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL))
+        .SetReturn(LAZY_INIT_ERROR);
+
+    ///act
+    result = gballoc_hl_realloc_2(ptr, 10, 10);
+
+    ///assert
+    ASSERT_IS_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_hl_free(ptr);
+    TEST_gballoc_hl_deinit();
+}
+
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_037: [ gballoc_hl_realloc_flex shall call lazy_init passing as execution function do_init and NULL for argument. ]*/
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_039: [ gballoc_hl_realloc_flex shall call gballoc_ll_realloc_flex(ptr, base, nmemb, size) and return what gballoc_ll_realloc_flex returned. ]*/
+TEST_FUNCTION(gballoc_hl_realloc_flex_succeeds)
+{
+    ///arrange
+    TEST_gballoc_hl_init();
+    void* ptr = gballoc_hl_malloc(3);
+    ASSERT_IS_NOT_NULL(ptr);
+    umock_c_reset_all_calls();
+    void* result;
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
+
+    STRICT_EXPECTED_CALL(gballoc_ll_realloc_flex(ptr, 3, 10, 10));
+
+    ///act
+    result = gballoc_hl_realloc_flex(ptr, 3, 10, 10);
+
+    ///assert
+    ASSERT_IS_NOT_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_hl_free(result);
+    TEST_gballoc_hl_deinit();
+}
+
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_039: [ gballoc_hl_realloc_flex shall call gballoc_ll_realloc_flex(ptr, base, nmemb, size) and return what gballoc_ll_realloc_flex returned. ]*/
+TEST_FUNCTION(gballoc_hl_realloc_flex_unhappy_path_1)
+{
+    ///arrange
+    TEST_gballoc_hl_init();
+    void* ptr = gballoc_hl_malloc(3);
+    ASSERT_IS_NOT_NULL(ptr);
+    umock_c_reset_all_calls();
+    void* result;
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
+
+    STRICT_EXPECTED_CALL(gballoc_ll_realloc_flex(ptr, 3, 10, 10))
+        .SetReturn(NULL);
+
+    ///act
+    result = gballoc_hl_realloc_flex(ptr, 3, 10, 10);
+
+    ///assert
+    ASSERT_IS_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_hl_free(ptr);
+    TEST_gballoc_hl_deinit();
+}
+
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_038: [ If lazy_init fail then gballoc_hl_realloc_flex shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_hl_realloc_flex_unhappy_path_2)
+{
+    ///arrange
+    TEST_gballoc_hl_init();
+    void* ptr = gballoc_hl_malloc(3);
+    ASSERT_IS_NOT_NULL(ptr);
+    umock_c_reset_all_calls();
+    void* result;
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL))
+        .SetReturn(LAZY_INIT_ERROR);
+
+    ///act
+    result = gballoc_hl_realloc_flex(ptr, 3, 10, 10);
 
     ///assert
     ASSERT_IS_NULL(result);
