@@ -12,11 +12,15 @@
 #include <stdbool.h>
 #include <string.h>
 #endif
+
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"
+
 #include "file_int_helpers.h"
 
 int delete_file(const char* filename)
 {
-    char* command = malloc(strlen(filename) + 5);
+    char* command = malloc_flex(strlen(filename), 1, 5);
     if (command == NULL)
     {
         return -1;

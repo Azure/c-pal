@@ -31,7 +31,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, char*, vsprintf_char, const char*, format, va_list
     }
     else
     {
-        result = (char*)malloc((neededSize + 1) * sizeof(char));
+        result = (char*)malloc((neededSize + 1U) * sizeof(char));
         if (result == NULL)
         {
             LogError("failure in malloc");
@@ -64,10 +64,10 @@ IMPLEMENT_MOCKABLE_FUNCTION(, wchar_t*, vsprintf_wchar, const wchar_t*, format, 
     }
     else
     {
-        result = (wchar_t*)malloc((neededSize + 1)*sizeof(wchar_t));
+        result = (wchar_t*)malloc_flex(sizeof(wchar_t), neededSize, sizeof(wchar_t));
         if (result == NULL)
         {
-            LogError("failure in malloc");
+            LogError("failure in malloc_flex(sizeof(wchar_t)=%zu, neededSize=%d, sizeof(wchar_t)=%zu", sizeof(wchar_t), neededSize, sizeof(wchar_t));
             /*return as is*/
         }
         else
@@ -180,10 +180,10 @@ IMPLEMENT_MOCKABLE_FUNCTION(, wchar_t*, mbs_to_wcs, const char*, source)
         }
         else
         {
-            result = (wchar_t*)malloc(sizeof(wchar_t)*(nwc+1));
+            result = (wchar_t*)malloc_flex(sizeof(wchar_t), nwc, sizeof(wchar_t));
             if (result == NULL)
             {
-                LogError("failure in malloc");
+                LogError("failure in malloc_flex(sizeof(wchar_t)=%zu, nwc=%zu, sizeof(wchar_t)=%zu", sizeof(wchar_t), nwc, sizeof(wchar_t));
                 /*return as is*/
             }
             else
@@ -227,7 +227,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, char*, wcs_to_mbs, const wchar_t*, source)
         }
         else
         {
-            result = (char*)malloc(sizeof(char)*(nc + 1));
+            result = (char*)malloc(sizeof(char)*(nc + 1)); /*this addition is always possible without overflow (line "if (nc == (size_t)(-1))" says nc is not SIZE_MAX)*/
             if (result == NULL)
             {
                 LogError("failure in malloc");

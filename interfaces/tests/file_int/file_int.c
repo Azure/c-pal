@@ -540,7 +540,7 @@ TEST_FUNCTION(large_simultaneous_writes_succeed)
     }
 
     ///assert
-    unsigned char* destination = (unsigned char*)malloc(block_size * num_blocks);
+    unsigned char* destination = (unsigned char*)malloc_2(block_size, num_blocks);
     ASSERT_IS_NOT_NULL(destination);
     READ_COMPLETE_CONTEXT read_context;
     read_context.pre_callback_value = 0;
@@ -585,7 +585,7 @@ TEST_FUNCTION(large_simultaneous_reads_succeed)
     ///arrange
     int block_size = 4096;
     int num_blocks = 50;
-    unsigned char* source = (unsigned char*)malloc(block_size*num_blocks);
+    unsigned char* source = (unsigned char*)malloc_2(block_size, num_blocks);
     ASSERT_IS_NOT_NULL(source);
 
     for (int i = 0; i < num_blocks; ++i)

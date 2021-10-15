@@ -30,7 +30,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, char*, vsprintf_char, const char*, format, va_list
     }
     else
     {
-        result = (char*)malloc((neededSize + 1) * sizeof(char));
+        result = (char*)malloc((neededSize + 1U) * sizeof(char));
         if (result == NULL)
         {
             LogError("failure in malloc");
@@ -38,7 +38,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, char*, vsprintf_char, const char*, format, va_list
         }
         else
         {
-            if (vsnprintf(result, neededSize + 1, format, va_clone) != neededSize)
+            if (vsnprintf(result, neededSize + 1U, format, va_clone) != neededSize)
             {
                 LogError("inconsistent vsnprintf behavior");
                 free(result);
@@ -63,15 +63,15 @@ IMPLEMENT_MOCKABLE_FUNCTION(, wchar_t*, vsprintf_wchar, const wchar_t*, format, 
     }
     else
     {
-        result = (wchar_t*)malloc((neededSize + 1)*sizeof(wchar_t));
+        result = (wchar_t*)malloc_2(neededSize + 1U,sizeof(wchar_t));
         if (result == NULL)
         {
-            LogError("failure in malloc");
+            LogError("failure in malloc_2((neededSize=%d + 1U),sizeof(wchar_t)=%zu)", neededSize , sizeof(wchar_t));
             /*return as is*/
         }
         else
         {
-            if (vswprintf(result, neededSize + 1, format, va_clone) != neededSize)
+            if (vswprintf(result, neededSize + 1U, format, va_clone) != neededSize)
             {
                 LogError("inconsistent vswprintf behavior");
                 free(result);
@@ -126,10 +126,10 @@ IMPLEMENT_MOCKABLE_FUNCTION(, wchar_t*, mbs_to_wcs, const char*, source)
         }
         else
         {
-            result = (wchar_t*)malloc(sizeof(wchar_t)*(nwc+1));
+            result = (wchar_t*)malloc_flex(sizeof(wchar_t), sizeof(wchar_t), nwc));
             if (result == NULL)
             {
-                LogError("failure in malloc");
+                LogError("failure in malloc_flex(sizeof(wchar_t)=%zu, sizeof(wchar_t)=%zu, nwc=%zu)", sizeof(wchar_t), sizeof(wchar_t), nwc);
                 /*return as is*/
             }
             else
@@ -173,10 +173,10 @@ IMPLEMENT_MOCKABLE_FUNCTION(, char*, wcs_to_mbs, const wchar_t*, source)
         }
         else
         {
-            result = (char*)malloc(sizeof(char)*(nc + 1));
+            result = (char*)malloc_flex(sizeof(char), nc, sizeof(char)));
             if (result == NULL)
             {
-                LogError("failure in malloc");
+                LogError("failure in malloc_flex(sizeof(char)=%zu, nc=%zu, sizeof(char)=%zu)", sizeof(char), nc, sizeof(char));
                 /*return as is*/
             }
             else
