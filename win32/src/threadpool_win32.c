@@ -259,10 +259,11 @@ void threadpool_close(THREADPOOL_HANDLE threadpool)
     else
     {
         /* Codes_SRS_THREADPOOL_WIN32_01_017: [ Otherwise, threadpool_close shall switch the state to CLOSING. ]*/
-        if (InterlockedCompareExchange(&threadpool->state, (LONG)THREADPOOL_WIN32_STATE_CLOSING, (LONG)THREADPOOL_WIN32_STATE_OPEN) != (LONG)THREADPOOL_WIN32_STATE_OPEN)
+        THREADPOOL_WIN32_STATE current_state;
+        if ((current_state = InterlockedCompareExchange(&threadpool->state, (LONG)THREADPOOL_WIN32_STATE_CLOSING, (LONG)THREADPOOL_WIN32_STATE_OPEN)) != (LONG)THREADPOOL_WIN32_STATE_OPEN)
         {
             /* Codes_SRS_THREADPOOL_WIN32_01_019: [ If threadpool is not OPEN, threadpool_close shall return. ]*/
-            LogWarning("Not open");
+            LogWarning("Not open, current state = %" PRI_MU_ENUM "", MU_ENUM_VALUE(THREADPOOL_WIN32_STATE, current_state));
         }
         else
         {

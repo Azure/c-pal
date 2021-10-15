@@ -396,10 +396,11 @@ void async_socket_close(ASYNC_SOCKET_HANDLE async_socket)
     else
     {
         /* Codes_SRS_ASYNC_SOCKET_WIN32_01_019: [ Otherwise, async_socket_close shall switch the state to CLOSING. ]*/
-        if (InterlockedCompareExchange(&async_socket->state, (LONG)ASYNC_SOCKET_WIN32_STATE_CLOSING, (LONG)ASYNC_SOCKET_WIN32_STATE_OPEN) != (LONG)ASYNC_SOCKET_WIN32_STATE_OPEN)
+        ASYNC_SOCKET_WIN32_STATE current_state;
+        if ( (current_state = InterlockedCompareExchange(&async_socket->state, (LONG)ASYNC_SOCKET_WIN32_STATE_CLOSING, (LONG)ASYNC_SOCKET_WIN32_STATE_OPEN)) != (LONG)ASYNC_SOCKET_WIN32_STATE_OPEN)
         {
             /* Codes_SRS_ASYNC_SOCKET_WIN32_01_022: [ If async_socket is not OPEN, async_socket_close shall return. ]*/
-            LogWarning("Not open");
+            LogWarning("Not open, current_state=%" PRI_MU_ENUM "", MU_ENUM_VALUE(ASYNC_SOCKET_WIN32_STATE, current_state));
         }
         else
         {
@@ -459,7 +460,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                 if (total_buffer_bytes + buffers[i].length < total_buffer_bytes)
                 {
                     /* Codes_SRS_ASYNC_SOCKET_WIN32_01_101: [ If the sum of buffer lengths for all the buffers in payload is greater than UINT32_MAX, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
-                    LogError("Overflow in total buffer length computation");
+                    LogError("Overflow in total buffer length computation (total_buffer_bytes=%" PRIu32 " + buffers[i=%" PRIu32 "].length=%" PRIu32 "", total_buffer_bytes, i, buffers[i].length);
                     break;
                 }
                 else
@@ -477,10 +478,11 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
             {
                 (void)InterlockedIncrement(&async_socket->pending_api_calls);
 
-                if (InterlockedAdd(&async_socket->state, 0) != (LONG)ASYNC_SOCKET_WIN32_STATE_OPEN)
+                ASYNC_SOCKET_WIN32_STATE current_state;
+                if ((current_state = InterlockedAdd(&async_socket->state, 0)) != (LONG)ASYNC_SOCKET_WIN32_STATE_OPEN)
                 {
                     /* Codes_SRS_ASYNC_SOCKET_WIN32_01_097: [ If async_socket is not OPEN, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ABANDONED. ]*/
-                    LogWarning("Not open");
+                    LogWarning("Not open, current state is %" PRI_MU_ENUM "", MU_ENUM_VALUE(ASYNC_SOCKET_WIN32_STATE, current_state));
                     result = ASYNC_SOCKET_SEND_SYNC_ABANDONED;
                 }
                 else
@@ -665,7 +667,7 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
             if (total_buffer_bytes + payload[i].length < total_buffer_bytes)
             {
                 /* Codes_SRS_ASYNC_SOCKET_WIN32_01_096: [ If the sum of buffer lengths for all the buffers in payload is greater than UINT32_MAX, async_socket_receive_async shall fail and return a non-zero value. ]*/
-                LogError("Overflow in total buffer length computation");
+                LogError("Overflow in total buffer length computation total_buffer_bytes=%" PRIu32 " + payload[i=%" PRIu32 "].length=%" PRIu32 "", total_buffer_bytes, i, payload[i].length);
                 break;
             }
             else
@@ -683,10 +685,11 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
         {
             (void)InterlockedIncrement(&async_socket->pending_api_calls);
 
-            if (InterlockedAdd(&async_socket->state, 0) != (LONG)ASYNC_SOCKET_WIN32_STATE_OPEN)
+            ASYNC_SOCKET_WIN32_STATE current_state;
+            if ((current_state = InterlockedAdd(&async_socket->state, 0)) != (LONG)ASYNC_SOCKET_WIN32_STATE_OPEN)
             {
                 /* Codes_SRS_ASYNC_SOCKET_WIN32_01_098: [ If async_socket is not OPEN, async_socket_receive_async shall fail and return a non-zero value. ]*/
-                LogWarning("Not open");
+                LogWarning("Not open, current state is %" PRI_MU_ENUM "", MU_ENUM_VALUE(ASYNC_SOCKET_WIN32_STATE, current_state));
                 result = MU_FAILURE;
             }
             else

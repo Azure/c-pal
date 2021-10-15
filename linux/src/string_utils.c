@@ -33,7 +33,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, char*, vsprintf_char, const char*, format, va_list
         result = (char*)malloc((neededSize + 1U) * sizeof(char));
         if (result == NULL)
         {
-            LogError("failure in malloc");
+            LogError("failure in malloc((neededSize=%d + 1U) * sizeof(char)=%zu); ", neededSize, sizeof(char));
             /*return as is*/
         }
         else

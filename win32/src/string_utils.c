@@ -34,7 +34,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, char*, vsprintf_char, const char*, format, va_list
         result = (char*)malloc((neededSize + 1U) * sizeof(char));
         if (result == NULL)
         {
-            LogError("failure in malloc");
+            LogError("failure in malloc((neededSize=%d + 1U) * sizeof(char)=%zu)", neededSize, sizeof(char));
             /*return as is*/
         }
         else
@@ -230,7 +230,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, char*, wcs_to_mbs, const wchar_t*, source)
             result = (char*)malloc(sizeof(char)*(nc + 1)); /*this addition is always possible without overflow (line "if (nc == (size_t)(-1))" says nc is not SIZE_MAX)*/
             if (result == NULL)
             {
-                LogError("failure in malloc");
+                LogError("failure in malloc(sizeof(char)*(nc=%zu + 1))", nc);
                 /*return as is*/
             }
             else

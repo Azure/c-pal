@@ -20,7 +20,7 @@ TIMER_HANDLE timer_create_new(void)
     result = malloc(sizeof(TIMER_HANDLE_DATA));
     if (result == NULL)
     {
-        LogError("failure in malloc");
+        LogError("failure in malloc(sizeof(TIMER_HANDLE_DATA)=%zu);", sizeof(TIMER_HANDLE_DATA));
         /*return as is*/
     }
     else
