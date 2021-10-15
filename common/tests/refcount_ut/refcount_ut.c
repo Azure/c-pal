@@ -4,9 +4,11 @@
 #ifdef __cplusplus
 #include <cstdlib>
 #include <cstddef>
+#include <cstdint>
 #else
 #include <stdlib.h>
 #include <stddef.h>
+#include <stdint.h>
 #endif
 
 #include "real_gballoc_ll.h"
@@ -167,6 +169,20 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
         //cleanup
         Pos_Destroy(p);
+    }
+
+    /* Tests_SRS_REFCOUNT_01_007: [ If any error occurrs, REFCOUNT_TYPE_CREATE_WITH_EXTRA_SIZE shall return NULL. ]*/
+    TEST_FUNCTION(when_overflow_refcount_create_with_extra_size_also_fails)
+    {
+        ///arrange
+        POS_HANDLE p;
+
+        ///act
+        p = Pos_Create_With_Extra_Size(1, SIZE_MAX); /*SIZE_MAX should always introduce an overflow*/
+
+        ///assert
+        ASSERT_IS_NULL(p);
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     }
 
     /* Tests_SRS_REFCOUNT_01_007: [ If any error occurrs, REFCOUNT_TYPE_CREATE_WITH_EXTRA_SIZE shall return NULL. ]*/

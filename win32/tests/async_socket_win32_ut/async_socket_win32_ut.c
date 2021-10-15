@@ -14,14 +14,24 @@
 #include "macro_utils/macro_utils.h"
 
 #include "real_gballoc_ll.h"
-void* real_malloc(size_t size)
+static void* real_malloc(size_t size)
 {
     return real_gballoc_ll_malloc(size);
 }
 
-void real_free(void* ptr)
+static void real_free(void* ptr)
 {
     real_gballoc_ll_free(ptr);
+}
+
+static void* real_malloc_2(size_t nmemb, size_t size)
+{
+    return real_gballoc_ll_malloc_2(nmemb, size);
+}
+
+static void* real_malloc_flex(size_t base, size_t nmemb, size_t size)
+{
+    return real_gballoc_ll_malloc_flex(base, nmemb, size);
 }
 
 #include "testrunnerswitcher.h"
@@ -141,8 +151,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     result = umocktypes_charptr_register_types();
     ASSERT_ARE_EQUAL(int, 0, result, "umocktypes_charptr_register_types failed");
 
-    REGISTER_GLOBAL_MOCK_HOOK(malloc, real_malloc);
-    REGISTER_GLOBAL_MOCK_HOOK(free, real_free);
+    REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
 
     REGISTER_GLOBAL_MOCK_RETURN(execution_engine_win32_get_threadpool, test_pool);
 
@@ -935,7 +944,7 @@ TEST_FUNCTION(async_socket_send_async_succeeds)
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_WSASend((SOCKET)test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG, NULL))
@@ -978,7 +987,7 @@ TEST_FUNCTION(async_socket_send_async_with_NULL_on_send_complete_context_succeed
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_WSASend((SOCKET)test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG, NULL))
@@ -1018,7 +1027,7 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_send_async_fails)
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_WSASend((SOCKET)test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG, NULL));
@@ -1074,7 +1083,7 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_WSA_IO_PENDING_it_is_treated_
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_WSASend((SOCKET)test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG, NULL))
@@ -1122,7 +1131,7 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_an_error_then_async_socket_se
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL))
         .CaptureReturn(&overlapped_event);
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
@@ -1174,7 +1183,7 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_WSAGetLastError_then_async_so
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL))
         .CaptureReturn(&overlapped_event);
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
@@ -1225,7 +1234,7 @@ TEST_FUNCTION(when_WSASend_returns_an_error_different_than_SOCKET_ERROR_async_so
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL))
         .CaptureReturn(&overlapped_event);
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
@@ -1472,33 +1481,6 @@ TEST_FUNCTION(async_socket_receive_async_with_sum_of_buffer_lengths_exceeding_UI
     async_socket_destroy(async_socket);
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_104: [ If the amount of memory needed to allocate the context and the WSABUF items is exceeding UINT32_MAX, async_socket_receive_async shall fail and return a non-zero value. ]*/
-TEST_FUNCTION(async_socket_receive_async_with_UINT32_MAX_buffers_fails)
-{
-    // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
-    int result;
-    uint8_t payload_bytes[1];
-    ASYNC_SOCKET_BUFFER payload_buffers[2];
-    payload_buffers[0].buffer = payload_bytes;
-    payload_buffers[0].length = sizeof(payload_bytes);
-    payload_buffers[1].buffer = payload_bytes;
-    payload_buffers[1].length = 0;
-    umock_c_reset_all_calls();
-
-    // act
-    // UINT32_MAX will for sure make us want more memory than UINT32_MAX bytes
-    result = async_socket_receive_async(async_socket, payload_buffers, UINT32_MAX, test_on_receive_complete, (void*)0x4244);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
-
-    // cleanup
-    async_socket_destroy(async_socket);
-}
-
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_075: [ If on_receive_complete is NULL, async_socket_receive_async shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(async_socket_receive_async_with_on_send_complete_NULL_fails)
 {
@@ -1605,7 +1587,7 @@ TEST_FUNCTION(async_socket_receive_async_succeeds)
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_WSARecv((SOCKET)test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG, NULL))
@@ -1649,7 +1631,7 @@ TEST_FUNCTION(async_socket_receive_async_with_NULL_on_send_complete_context_succ
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_WSARecv((SOCKET)test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG, NULL))
@@ -1690,7 +1672,7 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_receive_async_fails)
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_WSARecv((SOCKET)test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG, NULL));
@@ -1746,7 +1728,7 @@ TEST_FUNCTION(when_get_last_error_for_receive_returns_WSA_IO_PENDING_it_is_treat
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_WSARecv((SOCKET)test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG, NULL))
@@ -1795,7 +1777,7 @@ TEST_FUNCTION(when_WSARecv_returns_an_error_different_than_SOCKET_ERROR_async_so
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL))
         .CaptureReturn(&overlapped_event);
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
@@ -1846,7 +1828,7 @@ TEST_FUNCTION(when_get_last_error_for_receive_returns_an_error_then_async_socket
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL))
         .CaptureReturn(&overlapped_event);
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
@@ -1897,7 +1879,7 @@ TEST_FUNCTION(on_io_complete_with_NULL_overlapped_for_send_returns)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_WSASend((SOCKET)test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG, NULL))
@@ -1945,7 +1927,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_send_as_complete_with_O
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_WSASend((SOCKET)test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG, NULL))
@@ -1998,7 +1980,7 @@ TEST_FUNCTION(on_io_complete_with_error_indicates_the_send_as_complete_with_ERRO
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_WSASend((SOCKET)test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG, NULL))
@@ -2047,7 +2029,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_and_number_of_bytes_sent_less_than_ex
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_WSASend((SOCKET)test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG, NULL))
@@ -2096,7 +2078,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_and_number_of_bytes_sent_more_than_ex
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG,1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_WSASend((SOCKET)test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG, NULL))
@@ -2144,7 +2126,7 @@ TEST_FUNCTION(on_io_complete_with_NULL_overlapped_for_receive_returns)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG,1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_WSARecv((SOCKET)test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG, NULL))
@@ -2191,7 +2173,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_wit
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_WSARecv((SOCKET)test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG, NULL))
@@ -2244,7 +2226,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_wit
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG,1,sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_WSARecv((SOCKET)test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG, NULL))
@@ -2293,7 +2275,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_wit
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG,1,sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_WSARecv((SOCKET)test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG, NULL))
@@ -2346,7 +2328,7 @@ TEST_FUNCTION(on_io_complete_with_error_indicates_the_receive_as_complete_with_E
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_WSARecv((SOCKET)test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG, NULL))
@@ -2395,7 +2377,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_wit
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_WSARecv((SOCKET)test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG, NULL))
@@ -2443,7 +2425,7 @@ static void on_io_complete_with_error_indicates_the_receive_as_complete_with_ABA
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_WSARecv((SOCKET)test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG, NULL))
