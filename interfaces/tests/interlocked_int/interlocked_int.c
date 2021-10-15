@@ -11,9 +11,6 @@
 
 #include "testrunnerswitcher.h"
 
-#include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
-
 static TEST_MUTEX_HANDLE g_testByTest;
 
 #include "c_pal/interlocked.h"
@@ -260,8 +257,8 @@ TEST_FUNCTION(interlocked_compare_exchange_128_exchanges_when_equal)
 {
     ///arrange
     volatile_atomic int64_t* destination;
-    interlocked_exchange_pointer((void* volatile_atomic*)&destination, malloc_2(2, sizeof(int64_t)));
-    int64_t* comperand_result = (int64_t*)malloc_2(2, sizeof(int64_t));
+    interlocked_exchange_pointer((void* volatile_atomic*)&destination, malloc(2 * sizeof(int64_t)));
+    int64_t* comperand_result = (int64_t*)malloc(2 * sizeof(int64_t));
 
     destination[0] = INT64_MAX;
     destination[1] = INT64_MIN;
@@ -293,8 +290,8 @@ TEST_FUNCTION(interlocked_compare_exchange_128_does_not_exchange_when_not_equal)
 {
     ///arrange
     volatile_atomic int64_t* destination;
-    interlocked_exchange_pointer((void* volatile_atomic*)&destination, malloc_2(2, sizeof(int64_t)));
-    int64_t* comperand_result = (int64_t*)malloc_2(2, sizeof(int64_t));
+    interlocked_exchange_pointer((void* volatile_atomic*)&destination, malloc(2 * sizeof(int64_t)));
+    int64_t* comperand_result = (int64_t*)malloc(2 * sizeof(int64_t));
 
     destination[0] = INT64_MAX;
     destination[1] = INT64_MIN;
