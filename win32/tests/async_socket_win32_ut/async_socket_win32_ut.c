@@ -1481,33 +1481,6 @@ TEST_FUNCTION(async_socket_receive_async_with_sum_of_buffer_lengths_exceeding_UI
     async_socket_destroy(async_socket);
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_104: [ If the amount of memory needed to allocate the context and the WSABUF items is exceeding UINT32_MAX, async_socket_receive_async shall fail and return a non-zero value. ]*/
-TEST_FUNCTION(async_socket_receive_async_with_UINT32_MAX_buffers_fails)
-{
-    // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
-    int result;
-    uint8_t payload_bytes[1];
-    ASYNC_SOCKET_BUFFER payload_buffers[2];
-    payload_buffers[0].buffer = payload_bytes;
-    payload_buffers[0].length = sizeof(payload_bytes);
-    payload_buffers[1].buffer = payload_bytes;
-    payload_buffers[1].length = 0;
-    umock_c_reset_all_calls();
-
-    // act
-    // UINT32_MAX will for sure make us want more memory than UINT32_MAX bytes
-    result = async_socket_receive_async(async_socket, payload_buffers, UINT32_MAX, test_on_receive_complete, (void*)0x4244);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
-
-    // cleanup
-    async_socket_destroy(async_socket);
-}
-
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_075: [ If on_receive_complete is NULL, async_socket_receive_async shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(async_socket_receive_async_with_on_send_complete_NULL_fails)
 {
