@@ -137,7 +137,7 @@ DEFINE_CREATE_FLEX(type, malloc_flex_func) \
 DEFINE_CREATE(type, malloc_func) \
 DEFINE_DESTROY(type, free_func) \
 
-/* Codes_SRS_REFCOUNT_01_001: [ DEFINE_REFCOUNT_TYPE shall define the create/create_with_Extra_size/Create_Flex/destroy functions for the type type. ]*/
+/* Codes_SRS_REFCOUNT_01_001: [ DEFINE_REFCOUNT_TYPE shall define the Create/Create_With_Extra_size/Create_Flex/Destroy functions for the type type. ]*/
 #define DEFINE_REFCOUNT_TYPE(type) \
     /* Codes_SRS_REFCOUNT_01_010: [ Memory allocation/free shall be performed by using the functions malloc, malloc_flex and free. ]*/ \
     DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC(type, malloc, malloc_flex, free)

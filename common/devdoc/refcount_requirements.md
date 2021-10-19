@@ -31,7 +31,7 @@ It wraps the structure that needs to be ref counted into another structure that 
 #define DEFINE_REFCOUNT_TYPE(type) \
 ```
 
-**SRS_REFCOUNT_01_001: [** `DEFINE_REFCOUNT_TYPE` shall define the create/create_with_Extra_size/Create_Flex/destroy functions for the type `type`. **]**
+**SRS_REFCOUNT_01_001: [** `DEFINE_REFCOUNT_TYPE` shall define the Create/Create_With_Extra_size/Create_Flex/Destroy functions for the type `type`. **]**
 
 **SRS_REFCOUNT_01_010: [** Memory allocation/free shall be performed by using the functions `malloc`, `malloc_flex` and `free`. **]**
 
