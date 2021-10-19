@@ -11,6 +11,7 @@ It wraps the structure that needs to be ref counted into another structure that 
 ```c
 #define REFCOUNT_TYPE_CREATE(type) MU_C2(REFCOUNT_SHORT_TYPE(type), _Create)()
 #define REFCOUNT_TYPE_CREATE_WITH_EXTRA_SIZE(type, size) MU_C2(REFCOUNT_SHORT_TYPE(type), _Create_With_Extra_Size)(size)
+#define REFCOUNT_TYPE_CREATE_FLEX(type, nmemb, size) MU_C2(REFCOUNT_SHORT_TYPE(type), _Create_Flex)(nmemb, size)
 #define REFCOUNT_TYPE_DESTROY(type, var) MU_C2(REFCOUNT_SHORT_TYPE(type), _Destroy)(var)
 
 #define INC_REF(type, var) interlocked_increment(&((REFCOUNT_TYPE(type)*)((unsigned char*)var - offsetof(REFCOUNT_TYPE(type), counted)))->count)
@@ -20,7 +21,7 @@ It wraps the structure that needs to be ref counted into another structure that 
 #define DEFINE_REFCOUNT_TYPE(type) \
 ...
 
-#define DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC(type, malloc_func, free_func) \
+#define DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC(type, malloc_func, malloc_flex_func, free_func) \
 ...
 ```
 
@@ -30,17 +31,17 @@ It wraps the structure that needs to be ref counted into another structure that 
 #define DEFINE_REFCOUNT_TYPE(type) \
 ```
 
-**SRS_REFCOUNT_01_001: [** `DEFINE_REFCOUNT_TYPE` shall define the create/create_with_Extra_size/destroy functions for the type `type`. **]**
+**SRS_REFCOUNT_01_001: [** `DEFINE_REFCOUNT_TYPE` shall define the create/create_with_Extra_size/Create_Flex/destroy functions for the type `type`. **]**
 
-**SRS_REFCOUNT_01_010: [** Memory allocation/free shall be performed by using the functions `malloc` and `free`. **]**
+**SRS_REFCOUNT_01_010: [** Memory allocation/free shall be performed by using the functions `malloc`, `malloc_flex` and `free`. **]**
 
 ### DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC
 
 ```c
-#define DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC(type, malloc_func, free_func) \
+#define DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC(type, malloc_func, malloc_flex, free_func) \
 ```
 
-**SRS_REFCOUNT_01_011: [** `DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC` shall behave like `DEFINE_REFCOUNT_TYPE`, but use `malloc_func` and `free_func` for memory allocation and free.  **]**
+**SRS_REFCOUNT_01_011: [** `DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC` shall behave like `DEFINE_REFCOUNT_TYPE`, but use `malloc_func`, `malloc_flex` and `free_func` for memory allocation and free.  **]**
 
 ### REFCOUNT_TYPE_CREATE
 
@@ -69,6 +70,19 @@ REFCOUNT_TYPE_CREATE_WITH_EXTRA_SIZE(type, size)
 **SRS_REFCOUNT_01_006: [** On success it shall return a non-NULL handle to the allocated ref counted type `type`. **]**
 
 **SRS_REFCOUNT_01_007: [** If any error occurs, `REFCOUNT_TYPE_CREATE_WITH_EXTRA_SIZE` shall return NULL. **]**
+
+```c
+REFCOUNT_TYPE_CREATE_FLEX(type, nmemb, size)
+```
+
+`REFCOUNT_TYPE_CREATE_FLEX` creates a ref counted object instance with extra allocated memory (very useful for flexible arrays).
+
+ **SRS_REFCOUNT_02_001: [** `REFCOUNT_TYPE_CREATE_FLEX` shall call `malloc_flex` function to allocate `sizeof(REFCOUNT_TYPE(type))` + `nmemb` * `size` total bytes. **]**
+
+**SRS_REFCOUNT_02_002: [** `REFCOUNT_TYPE_CREATE_FLEX` shall succeed and return a non-`NULL` `type*` pointer. **]**
+
+**SRS_REFCOUNT_02_003: [** If any error occurs, `REFCOUNT_TYPE_CREATE_FLEX` shall fail and return `NULL`. **]**
+
 
 ### REFCOUNT_TYPE_DESTROY
 

@@ -13,7 +13,7 @@ typedef struct pos_TAG
     int flexible_array[];
 } pos;
 
-/* Tests_SRS_REFCOUNT_01_001: [ DEFINE_REFCOUNT_TYPE shall define the create/create_with_Extra_size/destroy functions for the type type. ]*/
+/* Tests_SRS_REFCOUNT_01_001: [ DEFINE_REFCOUNT_TYPE shall define the create/create_with_Extra_size/Create_Flex/destroy functions for the type type. ]*/
 DEFINE_REFCOUNT_TYPE(pos);
 
 POS_HANDLE Pos_Create(int x)
@@ -32,6 +32,16 @@ POS_HANDLE Pos_Create_With_Extra_Size(int x, size_t extra_size)
     if (result != NULL)
     {
         result->x = x;
+    }
+    return result;
+}
+
+POS_HANDLE Pos_Create_Flex(size_t nmemb)
+{
+    pos* result = REFCOUNT_TYPE_CREATE_FLEX(pos, nmemb, sizeof(int));
+    if (result != NULL)
+    {
+        result->x = (int)nmemb;
     }
     return result;
 }
