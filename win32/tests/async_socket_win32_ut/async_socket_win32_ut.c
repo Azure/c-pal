@@ -14,7 +14,7 @@
 #include "macro_utils/macro_utils.h"
 
 #include "real_gballoc_ll.h"
-static void* real_malloc(size_t size)
+void* real_malloc(size_t size)
 {
     return real_gballoc_ll_malloc(size);
 }
