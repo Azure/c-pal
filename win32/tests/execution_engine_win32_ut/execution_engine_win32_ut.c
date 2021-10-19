@@ -12,12 +12,17 @@
 #include "macro_utils/macro_utils.h"
 
 #include "real_gballoc_ll.h"
-void* real_malloc(size_t size)
+static void* real_malloc(size_t size)
 {
     return real_gballoc_ll_malloc(size);
 }
 
-void real_free(void* ptr)
+static void* real_malloc_flex(size_t base, size_t nmemb, size_t size)
+{
+    return real_gballoc_ll_malloc_flex(base, nmemb, size);
+}
+
+static void real_free(void* ptr)
 {
     real_gballoc_ll_free(ptr);
 }
@@ -85,9 +90,11 @@ TEST_SUITE_INITIALIZE(suite_init)
     ASSERT_ARE_EQUAL(int, 0, result, "umocktypes_stdint_register_types failed");
 
     REGISTER_GLOBAL_MOCK_HOOK(malloc, real_malloc);
+    REGISTER_GLOBAL_MOCK_HOOK(malloc_flex, real_malloc_flex);
     REGISTER_GLOBAL_MOCK_HOOK(free, real_free);
 
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(malloc, NULL);
+    REGISTER_GLOBAL_MOCK_FAIL_RETURN(malloc_flex, NULL);
 
     REGISTER_UMOCK_ALIAS_TYPE(PTP_POOL, void*);
     REGISTER_UMOCK_ALIAS_TYPE(PVOID, void*);
@@ -134,7 +141,7 @@ TEST_FUNCTION(execution_engine_create_with_NULL_arguments_uses_Defaults)
         .CaptureReturn(&ptp_pool);
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolThreadMinimum(IGNORED_ARG, DEFAULT_MIN_THREAD_COUNT))
         .ValidateArgumentValue_ptpp(&ptp_pool);
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 0, 0));
 
     // act
     execution_engine = execution_engine_create(NULL);
@@ -163,7 +170,7 @@ TEST_FUNCTION(execution_engine_create_succeeds)
         .CaptureReturn(&ptp_pool);
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolThreadMinimum(IGNORED_ARG, 1))
         .ValidateArgumentValue_ptpp(&ptp_pool);
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 0, 0));
 
     // act
     execution_engine = execution_engine_create(&execution_engine_params_win32);
@@ -190,7 +197,7 @@ TEST_FUNCTION(execution_engine_create_with_max_thread_count_succeeds)
         .ValidateArgumentValue_ptpp(&ptp_pool);
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolThreadMaximum(IGNORED_ARG, 42))
         .ValidateArgumentValue_ptpp(&ptp_pool);
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 0, 0));
 
     // act
     execution_engine = execution_engine_create(&execution_engine_params_win32);
