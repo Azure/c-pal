@@ -25,6 +25,7 @@ option(run_int_tests "set run_int_tests to ON to integration tests (default is O
 option(run_perf_tests "set run_perf_tests to ON to run perf tests (default is OFF)." OFF)
 option(use_cppunittest "set use_cppunittest to ON to build CppUnitTest tests on Windows (default is OFF)" OFF)
 option(run_traceability "run traceability tool (default is ON)" ON)
+option(run_reals_check "set run_reals_check to ON to run reals check (default is OFF)." OFF)
 
 # enabling this option can help with debugging latency issues for the networking
 option(enable_socket_logging "enable logging of each packet send/receive (default is OFF)" OFF)
@@ -61,12 +62,14 @@ set(original_run_unittests ${run_unittests})
 set(original_run_int_tests ${run_int_tests})
 set(original_run_traceability ${run_traceability})
 set(original_run_perf_tests ${run_perf_tests})
+set(original_run_reals_check ${run_reals_check})
 
 set(run_e2e_tests OFF)
 set(run_unittests OFF)
 set(run_int_tests OFF)
 set(run_traceability OFF)
 set(run_perf_tests OFF)
+set(run_reals_check OFF)
 
 
 if ((NOT TARGET c_build_tools) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/c-build-tools/CMakeLists.txt))
@@ -159,6 +162,7 @@ set(run_unittests ${original_run_unittests})
 set(run_int_tests ${original_run_int_tests})
 set(run_traceability ${original_run_traceability})
 set(run_perf_tests ${original_run_perf_tests})
+set(run_reals_check ${original_run_reals_check})
 
 
 include(CTest)
