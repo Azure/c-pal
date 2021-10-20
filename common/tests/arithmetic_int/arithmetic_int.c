@@ -3,10 +3,8 @@
 
 #ifdef __cplusplus
 #include <cstdint>
-#include <cinttypes>
 #else
 #include <stdint.h>
-#include <inttypes.h>
 #endif
 
 #include "testrunnerswitcher.h"
