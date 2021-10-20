@@ -17,6 +17,7 @@
 #include "c_pal/gballoc_hl.h"
 
 #define malloc gballoc_hl_malloc
+#define malloc_2 gballoc_hl_malloc_2
 #define calloc gballoc_hl_calloc
 #define realloc gballoc_hl_realloc
 #define free gballoc_hl_free
@@ -112,7 +113,7 @@ TEST_FUNCTION(alloc_performance)
     // arrange
     uint32_t i;
 
-    void** blocks = (void**)malloc(sizeof(void*) * ALLOC_COUNT);
+    void** blocks = (void**)malloc_2(sizeof(void*), ALLOC_COUNT);
     ASSERT_IS_NOT_NULL(blocks);
 
     double start_time = timer_global_get_elapsed_ms();

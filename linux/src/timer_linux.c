@@ -25,7 +25,7 @@ TIMER_HANDLE timer_create_new(void)
     if (result == NULL)
     {
         /* Codes_SRS_TIMER_LINUX_01_003: [ If any error occurs, timer_create_new shall return NULL. ]*/
-        LogError("failure in malloc");
+        LogError("failure in malloc(sizeof(TIMER_HANDLE_DATA)=%zu);", sizeof(TIMER_HANDLE_DATA));
         /*return as is*/
     }
     else

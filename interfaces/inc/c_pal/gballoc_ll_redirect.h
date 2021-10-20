@@ -11,8 +11,12 @@
 #endif
 
 #define malloc gballoc_ll_malloc
+#define malloc_2 gballoc_ll_malloc_2
+#define malloc_flex gballoc_ll_malloc_flex
 #define free gballoc_ll_free
 #define calloc gballoc_ll_calloc
 #define realloc gballoc_ll_realloc
+#define realloc_2 gballoc_ll_realloc_2
+#define realloc_flex gballoc_ll_realloc_flex
 
 #endif /* GBALLOC_LL_REDIRECT_H */

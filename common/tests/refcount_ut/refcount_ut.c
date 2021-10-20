@@ -4,19 +4,26 @@
 #ifdef __cplusplus
 #include <cstdlib>
 #include <cstddef>
+#include <cstdint>
 #else
 #include <stdlib.h>
 #include <stddef.h>
+#include <stdint.h>
 #endif
 
 #include "real_gballoc_ll.h"
 
-void* my_malloc(size_t size)
+static void* my_malloc(size_t size)
 {
     return real_gballoc_ll_malloc(size);
 }
 
-void my_free(void* ptr)
+static void* my_malloc_flex(size_t base, size_t nmemb, size_t size)
+{
+    return real_gballoc_ll_malloc_flex(base, nmemb, size);
+}
+
+static void my_free(void* ptr)
 {
     real_gballoc_ll_free(ptr);
 }
@@ -55,12 +62,14 @@ typedef struct TEST_STRUCT_TAG
 
 MOCK_FUNCTION_WITH_CODE(, void*, test_malloc, size_t, size)
 MOCK_FUNCTION_END(my_malloc(size))
+MOCK_FUNCTION_WITH_CODE(, void*, test_malloc_flex, size_t, base, size_t, nmemb, size_t, size)
+MOCK_FUNCTION_END(my_malloc_flex(base, nmemb, size))
 MOCK_FUNCTION_WITH_CODE(, void, test_free, void*, ptr)
     my_free(ptr);
 MOCK_FUNCTION_END()
 
-/* Tests_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func and free_func for memory allocation and free.  ]*/
-DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC(TEST_STRUCT, test_malloc, test_free);
+/* Tests_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func, malloc_flex and free_func for memory allocation and free. ]*/
+DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC(TEST_STRUCT, test_malloc, test_malloc_flex, test_free);
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
@@ -77,6 +86,7 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
         REGISTER_UMOCK_ALIAS_TYPE(POS_HANDLE, void*);
 
         REGISTER_GLOBAL_MOCK_HOOK(malloc, my_malloc);
+        REGISTER_GLOBAL_MOCK_HOOK(malloc_flex, my_malloc_flex);
         REGISTER_GLOBAL_MOCK_HOOK(free, my_free);
 
         ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types());
@@ -112,16 +122,35 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
     /* Tests_SRS_REFCOUNT_01_002: [ REFCOUNT_TYPE_CREATE shall allocate memory for the type that is ref counted. ]*/
     /* Tests_SRS_REFCOUNT_01_003: [ On success it shall return a non-NULL handle to the allocated ref counted type type. ]*/
-    /* Tests_SRS_REFCOUNT_01_010: [ Memory allocation/free shall be performed by using the functions malloc and free. ]*/
+    /* Tests_SRS_REFCOUNT_01_010: [ Memory allocation/free shall be performed by using the functions malloc, malloc_flex and free. ]*/
     TEST_FUNCTION(refcount_create_returns_non_NULL)
     {
         ///arrange
         POS_HANDLE p;
-        STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+        STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 0, 0));
         STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
 
         ///act
         p = Pos_Create(4);
+
+        ///assert
+        ASSERT_IS_NOT_NULL(p);
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+        //cleanup
+        Pos_Destroy(p);
+    }
+
+    /* Tests_SRS_REFCOUNT_01_010: [ Memory allocation/free shall be performed by using the functions malloc, malloc_flex and free. ]*/
+    TEST_FUNCTION(refcount_create_flex_returns_non_NULL)
+    {
+        ///arrange
+        POS_HANDLE p;
+        STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 4, sizeof(int)));
+        STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
+
+        ///act
+        p = Pos_Create_Flex(4);
 
         ///assert
         ASSERT_IS_NOT_NULL(p);
@@ -136,7 +165,7 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
     {
         ///arrange
         POS_HANDLE p;
-        STRICT_EXPECTED_CALL(malloc(IGNORED_ARG))
+        STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG,0,0))
             .SetReturn(NULL);
 
         ///act
@@ -170,6 +199,20 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
     }
 
     /* Tests_SRS_REFCOUNT_01_007: [ If any error occurrs, REFCOUNT_TYPE_CREATE_WITH_EXTRA_SIZE shall return NULL. ]*/
+    TEST_FUNCTION(when_overflow_refcount_create_with_extra_size_also_fails)
+    {
+        ///arrange
+        POS_HANDLE p;
+
+        ///act
+        p = Pos_Create_With_Extra_Size(1, SIZE_MAX); /*SIZE_MAX should always introduce an overflow*/
+
+        ///assert
+        ASSERT_IS_NULL(p);
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    }
+
+    /* Tests_SRS_REFCOUNT_01_007: [ If any error occurrs, REFCOUNT_TYPE_CREATE_WITH_EXTRA_SIZE shall return NULL. ]*/
     TEST_FUNCTION(when_malloc_fails_refcount_create_with_extra_size_also_fails)
     {
         ///arrange
@@ -185,10 +228,50 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     }
 
+    /* REFCOUNT_TYPE_CREATE_FLEX */
+
+    /*Tests_SRS_REFCOUNT_02_001: [ REFCOUNT_TYPE_CREATE_FLEX shall call malloc_flex function to allocate sizeof(REFCOUNT_TYPE(type)) + nmemb * size total bytes. ]*/
+    /*Tests_SRS_REFCOUNT_02_002: [ REFCOUNT_TYPE_CREATE_FLEX shall succeed and return a non-NULL type* pointer. ]*/
+    TEST_FUNCTION(REFCOUNT_TYPE_CREATE_FLEX_succeeds)
+    {
+        ///arrange
+        POS_HANDLE p;
+        STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 3, sizeof(int)));
+        STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
+
+        ///act
+        p = Pos_Create_Flex(3);
+
+        ///assert
+        ASSERT_IS_NOT_NULL(p);
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+        ///clean
+        Pos_Destroy(p);
+    }
+
+    /*Tests_SRS_REFCOUNT_02_003: [ If any error occurs, REFCOUNT_TYPE_CREATE_FLEX shall fail and return NULL. ]*/
+    TEST_FUNCTION(REFCOUNT_TYPE_CREATE_FLEX_unhappy_path)
+    {
+        ///arrange
+        POS_HANDLE p;
+        STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 3, sizeof(int)))
+            .SetReturn(NULL);
+
+        ///act
+        p = Pos_Create_Flex(3);
+
+        ///assert
+        ASSERT_IS_NULL(p);
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+        ///clean
+    }
+
     /* REFCOUNT_TYPE_DESTROY */
 
     /* Tests_SRS_REFCOUNT_01_008: [ REFCOUNT_TYPE_DESTROY shall free the memory allocated by REFCOUNT_TYPE_CREATE or REFCOUNT_TYPE_CREATE_WITH_EXTRA_SIZE. ]*/
-    /* Tests_SRS_REFCOUNT_01_010: [ Memory allocation/free shall be performed by using the functions malloc and free. ]*/
+    /* Tests_SRS_REFCOUNT_01_010: [ Memory allocation/free shall be performed by using the functions malloc, malloc_flex and free. ]*/
     TEST_FUNCTION(refcount_DEC_REF_after_create_says_we_should_free)
     {
         ///arrange
@@ -258,11 +341,11 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     }
 
-    /* Tests_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func and free_func for memory allocation and free.  ]*/
+    /* Tests_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func, malloc_flex and free_func for memory allocation and free. ]*/
     TEST_FUNCTION(the_specified_malloc_function_from_the_define_is_used)
     {
         ///arrange
-        STRICT_EXPECTED_CALL(test_malloc(IGNORED_ARG));
+        STRICT_EXPECTED_CALL(test_malloc_flex(IGNORED_ARG, 0, 0));
         STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
 
         ///act
@@ -276,7 +359,7 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
         REFCOUNT_TYPE_DESTROY(TEST_STRUCT, result);
     }
 
-    /* Tests_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func and free_func for memory allocation and free.  ]*/
+    /* Tests_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func, malloc_flex and free_func for memory allocation and free. ]*/
     TEST_FUNCTION(the_specified_malloc_function_from_the_define_is_used_by_create_with_extra_size)
     {
         ///arrange
@@ -294,7 +377,7 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
         REFCOUNT_TYPE_DESTROY(TEST_STRUCT, result);
     }
 
-    /* Tests_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func and free_func for memory allocation and free.  ]*/
+    /* Tests_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func, malloc_flex and free_func for memory allocation and free. ]*/
     TEST_FUNCTION(the_specified_free_function_from_the_define_is_used)
     {
         ///arrange

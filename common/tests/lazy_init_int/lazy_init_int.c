@@ -21,6 +21,9 @@
 #include "c_pal/sync.h"
 #include "c_pal/lazy_init.h"
 
+#include "c_pal/gballoc_hl.h" // IWYU pragma: keep
+#include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
+
 
 TEST_DEFINE_ENUM_TYPE(LAZY_INIT_RESULT, LAZY_INIT_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);
@@ -131,7 +134,7 @@ TEST_FUNCTION(lazy_init_chaos_knight)
 
     ///arrange
     int32_t i;
-    THREAD_HANDLE* threads = malloc(nThreadsForChaos * sizeof(THREAD_HANDLE));
+    THREAD_HANDLE* threads = malloc_2(nThreadsForChaos, sizeof(THREAD_HANDLE));
     ASSERT_IS_NOT_NULL(threads);
 
 

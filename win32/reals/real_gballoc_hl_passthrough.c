@@ -5,7 +5,6 @@
 #include "real_lazy_init_renames.h" // IWYU pragma: keep
 #include "real_interlocked_renames.h" // IWYU pragma: keep
 #include "real_call_once_renames.h" // IWYU pragma: keep
-#include "real_interlocked_renames.h" // IWYU pragma: keep
 
 #include "real_gballoc_hl_renames.h" // IWYU pragma: keep
 

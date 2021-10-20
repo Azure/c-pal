@@ -241,8 +241,6 @@ MOCKABLE_FUNCTION(, int, async_socket_receive_async, ASYNC_SOCKET_HANDLE, async_
 
 **SRS_ASYNC_SOCKET_WIN32_01_078: [** The context shall also allocate enough memory to keep an array of `buffer_count` WSABUF items. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_104: [** If the amount of memory needed to allocate the context and the WSABUF items is exceeding UINT32_MAX, `async_socket_receive_async` shall fail and return a non-zero value. **]**
-
 **SRS_ASYNC_SOCKET_WIN32_01_079: [** `async_socket_receive_async` shall set the WSABUF items to point to the memory/length of the buffers in `payload`. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_080: [** An event to be used for the `OVERLAPPED` structure passed to `WSARecv` shall be created and stored in the context. **]**

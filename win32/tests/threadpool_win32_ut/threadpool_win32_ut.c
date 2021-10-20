@@ -15,12 +15,12 @@
 #include "c_logging/xlogging.h"
 
 #include "real_gballoc_ll.h"
-void* real_malloc(size_t size)
+static void* real_malloc(size_t size)
 {
     return real_gballoc_ll_malloc(size);
 }
 
-void real_free(void* ptr)
+static void real_free(void* ptr)
 {
     real_gballoc_ll_free(ptr);
 }

@@ -286,7 +286,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HA
         {
             /*Codes_SRS_FILE_43_015: [ If there are any failures, file_write_async shall fail and return FILE_WRITE_ASYNC_ERROR. ]*/
             /*Codes_SRS_FILE_WIN32_43_057: [ If there are any other failures, file_write_async shall fail and return FILE_WRITE_ASYNC_ERROR.]*/
-            LogError("failure in malloc");
+            LogError("failure in  malloc(sizeof(FILE_WIN32_IO)=%zu)", sizeof(FILE_WIN32_IO));
             result = FILE_WRITE_ASYNC_ERROR;
         }
         else
