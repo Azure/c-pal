@@ -3,7 +3,7 @@
 
 #include "testrunnerswitcher.h"
 
-#include "c_pal/arithmetic.h"
+#include "c_pal/arithmetic.h" // IWYU pragma: keep
 
 #define REGISTER_GLOBAL_MOCK_HOOK(original, real) \
     (original == real) ? (void)0 : (void)1;
