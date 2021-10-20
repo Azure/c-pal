@@ -10,7 +10,7 @@
 /*only works if compiling on 64 bits*/
 PAL_UINT128 umul64x64(uint64_t left, uint64_t right)
 {
-    /*Codes_SRS_ARITHMETIC_02_001: [ umul64x64 shall call _umul128 and return the result as PAL_UINT128. ]*/
+    /*Codes_/*Codes_SRS_ARITHMETIC_02_001: [ umul64x64 shall mutiply left and right and return a PAL_UINT128 value as result. ]*/
     PAL_UINT128 result;
     result.low = _umul128(left, right, &result.high);
     return result;
@@ -21,6 +21,8 @@ static PAL_UINT128 zer0 = { 0 };
 
 PAL_UINT128 umul64x64(uint64_t left, uint64_t right)
 {
+    /*Codes_SRS_ARITHMETIC_02_001: [ umul64x64 shall mutiply left and right and return a PAL_UINT128 value as result. ]*/
+
     /*next comments will have L = left, R = right*/
 
     /*the following is a nice property of 32 bit multiplication: multiply 2 32 bit numbers and 2 other 32 bit numbers can be added to the result without overflow*/
@@ -32,12 +34,12 @@ PAL_UINT128 umul64x64(uint64_t left, uint64_t right)
 
     /*For the sake of notation, if X is a 64 bit number, then Hi(X) = most significant 32 bits of X, Lo(X) = least significant 32 bits of X. So X can be written X = Hi(X) * 2^32 + Lo(X)*/
     
-    /*L* R          =
-    (Hi(L) * 2^32 + Lo(L)) + (Hi(R) * 2^32 + Lo(R)) =                                        (get rid of paranthesis)
-    Hi(L) * Hi(R) * 2^64 + Hi(L) * Lo(R) * 2^32 + Lo(L) * Hi(R) * 2^32 + Lo(L) * Lo(R) =        (regroup)
-    Hi(L) * Hi(R) * 2^64 + (Hi(L) * Lo(R) + Lo(L) * Hi(R)) * 2^32 + Lo(L) * Lo(R) =        (apply Hi/Lo to Lo(L) * Lo(R))
-    Hi(L) * Hi(R) * 2^64 + (Hi(L) * Lo(R) + Lo(L) * Hi(R)) * 2^32 + Hi(Lo(L) * Lo(R)) * 2^32 + Lo(Lo(L) * Lo(R)) =         (regroup again)
-    Hi(L) * Hi(R) * 2^64 + (Hi(L) * Lo(R) + Lo(L) * Hi(R) + Hi(Lo(L) * Lo(R))) * 2^32 + Lo(Lo(L) * Lo(R)) =                     (apply Hi/Lo to Lo(L) * Hi(R))
+    /*L * R         =
+    (Hi(L) * 2^32 + Lo(L)) * (Hi(R) * 2^32 + Lo(R)) =                                                                                                           (get rid of paranthesis)
+    Hi(L) * Hi(R) * 2^64 + Hi(L) * Lo(R) * 2^32 + Lo(L) * Hi(R) * 2^32 + Lo(L) * Lo(R) =                                                                        (regroup)
+    Hi(L) * Hi(R) * 2^64 + (Hi(L) * Lo(R) + Lo(L) * Hi(R)) * 2^32 + Lo(L) * Lo(R) =                                                                             (apply Hi/Lo to Lo(L) * Lo(R))
+    Hi(L) * Hi(R) * 2^64 + (Hi(L) * Lo(R) + Lo(L) * Hi(R)) * 2^32 + Hi(Lo(L) * Lo(R)) * 2^32 + Lo(Lo(L) * Lo(R)) =                                              (regroup again)
+    Hi(L) * Hi(R) * 2^64 + (Hi(L) * Lo(R) + Lo(L) * Hi(R) + Hi(Lo(L) * Lo(R))) * 2^32 + Lo(Lo(L) * Lo(R)) =                                                     (apply Hi/Lo to Lo(L) * Hi(R))
     Hi(L) * Hi(R) * 2^64 + (Hi(L) * Lo(R) + Hi(Lo(L) * Hi(R)) * 2^32 + Lo(Lo(L) * Hi(R)) + Hi(Lo(L) * Lo(R))) * 2^32 + Lo(Lo(L) * Lo(R)) =                      (take out of paranthesis Hi(Lo(L) * Hi(R)) * 2^32)
     Hi(L) * Hi(R) * 2^64 + (Hi(L) * Lo(R) + Lo(Lo(L) * Hi(R)) + Hi(Lo(L) * Lo(R))) * 2^32 + Hi(Lo(L) * Hi(R)) * 2^32 * 2^32 + Lo(Lo(L) * Lo(R)) =               (2^32* 2^32 = 2^4)
     Hi(L) * Hi(R) * 2^64 + (Hi(L) * Lo(R) + Lo(Lo(L) * Hi(R)) + Hi(Lo(L) * Lo(R))) * 2^32 + Hi(Lo(L) * Hi(R)) * 2^64 + Lo(Lo(L) * Lo(R)) =                      (regroup around 2^64)
