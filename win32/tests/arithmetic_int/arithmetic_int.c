@@ -2,14 +2,13 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #ifdef __cplusplus
-#include <cstdlib>
+#include <cstdint>
 #include <cinttypes>
 #else
-#include <stdlib.h>
+#include <stdint.h>
 #include <inttypes.h>
 #endif
 
-#include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
 
 static TEST_MUTEX_HANDLE g_testByTest;
