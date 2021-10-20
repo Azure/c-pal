@@ -1,6 +1,7 @@
 #Copyright (C) Microsoft Corporation. All rights reserved.
 
 set(pal_interfaces_h_files
+    inc/c_pal/arithmetic.h
     inc/c_pal/execution_engine.h
     inc/c_pal/async_socket.h
     inc/c_pal/socket_handle.h

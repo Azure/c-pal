@@ -2,6 +2,7 @@
 #Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 set(reals_win32_c_files
+    real_arithmetic.c
     real_call_once.c
     real_lazy_init.c
     real_pipe.c
@@ -16,6 +17,8 @@ set(reals_win32_c_files
 )
 
 set(reals_win32_h_files
+    real_arithmetic.h
+    real_arithmetic_renames.h
     real_call_once.h
     real_call_once_renames.h
     real_interlocked.h

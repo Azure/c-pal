@@ -14,6 +14,7 @@ if(${run_unittests})
 endif()
 
 if(${run_int_tests})
+    build_test_folder(arithmetic_int)
     build_test_folder(call_once_int)
     build_test_folder(lazy_init_int)
 endif()
