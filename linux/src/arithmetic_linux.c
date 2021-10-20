@@ -10,16 +10,32 @@ PAL_UINT128 umul64x64(uint64_t left, uint64_t right)
 {
     /*Codes_SRS_ARITHMETIC_02_001: [ umul64x64 shall call _umul128 and return the result as PAL_UINT128. ]*/
     PAL_UINT128 result;
-    result.low = _umul128(left, right, &result.high);
+    unsigned __int128 temp = ((unsigned __int128)left) * right
+    
+    result.high = temp>>64;
+    result.low = temp;
+    
     return result;
 }
 #else
 
-static PAL_UINT128 zer0 = { 0 };
-
-PAL_UINT128 umul64x64(uint64_t left, uint64_t right)
+PAL_UINT128 umul64x64(uint64_t left, uint64_t right) /*see corresponding windows file for more explanations*/
 {
-    return zer0;
-}
+    PAL_UINT128 result;
 
+#define Hi(x) ((x)>>32)
+#define Lo(x) ((x)&0xFFFFFFFF)
+    uint64_t HiHi = Hi(left) * Hi(right);
+    uint64_t HiLo = Hi(left) * Lo(right);
+    uint64_t LoHi = Lo(left) * Hi(right);
+    uint64_t LoLo = Lo(left) * Lo(right);
+
+    uint64_t X = HiLo + Lo(LoHi) + Hi(LoLo);
+
+    result.high = HiHi + Hi(LoHi) + Hi(X);
+    result.low = (Lo(X) << 32) + Lo(LoLo);
+
+    return result;
+}
+}
 #endif
