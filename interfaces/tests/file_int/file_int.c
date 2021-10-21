@@ -212,7 +212,6 @@ TEST_FUNCTION(write_to_a_file_and_read_from_it)
 TEST_FUNCTION(write_twice_to_a_file_contiguously_and_read_from_it)
 {
     ///arrange
-    const int size = 5;
 
     unsigned char source1[] = "abcd";
     WRITE_COMPLETE_CONTEXT write_context1;
