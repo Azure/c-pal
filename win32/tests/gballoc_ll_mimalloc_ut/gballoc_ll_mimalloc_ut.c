@@ -212,7 +212,7 @@ TEST_FUNCTION(gballoc_ll_malloc_2_with_overflow_returns_NUL)
     ///clean
 }
 
-/*Tests_SRS_GBALLOC_LL_MIMALLOC_02_010: [ If nmemb * size exceeds SIZE_MAX then gballoc_ll_malloc_flex shall fail and return NULL. ]*/
+/*Tests_SRS_GBALLOC_LL_MIMALLOC_02_011: [ If base + nmemb * size exceeds SIZE_MAX then gballoc_ll_malloc_flex shall fail and return NULL. ]*/
 TEST_FUNCTION(gballoc_ll_malloc_flex_with_overflow_fails_1)
 {
     ///arrange
