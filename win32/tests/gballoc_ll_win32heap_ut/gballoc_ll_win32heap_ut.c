@@ -392,7 +392,7 @@ TEST_FUNCTION(gballoc_ll_malloc_2_fails_when_lazy_init_fails)
     gballoc_ll_deinit();
 }
 
-/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_032: [ If nmemb*size exceeds SIZE_MAX then gballoc_ll_malloc_flex shall fail and return NULL. ]*/
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_033: [ If base + nmemb * size exceeds SIZE_MAX then gballoc_ll_malloc_flex shall fail and return NULL. ]*/
 TEST_FUNCTION(gballoc_ll_malloc_flex_with_overflow_fail_1)
 {
     ///arrange
@@ -798,7 +798,7 @@ TEST_FUNCTION(gballoc_ll_realloc_2_fails_when_lazy_init_fails)
     gballoc_ll_deinit();
 }
 
-/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_041: [ If nmemb * size exceeds SIZE_MAX then gballoc_ll_realloc_flex shall fail and return NULL. ]*/
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_042: [ base + nmemb * size exceeds SIZE_MAX then gballoc_ll_realloc_flex shall fail and return NULL. ]*/
 TEST_FUNCTION(gballoc_ll_realloc_flex_with_overflow_fails_1)
 {
     ///arrange

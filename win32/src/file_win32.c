@@ -39,33 +39,42 @@ static VOID CALLBACK on_file_io_complete_win32(PTP_CALLBACK_INSTANCE instance, P
 {
     (void)instance;
     (void)context;
-    (void)io;
 
-
-    /*Codes_SRS_FILE_WIN32_43_034: [ on_file_io_complete_win32 shall recover the file handle, the number of bytes requested by the user, user_callback and user_context from the context containing overlapped. ]*/
-    FILE_WIN32_IO* io_context = CONTAINING_RECORD(overlapped, FILE_WIN32_IO, ov);
-
-    FILE_CB user_callback = io_context->user_callback;
-    void* user_callback_context = io_context->user_context;
-
-    bool all_bytes_were_transferred = (uint32_t)number_of_bytes_transferred == io_context->size;
-
-    CloseHandle(io_context->ov.hEvent);
-    free(io_context);
-
-    if (io_result != NO_ERROR)
+    if (overlapped == NULL)
     {
-        LogLastError("Error in asynchronous operation.");
+        LogError("invalid argument PTP_CALLBACK_INSTANCE instance=%p, PVOID context=%p, PVOID overlapped=%p, ULONG io_result=%" PRIu32 ", ULONG_PTR number_of_bytes_transferred=%" PRIuPTR ", PTP_IO io=%p",
+            instance, context, overlapped, io_result, number_of_bytes_transferred, io);
     }
-    if (!all_bytes_were_transferred)
+    else
     {
-        LogLastError("All bytes were not transferred.");
+        /*Codes_SRS_FILE_WIN32_43_034: [ on_file_io_complete_win32 shall recover the file handle, the number of bytes requested by the user, user_callback and user_context from the context containing overlapped. ]*/
+        FILE_WIN32_IO* io_context = CONTAINING_RECORD(overlapped, FILE_WIN32_IO, ov);
+
+        FILE_CB user_callback = io_context->user_callback;
+        void* user_callback_context = io_context->user_context;
+
+        bool all_bytes_were_transferred = (uint32_t)number_of_bytes_transferred == io_context->size;
+
+        if (io_result != NO_ERROR)
+        {
+            LogError("Error in asynchronous operation. io_result=%" PRIu32 "", io_result);
+        }
+        if (!all_bytes_were_transferred)
+        {
+            LogError("All bytes were not transferred. number_of_bytes_transferred=%" PRIuPTR "; io_context->size=%" PRIu32 "", 
+                number_of_bytes_transferred, io_context->size);
+        }
+
+        if (!CloseHandle(io_context->ov.hEvent))
+        {
+            LogLastError("failure in CloseHandle(io_context->ov.hEvent=%p)", io_context->ov.hEvent);
+        }
+        free(io_context);
+
+        /*Codes_SRS_FILE_WIN32_43_066: [ on_file_io_complete_win32 shall call user_callback with is_successful as true if and only if GetOverlappedResult returns true and number_of_bytes_transferred is equal to the number of bytes requested by the user. ]*/
+        /*Codes_SRS_FILE_WIN32_43_068: [ If either GetOverlappedResult returns false or number_of_bytes_transferred is not equal to the bytes requested by the user, on_file_io_complete_win32 shall return false. ]*/
+        user_callback(user_callback_context, io_result == NO_ERROR && all_bytes_were_transferred);
     }
-
-    /*Codes_SRS_FILE_WIN32_43_066: [ on_file_io_complete_win32 shall call user_callback with is_successful as true if and only if GetOverlappedResult returns true and number_of_bytes_transferred is equal to the number of bytes requested by the user. ]*/
-    /*Codes_SRS_FILE_WIN32_43_068: [ If either GetOverlappedResult returns false or number_of_bytes_transferred is not equal to the bytes requested by the user, on_file_io_complete_win32 shall return false. ]*/
-    user_callback(user_callback_context, io_result == NO_ERROR && all_bytes_were_transferred);
-
 }
 
 

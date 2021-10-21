@@ -238,7 +238,7 @@ TEST_FUNCTION(gballoc_ll_malloc_2_with_SIZE_MAX_calls_malloc_and_fails)
     ///clean
 }
 
-/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_010: [ If nmemb*size exceeds SIZE_MAX then gballoc_ll_malloc_flex shall fail and return NULL. ]*/
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_011: [ If base + nmemb * size exceeds SIZE_MAX then gballoc_ll_malloc_flex shall fail and return NULL. ]*/
 TEST_FUNCTION(gballoc_ll_malloc_flex_with_overflow_fail_1)
 {
     ///arrange
@@ -478,7 +478,7 @@ TEST_FUNCTION(gballoc_ll_realloc_2_with_SIZE_MAX_fails)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_015: [ If nmemb * size exceeds SIZE_MAX then gballoc_ll_realloc_flex shall fail and return NULL. ]*/
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_016: [ If base + nmemb * size exceeds SIZE_MAX then gballoc_ll_realloc_flex shall fail and return NULL. ]*/
 TEST_FUNCTION(gballoc_ll_realloc_flex_with_overflow_fails_1)
 {
     ///arrange
