@@ -76,8 +76,6 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_flex, size_t, base, size_t, nmemb, 
 
 `gballoc_ll_malloc_flex` calls `mi_malloc(base + nmemb * size)`. This is useful for example when allocating a structure with a flexible array member. The function checks for arithmetic overflows.
 
-**SRS_GBALLOC_LL_MIMALLOC_02_010: [** If `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_malloc_flex` shall fail and return `NULL`. **]**
-
 **SRS_GBALLOC_LL_MIMALLOC_02_011: [** If `base` + `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_malloc_flex` shall fail and return `NULL`. **]**
 
 **SRS_GBALLOC_LL_MIMALLOC_02_012: [** `gballoc_ll_malloc_flex` shall call `mi_malloc(base + nmemb * size)` and returns what `mi_malloc` returned. **]**
@@ -131,8 +129,6 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc_flex, void*, ptr, size_t, base, si
 ```
 
 `gballoc_ll_realloc_flex` reallocates `ptr` to have size `base + nmemb` * `size`. This is useful when reallocating a structure that has a flexible array member. The function checks for arithmetic overflows.
-
-**SRS_GBALLOC_LL_MIMALLOC_02_015: [** If `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_realloc_flex` shall fail and return `NULL`. **]**
 
 **SRS_GBALLOC_LL_MIMALLOC_02_016: [** If `base` + `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_realloc_flex` shall fail and return `NULL`. **]**
 

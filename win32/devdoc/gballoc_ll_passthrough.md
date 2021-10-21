@@ -72,8 +72,6 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_flex, size_t, base, size_t, nmemb, 
 
 `gballoc_ll_malloc_flex` returns what `malloc` from stdlib returns when called with `base + nmemb * size`. This is useful for example when allocating a structure with a flexible array member. The function checks for arithmetic overflows.
 
-**SRS_GBALLOC_LL_PASSTHROUGH_02_010: [** If `nmemb`*`size` exceeds `SIZE_MAX` then `gballoc_ll_malloc_flex` shall fail and return `NULL`. **]**
-
 **SRS_GBALLOC_LL_PASSTHROUGH_02_011: [** If `base` + `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_malloc_flex` shall fail and return `NULL`. **]**
 
 **SRS_GBALLOC_LL_PASSTHROUGH_02_012: [** `gballoc_ll_malloc_flex` shall return what `malloc(base +  nmemb * size)` returns.  **]**

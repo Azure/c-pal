@@ -48,8 +48,8 @@ void* gballoc_ll_malloc_2(size_t nmemb, size_t size)
     void* result;
     /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_008: [ If nmemb * size exceeds SIZE_MAX then gballoc_ll_malloc_2 shall fail and return NULL. ]*/
     if (
-        (nmemb != 0) &&
-        (SIZE_MAX / nmemb < size)
+        (size != 0) &&
+        (SIZE_MAX / size < nmemb)
         )
     {
         LogError("overflow in computation of nmemb=%zu * size=%zu",
@@ -67,31 +67,23 @@ void* gballoc_ll_malloc_2(size_t nmemb, size_t size)
 void* gballoc_ll_malloc_flex(size_t base, size_t nmemb, size_t size)
 {
     void* result;
-    /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_010: [ If nmemb*size exceeds SIZE_MAX then gballoc_ll_malloc_flex shall fail and return NULL. ]*/
+
+    /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_011: [ If base + nmemb * size exceeds SIZE_MAX then gballoc_ll_malloc_flex shall fail and return NULL. ]*/
     if (
-        (nmemb != 0) &&
-        (SIZE_MAX / nmemb < size)
+        (size != 0) &&
+        ((SIZE_MAX - base) / size < nmemb)
         )
     {
-        LogError("overflow in computation of nmemb=%zu * size=%zu",
-            nmemb, size);
+        LogError("overflow in computation of base=%zu + nmemb=%zu * size=%zu",
+            base, nmemb, size);
         result = NULL;
     }
     else
     {
-        /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_011: [ If base + nmemb * size exceeds SIZE_MAX then gballoc_ll_malloc_flex shall fail and return NULL. ]*/
-        if (SIZE_MAX - base < nmemb * size)
-        {
-            LogError("overflow in computation of base=%zu + nmemb=%zu * size=%zu",
-                base, nmemb, size);
-            result = NULL;
-        }
-        else
-        {
-            /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_012: [ gballoc_ll_malloc_flex shall return what malloc(base + nmemb * size) returns. ]*/
-            result = gballoc_ll_malloc_internal(base + nmemb * size);
-        }
+        /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_012: [ gballoc_ll_malloc_flex shall return what malloc(base + nmemb * size) returns. ]*/
+        result = gballoc_ll_malloc_internal(base + nmemb * size);
     }
+    
     return result;
 }
 
@@ -142,8 +134,8 @@ void* gballoc_ll_realloc_2(void* ptr, size_t nmemb, size_t size)
     void* result;
     /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_013: [ If nmemb * size exceeds SIZE_MAX then gballoc_ll_realloc_2 shall fail and return NULL. ]*/
     if (
-        (nmemb != 0) &&
-        (SIZE_MAX / nmemb < size)
+        (size != 0) &&
+        (SIZE_MAX / size < nmemb)
         )
     {
         LogError("overflow in computation of nmemb=%zu * size=%zu",
@@ -161,30 +153,23 @@ void* gballoc_ll_realloc_2(void* ptr, size_t nmemb, size_t size)
 void* gballoc_ll_realloc_flex(void* ptr, size_t base, size_t nmemb, size_t size)
 {
     void* result;
-    /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_015: [ If nmemb * size exceeds SIZE_MAX then gballoc_ll_realloc_flex shall fail and return NULL. ]*/
-    if ((nmemb != 0) &&
-        (SIZE_MAX / nmemb < size)
+
+    /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_016: [ If base + nmemb * size exceeds SIZE_MAX then gballoc_ll_realloc_flex shall fail and return NULL. ]*/
+    if (
+        (size != 0) &&
+        ((SIZE_MAX - base) / size < nmemb)
         )
     {
-        LogError("overflow in computation of nmemb=%zu * size=%zu",
-            nmemb, size);
+        LogError("overflow in computation of base=%zu + nmemb=%zu * size=%zu",
+            base, nmemb, size);
         result = NULL;
     }
     else
     {
-        /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_016: [ If base + nmemb * size exceeds SIZE_MAX then gballoc_ll_realloc_flex shall fail and return NULL. ]*/
-        if (SIZE_MAX - base < nmemb * size)
-        {
-            LogError("overflow in computation of base=%zu + nmemb=%zu * size=%zu",
-                base, nmemb, size);
-            result = NULL;
-        }
-        else
-        {
-            /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_017: [ gballoc_ll_realloc_flex shall return what realloc(ptr, base + nmemb * size) returns. ]*/
-            result = gballoc_ll_realloc_internal(ptr, base + nmemb * size);
-        }
+        /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_017: [ gballoc_ll_realloc_flex shall return what realloc(ptr, base + nmemb * size) returns. ]*/
+        result = gballoc_ll_realloc_internal(ptr, base + nmemb * size);
     }
+    
     return result;
 }
 

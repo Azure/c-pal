@@ -102,8 +102,6 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_flex, size_t, base, size_t, nmemb, 
 
 `gballoc_ll_malloc_flex` returns what `HeapAlloc` from stdlib returns when called with `base + nmemb * size`. This is useful for example when allocating a structure with a flexible array member. The function checks for arithmetic overflows.
 
-**SRS_GBALLOC_LL_WIN32HEAP_02_032: [** If `nmemb`*`size` exceeds `SIZE_MAX` then `gballoc_ll_malloc_flex` shall fail and return `NULL`. **]**
-
 **SRS_GBALLOC_LL_WIN32HEAP_02_033: [** If `base` + `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_malloc_flex` shall fail and return `NULL`. **]**
 
 **SRS_GBALLOC_LL_WIN32HEAP_02_034: [** `gballoc_ll_malloc_flex` shall call `lazy_init` with parameter `do_init` set to `heap_init`. **]**
@@ -178,8 +176,6 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc_flex, void*, ptr, size_t, base, si
 ```
 
 `gballoc_ll_realloc_flex` calls `HeapReAlloc(ptr, base + nmemb * size)`. This is useful when reallocating a structure that has a flexible array member. The function checks for arithmetic overflows.
-
-**SRS_GBALLOC_LL_WIN32HEAP_02_041: [** If `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_realloc_flex` shall fail and return `NULL`. **]**
 
 **SRS_GBALLOC_LL_WIN32HEAP_02_042: [** `base` + `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_realloc_flex` shall fail and return `NULL`. **]**
 

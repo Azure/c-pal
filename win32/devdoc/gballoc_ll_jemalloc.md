@@ -76,8 +76,6 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_flex, size_t, base, size_t, nmemb, 
 
 `gballoc_ll_malloc_flex` returns what `je_malloc` returns when called with `base + nmemb * size`. This is useful for example when allocating a structure with a flexible array member. The function checks for arithmetic overflows.
 
-**SRS_GBALLOC_LL_JEMALLOC_02_003: [** If `nmemb`*`size` exceeds `SIZE_MAX` then `gballoc_ll_malloc_flex` shall fail and return `NULL`. **]**
-
 **SRS_GBALLOC_LL_JEMALLOC_02_004: [** If `base` + `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_malloc_flex` shall fail and return `NULL`. **]**
 
 **SRS_GBALLOC_LL_JEMALLOC_02_005: [** `gballoc_ll_malloc_flex` shall return what `je_malloc(base +  nmemb * size)` returns. **]**
