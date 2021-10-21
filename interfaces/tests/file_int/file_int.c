@@ -236,8 +236,8 @@ TEST_FUNCTION(write_twice_to_a_file_contiguously_and_read_from_it)
     FILE_HANDLE file_handle = file_create_helper(filename);
 
     ///act
-    ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, file_write_async(file_handle, source1, size, 0, write_callback, &write_context1));
-    ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, file_write_async(file_handle, source2, size, 4, write_callback, &write_context2));
+    ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, file_write_async(file_handle, source1, sizeof(source1) - 1 , 0, write_callback, &write_context1));
+    ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, file_write_async(file_handle, source2, sizeof(source2), sizeof(source1) - 1, write_callback, &write_context2));
    
     ///assert
     wait_on_address_helper(&write_context1.value, write_context1.pre_callback_value, UINT32_MAX);
