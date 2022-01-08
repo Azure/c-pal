@@ -3,5 +3,5 @@
 
 #include "real_uuid_renames.h" // IWYU pragma: keep
 
-#include "../src/uuid_linux.c"
+#include "../src/uuid_win32.c"
 

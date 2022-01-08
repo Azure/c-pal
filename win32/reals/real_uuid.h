@@ -7,7 +7,7 @@
 
 #define R2(X) REGISTER_GLOBAL_MOCK_HOOK(X, real_##X);
 
-#define REGISTER_ARITHMETIC_GLOBAL_MOCK_HOOK()          \
+#define REGISTER_UUID_GLOBAL_MOCK_HOOK()          \
     MU_FOR_EACH_1(R2,                                   \
         uuid_produce                                    \
     )
