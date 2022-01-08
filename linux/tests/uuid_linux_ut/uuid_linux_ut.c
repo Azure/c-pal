@@ -180,6 +180,7 @@ TEST_FUNCTION(uuid_produce_with_destination_NULL_fails)
 }
 
 /*Tests_SRS_UUID_LINUX_02_002: [ uuid_produce shall call uuid_generate to generate a UUID. ]*/
+/*Tests_SRS_UUID_LINUX_02_004: [ uuid_produce shall succeed and return 0. ]*/
 TEST_FUNCTION(uuid_produce_succeeds)
 {
     ///arrange

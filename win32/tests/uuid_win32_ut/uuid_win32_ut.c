@@ -97,6 +97,7 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
     TEST_MUTEX_RELEASE(g_testByTest);
 }
 
+/*Tests_SRS_UUID_WIN32_02_001: [ If destination is NULL then uuid_produce shall fail and return a non-NULL value. ]*/
 TEST_FUNCTION(uuid_produce_with_destination_NULL_fails)
 {
     ///arrange
@@ -110,6 +111,9 @@ TEST_FUNCTION(uuid_produce_with_destination_NULL_fails)
 
 }
 
+/*Tests_SRS_UUID_WIN32_02_002: [ uuid_produce shall call UuidCreate to generate a UUID. ]*/
+/*Tests_SRS_UUID_WIN32_02_003: [ uuid_produce shall copy the generated UUID's bytes in destination. ]*/
+/*Tests_SRS_UUID_WIN32_02_004: [ uuid_produce shall succeed and return 0. ]*/
 TEST_FUNCTION(uuid_produce_succeeds_1) /*when it returns default RPC_S_OK*/
 {
     ///arrange
@@ -145,6 +149,9 @@ TEST_FUNCTION(uuid_produce_succeeds_1) /*when it returns default RPC_S_OK*/
 }
 
 
+/*Tests_SRS_UUID_WIN32_02_002: [ uuid_produce shall call UuidCreate to generate a UUID. ]*/
+/*Tests_SRS_UUID_WIN32_02_003: [ uuid_produce shall copy the generated UUID's bytes in destination. ]*/
+/*Tests_SRS_UUID_WIN32_02_004: [ uuid_produce shall succeed and return 0. ]*/
 TEST_FUNCTION(uuid_produce_succeeds_2) /*when it returns default RPC_S_UUID_LOCAL_ONLY*/
 {
     ///arrange
@@ -180,6 +187,7 @@ TEST_FUNCTION(uuid_produce_succeeds_2) /*when it returns default RPC_S_UUID_LOCA
     ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_7, u[15]);
 }
 
+/*Tests_SRS_UUID_WIN32_02_005: [ If there are any failures then uuid_produce shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(uuid_produce_unhappy_path) /*when it returns RPC_S_UUID_LOCAL_ONLY*/
 {
     ///arrange
