@@ -12,7 +12,7 @@ typedef unsigned char UUID_T[16]; /*introduces UUID_T as "array of 16 bytes"*/
 extern "C" {
 #endif
 
-    MOCKABLE_FUNCTION(, int, uuid_generate, UUID_T, destination);
+    MOCKABLE_FUNCTION(, int, uuid_produce, UUID_T, destination);
 
 #ifdef __cplusplus
 }

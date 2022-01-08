@@ -11,7 +11,7 @@
 
 static int is_UUID_T_and_UUID_same_size[sizeof(UUID_T) == sizeof(UUID)]; /*just a sanity check*/
 
-int uuid_generate(UUID_T destination)
+int uuid_produce(UUID_T destination)
 {
     int result;
     if (destination == NULL)

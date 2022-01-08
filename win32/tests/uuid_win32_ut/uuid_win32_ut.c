@@ -97,20 +97,20 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
     TEST_MUTEX_RELEASE(g_testByTest);
 }
 
-TEST_FUNCTION(uuid_generate_with_destination_NULL_fails)
+TEST_FUNCTION(uuid_produce_with_destination_NULL_fails)
 {
     ///arrange
     int result;
 
     ///act
-    result = uuid_generate(NULL);
+    result = uuid_produce(NULL);
 
     ///assert
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
 
 }
 
-TEST_FUNCTION(uuid_generate_succeeds_1) /*when it returns default RPC_S_OK*/
+TEST_FUNCTION(uuid_produce_succeeds_1) /*when it returns default RPC_S_OK*/
 {
     ///arrange
     int result;
@@ -119,7 +119,7 @@ TEST_FUNCTION(uuid_generate_succeeds_1) /*when it returns default RPC_S_OK*/
     STRICT_EXPECTED_CALL(mocked_UuidCreate(IGNORED_ARG));
 
     ///act
-    result = uuid_generate(u);
+    result = uuid_produce(u);
 
     ///assert
     ASSERT_ARE_EQUAL(int, 0, result);
@@ -145,7 +145,7 @@ TEST_FUNCTION(uuid_generate_succeeds_1) /*when it returns default RPC_S_OK*/
 }
 
 
-TEST_FUNCTION(uuid_generate_succeeds_2) /*when it returns default RPC_S_UUID_LOCAL_ONLY*/
+TEST_FUNCTION(uuid_produce_succeeds_2) /*when it returns default RPC_S_UUID_LOCAL_ONLY*/
 {
     ///arrange
     int result;
@@ -155,7 +155,7 @@ TEST_FUNCTION(uuid_generate_succeeds_2) /*when it returns default RPC_S_UUID_LOC
     STRICT_EXPECTED_CALL(mocked_UuidCreate(IGNORED_ARG));
 
     ///act
-    result = uuid_generate(u);
+    result = uuid_produce(u);
 
     ///assert
     ASSERT_ARE_EQUAL(int, 0, result);
@@ -180,7 +180,7 @@ TEST_FUNCTION(uuid_generate_succeeds_2) /*when it returns default RPC_S_UUID_LOC
     ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_7, u[15]);
 }
 
-TEST_FUNCTION(uuid_generate_unhappy_path) /*when it returns RPC_S_UUID_LOCAL_ONLY*/
+TEST_FUNCTION(uuid_produce_unhappy_path) /*when it returns RPC_S_UUID_LOCAL_ONLY*/
 {
     ///arrange
     int result;
@@ -190,7 +190,7 @@ TEST_FUNCTION(uuid_generate_unhappy_path) /*when it returns RPC_S_UUID_LOCAL_ONL
     STRICT_EXPECTED_CALL(mocked_UuidCreate(IGNORED_ARG));
 
     ///act
-    result = uuid_generate(u);
+    result = uuid_produce(u);
 
     ///assert
     ASSERT_ARE_NOT_EQUAL(int, 0, result);

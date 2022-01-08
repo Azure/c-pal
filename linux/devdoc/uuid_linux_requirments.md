@@ -22,8 +22,8 @@ MOCKABLE_FUNCTION(, int, uuid_produce, UUID_T, destination);
 
 `uuid_produce` fills destination's bytes with a unique ID.
 
-**SRS_UUID_02_001: [** If `destination` is `NULL` then `uuid_produce` shall fail and return a non-NULL value. **]**
+**SRS_UUID_LINUX_02_001: [** If `destination` is `NULL` then `uuid_produce` shall fail and return a non-NULL value. **]**
 
-**SRS_UUID_02_002: [** `uuid_produce` shall generate in `destination` the representation of a UUID (as per RFC 4122). **]**
+**SRS_UUID_LINUX_02_002: [** `uuid_produce` shall call `uuid_generate` to generate a `UUID`. **]**
 
-**SRS_UUID_02_004: [** `uuid_produce` shall succeed and return 0. **]**
+**SRS_UUID_LINUX_02_004: [** `uuid_produce` shall succeed and return 0. **]**

@@ -30,6 +30,7 @@ set(pal_linux_c_files
     src/platform_linux.c
     src/threadapi_pthreads.c
     src/uniqueid_linux.c
+    src/uuid_linux.c
     src/sync_linux.c
     src/string_utils.c
     src/sysinfo_linux.c
