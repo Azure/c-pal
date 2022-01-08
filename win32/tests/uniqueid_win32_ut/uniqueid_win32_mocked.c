@@ -4,9 +4,7 @@
 #include "rpc.h"
 #include "windows.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
 
 #define UuidCreate mocked_UuidCreate
 #define UuidToStringA mocked_UuidToStringA
@@ -20,8 +18,6 @@ extern RPC_STATUS mocked_UuidToStringA(
 extern RPC_STATUS mocked_RpcStringFreeA(
     RPC_CSTR __RPC_FAR* String);
 
-#ifdef __cplusplus
-}
-#endif
+
 
 #include "../../src/uniqueid_win32.c"

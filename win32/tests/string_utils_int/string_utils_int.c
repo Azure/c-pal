@@ -1,13 +1,10 @@
 // Copyright(C) Microsoft Corporation.All rights reserved.
 
-#ifdef __cplusplus
-#include <cinttypes>
-#include <clocale>
-#else
+
 #include <inttypes.h>
 #include <stdbool.h>
 #include <locale.h>
-#endif
+
 
 #include "windows.h"
 

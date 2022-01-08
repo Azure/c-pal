@@ -1,10 +1,8 @@
 // Copyright(C) Microsoft Corporation.All rights reserved.
 
-#ifdef __cplusplus
-#include <cstdint>
-#else
+
 #include <stdint.h>
-#endif
+
 
 #include <unistd.h>
 
@@ -17,13 +15,9 @@
 #define ENABLE_MOCKS
 
 #include "umock_c/umock_c_prod.h"
-#ifdef __cplusplus
-extern "C" {
-#endif
+
     MOCKABLE_FUNCTION(, long, mocked_sysconf, int, name)
-#ifdef __cplusplus
-}
-#endif
+
 
 #undef ENABLE_MOCKS
 

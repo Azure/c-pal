@@ -1,16 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#ifdef __cplusplus
-#include <cstdint>
-#include <cstdlib>
-#include <ctime>
-#else
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <time.h>
-#endif
+
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 

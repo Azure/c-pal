@@ -1,14 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#ifdef __cplusplus
-#include <cstddef>
-#include <cstdint>
-#include <cstdatomic>
-#include <climits>
-#include <ctime>
-#include <cerrno>
-#else
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -16,7 +9,7 @@
 #include <limits.h>
 #include <time.h>
 #include <errno.h>
-#endif
+
 
 #include <syscall.h>
 #include <linux/futex.h>

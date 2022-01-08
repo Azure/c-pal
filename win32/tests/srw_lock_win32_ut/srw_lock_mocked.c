@@ -10,9 +10,7 @@
 #define TryAcquireSRWLockShared mocked_TryAcquireSRWLockShared
 #define ReleaseSRWLockShared mocked_ReleaseSRWLockShared
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
 
 void mocked_InitializeSRWLock(PSRWLOCK SRWLock);
 void mocked_AcquireSRWLockExclusive(PSRWLOCK SRWLock);
@@ -22,9 +20,7 @@ void mocked_AcquireSRWLockShared(PSRWLOCK SRWLock);
 BOOLEAN mocked_TryAcquireSRWLockShared(PSRWLOCK SRWLock);
 void mocked_ReleaseSRWLockShared(PSRWLOCK SRWLock);
 
-#ifdef __cplusplus
-}
-#endif
+
 
 
 #include "../../src/srw_lock_win32.c"

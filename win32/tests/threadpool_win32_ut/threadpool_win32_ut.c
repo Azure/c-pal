@@ -1,12 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#ifdef __cplusplus
-#include <cstdlib>
-#include <cinttypes>
-#else
+
 #include <stdlib.h>
 #include <inttypes.h>
-#endif
+
 
 #include "winsock2.h"
 #include "ws2tcpip.h"
@@ -59,10 +56,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+
 
 static char* umocktypes_stringify_PFILETIME(PFILETIME* value)
 {
@@ -234,9 +228,7 @@ MOCK_FUNCTION_END()
 MOCK_FUNCTION_WITH_CODE(, void, test_work_function, void*, context)
 MOCK_FUNCTION_END()
 
-#ifdef __cplusplus
-}
-#endif
+
 
 static THREADPOOL_HANDLE test_create_and_open_threadpool(PTP_CALLBACK_ENVIRON* cbe)
 {

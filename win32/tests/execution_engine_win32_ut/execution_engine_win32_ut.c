@@ -1,12 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#ifdef __cplusplus
-#include <cstdlib>
-#include <cinttypes>
-#else
+
 #include <stdlib.h>
 #include <inttypes.h>
-#endif
+
 
 #include "windows.h"
 #include "macro_utils/macro_utils.h"
@@ -53,10 +50,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+
 
 MOCK_FUNCTION_WITH_CODE(WINAPI, PTP_POOL, mocked_CreateThreadpool, PVOID, reserved)
 MOCK_FUNCTION_END((PTP_POOL)real_malloc(1))
@@ -68,9 +62,7 @@ MOCK_FUNCTION_END(TRUE)
 MOCK_FUNCTION_WITH_CODE(WINAPI, void, mocked_SetThreadpoolThreadMaximum, PTP_POOL, ptpp, DWORD, cthrdMost)
 MOCK_FUNCTION_END()
 
-#ifdef __cplusplus
-}
-#endif
+
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 

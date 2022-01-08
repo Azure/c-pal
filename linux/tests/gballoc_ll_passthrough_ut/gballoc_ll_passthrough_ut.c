@@ -1,13 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#ifdef __cplusplus
-#include <cstdlib>
-#include <cstdint>
-#else
+
 #include <stdlib.h>
 #include <stdint.h>
-#endif
+
 
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
@@ -23,18 +20,14 @@ static void* TEST_REALLOC_RESULT = (void*)0x3;
 
 #define ENABLE_MOCKS
 #include "umock_c/umock_c_prod.h"
-#ifdef __cplusplus
-extern "C" {
-#endif
+
     MOCKABLE_FUNCTION(, void*, mock_malloc, size_t, size);
     MOCKABLE_FUNCTION(, void*, mock_calloc, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, mock_realloc, void*, ptr, size_t, size);
     MOCKABLE_FUNCTION(, void, mock_free, void*, ptr);
 
     MOCKABLE_FUNCTION(, size_t, mock_malloc_usable_size, void*, ptr);
-#ifdef __cplusplus
-}
-#endif
+
 #undef ENABLE_MOCKS
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)

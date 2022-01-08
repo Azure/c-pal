@@ -1,12 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#ifdef __cplusplus
-#include <cstddef>
-#include <cinttypes>
-#else
+
 #include <stddef.h>
 #include <inttypes.h>
-#endif
+
 
 
 #include "c_logging/xlogging.h"

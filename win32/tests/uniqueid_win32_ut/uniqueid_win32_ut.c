@@ -1,13 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#ifdef __cplusplus
-#include <cstdlib>
-#include <cstddef>
-#else
+
 #include <stdlib.h>
 #include <stddef.h>
-#endif
+
 
 #include "rpc.h"
 #include "macro_utils/macro_utils.h"
@@ -17,9 +14,7 @@
 #include "c_pal/uniqueid.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
 
 MOCK_FUNCTION_WITH_CODE(, RPC_STATUS, mocked_UuidCreate,
     UUID __RPC_FAR*, Uuid);
@@ -32,9 +27,7 @@ MOCK_FUNCTION_WITH_CODE(, RPC_STATUS, mocked_RpcStringFreeA,
     RPC_CSTR __RPC_FAR*, String)
 MOCK_FUNCTION_END(RpcStringFreeA(String))
 
-#ifdef __cplusplus
-}
-#endif
+
 
 static TEST_MUTEX_HANDLE g_testByTest;
 

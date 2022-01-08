@@ -1,11 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#ifdef __cplusplus
-#include <cstdlib>
-#else
+
 #include <stdlib.h>
-#endif
+
 
 #include "windows.h"
 
@@ -32,9 +30,7 @@ static void my_free(void* s)
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/timer.h"
 
-#ifdef __cplusplus
-extern "C"{
-#endif
+
 
 MOCKABLE_FUNCTION(, void, mocked_InitializeSRWLock, PSRWLOCK, SRWLock);
 MOCKABLE_FUNCTION(, void, mocked_AcquireSRWLockExclusive, PSRWLOCK, SRWLock);
@@ -44,9 +40,7 @@ MOCKABLE_FUNCTION(, void, mocked_AcquireSRWLockShared, PSRWLOCK, SRWLock);
 MOCKABLE_FUNCTION(, BOOLEAN, mocked_TryAcquireSRWLockShared, PSRWLOCK, SRWLock);
 MOCKABLE_FUNCTION(, void, mocked_ReleaseSRWLockShared, PSRWLOCK, SRWLock);
 
-#ifdef __cplusplus
-}
-#endif
+
 
 #undef ENABLE_MOCKS
 

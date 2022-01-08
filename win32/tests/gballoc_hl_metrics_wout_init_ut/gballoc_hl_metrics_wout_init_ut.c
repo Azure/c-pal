@@ -1,10 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#ifdef __cplusplus
-#include <cstddef>
-#else
+
 #include <stddef.h>
-#endif
+
 
 #include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
