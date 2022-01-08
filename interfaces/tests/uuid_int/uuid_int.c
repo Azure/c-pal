@@ -2,9 +2,9 @@
 
 
 #include <stdlib.h>
-#include <inttypes.h>
+#include <string.h>
 
-#include "macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
 #include "testrunnerswitcher.h"
 
