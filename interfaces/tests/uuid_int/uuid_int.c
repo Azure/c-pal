@@ -112,33 +112,41 @@ TEST_FUNCTION(uuid_from_GUID_succeeds)
 }
 #endif
 
-TEST_FUNCTION(PRI_UUID_compiles)
+TEST_FUNCTION(PRI_UUID_T_compiles)
 {
     ///arrange
     UUID_T u;
     ASSERT_ARE_EQUAL(int, 0, uuid_produce(u));
 
     ///act (well - it compiles)
-    LogInfo("u=%" PRI_UUID "", UUID_VALUES(u));
+    LogInfo("u=%" PRI_UUID_T "", UUID_T_VALUES(u));
 
     ///assert - none
 }
 
-static void PRI_UUID_with_NULL_helper(UUID_T u)
+static void UUID_T_VALUES_OR_NULL_helper(UUID_T u)
 {
-    LogInfo("u=%" PRI_UUID "", UUID_VALUES_OR_NULL(u));
+    LogInfo("u=%" PRI_UUID_T "", UUID_T_VALUES_OR_NULL(u));
 }
 
-TEST_FUNCTION(PRI_UUID_with_NULL_compiles)
+TEST_FUNCTION(UUID_T_VALUES_OR_NULL_compiles)
 {
     ///arrange
+    UUID_T u;
+    ASSERT_ARE_EQUAL(int, 0, uuid_produce(u));
 
     ///act 1 (well - it compiles, doesn't crash at runtime)
-    PRI_UUID_with_NULL_helper(NULL); /*needs a helper to decay array into pointer*/
+    UUID_T_VALUES_OR_NULL_helper(NULL); /*needs a helper to decay array into pointer*/
 
     ///act 2 (well - it compiles, doesn't crash at runtime)
-    LogInfo("some UUID_T=%" PRI_UUID "", UUID_VALUES_OR_NULL(*(UUID_T*)NULL));
+    LogInfo("some UUID_T=%" PRI_UUID_T "", UUID_T_VALUES_OR_NULL(*(UUID_T*)NULL));
 
+    ///act 3 (well - it compiles, doesn't crash at runtime)
+    UUID_T_VALUES_OR_NULL_helper(u); /*needs a helper to decay array into pointer*/
+
+    ///act 4 (well - it compiles, doesn't crash at runtime)
+    LogInfo("u=%" PRI_UUID_T "", UUID_T_VALUES_OR_NULL(u));
+   
     ///assert - none
 }
 
