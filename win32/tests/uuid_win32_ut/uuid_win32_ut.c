@@ -204,5 +204,66 @@ TEST_FUNCTION(uuid_produce_unhappy_path) /*when it returns RPC_S_UUID_LOCAL_ONLY
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
 }
 
+/*Tests_SRS_UUID_WIN32_02_006: [ If destination is NULL then uuid_from_GUID shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(uuid_from_GUID_with_destination_NULL_fails)
+{
+    ///arrange
+    int result;
+    GUID source = { 0 };
+
+    ///act
+    result = uuid_from_GUID(NULL, &source);
+
+    ///assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+}
+
+/*Tests_SRS_UUID_WIN32_02_006: [ If destination is NULL then uuid_from_GUID shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(uuid_from_GUID_with_source_NULL_fails)
+{
+    ///arrange
+    int result;
+    UUID_T destination;
+
+    ///act
+    result = uuid_from_GUID(destination, NULL);
+
+    ///assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+}
+
+/*Tests_SRS_UUID_WIN32_02_008: [ uuid_from_GUID shall convert GUID to UUID_T, succeed and return 0. ]*/
+TEST_FUNCTION(uuid_from_GUID_succeeds)
+{
+    ///arrange
+    int result;
+    GUID source = { .Data1 = TEST_DATA_1, .Data2 = TEST_DATA_2, .Data3 = TEST_DATA_3, .Data4 = {TEST_DATA_4_0, TEST_DATA_4_1, TEST_DATA_4_2, TEST_DATA_4_3, TEST_DATA_4_4, TEST_DATA_4_5, TEST_DATA_4_6, TEST_DATA_4_7} };
+    UUID_T destination;
+
+    ///act
+    result = uuid_from_GUID(destination,&source);
+
+    ///assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1 >> 24) & 0xFF, destination[0]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1 >> 16) & 0xFF, destination[1]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1 >> 8) & 0xFF, destination[2]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1) & 0xFF, destination[3]);
+
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_2 >> 8) & 0xFF, destination[4]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_2) & 0xFF, destination[5]);
+
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_3 >> 8) & 0xFF, destination[6]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_3) & 0xFF, destination[7]);
+
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_0, destination[8]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_1, destination[9]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_2, destination[10]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_3, destination[11]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_4, destination[12]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_5, destination[13]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_6, destination[14]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_7, destination[15]);
+}
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

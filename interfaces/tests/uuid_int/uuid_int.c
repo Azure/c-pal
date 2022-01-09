@@ -73,4 +73,42 @@ TEST_FUNCTION(uuid_produce_succeeds_and_generates_different_UUIDs)
     ASSERT_IS_TRUE(memcmp(one, two, sizeof(UUID_T)) != 0);
 }
 
+#ifdef WIN32
+TEST_FUNCTION(uuid_from_GUID_succeeds)
+{
+    ///arrange
+    GUID g = { 0 };
+    (void)UuidCreate(&g);
+
+    UUID_T destination;
+    int result;
+
+    ///act
+    result = uuid_from_GUID(destination, &g);
+
+    ///assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(uint8_t, (g.Data1 >> 24) & 0xFF, destination[0]);
+    ASSERT_ARE_EQUAL(uint8_t, (g.Data1 >> 16) & 0xFF, destination[1]);
+    ASSERT_ARE_EQUAL(uint8_t, (g.Data1 >> 8) & 0xFF, destination[2]);
+    ASSERT_ARE_EQUAL(uint8_t, (g.Data1) & 0xFF, destination[3]);
+
+    ASSERT_ARE_EQUAL(uint8_t, (g.Data2>> 8) & 0xFF, destination[4]);
+    ASSERT_ARE_EQUAL(uint8_t, (g.Data2) & 0xFF, destination[5]);
+
+    ASSERT_ARE_EQUAL(uint8_t, (g.Data3 >> 8) & 0xFF, destination[6]);
+    ASSERT_ARE_EQUAL(uint8_t, (g.Data3 ) & 0xFF, destination[7]);
+
+    ASSERT_ARE_EQUAL(uint8_t, g.Data4[0], destination[8]);
+    ASSERT_ARE_EQUAL(uint8_t, g.Data4[1], destination[9]);
+    ASSERT_ARE_EQUAL(uint8_t, g.Data4[2], destination[10]);
+    ASSERT_ARE_EQUAL(uint8_t, g.Data4[3], destination[11]);
+    ASSERT_ARE_EQUAL(uint8_t, g.Data4[4], destination[12]);
+    ASSERT_ARE_EQUAL(uint8_t, g.Data4[5], destination[13]);
+    ASSERT_ARE_EQUAL(uint8_t, g.Data4[6], destination[14]);
+    ASSERT_ARE_EQUAL(uint8_t, g.Data4[7], destination[15]);
+
+}
+#endif
+
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

@@ -18,6 +18,10 @@ extern "C" {
 
     int real_uuid_produce(UUID_T destination);
 
+#ifdef WIN32 /*some functions only exists in Windows realm*/
+    int real_uuid_from_GUID(UUID_T destination, const GUID* source);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

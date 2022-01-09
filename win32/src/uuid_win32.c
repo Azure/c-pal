@@ -16,6 +16,26 @@ static int is_UUID_T_and_UUID_same_size[sizeof(UUID_T) == sizeof(UUID)]; /*just 
 /*Codes_SRS_UUID_02_002: [ uuid_produce shall generate in destination the representation of a UUID (as per RFC 4122). ]*/
 /*Codes_SRS_UUID_02_004: [ uuid_produce shall succeed and return 0. ]*/
 
+static void GUID_to_UUID_T(const GUID* guid, UUID_T uuid)
+{
+    uuid[0] = (guid->Data1 >> 24) & 0xFF;
+    uuid[1] = (guid->Data1 >> 16) & 0xFF;
+    uuid[2] = (guid->Data1 >> 8) & 0xFF;
+    uuid[3] = (guid->Data1) & 0xFF;
+    uuid[4] = (guid->Data2 >> 8) & 0xFF;
+    uuid[5] = (guid->Data2) & 0xFF;
+    uuid[6] = (guid->Data3 >> 8) & 0xFF;
+    uuid[7] = (guid->Data3) & 0xFF;
+    uuid[8] = guid->Data4[0];
+    uuid[9] = guid->Data4[1];
+    uuid[10] = guid->Data4[2];
+    uuid[11] = guid->Data4[3];
+    uuid[12] = guid->Data4[4];
+    uuid[13] = guid->Data4[5];
+    uuid[14] = guid->Data4[6];
+    uuid[15] = guid->Data4[7];
+}
+
 int uuid_produce(UUID_T destination)
 {
     int result;
@@ -42,26 +62,33 @@ int uuid_produce(UUID_T destination)
         else
         {
             /*Codes_SRS_UUID_WIN32_02_003: [ uuid_produce shall copy the generated UUID's bytes in destination. ]*/
-            destination[ 0] = (u.Data1 >> 24) & 0xFF;
-            destination[ 1] = (u.Data1 >> 16) & 0xFF;
-            destination[ 2] = (u.Data1 >>  8) & 0xFF;
-            destination[ 3] = (u.Data1      ) & 0xFF;
-            destination[ 4] = (u.Data2 >>  8) & 0xFF;
-            destination[ 5] = (u.Data2      ) & 0xFF;
-            destination[ 6] = (u.Data3 >>  8) & 0xFF;
-            destination[ 7] = (u.Data3      ) & 0xFF;
-            destination[ 8] =  u.Data4[0];
-            destination[ 9] =  u.Data4[1];
-            destination[10] =  u.Data4[2];
-            destination[11] =  u.Data4[3];
-            destination[12] =  u.Data4[4];
-            destination[13] =  u.Data4[5];
-            destination[14] =  u.Data4[6];
-            destination[15] =  u.Data4[7];
+            GUID_to_UUID_T(&u, destination);
 
             /*Codes_SRS_UUID_WIN32_02_004: [ uuid_produce shall succeed and return 0. ]*/
             result = 0;
         }
+    }
+    return result;
+}
+
+int uuid_from_GUID(UUID_T destination, const GUID* source)
+{
+    int result;
+    if (
+        /*Codes_SRS_UUID_WIN32_02_006: [ If destination is NULL then uuid_from_GUID shall fail and return a non-zero value. ]*/
+        (destination == NULL) ||
+        /*Codes_SRS_UUID_WIN32_02_007: [ If source is NULL then uuid_from_GUID shall fail and return a non-zero value. ]*/
+        (source == NULL)
+        )
+    {
+        LogError("invalid arguments UUID_T destination=%p, const GUID* source=%p", destination, source);
+        result = MU_FAILURE;
+    }
+    else
+    {
+        /*Codes_SRS_UUID_WIN32_02_008: [ uuid_from_GUID shall convert GUID to UUID_T, succeed and return 0. ]*/
+        GUID_to_UUID_T(source, destination);
+        result = 0;
     }
     return result;
 }

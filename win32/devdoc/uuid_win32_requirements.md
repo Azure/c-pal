@@ -14,6 +14,8 @@ The uuid module generates unique IDs.
 typedef unsigned char UUID_T[16]; /*introduces UUID_T as "array of 16 bytes"*/
 MOCKABLE_FUNCTION(, int, uuid_produce, UUID_T, destination);
 
+MOCKABLE_FUNCTION(, int, uuid_from_GUID, UUID_T, destination, const GUID*, source);
+
 ```
 ###  uuid_produce
 ```C
@@ -31,3 +33,17 @@ MOCKABLE_FUNCTION(, int, uuid_produce, UUID_T, destination);
 **SRS_UUID_WIN32_02_004: [** `uuid_produce` shall succeed and return 0. **]**
 
 **SRS_UUID_WIN32_02_005: [** If there are any failures then `uuid_produce` shall fail and return a non-zero value. **]**
+
+### uuid_from_GUID
+```c
+MOCKABLE_FUNCTION(, int, uuid_from_GUID, UUID_T, destination, const GUID*, source);
+```
+
+`uuid_from_GUID` convers a Windows `GUID` to a `UUID_T`.
+
+**SRS_UUID_WIN32_02_006: [** If `destination` is `NULL` then `uuid_from_GUID` shall fail and return a non-zero value. **]**
+
+**SRS_UUID_WIN32_02_007: [** If `source` is `NULL` then `uuid_from_GUID` shall fail and return a non-zero value. **]**
+
+**SRS_UUID_WIN32_02_008: [** `uuid_from_GUID` shall convert `GUID` to `UUID_T`, succeed and return 0. **]**
+

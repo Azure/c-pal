@@ -12,7 +12,12 @@ The uuid module generates unique IDs.
 ```C
 
 typedef unsigned char UUID_T[16]; /*introduces UUID_T as "array of 16 bytes"*/
-MOCKABLE_FUNCTION(, int, uuid_produce, UUID_T, destination);
+
+    MOCKABLE_FUNCTION(, int, uuid_produce, UUID_T, destination);
+
+#ifdef WIN32 /*some functions only exists in Windows realm*/
+    MOCKABLE_FUNCTION(, int, uuid_from_GUID, UUID_T, destination, const GUID*, source);
+#endif
 
 ```
 ###  uuid_produce
