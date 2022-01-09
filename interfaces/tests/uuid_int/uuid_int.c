@@ -7,6 +7,7 @@
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
 #include "testrunnerswitcher.h"
+#include "c_logging/xlogging.h"
 
 #include "c_pal/uuid.h"
 
@@ -110,5 +111,35 @@ TEST_FUNCTION(uuid_from_GUID_succeeds)
 
 }
 #endif
+
+TEST_FUNCTION(PRI_UUID_compiles)
+{
+    ///arrange
+    UUID_T u;
+    ASSERT_ARE_EQUAL(int, 0, uuid_produce(u));
+
+    ///act (well - it compiles)
+    LogInfo("u=%" PRI_UUID "", UUID_VALUES(u));
+
+    ///assert - none
+}
+
+static void PRI_UUID_with_NULL_helper(UUID_T u)
+{
+    LogInfo("u=%" PRI_UUID "", UUID_VALUES_OR_NULL(u));
+}
+
+TEST_FUNCTION(PRI_UUID_with_NULL_compiles)
+{
+    ///arrange
+
+    ///act 1 (well - it compiles, doesn't crash at runtime)
+    PRI_UUID_with_NULL_helper(NULL); /*needs a helper to decay array into pointer*/
+
+    ///act 2 (well - it compiles, doesn't crash at runtime)
+    LogInfo("some UUID_T=%" PRI_UUID "", UUID_VALUES_OR_NULL(*(UUID_T*)NULL));
+
+    ///assert - none
+}
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
