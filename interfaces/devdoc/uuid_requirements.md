@@ -32,3 +32,13 @@ MOCKABLE_FUNCTION(, int, uuid_produce, UUID_T, destination);
 **SRS_UUID_02_002: [** `uuid_produce` shall generate in `destination` the representation of a UUID (as per RFC 4122). **]**
 
 **SRS_UUID_02_004: [** `uuid_produce` shall succeed and return 0. **]**
+
+### uuid_from_GUID
+```c
+MOCKABLE_FUNCTION(, int, uuid_from_GUID, UUID_T, destination, const GUID*, source);
+```
+
+`uuid_from_GUID` converts a `GUID` to a `UUID_T`. This function only exists on Windows platforms. 
+
+See [uuid requirements](../../win32/devdoc/uuid_win32_requirements.md) for further requirements.
+
