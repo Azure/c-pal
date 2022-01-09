@@ -218,7 +218,7 @@ TEST_FUNCTION(uuid_from_GUID_with_destination_NULL_fails)
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
 }
 
-/*Tests_SRS_UUID_WIN32_02_006: [ If destination is NULL then uuid_from_GUID shall fail and return a non-zero value. ]*/
+/*Tests_SRS_UUID_WIN32_02_007: [ If source is NULL then uuid_from_GUID shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(uuid_from_GUID_with_source_NULL_fails)
 {
     ///arrange
