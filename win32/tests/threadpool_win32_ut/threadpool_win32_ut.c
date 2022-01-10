@@ -12,15 +12,6 @@
 #include "c_logging/xlogging.h"
 
 #include "real_gballoc_ll.h"
-static void* real_malloc(size_t size)
-{
-    return real_gballoc_ll_malloc(size);
-}
-
-static void real_free(void* ptr)
-{
-    real_gballoc_ll_free(ptr);
-}
 
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
@@ -71,7 +62,7 @@ static char* umocktypes_stringify_PFILETIME(PFILETIME* value)
     {
         if (*value == NULL)
         {
-            result = (char*)real_malloc(sizeof("NULL"));
+            result = (char*)real_gballoc_hl_malloc(sizeof("NULL"));
             if (result != NULL)
             {
                 (void)memcpy(result, "NULL", sizeof("NULL"));
@@ -148,7 +139,7 @@ static int umocktypes_copy_PFILETIME(PFILETIME* destination, const PFILETIME* so
         }
         else
         {
-            *destination = (PFILETIME)real_malloc(sizeof(FILETIME));
+            *destination = (PFILETIME)real_gballoc_hl_malloc(sizeof(FILETIME));
             if (*destination == NULL)
             {
                 UMOCK_LOG("umocktypes_copy_PFILETIME: Failed allocating memory for the destination.");
@@ -170,33 +161,33 @@ static void umocktypes_free_PFILETIME(PFILETIME* value)
 {
     if (value != NULL)
     {
-        real_free(*value);
+        real_gballoc_hl_free(*value);
     }
 }
 
 MOCK_FUNCTION_WITH_CODE(, void, mocked_InitializeThreadpoolEnvironment, PTP_CALLBACK_ENVIRON, pcbe)
     // We are using the Pool member to force a memory allocation to check for leaks
-    pcbe->Pool = (PTP_POOL)real_malloc(1);
+    pcbe->Pool = (PTP_POOL)real_gballoc_hl_malloc(1);
 MOCK_FUNCTION_END()
 
 MOCK_FUNCTION_WITH_CODE(, void, mocked_SetThreadpoolCallbackPool, PTP_CALLBACK_ENVIRON, pcbe, PTP_POOL, ptpp)
 MOCK_FUNCTION_END()
 
 MOCK_FUNCTION_WITH_CODE(, PTP_CLEANUP_GROUP, mocked_CreateThreadpoolCleanupGroup)
-MOCK_FUNCTION_END((PTP_CLEANUP_GROUP)real_malloc(1))
+MOCK_FUNCTION_END((PTP_CLEANUP_GROUP)real_gballoc_hl_malloc(1))
 
 MOCK_FUNCTION_WITH_CODE(, VOID, mocked_SetThreadpoolCallbackCleanupGroup, PTP_CALLBACK_ENVIRON, pcbe, PTP_CLEANUP_GROUP, ptpcg, PTP_CLEANUP_GROUP_CANCEL_CALLBACK, pfng)
 MOCK_FUNCTION_END()
 
 MOCK_FUNCTION_WITH_CODE(, PTP_WORK, mocked_CreateThreadpoolWork, PTP_WORK_CALLBACK, pfnwk, PVOID, pv, PTP_CALLBACK_ENVIRON, pcbe)
-MOCK_FUNCTION_END((PTP_WORK)real_malloc(1))
+MOCK_FUNCTION_END((PTP_WORK)real_gballoc_hl_malloc(1))
 
 MOCK_FUNCTION_WITH_CODE(, void, mocked_CloseThreadpoolWork, PTP_WORK, pwk)
     real_free(pwk);
 MOCK_FUNCTION_END()
 
 MOCK_FUNCTION_WITH_CODE(, PTP_TIMER, mocked_CreateThreadpoolTimer, PTP_TIMER_CALLBACK, pfnti, PVOID, pv, PTP_CALLBACK_ENVIRON, pcbe)
-MOCK_FUNCTION_END((PTP_TIMER)real_malloc(1))
+MOCK_FUNCTION_END((PTP_TIMER)real_gballoc_hl_malloc(1))
 
 MOCK_FUNCTION_WITH_CODE(, void, mocked_CloseThreadpoolTimer, PTP_TIMER, pti)
     real_free(pti);
@@ -274,12 +265,10 @@ TEST_SUITE_INITIALIZE(suite_init)
     ASSERT_ARE_EQUAL(int, 0, umocktypes_windows_register_types(), "umocktypes_windows_register_types failed");
     ASSERT_ARE_EQUAL(int, 0, REGISTER_TYPE(PFILETIME, PFILETIME));
 
-    REGISTER_GLOBAL_MOCK_HOOK(malloc, real_malloc);
-    REGISTER_GLOBAL_MOCK_HOOK(free, real_free);
+    REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
+    REGISTER_GLOBAL_MOCK_FAIL_RETURN(malloc, NULL);
 
     REGISTER_GLOBAL_MOCK_RETURN(execution_engine_win32_get_threadpool, test_pool);
-
-    REGISTER_GLOBAL_MOCK_FAIL_RETURN(malloc, NULL);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(execution_engine_win32_get_threadpool, NULL);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_CreateThreadpoolCleanupGroup, NULL);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_CreateThreadpoolWork, NULL);
