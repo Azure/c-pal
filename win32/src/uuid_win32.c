@@ -11,11 +11,6 @@
 
 static int is_UUID_T_and_UUID_same_size[sizeof(UUID_T) == sizeof(UUID)]; /*just a sanity check*/
 
-/*these are interface requirements*/
-/*Codes_SRS_UUID_02_001: [ If destination is NULL then uuid_produce shall fail and return a non-NULL value. ]*/
-/*Codes_SRS_UUID_02_002: [ uuid_produce shall generate in destination the representation of a UUID (as per RFC 4122). ]*/
-/*Codes_SRS_UUID_02_004: [ uuid_produce shall succeed and return 0. ]*/
-
 static void GUID_to_UUID_T(const GUID* guid, UUID_T uuid)
 {
     uuid[0] = (guid->Data1 >> 24) & 0xFF;
@@ -39,6 +34,7 @@ static void GUID_to_UUID_T(const GUID* guid, UUID_T uuid)
 int uuid_produce(UUID_T destination)
 {
     int result;
+    /*Codes_SRS_UUID_02_001: [ If destination is NULL then uuid_produce shall fail and return a non-NULL value. ]*/
     /*Codes_SRS_UUID_WIN32_02_001: [ If destination is NULL then uuid_produce shall fail and return a non-NULL value. ]*/
     if (destination == NULL)
     {
@@ -48,6 +44,7 @@ int uuid_produce(UUID_T destination)
     else
     {
         UUID u;
+        /*Codes_SRS_UUID_02_002: [ uuid_produce shall generate in destination the representation of a UUID (as per RFC 4122). ]*/
         /*Codes_SRS_UUID_WIN32_02_002: [ uuid_produce shall call UuidCreate to generate a UUID. ]*/
         RPC_STATUS rpc_status = UuidCreate(&u);
         if (!(
@@ -64,6 +61,7 @@ int uuid_produce(UUID_T destination)
             /*Codes_SRS_UUID_WIN32_02_003: [ uuid_produce shall copy the generated UUID's bytes in destination. ]*/
             GUID_to_UUID_T(&u, destination);
 
+            /*Codes_SRS_UUID_02_004: [ uuid_produce shall succeed and return 0. ]*/
             /*Codes_SRS_UUID_WIN32_02_004: [ uuid_produce shall succeed and return 0. ]*/
             result = 0;
         }

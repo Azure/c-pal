@@ -35,7 +35,7 @@ int UUID_T_Compare(const UUID_T left, const UUID_T right)
     return memcmp(left, right, sizeof(UUID_T));
 }
 
-char* umocktypes_stringify_uuid(const UUID_T** value)
+char* umocktypes_stringify_UUID_T(const UUID_T** value)
 {
     char* result;
 
@@ -73,7 +73,7 @@ char* umocktypes_stringify_uuid(const UUID_T** value)
     return result;
 }
 
-int umocktypes_are_equal_uuid(const UUID_T** left, const UUID_T** right)
+int umocktypes_are_equal_UUID_T(const UUID_T** left, const UUID_T** right)
 {
     int result;
 
@@ -109,7 +109,7 @@ int umocktypes_are_equal_uuid(const UUID_T** left, const UUID_T** right)
     return result;
 }
 
-int umocktypes_copy_uuid(UUID_T** destination, const UUID_T** source)
+int umocktypes_copy_UUID_T(UUID_T** destination, const UUID_T** source)
 {
     int result;
 
@@ -137,7 +137,7 @@ int umocktypes_copy_uuid(UUID_T** destination, const UUID_T** source)
     return result;
 }
 
-void umocktypes_free_uuid(UUID_T** value)
+void umocktypes_free_UUID_T(UUID_T** value)
 {
     if (value)
     {
@@ -149,9 +149,9 @@ int umocktypes_UUID_T_register_types(void)
 {
     int result;
 
-    if ((REGISTER_TYPE(const UUID_T, uuid) != 0))
+    if ((REGISTER_TYPE(UUID_T, UUID_T) != 0))
     {
-        UMOCK_LOG("umocktypes_uuid_register_types: Cannot register types.");
+        UMOCK_LOG("umocktypes_UUID_T_register_types: Cannot register types.");
         result = MU_FAILURE;
     }
     else
