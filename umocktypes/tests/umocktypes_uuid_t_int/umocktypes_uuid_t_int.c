@@ -139,7 +139,7 @@ TEST_FUNCTION(module_calls_const_submodule_1) /*wants to see that the UUID_Ts ma
     };
 
     STRICT_EXPECTED_CALL(submodule_reads_const_UUID_T(u));
-    module_reads_UUID_T(u);
+    module_reads_const_UUID_T(u);
 
     ///act + assert - 2 in 1!
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
