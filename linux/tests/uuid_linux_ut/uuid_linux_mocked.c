@@ -5,6 +5,6 @@
 
 #define uuid_generate mocked_uuid_generate
 
-extern void mocked_uuid_generate(uuid_t out);
+void mocked_uuid_generate(uuid_t out);
 
 #include "../../src/uuid_linux.c"

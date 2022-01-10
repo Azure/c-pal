@@ -6,7 +6,7 @@
 
 #define UuidCreate mocked_UuidCreate
 
-extern RPC_STATUS mocked_UuidCreate(
+RPC_STATUS mocked_UuidCreate(
     UUID __RPC_FAR* Uuid);
 
 #include "../../src/uuid_win32.c"

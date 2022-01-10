@@ -13,14 +13,10 @@
 
 static int is_UUID_T_and_UUID_same_size[sizeof(UUID_T) == sizeof(uuid_t)]; /*just a sanity check*/
 
-/*these are interface requirements*/
-/*Codes_SRS_UUID_02_001: [ If destination is NULL then uuid_produce shall fail and return a non-NULL value. ]*/
-/*Codes_SRS_UUID_02_002: [ uuid_produce shall generate in destination the representation of a UUID (as per RFC 4122). ]*/
-/*Codes_SRS_UUID_02_004: [ uuid_produce shall succeed and return 0. ]*/
-
 int uuid_produce(UUID_T destination)
 {
     int result;
+    /*Codes_SRS_UUID_02_001: [ If destination is NULL then uuid_produce shall fail and return a non-NULL value. ]*/
     /*Codes_SRS_UUID_LINUX_02_001: [ If destination is NULL then uuid_produce shall fail and return a non-NULL value. ]*/
     if (destination == NULL)
     {
@@ -29,9 +25,11 @@ int uuid_produce(UUID_T destination)
     }
     else
     {
+        /*Codes_SRS_UUID_02_002: [ uuid_produce shall generate in destination the representation of a UUID (as per RFC 4122). ]*/
         /*Codes_SRS_UUID_LINUX_02_002: [ uuid_produce shall call uuid_generate to generate a UUID. ]*/
         uuid_generate(destination);
 
+        /*Codes_SRS_UUID_02_004: [ uuid_produce shall succeed and return 0. ]*/
         /*Codes_SRS_UUID_LINUX_02_004: [ uuid_produce shall succeed and return 0. ]*/
         result = 0;
     }

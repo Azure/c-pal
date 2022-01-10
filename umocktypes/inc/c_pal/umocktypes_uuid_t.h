@@ -20,12 +20,12 @@ extern "C" {
     void UUID_T_ToString(char* string, size_t bufferSize, const UUID_T val);
     int UUID_T_Compare(const UUID_T left, const UUID_T right);
 
-    extern int umocktypes_UUID_T_register_types(void);
+    int umocktypes_UUID_T_register_types(void);
 
-    extern char* umocktypes_stringify_uuid(const UUID_T** value);
-    extern int umocktypes_are_equal_uuid(const UUID_T** left, const UUID_T** right);
-    extern int umocktypes_copy_uuid(UUID_T** destination, const UUID_T** source);
-    extern void umocktypes_free_uuid(UUID_T** value);
+    char* umocktypes_stringify_uuid(const UUID_T** value);
+    int umocktypes_are_equal_uuid(const UUID_T** left, const UUID_T** right);
+    int umocktypes_copy_uuid(UUID_T** destination, const UUID_T** source);
+    void umocktypes_free_uuid(UUID_T** value);
 
     CTEST_DECLARE_EQUALITY_ASSERTION_FUNCTIONS_FOR_TYPE(uuid_ptr);
 
