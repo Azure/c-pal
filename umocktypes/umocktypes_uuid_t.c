@@ -149,7 +149,10 @@ int umocktypes_UUID_T_register_types(void)
 {
     int result;
 
-    if ((REGISTER_TYPE(UUID_T, UUID_T) != 0))
+    if (
+        (REGISTER_TYPE(UUID_T, UUID_T) != 0) ||
+        (REGISTER_TYPE(const UUID_T, UUID_T) != 0)
+        )
     {
         UMOCK_LOG("umocktypes_UUID_T_register_types: Cannot register types.");
         result = MU_FAILURE;

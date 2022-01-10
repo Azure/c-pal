@@ -11,7 +11,8 @@ extern "C" {
 #endif
 
     MOCKABLE_FUNCTION(, void, submodule_writes_UUID_T, UUID_T, u);
-    MOCKABLE_FUNCTION(, void, submodule_reads_UUID_T, const UUID_T, u);
+    MOCKABLE_FUNCTION(, void, submodule_reads_UUID_T, UUID_T, u);
+    MOCKABLE_FUNCTION(, void, submodule_reads_const_UUID_T, const UUID_T, u);
 
 #ifdef __cplusplus
 }
