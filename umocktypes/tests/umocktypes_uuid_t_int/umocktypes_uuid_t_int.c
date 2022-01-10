@@ -116,4 +116,62 @@ TEST_FUNCTION(module_calls_submodule_2) /*wants to see that the UUID_Ts do not m
     ASSERT_ARE_NOT_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
+TEST_FUNCTION(module_calls_const_submodule_1) /*wants to see that the UUID_Ts match, they are const*/
+{
+    ///arrange
+    UUID_T u = {
+        (unsigned char)'a',
+        (unsigned char)'b',
+        (unsigned char)'c',
+        (unsigned char)'d',
+        (unsigned char)'e',
+        (unsigned char)'f',
+        (unsigned char)'g',
+        (unsigned char)'h',
+        (unsigned char)'i',
+        (unsigned char)'j',
+        (unsigned char)'k',
+        (unsigned char)'l',
+        (unsigned char)'m',
+        (unsigned char)'n',
+        (unsigned char)'o',
+        (unsigned char)'p'
+    };
+
+    STRICT_EXPECTED_CALL(submodule_reads_const_UUID_T(u));
+    module_reads_const_UUID_T(u);
+
+    ///act + assert - 2 in 1!
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+TEST_FUNCTION(module_calls_const_submodule_2) /*wants to see that the const UUID_Ts do not match*/
+{
+    ///arrange
+    UUID_T u = {
+        (unsigned char)'a',
+        (unsigned char)'b',
+        (unsigned char)'c',
+        (unsigned char)'d',
+        (unsigned char)'e',
+        (unsigned char)'f',
+        (unsigned char)'g',
+        (unsigned char)'h',
+        (unsigned char)'i',
+        (unsigned char)'j',
+        (unsigned char)'k',
+        (unsigned char)'l',
+        (unsigned char)'m',
+        (unsigned char)'n',
+        (unsigned char)'o',
+        (unsigned char)'Z' /*note: module calls here with 'p'*/
+    };
+
+    STRICT_EXPECTED_CALL(submodule_reads_const_UUID_T(u));
+    module_reads_const_UUID_T(u);
+
+    ///act + assert - 2 in 1!
+    ASSERT_ARE_NOT_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
