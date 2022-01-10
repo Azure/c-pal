@@ -66,17 +66,12 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
 
-#define UUID_FORMAT_VALUES(uuid) \
-    (uuid)[0], (uuid)[1], (uuid)[2], (uuid)[3], (uuid)[4], (uuid)[5], (uuid)[6], (uuid)[7], \
-    (uuid)[8], (uuid)[9], (uuid)[10], (uuid)[11], (uuid)[12], (uuid)[13], (uuid)[14], (uuid)[15]
-#define PRI_UUID "02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x"
-
 static char* umock_stringify_uuid_t(const uuid_t* value)
 {
     char* result;
     result = malloc(37);
     ASSERT_IS_NOT_NULL(result);
-    (void)sprintf(result, "%" PRI_UUID "", UUID_FORMAT_VALUES(*value));
+    (void)sprintf(result, "%" PRI_UUID_T "", UUID_T_VALUES(*value));
     return result;
 }
 

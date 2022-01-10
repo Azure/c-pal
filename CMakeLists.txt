@@ -175,6 +175,7 @@ set(C_PAL_INC_FOLDER
 
 add_subdirectory(interfaces)
 add_subdirectory(common)
+add_subdirectory(umocktypes)
 
 if(WIN32)
     add_subdirectory(win32)

@@ -4,6 +4,10 @@
 #ifndef UUID_H
 #define UUID_H
 
+#ifdef WIN32 
+#include "windows.h"
+#endif
+
 typedef unsigned char UUID_T[16]; /*introduces UUID_T as "array of 16 bytes"*/
 
 #include "macro_utils/macro_utils.h"
