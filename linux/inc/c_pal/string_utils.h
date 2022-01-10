@@ -35,7 +35,9 @@ extern char* sprintf_char_function(const char* format, ...);
 
 MOCKABLE_INTERFACE(string_utils_printf,
     /*produces a string as if printed by vprintf*/
-    FUNCTION(, char*, vsprintf_char, const char*, format, va_list, va)
+    FUNCTION(, char*, vsprintf_char, const char*, format, va_list, va),
+    /*produces a string as if printed by vwprintf*/
+    FUNCTION(, wchar_t*, vsprintf_wchar, const wchar_t*, format, va_list, va)
 )
 
 /*
