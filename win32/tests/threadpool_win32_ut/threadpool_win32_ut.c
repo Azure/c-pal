@@ -183,23 +183,23 @@ MOCK_FUNCTION_WITH_CODE(, PTP_WORK, mocked_CreateThreadpoolWork, PTP_WORK_CALLBA
 MOCK_FUNCTION_END((PTP_WORK)real_gballoc_hl_malloc(1))
 
 MOCK_FUNCTION_WITH_CODE(, void, mocked_CloseThreadpoolWork, PTP_WORK, pwk)
-    real_free(pwk);
+    real_gballoc_hl_free(pwk);
 MOCK_FUNCTION_END()
 
 MOCK_FUNCTION_WITH_CODE(, PTP_TIMER, mocked_CreateThreadpoolTimer, PTP_TIMER_CALLBACK, pfnti, PVOID, pv, PTP_CALLBACK_ENVIRON, pcbe)
 MOCK_FUNCTION_END((PTP_TIMER)real_gballoc_hl_malloc(1))
 
 MOCK_FUNCTION_WITH_CODE(, void, mocked_CloseThreadpoolTimer, PTP_TIMER, pti)
-    real_free(pti);
+    real_gballoc_hl_free(pti);
 MOCK_FUNCTION_END()
 
 MOCK_FUNCTION_WITH_CODE(, void, mocked_CloseThreadpoolCleanupGroup, PTP_CLEANUP_GROUP, ptpcg)
-    real_free(ptpcg);
+    real_gballoc_hl_free(ptpcg);
 MOCK_FUNCTION_END()
 
 MOCK_FUNCTION_WITH_CODE(, void, mocked_DestroyThreadpoolEnvironment, PTP_CALLBACK_ENVIRON, pcbe)
     // We are using the Pool member to force a memory allocation to check for leaks
-    real_free(pcbe->Pool);
+    real_gballoc_hl_free(pcbe->Pool);
 MOCK_FUNCTION_END()
 
 MOCK_FUNCTION_WITH_CODE(, void, mocked_CloseThreadpoolCleanupGroupMembers, PTP_CLEANUP_GROUP, ptpcg, BOOL, fCancelPendingCallbacks, PVOID, pvCleanupContext)
