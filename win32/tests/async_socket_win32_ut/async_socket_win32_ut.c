@@ -1,12 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#ifdef __cplusplus
-#include <cstdlib>
-#include <cinttypes>
-#else
+
 #include <stdlib.h>
 #include <inttypes.h>
-#endif
+
 
 #include "winsock2.h"
 #include "ws2tcpip.h"
@@ -14,25 +11,6 @@
 #include "macro_utils/macro_utils.h"
 
 #include "real_gballoc_ll.h"
-void* real_malloc(size_t size)
-{
-    return real_gballoc_ll_malloc(size);
-}
-
-static void real_free(void* ptr)
-{
-    real_gballoc_ll_free(ptr);
-}
-
-static void* real_malloc_2(size_t nmemb, size_t size)
-{
-    return real_gballoc_ll_malloc_2(nmemb, size);
-}
-
-static void* real_malloc_flex(size_t base, size_t nmemb, size_t size)
-{
-    return real_gballoc_ll_malloc_flex(base, nmemb, size);
-}
 
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
@@ -77,33 +55,30 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+
 
 MOCK_FUNCTION_WITH_CODE(, void, mocked_InitializeThreadpoolEnvironment, PTP_CALLBACK_ENVIRON, pcbe)
     // We are using the Pool member to force a memory allocation to check for leaks
-    pcbe->Pool = (PTP_POOL)real_malloc(1);
+    pcbe->Pool = (PTP_POOL)real_gballoc_hl_malloc(1);
 MOCK_FUNCTION_END()
 MOCK_FUNCTION_WITH_CODE(, void, mocked_SetThreadpoolCallbackPool, PTP_CALLBACK_ENVIRON, pcbe, PTP_POOL, ptpp)
 MOCK_FUNCTION_END()
 MOCK_FUNCTION_WITH_CODE(, PTP_CLEANUP_GROUP, mocked_CreateThreadpoolCleanupGroup)
-MOCK_FUNCTION_END((PTP_CLEANUP_GROUP)real_malloc(1))
+MOCK_FUNCTION_END((PTP_CLEANUP_GROUP)real_gballoc_hl_malloc(1))
 MOCK_FUNCTION_WITH_CODE(WINAPI, PTP_IO, mocked_CreateThreadpoolIo, HANDLE, fl, PTP_WIN32_IO_CALLBACK, pfnio, PVOID, pv, PTP_CALLBACK_ENVIRON, pcbe)
-MOCK_FUNCTION_END((PTP_IO)real_malloc(1))
+MOCK_FUNCTION_END((PTP_IO)real_gballoc_hl_malloc(1))
 MOCK_FUNCTION_WITH_CODE(, void, mocked_CloseThreadpoolIo, PTP_IO, pio)
-    real_free(pio);
+    real_gballoc_hl_free(pio);
 MOCK_FUNCTION_END()
 MOCK_FUNCTION_WITH_CODE(, void, mocked_CloseThreadpoolCleanupGroup, PTP_CLEANUP_GROUP, ptpcg)
-    real_free(ptpcg);
+    real_gballoc_hl_free(ptpcg);
 MOCK_FUNCTION_END()
 MOCK_FUNCTION_WITH_CODE(, void, mocked_DestroyThreadpoolEnvironment, PTP_CALLBACK_ENVIRON, pcbe)
     // We are using the Pool member to force a memory allocation to check for leaks
-    real_free(pcbe->Pool);
+    real_gballoc_hl_free(pcbe->Pool);
 MOCK_FUNCTION_END()
 MOCK_FUNCTION_WITH_CODE(, HANDLE, mocked_CreateEventA, LPSECURITY_ATTRIBUTES, lpEventAttributes, BOOL, bManualReset, BOOL, bInitialState, LPCSTR, lpName)
-MOCK_FUNCTION_END((HANDLE)real_malloc(1))
+MOCK_FUNCTION_END((HANDLE)real_gballoc_hl_malloc(1))
 MOCK_FUNCTION_WITH_CODE(, void, mocked_StartThreadpoolIo, PTP_IO, pio)
 MOCK_FUNCTION_END()
 MOCK_FUNCTION_WITH_CODE(, int, mocked_WSASend, SOCKET, s, LPWSABUF, lpBuffers, DWORD, dwBufferCount, LPDWORD, lpNumberOfBytesSent, DWORD, dwFlags, LPWSAOVERLAPPED, lpOverlapped, LPWSAOVERLAPPED_COMPLETION_ROUTINE, lpCompletionRoutine)
@@ -111,7 +86,7 @@ MOCK_FUNCTION_END(0)
 MOCK_FUNCTION_WITH_CODE(, int, mocked_WSAGetLastError)
 MOCK_FUNCTION_END(ERROR_SUCCESS)
 MOCK_FUNCTION_WITH_CODE(, BOOL, mocked_CloseHandle, HANDLE, hObject)
-    real_free(hObject);
+    real_gballoc_hl_free(hObject);
 MOCK_FUNCTION_END(TRUE)
 MOCK_FUNCTION_WITH_CODE(, BOOL, mocked_WSARecv, SOCKET, s, LPWSABUF, lpBuffers, DWORD, dwBufferCount, LPDWORD, lpNumberOfBytesRecvd, LPDWORD, lpFlags, LPWSAOVERLAPPED, lpOverlapped, LPWSAOVERLAPPED_COMPLETION_ROUTINE, lpCompletionRoutine)
 MOCK_FUNCTION_END(0)
@@ -127,9 +102,7 @@ MOCK_FUNCTION_END()
 MOCK_FUNCTION_WITH_CODE(, void, test_on_receive_complete, void*, context, ASYNC_SOCKET_RECEIVE_RESULT, receive_result, uint32_t, bytes_received)
 MOCK_FUNCTION_END()
 
-#ifdef __cplusplus
-}
-#endif
+
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
@@ -151,11 +124,11 @@ TEST_SUITE_INITIALIZE(suite_init)
     result = umocktypes_charptr_register_types();
     ASSERT_ARE_EQUAL(int, 0, result, "umocktypes_charptr_register_types failed");
 
-    REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
-
     REGISTER_GLOBAL_MOCK_RETURN(execution_engine_win32_get_threadpool, test_pool);
 
+    REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(malloc, NULL);
+
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_CreateThreadpoolCleanupGroup, NULL);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_CreateThreadpoolIo, NULL);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_CreateEventA, NULL);

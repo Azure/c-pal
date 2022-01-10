@@ -1,11 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#ifdef __cplusplus
-#include <cstdlib>
-#else
+
 #include <stdlib.h>
-#endif
+
 
 #include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
@@ -23,18 +21,14 @@ static HANDLE TEST_HEAP = (HANDLE)0x4;
 
 #define ENABLE_MOCKS
 #include "umock_c/umock_c_prod.h"
-#ifdef __cplusplus
-extern "C" {
-#endif
+
     MOCKABLE_FUNCTION(, void*, mock_HeapCreate, DWORD, flOptions, SIZE_T, dwInitialSize, SIZE_T, dwMaximumSize);
     MOCKABLE_FUNCTION(, void*, mock_HeapDestroy, HANDLE, hHeap);
     MOCKABLE_FUNCTION(, void*, mock_HeapAlloc, HANDLE, hHeap, DWORD, dwFlags, SIZE_T, dwBytes);
     MOCKABLE_FUNCTION(, void, mock_HeapFree, HANDLE, hHeap, DWORD, dwFlags, LPVOID, lpMem);
     MOCKABLE_FUNCTION(, void*, mock_HeapReAlloc, HANDLE, hHeap, DWORD, dwFlags, LPVOID, lpMem, SIZE_T, dwBytes);
     MOCKABLE_FUNCTION(, size_t, mock_HeapSize, HANDLE, hHeap, DWORD, dwFlags, LPVOID, lpMem);
-#ifdef __cplusplus
-}
-#endif
+
 
 #include "c_pal/lazy_init.h"
 #undef ENABLE_MOCKS

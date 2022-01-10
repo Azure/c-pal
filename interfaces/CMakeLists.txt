@@ -12,6 +12,7 @@ set(pal_interfaces_h_files
     inc/c_pal/threadapi.h
     inc/c_pal/timer.h
     inc/c_pal/uniqueid.h
+    inc/c_pal/uuid.h
     inc/c_pal/srw_lock.h
     inc/c_pal/sync.h
     inc/c_pal/file.h

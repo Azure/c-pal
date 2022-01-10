@@ -1,12 +1,9 @@
 // Copyright(C) Microsoft Corporation.All rights reserved.
 
-#ifdef __cplusplus
-#include <cstdlib>
-#include <ctime>
-#else
+
 #include <stdlib.h>
 #include <time.h>
-#endif
+
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
@@ -28,13 +25,9 @@ static void my_gballoc_free(void* s)
 #include "c_pal/gballoc_ll.h"
 #include "c_pal/gballoc_ll_redirect.h" // IWYU pragma: keep
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
     MOCKABLE_FUNCTION(, int, mocked_clock_gettime, clockid_t, clockid, struct timespec*, tp)
-#ifdef __cplusplus
-}
-#endif
+
 
 #undef ENABLE_MOCKS
 

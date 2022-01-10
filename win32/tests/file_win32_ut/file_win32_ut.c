@@ -1,27 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#ifdef __cplusplus
-#include <cstdlib>
-#include <cstddef>
-#else
+
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdbool.h>
-#endif
+
 #include "windows.h"
 #include "macro_utils/macro_utils.h"
 
 #include "real_gballoc_ll.h"
-static void* real_malloc(size_t size)
-{
-    return real_gballoc_ll_malloc(size);
-}
-
-static void real_free(void* ptr)
-{
-    real_gballoc_ll_free(ptr);
-}
 
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
@@ -166,8 +154,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     ASSERT_ARE_EQUAL(int, 0, umocktypes_windows_register_types());
     ASSERT_ARE_EQUAL(int, 0, umocktypes_bool_register_types());
 
-    REGISTER_GLOBAL_MOCK_HOOK(malloc, real_malloc);
-    REGISTER_GLOBAL_MOCK_HOOK(free, real_free);
+    REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
 
     REGISTER_UMOCK_ALIAS_TYPE(PTP_IO, void*);
     REGISTER_UMOCK_ALIAS_TYPE(PTP_CALLBACK_ENVIRON, void*);

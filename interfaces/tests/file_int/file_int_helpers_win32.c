@@ -2,16 +2,12 @@
 //Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 
-#ifdef __cplusplus
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
-#else
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
-#endif
+
 
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h"

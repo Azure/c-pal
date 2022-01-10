@@ -8,11 +8,14 @@ set(linux_reals_c_files
     real_gballoc_hl_${gballoc_hl_type_lower}.c
     real_pipe.c
     real_sync.c
+    real_uuid.c
 )
 
 set(linux_reals_h_files
     real_interlocked_renames.h
     real_interlocked.h
+    real_uuid_renames.h
+    real_uuid.h
     ../../common/reals/real_refcount.h
 )
 

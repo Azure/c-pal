@@ -1,13 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#ifdef __cplusplus
-#include <cstdio>
-#include <cstddef>
-#else
+
 #include <stdio.h>
 #include <stddef.h>
-#endif
+
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 #include "testrunnerswitcher.h"

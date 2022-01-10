@@ -1,13 +1,10 @@
 //Copyright(c) Microsoft.All rights reserved.
 //Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#ifdef __cplusplus
-#include <cstdio>               // for feof, fgets, FILE
-#include <cstddef>
-#else
+
 #include <stdio.h>               // for feof, fgets, FILE
 #include <stddef.h>
-#endif
+
 
 #include "testrunnerswitcher.h"
 

@@ -1,14 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#ifdef __cplusplus
-#include <cstdlib>
-#include <cinttypes>
-#include <cmath>
-#else
+
 #include <stdlib.h>
 #include <inttypes.h>
 #include <math.h>
-#endif
+
 
 #include "windows.h"
 

@@ -1,12 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#ifdef __cplusplus
-#include <cstdlib>
-#include <cinttypes>
-#else
+
 #include <stdlib.h>
 #include <inttypes.h>
-#endif
+
 
 #include "winsock2.h"
 #include "ws2tcpip.h"

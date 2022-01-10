@@ -1,31 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#ifdef __cplusplus
-#include <cstdlib>
-#include <cinttypes>
-#else
+
 #include <stdlib.h>
 #include <inttypes.h>
-#endif
+
 
 #include "windows.h"
 #include "macro_utils/macro_utils.h"
 
 #include "real_gballoc_ll.h"
-static void* real_malloc(size_t size)
-{
-    return real_gballoc_ll_malloc(size);
-}
-
-static void* real_malloc_flex(size_t base, size_t nmemb, size_t size)
-{
-    return real_gballoc_ll_malloc_flex(base, nmemb, size);
-}
-
-static void real_free(void* ptr)
-{
-    real_gballoc_ll_free(ptr);
-}
 
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
@@ -53,24 +36,17 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 MOCK_FUNCTION_WITH_CODE(WINAPI, PTP_POOL, mocked_CreateThreadpool, PVOID, reserved)
-MOCK_FUNCTION_END((PTP_POOL)real_malloc(1))
+MOCK_FUNCTION_END((PTP_POOL)real_gballoc_hl_malloc(1))
 MOCK_FUNCTION_WITH_CODE(WINAPI, void, mocked_CloseThreadpool, PTP_POOL, ptpp)
-    real_free(ptpp);
+    real_gballoc_hl_free(ptpp);
 MOCK_FUNCTION_END()
 MOCK_FUNCTION_WITH_CODE(WINAPI, BOOL, mocked_SetThreadpoolThreadMinimum, PTP_POOL, ptpp, DWORD, cthrdMic)
 MOCK_FUNCTION_END(TRUE)
 MOCK_FUNCTION_WITH_CODE(WINAPI, void, mocked_SetThreadpoolThreadMaximum, PTP_POOL, ptpp, DWORD, cthrdMost)
 MOCK_FUNCTION_END()
 
-#ifdef __cplusplus
-}
-#endif
+
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
@@ -89,10 +65,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     result = umocktypes_stdint_register_types();
     ASSERT_ARE_EQUAL(int, 0, result, "umocktypes_stdint_register_types failed");
 
-    REGISTER_GLOBAL_MOCK_HOOK(malloc, real_malloc);
-    REGISTER_GLOBAL_MOCK_HOOK(malloc_flex, real_malloc_flex);
-    REGISTER_GLOBAL_MOCK_HOOK(free, real_free);
-
+    REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(malloc, NULL);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(malloc_flex, NULL);
 

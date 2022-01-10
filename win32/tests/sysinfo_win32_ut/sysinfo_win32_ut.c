@@ -1,10 +1,8 @@
 // Copyright(C) Microsoft Corporation.All rights reserved.
 
-#ifdef __cplusplus
-#include <cstdlib>
-#else
+
 #include <stdlib.h>
-#endif
+
 
 #include "windows.h"
 
@@ -19,13 +17,9 @@
 #define ENABLE_MOCKS
 
 #include "umock_c/umock_c_prod.h"
-#ifdef __cplusplus
-extern "C" {
-#endif
+
     MOCKABLE_FUNCTION(, void, mocked_GetSystemInfo, LPSYSTEM_INFO, lpSystemInfo)
-#ifdef __cplusplus
-}
-#endif
+
 
 #undef ENABLE_MOCKS
 

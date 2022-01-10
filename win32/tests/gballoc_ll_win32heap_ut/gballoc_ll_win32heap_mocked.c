@@ -10,9 +10,7 @@
 #define HeapReAlloc mock_HeapReAlloc
 #define HeapSize mock_HeapSize
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
     HANDLE mock_HeapCreate(
         DWORD  flOptions,
         SIZE_T dwInitialSize,
@@ -48,8 +46,6 @@ extern "C" {
         LPCVOID lpMem
     );
 
-#ifdef __cplusplus
-}
-#endif
+
 
 #include "../../src/gballoc_ll_win32heap.c"

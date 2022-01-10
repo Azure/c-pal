@@ -1,15 +1,11 @@
 // Copyright(C) Microsoft Corporation.All rights reserved.
 
-#ifdef __cplusplus
-#include <clocale>
-#include <cstdarg>              // for va_end, va_list, va_start
-#include <cstdlib>
-#else
+
 #include <locale.h>
 #include <stdarg.h>              // for va_end, va_list, va_start
 #include <stdlib.h>
 #include <wchar.h>               // for wchar_t
-#endif
+
 
 #include "testrunnerswitcher.h"
 

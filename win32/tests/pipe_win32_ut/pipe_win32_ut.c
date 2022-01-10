@@ -1,18 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#ifdef __cplusplus
-#include <cstdio>
-#include <cstdlib>
-#include <cstddef>
-#include <cerrno>
-#else
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <errno.h>
-#endif
+
 
 #include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
@@ -29,18 +24,13 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+
 
 #define ENABLE_MOCKS
 #include "mock_pipe.h"
 #undef ENABLE_MOCKS
 
-#ifdef __cplusplus
-}
-#endif
+
 
 #include "real_gballoc_hl.h"
 

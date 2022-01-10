@@ -11,6 +11,7 @@ set(reals_win32_c_files
     real_srw_lock_win32.c
     real_string_utils_win32.c
     real_timer_win32.c
+    real_uuid.c
     real_interlocked.c
     real_gballoc_ll_${gballoc_ll_type_lower}.c
     real_gballoc_hl_${gballoc_hl_type_lower}.c
@@ -25,6 +26,8 @@ set(reals_win32_h_files
     real_interlocked_renames.h
     real_lazy_init.h
     real_lazy_init_renames.h
+    real_uuid.h
+    real_uuid_renames.h
     ../../common/reals/real_refcount.h
 )
 
