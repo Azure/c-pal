@@ -7,7 +7,7 @@
 #define QueryPerformanceCounter mocked_QueryPerformanceCounter
 
 
-extern BOOLEAN mocked_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount);
-extern BOOLEAN mocked_QueryPerformanceFrequency(LARGE_INTEGER* lpFrequency);
+BOOLEAN mocked_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount);
+BOOLEAN mocked_QueryPerformanceFrequency(LARGE_INTEGER* lpFrequency);
 
 #include "../../src/timer_win32.c"
