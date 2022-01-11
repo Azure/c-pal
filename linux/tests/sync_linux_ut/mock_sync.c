@@ -8,6 +8,6 @@
 #undef errno
 #define errno mock_errno
 
-extern int mock_errno;
+int mock_errno;
 
 #include "../../src/sync_linux.c"

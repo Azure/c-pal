@@ -9,6 +9,6 @@
 
 #pragma warning(disable: 4273)
 
-extern PTP_POOL WINAPI mocked_CreateThreadpool(LPVOID reserved);
+PTP_POOL WINAPI mocked_CreateThreadpool(LPVOID reserved);
 
 #include "../../src/execution_engine_win32.c"

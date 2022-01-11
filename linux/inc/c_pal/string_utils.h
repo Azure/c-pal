@@ -28,14 +28,16 @@ extern "C" {
 #endif
 
 /*produces a string as if printed by printf*/
-extern char* sprintf_char_function(const char* format, ...);
+char* sprintf_char_function(const char* format, ...);
 
 /*produces a string as if printed by printf (will also verify arguments)*/
 #define sprintf_char(format, ...) (0?printf((format), __VA_ARGS__):0, sprintf_char_function((format), __VA_ARGS__))
 
 MOCKABLE_INTERFACE(string_utils_printf,
     /*produces a string as if printed by vprintf*/
-    FUNCTION(, char*, vsprintf_char, const char*, format, va_list, va)
+    FUNCTION(, char*, vsprintf_char, const char*, format, va_list, va),
+    /*produces a string as if printed by vwprintf*/
+    FUNCTION(, wchar_t*, vsprintf_wchar, const wchar_t*, format, va_list, va)
 )
 
 /*

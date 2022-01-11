@@ -4,6 +4,6 @@
 
 #define GetSystemInfo mocked_GetSystemInfo
 
-extern void mocked_GetSystemInfo(LPSYSTEM_INFO lpSystemInfo);
+void mocked_GetSystemInfo(LPSYSTEM_INFO lpSystemInfo);
 
 #include "../../src/sysinfo_win32.c"
