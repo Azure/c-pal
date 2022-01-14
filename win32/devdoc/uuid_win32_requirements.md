@@ -16,13 +16,14 @@ typedef unsigned char UUID_T[16]; /*introduces UUID_T as "array of 16 bytes"*/
 
 #ifdef WIN32 /*some functions only exists in Windows realm*/
     MOCKABLE_FUNCTION(, int, uuid_from_GUID, UUID_T, destination, const GUID*, source);
+    MOCKABLE_FUNCTION(, int, GUID_from_uuid, GUID*, destination, const UUID_T, source);
 #endif
 
 /* These 2 strings can be conveniently used directly in printf-like statements
-  Notice that PRI_UUID has to be used like any other print format specifier, meaning it
+  Notice that PRI_UUID_T has to be used like any other print format specifier, meaning it
   has to be preceded with % */
 
-#define PRI_UUID        "02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x"
+#define PRI_UUID_T        "02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x"
 
 #define UUID_VALUES(uuid) \
     (uuid)[0], (uuid)[1], (uuid)[2], (uuid)[3], (uuid)[4], (uuid)[5], (uuid)[6], (uuid)[7], \
@@ -66,3 +67,13 @@ MOCKABLE_FUNCTION(, int, uuid_from_GUID, UUID_T, destination, const GUID*, sourc
 
 **SRS_UUID_WIN32_02_008: [** `uuid_from_GUID` shall convert `GUID` to `UUID_T`, succeed and return 0. **]**
 
+### GUID_from_uuid
+```c
+    MOCKABLE_FUNCTION(, int, GUID_from_uuid, GUID*, destination, const UUID_T, source);
+```
+
+**SRS_UUID_WIN32_02_009: [** If `destination` is `NULL` then `GUID_from_uuid` shall fail and return a non-zero value. **]**
+
+**SRS_UUID_WIN32_02_010: [** If `source` is `NULL` then `GUID_from_uuid` shall fail and return a non-zero value. **]**
+
+**SRS_UUID_WIN32_02_011: [** `GUID_from_uuid` shall convert `UUID_T` to `GUID`, succeed and return 0. **]**

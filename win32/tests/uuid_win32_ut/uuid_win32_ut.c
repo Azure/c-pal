@@ -108,6 +108,7 @@ TEST_FUNCTION(uuid_produce_with_destination_NULL_fails)
 
     ///assert
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
 }
 
@@ -146,6 +147,8 @@ TEST_FUNCTION(uuid_produce_succeeds_1) /*when it returns default RPC_S_OK*/
     ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_5, u[13]);
     ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_6, u[14]);
     ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_7, u[15]);
+
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 
@@ -185,6 +188,8 @@ TEST_FUNCTION(uuid_produce_succeeds_2) /*when it returns default RPC_S_UUID_LOCA
     ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_5, u[13]);
     ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_6, u[14]);
     ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_7, u[15]);
+
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 /*Tests_SRS_UUID_WIN32_02_005: [ If there are any failures then uuid_produce shall fail and return a non-zero value. ]*/
@@ -202,6 +207,7 @@ TEST_FUNCTION(uuid_produce_unhappy_path) /*when it returns RPC_S_UUID_LOCAL_ONLY
 
     ///assert
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 /*Tests_SRS_UUID_WIN32_02_006: [ If destination is NULL then uuid_from_GUID shall fail and return a non-zero value. ]*/
@@ -216,6 +222,7 @@ TEST_FUNCTION(uuid_from_GUID_with_destination_NULL_fails)
 
     ///assert
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 /*Tests_SRS_UUID_WIN32_02_007: [ If source is NULL then uuid_from_GUID shall fail and return a non-zero value. ]*/
@@ -230,6 +237,7 @@ TEST_FUNCTION(uuid_from_GUID_with_source_NULL_fails)
 
     ///assert
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 /*Tests_SRS_UUID_WIN32_02_008: [ uuid_from_GUID shall convert GUID to UUID_T, succeed and return 0. ]*/
@@ -264,6 +272,66 @@ TEST_FUNCTION(uuid_from_GUID_succeeds)
     ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_5, destination[13]);
     ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_6, destination[14]);
     ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_7, destination[15]);
+}
+
+/*Tests_SRS_UUID_WIN32_02_009: [ If destination is NULL then GUID_from_uuid shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(GUID_from_uuid_with_NULL_destination_fails)
+{
+    ///arrange
+    int result;
+    UUID_T source = { 0 };
+
+    ///act
+    result = GUID_from_uuid(NULL, source);
+
+    ///assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_SRS_UUID_WIN32_02_010: [ If source is NULL then GUID_from_uuid shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(GUID_from_uuid_with_NULL_source_fails)
+{
+    ///arrange
+    int result;
+    GUID destination;
+
+    ///act
+    result = GUID_from_uuid(&destination, NULL);
+
+    ///assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_SRS_UUID_WIN32_02_011: [ GUID_from_uuid shall convert UUID_T to GUID, succeed and return 0. ]*/
+TEST_FUNCTION(GUID_from_uuid_succeeds)
+{
+    ///arrange
+    int result;
+    UUID_T source = { 
+        ((TEST_DATA_1 >> 24) & 0xFF),
+        ((TEST_DATA_1 >> 16) & 0xFF), 
+        ((TEST_DATA_1 >>  8) & 0xFF), 
+        ((TEST_DATA_1      ) & 0xFF), 
+        ((TEST_DATA_2 >>  8) &0xFF),
+        ((TEST_DATA_2      ) & 0xFF),
+        ((TEST_DATA_3 >>  8) & 0xFF),
+        ((TEST_DATA_3      ) & 0xFF),
+        TEST_DATA_4_0, TEST_DATA_4_1, TEST_DATA_4_2, TEST_DATA_4_3, TEST_DATA_4_4, TEST_DATA_4_5, TEST_DATA_4_6, TEST_DATA_4_7};
+    GUID destination;
+
+    ///act
+    result = GUID_from_uuid(&destination, source);
+
+    ///assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_IS_TRUE(TEST_DATA_1 == destination.Data1);
+    ASSERT_IS_TRUE(TEST_DATA_2 == destination.Data2);
+    ASSERT_IS_TRUE(TEST_DATA_3 == destination.Data3);
+    ASSERT_IS_TRUE(0 == memcmp(source+8, destination.Data4, 8));
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

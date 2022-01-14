@@ -95,3 +95,36 @@ int uuid_from_GUID(UUID_T destination, const GUID* source)
     }
     return result;
 }
+
+int GUID_from_uuid(GUID* destination, const UUID_T source)
+{
+    int result;
+    if (
+        /*Codes_SRS_UUID_WIN32_02_009: [ If destination is NULL then GUID_from_uuid shall fail and return a non-zero value. ]*/
+        (destination == NULL) ||
+        /*Codes_SRS_UUID_WIN32_02_010: [ If source is NULL then GUID_from_uuid shall fail and return a non-zero value. ]*/
+        (source == NULL)
+        )
+    {
+        LogError("invalid argument GUID* destination=%" PRI_GUID ", const UUID_T source=%" PRI_UUID_T "", GUID_VALUES_OR_NULL(destination), UUID_T_VALUES_OR_NULL(source));
+        result = MU_FAILURE;
+    }
+    else
+    {
+        /*Codes_SRS_UUID_WIN32_02_011: [ GUID_from_uuid shall convert UUID_T to GUID, succeed and return 0. ]*/
+        destination->Data1 =
+            (source[0] << 24) +
+            (source[1] << 16) +
+            (source[2] << 8) +
+            (source[3]);
+        destination->Data2 =
+            (source[4] << 8) +
+            (source[5]);
+        destination->Data3 =
+            (source[6] << 8) +
+            (source[7]);
+        (void)memcpy(destination->Data4, source + 8, 8);
+        result = 0;
+    }
+    return result;
+}
