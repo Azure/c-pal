@@ -120,60 +120,6 @@ TEST_FUNCTION(wcs_to_mbs_converts_a_Japanese_string)
     ASSERT_IS_NOT_NULL(localeInfo);
 }
 
-TEST_FUNCTION(GUID_FORMAT_AND_VALUES)
-{
-    ///arrange
-    struct GUID_AND_EXPECTED_STRINGS
-    {
-        GUID guid;
-        const char* expectedGuidAsString;
-    } guidAndExpectedStrings[] =
-    {
-        {/*[0]*/
-            {
-                0,                                          /*unsigned long  Data1;     */
-                0,                                          /*unsigned short Data2;     */
-                0,                                          /*unsigned short Data3;     */
-                {0,0,0,0,0,0,0,0}                           /*unsigned char  Data4[8];  */
-            },
-            "00000000-0000-0000-0000-000000000000"
-        },
-        {/*[1]*/
-            {
-                0xFFFFFFFF,                                 /*unsigned long  Data1;     */
-                0xFFFF,                                     /*unsigned short Data2;     */
-                0xFFFF,                                     /*unsigned short Data3;     */
-                {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF}   /*unsigned char  Data4[8];  */
-            },
-            "ffffffff-ffff-ffff-ffff-ffffffffffff"
-        },
-        {/*[2]*/
-            /*a most famous bug that needed testing - it was producing 1f018f1a-1b1f-40ad-b78d-d577f2b27821
-            instead of the expected                                    1f018f1a-1b1f-40ad-b78d-d578f2b27821 and we had great fun with it!*/
-            {
-                0x1f018f1a,                                 /*unsigned long  Data1;     */
-                0x1b1f,                                     /*unsigned short Data2;     */
-                0x40ad,                                     /*unsigned short Data3;     */
-                {0xb7,0x8d,0xd5,0x78,0xf2,0xb2,0x78,0x21}   /*unsigned char  Data4[8];  */
-            },
-            "1f018f1a-1b1f-40ad-b78d-d578f2b27821"
-        }
-    };
-
-    ///act
-    for (size_t i = 0; i < sizeof(guidAndExpectedStrings) / sizeof(guidAndExpectedStrings[0]); i++)
-    {
-        char* actual = sprintf_char("%" GUID_FORMAT "", GUID_VALUES(guidAndExpectedStrings[i].guid));
-        ASSERT_IS_NOT_NULL(actual);
-
-        ///assert
-        ASSERT_ARE_EQUAL(char_ptr, guidAndExpectedStrings[i].expectedGuidAsString, actual);
-
-        ///clean
-        free(actual);
-    }
-}
-
 TEST_FUNCTION(sprintf_char_with_empty_string_succeeds)
 {
     ///arrange

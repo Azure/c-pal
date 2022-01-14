@@ -4,6 +4,8 @@
 #ifndef UUID_H
 #define UUID_H
 
+#include <inttypes.h>
+
 #ifdef WIN32 
 #include "windows.h"
 #endif
@@ -18,8 +20,33 @@ extern "C" {
 
     MOCKABLE_FUNCTION(, int, uuid_produce, UUID_T, destination);
 
-#ifdef WIN32 /*some functions only exists in Windows realm*/
+#ifdef WIN32 /*some functions, format specifiers only exists in Windows realm*/
     MOCKABLE_FUNCTION(, int, uuid_from_GUID, UUID_T, destination, const GUID*, source);
+    MOCKABLE_FUNCTION(, int, GUID_from_uuid, GUID*, destination, const UUID_T, source);
+
+/*
+below macros can be used with printf. example:
+printf("PartitionId = %" GUID_FORMAT "\n", GUID_VALUES(fabricDeployedStatefulServiceReplicaQueryResultItem->PartitionId)); produces on the screen:
+PartitionId=316132b8-96a0-4bc7-aecc-a16e7c5a6bf6
+*/
+
+#define PRI_GUID "8.8" PRIx32 "-%4.4" PRIx16 "-%4.4" PRIx16 "-%4.4" PRIx16 "-%12.12" PRIx64
+#define GUID_VALUES(guid) \
+    (guid).Data1, \
+    (guid).Data2, \
+    (guid).Data3, \
+    ((guid).Data4[0]<<8) + (guid).Data4[1], \
+    ((uint64_t)((guid).Data4[2])<<40) + ((uint64_t)((guid).Data4[3])<<32) + (((uint64_t)(guid).Data4[4])<<24) + ((guid).Data4[5]<<16) + ((guid).Data4[6]<<8) + ((guid).Data4[7])
+
+#define GUID_VALUES_OR_NULL(pguid) \
+    (pguid == NULL) ? 0 : (pguid)->Data1, \
+    (pguid == NULL) ? 0 : (pguid)->Data2, \
+    (pguid == NULL) ? 0 : (pguid)->Data3, \
+    (pguid == NULL) ? 0 : ((pguid)->Data4[0] << 8) + (pguid)->Data4[1], \
+    (pguid == NULL) ? 0 : ((uint64_t)((pguid)->Data4[2]) << 40) + ((uint64_t)((pguid)->Data4[3]) << 32) + (((uint64_t)(pguid)->Data4[4]) << 24) + ((pguid)->Data4[5] << 16) + ((pguid)->Data4[6] << 8) + ((pguid)->Data4[7])
+
+/*for backward compatibility*/
+#define GUID_FORMAT PRI_GUID
 #endif
 
 /* These 2 strings can be conveniently used directly in printf-like statements

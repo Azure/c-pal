@@ -108,8 +108,114 @@ TEST_FUNCTION(uuid_from_GUID_succeeds)
     ASSERT_ARE_EQUAL(uint8_t, g.Data4[5], destination[13]);
     ASSERT_ARE_EQUAL(uint8_t, g.Data4[6], destination[14]);
     ASSERT_ARE_EQUAL(uint8_t, g.Data4[7], destination[15]);
-
 }
+
+TEST_FUNCTION(GUID_from_uuid_succeeds)
+{
+    ///arrange
+    UUID_T u;
+    (void)uuid_produce(u);
+
+    GUID destination = { 0 };
+    int result;
+
+    ///act
+    result = GUID_from_uuid(&destination, u);
+
+    ///assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(uint8_t, u[0],(destination.Data1>>24) & 0xFF);
+    ASSERT_ARE_EQUAL(uint8_t, u[1], (destination.Data1 >> 16) & 0xFF);
+    ASSERT_ARE_EQUAL(uint8_t, u[2], (destination.Data1 >> 8) & 0xFF);
+    ASSERT_ARE_EQUAL(uint8_t, u[3], (destination.Data1     ) & 0xFF);
+    ASSERT_ARE_EQUAL(uint8_t, u[4], (destination.Data2 >> 8) & 0xFF);
+    ASSERT_ARE_EQUAL(uint8_t, u[5], (destination.Data2     ) & 0xFF);
+    ASSERT_ARE_EQUAL(uint8_t, u[6], (destination.Data3 >> 8) & 0xFF);
+    ASSERT_ARE_EQUAL(uint8_t, u[7], (destination.Data3     ) & 0xFF);
+    ASSERT_ARE_EQUAL(uint8_t, u[8], destination.Data4[0]);
+    ASSERT_ARE_EQUAL(uint8_t, u[9], destination.Data4[1]);
+    ASSERT_ARE_EQUAL(uint8_t, u[10],destination.Data4[2]);
+    ASSERT_ARE_EQUAL(uint8_t, u[11],destination.Data4[3]);
+    ASSERT_ARE_EQUAL(uint8_t, u[12],destination.Data4[4]);
+    ASSERT_ARE_EQUAL(uint8_t, u[13],destination.Data4[5]);
+    ASSERT_ARE_EQUAL(uint8_t, u[14],destination.Data4[6]);
+    ASSERT_ARE_EQUAL(uint8_t, u[15],destination.Data4[7]);
+}
+
+TEST_FUNCTION(PRI_GUID_succeeds)
+{
+    GUID g = { 0x10213243, 0x5465, 0x7687, {0x98, 0xA9, 0xBA, 0xCB, 0xDE, 0xED, 0xFE, 0x0F } };
+    char temp[1000];  /*a vast array greatly bigger than the stringification of GUID*/
+    int r = snprintf(temp, sizeof(temp), "%" PRI_GUID "", GUID_VALUES(g));
+    ASSERT_IS_TRUE((r >= 0) && (r < sizeof(temp)));
+
+    ASSERT_ARE_EQUAL(char_ptr, "10213243-5465-7687-98a9-bacbdeedfe0f", temp);
+}
+
+TEST_FUNCTION(PRI_GUID_with_NULL_succeeds)
+{
+    GUID* g = NULL;
+    char temp[1000];  /*a vast array greatly bigger than the stringification of GUID*/
+    int r = snprintf(temp, sizeof(temp), "%" PRI_GUID "", GUID_VALUES_OR_NULL(g));
+    ASSERT_IS_TRUE((r >= 0) && (r < sizeof(temp)));
+
+    ASSERT_ARE_EQUAL(char_ptr, "00000000-0000-0000-0000-000000000000", temp);
+}
+
+TEST_FUNCTION(PRI_GUID_and_friends)
+{
+    ///arrange
+    struct GUID_AND_EXPECTED_STRINGS
+    {
+        GUID guid;
+        const char* expectedGuidAsString;
+    } guidAndExpectedStrings[] =
+    {
+        {/*[0]*/
+            {
+                0,                                          /*unsigned long  Data1;     */
+                0,                                          /*unsigned short Data2;     */
+                0,                                          /*unsigned short Data3;     */
+                {0,0,0,0,0,0,0,0}                           /*unsigned char  Data4[8];  */
+            },
+            "00000000-0000-0000-0000-000000000000"
+        },
+        {/*[1]*/
+            {
+                0xFFFFFFFF,                                 /*unsigned long  Data1;     */
+                0xFFFF,                                     /*unsigned short Data2;     */
+                0xFFFF,                                     /*unsigned short Data3;     */
+                {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF}   /*unsigned char  Data4[8];  */
+            },
+            "ffffffff-ffff-ffff-ffff-ffffffffffff"
+        },
+        {/*[2]*/
+            /*a most famous bug that needed testing - it was producing 1f018f1a-1b1f-40ad-b78d-d577f2b27821
+            instead of the expected                                    1f018f1a-1b1f-40ad-b78d-d578f2b27821 and we had great fun with it!*/
+            {
+                0x1f018f1a,                                 /*unsigned long  Data1;     */
+                0x1b1f,                                     /*unsigned short Data2;     */
+                0x40ad,                                     /*unsigned short Data3;     */
+                {0xb7,0x8d,0xd5,0x78,0xf2,0xb2,0x78,0x21}   /*unsigned char  Data4[8];  */
+            },
+            "1f018f1a-1b1f-40ad-b78d-d578f2b27821"
+        }
+    };
+
+    ///act
+    for (size_t i = 0; i < sizeof(guidAndExpectedStrings) / sizeof(guidAndExpectedStrings[0]); i++)
+    {
+        char temp[1000];
+        int r = snprintf(temp, sizeof(temp), "%" PRI_GUID "", GUID_VALUES(guidAndExpectedStrings[i].guid));
+        ASSERT_IS_TRUE((r >= 0) && (r < sizeof(temp)));
+
+        ///assert
+        ASSERT_ARE_EQUAL(char_ptr, guidAndExpectedStrings[i].expectedGuidAsString, temp);
+
+        ///clean
+    }
+}
+
 #endif
 
 TEST_FUNCTION(PRI_UUID_T_compiles)

@@ -40,15 +40,6 @@ MOCKABLE_INTERFACE(string_utils_printf,
     FUNCTION(, wchar_t*, vsprintf_wchar, const wchar_t*, format, va_list, va)
 )
 
-/*
-below macros can be used with printf. example:
-printf("PartitionId = %" GUID_FORMAT "\n", GUID_VALUES(fabricDeployedStatefulServiceReplicaQueryResultItem->PartitionId)); produces on the screen:
-PartitionId=316132b8-96a0-4bc7-aecc-a16e7c5a6bf6
-*/
-#define GUID_FORMAT "8.8" PRIx32 "-%4.4" PRIx16 "-%4.4" PRIx16 "-%4.4" PRIx16 "-%12.12" PRIx64
-#define GUID_VALUES(guid) (guid).Data1, (guid).Data2, (guid).Data3, ((guid).Data4[0]<<8) + (guid).Data4[1], ((uint64_t)((guid).Data4[2])<<40) + ((uint64_t)((guid).Data4[3])<<32) + (((uint64_t)(guid).Data4[4])<<24) + ((guid).Data4[5]<<16) + ((guid).Data4[6]<<8) + ((guid).Data4[7])
-
-
 MOCKABLE_INTERFACE(string_utils_convert,
     /*produces the wchar_t* string representation of source (which is assumed to be multibyte). Returns NULL on any failure.*/
     FUNCTION(, wchar_t*, mbs_to_wcs, const char*, source),
