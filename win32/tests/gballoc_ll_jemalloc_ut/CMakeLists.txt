@@ -18,9 +18,9 @@ build_test_artifacts(${theseTestsName} "tests/c_pal/common" ADDITIONAL_LIBS pal_
 include_directories($<TARGET_PROPERTY:jemalloc,INTERFACE_INCLUDE_DIRECTORIES>)
 
 if("${building}" STREQUAL "exe")
-    set_target_properties(${theseTestsName}_exe PROPERTIES LINK_FLAGS "/ignore:4217")
+    set_target_properties(${theseTestsName}_exe_${CMAKE_PROJECT_NAME} PROPERTIES LINK_FLAGS "/ignore:4217")
 endif()
 
 if("${building}" STREQUAL "dll")
-    set_target_properties(${theseTestsName}_dll PROPERTIES LINK_FLAGS "/ignore:4217")
+    set_target_properties(${theseTestsName}_dll_${CMAKE_PROJECT_NAME} PROPERTIES LINK_FLAGS "/ignore:4217")
 endif()
