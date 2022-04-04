@@ -22,6 +22,7 @@
 #define WSARecv mocked_WSARecv
 #define WaitForThreadpoolIoCallbacks mocked_WaitForThreadpoolIoCallbacks
 #define CancelThreadpoolIo mocked_CancelThreadpoolIo
+#define closesocket mocked_closesocket
 
 PTP_IO WINAPI mocked_CreateThreadpoolIo(HANDLE fl, PTP_WIN32_IO_CALLBACK pfnio, PVOID pv, PTP_CALLBACK_ENVIRON pcbe);
 void mocked_InitializeThreadpoolEnvironment(PTP_CALLBACK_ENVIRON pcbe);
@@ -39,5 +40,6 @@ BOOL mocked_CloseHandle(HANDLE hObject);
 int mocked_WSARecv(SOCKET s, LPWSABUF lpBuffers, DWORD dwBufferCount, LPDWORD lpNumberOfBytesRecvd, LPDWORD lpFlags, LPWSAOVERLAPPED lpOverlapped, LPWSAOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine);
 void mocked_WaitForThreadpoolIoCallbacks(PTP_IO pio, BOOL fCancelPendingCallbacks);
 void mocked_CancelThreadpoolIo(PTP_IO pio);
+int WSAAPI mocked_closesocket(SOCKET s);
 
 #include "../../src/async_socket_win32.c"
