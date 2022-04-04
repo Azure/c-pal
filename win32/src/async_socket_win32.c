@@ -214,6 +214,7 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
     // Close socket must happen after changing state of the async_socket to not allow any more calls on the socket
     // but before the call to WaitForThreadpoolIoCallbacks
 
+    LogInfo("async socket is closing, closesocket(%p);", async_socket->socket_handle);
     /* Codes_SRS_ASYNC_SOCKET_WIN32_42_006: [ async_socket_close shall call closesocket on the underlying socket. ]*/
     (void)closesocket((SOCKET)async_socket->socket_handle);
     async_socket->socket_handle = (SOCKET_HANDLE)INVALID_SOCKET;
@@ -302,6 +303,7 @@ void async_socket_destroy(ASYNC_SOCKET_HANDLE async_socket)
             {
                 if ((SOCKET)async_socket->socket_handle != INVALID_SOCKET)
                 {
+                    LogInfo("async socket destroy, closesocket(%p);", async_socket->socket_handle);
                     /* Codes_SRS_ASYNC_SOCKET_WIN32_42_007: [ If the socket was not OPEN then async_socket_destroy shall call closesocket on the underlying socket. ]*/
                     (void)closesocket((SOCKET)async_socket->socket_handle);
                 }
