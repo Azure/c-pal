@@ -302,6 +302,7 @@ TEST_FUNCTION(async_socket_destroy_frees_resources)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_094: [ async_socket_open_async shall set the state to OPEN. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_006: [ async_socket_destroy shall perform an implicit close if async_socket is OPEN. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_093: [ While async_socket is OPENING or CLOSING, async_socket_destroy shall wait for the open to complete either successfully or with error. ]*/
 TEST_FUNCTION(async_socket_destroy_closes_first_if_open)
@@ -531,6 +532,7 @@ TEST_FUNCTION(async_socket_close_with_NULL_returns)
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_059: [ async_socket_close shall close the threadpool IO created in async_socket_open_async by calling CloseThreadpoolIo. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_042: [ async_socket_close shall destroy the thread pool environment created in async_socket_open_async. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_020: [ async_socket_close shall wait for all executing async_socket_send_async and async_socket_receive_async APIs. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_021: [ Then async_socket_close shall close the async socket. ]*/
 TEST_FUNCTION(async_socket_close_reverses_the_actions_from_open)
 {
     // arrange
