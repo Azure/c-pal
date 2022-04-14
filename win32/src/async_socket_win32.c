@@ -35,10 +35,10 @@ MU_DEFINE_ENUM_STRINGS(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_RES
 typedef struct ASYNC_SOCKET_TAG
 {
     SOCKET_HANDLE socket_handle;
+    EXECUTION_ENGINE_HANDLE execution_engine;
     volatile LONG state;
     PTP_POOL pool;
     TP_CALLBACK_ENVIRON tp_environment;
-    PTP_CLEANUP_GROUP tp_cleanup_group;
     PTP_IO tp_io;
     volatile LONG pending_api_calls;
 } ASYNC_SOCKET;
@@ -211,19 +211,24 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
         (void)WaitOnAddress(&async_socket->pending_api_calls, &current_pending_api_calls, sizeof(current_pending_api_calls), INFINITE);
     } while (1);
 
+    // Close socket must happen after changing state of the async_socket to not allow any more calls on the socket
+    // but before the call to WaitForThreadpoolIoCallbacks
+
+    LogInfo("async socket is closing, closesocket(%p);", async_socket->socket_handle);
+    /* Codes_SRS_ASYNC_SOCKET_WIN32_42_006: [ async_socket_close shall call closesocket on the underlying socket. ]*/
+    (void)closesocket((SOCKET)async_socket->socket_handle);
+    async_socket->socket_handle = (SOCKET_HANDLE)INVALID_SOCKET;
+
     /* Codes_SRS_ASYNC_SOCKET_WIN32_01_040: [ async_socket_close shall wait for any executing callbacks by calling WaitForThreadpoolIoCallbacks, passing FALSE as fCancelPendingCallbacks. ]*/
     WaitForThreadpoolIoCallbacks(async_socket->tp_io, FALSE);
 
     /* Codes_SRS_ASYNC_SOCKET_WIN32_01_059: [ async_socket_close shall close the threadpool IO created in async_socket_open_async by calling CloseThreadpoolIo. ]*/
     CloseThreadpoolIo(async_socket->tp_io);
 
-    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_041: [ async_socket_close shall close the threadpool cleanup group by calling CloseThreadpoolCleanupGroup. ]*/
-    CloseThreadpoolCleanupGroup(async_socket->tp_cleanup_group);
-
     /* Codes_SRS_ASYNC_SOCKET_WIN32_01_042: [ async_socket_close shall destroy the thread pool environment created in async_socket_open_async. ]*/
     DestroyThreadpoolEnvironment(&async_socket->tp_environment);
 
-    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_021: [ Then async_socket_close shall close the async socket, leaving it in a state where an async_socket_open_async can be performed. ]*/
+    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_021: [ Then async_socket_close shall close the async socket. ]*/
     (void)InterlockedExchange(&async_socket->state, (LONG)ASYNC_SOCKET_WIN32_STATE_CLOSED);
     WakeByAddressSingle((PVOID)&async_socket->state);
 }
@@ -253,7 +258,11 @@ ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine
         }
         else
         {
-            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_035: [ Otherwise, async_socket_open_async shall obtain the PTP_POOL from the execution engine passed to async_socket_create by calling execution_engine_win32_get_threadpool. ]*/
+            /* Codes_SRS_ASYNC_SOCKET_WIN32_42_004: [ async_socket_create shall increment the reference count on execution_engine. ]*/
+            execution_engine_inc_ref(execution_engine);
+            result->execution_engine = execution_engine;
+
+            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_035: [ async_socket_create shall obtain the PTP_POOL from the execution engine passed to async_socket_create by calling execution_engine_win32_get_threadpool. ]*/
             result->pool = execution_engine_win32_get_threadpool(execution_engine);
             result->socket_handle = socket_handle;
 
@@ -292,6 +301,12 @@ void async_socket_destroy(ASYNC_SOCKET_HANDLE async_socket)
             }
             else if (current_state == (LONG)ASYNC_SOCKET_WIN32_STATE_CLOSED)
             {
+                if ((SOCKET)async_socket->socket_handle != INVALID_SOCKET)
+                {
+                    LogInfo("async socket destroy, closesocket(%p);", async_socket->socket_handle);
+                    /* Codes_SRS_ASYNC_SOCKET_WIN32_42_007: [ If the socket was not OPEN then async_socket_destroy shall call closesocket on the underlying socket. ]*/
+                    (void)closesocket((SOCKET)async_socket->socket_handle);
+                }
                 break;
             }
 
@@ -299,7 +314,10 @@ void async_socket_destroy(ASYNC_SOCKET_HANDLE async_socket)
         }
         while (1);
 
-        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_005: [ Otherwise, async_socket_destroy shall free all resources associated with async_socket. ]*/
+        /* Codes_SRS_ASYNC_SOCKET_WIN32_42_005: [ async_socket_destroy shall decrement the reference count on the execution engine. ]*/
+        execution_engine_dec_ref(async_socket->execution_engine);
+
+        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_005: [ async_socket_destroy shall free all resources associated with async_socket. ]*/
         free(async_socket);
     }
 }
@@ -333,22 +351,20 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, ON_ASYNC_SOCKET_OP
         }
         else
         {
-            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_016: [ Otherwise async_socket_open_async shall initialize a thread pool environment by calling InitializeThreadpoolEnvironment. ]*/
-            InitializeThreadpoolEnvironment(&async_socket->tp_environment);
-
-            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_036: [ async_socket_open_async shall set the thread pool for the environment to the pool obtained from the execution engine by calling SetThreadpoolCallbackPool. ]*/
-            SetThreadpoolCallbackPool(&async_socket->tp_environment, async_socket->pool);
-
-            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_037: [ async_socket_open_async shall create a threadpool cleanup group by calling CreateThreadpoolCleanupGroup. ]*/
-            async_socket->tp_cleanup_group = CreateThreadpoolCleanupGroup();
-            if (async_socket->tp_cleanup_group == NULL)
+            if ((SOCKET)async_socket->socket_handle == INVALID_SOCKET)
             {
-                /* Codes_SRS_ASYNC_SOCKET_WIN32_01_039: [ If any error occurs, async_socket_open_async shall fail and return a non-zero value. ]*/
-                LogLastError("CreateThreadpoolCleanupGroup failed");
+                /* Codes_SRS_ASYNC_SOCKET_WIN32_42_008: [ If async_socket has already closed the underlying socket handle then async_socket_open_async shall fail and return a non-zero value. ]*/
+                LogError("Open called after socket was closed");
                 result = MU_FAILURE;
             }
             else
             {
+                /* Codes_SRS_ASYNC_SOCKET_WIN32_01_016: [ Otherwise async_socket_open_async shall initialize a thread pool environment by calling InitializeThreadpoolEnvironment. ]*/
+                InitializeThreadpoolEnvironment(&async_socket->tp_environment);
+
+                /* Codes_SRS_ASYNC_SOCKET_WIN32_01_036: [ async_socket_open_async shall set the thread pool for the environment to the pool obtained from the execution engine by calling SetThreadpoolCallbackPool. ]*/
+                SetThreadpoolCallbackPool(&async_socket->tp_environment, async_socket->pool);
+
                 /* Codes_SRS_ASYNC_SOCKET_WIN32_01_058: [ async_socket_open_async shall create a threadpool IO by calling CreateThreadpoolIo and passing socket_handle, the callback environment to it and on_io_complete as callback. ]*/
                 async_socket->tp_io = CreateThreadpoolIo(async_socket->socket_handle, on_io_complete, NULL, &async_socket->tp_environment);
                 if (async_socket->tp_io == NULL)
@@ -372,11 +388,8 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, ON_ASYNC_SOCKET_OP
                     goto all_ok;
                 }
 
-                CloseThreadpoolCleanupGroup(async_socket->tp_cleanup_group);
+                DestroyThreadpoolEnvironment(&async_socket->tp_environment);
             }
-
-            DestroyThreadpoolEnvironment(&async_socket->tp_environment);
-
             (void)InterlockedExchange(&async_socket->state, (LONG)ASYNC_SOCKET_WIN32_STATE_CLOSED);
             WakeByAddressSingle((PVOID)&async_socket->state);
         }

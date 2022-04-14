@@ -94,6 +94,8 @@ MOCK_FUNCTION_WITH_CODE(, void, mocked_WaitForThreadpoolIoCallbacks, PTP_IO, pio
 MOCK_FUNCTION_END()
 MOCK_FUNCTION_WITH_CODE(, void, mocked_CancelThreadpoolIo, PTP_IO, pio)
 MOCK_FUNCTION_END()
+MOCK_FUNCTION_WITH_CODE(WSAAPI, int, mocked_closesocket, SOCKET, s)
+MOCK_FUNCTION_END(0)
 
 MOCK_FUNCTION_WITH_CODE(, void, test_on_open_complete, void*, context, ASYNC_SOCKET_OPEN_RESULT, open_result)
 MOCK_FUNCTION_END()
@@ -134,6 +136,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_CreateEventA, NULL);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_WSASend, 1);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_WSARecv, 1);
+    REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_closesocket, 1);
 
     REGISTER_UMOCK_ALIAS_TYPE(PTP_IO, void*);
     REGISTER_UMOCK_ALIAS_TYPE(PTP_CALLBACK_ENVIRON, void*);
@@ -216,13 +219,15 @@ TEST_FUNCTION(async_socket_create_with_INVALID_SOCKET_fails)
 }
 
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_001: [ async_socket_create shall allocate a new async socket and on success shall return a non-NULL handle. ]*/
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_035: [ Otherwise, async_socket_open_async shall obtain the PTP_POOL from the execution engine passed to async_socket_create by calling execution_engine_win32_get_threadpool. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_42_004: [ async_socket_create shall increment the reference count on execution_engine. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_035: [ async_socket_create shall obtain the PTP_POOL from the execution engine passed to async_socket_create by calling execution_engine_win32_get_threadpool. ]*/
 TEST_FUNCTION(async_socket_create_succeeds)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(execution_engine_win32_get_threadpool(test_execution_engine));
 
     // act
@@ -277,13 +282,17 @@ TEST_FUNCTION(async_socket_destroy_with_NULL_returns)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_005: [ Otherwise, async_socket_destroy shall free all resources associated with async_socket. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_42_007: [ If the socket was not OPEN then async_socket_destroy shall call closesocket on the underlying socket. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_42_005: [ async_socket_destroy shall decrement the reference count on the execution engine. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_005: [ async_socket_destroy shall free all resources associated with async_socket. ]*/
 TEST_FUNCTION(async_socket_destroy_frees_resources)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
     umock_c_reset_all_calls();
 
+    STRICT_EXPECTED_CALL(mocked_closesocket((SOCKET)test_socket));
+    STRICT_EXPECTED_CALL(execution_engine_dec_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
     // act
@@ -293,32 +302,31 @@ TEST_FUNCTION(async_socket_destroy_frees_resources)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_094: [ async_socket_open_async shall set the state to OPEN. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_006: [ async_socket_destroy shall perform an implicit close if async_socket is OPEN. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_093: [ While async_socket is OPENING or CLOSING, async_socket_destroy shall wait for the open to complete either successfully or with error. ]*/
 TEST_FUNCTION(async_socket_destroy_closes_first_if_open)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    PTP_CLEANUP_GROUP test_cleanup_group;
     PTP_CALLBACK_ENVIRON cbe;
     PTP_IO test_ptp_io;
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG))
         .CaptureArgumentValue_pcbe(&cbe);
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup())
-        .CaptureReturn(&test_cleanup_group);
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io);
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     // close first
+    STRICT_EXPECTED_CALL(mocked_closesocket((SOCKET)test_socket));
     STRICT_EXPECTED_CALL(mocked_WaitForThreadpoolIoCallbacks(test_ptp_io, FALSE));
     STRICT_EXPECTED_CALL(mocked_CloseThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_CloseThreadpoolCleanupGroup(test_cleanup_group));
     STRICT_EXPECTED_CALL(mocked_DestroyThreadpoolEnvironment(cbe));
 
+    STRICT_EXPECTED_CALL(execution_engine_dec_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
     // act
@@ -366,9 +374,7 @@ TEST_FUNCTION(async_socket_open_async_with_NULL_on_open_complete_fails)
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_023: [ Otherwise, async_socket_open_async shall switch the state to OPENING. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_014: [ On success, async_socket_open_async shall return 0. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_016: [ Otherwise async_socket_open_async shall initialize a thread pool environment by calling InitializeThreadpoolEnvironment. ]*/
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_035: [ async_socket_open_async shall obtain the PTP_POOL from the execution engine passed to async_socket_create by calling execution_engine_win32_get_threadpool. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_036: [ async_socket_open_async shall set the thread pool for the environment to the pool obtained from the execution engine by calling SetThreadpoolCallbackPool. ]*/
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_037: [ async_socket_open_async shall create a threadpool cleanup group by calling CreateThreadpoolCleanupGroup. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_058: [ async_socket_open_async shall create a threadpool IO by calling CreateThreadpoolIo and passing socket_handle, the callback environment to it and on_io_complete as callback. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_017: [ On success async_socket_open_async shall call on_open_complete_context with ASYNC_SOCKET_OPEN_OK. ]*/
 TEST_FUNCTION(async_socket_open_async_succeeds)
@@ -377,15 +383,12 @@ TEST_FUNCTION(async_socket_open_async_succeeds)
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
     int result;
     PTP_CALLBACK_ENVIRON cbe;
-    PTP_CLEANUP_GROUP test_cleanup_group;
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG))
         .CaptureArgumentValue_pcbe(&cbe);
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool))
         .ValidateArgumentValue_pcbe(&cbe);
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup())
-        .CaptureReturn(&test_cleanup_group);
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .ValidateArgumentValue_pcbe(&cbe);
     STRICT_EXPECTED_CALL(test_on_open_complete((void*)0x4242, ASYNC_SOCKET_OPEN_OK));
@@ -408,15 +411,12 @@ TEST_FUNCTION(async_socket_open_async_succeeds_with_NULL_context)
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
     int result;
     PTP_CALLBACK_ENVIRON cbe;
-    PTP_CLEANUP_GROUP test_cleanup_group;
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG))
         .CaptureArgumentValue_pcbe(&cbe);
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool))
         .ValidateArgumentValue_pcbe(&cbe);
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup())
-        .CaptureReturn(&test_cleanup_group);
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .ValidateArgumentValue_pcbe(&cbe);
     STRICT_EXPECTED_CALL(test_on_open_complete(NULL, ASYNC_SOCKET_OPEN_OK));
@@ -440,15 +440,12 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_open_async_fails)
     int result;
     size_t i;
     PTP_CALLBACK_ENVIRON cbe;
-    PTP_CLEANUP_GROUP test_cleanup_group;
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG))
         .CaptureArgumentValue_pcbe(&cbe);
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool))
         .ValidateArgumentValue_pcbe(&cbe);
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup())
-        .CaptureReturn(&test_cleanup_group);
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .ValidateArgumentValue_pcbe(&cbe);
     STRICT_EXPECTED_CALL(test_on_open_complete((void*)0x4242, ASYNC_SOCKET_OPEN_OK));
@@ -494,36 +491,22 @@ TEST_FUNCTION(async_socket_open_async_after_async_socket_open_async_fails)
     async_socket_destroy(async_socket);
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_017: [ On success async_socket_open_async shall call on_open_complete_context with ASYNC_SOCKET_OPEN_OK. ]*/
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_094: [ async_socket_open_async shall set the state to OPEN. ]*/
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_021: [ Then async_socket_close shall close the async socket, leaving it in a state where an async_socket_open_async can be performed. ]*/
-TEST_FUNCTION(async_socket_open_async_after_close_succeeds)
+/* Tests_SRS_ASYNC_SOCKET_WIN32_42_008: [ If async_socket has already closed the underlying socket handle then async_socket_open_async shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(async_socket_open_async_after_close_fails)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     async_socket_close(async_socket);
     int result;
-    PTP_CALLBACK_ENVIRON cbe;
-    PTP_CLEANUP_GROUP test_cleanup_group;
     umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG))
-        .CaptureArgumentValue_pcbe(&cbe);
-    STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool))
-        .ValidateArgumentValue_pcbe(&cbe);
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup())
-        .CaptureReturn(&test_cleanup_group);
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .ValidateArgumentValue_pcbe(&cbe);
-    STRICT_EXPECTED_CALL(test_on_open_complete((void*)0x4242, ASYNC_SOCKET_OPEN_OK));
 
     // act
     result = async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
 
     // cleanup
     async_socket_destroy(async_socket);
@@ -544,16 +527,16 @@ TEST_FUNCTION(async_socket_close_with_NULL_returns)
 }
 
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_019: [ Otherwise, async_socket_close shall switch the state to CLOSING. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_42_006: [ async_socket_close shall call closesocket on the underlying socket. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_040: [ async_socket_close shall wait for any executing callbacks by calling WaitForThreadpoolIoCallbacks, passing FALSE as fCancelPendingCallbacks. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_059: [ async_socket_close shall close the threadpool IO created in async_socket_open_async by calling CloseThreadpoolIo. ]*/
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_041: [ async_socket_close shall close the threadpool cleanup group by calling CloseThreadpoolCleanupGroup. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_042: [ async_socket_close shall destroy the thread pool environment created in async_socket_open_async. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_020: [ async_socket_close shall wait for all executing async_socket_send_async and async_socket_receive_async APIs. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_021: [ Then async_socket_close shall close the async socket. ]*/
 TEST_FUNCTION(async_socket_close_reverses_the_actions_from_open)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    PTP_CLEANUP_GROUP test_cleanup_group;
     PTP_CALLBACK_ENVIRON cbe;
     PTP_IO test_ptp_io;
 
@@ -561,16 +544,14 @@ TEST_FUNCTION(async_socket_close_reverses_the_actions_from_open)
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG))
         .CaptureArgumentValue_pcbe(&cbe);
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup())
-        .CaptureReturn(&test_cleanup_group);
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io);
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
+    STRICT_EXPECTED_CALL(mocked_closesocket((SOCKET)test_socket));
     STRICT_EXPECTED_CALL(mocked_WaitForThreadpoolIoCallbacks(test_ptp_io, FALSE));
     STRICT_EXPECTED_CALL(mocked_CloseThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_CloseThreadpoolCleanupGroup(test_cleanup_group));
     STRICT_EXPECTED_CALL(mocked_DestroyThreadpoolEnvironment(cbe));
 
     // act
@@ -909,7 +890,6 @@ TEST_FUNCTION(async_socket_send_async_succeeds)
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -952,7 +932,6 @@ TEST_FUNCTION(async_socket_send_async_with_NULL_on_send_complete_context_succeed
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -994,7 +973,6 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_send_async_fails)
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io);
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
@@ -1048,7 +1026,6 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_WSA_IO_PENDING_it_is_treated_
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -1096,7 +1073,6 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_an_error_then_async_socket_se
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -1148,7 +1124,6 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_WSAGetLastError_then_async_so
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -1199,7 +1174,6 @@ TEST_FUNCTION(when_WSASend_returns_an_error_different_than_SOCKET_ERROR_async_so
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -1552,7 +1526,6 @@ TEST_FUNCTION(async_socket_receive_async_succeeds)
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -1596,7 +1569,6 @@ TEST_FUNCTION(async_socket_receive_async_with_NULL_on_send_complete_context_succ
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -1639,7 +1611,6 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_receive_async_fails)
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io);
     (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
@@ -1693,7 +1664,6 @@ TEST_FUNCTION(when_get_last_error_for_receive_returns_WSA_IO_PENDING_it_is_treat
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -1742,7 +1712,6 @@ TEST_FUNCTION(when_WSARecv_returns_an_error_different_than_SOCKET_ERROR_async_so
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -1793,7 +1762,6 @@ TEST_FUNCTION(when_get_last_error_for_receive_returns_an_error_then_async_socket
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -1845,7 +1813,6 @@ TEST_FUNCTION(on_io_complete_with_NULL_overlapped_for_send_returns)
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -1892,7 +1859,6 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_send_as_complete_with_O
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -1945,7 +1911,6 @@ TEST_FUNCTION(on_io_complete_with_error_indicates_the_send_as_complete_with_ERRO
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -1994,7 +1959,6 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_and_number_of_bytes_sent_less_than_ex
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -2043,7 +2007,6 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_and_number_of_bytes_sent_more_than_ex
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -2092,7 +2055,6 @@ TEST_FUNCTION(on_io_complete_with_NULL_overlapped_for_receive_returns)
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -2138,7 +2100,6 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_wit
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -2191,7 +2152,6 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_wit
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -2240,7 +2200,6 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_wit
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -2293,7 +2252,6 @@ TEST_FUNCTION(on_io_complete_with_error_indicates_the_receive_as_complete_with_E
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -2342,7 +2300,6 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_wit
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
@@ -2390,7 +2347,6 @@ static void on_io_complete_with_error_indicates_the_receive_as_complete_with_ABA
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)

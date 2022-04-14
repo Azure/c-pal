@@ -6,11 +6,10 @@
 `async_socket` is an interface for a socket that allows asynchronous sends/receives.
 
 An `async_socket` object receives an execution engine as creation argument in order to be able to schedule all asynchronous work using the execution engine.
-An `async_socket` does not own the underlying platform specific socket passed on create. It is the responsibility of the `async_socket` owner to dispose of the platform specific socket.
+
+An `async_socket` owns the underlying platform specific socket passed on create. After successful creation, it will handle closing the platform-specific socket.
 
 `async_socket` does not take ownership of the buffers passed to `async_socket_send_async` and `async_socket_receive_async`.
-
-The lifetime of the execution engine should supersede the lifetime of the `threadpool` object.
 
 ## Exposed API
 
@@ -77,6 +76,8 @@ Note: `execution_engine` is to be used by each platform for platform specific as
 
 **SRS_ASYNC_SOCKET_01_002: [** If `execution_engine` is NULL, `async_socket_create` shall fail and return NULL. **]**
 
+**SRS_ASYNC_SOCKET_42_002: [** `async_socket_create` shall increment the reference count on `execution_engine`. **]**
+
 **SRS_ASYNC_SOCKET_01_003: [** If any error occurs, `async_socket_create` shall fail and return NULL. **]**
 
 ### async_socket_destroy
@@ -89,11 +90,15 @@ MOCKABLE_FUNCTION(, void, async_socket_destroy, ASYNC_SOCKET_HANDLE, async_socke
 
 **SRS_ASYNC_SOCKET_01_004: [** If `async_socket` is NULL, `async_socket_destroy` shall return. **]**
 
-**SRS_ASYNC_SOCKET_01_005: [** Otherwise, `async_socket_destroy` shall free all resources associated with `async_socket`. **]**
-
 **SRS_ASYNC_SOCKET_01_050: [** While `async_socket` is OPENING, `async_socket_destroy` shall wait for the open to complete either successfully or with error. **]**
 
 **SRS_ASYNC_SOCKET_01_006: [** `async_socket_destroy` shall perform an implicit close if `async_socket` is OPEN. **]**
+
+If the socket was not `OPEN` then `async_socket_destroy` shall close the underlying socket handle.
+
+**SRS_ASYNC_SOCKET_42_003: [** `async_socket_destroy` shall decrement the reference count on the execution engine. **]**
+
+**SRS_ASYNC_SOCKET_01_005: [** `async_socket_destroy` shall free all resources associated with `async_socket`. **]**
 
 ### async_socket_open_async
 
@@ -112,6 +117,8 @@ MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_soc
 **SRS_ASYNC_SOCKET_01_023: [** Otherwise, `async_socket_open_async` shall switch the state to OPENING and perform any actions needed to open the `async_socket` object. **]**
 
 **SRS_ASYNC_SOCKET_01_014: [** On success, `async_socket_open_async` shall return 0. **]**
+
+**SRS_ASYNC_SOCKET_42_004: [** If `async_socket` has already closed the underlying socket handle then `async_socket_open_async` shall fail and return a non-zero value. **]**
 
 **SRS_ASYNC_SOCKET_01_015: [** If `async_socket` is already OPEN or OPENING, `async_socket_open_async` shall fail and return a non-zero value. **]**
 
@@ -135,7 +142,7 @@ MOCKABLE_FUNCTION(, void, async_socket_close, ASYNC_SOCKET_HANDLE, async_socket)
 
 **SRS_ASYNC_SOCKET_01_036: [** Any receives that are not completed shall be indicated as complete with `ASYNC_SOCKET_RECEIVE_ABANDONED`. **]**
 
-**SRS_ASYNC_SOCKET_01_021: [** Then `async_socket_close` shall close the async socket, leaving it in a state where an `async_socket_open_async` can be performed. **]**
+**SRS_ASYNC_SOCKET_01_021: [** Then `async_socket_close` shall close the async socket. **]**
 
 **SRS_ASYNC_SOCKET_01_022: [** If `async_socket` is not OPEN, `async_socket_close` shall return. **]**
 

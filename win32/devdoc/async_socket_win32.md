@@ -8,7 +8,9 @@
 ## Design
 
 `async_socket_win32` is using the WSA Windows functions with a PTP_POOL in order to perform asynchronous socket send and receives.
-`async_socket_win32` creates its own threadpool environment and cleanup group.
+`async_socket_win32` creates its own threadpool environment.
+
+The `async_socket_win32` takes ownership of the provided `SOCKET_HANDLE` and is responsible for closing it. For that reason, it is not possible to re-open the `async_socket` after closing it. This is due to the fact that the socket is created by some external event, such as accepting an incoming connection and closing the underlying socket is not reversible.
 
 ## Exposed API
 
@@ -77,7 +79,9 @@ MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create, EXECUTION_ENGINE_H
 
 **SRS_ASYNC_SOCKET_WIN32_01_034: [** If `socket_handle` is `INVALID_SOCKET`, `async_socket_create` shall fail and return NULL. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_035: [** Otherwise, `async_socket_open_async` shall obtain the PTP_POOL from the execution engine passed to `async_socket_create` by calling `execution_engine_win32_get_threadpool`. **]**
+**SRS_ASYNC_SOCKET_WIN32_42_004: [** `async_socket_create` shall increment the reference count on `execution_engine`. **]**
+
+**SRS_ASYNC_SOCKET_WIN32_01_035: [** `async_socket_create` shall obtain the `PTP_POOL` from the execution engine passed to `async_socket_create` by calling `execution_engine_win32_get_threadpool`. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_003: [** If any error occurs, `async_socket_create` shall fail and return NULL. **]**
 
@@ -91,11 +95,15 @@ MOCKABLE_FUNCTION(, void, async_socket_destroy, ASYNC_SOCKET_HANDLE, async_socke
 
 **SRS_ASYNC_SOCKET_WIN32_01_004: [** If `async_socket` is NULL, `async_socket_destroy` shall return. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_005: [** Otherwise, `async_socket_destroy` shall free all resources associated with `async_socket`. **]**
-
 **SRS_ASYNC_SOCKET_WIN32_01_093: [** While `async_socket` is OPENING or CLOSING, `async_socket_destroy` shall wait for the open to complete either successfully or with error. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_006: [** `async_socket_destroy` shall perform an implicit close if `async_socket` is OPEN. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_006: [** `async_socket_destroy` shall perform an implicit close if `async_socket` is `OPEN`. **]**
+
+**SRS_ASYNC_SOCKET_WIN32_42_007: [** If the socket was not `OPEN` then `async_socket_destroy` shall call `closesocket` on the underlying socket. **]**
+
+**SRS_ASYNC_SOCKET_WIN32_42_005: [** `async_socket_destroy` shall decrement the reference count on the execution engine. **]**
+
+**SRS_ASYNC_SOCKET_WIN32_01_005: [** `async_socket_destroy` shall free all resources associated with `async_socket`. **]**
 
 ### async_socket_open_async
 
@@ -117,11 +125,11 @@ MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_soc
 
 **SRS_ASYNC_SOCKET_WIN32_01_015: [** If `async_socket` is already OPEN or OPENING, `async_socket_open_async` shall fail and return a non-zero value. **]**
 
+**SRS_ASYNC_SOCKET_WIN32_42_008: [** If `async_socket` has already closed the underlying socket handle then `async_socket_open_async` shall fail and return a non-zero value. **]**
+
 **SRS_ASYNC_SOCKET_WIN32_01_016: [** Otherwise `async_socket_open_async` shall initialize a thread pool environment by calling `InitializeThreadpoolEnvironment`. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_036: [** `async_socket_open_async` shall set the thread pool for the environment to the pool obtained from the execution engine by calling `SetThreadpoolCallbackPool`. **]**
-
-**SRS_ASYNC_SOCKET_WIN32_01_037: [** `async_socket_open_async` shall create a threadpool cleanup group by calling `CreateThreadpoolCleanupGroup`. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_058: [** `async_socket_open_async` shall create a threadpool IO by calling `CreateThreadpoolIo` and passing `socket_handle`, the callback environment to it and `on_io_complete` as callback. **]**
 
@@ -143,15 +151,15 @@ MOCKABLE_FUNCTION(, void, async_socket_close, ASYNC_SOCKET_HANDLE, async_socket)
 
 **SRS_ASYNC_SOCKET_WIN32_01_019: [** Otherwise, `async_socket_close` shall switch the state to CLOSING. **]**
 
+**SRS_ASYNC_SOCKET_WIN32_42_006: [** `async_socket_close` shall call `closesocket` on the underlying socket. **]**
+
 **SRS_ASYNC_SOCKET_WIN32_01_020: [** `async_socket_close` shall wait for all executing `async_socket_send_async` and `async_socket_receive_async` APIs. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_021: [** Then `async_socket_close` shall close the async socket, leaving it in a state where an `async_socket_open_async` can be performed. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_021: [** Then `async_socket_close` shall close the async socket. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_040: [** `async_socket_close` shall wait for any executing callbacks by calling `WaitForThreadpoolIoCallbacks`, passing FALSE as `fCancelPendingCallbacks`. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_059: [** `async_socket_close` shall close the threadpool IO created in `async_socket_open_async` by calling `CloseThreadpoolIo`. **]**
-
-**SRS_ASYNC_SOCKET_WIN32_01_041: [** `async_socket_close` shall close the threadpool cleanup group by calling `CloseThreadpoolCleanupGroup`. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_042: [** `async_socket_close` shall destroy the thread pool environment created in `async_socket_open_async`. **]**
 
