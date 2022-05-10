@@ -5,6 +5,7 @@
 
 #include "macro_utils/macro_utils.h"
 #include "c_pal/execution_engine.h"
+#include "c_logging/log_context.h"
 #include "socket_handle.h"
 #include "umock_c/umock_c_prod.h"
 
@@ -57,7 +58,7 @@ typedef struct ASYNC_SOCKET_BUFFER_TAG
     uint32_t length;
 } ASYNC_SOCKET_BUFFER;
 
-MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create, EXECUTION_ENGINE_HANDLE, execution_engine, SOCKET_HANDLE, socket_handle);
+MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create, EXECUTION_ENGINE_HANDLE, execution_engine, SOCKET_HANDLE, socket_handle, LOG_CONTEXT_HANDLE, log_context);
 MOCKABLE_FUNCTION(, void, async_socket_destroy, ASYNC_SOCKET_HANDLE, async_socket);
 
 MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_socket, ON_ASYNC_SOCKET_OPEN_COMPLETE, on_open_complete, void*, on_open_complete_context);

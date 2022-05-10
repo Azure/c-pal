@@ -7,6 +7,7 @@
 #include "windows.h"
 #include "macro_utils/macro_utils.h"
 #include "c_logging/xlogging.h"
+#include "c_logging/log_context.h"
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/async_socket.h"
@@ -41,6 +42,7 @@ typedef struct ASYNC_SOCKET_TAG
     TP_CALLBACK_ENVIRON tp_environment;
     PTP_IO tp_io;
     volatile LONG pending_api_calls;
+    LOG_CONTEXT_HANDLE log_context;
 } ASYNC_SOCKET;
 
 // send context
@@ -214,7 +216,7 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
     // Close socket must happen after changing state of the async_socket to not allow any more calls on the socket
     // but before the call to WaitForThreadpoolIoCallbacks
 
-    LogInfo("async socket is closing, closesocket(%p);", async_socket->socket_handle);
+    LogInfoWithContext(async_socket->log_context, "async socket is closing, closesocket(%p);", async_socket->socket_handle);
     /* Codes_SRS_ASYNC_SOCKET_WIN32_42_006: [ async_socket_close shall call closesocket on the underlying socket. ]*/
     (void)closesocket((SOCKET)async_socket->socket_handle);
     async_socket->socket_handle = (SOCKET_HANDLE)INVALID_SOCKET;
@@ -233,7 +235,7 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
     WakeByAddressSingle((PVOID)&async_socket->state);
 }
 
-ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine, SOCKET_HANDLE socket_handle)
+ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine, SOCKET_HANDLE socket_handle, LOG_CONTEXT_HANDLE log_context)
 {
     ASYNC_SOCKET_HANDLE result;
     SOCKET win32_socket = (SOCKET)socket_handle;
@@ -244,7 +246,7 @@ ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine
         /* Codes_SRS_ASYNC_SOCKET_WIN32_01_034: [ If socket_handle is INVALID_SOCKET, async_socket_create shall fail and return NULL. ]*/
         (win32_socket == INVALID_SOCKET))
     {
-        LogError("EXECUTION_ENGINE_HANDLE execution_engine=%p, SOCKET_HANDLE socket_handle=%p",
+        LogErrorWithContext(log_context, "EXECUTION_ENGINE_HANDLE execution_engine=%p, SOCKET_HANDLE socket_handle=%p",
             execution_engine, (void*)win32_socket);
     }
     else
@@ -258,6 +260,8 @@ ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine
         }
         else
         {
+            result->log_context = log_context;
+
             /* Codes_SRS_ASYNC_SOCKET_WIN32_42_004: [ async_socket_create shall increment the reference count on execution_engine. ]*/
             execution_engine_inc_ref(execution_engine);
             result->execution_engine = execution_engine;
