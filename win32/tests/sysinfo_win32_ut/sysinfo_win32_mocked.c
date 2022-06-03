@@ -2,8 +2,8 @@
 
 #include "windows.h"
 
-#define GetSystemInfo mocked_GetSystemInfo
+#define GetActiveProcessorCount mocked_GetActiveProcessorCount
 
-void mocked_GetSystemInfo(LPSYSTEM_INFO lpSystemInfo);
+DWORD mocked_GetActiveProcessorCount(WORD GroupNumber);
 
 #include "../../src/sysinfo_win32.c"
