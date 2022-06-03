@@ -105,4 +105,20 @@ TEST_FUNCTION(sysinfo_get_processor_count_returns_the_processor_count_33)
     ASSERT_ARE_EQUAL(uint32_t, 33, proc_count);
 }
 
+/* Tests_SRS_SYSINFO_WIN32_43_001: [ sysinfo_get_processor_count shall call GetActiveProcessorCount(ALL_PROCESSOR_GROUPS) to obtain the number of processors. ]*/
+/* Tests_SRS_SYSINFO_WIN32_43_003: [ If there are any failures, sysinfo_get_processor_count shall fail and return zero. ]*/
+TEST_FUNCTION(sysinfo_get_processor_count_fails)
+{
+    //arrange
+    STRICT_EXPECTED_CALL(mocked_GetActiveProcessorCount(ALL_PROCESSOR_GROUPS))
+        .SetReturn(0);
+
+    //act
+    uint32_t proc_count = sysinfo_get_processor_count();
+
+    //assert
+    ASSERT_ARE_EQUAL(uint32_t, 0, proc_count);
+}
+
+
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
