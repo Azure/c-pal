@@ -1,5 +1,4 @@
 # timer linux
-================
 
 ## Overview
 

@@ -130,7 +130,7 @@ TEST_FUNCTION(FILETIME_to_string_UTC_with_fileTime_NULL_fails)
 }
 
 /*Tests_SRS_STRING_UTILS_02_002: [ FILETIME_to_string_UTC shall call FileTimeToSystemTime to convert fileTime to a SYSTEMTIME structure. ]*/
-/*Tests_SRS_STRING_UTILS_02_003: [ If SYSTEMTIME structure's wMilliseconds field is not zero then FILETIME_to_string_UTC shall return a string produced by the format string "(SYSTEMTIME){ \/* %.4" PRIu16 "-%.2" PRIu16 "-%.2" PRIu16 "T%.2" PRIu16 ":%.2" PRIu16 ":%.2" PRIu16 ".%.3" PRIu16 "Z *\/ .wYear = % .4" PRIu16 ", .wMonth = % .2" PRIu16 ", .wDayOfWeek = % .1" PRIu16 ", .wDay = % .2" PRIu16 ", .wHour = % .2" PRIu16 ", .wMinute = % .2" PRIu16 ", .wSecond = % .2" PRIu16 ", .wMilliseconds = % .3" PRIu16 " }". ]*/
+/*Tests_SRS_STRING_UTILS_02_003: [ If SYSTEMTIME structure's wMilliseconds field is not zero then FILETIME_to_string_UTC shall return a string produced by the format string "%.4" PRIu16 "-%.2" PRIu16 "-%.2" PRIu16 "T%.2" PRIu16 ":%.2" PRIu16 ":%.2" PRIu16 ".%.3" PRIu16 "Z". ]*/
 /*Tests_SRS_STRING_UTILS_02_005: [ FILETIME_to_string_UTC shall succeed and return a non-NULL value. ]*/
 TEST_FUNCTION(FILETIME_to_string_UTC_with_123_milliseconds_succeeds)
 {
@@ -146,7 +146,7 @@ TEST_FUNCTION(FILETIME_to_string_UTC_with_123_milliseconds_succeeds)
 
     ///assert
     ASSERT_IS_NOT_NULL(result);
-    ASSERT_ARE_EQUAL(char_ptr, "(SYSTEMTIME){ /* 2022-06-09T20:59:25.467Z */ .wYear = 2022, .wMonth = 06, .wDayOfWeek = 4, .wDay = 09, .wHour = 20, .wMinute = 59, .wSecond = 25, .wMilliseconds = 467 }", result);
+    ASSERT_ARE_EQUAL(char_ptr, "2022-06-09T20:59:25.467Z", result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
@@ -154,7 +154,7 @@ TEST_FUNCTION(FILETIME_to_string_UTC_with_123_milliseconds_succeeds)
 }
 
 /*Tests_SRS_STRING_UTILS_02_002: [ FILETIME_to_string_UTC shall call FileTimeToSystemTime to convert fileTime to a SYSTEMTIME structure. ]*/
-/*Tests_SRS_STRING_UTILS_02_004: [ If SYSTEMTIME structure's wMilliseconds field is zero then FILETIME_to_string_UTC shall return a string produced by the format string "(SYSTEMTIME){ \/* %.4" PRIu16 "-%.2" PRIu16 "-%.2" PRIu16 "T%.2" PRIu16 ":%.2" PRIu16 ":%.2" PRIu16 "Z *\/ .wYear = % .4" PRIu16 ", .wMonth = % .2" PRIu16 ", .wDayOfWeek = % .1" PRIu16 ", .wDay = % .2" PRIu16 ", .wHour = % .2" PRIu16 ", .wMinute = % .2" PRIu16 ", .wSecond = % .2" PRIu16 ", .wMilliseconds = % .3" PRIu16 " }". ]*/
+/*Tests_SRS_STRING_UTILS_02_004: [ If SYSTEMTIME structure's wMilliseconds field is zero then FILETIME_to_string_UTC shall return a string produced by the format string "%.4" PRIu16 "-%.2" PRIu16 "-%.2" PRIu16 "T%.2" PRIu16 ":%.2" PRIu16 ":%.2" PRIu16 "Z". ]*/
 /*Tests_SRS_STRING_UTILS_02_005: [ FILETIME_to_string_UTC shall succeed and return a non-NULL value. ]*/
 TEST_FUNCTION(FILETIME_to_string_UTC_with_0_milliseconds_succeeds)
 {
@@ -170,7 +170,7 @@ TEST_FUNCTION(FILETIME_to_string_UTC_with_0_milliseconds_succeeds)
 
     ///assert
     ASSERT_IS_NOT_NULL(result);
-    ASSERT_ARE_EQUAL(char_ptr, "(SYSTEMTIME){ /* 2022-06-09T21:00:06Z */ .wYear = 2022, .wMonth = 06, .wDayOfWeek = 4, .wDay = 09, .wHour = 21, .wMinute = 00, .wSecond = 06, .wMilliseconds = 000 }", result);
+    ASSERT_ARE_EQUAL(char_ptr, "2022-06-09T21:00:06Z", result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean

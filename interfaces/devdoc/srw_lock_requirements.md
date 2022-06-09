@@ -1,5 +1,4 @@
-`srw_lock` requirements
-============
+# `srw_lock` requirements
 
 ## Overview
 

@@ -293,7 +293,7 @@ TEST_FUNCTION(FILETIME_to_string_UTC_with_476ms_succeeds)
 
     ///assert
     ASSERT_IS_NOT_NULL(result);
-    ASSERT_ARE_EQUAL(char_ptr, "(SYSTEMTIME){ /* 2022-06-09T18:59:48.476Z */ .wYear = 2022, .wMonth = 06, .wDayOfWeek = 4, .wDay = 09, .wHour = 18, .wMinute = 59, .wSecond = 48, .wMilliseconds = 476 }", result);
+    ASSERT_ARE_EQUAL(char_ptr, "2022-06-09T18:59:48.476Z", result);
 
     ///clean
     free(result);
@@ -314,7 +314,7 @@ TEST_FUNCTION(FILETIME_to_string_UTC_with_0ms_succeeds)
 
     ///assert
     ASSERT_IS_NOT_NULL(result);
-    ASSERT_ARE_EQUAL(char_ptr, "(SYSTEMTIME){ /* 2022-06-09T18:59:48Z */ .wYear = 2022, .wMonth = 06, .wDayOfWeek = 4, .wDay = 09, .wHour = 18, .wMinute = 59, .wSecond = 48, .wMilliseconds = 000 }", result);
+    ASSERT_ARE_EQUAL(char_ptr, "2022-06-09T18:59:48Z", result);
 
     ///clean
     free(result);

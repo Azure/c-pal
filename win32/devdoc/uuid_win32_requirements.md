@@ -1,5 +1,4 @@
-uuid requirements
-=================
+# uuid requirements
 
 ## Overview
 The uuid module generates unique IDs.

@@ -1,5 +1,4 @@
 # sync linux
-================
 
 ## Overview
 
