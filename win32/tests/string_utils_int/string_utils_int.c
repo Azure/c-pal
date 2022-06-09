@@ -261,4 +261,63 @@ TEST_FUNCTION(vsprintf_wchar_with_a_non_empty_string_succeeds)
     free(result);
 }
 
+TEST_FUNCTION(FILETIME_to_string_UTC_with_now_time_succeeds)
+{
+    ///arrange
+    FILETIME source;
+    GetSystemTimeAsFileTime(&source); /*now time*/
+    char* result;
+
+    ///act
+    result = FILETIME_to_string_UTC(&source);
+
+    ///assert
+    ASSERT_IS_NOT_NULL(result);
+
+    ///clean
+    free(result);
+}
+
+TEST_FUNCTION(FILETIME_to_string_UTC_with_476ms_succeeds)
+{
+    ///arrange
+    SYSTEMTIME s = { /* 2022-06-09T18:59:48.476Z */ .wYear = 2022, .wMonth = 06, .wDayOfWeek = 4, .wDay = 9, .wHour = 18, .wMinute = 59, .wSecond = 48, .wMilliseconds = 476 };
+
+    FILETIME f;
+    ASSERT_IS_TRUE(SystemTimeToFileTime(&s, &f));
+
+    char* result;
+
+    ///act
+    result = FILETIME_to_string_UTC(&f);
+
+    ///assert
+    ASSERT_IS_NOT_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, "2022-06-09T18:59:48.476Z", result);
+
+    ///clean
+    free(result);
+}
+
+TEST_FUNCTION(FILETIME_to_string_UTC_with_0ms_succeeds)
+{
+    ///arrange
+    SYSTEMTIME s = { /* 2022-06-09T18:59:48Z */ .wYear = 2022, .wMonth = 06, .wDayOfWeek = 4, .wDay = 9, .wHour = 18, .wMinute = 59, .wSecond = 48, .wMilliseconds = 0 };
+
+    FILETIME f;
+    ASSERT_IS_TRUE(SystemTimeToFileTime(&s, &f));
+
+    char* result;
+
+    ///act
+    result = FILETIME_to_string_UTC(&f);
+
+    ///assert
+    ASSERT_IS_NOT_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, "2022-06-09T18:59:48Z", result);
+
+    ///clean
+    free(result);
+}
+
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

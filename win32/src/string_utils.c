@@ -6,6 +6,7 @@
 #include <wchar.h>
 #include <errno.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include "windows.h"
 
@@ -152,6 +153,69 @@ char* FILETIME_toAsciiArray(const FILETIME* fileTime)
                         result = sprintf_char("%s %s", localDate, localTime);
                         /*return as is*/
                     }
+                }
+            }
+        }
+    }
+    return result;
+}
+
+char* FILETIME_to_string_UTC(const FILETIME* fileTime)
+{
+    char* result;
+    /*Codes_SRS_STRING_UTILS_02_001: [ If fileTime is NULL then FILETIME_to_string_UTC shall fail and return NULL. ]*/
+    if (fileTime == NULL)
+    {
+        LogError("invalid arguments const FILETIME* fileTime=%p", fileTime);
+        result = NULL;
+    }
+    else
+    {
+        /*https://docs.microsoft.com/en-us/windows/win32/api/timezoneapi/nf-timezoneapi-filetimetosystemtime says "Converts a file time to system time format. System time is based on Coordinated Universal Time (UTC)." */
+
+        SYSTEMTIME temp;
+
+        /*Codes_SRS_STRING_UTILS_02_002: [ FILETIME_to_string_UTC shall call FileTimeToSystemTime to convert fileTime to a SYSTEMTIME structure. ]*/
+        if (!FileTimeToSystemTime(fileTime, &temp))
+        {
+            /*Codes_SRS_STRING_UTILS_02_006: [ If there are any failures then FILETIME_to_string_UTC shall fail and return NULL. ]*/
+            LogLastError("failure in FileTimeToSystemTime(fileTime=%p, &temp=%p)", fileTime, &temp);
+            result = NULL;
+        }
+        else
+        {
+            /*Codes_SRS_STRING_UTILS_02_003: [ If SYSTEMTIME structure's wMilliseconds field is not zero then FILETIME_to_string_UTC shall return a string produced by the format string "%.4" PRIu16 "-%.2" PRIu16 "-%.2" PRIu16 "T%.2" PRIu16 ":%.2" PRIu16 ":%.2" PRIu16 ".%.3" PRIu16 "Z". ]*/
+            if (temp.wMilliseconds != 0)
+            {
+                result = sprintf_char("%.4" PRIu16 "-%.2" PRIu16 "-%.2" PRIu16 "T%.2" PRIu16 ":%.2" PRIu16 ":%.2" PRIu16 ".%.3" PRIu16 "Z", temp.wYear, temp.wMonth, temp.wDay, temp.wHour, temp.wMinute, temp.wSecond, temp.wMilliseconds);
+                if (result == NULL)
+                {
+                    LogError("failure in sprintf_char(\"%%.4\" PRIu16 \"-%%.2\" PRIu16 \"-%%.2\" PRIu16 \"T%%.2\" PRIu16 \":%%.2\" PRIu16 \":%%.2\" PRIu16 \".%%.3\" PRIu16 \"Z\", temp.wYear=%" PRIu16 ", temp.wMonth=%" PRIu16 ", temp.wDay=%" PRIu16 ", temp.wHour=%" PRIu16 ", temp.wMinute=%" PRIu16 ", temp.wSecond=%" PRIu16 ", temp.wMilliseconds=%" PRIu16 ")",
+                        temp.wYear, temp.wMonth, temp.wDay, temp.wHour, temp.wMinute, temp.wSecond, temp.wMilliseconds);
+                    /*Codes_SRS_STRING_UTILS_02_006: [ If there are any failures then FILETIME_to_string_UTC shall fail and return NULL. ]*/
+                    /*return as is*/
+                }
+                else
+                {
+                    /*Codes_SRS_STRING_UTILS_02_005: [ FILETIME_to_string_UTC shall succeed and return a non-NULL value. ]*/
+                    /*return as is*/
+                }
+            }
+            else
+            /*Codes_SRS_STRING_UTILS_02_004: [ If SYSTEMTIME structure's wMilliseconds field is zero then FILETIME_to_string_UTC shall return a string produced by the format string "%.4" PRIu16 "-%.2" PRIu16 "-%.2" PRIu16 "T%.2" PRIu16 ":%.2" PRIu16 ":%.2" PRIu16 "Z". ]*/
+            {
+                result = sprintf_char("%.4" PRIu16 "-%.2" PRIu16 "-%.2" PRIu16 "T%.2" PRIu16 ":%.2" PRIu16 ":%.2" PRIu16 "Z", temp.wYear, temp.wMonth, temp.wDay, temp.wHour, temp.wMinute, temp.wSecond);
+                if (result == NULL)
+                {
+                    LogError("failure in sprintf_char(\"%%.4\" PRIu16 \"-%%.2\" PRIu16 \"-%%.2\" PRIu16 \"T%%.2\" PRIu16 \":%%.2\" PRIu16 \":%%.2\" PRIu16 \"Z\", temp.wYear=%" PRIu16 ", temp.wMonth=%" PRIu16 ", temp.wDay=%" PRIu16 ", temp.wHour=%" PRIu16 ", temp.wMinute=%" PRIu16 ", temp.wSecond=%" PRIu16 ");",
+                        temp.wYear, temp.wMonth, temp.wDay, temp.wHour, temp.wMinute, temp.wSecond);
+                    /*Codes_SRS_STRING_UTILS_02_006: [ If there are any failures then FILETIME_to_string_UTC shall fail and return NULL. ]*/
+                    /*return as is*/
+                }
+                else
+                {
+                    /*Codes_SRS_STRING_UTILS_02_005: [ FILETIME_to_string_UTC shall succeed and return a non-NULL value. ]*/
+                    /*return as is*/
                 }
             }
         }

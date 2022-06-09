@@ -1,5 +1,4 @@
 # sysinfo_win32
-================
 
 ## Overview
 

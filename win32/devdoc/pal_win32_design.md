@@ -1,5 +1,4 @@
 # PAL Win32 design
-================
 
 ## Overview
 

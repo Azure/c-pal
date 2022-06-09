@@ -1,5 +1,4 @@
-gballoc design
-=====
+# gballoc design
 
 `gballoc` is a layer that abstracts memory allocators. The need to have and be able to compare multiple memory allocators stems from performance requirements. Not all memory allocators have the same performance and for the sake of being able to compare them gballoc exists.
 

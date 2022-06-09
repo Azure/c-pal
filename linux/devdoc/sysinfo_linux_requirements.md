@@ -1,5 +1,4 @@
 # sysinfo_linux
-================
 
 ## Overview
 

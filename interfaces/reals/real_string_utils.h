@@ -21,6 +21,7 @@
         vsprintf_char, \
         vsprintf_wchar, \
         FILETIME_toAsciiArray, \
+        FILETIME_to_string_UTC, \
         mbs_to_wcs, \
         wcs_to_mbs \
 )
@@ -38,6 +39,8 @@ char* real_vsprintf_char(const char* format, va_list va);
 wchar_t* real_vsprintf_wchar(const wchar_t* format, va_list va);
 
 char* real_FILETIME_toAsciiArray(const FILETIME* fileTime);
+
+char* real_FILETIME_to_string_UTC(const FILETIME* fileTime);
 
 wchar_t* real_mbs_to_wcs(const char* source);
 

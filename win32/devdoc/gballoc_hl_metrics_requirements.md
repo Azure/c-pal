@@ -1,5 +1,4 @@
-`gballoc_hl_metrics` requirements
-================
+# `gballoc_hl_metrics` requirements
 
 ## Overview
 
