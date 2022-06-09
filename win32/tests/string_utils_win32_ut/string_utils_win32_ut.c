@@ -42,7 +42,6 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 static SYSTEMTIME with_ms = { /* 2022-06-09T20:59:25.467Z */ .wYear = 2022, .wMonth = 06, .wDayOfWeek = 4, .wDay = 9, .wHour = 20, .wMinute = 59, .wSecond = 25, .wMilliseconds = 467 };
 static SYSTEMTIME without_ms = { /* 2022-06-09T21:00:06Z */ .wYear = 2022, .wMonth = 06, .wDayOfWeek = 4, .wDay = 9, .wHour = 21, .wMinute = 00, .wSecond = 06, .wMilliseconds = 0 };
 
-
 static BOOL hook_FileTimeToSystemTime(const FILETIME* lpFileTime, LPSYSTEMTIME lpSystemTime)
 {
     ASSERT_IS_NOT_NULL(lpFileTime);
@@ -61,7 +60,6 @@ static BOOL hook_FileTimeToSystemTime(const FILETIME* lpFileTime, LPSYSTEMTIME l
     else
     {
         ASSERT_FAIL("unknown transformation of FILETIME to SYSTEMTIME");
-        result = FALSE;
     }
     return result;
 }
