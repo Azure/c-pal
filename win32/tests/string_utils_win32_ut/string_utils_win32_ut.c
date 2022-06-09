@@ -59,6 +59,7 @@ static BOOL hook_FileTimeToSystemTime(const FILETIME* lpFileTime, LPSYSTEMTIME l
     }
     else
     {
+        result = FALSE;
         ASSERT_FAIL("unknown transformation of FILETIME to SYSTEMTIME");
     }
     return result;
