@@ -47,6 +47,9 @@ MOCKABLE_INTERFACE(string_utils_printf,
 /*takes a FILETIME, returns a nice string representation of it*/
 MOCKABLE_FUNCTION(, char*, FILETIME_toAsciiArray, const FILETIME*, fileTime);
 
+/*takes a FILETIME, returns a string in UTC time zone*/
+MOCKABLE_FUNCTION(, char*, FILETIME_to_string_UTC, const FILETIME*, fileTime);
+
 MOCKABLE_INTERFACE(string_utils_convert,
     /*produces the wchar_t* string representation of source (which is assumed to be multibyte). Returns NULL on any failure.*/
     FUNCTION(, wchar_t*, mbs_to_wcs, const char*, source),

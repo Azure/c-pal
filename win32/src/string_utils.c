@@ -6,6 +6,7 @@
 #include <wchar.h>
 #include <errno.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include "windows.h"
 
@@ -152,6 +153,79 @@ char* FILETIME_toAsciiArray(const FILETIME* fileTime)
                         result = sprintf_char("%s %s", localDate, localTime);
                         /*return as is*/
                     }
+                }
+            }
+        }
+    }
+    return result;
+}
+
+/*produces human readable strings of FILETIME containing both a condensed form (ISO 8601-like) and as a C designated initializer*/
+/*example*/
+#if 0
+"(SYSTEMTIME){ /* 2022-06-09T21:13:18.195Z */ .wYear = 2022, .wMonth = 06, .wDayOfWeek = 4, .wDay = 09, .wHour = 21, .wMinute = 13, .wSecond = 18, .wMilliseconds = 195 }"
+#endif 
+/*following are deviations from the defaults recommended by ISO 8601: "full stop" is used instead of "comma" for decimal values of miliseconds*/
+char* FILETIME_to_string_UTC(const FILETIME* fileTime)
+{
+    char* result;
+    /*Codes_SRS_STRING_UTILS_02_001: [ If fileTime is NULL then FILETIME_to_string_UTC shall fail and return NULL. ]*/
+    if (fileTime == NULL)
+    {
+        LogError("invalid arguments const FILETIME* fileTime=%p", fileTime);
+        result = NULL;
+    }
+    else
+    {
+        /*https://docs.microsoft.com/en-us/windows/win32/api/timezoneapi/nf-timezoneapi-filetimetosystemtime says "Converts a file time to system time format. System time is based on Coordinated Universal Time (UTC)." */
+
+        SYSTEMTIME temp;
+
+        /*Codes_SRS_STRING_UTILS_02_002: [ FILETIME_to_string_UTC shall call FileTimeToSystemTime to convert fileTime to a SYSTEMTIME structure. ]*/
+        if (!FileTimeToSystemTime(fileTime, &temp))
+        {
+            /*Codes_SRS_STRING_UTILS_02_006: [ If there are any failures then FILETIME_to_string_UTC shall fail and return NULL. ]*/
+            LogLastError("failure in FileTimeToSystemTime(fileTime=%p, &temp=%p)", fileTime, &temp);
+            result = NULL;
+        }
+        else
+        {
+            /*Codes_SRS_STRING_UTILS_02_003: [ If SYSTEMTIME structure's wMilliseconds field is not zero then FILETIME_to_string_UTC shall return a string produced by the format string "(SYSTEMTIME){ \/* %.4" PRIu16 "-%.2" PRIu16 "-%.2" PRIu16 "T%.2" PRIu16 ":%.2" PRIu16 ":%.2" PRIu16 ".%.3" PRIu16 "Z *\/ .wYear = % .4" PRIu16 ", .wMonth = % .2" PRIu16 ", .wDayOfWeek = % .1" PRIu16 ", .wDay = % .2" PRIu16 ", .wHour = % .2" PRIu16 ", .wMinute = % .2" PRIu16 ", .wSecond = % .2" PRIu16 ", .wMilliseconds = % .3" PRIu16 "}". ] */
+            if (temp.wMilliseconds != 0)
+            {                                        /* --------------------------------------- ISO 8601 ------------------------------------------------- */ /* ---------------------------- C designated initializer style -----------------------------------------------------------------------------------------------------------------------------------------------*/
+                result = sprintf_char("(SYSTEMTIME){ /* %.4" PRIu16 "-%.2" PRIu16 "-%.2" PRIu16 "T%.2" PRIu16 ":%.2" PRIu16 ":%.2" PRIu16 ".%.3" PRIu16 "Z */ .wYear = %.4" PRIu16 ", .wMonth = %.2" PRIu16 ", .wDayOfWeek = %.1" PRIu16 ", .wDay = %.2" PRIu16 ", .wHour = %.2" PRIu16 ", .wMinute = %.2" PRIu16 ", .wSecond = %.2" PRIu16 ", .wMilliseconds = %.3" PRIu16 " }",
+                    temp.wYear, temp.wMonth, temp.wDay, temp.wHour, temp.wMinute, temp.wSecond, temp.wMilliseconds, 
+                    temp.wYear, temp.wMonth, temp.wDayOfWeek, temp.wDay, temp.wHour, temp.wMinute, temp.wSecond, temp.wMilliseconds);
+                if (result == NULL)
+                {
+                    LogError("failure in sprintf_char(\"(SYSTEMTIME){ /* %%.4\" PRIu16 \"-%%.2\" PRIu16 \"-%%.2\" PRIu16 \"T%%.2\" PRIu16 \":%%.2\" PRIu16 \":%%.2\" PRIu16 \".%%.3\" PRIu16 \"Z */ .wYear = %%.4\" PRIu16 \", .wMonth = %%.2\" PRIu16 \", .wDayOfWeek = %%.1\" PRIu16 \", .wDay = %%.2\" PRIu16 \", .wHour = %%.2\" PRIu16 \", .wMinute = %%.2\" PRIu16 \", .wSecond = %%.2\" PRIu16 \", .wMilliseconds = %%.3\" PRIu16 \" }\", temp.wYear, temp.wMonth, temp.wDay, temp.wHour, temp.wMinute, temp.wSecond, temp.wMilliseconds, temp.wYear=%" PRIu16 ", temp.wMonth=%" PRIu16 ", temp.wDayOfWeek=%" PRIu16 ", temp.wDay=%" PRIu16 ", temp.wHour=%" PRIu16 ", temp.wMinute=%" PRIu16 ", temp.wSecond=%" PRIu16 ", temp.wMilliseconds=%" PRIu16 ");",
+                        temp.wYear, temp.wMonth, temp.wDayOfWeek, temp.wDay, temp.wHour, temp.wMinute, temp.wSecond, temp.wMilliseconds);
+                    /*Codes_SRS_STRING_UTILS_02_006: [ If there are any failures then FILETIME_to_string_UTC shall fail and return NULL. ]*/
+                    /*return as is*/
+                }
+                else
+                {
+                    /*Codes_SRS_STRING_UTILS_02_005: [ FILETIME_to_string_UTC shall succeed and return a non-NULL value. ]*/
+                    /*return as is*/
+                }
+            }
+            else
+            /*Codes_SRS_STRING_UTILS_02_004: [ If SYSTEMTIME structure's wMilliseconds field is zero then FILETIME_to_string_UTC shall return a string produced by the format string "(SYSTEMTIME){ \/* %.4" PRIu16 "-%.2" PRIu16 "-%.2" PRIu16 "T%.2" PRIu16 ":%.2" PRIu16 ":%.2" PRIu16 "Z *\/ .wYear = %.4" PRIu16 ", .wMonth = %.2" PRIu16 ", .wDayOfWeek = %.1" PRIu16 ", .wDay = %.2" PRIu16 ", .wHour = %.2" PRIu16 ", .wMinute = %.2" PRIu16 ", .wSecond = %.2" PRIu16 ", .wMilliseconds = %.3" PRIu16 " }". ]*/
+            {                                        /* --------------------------------------- ISO 8601 ----------------------------------- */ /* ---------------------------- C designated initializer style -----------------------------------------------------------------------------------------------------------------------------------------------*/
+                result = sprintf_char("(SYSTEMTIME){ /* %.4" PRIu16 "-%.2" PRIu16 "-%.2" PRIu16 "T%.2" PRIu16 ":%.2" PRIu16 ":%.2" PRIu16 "Z */ .wYear = %.4" PRIu16 ", .wMonth = %.2" PRIu16 ", .wDayOfWeek = %.1" PRIu16 ", .wDay = %.2" PRIu16 ", .wHour = %.2" PRIu16 ", .wMinute = %.2" PRIu16 ", .wSecond = %.2" PRIu16 ", .wMilliseconds = %.3" PRIu16 " }",
+                    temp.wYear, temp.wMonth, temp.wDay, temp.wHour, temp.wMinute, temp.wSecond, 
+                    temp.wYear, temp.wMonth, temp.wDayOfWeek, temp.wDay, temp.wHour, temp.wMinute, temp.wSecond, temp.wMilliseconds);
+                if (result == NULL)
+                {
+                    LogError("failure in sprintf_char(\"(SYSTEMTIME){ /* %%.4\" PRIu16 \"-%%.2\" PRIu16 \"-%%.2\" PRIu16 \"T%%.2\" PRIu16 \":%%.2\" PRIu16 \":%%.2\" PRIu16 \"Z */ .wYear = %%.4\" PRIu16 \", .wMonth = %%.2\" PRIu16 \", .wDayOfWeek = %%.1\" PRIu16 \", .wDay = %%.2\" PRIu16 \", .wHour = %%.2\" PRIu16 \", .wMinute = %%.2\" PRIu16 \", .wSecond = %%.2\" PRIu16 \", .wMilliseconds = %%.3\" PRIu16 \" }\", temp.wYear, temp.wMonth, temp.wDay, temp.wHour, temp.wMinute, temp.wSecond, temp.wYear=%" PRIu16 ", temp.wMonth=%" PRIu16 ", temp.wDayOfWeek=%" PRIu16 ", temp.wDay=%" PRIu16 ", temp.wHour=%" PRIu16 ", temp.wMinute=%" PRIu16 ", temp.wSecond=%" PRIu16 ", temp.wMilliseconds=%" PRIu16 ");",
+                        temp.wYear, temp.wMonth, temp.wDayOfWeek, temp.wDay, temp.wHour, temp.wMinute, temp.wSecond, temp.wMilliseconds);
+                    /*Codes_SRS_STRING_UTILS_02_006: [ If there are any failures then FILETIME_to_string_UTC shall fail and return NULL. ]*/
+                    /*return as is*/
+                }
+                else
+                {
+                    /*Codes_SRS_STRING_UTILS_02_005: [ FILETIME_to_string_UTC shall succeed and return a non-NULL value. ]*/
+                    /*return as is*/
                 }
             }
         }
