@@ -5,7 +5,6 @@
 #include <stdbool.h>
 #include <locale.h>
 
-
 #include "windows.h"
 
 #include "testrunnerswitcher.h"
@@ -353,6 +352,9 @@ TEST_FUNCTION(vsprintf_char_fails_with_invalid_sequence_characters)
         /*original string is szOID 1.3.6.1.4.1.311.21.8.7587021.751874.11030412.6202749.3702260.207.10315819.14858157 (which is much longer than the excerpt here)*/
     };
 
+    char* t = setlocale(LC_CTYPE, NULL);
+    (void)setlocale(LC_CTYPE, "C");
+
     ///act
     result = vsprintf_char_wrapper_function("%d %s %ls", 1, "2", s);
 
@@ -360,6 +362,7 @@ TEST_FUNCTION(vsprintf_char_fails_with_invalid_sequence_characters)
     ASSERT_IS_NULL(result);
 
     ///clean
+    setlocale(LC_CTYPE, t);
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
