@@ -2,6 +2,7 @@
 
 /*poor man's string routines*/
 #include <stdio.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <wchar.h>
 #include <errno.h>
@@ -19,32 +20,54 @@
 
 #include "c_pal/string_utils.h"
 
-IMPLEMENT_MOCKABLE_FUNCTION(, char*, vsprintf_char, const char*, format, va_list, va)
+static char* vsprintf_char_internal(const char* format, va_list va)
 {
     char* result;
     va_list va_clone;
     va_copy(va_clone, va);
+    errno = 0;
+
+    /*Codes_SRS_STRING_UTILS_02_008: [ vsprintf_char shall obtain the length of the string by calling vsnprintf(NULL, 0, format, va);. ]*/
     int neededSize = vsnprintf(NULL, 0, format, va);
+
     if (neededSize < 0)
     {
-        LogError("failure in vsnprintf");
+        /*C11 in "7.21.6.12 The vsnprintf function" says "The vsnprintf function is equivalent to snprintf...*/
+        /*C11 in "7.21.6.5 The snprintf function says: "The snprintf function is equivalent to fprintf...*/
+        /*C11 in "7.21.6.1 The fprintf function" says (about %ls conversion specification): "Wide characters from the array are converted to multibyte characters (each as if by a call to the wcrtomb) function..."*/
+        /*C11 in "7.29.6.3.3 The wcrtomb function" says: "When wc is not a valid wide character, an encoding error occurs: the function stores the value of the macro EILSEQ in errno.." */
+
+        /*therefore it is reasonable to expect that following a call to vsnprintf miiight set errno to something, which we can print on the screen*/
+
+        /*Codes_SRS_STRING_UTILS_02_011: [ If there are any failures vsprintf_char shall fail and return NULL. ]*/
+        LogError("failure in vsnprintf, errno=%d (%s)", errno, strerror(errno));
         result = NULL;
     }
     else
     {
+
+        /*Codes_SRS_STRING_UTILS_02_009: [ vsprintf_char shall allocate enough memory for the string and the null terminator. ]*/
         result = (char*)malloc((neededSize + 1U) * sizeof(char));
         if (result == NULL)
         {
+            /*Codes_SRS_STRING_UTILS_02_011: [ If there are any failures vsprintf_char shall fail and return NULL. ]*/
             LogError("failure in malloc((neededSize=%d + 1U) * sizeof(char)=%zu)", neededSize, sizeof(char));
             /*return as is*/
         }
         else
         {
+
+            /*Codes_SRS_STRING_UTILS_02_010: [ vsprintf_char shall output the string in the previously allocated memory by calling vsnprintf. ]*/
             if (vsnprintf(result, neededSize + 1, format, va_clone) != neededSize)
             {
-                LogError("inconsistent vsnprintf behavior");
+                /*Codes_SRS_STRING_UTILS_02_011: [ If there are any failures vsprintf_char shall fail and return NULL. ]*/
+                LogError("inconsistent vsnprintf behavior, errno=%d (%s)", errno, strerror(errno));
                 free(result);
                 result = NULL;
+            }
+            else
+            {
+                /*Codes_SRS_STRING_UTILS_02_012: [ vsprintf_char shall succeed and return a non-NULL value. ]*/
             }
         }
     }
@@ -52,7 +75,23 @@ IMPLEMENT_MOCKABLE_FUNCTION(, char*, vsprintf_char, const char*, format, va_list
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, wchar_t*, vsprintf_wchar, const wchar_t*, format, va_list, va)
+IMPLEMENT_MOCKABLE_FUNCTION(, char*, vsprintf_char, const char*, format, va_list, va)
+{
+    char* result;
+    /*Codes_SRS_STRING_UTILS_02_007: [ If format is NULL then vsprintf_char shall fail and return NULL. ]*/
+    if (format == NULL)
+    {
+        LogError("invalid argument const char* format=%p, va_list va=%p", format, (void*)va);
+        result = NULL;
+    }
+    else
+    {
+        result = vsprintf_char_internal(format, va);
+    }
+    return result;
+}
+
+static wchar_t* vsprintf_wchar_internal(const wchar_t* format, va_list va)
 {
     wchar_t* result;
     va_list va_clone;
@@ -85,6 +124,11 @@ IMPLEMENT_MOCKABLE_FUNCTION(, wchar_t*, vsprintf_wchar, const wchar_t*, format, 
     return result;
 }
 
+IMPLEMENT_MOCKABLE_FUNCTION(, wchar_t*, vsprintf_wchar, const wchar_t*, format, va_list, va)
+{
+    return vsprintf_wchar_internal(format, va);
+}
+
 /*returns a char* that is as if printed by printf*/
 /*needs to be free'd after usage*/
 char* sprintf_char_function(const char* format, ...)
@@ -92,7 +136,7 @@ char* sprintf_char_function(const char* format, ...)
     char* result;
     va_list va;
     va_start(va, format);
-    result = vsprintf_char(format, va);
+    result = vsprintf_char_internal(format, va);
     va_end(va);
     return result;
 }
@@ -187,7 +231,7 @@ char* FILETIME_to_string_UTC(const FILETIME* fileTime)
             /*Codes_SRS_STRING_UTILS_02_003: [ If SYSTEMTIME structure's wMilliseconds field is not zero then FILETIME_to_string_UTC shall return a string produced by the format string "%.4" PRIu16 "-%.2" PRIu16 "-%.2" PRIu16 "T%.2" PRIu16 ":%.2" PRIu16 ":%.2" PRIu16 ".%.3" PRIu16 "Z". ]*/
             if (temp.wMilliseconds != 0)
             {
-                result = sprintf_char("%.4" PRIu16 "-%.2" PRIu16 "-%.2" PRIu16 "T%.2" PRIu16 ":%.2" PRIu16 ":%.2" PRIu16 ".%.3" PRIu16 "Z", temp.wYear, temp.wMonth, temp.wDay, temp.wHour, temp.wMinute, temp.wSecond, temp.wMilliseconds);
+                result = sprintf_char_function("%.4" PRIu16 "-%.2" PRIu16 "-%.2" PRIu16 "T%.2" PRIu16 ":%.2" PRIu16 ":%.2" PRIu16 ".%.3" PRIu16 "Z", temp.wYear, temp.wMonth, temp.wDay, temp.wHour, temp.wMinute, temp.wSecond, temp.wMilliseconds);
                 if (result == NULL)
                 {
                     LogError("failure in sprintf_char(\"%%.4\" PRIu16 \"-%%.2\" PRIu16 \"-%%.2\" PRIu16 \"T%%.2\" PRIu16 \":%%.2\" PRIu16 \":%%.2\" PRIu16 \".%%.3\" PRIu16 \"Z\", temp.wYear=%" PRIu16 ", temp.wMonth=%" PRIu16 ", temp.wDay=%" PRIu16 ", temp.wHour=%" PRIu16 ", temp.wMinute=%" PRIu16 ", temp.wSecond=%" PRIu16 ", temp.wMilliseconds=%" PRIu16 ")",
@@ -204,7 +248,7 @@ char* FILETIME_to_string_UTC(const FILETIME* fileTime)
             else
             /*Codes_SRS_STRING_UTILS_02_004: [ If SYSTEMTIME structure's wMilliseconds field is zero then FILETIME_to_string_UTC shall return a string produced by the format string "%.4" PRIu16 "-%.2" PRIu16 "-%.2" PRIu16 "T%.2" PRIu16 ":%.2" PRIu16 ":%.2" PRIu16 "Z". ]*/
             {
-                result = sprintf_char("%.4" PRIu16 "-%.2" PRIu16 "-%.2" PRIu16 "T%.2" PRIu16 ":%.2" PRIu16 ":%.2" PRIu16 "Z", temp.wYear, temp.wMonth, temp.wDay, temp.wHour, temp.wMinute, temp.wSecond);
+                result = sprintf_char_function("%.4" PRIu16 "-%.2" PRIu16 "-%.2" PRIu16 "T%.2" PRIu16 ":%.2" PRIu16 ":%.2" PRIu16 "Z", temp.wYear, temp.wMonth, temp.wDay, temp.wHour, temp.wMinute, temp.wSecond);
                 if (result == NULL)
                 {
                     LogError("failure in sprintf_char(\"%%.4\" PRIu16 \"-%%.2\" PRIu16 \"-%%.2\" PRIu16 \"T%%.2\" PRIu16 \":%%.2\" PRIu16 \":%%.2\" PRIu16 \"Z\", temp.wYear=%" PRIu16 ", temp.wMonth=%" PRIu16 ", temp.wDay=%" PRIu16 ", temp.wHour=%" PRIu16 ", temp.wMinute=%" PRIu16 ", temp.wSecond=%" PRIu16 ");",

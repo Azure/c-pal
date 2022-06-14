@@ -6,4 +6,8 @@
 
 #define FileTimeToSystemTime mocked_FileTimeToSystemTime
 
+#include <stdio.h>
+
+#define vsnprintf mocked_vsnprintf
+
 #include "../../src/string_utils.c"

@@ -58,3 +58,24 @@ MOCKABLE_FUNCTION(, char*, FILETIME_to_string_UTC, const FILETIME*, fileTime);
 
 **SRS_STRING_UTILS_02_006: [** If there are any failures then `FILETIME_to_string_UTC` shall fail and return `NULL`. **]**
 
+### vsprintf_char
+```c
+IMPLEMENT_MOCKABLE_FUNCTION(, char*, vsprintf_char, const char*, format, va_list, va)
+```
+
+`vsprintf_char` returns a null terminated string containing the same string as if printed by `vprintf(format, va)` on the screen. The returned string needs to be `free`d by the caller.
+
+**SRS_STRING_UTILS_02_007: [** If `format` is `NULL` then `vsprintf_char` shall fail and return `NULL`. **]**
+
+**SRS_STRING_UTILS_02_008: [** `vsprintf_char` shall obtain the length of the string by calling `vsnprintf(NULL, 0, format, va);`. **]**
+
+**SRS_STRING_UTILS_02_009: [** `vsprintf_char` shall allocate enough memory for the string and the null terminator. **]**
+
+**SRS_STRING_UTILS_02_010: [** `vsprintf_char` shall output the string in the previously allocated memory by calling `vsnprintf`. **]**
+
+**SRS_STRING_UTILS_02_012: [** `vsprintf_char` shall succeed and return a non-`NULL` value. **]**
+
+**SRS_STRING_UTILS_02_011: [** If there are any failures `vsprintf_char` shall fail and return `NULL`. **]**
+
+
+
