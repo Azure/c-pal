@@ -320,4 +320,46 @@ TEST_FUNCTION(FILETIME_to_string_UTC_with_0ms_succeeds)
     free(result);
 }
 
+TEST_FUNCTION(vsprintf_char_succeeds)
+{
+    ///arrange
+    char* result;
+
+    ///act
+    result = vsprintf_char_wrapper_function("%d %s %ls", 1, "2", L"3");
+
+    ///assert
+    ASSERT_IS_NOT_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, "1 2 3", result);
+
+    ///clean
+    free(result);
+}
+
+TEST_FUNCTION(vsprintf_char_fails_with_invalid_sequence_characters)
+{
+    ///arrange
+    char* result;
+
+    /*original string is */
+    wchar_t s[] = { 
+        0x54+ (0x00<<8), /*T*/
+        0x65+ (0x00<<8), /*e*/
+        0x73+ (0x00<<8), /*s*/
+        0x74+ (0x00<<8), /*t*/
+        0x20+ (0x00<<8), /* */
+        0x13+ (0x20<<8), /*0x13, 0x20 is an invalid sequence (EILSEQ) for wchar_t according to C locale, some renderers [Visual Studio debugger] will output a '-' for the character*/
+        0x00+ (0x00<<8)  /*null terminator*/
+        /*original string is szOID 1.3.6.1.4.1.311.21.8.7587021.751874.11030412.6202749.3702260.207.10315819.14858157 (which is much longer than the excerpt here)*/
+    };
+
+    ///act
+    result = vsprintf_char_wrapper_function("%d %s %ls", 1, "2", s);
+
+    ///assert
+    ASSERT_IS_NULL(result);
+
+    ///clean
+}
+
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

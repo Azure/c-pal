@@ -2,6 +2,7 @@
 
 /*poor man's string routines*/
 #include <stdio.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <wchar.h>
 #include <errno.h>
@@ -22,33 +23,64 @@
 IMPLEMENT_MOCKABLE_FUNCTION(, char*, vsprintf_char, const char*, format, va_list, va)
 {
     char* result;
-    va_list va_clone;
-    va_copy(va_clone, va);
-    int neededSize = vsnprintf(NULL, 0, format, va);
-    if (neededSize < 0)
+    /*Codes_SRS_STRING_UTILS_02_007: [ If format is NULL then vsprintf_char shall fail and return NULL. ]*/
+    if (format == NULL)
     {
-        LogError("failure in vsnprintf");
+        LogError("invalid argument const char* format=%p, va_list va=%p", format, (void*)va);
         result = NULL;
     }
     else
     {
-        result = (char*)malloc((neededSize + 1U) * sizeof(char));
-        if (result == NULL)
+        va_list va_clone;
+        va_copy(va_clone, va);
+        errno = 0;
+
+        /*Codes_SRS_STRING_UTILS_02_008: [ vsprintf_char shall obtain the length of the string by calling vsnprintf(NULL, 0, format, va);. ]*/
+        int neededSize = vsnprintf(NULL, 0, format, va);
+
+        if (neededSize < 0)
         {
-            LogError("failure in malloc((neededSize=%d + 1U) * sizeof(char)=%zu)", neededSize, sizeof(char));
-            /*return as is*/
+            /*C11 in "7.21.6.12 The vsnprintf function" says "The vsnprintf function is equivalent to snprintf...*/
+            /*C11 in "7.21.6.5 The snprintf function says: "The snprintf function is equivalent to fprintf...*/
+            /*C11 in "7.21.6.1 The fprintf function" says (about %ls conversion specification): "Wide characters from the array are converted to multibyte characters (each as if by a call to the wcrtomb) function..."*/
+            /*C11 in "7.29.6.3.3 The wcrtomb function" says: "When wc is not a valid wide character, an encoding error occurs: the function stores the value of the macro EILSEQ in errno.." */
+
+            /*therefore it is reasonable to expect that following a call to vsnprintf miiight set errno to something, which we can print on the screen*/
+
+            /*Codes_SRS_STRING_UTILS_02_011: [ If there are any failures vsprintf_char shall fail and return NULL. ]*/
+            LogError("failure in vsnprintf, errno=%d (%s)", errno, strerror(errno));
+            result = NULL;
         }
         else
         {
-            if (vsnprintf(result, neededSize + 1, format, va_clone) != neededSize)
+
+            /*Codes_SRS_STRING_UTILS_02_009: [ vsprintf_char shall allocate enough memory for the string and the null terminator. ]*/
+            result = (char*)malloc((neededSize + 1U) * sizeof(char));
+            if (result == NULL)
             {
-                LogError("inconsistent vsnprintf behavior");
-                free(result);
-                result = NULL;
+                /*Codes_SRS_STRING_UTILS_02_011: [ If there are any failures vsprintf_char shall fail and return NULL. ]*/
+                LogError("failure in malloc((neededSize=%d + 1U) * sizeof(char)=%zu)", neededSize, sizeof(char));
+                /*return as is*/
+            }
+            else
+            {
+
+                /*Codes_SRS_STRING_UTILS_02_010: [ vsprintf_char shall output the string in the previously allocated memory by calling vsnprintf. ]*/
+                if (vsnprintf(result, neededSize + 1, format, va_clone) != neededSize)
+                {
+                    /*Codes_SRS_STRING_UTILS_02_011: [ If there are any failures vsprintf_char shall fail and return NULL. ]*/
+                    LogError("inconsistent vsnprintf behavior, errno=%d (%s)", errno, strerror(errno));
+                    free(result);
+                    result = NULL;
+                }
+                else
+                {
+                    /*Codes_SRS_STRING_UTILS_02_012: [ vsprintf_char shall succeed and return a non-NULL value. ]*/
+                }
             }
         }
+        va_end(va_clone);
     }
-    va_end(va_clone);
     return result;
 }
 
