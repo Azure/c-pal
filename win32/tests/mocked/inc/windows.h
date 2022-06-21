@@ -29,10 +29,6 @@ typedef long BOOL;
 #define TRUE 1
 #define INFINITE 0xFFFFFFFF
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
     LONGLONG InterlockedAdd64(
         LONGLONG volatile  * Addend,
         LONGLONG          Value
@@ -74,9 +70,5 @@ extern "C" {
 
 #define FormatMessage(...) 0
 #define GetLastError() 0
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif/*MOCKED_WINDOWS_H*/
