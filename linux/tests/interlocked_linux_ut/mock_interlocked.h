@@ -4,20 +4,11 @@
 #ifndef MOCK_INTERLOCKED_H
 #define MOCK_INTERLOCKED_H
 
-#ifdef __cplusplus
-#include <cstdint>
-
-#else
 #include <stdint.h>
 #include <stdbool.h>
-#endif
 
 #include "umock_c/umock_c_prod.h"
 #include "c_pal/interlocked.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 MOCKABLE_FUNCTION(, int16_t, mock_atomic_fetch_add_16, volatile_atomic int16_t*, object, int16_t, operand);
 MOCKABLE_FUNCTION(, int32_t, mock_atomic_fetch_add_32, volatile_atomic int32_t*, object, int32_t, operand);
@@ -50,7 +41,5 @@ MOCKABLE_FUNCTION(, int16_t, mock_atomic_load_16, volatile_atomic int16_t*, obje
 MOCKABLE_FUNCTION(, int32_t, mock_atomic_load_32, volatile_atomic int32_t*, object);
 MOCKABLE_FUNCTION(, int64_t, mock_atomic_load_64, volatile_atomic int64_t*, object);
 MOCKABLE_FUNCTION(, void*, mock_atomic_load_pointer, void* volatile_atomic*, object);
-#ifdef __cplusplus
-}
-#endif
+
 #endif

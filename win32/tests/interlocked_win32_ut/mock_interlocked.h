@@ -4,11 +4,6 @@
 #include "windows.h"
 #include "umock_c/umock_c_prod.h"
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 MOCKABLE_FUNCTION(, LONG, mock_InterlockedAdd, volatile LONG*, addend, LONG, value);
 MOCKABLE_FUNCTION(, LONG64, mock_InterlockedAdd64, volatile LONG64*, addend, LONG64, value);
 MOCKABLE_FUNCTION(, LONG, mock_InterlockedAnd, volatile LONG*, destination, LONG, value);
@@ -44,6 +39,3 @@ MOCKABLE_FUNCTION(, SHORT, mock_InterlockedXor16, volatile SHORT*, destination, 
 MOCKABLE_FUNCTION(, LONG64, mock_InterlockedXor64, volatile LONG64*, destination, LONG64, value);
 MOCKABLE_FUNCTION(, char, mock_InterlockedXor8, volatile char*, destination, char, value);
 
-#ifdef __cplusplus
-}
-#endif

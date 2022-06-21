@@ -5,10 +5,6 @@
 #include "umock_c/umock_c_prod.h"
 #include "c_pal/execution_engine.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 MOCKABLE_FUNCTION(, HANDLE, mock_CreateFileA, LPCSTR, lpFileName, DWORD, dwDesiredAccess, DWORD, dwShareMode, LPSECURITY_ATTRIBUTES, lpSecurityAttributes, DWORD, dwCreationDisposition, DWORD, dwFlagsansAttributes, HANDLE, hTemplateFile);
 MOCKABLE_FUNCTION(, BOOL, mock_SetFileCompletionNotificationModes, HANDLE, FileHandle, UCHAR, Flags);
 MOCKABLE_FUNCTION(, void, mock_InitializeThreadpoolEnvironment, PTP_CALLBACK_ENVIRON, pcbe);
@@ -28,7 +24,4 @@ MOCKABLE_FUNCTION(, BOOL, mock_ReadFile, HANDLE, hFile, LPVOID, lpBuffer, DWORD,
 MOCKABLE_FUNCTION(, DWORD, mock_GetLastError);
 MOCKABLE_FUNCTION(, void, mock_CancelThreadpoolIo, PTP_IO, pio);
 
-#ifdef __cplusplus
-}
-#endif
 
