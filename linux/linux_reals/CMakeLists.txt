@@ -9,6 +9,7 @@ set(linux_reals_c_files
     real_pipe.c
     real_sync.c
     real_uuid.c
+    real_string_utils_linux.c
 )
 
 set(linux_reals_h_files
@@ -16,6 +17,7 @@ set(linux_reals_h_files
     real_interlocked.h
     real_uuid_renames.h
     real_uuid.h
+    real_string_utils_linux.h
     ../../common/reals/real_refcount.h
 )
 
