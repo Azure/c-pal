@@ -5,6 +5,7 @@
 
 #include "c_pal/arithmetic.h" // IWYU pragma: keep
 #include "c_pal/uuid.h" // IWYU pragma: keep
+#include "c_pal/string_utils.h" // IWYU pragma: keep
 
 #define REGISTER_GLOBAL_MOCK_HOOK(original, real) \
     (original == real) ? (void)0 : (void)1;
@@ -14,8 +15,6 @@
 #include "real_arithmetic.h"
 #include "real_uuid.h"
 #include "real_string_utils.h"
-
-#include "c_pal/string_utils.h"
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
