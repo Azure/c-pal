@@ -17,7 +17,6 @@ set(linux_reals_h_files
     real_interlocked.h
     real_uuid_renames.h
     real_uuid.h
-    real_string_utils_linux.h
     ../../common/reals/real_refcount.h
 )
 
