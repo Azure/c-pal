@@ -6,6 +6,7 @@ if(NOT DEFINED CMAKE_MINIMUM_REQUIRED_VERSION)
 endif()
 
 # canon way of using c-pal from another repo is below. It assumes the using repo has placed c-pal in "deps"
+# here's an example command line: D:\r\COMPG\deps>git submodule add https://github.com/Azure/c-pal c-pal
 
 #if ((NOT TARGET c_pal) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/c-pal/CMakeLists.txt))
 #    add_subdirectory(deps/c-pal)
