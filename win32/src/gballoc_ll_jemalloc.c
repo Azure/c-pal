@@ -9,6 +9,38 @@
 
 #include "jemalloc/jemalloc.h"
 
+#define MAX_STATS_BUFFER_SIZE   (32 * 1024)
+
+typedef struct STATS_PRINT_TAG
+{
+    size_t pos;
+    char buffer[MAX_STATS_BUFFER_SIZE];
+} STATS_PRINT;
+
+static void gballoc_ll_je_malloc_message(void* ctx, const char* s)
+{
+    STATS_PRINT* stats_print = ctx;
+    if (stats_print->pos < MAX_STATS_BUFFER_SIZE)
+    {
+        int chars_written = snprintf(&stats_print->buffer[stats_print->pos], MAX_STATS_BUFFER_SIZE - stats_print->pos, "%s", s);
+        if (chars_written < 0)
+        {
+            stats_print->buffer[stats_print->pos] = '\0';
+        }
+        else
+        {
+            stats_print->pos += chars_written;
+        }
+    }
+
+    if (stats_print->pos > 8 * 1024)
+    {
+        LogInfo("%s", stats_print->buffer);
+        stats_print->pos = 0;
+        stats_print->buffer[stats_print->pos] = '\0';
+    }
+}
+
 int gballoc_ll_init(void* params)
 {
     /*Codes_SRS_GBALLOC_LL_JEMALLOC_01_001: [ gballoc_ll_init shall return 0. ]*/
@@ -182,3 +214,11 @@ size_t gballoc_ll_size(void* ptr)
     return result;
 }
 
+void gballoc_ll_print_stats(void)
+{
+    STATS_PRINT stats_print;
+    stats_print.pos = 0;
+    stats_print.buffer[0] = '\0';
+    je_malloc_stats_print(gballoc_ll_je_malloc_message, &stats_print, "");
+    LogInfo("%s", stats_print.buffer);
+}

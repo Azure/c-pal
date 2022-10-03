@@ -579,3 +579,8 @@ void gballoc_hl_free(void* ptr)
         }
     }
 }
+
+void gballoc_hl_print_stats(void)
+{
+    gballoc_ll_print_stats();
+}
