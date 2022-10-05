@@ -185,7 +185,18 @@ size_t gballoc_ll_size(void* ptr)
 static void jemalloc_print_stats_callback(void* context, const char* text)
 {
     (void)context;
-    LogInfo("%s", text);
+    size_t text_length = strlen(text);
+    size_t pos = 0;
+    while (pos < text_length)
+    {
+        size_t chars_to_print = text_length - pos;
+        if (chars_to_print > 1024)
+        {
+            chars_to_print = 1024;
+        }
+        LogInfo("%.*s", (int)chars_to_print, text + pos);
+        pos += chars_to_print;
+    }
 }
 
 void gballoc_ll_print_stats(void)
