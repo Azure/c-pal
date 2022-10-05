@@ -30,6 +30,8 @@ extern "C"
 
     MOCKABLE_FUNCTION(, size_t, gballoc_ll_size, void*, ptr);
 
+    MOCKABLE_FUNCTION(, void, gballoc_ll_print_stats);
+
 #ifdef __cplusplus
 }
 #endif

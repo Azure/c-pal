@@ -339,3 +339,7 @@ size_t gballoc_ll_size(void* ptr)
 
     return result;
 }
+
+void gballoc_ll_print_stats(void)
+{
+}
