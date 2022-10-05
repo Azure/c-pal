@@ -182,6 +182,13 @@ size_t gballoc_ll_size(void* ptr)
     return result;
 }
 
+static void jemalloc_print_stats_callback(void* context, const char* text)
+{
+    (void)context;
+    LogInfo("%s", text);
+}
+
 void gballoc_ll_print_stats(void)
 {
+    je_malloc_stats_print(jemalloc_print_stats_callback, NULL, NULL);
 }

@@ -1882,4 +1882,19 @@ TEST_FUNCTION(gballoc_hl_get_latency_bucket_metadata_returns_the_array_with_the_
     gballoc_hl_deinit();
 }
 
+/* gballoc_hl_print_stats */
+
+/* Tests_SRS_GBALLOC_HL_METRICS_01_040: [ gballoc_hl_print_stats shall call into gballoc_ll_print_stats to print the memory allocator statistics. ]*/
+TEST_FUNCTION(gballoc_hl_print_stats_calls_gballoc_ll_print_stats)
+{
+    ///arrange
+    STRICT_EXPECTED_CALL(gballoc_ll_print_stats());
+
+    ///act
+    gballoc_hl_print_stats();
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

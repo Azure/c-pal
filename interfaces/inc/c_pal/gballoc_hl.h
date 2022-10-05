@@ -59,6 +59,8 @@ extern "C" {
 
     MOCKABLE_FUNCTION(, const GBALLOC_LATENCY_BUCKET_METADATA*, gballoc_hl_get_latency_bucket_metadata);
 
+    MOCKABLE_FUNCTION(, void, gballoc_hl_print_stats);
+
 #ifdef __cplusplus
 }
 #endif

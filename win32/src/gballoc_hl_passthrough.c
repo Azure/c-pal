@@ -315,4 +315,9 @@ const GBALLOC_LATENCY_BUCKET_METADATA* gballoc_hl_get_latency_bucket_metadata(vo
     /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_016: [ Each consecutive bucket shall be [1 << n, (1 << (n + 1)) - 1], where n starts at 9. ]*/
     return latency_buckets_metadata;
 }
- 
+
+void gballoc_hl_print_stats()
+{
+    /* Codes_SRS_GBALLOC_HL_PASSTHROUGH_01_001: [ gballoc_hl_print_stats shall call into gballoc_ll_print_stats to print the memory allocator statistics. ]*/
+    gballoc_ll_print_stats();
+}

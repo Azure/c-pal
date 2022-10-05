@@ -261,4 +261,14 @@ TEST_FUNCTION(gballoc_ll_size_works)
 
 }
 
+TEST_FUNCTION(gballoc_ll_print_stats_can_be_called_but_does_nothing)
+{
+    /// arrange
+
+    ///act
+    gballoc_ll_print_stats();
+
+    ///assert
+}
+
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

@@ -342,4 +342,5 @@ size_t gballoc_ll_size(void* ptr)
 
 void gballoc_ll_print_stats(void)
 {
+    /* Codes_SRS_GBALLOC_LL_WIN32HEAP_01_001: [ gballoc_ll_print_stats shall return without printing any statistics. ]*/
 }

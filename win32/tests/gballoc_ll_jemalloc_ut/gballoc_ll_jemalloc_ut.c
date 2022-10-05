@@ -17,6 +17,8 @@ static void* TEST_REALLOC_RESULT = (void*)0x3;
 
 #include "umock_c/umock_c.h"
 
+typedef void (*JEMALLOC_WRITE_CB)(void*, const char*);
+
 #define ENABLE_MOCKS
 #include "umock_c/umock_c_prod.h"
 
@@ -26,6 +28,7 @@ static void* TEST_REALLOC_RESULT = (void*)0x3;
     MOCKABLE_FUNCTION(, void, mock_je_free, void*, ptr);
 
     MOCKABLE_FUNCTION(, size_t, mock_je_malloc_usable_size, void*, ptr);
+    MOCKABLE_FUNCTION(, void, mock_je_malloc_stats_print, JEMALLOC_WRITE_CB, write_cb, void*, cbopaque, const char*, opts)
 
 #undef ENABLE_MOCKS
 

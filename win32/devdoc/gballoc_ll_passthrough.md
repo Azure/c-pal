@@ -139,4 +139,12 @@ MOCKABLE_FUNCTION(, size_t, gballoc_ll_size, void*, ptr);
 
 **SRS_GBALLOC_LL_PASSTHROUGH_02_007: [** `gballoc_ll_size` shall return what `_msize` returns. **]**
 
+### gballoc_ll_print_stats
 
+```c
+MOCKABLE_FUNCTION(, void, gballoc_ll_print_stats);
+```
+
+**SRS_GBALLOC_LL_PASSTHROUGH_01_001: [** `gballoc_ll_print_stats` shall return without printing any statistics. **]**
+
+Note: printing of statistics is not implemented for `passthrough`.

@@ -579,3 +579,9 @@ void gballoc_hl_free(void* ptr)
         }
     }
 }
+
+void gballoc_hl_print_stats()
+{
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_040: [ gballoc_hl_print_stats shall call into gballoc_ll_print_stats to print the memory allocator statistics. ]*/
+    gballoc_ll_print_stats();
+}

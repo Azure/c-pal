@@ -8,11 +8,13 @@
 #define je_calloc mock_je_calloc
 #define je_realloc mock_je_realloc
 #define je_malloc_usable_size mock_je_malloc_usable_size
+#define je_malloc_stats_print mock_je_malloc_stats_print
 
 void* mock_je_malloc(size_t size);
 void* mock_je_calloc(size_t nmemb, size_t size);
 void* mock_je_realloc(void* ptr, size_t size);
 void mock_je_free(void* ptr);
 size_t mock_je_malloc_usable_size(void* ptr);
+void mock_je_malloc_stats_print(void (*write_cb)(void*, const char*), void* cbopaque, const char* opts);
 
 #include "../../src/gballoc_ll_jemalloc.c"

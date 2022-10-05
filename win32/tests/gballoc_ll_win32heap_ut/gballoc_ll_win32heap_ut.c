@@ -1003,4 +1003,16 @@ TEST_FUNCTION(gballoc_ll_size_returns_what_HeapSize_returned_when_it_fails)
     ///clean
 }
 
+/* Tests_SRS_GBALLOC_LL_WIN32HEAP_01_001: [ gballoc_ll_print_stats shall return without printing any statistics. ]*/
+TEST_FUNCTION(gballoc_ll_print_stats_returns)
+{
+    ///arrange
+
+    ///act
+    gballoc_ll_print_stats();
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

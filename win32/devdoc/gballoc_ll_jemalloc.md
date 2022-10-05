@@ -144,3 +144,12 @@ MOCKABLE_FUNCTION(, size_t, gballoc_ll_size, void*, ptr);
 
 **SRS_GBALLOC_LL_JEMALLOC_01_007: [** `gballoc_ll_size` shall call `je_malloc_usable_size` and return what `je_malloc_usable_size` returned. **]**
 
+### gballoc_ll_print_stats
+
+```c
+MOCKABLE_FUNCTION(, void, gballoc_ll_print_stats);
+```
+
+`gballoc_ll_print_stats` prints the memory allocation statistics.
+
+`gballoc_ll_print_stats` shall .

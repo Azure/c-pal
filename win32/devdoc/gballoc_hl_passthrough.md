@@ -52,6 +52,8 @@ gballoc_hl_passthrough is a module that delegates all call of its APIs to the on
     MOCKABLE_FUNCTION(, int, gballoc_hl_get_free_latency_buckets, GBALLOC_LATENCY_BUCKETS*, latency_buckets_out);
 
     MOCKABLE_FUNCTION(, const GBALLOC_LATENCY_BUCKET_METADATA*, gballoc_hl_get_latency_bucket_metadata);
+
+    MOCKABLE_FUNCTION(, void, gballoc_hl_print_stats);
 ```
 
 
@@ -267,3 +269,13 @@ One latency bucket contains a friendly name for the bucket and its low and high 
 **SRS_GBALLOC_HL_PASSTHROUGH_02_016: [** Each consecutive bucket shall be `[1 << n, (1 << (n + 1)) - 1]`, where n starts at 9. **]**
 
 Note: buckets are in this case: `[512-1023]`, `[1024-2047]`, etc.
+
+### gballoc_hl_print_stats
+
+```c
+MOCKABLE_FUNCTION(, void, gballoc_hl_print_stats);
+```
+
+`gballoc_hl_print_stats` prints the memory allocation statistics.
+
+**SRS_GBALLOC_HL_PASSTHROUGH_01_001: [** `gballoc_hl_print_stats` shall call into `gballoc_ll_print_stats` to print the memory allocator statistics. **]**
