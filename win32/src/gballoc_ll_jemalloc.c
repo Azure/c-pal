@@ -185,21 +185,32 @@ size_t gballoc_ll_size(void* ptr)
 static void jemalloc_print_stats_callback(void* context, const char* text)
 {
     (void)context;
-    size_t text_length = strlen(text);
-    size_t pos = 0;
-    while (pos < text_length)
+
+    if (text == NULL)
     {
-        size_t chars_to_print = text_length - pos;
-        if (chars_to_print > 1024)
+        /* Codes_SRS_GBALLOC_LL_JEMALLOC_01_009: [ If text is NULL, jemalloc_print_stats_callback shall return. ]*/
+    }
+    else
+    {
+        /* Codes_SRS_GBALLOC_LL_JEMALLOC_01_010: [ Otherwise, jemalloc_print_stats_callback shall print (log) text, breaking it does in chunks of LOG_SIZE_REGULAR / 2. ]*/
+        size_t text_length = strlen(text);
+        size_t pos = 0;
+        while (pos < text_length)
         {
-            chars_to_print = 1024;
+            size_t chars_to_print = text_length - pos;
+            if (chars_to_print > LOG_SIZE_REGULAR / 2)
+            {
+                chars_to_print = LOG_SIZE_REGULAR / 2;
+            }
+
+            LogInfo("%.*s", (int)chars_to_print, text + pos);
+            pos += chars_to_print;
         }
-        LogInfo("%.*s", (int)chars_to_print, text + pos);
-        pos += chars_to_print;
     }
 }
 
 void gballoc_ll_print_stats(void)
 {
+    /* Codes_SRS_GBALLOC_LL_JEMALLOC_01_008: [ gballoc_ll_print_stats shall call je_malloc_stats_print and pass to it jemalloc_print_stats_callback as print callback. ]*/
     je_malloc_stats_print(jemalloc_print_stats_callback, NULL, NULL);
 }

@@ -25,6 +25,7 @@ gballoc_ll_jemalloc is a module that delegates all call of its APIs to the ones 
 
     MOCKABLE_FUNCTION(, size_t, gballoc_ll_size, void*, ptr);
 
+    MOCKABLE_FUNCTION(, void, gballoc_ll_print_stats);
 ```
 
 ### gballoc_ll_init
@@ -152,4 +153,16 @@ MOCKABLE_FUNCTION(, void, gballoc_ll_print_stats);
 
 `gballoc_ll_print_stats` prints the memory allocation statistics.
 
-`gballoc_ll_print_stats` shall .
+**SRS_GBALLOC_LL_JEMALLOC_01_008: [** `gballoc_ll_print_stats` shall call `je_malloc_stats_print` and pass to it `jemalloc_print_stats_callback` as print callback. **]**
+
+### jemalloc_print_stats_callback
+
+```c
+static void jemalloc_print_stats_callback(void* context, const char* text)
+```
+
+`jemalloc_print_stats_callback` is the callback that logs the stats information.
+
+If `text` is NULL, `jemalloc_print_stats_callback` shall return.
+
+Otherwise, `jemalloc_print_stats_callback` shall print (log) `text`, breaking it does in chunks of `LOG_SIZE_REGULAR / 2`.

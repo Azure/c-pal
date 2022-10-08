@@ -25,6 +25,7 @@ gballoc_ll_mimalloc is a module that delegates all call of its APIs to the ones 
 
     MOCKABLE_FUNCTION(, size_t, gballoc_ll_size, void*, ptr);
 
+    MOCKABLE_FUNCTION(, void, gballoc_ll_print_stats);
 ```
 
 ### gballoc_ll_init

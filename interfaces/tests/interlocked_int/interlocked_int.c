@@ -248,7 +248,7 @@ TEST_FUNCTION(interlocked_compare_exchange_does_not_exchange_when_not_equal)
 
 #ifdef _WIN64
 /*Tests_SRS_INTERLOCKED_43_007: [ interlocked_compare_exchange_128 shall compare *destination with *comperand_result. If they are equal, destination[0] is set to exchange_low and destination[1] is set to exchange_high. These operations are performed atomically.]*/
-/*Tests_SRS_INTERLOCKED_43_039: [ interlocked_compare_exchange_128 shall store the initial value of *destination in *comperand_result regardless of the result of the comparison.` ]*/
+/*Tests_SRS_INTERLOCKED_43_039: [ interlocked_compare_exchange_128 shall store the initial value of *destination in *comperand_result regardless of the result of the comparison. ]*/
 /*Tests_SRS_INTERLOCKED_43_038: [ interlocked_compare_exchange_128 shall return true if *comperand_result equals the original value of *destination.]*/
 TEST_FUNCTION(interlocked_compare_exchange_128_exchanges_when_equal)
 {
@@ -281,7 +281,7 @@ TEST_FUNCTION(interlocked_compare_exchange_128_exchanges_when_equal)
 }
 
 
-/*Tests_SRS_INTERLOCKED_43_039: [ interlocked_compare_exchange_128 shall store the initial value of *destination in *comperand_result regardless of the result of the comparison.` ]*/
+/*Tests_SRS_INTERLOCKED_43_039: [ interlocked_compare_exchange_128 shall store the initial value of *destination in *comperand_result regardless of the result of the comparison. ]*/
 /*Tests_SRS_INTERLOCKED_43_063: [ interlocked_compare_exchange_128 shall return false if *comperand_result does not equal the original value of *destination. ]*/
 TEST_FUNCTION(interlocked_compare_exchange_128_does_not_exchange_when_not_equal)
 {

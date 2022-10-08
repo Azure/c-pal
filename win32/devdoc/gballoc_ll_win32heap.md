@@ -24,6 +24,8 @@ gballoc_ll_win32heap is a module that delegates all call of its APIs to the ones
     MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc_flex, void*, ptr, size_t, base, size_t, nmemb, size_t, size);
 
     MOCKABLE_FUNCTION(, size_t, gballoc_ll_size, void*, ptr);
+
+    MOCKABLE_FUNCTION(, void, gballoc_ll_print_stats);
 ```
 
 ### gballoc_ll_init
