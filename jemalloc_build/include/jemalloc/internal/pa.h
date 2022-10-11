@@ -6,9 +6,11 @@
 #include "jemalloc/internal/ecache.h"
 #include "jemalloc/internal/edata_cache.h"
 #include "jemalloc/internal/emap.h"
+#include "jemalloc/internal/hpa.h"
 #include "jemalloc/internal/lockedint.h"
 #include "jemalloc/internal/pac.h"
 #include "jemalloc/internal/pai.h"
+#include "jemalloc/internal/sec.h"
 
 /*
  * The page allocator; responsible for acquiring pages of memory for
@@ -17,6 +19,11 @@
  * only such implementation is the PAC code ("page allocator classic"), but
  * others will be coming soon.
  */
+
+typedef struct pa_central_s pa_central_t;
+struct pa_central_s {
+	hpa_central_t hpa;
+};
 
 /*
  * The stats for a particular pa_shard.  Because of the way the ctl module
@@ -59,6 +66,9 @@ struct pa_shard_stats_s {
  */
 typedef struct pa_shard_s pa_shard_t;
 struct pa_shard_s {
+	/* The central PA this shard is associated with. */
+	pa_central_t *central;
+
 	/*
 	 * Number of pages in active extents.
 	 *
@@ -66,11 +76,37 @@ struct pa_shard_s {
 	 */
 	atomic_zu_t nactive;
 
+	/*
+	 * Whether or not we should prefer the hugepage allocator.  Atomic since
+	 * it may be concurrently modified by a thread setting extent hooks.
+	 * Note that we still may do HPA operations in this arena; if use_hpa is
+	 * changed from true to false, we'll free back to the hugepage allocator
+	 * for those allocations.
+	 */
+	atomic_b_t use_hpa;
+
+	/*
+	 * If we never used the HPA to begin with, it wasn't initialized, and so
+	 * we shouldn't try to e.g. acquire its mutexes during fork.  This
+	 * tracks that knowledge.
+	 */
+	bool ever_used_hpa;
+
 	/* Allocates from a PAC. */
 	pac_t pac;
 
+	/*
+	 * We place a small extent cache in front of the HPA, since we intend
+	 * these configurations to use many fewer arenas, and therefore have a
+	 * higher risk of hot locks.
+	 */
+	sec_t hpa_sec;
+	hpa_shard_t hpa_shard;
+
 	/* The source of edata_t objects. */
 	edata_cache_t edata_cache;
+
+	unsigned ind;
 
 	malloc_mutex_t *stats_mtx;
 	pa_shard_stats_t *stats;
@@ -94,15 +130,34 @@ pa_shard_ehooks_get(pa_shard_t *shard) {
 }
 
 /* Returns true on error. */
-bool pa_shard_init(tsdn_t *tsdn, pa_shard_t *shard, emap_t *emap, base_t *base,
-    unsigned ind, pa_shard_stats_t *stats, malloc_mutex_t *stats_mtx,
-    nstime_t *cur_time, ssize_t dirty_decay_ms, ssize_t muzzy_decay_ms);
+bool pa_central_init(pa_central_t *central, base_t *base, bool hpa,
+    hpa_hooks_t *hpa_hooks);
+
+/* Returns true on error. */
+bool pa_shard_init(tsdn_t *tsdn, pa_shard_t *shard, pa_central_t *central,
+    emap_t *emap, base_t *base, unsigned ind, pa_shard_stats_t *stats,
+    malloc_mutex_t *stats_mtx, nstime_t *cur_time, size_t oversize_threshold,
+    ssize_t dirty_decay_ms, ssize_t muzzy_decay_ms);
+
+/*
+ * This isn't exposed to users; we allow late enablement of the HPA shard so
+ * that we can boot without worrying about the HPA, then turn it on in a0.
+ */
+bool pa_shard_enable_hpa(tsdn_t *tsdn, pa_shard_t *shard,
+    const hpa_shard_opts_t *hpa_opts, const sec_opts_t *hpa_sec_opts);
+
+/*
+ * We stop using the HPA when custom extent hooks are installed, but still
+ * redirect deallocations to it.
+ */
+void pa_shard_disable_hpa(tsdn_t *tsdn, pa_shard_t *shard);
 
 /*
  * This does the PA-specific parts of arena reset (i.e. freeing all active
  * allocations).
  */
-void pa_shard_reset(pa_shard_t *shard);
+void pa_shard_reset(tsdn_t *tsdn, pa_shard_t *shard);
+
 /*
  * Destroy all the remaining retained extents.  Should only be called after
  * decaying all active, dirty, and muzzy extents to the retained state, as the
@@ -112,29 +167,42 @@ void pa_shard_destroy(tsdn_t *tsdn, pa_shard_t *shard);
 
 /* Gets an edata for the given allocation. */
 edata_t *pa_alloc(tsdn_t *tsdn, pa_shard_t *shard, size_t size,
-    size_t alignment, bool slab, szind_t szind, bool zero);
+    size_t alignment, bool slab, szind_t szind, bool zero, bool guarded,
+    bool *deferred_work_generated);
 /* Returns true on error, in which case nothing changed. */
 bool pa_expand(tsdn_t *tsdn, pa_shard_t *shard, edata_t *edata, size_t old_size,
-    size_t new_size, szind_t szind, bool zero);
+    size_t new_size, szind_t szind, bool zero, bool *deferred_work_generated);
 /*
  * The same.  Sets *generated_dirty to true if we produced new dirty pages, and
  * false otherwise.
  */
 bool pa_shrink(tsdn_t *tsdn, pa_shard_t *shard, edata_t *edata, size_t old_size,
-    size_t new_size, szind_t szind, bool *generated_dirty);
+    size_t new_size, szind_t szind, bool *deferred_work_generated);
 /*
  * Frees the given edata back to the pa.  Sets *generated_dirty if we produced
- * new dirty pages (well, we alwyas set it for now; but this need not be the
+ * new dirty pages (well, we always set it for now; but this need not be the
  * case).
  * (We could make generated_dirty the return value of course, but this is more
  * consistent with the shrink pathway and our error codes here).
  */
 void pa_dalloc(tsdn_t *tsdn, pa_shard_t *shard, edata_t *edata,
-    bool *generated_dirty);
-
+    bool *deferred_work_generated);
 bool pa_decay_ms_set(tsdn_t *tsdn, pa_shard_t *shard, extent_state_t state,
     ssize_t decay_ms, pac_purge_eagerness_t eagerness);
 ssize_t pa_decay_ms_get(pa_shard_t *shard, extent_state_t state);
+
+/*
+ * Do deferred work on this PA shard.
+ *
+ * Morally, this should do both PAC decay and the HPA deferred work.  For now,
+ * though, the arena, background thread, and PAC modules are tightly interwoven
+ * in a way that's tricky to extricate, so we only do the HPA-specific parts.
+ */
+void pa_shard_set_deferral_allowed(tsdn_t *tsdn, pa_shard_t *shard,
+    bool deferral_allowed);
+void pa_shard_do_deferred_work(tsdn_t *tsdn, pa_shard_t *shard);
+void pa_shard_try_deferred_work(tsdn_t *tsdn, pa_shard_t *shard);
+uint64_t pa_shard_time_until_deferred_work(tsdn_t *tsdn, pa_shard_t *shard);
 
 /******************************************************************************/
 /*
@@ -151,6 +219,7 @@ void pa_shard_prefork0(tsdn_t *tsdn, pa_shard_t *shard);
 void pa_shard_prefork2(tsdn_t *tsdn, pa_shard_t *shard);
 void pa_shard_prefork3(tsdn_t *tsdn, pa_shard_t *shard);
 void pa_shard_prefork4(tsdn_t *tsdn, pa_shard_t *shard);
+void pa_shard_prefork5(tsdn_t *tsdn, pa_shard_t *shard);
 void pa_shard_postfork_parent(tsdn_t *tsdn, pa_shard_t *shard);
 void pa_shard_postfork_child(tsdn_t *tsdn, pa_shard_t *shard);
 
@@ -159,6 +228,7 @@ void pa_shard_basic_stats_merge(pa_shard_t *shard, size_t *nactive,
 
 void pa_shard_stats_merge(tsdn_t *tsdn, pa_shard_t *shard,
     pa_shard_stats_t *pa_shard_stats_out, pac_estats_t *estats_out,
+    hpa_shard_stats_t *hpa_stats_out, sec_stats_t *sec_stats_out,
     size_t *resident);
 
 /*

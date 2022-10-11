@@ -189,3 +189,8 @@ size_t gballoc_ll_size(void* ptr)
 
     return result;
 }
+
+void gballoc_ll_print_stats(void)
+{
+    /* Codes_SRS_GBALLOC_LL_PASSTHROUGH_01_001: [ gballoc_ll_print_stats shall return without printing any statistics. ]*/
+}

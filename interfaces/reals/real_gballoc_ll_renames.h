@@ -12,3 +12,4 @@
 #define gballoc_ll_realloc_2        real_gballoc_ll_realloc_2
 #define gballoc_ll_realloc_flex     real_gballoc_ll_realloc_flex
 #define gballoc_ll_size             real_gballoc_ll_size
+#define gballoc_ll_print_stats      real_gballoc_ll_print_stats

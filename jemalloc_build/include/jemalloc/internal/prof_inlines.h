@@ -1,5 +1,5 @@
-#ifndef JEMALLOC_INTERNAL_PROF_INLINES_B_H
-#define JEMALLOC_INTERNAL_PROF_INLINES_B_H
+#ifndef JEMALLOC_INTERNAL_PROF_INLINES_H
+#define JEMALLOC_INTERNAL_PROF_INLINES_H
 
 #include "jemalloc/internal/safety_check.h"
 #include "jemalloc/internal/sz.h"
@@ -12,7 +12,7 @@ prof_active_assert() {
 	 * If opt_prof is off, then prof_active must always be off, regardless
 	 * of whether prof_active_mtx is in effect or not.
 	 */
-	assert(opt_prof || !prof_active);
+	assert(opt_prof || !prof_active_state);
 }
 
 JEMALLOC_ALWAYS_INLINE bool
@@ -24,7 +24,7 @@ prof_active_get_unlocked(void) {
 	 * prof_active in the fast path, so there are no guarantees regarding
 	 * how long it will take for all threads to notice state changes.
 	 */
-	return prof_active;
+	return prof_active_state;
 }
 
 JEMALLOC_ALWAYS_INLINE bool
@@ -98,12 +98,12 @@ prof_tctx_reset_sampled(tsd_t *tsd, const void *ptr) {
 }
 
 JEMALLOC_ALWAYS_INLINE void
-prof_info_set(tsd_t *tsd, edata_t *edata, prof_tctx_t *tctx) {
+prof_info_set(tsd_t *tsd, edata_t *edata, prof_tctx_t *tctx, size_t size) {
 	cassert(config_prof);
 	assert(edata != NULL);
 	assert((uintptr_t)tctx > (uintptr_t)1U);
 
-	arena_prof_info_set(tsd, edata, tctx);
+	arena_prof_info_set(tsd, edata, tctx, size);
 }
 
 JEMALLOC_ALWAYS_INLINE bool
@@ -115,9 +115,12 @@ prof_sample_should_skip(tsd_t *tsd, bool sample_event) {
 		return true;
 	}
 
-	if (tsd_reentrancy_level_get(tsd) > 0) {
-		return true;
-	}
+	/*
+	 * sample_event is always obtained from the thread event module, and
+	 * whenever it's true, it means that the thread event module has
+	 * already checked the reentrancy level.
+	 */
+	assert(tsd_reentrancy_level_get(tsd) == 0);
 
 	prof_tdata_t *tdata = prof_tdata_get(tsd, true);
 	if (unlikely(tdata == NULL)) {
@@ -220,7 +223,7 @@ prof_sample_align(size_t orig_align) {
 	 * w/o metadata lookup.
 	 */
 	assert(opt_prof);
-	return (config_cache_oblivious && orig_align < PAGE) ? PAGE :
+	return (opt_cache_oblivious && orig_align < PAGE) ? PAGE :
 	    orig_align;
 }
 
@@ -255,4 +258,4 @@ prof_free(tsd_t *tsd, const void *ptr, size_t usize,
 	}
 }
 
-#endif /* JEMALLOC_INTERNAL_PROF_INLINES_B_H */
+#endif /* JEMALLOC_INTERNAL_PROF_INLINES_H */

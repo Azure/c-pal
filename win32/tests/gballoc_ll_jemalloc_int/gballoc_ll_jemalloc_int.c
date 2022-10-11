@@ -256,6 +256,21 @@ TEST_FUNCTION(gballoc_ll_size_works)
 
     ///clean
     gballoc_ll_free(ptr);
-
 }
+
+TEST_FUNCTION(gballoc_ll_print_stats_works)
+{
+    /// arrange
+    void* ptr = gballoc_ll_malloc(4);
+    ASSERT_IS_NOT_NULL(ptr);
+
+    ///act
+    gballoc_ll_print_stats();
+
+    ///assert - this is less than ideal, but the original size asked to be malloc'd is lost
+
+    ///clean
+    gballoc_ll_free(ptr);
+}
+
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

@@ -17,6 +17,19 @@ static void* TEST_REALLOC_RESULT = (void*)0x3;
 
 #include "umock_c/umock_c.h"
 
+typedef void (*JEMALLOC_WRITE_CB)(void*, const char*);
+
+typedef struct PRINT_FUNCTION_CB_DATA_TAG
+{
+    const char* text_to_print;
+} PRINT_FUNCTION_CB_DATA;
+
+#define MAX_PRINT_FUNCTION_CB 10
+
+static size_t g_call_print_cb_count = 0;
+static PRINT_FUNCTION_CB_DATA g_call_print_cb[MAX_PRINT_FUNCTION_CB];
+
+
 #define ENABLE_MOCKS
 #include "umock_c/umock_c_prod.h"
 
@@ -26,6 +39,12 @@ static void* TEST_REALLOC_RESULT = (void*)0x3;
     MOCKABLE_FUNCTION(, void, mock_je_free, void*, ptr);
 
     MOCKABLE_FUNCTION(, size_t, mock_je_malloc_usable_size, void*, ptr);
+    MOCKABLE_FUNCTION_WITH_CODE(, void, mock_je_malloc_stats_print, JEMALLOC_WRITE_CB, write_cb, void*, cbopaque, const char*, opts)
+        for (size_t i = 0; i < g_call_print_cb_count; i++)
+        {
+            write_cb(cbopaque, g_call_print_cb[i].text_to_print);
+        }
+    MOCKABLE_FUNCTION_END()
 
 #undef ENABLE_MOCKS
 
@@ -50,6 +69,8 @@ TEST_SUITE_INITIALIZE(TestClassInitialize)
     REGISTER_GLOBAL_MOCK_RETURN(mock_je_malloc, TEST_MALLOC_RESULT);
     REGISTER_GLOBAL_MOCK_RETURN(mock_je_calloc, TEST_CALLOC_RESULT);
     REGISTER_GLOBAL_MOCK_RETURN(mock_je_realloc, TEST_REALLOC_RESULT);
+
+    REGISTER_UMOCK_ALIAS_TYPE(JEMALLOC_WRITE_CB, void*)
 }
 
 TEST_SUITE_CLEANUP(TestClassCleanup)
@@ -73,6 +94,8 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
 {
     TEST_MUTEX_RELEASE(g_testByTest);
 }
+
+/* gballoc_ll_init */
 
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_01_001: [ gballoc_ll_init shall return 0. ]*/
 TEST_FUNCTION(gballoc_ll_init_returns_0)
@@ -106,6 +129,8 @@ TEST_FUNCTION(gballoc_ll_init_with_non_NULL_pointer_returns_0)
     ///clean
 }
 
+/* gballoc_ll_deinit */
+
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_01_002: [ gballoc_ll_deinit shall return. ]*/
 TEST_FUNCTION(gballoc_ll_deinit_returns)
 {
@@ -119,6 +144,8 @@ TEST_FUNCTION(gballoc_ll_deinit_returns)
 
     ///clean
 }
+
+/* gballoc_ll_malloc */
 
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_01_003: [ gballoc_ll_malloc shall call je_malloc and returns what je_malloc returned. ]*/
 TEST_FUNCTION(gballoc_ll_malloc_calls_jemalloc)
@@ -137,6 +164,8 @@ TEST_FUNCTION(gballoc_ll_malloc_calls_jemalloc)
     ///clean
     gballoc_ll_free(ptr);
 }
+
+/* gballoc_ll_malloc_2 */
 
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_02_001: [ If nmemb * size exceeds SIZE_MAX then gballoc_ll_malloc_2 shall fail and return NULL. ]*/
 TEST_FUNCTION(gballoc_ll_malloc_2_with_overflow_fails)
@@ -208,6 +237,8 @@ TEST_FUNCTION(gballoc_ll_malloc_2_with_SIZE_MAX_calls_je_malloc_and_fails)
 
     ///clean
 }
+
+/* gballoc_ll_malloc_flex */
 
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_02_004: [ If base + nmemb * size exceeds SIZE_MAX then gballoc_ll_malloc_flex shall fail and return NULL. ]*/
 TEST_FUNCTION(gballoc_ll_malloc_flex_with_overflow_fail_1)
@@ -296,6 +327,8 @@ TEST_FUNCTION(gballoc_ll_malloc_flex_with_SIZE_MAX_fails)
     ///clean
 }
 
+/* gballoc_ll_free */
+
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_01_004: [ gballoc_ll_free shall call je_free(ptr). ]*/
 TEST_FUNCTION(gballoc_ll_free_calls_je_free)
 {
@@ -312,8 +345,10 @@ TEST_FUNCTION(gballoc_ll_free_calls_je_free)
     ///clean
 }
 
+/* gballoc_ll_calloc */
+
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_01_005: [ gballoc_ll_calloc shall call je_calloc(nmemb, size) and return what je_calloc returned. ]*/
-TEST_FUNCTION(gballoc_ll_calloc_calls_mi_calloc)
+TEST_FUNCTION(gballoc_ll_calloc_calls_je_calloc)
 {
     ///arrange
 
@@ -330,8 +365,10 @@ TEST_FUNCTION(gballoc_ll_calloc_calls_mi_calloc)
     gballoc_ll_free(ptr);
 }
 
+/* gballoc_ll_realloc */
+
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_01_006: [ gballoc_ll_realloc calls je_realloc(ptr, size) and returns what je_realloc returned. ]*/
-TEST_FUNCTION(gballoc_ll_realloc_calls_mi_realloc)
+TEST_FUNCTION(gballoc_ll_realloc_calls_je_realloc)
 {
     ///arrange
     void* ptr1 = gballoc_ll_malloc(1);
@@ -351,6 +388,8 @@ TEST_FUNCTION(gballoc_ll_realloc_calls_mi_realloc)
     ///clean
     gballoc_ll_free(ptr2);
 }
+
+/* gballoc_ll_realloc_2 */
 
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_02_006: [ If nmemb * size exceeds SIZE_MAX then gballoc_ll_realloc_2 shall fail and return NULL. ]*/
 TEST_FUNCTION(gballoc_ll_realloc_2_with_overflow_returns_NULL)
@@ -414,6 +453,8 @@ TEST_FUNCTION(gballoc_ll_realloc_2_with_SIZE_MAX_fails)
     ASSERT_IS_NULL(ptr);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
+
+/* gballoc_ll_realloc_flex */
 
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_02_008: [ If nmemb * size exceeds SIZE_MAX then gballoc_ll_realloc_flex shall fail and return NULL. ]*/
 TEST_FUNCTION(gballoc_ll_realloc_flex_with_overflow_fails_1)
@@ -492,8 +533,10 @@ TEST_FUNCTION(gballoc_ll_realloc_flex_with_SIZE_MAX_fails)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
+/* gballoc_ll_size */
+
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_01_007: [ gballoc_ll_size shall call je_malloc_usable_size and return what je_malloc_usable_size returned. ]*/
-TEST_FUNCTION(gballoc_ll_size_calls_mi_usable_size)
+TEST_FUNCTION(gballoc_ll_size_calls_je_malloc_usable_size)
 {
     ///arrange
     size_t size;
@@ -506,6 +549,98 @@ TEST_FUNCTION(gballoc_ll_size_calls_mi_usable_size)
 
     ///assert
     ASSERT_ARE_EQUAL(size_t, 32, size);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/* gballoc_ll_size_print_stats */
+
+/* Tests_SRS_GBALLOC_LL_JEMALLOC_01_008: [ gballoc_ll_print_stats shall call je_malloc_stats_print and pass to it jemalloc_print_stats_callback as print callback. ]*/
+TEST_FUNCTION(gballoc_ll_print_stats_does_not_call_the_print_function)
+{
+    ///arrange
+    g_call_print_cb_count = 0;
+    STRICT_EXPECTED_CALL(mock_je_malloc_stats_print(IGNORED_ARG, NULL, NULL));
+
+    ///act
+    gballoc_ll_print_stats();
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/* Tests_SRS_GBALLOC_LL_JEMALLOC_01_008: [ gballoc_ll_print_stats shall call je_malloc_stats_print and pass to it jemalloc_print_stats_callback as print callback. ]*/
+/* Tests_SRS_GBALLOC_LL_JEMALLOC_01_010: [ Otherwise, jemalloc_print_stats_callback shall print (log) text, breaking it does in chunks of LOG_SIZE_REGULAR / 2. ]*/
+TEST_FUNCTION(gballoc_ll_print_stats_calls_the_print_function_and_prints_1_small_text_line)
+{
+    ///arrange
+    g_call_print_cb_count = 1;
+    g_call_print_cb[0].text_to_print = "gogu";
+    STRICT_EXPECTED_CALL(mock_je_malloc_stats_print(IGNORED_ARG, NULL, NULL));
+
+    ///act
+    gballoc_ll_print_stats();
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/* Tests_SRS_GBALLOC_LL_JEMALLOC_01_008: [ gballoc_ll_print_stats shall call je_malloc_stats_print and pass to it jemalloc_print_stats_callback as print callback. ]*/
+/* Tests_SRS_GBALLOC_LL_JEMALLOC_01_010: [ Otherwise, jemalloc_print_stats_callback shall print (log) text, breaking it does in chunks of LOG_SIZE_REGULAR / 2. ]*/
+TEST_FUNCTION(gballoc_ll_print_stats_calls_the_print_function_and_prints_multiple_small_text_lines)
+{
+    ///arrange
+    g_call_print_cb_count = 3;
+    g_call_print_cb[0].text_to_print = "Don't";
+    g_call_print_cb[1].text_to_print = "Panic";
+    g_call_print_cb[2].text_to_print = "!!!";
+    STRICT_EXPECTED_CALL(mock_je_malloc_stats_print(IGNORED_ARG, NULL, NULL));
+
+    ///act
+    gballoc_ll_print_stats();
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/* Tests_SRS_GBALLOC_LL_JEMALLOC_01_008: [ gballoc_ll_print_stats shall call je_malloc_stats_print and pass to it jemalloc_print_stats_callback as print callback. ]*/
+/* Tests_SRS_GBALLOC_LL_JEMALLOC_01_010: [ Otherwise, jemalloc_print_stats_callback shall print (log) text, breaking it does in chunks of LOG_SIZE_REGULAR / 2. ]*/
+TEST_FUNCTION(gballoc_ll_print_stats_calls_the_print_function_and_prints_one_huge_line)
+{
+    ///arrange
+    size_t huge_line_length = 1 * 1024 * 1024;
+    char* huge_line = malloc(huge_line_length + 1);
+    ASSERT_IS_NOT_NULL(huge_line);
+
+    (void)memset(huge_line, 'x', huge_line_length);
+    huge_line[huge_line_length] = '\0';
+
+    g_call_print_cb_count = 1;
+    g_call_print_cb[0].text_to_print = huge_line;
+    STRICT_EXPECTED_CALL(mock_je_malloc_stats_print(IGNORED_ARG, NULL, NULL));
+
+    ///act
+    gballoc_ll_print_stats();
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    free(huge_line);
+}
+
+/* Tests_SRS_GBALLOC_LL_JEMALLOC_01_009: [ If text is NULL, jemalloc_print_stats_callback shall return. ]*/
+TEST_FUNCTION(gballoc_ll_print_stats_calls_the_print_function_with_NULL_does_not_crash)
+{
+    ///arrange
+    g_call_print_cb_count = 1;
+    g_call_print_cb[0].text_to_print = NULL;
+    STRICT_EXPECTED_CALL(mock_je_malloc_stats_print(IGNORED_ARG, NULL, NULL));
+
+    ///act
+    gballoc_ll_print_stats();
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

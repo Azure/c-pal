@@ -1,5 +1,5 @@
-#ifndef JEMALLOC_INTERNAL_ARENA_STRUCTS_B_H
-#define JEMALLOC_INTERNAL_ARENA_STRUCTS_B_H
+#ifndef JEMALLOC_INTERNAL_ARENA_STRUCTS_H
+#define JEMALLOC_INTERNAL_ARENA_STRUCTS_H
 
 #include "jemalloc/internal/arena_stats.h"
 #include "jemalloc/internal/atomic.h"
@@ -77,11 +77,10 @@ struct arena_s {
 	pa_shard_t		pa_shard;
 
 	/*
-	 * bins is used to store heaps of free regions.
-	 *
-	 * Synchronization: internal.
+	 * A cached copy of base->ind.  This can get accessed on hot paths;
+	 * looking it up in base requires an extra pointer hop / cache miss.
 	 */
-	bins_t			bins[SC_NBINS];
+	unsigned ind;
 
 	/*
 	 * Base allocator, from which arena metadata are allocated.
@@ -91,11 +90,12 @@ struct arena_s {
 	base_t			*base;
 	/* Used to determine uptime.  Read-only after initialization. */
 	nstime_t		create_time;
+
+	/*
+	 * The arena is allocated alongside its bins; really this is a
+	 * dynamically sized array determined by the binshard settings.
+	 */
+	bin_t			bins[0];
 };
 
-/* Used in conjunction with tsd for fast arena-related context lookup. */
-struct arena_tdata_s {
-	ticker_t		decay_ticker;
-};
-
-#endif /* JEMALLOC_INTERNAL_ARENA_STRUCTS_B_H */
+#endif /* JEMALLOC_INTERNAL_ARENA_STRUCTS_H */
