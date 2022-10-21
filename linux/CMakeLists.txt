@@ -20,21 +20,25 @@ set(gballoc_hl_c gballoc_hl_${gballoc_hl_type_lower}.c)
 
 set(pal_linux_h_files
     ${pal_common_h_files}
+    inc/c_pal/threadpool.h
 )
 
 set(pal_linux_c_files
     ${pal_common_c_files}
     src/arithmetic_linux.c
+    src/file_linux.c
     src/interlocked_linux.c
     src/pipe_linux.c
     src/platform_linux.c
-    src/threadapi_pthreads.c
-    src/uuid_linux.c
+    src/srw_lock_linux.c
+    src/string_utils.c
     src/sync_linux.c
     src/string_utils.c
     src/sysinfo_linux.c
-    src/file_linux.c
+    src/threadapi_pthreads.c
+    src/threadpool_linux.c
     src/timer_linux.c
+    src/uuid_linux.c
     src/${gballoc_ll_c}
     src/${gballoc_hl_c}
 )

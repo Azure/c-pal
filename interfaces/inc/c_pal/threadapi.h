@@ -9,6 +9,8 @@
 #ifndef THREADAPI_H
 #define THREADAPI_H
 
+#include <stdint.h>
+
 #include "macro_utils/macro_utils.h"
 #include "umock_c/umock_c_prod.h"
 
@@ -69,6 +71,13 @@ MOCKABLE_FUNCTION(, THREADAPI_RESULT, ThreadAPI_Join, THREAD_HANDLE, threadHandl
  * @param    milliseconds    The number of milliseconds to sleep.
  */
 MOCKABLE_FUNCTION(, void, ThreadAPI_Sleep, unsigned int, milliseconds);
+
+/**
+ * @brief    Gets the current thread Id
+ *
+ * @return    @c a uint32_t value of the current thread Id
+ */
+MOCKABLE_FUNCTION(, uint32_t, ThreadAPI_GetCurrentId);
 
 #ifdef __cplusplus
 }

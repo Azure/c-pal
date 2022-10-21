@@ -83,3 +83,8 @@ void ThreadAPI_Sleep(unsigned int milliseconds)
 {
     Sleep(milliseconds);
 }
+
+uint32_t ThreadAPI_GetCurrentId(void)
+{
+    return (uint32_t)GetCurrentThreadId();
+}

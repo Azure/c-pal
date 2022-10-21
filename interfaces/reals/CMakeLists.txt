@@ -22,6 +22,8 @@ set(reals_pal_interface_h_files ${reals_pal_interface_h_files}
     real_srw_lock_renames.h
     real_string_utils.h
     real_string_utils_renames.h
+    real_threadapi_renames.h
+    real_threadapi.h
     real_timer.h
     real_timer_renames.h
 )

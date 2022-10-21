@@ -14,7 +14,8 @@
     MU_FOR_EACH_1(R2, \
         ThreadAPI_Create, \
         ThreadAPI_Join, \
-        ThreadAPI_Sleep \
+        ThreadAPI_Sleep, \
+        ThreadAPI_GetCurrentId \
 )
 
 #ifdef __cplusplus
@@ -26,6 +27,8 @@ THREADAPI_RESULT real_ThreadAPI_Create(THREAD_HANDLE* threadHandle, THREAD_START
 THREADAPI_RESULT real_ThreadAPI_Join(THREAD_HANDLE threadHandle, int* res);
 
 void real_ThreadAPI_Sleep(unsigned int milliseconds);
+
+uint32_t real_ThreadAPI_GetCurrentId(void);
 
 #ifdef __cplusplus
 }
