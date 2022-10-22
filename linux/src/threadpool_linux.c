@@ -1,17 +1,14 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 
 #include <stdlib.h>
-#include <stdint.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <stdbool.h> 
 
 #include "macro_utils/macro_utils.h"
-#include "umock_c/umock_c_prod.h"
 
 #include "c_logging/xlogging.h"
 
-#include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/threadapi.h"
 #include "c_pal/interlocked.h"
 #include "c_pal/sync.h"
@@ -38,7 +35,7 @@ typedef struct THREADPOOL_TASK_TAG
 
 typedef struct THREADPOOL_TAG
 {
-    volatile_atomic uint32_t thread_count;
+    volatile_atomic int32_t thread_count;
     uint32_t max_thread_count;
     volatile_atomic int32_t pool_state;
     volatile_atomic int32_t quitting;
@@ -100,6 +97,7 @@ int threadpool_work_func(void* param)
         } while(interlocked_add(&threadpool->quitting, 0) != 1);
         (void)interlocked_decrement(&threadpool->thread_count);
     }
+    return 0;
 }
 
 THREADPOOL_HANDLE threadpool_create(uint32_t thread_count)

@@ -1,14 +1,10 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 
+#include <stdlib.h>              // for NULL, free, malloc
 #include <inttypes.h>
 #include <stdbool.h>
 
 #include "c_logging/xlogging.h"
-
-#include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
-#include "c_pal/timer.h"
-#include "c_pal/string_utils.h"
 
 #include "c_pal/srw_lock.h"
 
@@ -17,7 +13,7 @@
 typedef struct SRW_LOCK_HANDLE_DATA_TAG
 {
     //SRWLOCK lock;
-
+    int not_used_yet;
 } SRW_LOCK_HANDLE_DATA;
 
 SRW_LOCK_HANDLE srw_lock_create(bool do_statistics, const char* lock_name)

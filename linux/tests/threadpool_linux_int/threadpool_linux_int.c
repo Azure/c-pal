@@ -71,7 +71,7 @@ TEST_FUNCTION(create_threadpool_1_threads_idle_pool)
     ASSERT_ARE_EQUAL(int, 0, threadpool_add_task(threadpool, threadpool_task_wait_20_sec, (void*)&thread_counter));
 
     // Wait till
-    while (interlocked_add(&thread_counter, 0) != 2);
+    while (interlocked_add(&thread_counter, 0) != 1);
 
     // Now let's create a few more threads
 
