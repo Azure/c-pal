@@ -1,14 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-
 #include <stdio.h>
-#include <stdlib.h>
 #include <inttypes.h>
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 #include "testrunnerswitcher.h"
 
-#include "umock_c/umock_c.h"
+#include "umock_c/umock_c.h" // IWYU pragma: keep
 
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/threadpool.h"
@@ -53,7 +51,7 @@ static void threadpool_task_wait_20_sec(void* parameter)
 {
     printf("Running task from thread 0x%0x\n", ThreadAPI_GetCurrentId());
 
-    volatile_atomic uint32_t* thread_counter = (volatile_atomic int32_t*)parameter;
+    volatile_atomic int32_t* thread_counter = (volatile_atomic int32_t*)parameter;
     ThreadAPI_Sleep(20);
     (void)interlocked_increment(thread_counter);
 }
@@ -62,7 +60,7 @@ TEST_FUNCTION(create_threadpool_1_threads_idle_pool)
 {
     // assert
     uint32_t max_thread_count = 10;
-    volatile_atomic uint32_t thread_counter = 0;
+    volatile_atomic int32_t thread_counter = 0;
 
     THREADPOOL_HANDLE threadpool = threadpool_create(max_thread_count);
     ASSERT_IS_NOT_NULL(threadpool);

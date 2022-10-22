@@ -128,6 +128,7 @@ THREADPOOL_HANDLE threadpool_create(uint32_t thread_count)
                 result->max_thread_count = thread_count;
                 result->thread_count = 0;
                 result->task_count = 0;
+                result->quitting = 0;
                 (void)interlocked_exchange(&result->pool_state, POOL_STATE_UNINIT);
 
                 result->task_list = NULL;
@@ -148,6 +149,9 @@ void threadpool_destroy(THREADPOOL_HANDLE thread_handle)
     else
     {
         interlocked_exchange(&thread_handle->quitting, 1);
+
+        // TODO: figure out how to wait for all threads
+        // to end
         free(thread_handle);
     }
 }
