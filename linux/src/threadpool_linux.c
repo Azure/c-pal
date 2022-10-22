@@ -152,6 +152,8 @@ void threadpool_destroy(THREADPOOL_HANDLE thread_handle)
 
         // TODO: figure out how to wait for all threads
         // to end
+
+        srw_lock_destroy(thread_handle->srw_lock);
         free(thread_handle);
     }
 }

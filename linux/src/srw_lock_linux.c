@@ -1,7 +1,6 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 
 #include <stdlib.h>              // for NULL, free, malloc
-#include <inttypes.h>
 #include <stdbool.h>
 
 #include <pthread.h>
