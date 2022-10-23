@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <stdio.h>
-#include <stdbool.h> 
+#include <stdbool.h>
 
 #include "macro_utils/macro_utils.h"
 
@@ -46,6 +46,9 @@ typedef struct THREADPOOL_TAG
     THREADPOOL_TASK* task_list_last;
 
     SRW_LOCK_HANDLE srw_lock;
+
+    THREAD_HANDLE* thread_handle_list;
+    uint32_t list_index;
 } THREADPOOL;
 
 int threadpool_work_func(void* param)
@@ -117,25 +120,40 @@ THREADPOOL_HANDLE threadpool_create(uint32_t thread_count)
         }
         else
         {
-            result->srw_lock = srw_lock_create(false, "");
-            if (result->srw_lock == NULL)
+            result->max_thread_count = thread_count;
+
+            // Create a list of threads
+            result->thread_handle_list = malloc(sizeof(THREAD_HANDLE)*result->max_thread_count);
+            if (result->thread_handle_list == NULL)
             {
-                free(result);
-                result = NULL;
+                LogError("Failure allocating THREAD array structure %zu", sizeof(THREAD_HANDLE)*result->max_thread_count);
             }
             else
             {
-                result->max_thread_count = thread_count;
-                result->thread_count = 0;
-                result->task_count = 0;
-                result->quitting = 0;
-                (void)interlocked_exchange(&result->pool_state, POOL_STATE_UNINIT);
+                result->list_index = 0;
+                result->srw_lock = srw_lock_create(false, "");
+                if (result->srw_lock == NULL)
+                {
+                    LogError("Failure srw_lock_create");
+                }
+                else
+                {
+                    result->thread_count = 0;
+                    result->task_count = 0;
+                    result->quitting = 0;
+                    (void)interlocked_exchange(&result->pool_state, POOL_STATE_UNINIT);
 
-                result->task_list = NULL;
-                result->task_list_last = NULL;
+                    result->task_list = NULL;
+                    result->task_list_last = NULL;
+                    goto all_ok;
+                }
+                free(result->thread_handle_list);
             }
+            free(result);
+            result = NULL;
         }
     }
+all_ok:
     return result;
 }
 
@@ -150,8 +168,11 @@ void threadpool_destroy(THREADPOOL_HANDLE thread_handle)
     {
         interlocked_exchange(&thread_handle->quitting, 1);
 
-        // TODO: figure out how to wait for all threads
-        // to end
+        for (size_t index = 0; index < thread_handle->list_index; index++)
+        {
+            int dont_care;
+            ThreadAPI_Join(thread_handle->thread_handle_list[index], &dont_care);
+        }
 
         srw_lock_destroy(thread_handle->srw_lock);
         free(thread_handle);
@@ -208,13 +229,14 @@ int threadpool_add_task(THREADPOOL_HANDLE thread_handle, THREADPOOL_TASK_FUNC ta
                 // Check to see
                 if (thread_handle->thread_count < thread_handle->max_thread_count)
                 {
-                    if (ThreadAPI_Create(&task_item->thread_handle, threadpool_work_func, thread_handle) != THREADAPI_OK)
+                    if (ThreadAPI_Create(&thread_handle->thread_handle_list[thread_handle->list_index], threadpool_work_func, thread_handle) != THREADAPI_OK)
                     {
                         LogError("Failure creating thread");
                     }
                     else
                     {
                         (void)interlocked_increment(&thread_handle->thread_count);
+                        thread_handle->list_index++;
                         result = 0;
                         goto all_ok;
                     }
