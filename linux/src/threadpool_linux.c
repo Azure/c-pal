@@ -174,6 +174,8 @@ void threadpool_destroy(THREADPOOL_HANDLE thread_handle)
             ThreadAPI_Join(thread_handle->thread_handle_list[index], &dont_care);
         }
 
+        free(thread_handle->thread_handle_list);
+
         srw_lock_destroy(thread_handle->srw_lock);
         free(thread_handle);
     }
