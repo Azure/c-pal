@@ -100,7 +100,7 @@ TEST_FUNCTION(scheduling_20_work_items)
     ASSERT_IS_NOT_NULL(threadpool);
 
     // Create double the amount of threads that is the max
-    LogInfo("Scheduling %" PRIu32 " work item");
+    LogInfo("Scheduling %" PRIu32 " work item", num_threads);
     for (size_t index = 0; index < num_threads; index++)
     {
         ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter));
