@@ -123,7 +123,7 @@ THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
         }
         else
         {
-            EXECUTION_ENGINE_PARAMETERS_LINUX* param = execution_engine_linux_get_parameters(execution_engine);
+            const EXECUTION_ENGINE_PARAMETERS_LINUX* param = execution_engine_linux_get_parameters(execution_engine);
 
             result->max_thread_count = param->max_thread_count;
             if (result->max_thread_count == 0)
