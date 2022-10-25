@@ -16,6 +16,7 @@
 #include "c_pal/threadpool.h"
 #include "c_pal/threadapi.h"
 #include "c_pal/interlocked.h"
+#include "c_pal/sync.h"
 #include "c_pal/execution_engine.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
@@ -59,6 +60,7 @@ static void threadpool_task_wait_20_millisec(void* parameter)
     volatile_atomic int32_t* thread_counter = (volatile_atomic int32_t*)parameter;
     ThreadAPI_Sleep(20);
     (void)interlocked_increment(thread_counter);
+    wake_by_address_single(thread_counter);
 }
 
 static void threadpool_task_wait_random(void* parameter)
@@ -70,6 +72,7 @@ static void threadpool_task_wait_random(void* parameter)
     ThreadAPI_Sleep(sleepy_time);
 
     (void)interlocked_increment(thread_counter);
+    wake_by_address_single(thread_counter);
 }
 
 TEST_FUNCTION(one_work_item_schedule_works)
@@ -86,18 +89,20 @@ TEST_FUNCTION(one_work_item_schedule_works)
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter));
 
     // assert
-    while (interlocked_add(&thread_counter, 0) != 1);
+    wait_on_address(&thread_counter, 1, UINT32_MAX);
 
     // cleanup
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(scheduling_20_work_items)
+#define N_WORK_ITEMS 20
+
+TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
 {
     // assert
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
-    uint32_t num_threads = 20;
+    uint32_t num_threads = N_WORK_ITEMS;
     volatile_atomic int32_t thread_counter = 0;
 
     THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
@@ -105,32 +110,34 @@ TEST_FUNCTION(scheduling_20_work_items)
 
     // Create double the amount of threads that is the max
     LogInfo("Scheduling %" PRIu32 " work item", num_threads);
-    for (size_t index = 0; index < num_threads; index++)
+    for (uint32_t index = 0; index < num_threads; index++)
     {
         ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter));
     }
 
     // assert
-    while (interlocked_add(&thread_counter, 0) != num_threads);
+    wait_on_address(&thread_counter, num_threads, UINT32_MAX);
 
     // cleanup
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
 }
 
+#define N_CHAOS_WORK_ITEMS 100
+
 TEST_FUNCTION(threadpool_chaos_knight)
 {
     // assert
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
-    uint32_t num_threads = 100;
+    uint32_t num_threads = N_CHAOS_WORK_ITEMS;
     volatile_atomic int32_t thread_counter = 0;
 
     THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
     // Create double the amount of threads that is the max
-    LogInfo("Scheduling %" PRIu32 " work item", num_threads);
-    for (size_t index = 0; index < num_threads; index++)
+    LogInfo("Scheduling %" PRIu32 " work items", num_threads);
+    for (uint32_t index = 0; index < num_threads; index++)
     {
         ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_random, (void*)&thread_counter));
         // Sleep between 0 and 150 milliseconds
@@ -139,7 +146,7 @@ TEST_FUNCTION(threadpool_chaos_knight)
     }
 
     // assert
-    while (interlocked_add(&thread_counter, 0) != num_threads);
+    wait_on_address(&thread_counter, num_threads, UINT32_MAX);
 
     // cleanup
     threadpool_destroy(threadpool);
