@@ -20,7 +20,6 @@ set(gballoc_hl_c gballoc_hl_${gballoc_hl_type_lower}.c)
 
 set(pal_linux_h_files
     ${pal_common_h_files}
-    inc/c_pal/threadpool.h
 )
 
 set(pal_linux_c_files

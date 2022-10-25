@@ -13,10 +13,12 @@
 #include "c_pal/interlocked.h"
 #include "c_pal/sync.h"
 #include "c_pal/srw_lock.h"
+#include "c_pal/execution_engine.h"
 
 #include "c_pal/threadpool.h"
 
 #define TIMEOUT_MS      100
+#define MAX_THREAD_COUNT    8
 
 #define POOL_STATE_VALUES \
     POOL_STATE_UNINIT, \
@@ -27,9 +29,8 @@ MU_DEFINE_ENUM(POOL_STATE, POOL_STATE_VALUES)
 
 typedef struct THREADPOOL_TASK_TAG
 {
-    THREADPOOL_TASK_FUNC task_func;
+    THREADPOOL_WORK_FUNCTION task_func;
     void* task_param;
-    THREAD_HANDLE thread_handle;
     struct THREADPOOL_TASK_TAG* next;
 } THREADPOOL_TASK;
 
@@ -103,12 +104,12 @@ int threadpool_work_func(void* param)
     return 0;
 }
 
-THREADPOOL_HANDLE threadpool_create(uint32_t thread_count)
+THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
 {
     THREADPOOL* result;
-    if (thread_count == 0)
+    if (execution_engine == 0)
     {
-        LogError("Invalid arguments: uint32_t thread_count: %" PRIu32 "", thread_count);
+        LogError("Invalid arguments: EXECUTION_ENGINE_HANDLE execution_engine: %p", execution_engine);
         result = NULL;
     }
     else
@@ -120,7 +121,7 @@ THREADPOOL_HANDLE threadpool_create(uint32_t thread_count)
         }
         else
         {
-            result->max_thread_count = thread_count;
+            result->max_thread_count = MAX_THREAD_COUNT;
 
             // Create a list of threads
             result->thread_handle_list = malloc(sizeof(THREAD_HANDLE)*result->max_thread_count);
@@ -157,36 +158,36 @@ all_ok:
     return result;
 }
 
-void threadpool_destroy(THREADPOOL_HANDLE thread_handle)
+void threadpool_destroy(THREADPOOL_HANDLE threadpool)
 {
-    if (thread_handle == NULL)
+    if (threadpool == NULL)
     {
         // do nothing
-        LogError("Invalid arguments: THREADPOOL_HANDLE thread_handle: %p", thread_handle);
+        LogError("Invalid arguments: THREADPOOL_HANDLE threadpool: %p", threadpool);
     }
     else
     {
-        interlocked_exchange(&thread_handle->quitting, 1);
+        interlocked_exchange(&threadpool->quitting, 1);
 
-        for (size_t index = 0; index < thread_handle->list_index; index++)
+        for (size_t index = 0; index < threadpool->list_index; index++)
         {
             int dont_care;
-            ThreadAPI_Join(thread_handle->thread_handle_list[index], &dont_care);
+            ThreadAPI_Join(threadpool->thread_handle_list[index], &dont_care);
         }
 
-        free(thread_handle->thread_handle_list);
+        free(threadpool->thread_handle_list);
 
-        srw_lock_destroy(thread_handle->srw_lock);
-        free(thread_handle);
+        srw_lock_destroy(threadpool->srw_lock);
+        free(threadpool);
     }
 }
 
-int threadpool_add_task(THREADPOOL_HANDLE thread_handle, THREADPOOL_TASK_FUNC task_func, void* task_arg)
+int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context)
 {
     int result;
-    if (thread_handle == NULL || task_func == NULL)
+    if (threadpool == NULL || work_function == NULL)
     {
-        LogError("Invalid arguments: THREADPOOL_HANDLE thread_handle: %p, THREADPOOL_TASK_FUNC task_func: %p", thread_handle, task_func);
+        LogError("Invalid arguments: THREADPOOL_HANDLE threadpool: %p, THREADPOOL_TASK_FUNC work_function: %p", threadpool, work_function);
         result = MU_FAILURE;
     }
     else
@@ -200,48 +201,55 @@ int threadpool_add_task(THREADPOOL_HANDLE thread_handle, THREADPOOL_TASK_FUNC ta
         else
         {
             task_item->next = NULL;
-            task_item->task_param = task_arg;
-            task_item->task_func = task_func;
+            task_item->task_param = work_function_context;
+            task_item->task_func = work_function;
 
             // Need to add a lock here
-            srw_lock_acquire_exclusive(thread_handle->srw_lock);
+            srw_lock_acquire_exclusive(threadpool->srw_lock);
 
-            if (thread_handle->task_list == NULL)
+            if (threadpool->task_list == NULL)
             {
-                thread_handle->task_list = task_item;
+                threadpool->task_list = task_item;
             }
             else
             {
-                thread_handle->task_list_last->next = task_item;
+                threadpool->task_list_last->next = task_item;
             }
-            thread_handle->task_list_last = task_item;
-            (void)interlocked_increment(&thread_handle->task_count);
+            threadpool->task_list_last = task_item;
+            (void)interlocked_increment(&threadpool->task_count);
 
-            srw_lock_release_exclusive(thread_handle->srw_lock);
+            srw_lock_release_exclusive(threadpool->srw_lock);
 
             // unlock
 
-            if (interlocked_add(&thread_handle->pool_state, 0) == POOL_STATE_IDLE)
+            if (interlocked_add(&threadpool->pool_state, 0) == POOL_STATE_IDLE)
             {
                 // Idle signal that we have work
-                wake_by_address_single(&thread_handle->task_count);
+                wake_by_address_single(&threadpool->task_count);
+                result = 0;
+                goto all_ok;
             }
             else
             {
                 // Check to see
-                if (thread_handle->thread_count < thread_handle->max_thread_count)
+                if (threadpool->thread_count < threadpool->max_thread_count)
                 {
-                    if (ThreadAPI_Create(&thread_handle->thread_handle_list[thread_handle->list_index], threadpool_work_func, thread_handle) != THREADAPI_OK)
+                    if (ThreadAPI_Create(&threadpool->thread_handle_list[threadpool->list_index], threadpool_work_func, threadpool) != THREADAPI_OK)
                     {
                         LogError("Failure creating thread");
                     }
                     else
                     {
-                        (void)interlocked_increment(&thread_handle->thread_count);
-                        thread_handle->list_index++;
+                        (void)interlocked_increment(&threadpool->thread_count);
+                        threadpool->list_index++;
                         result = 0;
                         goto all_ok;
                     }
+                }
+                else
+                {
+                    result = 0;
+                    goto all_ok;
                 }
             }
             free(task_item);
@@ -250,4 +258,46 @@ int threadpool_add_task(THREADPOOL_HANDLE thread_handle, THREADPOOL_TASK_FUNC ta
     }
 all_ok:
     return result;
+}
+
+int threadpool_open_async(THREADPOOL_HANDLE threadpool, ON_THREADPOOL_OPEN_COMPLETE on_open_complete, void* on_open_complete_context)
+{
+    (void)threadpool;
+    (void)on_open_complete;
+    (void)on_open_complete_context;
+    return MU_FAILURE;
+}
+
+void threadpool_close(THREADPOOL_HANDLE threadpool)
+{
+    (void)threadpool;
+}
+
+int threadpool_timer_start(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context, TIMER_INSTANCE_HANDLE* timer_handle)
+{
+    (void)threadpool;
+    (void)start_delay_ms;
+    (void)timer_period_ms;
+    (void)work_function;
+    (void)work_function_context;
+    (void)timer_handle;
+    return MU_FAILURE;
+}
+
+int threadpool_timer_restart(TIMER_INSTANCE_HANDLE timer, uint32_t start_delay_ms, uint32_t timer_period_ms)
+{
+    (void)timer;
+    (void)start_delay_ms;
+    (void)timer_period_ms;
+    return MU_FAILURE;
+}
+
+void threadpool_timer_cancel(TIMER_INSTANCE_HANDLE timer)
+{
+    (void)timer;
+}
+
+void threadpool_timer_destroy(TIMER_INSTANCE_HANDLE timer)
+{
+    (void)timer;
 }
