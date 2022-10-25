@@ -123,7 +123,7 @@ TEST_FUNCTION(threadpool_chaos_knight)
     // assert
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
     uint32_t num_threads = 100;
-    volatile_atomic uint32_t thread_counter = 0;
+    volatile_atomic int32_t thread_counter = 0;
 
     THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
