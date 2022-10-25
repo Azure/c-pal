@@ -18,7 +18,7 @@
 
 #include "c_pal/threadpool.h"
 
-#define TIMEOUT_MS      100
+#define TIMEOUT_MS          100
 #define MAX_THREAD_COUNT    16
 
 #define POOL_STATE_VALUES \
@@ -183,6 +183,14 @@ void threadpool_destroy(THREADPOOL_HANDLE threadpool)
             ThreadAPI_Join(threadpool->thread_handle_list[index], &dont_care);
         }
 
+        // Loop through
+        while (threadpool->task_list != NULL)
+        {
+            THREADPOOL_TASK* temp_item = threadpool->task_list;
+            threadpool->task_list = temp_item->next;
+            free(temp_item);
+        }
+
         free(threadpool->thread_handle_list);
 
         srw_lock_destroy(threadpool->srw_lock);
@@ -200,6 +208,7 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
     }
     else
     {
+
         THREADPOOL_TASK* task_item = malloc(sizeof(THREADPOOL_TASK));
         if (task_item == NULL)
         {

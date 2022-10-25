@@ -5,6 +5,8 @@
 
 #include <pthread.h>
 
+#include "macro_utils/macro_utils.h"
+
 #include "c_logging/xlogging.h"
 
 #include "c_pal/string_utils.h"
