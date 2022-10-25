@@ -26,7 +26,7 @@ extern "C" {
 #define DEFAULT_MIN_THREAD_COUNT 4
 #define DEFAULT_MAX_THREAD_COUNT 0 // no max thread count
 
-MOCKABLE_FUNCTION(, EXECUTION_ENGINE_PARAMETERS_LINUX*, execution_engine_linux_get_parameters, EXECUTION_ENGINE_HANDLE, execution_engine);
+MOCKABLE_FUNCTION(, const EXECUTION_ENGINE_PARAMETERS_LINUX*, execution_engine_linux_get_parameters, EXECUTION_ENGINE_HANDLE, execution_engine);
 
 #ifdef __cplusplus
 }

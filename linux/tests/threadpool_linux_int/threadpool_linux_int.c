@@ -52,7 +52,7 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 
 static void threadpool_task_wait_20_millisec(void* parameter)
 {
-    LogInfo("Running task from thread 0x%0x", ThreadAPI_GetCurrentId());
+    LogInfo("Running task from thread 0x%0x", ThreadAPI_GetCurrentThreadId());
 
     volatile_atomic int32_t* thread_counter = (volatile_atomic int32_t*)parameter;
     ThreadAPI_Sleep(20);
@@ -120,7 +120,7 @@ TEST_FUNCTION(threadpool_chaos_knight)
 {
     // assert
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
-    uint32_t num_threads = 1000;
+    uint32_t num_threads = 100;
     volatile_atomic uint32_t thread_counter = 0;
 
     THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);

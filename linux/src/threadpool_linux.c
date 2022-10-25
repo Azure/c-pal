@@ -19,6 +19,7 @@
 #include "c_pal/threadpool.h"
 
 #define TIMEOUT_MS      100
+#define MAX_THREAD_COUNT    16
 
 #define POOL_STATE_VALUES \
     POOL_STATE_UNINIT, \
@@ -125,6 +126,10 @@ THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
             EXECUTION_ENGINE_PARAMETERS_LINUX* param = execution_engine_linux_get_parameters(execution_engine);
 
             result->max_thread_count = param->max_thread_count;
+            if (result->max_thread_count == 0)
+            {
+                result->max_thread_count = MAX_THREAD_COUNT;
+            }
 
             // Create a list of threads
             result->thread_handle_list = malloc(sizeof(THREAD_HANDLE)*result->max_thread_count);
