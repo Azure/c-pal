@@ -12,8 +12,7 @@
 #include "c_pal/threadpool.h"
 #include "c_pal/threadapi.h"
 #include "c_pal/interlocked.h"
-
-#define INVALID_SOCKET  -1
+#include "c_pal/execution_engine.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 
@@ -26,7 +25,9 @@ TEST_SUITE_INITIALIZE(suite_init)
     test_serialize_mutex = TEST_MUTEX_CREATE();
     ASSERT_IS_NOT_NULL(test_serialize_mutex);
 
-    srand((unsigned int)time(NULL));
+    time_t seed = time(NULL);
+    LogInfo("Test using random seed = %u", (unsigned int)seed);
+    srand((unsigned int)seed);
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
@@ -72,7 +73,7 @@ static void threadpool_task_wait_random(void* parameter)
 TEST_FUNCTION(one_work_item_schedule_works)
 {
     // assert
-    EXECUTION_ENGINE_HANDLE execution_engine;
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
     volatile_atomic int32_t thread_counter = 0;
 
     THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
@@ -87,12 +88,13 @@ TEST_FUNCTION(one_work_item_schedule_works)
 
     // cleanup
     threadpool_destroy(threadpool);
+    execution_engine_dec_ref(execution_engine);
 }
 
 TEST_FUNCTION(scheduling_20_work_items)
 {
     // assert
-    EXECUTION_ENGINE_HANDLE execution_engine;
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
     uint32_t num_threads = 20;
     volatile_atomic uint32_t thread_counter = 0;
 
@@ -111,12 +113,13 @@ TEST_FUNCTION(scheduling_20_work_items)
 
     // cleanup
     threadpool_destroy(threadpool);
+    execution_engine_dec_ref(execution_engine);
 }
 
 TEST_FUNCTION(threadpool_chaos_knight)
 {
     // assert
-    EXECUTION_ENGINE_HANDLE execution_engine;
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
     uint32_t num_threads = 1000;
     volatile_atomic uint32_t thread_counter = 0;
 
@@ -138,6 +141,7 @@ TEST_FUNCTION(threadpool_chaos_knight)
 
     // cleanup
     threadpool_destroy(threadpool);
+    execution_engine_dec_ref(execution_engine);
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

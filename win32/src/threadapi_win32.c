@@ -84,7 +84,7 @@ void ThreadAPI_Sleep(unsigned int milliseconds)
     Sleep(milliseconds);
 }
 
-uint32_t ThreadAPI_GetCurrentId(void)
+uint32_t ThreadAPI_GetCurrentThreadId(void)
 {
-    return (uint32_t)GetCurrentThreadId();
+    return (uint32_t)ThreadAPI_GetCurrentThreadId();
 }

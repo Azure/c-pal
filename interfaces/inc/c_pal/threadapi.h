@@ -75,9 +75,9 @@ MOCKABLE_FUNCTION(, void, ThreadAPI_Sleep, unsigned int, milliseconds);
 /**
  * @brief    Gets the current thread Id
  *
- * @return    @c a uint32_t value of the current thread Id
+ * @return    @c an uint32_t value of the current thread Id
  */
-MOCKABLE_FUNCTION(, uint32_t, ThreadAPI_GetCurrentId);
+MOCKABLE_FUNCTION(, uint32_t, ThreadAPI_GetCurrentThreadId);
 
 #ifdef __cplusplus
 }

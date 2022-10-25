@@ -39,7 +39,6 @@ if(${run_int_tests})
     build_test_folder(async_socket_win32_int)
     build_test_folder(threadpool_win32_int)
     build_test_folder(string_utils_int)
-    build_test_folder(srw_lock_win32_int)
 
     if((${GBALLOC_LL_TYPE} STREQUAL "MIMALLOC"))
         build_test_folder(gballoc_ll_mimalloc_int)

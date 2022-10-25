@@ -1,14 +1,16 @@
-// Copyright(C) Microsoft Corporation.All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#include <stdarg.h>              // for va_end, va_list, va_start
 #include <stdlib.h>
 
-#include "testrunnerswitcher.h"
+#include "macro_utils/macro_utils.h"
 
-#include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
+#include "testrunnerswitcher.h"
+#include "umock_c/umock_c.h"
 
 #include "c_pal/srw_lock.h"
+
+static TEST_MUTEX_HANDLE test_serialize_mutex;
 
 static const char* TEST_LOCK_NAME = "test_lock";
 
@@ -16,23 +18,30 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
-    ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
+    test_serialize_mutex = TEST_MUTEX_CREATE();
+    ASSERT_IS_NOT_NULL(test_serialize_mutex);
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
 {
-    gballoc_hl_deinit();
+    TEST_MUTEX_DESTROY(test_serialize_mutex);
+
 }
 
-TEST_FUNCTION_INITIALIZE(init)
+TEST_FUNCTION_INITIALIZE(method_init)
 {
+    if (TEST_MUTEX_ACQUIRE(test_serialize_mutex))
+    {
+        ASSERT_FAIL("Could not acquire test serialization mutex.");
+    }
 }
 
-TEST_FUNCTION_CLEANUP(cleanup)
+TEST_FUNCTION_CLEANUP(method_cleanup)
 {
+    TEST_MUTEX_RELEASE(test_serialize_mutex);
 }
 
-TEST_FUNCTION(srw_lock_exclusive_lock)
+TEST_FUNCTION(srw_lock_create_succeeds)
 {
     ///act
     SRW_LOCK_HANDLE lock_handle = srw_lock_create(false, TEST_LOCK_NAME);
@@ -40,7 +49,7 @@ TEST_FUNCTION(srw_lock_exclusive_lock)
     srw_lock_acquire_exclusive(lock_handle);
 
     ///assert
-    ASSERT_ARE_EQUAL(int, SRW_LOCK_TRY_ACQUIRE_COULD_NOT_ACQUIRE, srw_lock_try_acquire_exclusive(lock_handle) );
+    ASSERT_ARE_EQUAL(int, SRW_LOCK_TRY_ACQUIRE_COULD_NOT_ACQUIRE, srw_lock_try_acquire_exclusive(lock_handle));
 
     srw_lock_release_exclusive(lock_handle);
 

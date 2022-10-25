@@ -14,11 +14,11 @@
 #include "c_pal/sync.h"
 #include "c_pal/srw_lock.h"
 #include "c_pal/execution_engine.h"
+#include "c_pal/execution_engine_linux.h"
 
 #include "c_pal/threadpool.h"
 
 #define TIMEOUT_MS      100
-#define MAX_THREAD_COUNT    8
 
 #define POOL_STATE_VALUES \
     POOL_STATE_UNINIT, \
@@ -56,12 +56,13 @@ int threadpool_work_func(void* param)
 {
     if (param == NULL)
     {
-        LogError("Failure unknown user parameter encountered");
+        LogCritical("Invalid args: param: %p", param);
     }
     else
     {
-        THREADPOOL* threadpool = (THREADPOOL*)param;
-        do {
+        THREADPOOL* threadpool = param;
+        do
+        {
             (void)interlocked_exchange(&threadpool->pool_state, POOL_STATE_IDLE);
             int32_t current_value = interlocked_add(&threadpool->task_count, 0);
 
@@ -121,7 +122,9 @@ THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
         }
         else
         {
-            result->max_thread_count = MAX_THREAD_COUNT;
+            EXECUTION_ENGINE_PARAMETERS_LINUX* param = execution_engine_linux_get_parameters(execution_engine);
+
+            result->max_thread_count = param->max_thread_count;
 
             // Create a list of threads
             result->thread_handle_list = malloc(sizeof(THREAD_HANDLE)*result->max_thread_count);

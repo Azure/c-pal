@@ -20,11 +20,13 @@ set(gballoc_hl_c gballoc_hl_${gballoc_hl_type_lower}.c)
 
 set(pal_linux_h_files
     ${pal_common_h_files}
+    inc/execution_engine_linux.h
 )
 
 set(pal_linux_c_files
     ${pal_common_c_files}
     src/arithmetic_linux.c
+    src/execution_engine_linux.c
     src/file_linux.c
     src/interlocked_linux.c
     src/pipe_linux.c

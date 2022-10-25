@@ -4,6 +4,6 @@
 #define ThreadAPI_Create        real_ThreadAPI_Create
 #define ThreadAPI_Join          real_ThreadAPI_Join
 #define ThreadAPI_Sleep         real_ThreadAPI_Sleep
-#define ThreadAPI_GetCurrentId  real_ThreadAPI_GetCurrentId
+#define ThreadAPI_GetCurrentThreadId  real_ThreadAPI_GetCurrentThreadId
 
 #define THREADAPI_RESULT        real_THREADAPI_RESULT
