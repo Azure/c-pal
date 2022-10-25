@@ -65,9 +65,9 @@ int threadpool_work_func(void* param)
         do
         {
             (void)interlocked_exchange(&threadpool->pool_state, POOL_STATE_IDLE);
-            int32_t current_value = interlocked_add(&threadpool->task_count, 0);
+            int32_t current_value;
 
-            while (threadpool->task_list == NULL && interlocked_add(&threadpool->quitting, 0) != 1)
+            while ((current_value = interlocked_add(&threadpool->task_count, 0)) == 0 && interlocked_add(&threadpool->quitting, 0) != 1)
             {
                 if (!wait_on_address(&threadpool->task_count, current_value, TIMEOUT_MS))
                 {
@@ -270,10 +270,21 @@ all_ok:
 
 int threadpool_open_async(THREADPOOL_HANDLE threadpool, ON_THREADPOOL_OPEN_COMPLETE on_open_complete, void* on_open_complete_context)
 {
-    (void)threadpool;
-    (void)on_open_complete;
-    (void)on_open_complete_context;
-    return MU_FAILURE;
+    int result;
+    if (
+        (threadpool == NULL) ||
+        (on_open_complete == NULL))
+    {
+        LogError("THREADPOOL_HANDLE threadpool=%p, ON_THREADPOOL_OPEN_COMPLETE on_open_complete=%p, void* on_open_complete_context=%p",
+            threadpool, on_open_complete, on_open_complete_context);
+        result = MU_FAILURE;
+    }
+    else
+    {
+        on_open_complete(on_open_complete_context, THREADPOOL_OPEN_OK);
+        result = 0;
+    }
+    return result;
 }
 
 void threadpool_close(THREADPOOL_HANDLE threadpool)

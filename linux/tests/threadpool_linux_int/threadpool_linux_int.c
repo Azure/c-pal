@@ -2,8 +2,12 @@
 
 #include <stdio.h>
 #include <inttypes.h>
+#include <stdlib.h>
+#include <time.h>
+#include "c_logging/xlogging.h"
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
+
 #include "testrunnerswitcher.h"
 
 #include "umock_c/umock_c.h" // IWYU pragma: keep
@@ -52,8 +56,6 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 
 static void threadpool_task_wait_20_millisec(void* parameter)
 {
-    LogInfo("Running task from thread 0x%0x", ThreadAPI_GetCurrentThreadId());
-
     volatile_atomic int32_t* thread_counter = (volatile_atomic int32_t*)parameter;
     ThreadAPI_Sleep(20);
     (void)interlocked_increment(thread_counter);
@@ -96,7 +98,7 @@ TEST_FUNCTION(scheduling_20_work_items)
     // assert
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
     uint32_t num_threads = 20;
-    volatile_atomic uint32_t thread_counter = 0;
+    volatile_atomic int32_t thread_counter = 0;
 
     THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
