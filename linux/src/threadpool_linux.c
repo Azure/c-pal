@@ -36,7 +36,6 @@ typedef struct THREADPOOL_TAG
 {
     volatile_atomic int32_t thread_count;
     uint32_t max_thread_count;
-    volatile_atomic int32_t pool_idle;
     volatile_atomic int32_t quitting;
     volatile_atomic int32_t task_count;
 
@@ -64,7 +63,6 @@ int threadpool_work_func(void* param)
         THREADPOOL* threadpool = param;
         do
         {
-            (void)interlocked_increment(&threadpool->pool_idle);
             while (interlocked_add(&threadpool->quitting, 0) != 1)
             {
                 if (clock_gettime(CLOCK_REALTIME, &ts) == -1)
@@ -81,7 +79,6 @@ int threadpool_work_func(void* param)
                     }
                 }
             }
-            (void)interlocked_decrement(&threadpool->pool_idle);
 
             THREADPOOL_TASK* temp_item = NULL;
             // Locking
@@ -156,7 +153,6 @@ THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                         result->thread_count = 0;
                         result->task_count = 0;
                         (void)interlocked_exchange(&result->quitting, 0);
-                        (void)interlocked_exchange(&result->pool_idle, 0);
 
                         result->task_list = NULL;
                         result->task_list_last = NULL;
@@ -250,31 +246,28 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
                 srw_lock_release_exclusive(threadpool->srw_lock);
             }
 
-            if (interlocked_add(&threadpool->pool_idle, 0) > 0)
-            {
-                // Idle signal that we have work
-                //wake_by_address_single(&threadpool->task_count);
-                sem_post(&threadpool->semaphore);
-                result = 0;
-                goto all_ok;
-            }
-            else
+            do
             {
                 // Check to see if we should create another thread
                 int32_t current_count = interlocked_add(&threadpool->thread_count, 0);
                 if (current_count < threadpool->max_thread_count)
                 {
-                    if (ThreadAPI_Create(&threadpool->thread_handle_list[threadpool->list_index], threadpool_work_func, threadpool) != THREADAPI_OK)
+                    if (interlocked_compare_exchange(&threadpool->thread_count, current_count+1, current_count) == current_count)
                     {
-                        LogError("Failure creating thread");
-                    }
-                    else
-                    {
-                        (void)interlocked_increment(&threadpool->thread_count);
-                        sem_post(&threadpool->semaphore);
-                        threadpool->list_index++;
-                        result = 0;
-                        goto all_ok;
+                        if (ThreadAPI_Create(&threadpool->thread_handle_list[threadpool->list_index], threadpool_work_func, threadpool) != THREADAPI_OK)
+                        {
+                            // Decrement the thread count since we didn't actually create the thread
+                            interlocked_decrement(&threadpool->thread_count);
+                            LogError("Failure creating thread");
+                            break;
+                        }
+                        else
+                        {
+                            sem_post(&threadpool->semaphore);
+                            threadpool->list_index++;
+                            result = 0;
+                            goto all_ok;
+                        }
                     }
                 }
                 else
@@ -284,6 +277,7 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
                     goto all_ok;
                 }
             }
+            while(1);
             free(task_item);
         }
         result = MU_FAILURE;
