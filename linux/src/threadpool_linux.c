@@ -9,6 +9,8 @@
 
 #include "c_logging/xlogging.h"
 
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/threadapi.h"
 #include "c_pal/interlocked.h"
 #include "c_pal/sync.h"
@@ -19,14 +21,7 @@
 #include "c_pal/threadpool.h"
 
 #define TIMEOUT_MS          100
-#define MAX_THREAD_COUNT    16
-
-#define POOL_STATE_VALUES \
-    POOL_STATE_UNINIT, \
-    POOL_STATE_ACTIVE, \
-    POOL_STATE_IDLE
-
-MU_DEFINE_ENUM(POOL_STATE, POOL_STATE_VALUES)
+#define MAX_THREAD_COUNT    1
 
 typedef struct THREADPOOL_TASK_TAG
 {
@@ -39,7 +34,7 @@ typedef struct THREADPOOL_TAG
 {
     volatile_atomic int32_t thread_count;
     uint32_t max_thread_count;
-    volatile_atomic int32_t pool_state;
+    volatile_atomic int32_t pool_idle;
     volatile_atomic int32_t quitting;
     volatile_atomic int32_t task_count;
 
@@ -64,7 +59,7 @@ int threadpool_work_func(void* param)
         THREADPOOL* threadpool = param;
         do
         {
-            (void)interlocked_exchange(&threadpool->pool_state, POOL_STATE_IDLE);
+            (void)interlocked_increment(&threadpool->pool_idle);
             int32_t current_value;
 
             while ((current_value = interlocked_add(&threadpool->task_count, 0)) == 0 && interlocked_add(&threadpool->quitting, 0) != 1)
@@ -79,7 +74,7 @@ int threadpool_work_func(void* param)
                     break;
                 }
             }
-            (void)interlocked_exchange(&threadpool->pool_state, POOL_STATE_ACTIVE);
+            (void)interlocked_decrement(&threadpool->pool_idle);
 
             // Locking
             srw_lock_acquire_exclusive(threadpool->srw_lock);
@@ -132,7 +127,7 @@ THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
             }
 
             // Create a list of threads
-            result->thread_handle_list = malloc(sizeof(THREAD_HANDLE)*result->max_thread_count);
+            result->thread_handle_list = malloc_2(result->max_thread_count, sizeof(THREAD_HANDLE));
             if (result->thread_handle_list == NULL)
             {
                 LogError("Failure allocating THREAD array structure %zu", sizeof(THREAD_HANDLE)*result->max_thread_count);
@@ -149,8 +144,8 @@ THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                 {
                     result->thread_count = 0;
                     result->task_count = 0;
-                    result->quitting = 0;
-                    (void)interlocked_exchange(&result->pool_state, POOL_STATE_UNINIT);
+                    (void)interlocked_exchange(&result->quitting, 0);
+                    (void)interlocked_exchange(&result->pool_idle, 0);
 
                     result->task_list = NULL;
                     result->task_list_last = NULL;
@@ -180,7 +175,10 @@ void threadpool_destroy(THREADPOOL_HANDLE threadpool)
         for (size_t index = 0; index < threadpool->list_index; index++)
         {
             int dont_care;
-            ThreadAPI_Join(threadpool->thread_handle_list[index], &dont_care);
+            if (ThreadAPI_Join(threadpool->thread_handle_list[index], &dont_care) != THREADAPI_OK)
+            {
+                LogError("Failure joining thread");
+            }
         }
 
         // Loop through
@@ -222,24 +220,25 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
             task_item->task_func = work_function;
 
             // Need to add a lock here
-            srw_lock_acquire_exclusive(threadpool->srw_lock);
-
-            if (threadpool->task_list == NULL)
             {
-                threadpool->task_list = task_item;
-            }
-            else
-            {
-                threadpool->task_list_last->next = task_item;
-            }
-            threadpool->task_list_last = task_item;
-            (void)interlocked_increment(&threadpool->task_count);
+                srw_lock_acquire_exclusive(threadpool->srw_lock);
 
-            srw_lock_release_exclusive(threadpool->srw_lock);
+                if (threadpool->task_list == NULL)
+                {
+                    threadpool->task_list = task_item;
+                }
+                else
+                {
+                    threadpool->task_list_last->next = task_item;
+                }
+                threadpool->task_list_last = task_item;
+                (void)interlocked_increment(&threadpool->task_count);
 
+                srw_lock_release_exclusive(threadpool->srw_lock);
+            }
             // unlock
 
-            if (interlocked_add(&threadpool->pool_state, 0) == POOL_STATE_IDLE)
+            if (interlocked_add(&threadpool->pool_idle, 0) == 0)
             {
                 // Idle signal that we have work
                 wake_by_address_single(&threadpool->task_count);
