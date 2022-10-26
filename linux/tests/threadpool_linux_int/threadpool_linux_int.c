@@ -18,6 +18,7 @@
 #include "c_pal/interlocked.h"
 #include "c_pal/sync.h"
 #include "c_pal/execution_engine.h"
+#include "c_pal/execution_engine_linux.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 
@@ -68,7 +69,7 @@ static void threadpool_task_wait_random(void* parameter)
     volatile_atomic int32_t* thread_counter = (volatile_atomic int32_t*)parameter;
 
     // Sleep anywhere between 0 and 750 milliseconds
-    unsigned int sleepy_time = rand() % 750;
+    unsigned int sleepy_time = rand() % 500;
     ThreadAPI_Sleep(sleepy_time);
 
     (void)interlocked_increment(thread_counter);
@@ -89,7 +90,13 @@ TEST_FUNCTION(one_work_item_schedule_works)
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter));
 
     // assert
-    wait_on_address(&thread_counter, 1, UINT32_MAX);
+    //while(interlocked_add(&thread_counter, 0) != 1);
+    do
+    {
+        wait_on_address(&thread_counter, 1, UINT32_MAX);
+    } while (thread_counter != 1);
+
+    ASSERT_ARE_EQUAL(int32_t, thread_counter, 1, "Thread counter has timed out");
 
     // cleanup
     threadpool_destroy(threadpool);
@@ -116,7 +123,42 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
     }
 
     // assert
-    wait_on_address(&thread_counter, num_threads, UINT32_MAX);
+    while(interlocked_add(&thread_counter, 0) != num_threads);
+    //wait_on_address(&thread_counter, num_threads, UINT32_MAX);
+
+    ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
+
+    // cleanup
+    threadpool_destroy(threadpool);
+    execution_engine_dec_ref(execution_engine);
+}
+
+TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_16_pool_threads))
+{
+    // assert
+    EXECUTION_ENGINE_PARAMETERS_LINUX params;
+    params.min_thread_count = 1;
+    params.max_thread_count = 16;
+
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&params);
+    uint32_t num_threads = N_WORK_ITEMS;
+    volatile_atomic int32_t thread_counter = 0;
+
+    THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    // Create double the amount of threads that is the max
+    LogInfo("Scheduling %" PRIu32 " work item", num_threads);
+    for (uint32_t index = 0; index < num_threads; index++)
+    {
+        ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter));
+    }
+
+    // assert
+    while(interlocked_add(&thread_counter, 0) != num_threads);
+    //wait_on_address(&thread_counter, num_threads, UINT32_MAX);
+
+    ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
     threadpool_destroy(threadpool);
@@ -146,7 +188,9 @@ TEST_FUNCTION(threadpool_chaos_knight)
     }
 
     // assert
-    wait_on_address(&thread_counter, num_threads, UINT32_MAX);
+    while(interlocked_add(&thread_counter, 0) != num_threads);
+    //wait_on_address(&thread_counter, num_threads, UINT32_MAX);
+    ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
     threadpool_destroy(threadpool);

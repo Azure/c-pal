@@ -4,6 +4,8 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <semaphore.h>
+#include <time.h>
 
 #include "macro_utils/macro_utils.h"
 
@@ -38,6 +40,8 @@ typedef struct THREADPOOL_TAG
     volatile_atomic int32_t quitting;
     volatile_atomic int32_t task_count;
 
+    sem_t semaphore;
+
     // Pool Queue
     THREADPOOL_TASK* task_list;
     THREADPOOL_TASK* task_list_last;
@@ -56,22 +60,25 @@ int threadpool_work_func(void* param)
     }
     else
     {
+        struct timespec ts;
         THREADPOOL* threadpool = param;
         do
         {
             (void)interlocked_increment(&threadpool->pool_idle);
-            int32_t current_value;
-
-            while ((current_value = interlocked_add(&threadpool->task_count, 0)) == 0 && interlocked_add(&threadpool->quitting, 0) != 1)
+            while (interlocked_add(&threadpool->quitting, 0) != 1)
             {
-                if (!wait_on_address(&threadpool->task_count, current_value, TIMEOUT_MS))
+                if (clock_gettime(CLOCK_REALTIME, &ts) == -1)
                 {
-                    // Timed out, loop through and try again
+                    LogError("Failure getting time");
                 }
                 else
                 {
-                    // There was a new item added to the list, let's go
-                    break;
+                    // Given number of seconds to wait
+                    ts.tv_sec += 2;
+                    if (sem_timedwait(&threadpool->semaphore, &ts) == 0)
+                    {
+                        break;
+                    }
                 }
             }
             (void)interlocked_decrement(&threadpool->pool_idle);
@@ -88,10 +95,11 @@ int threadpool_work_func(void* param)
             }
             // Unlocking
             srw_lock_release_exclusive(threadpool->srw_lock);
-
-            temp_item->task_func(temp_item->task_param);
-            free(temp_item);
-
+            if (temp_item != NULL)
+            {
+                temp_item->task_func(temp_item->task_param);
+                free(temp_item);
+            }
         } while(interlocked_add(&threadpool->quitting, 0) != 1);
         (void)interlocked_decrement(&threadpool->thread_count);
     }
@@ -139,14 +147,22 @@ THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                 }
                 else
                 {
-                    result->thread_count = 0;
-                    result->task_count = 0;
-                    (void)interlocked_exchange(&result->quitting, 0);
-                    (void)interlocked_exchange(&result->pool_idle, 0);
+                    if (sem_init(&result->semaphore , 0 , 0) != 0)
+                    {
+                        LogError("Failure creating semi_init");
+                    }
+                    else
+                    {
+                        result->thread_count = 0;
+                        result->task_count = 0;
+                        (void)interlocked_exchange(&result->quitting, 0);
+                        (void)interlocked_exchange(&result->pool_idle, 0);
 
-                    result->task_list = NULL;
-                    result->task_list_last = NULL;
-                    goto all_ok;
+                        result->task_list = NULL;
+                        result->task_list_last = NULL;
+                        goto all_ok;
+                    }
+                    srw_lock_destroy(result->srw_lock);
                 }
                 free(result->thread_handle_list);
             }
@@ -188,6 +204,7 @@ void threadpool_destroy(THREADPOOL_HANDLE threadpool)
 
         free(threadpool->thread_handle_list);
 
+        sem_destroy(&threadpool->semaphore);
         srw_lock_destroy(threadpool->srw_lock);
         free(threadpool);
     }
@@ -233,16 +250,17 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
                 srw_lock_release_exclusive(threadpool->srw_lock);
             }
 
-            if (interlocked_add(&threadpool->pool_idle, 0) == 0)
+            if (interlocked_add(&threadpool->pool_idle, 0) > 0)
             {
                 // Idle signal that we have work
-                wake_by_address_single(&threadpool->task_count);
+                //wake_by_address_single(&threadpool->task_count);
+                sem_post(&threadpool->semaphore);
                 result = 0;
                 goto all_ok;
             }
             else
             {
-                // Check to see
+                // Check to see if we should create another thread
                 int32_t current_count = interlocked_add(&threadpool->thread_count, 0);
                 if (current_count < threadpool->max_thread_count)
                 {
@@ -253,6 +271,7 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
                     else
                     {
                         (void)interlocked_increment(&threadpool->thread_count);
+                        sem_post(&threadpool->semaphore);
                         threadpool->list_index++;
                         result = 0;
                         goto all_ok;
@@ -260,6 +279,7 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
                 }
                 else
                 {
+                    sem_post(&threadpool->semaphore);
                     result = 0;
                     goto all_ok;
                 }
