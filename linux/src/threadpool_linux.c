@@ -9,7 +9,7 @@
 
 #include "c_logging/xlogging.h"
 
-#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl.h" // IWYU pragma: keep
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/threadapi.h"
 #include "c_pal/interlocked.h"
@@ -76,24 +76,21 @@ int threadpool_work_func(void* param)
             }
             (void)interlocked_decrement(&threadpool->pool_idle);
 
+            THREADPOOL_TASK* temp_item = NULL;
             // Locking
             srw_lock_acquire_exclusive(threadpool->srw_lock);
             if (threadpool->task_list != NULL && interlocked_add(&threadpool->quitting, 0) != 1)
             {
                 // Remove the task item from the list
-                THREADPOOL_TASK* temp_item = threadpool->task_list;
+                temp_item = threadpool->task_list;
                 threadpool->task_list = temp_item->next;
                 (void)interlocked_decrement(&threadpool->task_count);
-
-                srw_lock_release_exclusive(threadpool->srw_lock);
-
-                temp_item->task_func(temp_item->task_param);
-                free(temp_item);
-
-                srw_lock_acquire_exclusive(threadpool->srw_lock);
             }
             // Unlocking
             srw_lock_release_exclusive(threadpool->srw_lock);
+
+            temp_item->task_func(temp_item->task_param);
+            free(temp_item);
 
         } while(interlocked_add(&threadpool->quitting, 0) != 1);
         (void)interlocked_decrement(&threadpool->thread_count);
@@ -219,7 +216,6 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
             task_item->task_param = work_function_context;
             task_item->task_func = work_function;
 
-            // Need to add a lock here
             {
                 srw_lock_acquire_exclusive(threadpool->srw_lock);
 
@@ -236,7 +232,6 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
 
                 srw_lock_release_exclusive(threadpool->srw_lock);
             }
-            // unlock
 
             if (interlocked_add(&threadpool->pool_idle, 0) == 0)
             {
@@ -248,7 +243,8 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
             else
             {
                 // Check to see
-                if (threadpool->thread_count < threadpool->max_thread_count)
+                int32_t current_count = interlocked_add(&threadpool->thread_count, 0);
+                if (current_count < threadpool->max_thread_count)
                 {
                     if (ThreadAPI_Create(&threadpool->thread_handle_list[threadpool->list_index], threadpool_work_func, threadpool) != THREADAPI_OK)
                     {
