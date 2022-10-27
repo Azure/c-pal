@@ -68,8 +68,8 @@ static void threadpool_task_wait_random(void* parameter)
 {
     volatile_atomic int32_t* thread_counter = (volatile_atomic int32_t*)parameter;
 
-    // Sleep anywhere between 0 and 750 milliseconds
-    unsigned int sleepy_time = rand() % 500;
+    // Sleep anywhere between 0 and 250 milliseconds
+    unsigned int sleepy_time = rand() % 250;
     ThreadAPI_Sleep(sleepy_time);
 
     (void)interlocked_increment(thread_counter);
@@ -90,7 +90,6 @@ TEST_FUNCTION(one_work_item_schedule_works)
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter));
 
     // assert
-    //while(interlocked_add(&thread_counter, 0) != 1);
     do
     {
         wait_on_address(&thread_counter, 1, UINT32_MAX);
@@ -103,7 +102,7 @@ TEST_FUNCTION(one_work_item_schedule_works)
     execution_engine_dec_ref(execution_engine);
 }
 
-#define N_WORK_ITEMS 20
+#define N_WORK_ITEMS 10
 
 TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
 {
@@ -123,8 +122,10 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
     }
 
     // assert
-    while(interlocked_add(&thread_counter, 0) != num_threads);
-    //wait_on_address(&thread_counter, num_threads, UINT32_MAX);
+    do
+    {
+        wait_on_address(&thread_counter, 1, UINT32_MAX);
+    } while (thread_counter != num_threads);
 
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
@@ -133,7 +134,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_16_pool_threads))
+TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
 {
     // assert
     EXECUTION_ENGINE_PARAMETERS_LINUX params;
@@ -154,9 +155,10 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_16_pool_threads)
         ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter));
     }
 
-    // assert
-    while(interlocked_add(&thread_counter, 0) != num_threads);
-    //wait_on_address(&thread_counter, num_threads, UINT32_MAX);
+    do
+    {
+        wait_on_address(&thread_counter, 1, UINT32_MAX);
+    } while (thread_counter != num_threads);
 
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
@@ -170,7 +172,11 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_16_pool_threads)
 TEST_FUNCTION(threadpool_chaos_knight)
 {
     // assert
-    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
+    EXECUTION_ENGINE_PARAMETERS_LINUX params;
+    params.min_thread_count = 1;
+    params.max_thread_count = 16;
+
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&params);
     uint32_t num_threads = N_CHAOS_WORK_ITEMS;
     volatile_atomic int32_t thread_counter = 0;
 
@@ -182,14 +188,16 @@ TEST_FUNCTION(threadpool_chaos_knight)
     for (uint32_t index = 0; index < num_threads; index++)
     {
         ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_random, (void*)&thread_counter));
-        // Sleep between 0 and 150 milliseconds
-        unsigned int sleepy_time = rand() % 150;
+        // Sleep between 0 and 250 milliseconds
+        unsigned int sleepy_time = rand() % 250;
         ThreadAPI_Sleep(sleepy_time);
     }
 
     // assert
-    while(interlocked_add(&thread_counter, 0) != num_threads);
-    //wait_on_address(&thread_counter, num_threads, UINT32_MAX);
+    do
+    {
+        wait_on_address(&thread_counter, 1, UINT32_MAX);
+    } while (thread_counter != num_threads);
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup

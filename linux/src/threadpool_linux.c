@@ -61,25 +61,9 @@ int threadpool_work_func(void* param)
     {
         struct timespec ts;
         THREADPOOL* threadpool = param;
+
         do
         {
-            while (interlocked_add(&threadpool->quitting, 0) != 1)
-            {
-                if (clock_gettime(CLOCK_REALTIME, &ts) == -1)
-                {
-                    LogError("Failure getting time");
-                }
-                else
-                {
-                    // Given number of seconds to wait
-                    ts.tv_sec += 2;
-                    if (sem_timedwait(&threadpool->semaphore, &ts) == 0)
-                    {
-                        break;
-                    }
-                }
-            }
-
             THREADPOOL_TASK* temp_item = NULL;
             // Locking
             srw_lock_acquire_exclusive(threadpool->srw_lock);
@@ -97,7 +81,27 @@ int threadpool_work_func(void* param)
                 temp_item->task_func(temp_item->task_param);
                 free(temp_item);
             }
-        } while(interlocked_add(&threadpool->quitting, 0) != 1);
+            else
+            {
+                // No items, let's wait for new items
+                do
+                {
+                    if (clock_gettime(CLOCK_REALTIME, &ts) == -1)
+                    {
+                        LogError("Failure getting time");
+                    }
+                    else
+                    {
+                        // Given number of seconds to wait
+                        ts.tv_sec += 2;
+                        if (sem_timedwait(&threadpool->semaphore, &ts) == 0)
+                        {
+                            break;
+                        }
+                    }
+                } while (interlocked_add(&threadpool->quitting, 0) != 1);
+            }
+        } while (interlocked_add(&threadpool->quitting, 0) != 1);
         (void)interlocked_decrement(&threadpool->thread_count);
     }
     return 0;
@@ -216,7 +220,6 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
     }
     else
     {
-
         THREADPOOL_TASK* task_item = malloc(sizeof(THREADPOOL_TASK));
         if (task_item == NULL)
         {
