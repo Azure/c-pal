@@ -22,6 +22,12 @@
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 
+static void on_threadpool_open_complete(void* context, THREADPOOL_OPEN_RESULT open_result)
+{
+    (void)context;
+    (void)open_result;
+}
+
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
@@ -64,6 +70,14 @@ static void threadpool_task_wait_20_millisec(void* parameter)
     wake_by_address_single(thread_counter);
 }
 
+static void threadpool_task_wait_60_millisec(void* parameter)
+{
+    volatile_atomic int32_t* thread_counter = (volatile_atomic int32_t*)parameter;
+    ThreadAPI_Sleep(60);
+    (void)interlocked_increment(thread_counter);
+    wake_by_address_single(thread_counter);
+}
+
 static void threadpool_task_wait_random(void* parameter)
 {
     volatile_atomic int32_t* thread_counter = (volatile_atomic int32_t*)parameter;
@@ -85,11 +99,14 @@ TEST_FUNCTION(one_work_item_schedule_works)
     THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_threadpool_open_complete, NULL));
+
     // Create 1 thread pool
     LogInfo("Scheduling work item");
-    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_60_millisec, (void*)&thread_counter));
 
     // assert
+    LogInfo("Waiting for task to complete");
     do
     {
         wait_on_address(&thread_counter, 1, UINT32_MAX);
@@ -102,17 +119,18 @@ TEST_FUNCTION(one_work_item_schedule_works)
     execution_engine_dec_ref(execution_engine);
 }
 
-#define N_WORK_ITEMS 10
+#define N_WORK_ITEMS 15
 
 TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
 {
-    // assert
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
     uint32_t num_threads = N_WORK_ITEMS;
     volatile_atomic int32_t thread_counter = 0;
 
     THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
+
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_threadpool_open_complete, NULL));
 
     // Create double the amount of threads that is the max
     LogInfo("Scheduling %" PRIu32 " work item", num_threads);
@@ -127,6 +145,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
         wait_on_address(&thread_counter, 1, UINT32_MAX);
     } while (thread_counter != num_threads);
 
+    //ThreadAPI_Sleep(120*1000);
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
@@ -148,6 +167,8 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
     THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_threadpool_open_complete, NULL));
+
     // Create double the amount of threads that is the max
     LogInfo("Scheduling %" PRIu32 " work item", num_threads);
     for (uint32_t index = 0; index < num_threads; index++)
@@ -167,21 +188,19 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
     execution_engine_dec_ref(execution_engine);
 }
 
-#define N_CHAOS_WORK_ITEMS 100
+#define N_CHAOS_WORK_ITEMS 50
 
 TEST_FUNCTION(threadpool_chaos_knight)
 {
     // assert
-    EXECUTION_ENGINE_PARAMETERS_LINUX params;
-    params.min_thread_count = 1;
-    params.max_thread_count = 16;
-
-    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&params);
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
     uint32_t num_threads = N_CHAOS_WORK_ITEMS;
     volatile_atomic int32_t thread_counter = 0;
 
     THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
+
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_threadpool_open_complete, NULL));
 
     // Create double the amount of threads that is the max
     LogInfo("Scheduling %" PRIu32 " work items", num_threads);

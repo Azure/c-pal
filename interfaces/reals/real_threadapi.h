@@ -4,6 +4,12 @@
 #ifndef REAL_THREADAPI_H
 #define REAL_THREADAPI_H
 
+#ifdef __cplusplus
+#include <cstdint>
+#else
+#include <stdint.h>
+#endif
+
 #include "macro_utils/macro_utils.h"
 
 #include "c_pal/threadapi.h"

@@ -24,16 +24,34 @@
 
 #define TIMEOUT_MS          100
 #define MAX_THREAD_COUNT    1
+#define THREAD_LIMIT        65536
+
+#define TASK_RESULT_VALUES  \
+    TASK_NOT_USED,          \
+    TASK_WAITING,           \
+    TASK_WORKING
+
+MU_DEFINE_ENUM(TASK_RESULT, TASK_RESULT_VALUES);
+MU_DEFINE_ENUM_STRINGS(TASK_RESULT, TASK_RESULT_VALUES)
+
+#define THREADPOOL_STATE_VALUES \
+    THREADPOOL_STATE_NOT_OPEN, \
+    THREADPOOL_STATE_OPEN
+
+MU_DEFINE_ENUM(THREADPOOL_STATE, THREADPOOL_STATE_VALUES)
+
+MU_DEFINE_ENUM_STRINGS(THREADPOOL_STATE, THREADPOOL_STATE_VALUES)
 
 typedef struct THREADPOOL_TASK_TAG
 {
+    volatile_atomic int32_t task_state;
     THREADPOOL_WORK_FUNCTION task_func;
     void* task_param;
-    struct THREADPOOL_TASK_TAG* next;
 } THREADPOOL_TASK;
 
 typedef struct THREADPOOL_TAG
 {
+    volatile_atomic int32_t state;
     volatile_atomic int32_t thread_count;
     uint32_t max_thread_count;
     volatile_atomic int32_t quitting;
@@ -41,9 +59,11 @@ typedef struct THREADPOOL_TAG
 
     sem_t semaphore;
 
-    // Pool Queue
-    THREADPOOL_TASK* task_list;
-    THREADPOOL_TASK* task_list_last;
+    // Pool Array
+    THREADPOOL_TASK* task_array;
+    volatile_atomic int64_t insert_idx;
+    volatile_atomic int64_t consume_idx;
+    volatile_atomic int32_t task_array_count;
 
     SRW_LOCK_HANDLE srw_lock;
 
@@ -61,50 +81,100 @@ int threadpool_work_func(void* param)
     {
         struct timespec ts;
         THREADPOOL* threadpool = param;
+        int64_t current_index;
 
         do
         {
-            THREADPOOL_TASK* temp_item = NULL;
-            // Locking
-            srw_lock_acquire_exclusive(threadpool->srw_lock);
-            if (threadpool->task_list != NULL && interlocked_add(&threadpool->quitting, 0) != 1)
+            do
             {
-                // Remove the task item from the list
-                temp_item = threadpool->task_list;
-                threadpool->task_list = temp_item->next;
-                (void)interlocked_decrement(&threadpool->task_count);
-            }
-            // Unlocking
-            srw_lock_release_exclusive(threadpool->srw_lock);
-            if (temp_item != NULL)
-            {
-                temp_item->task_func(temp_item->task_param);
-                free(temp_item);
-            }
-            else
-            {
-                // No items, let's wait for new items
-                do
+                if (clock_gettime(CLOCK_REALTIME, &ts) == -1)
                 {
-                    if (clock_gettime(CLOCK_REALTIME, &ts) == -1)
+                    LogError("Failure getting time from clock_gettime");
+                }
+                else
+                {
+                    // Setup the timeout for the semaphore to 2 sec
+                    ts.tv_sec += 2;
+                    if (sem_timedwait(&threadpool->semaphore, &ts) == 0)
                     {
-                        LogError("Failure getting time");
+                        break;
                     }
-                    else
+                }
+            } while (interlocked_add(&threadpool->quitting, 0) != 1);
+
+            if (interlocked_add(&threadpool->quitting, 0) != 1)
+            {
+                int32_t existing_count = interlocked_add(&threadpool->task_array_count, 0);
+
+                // We have a new item
+                current_index = interlocked_add_64(&threadpool->consume_idx, 0) % existing_count;
+
+                // Is this index waiting for us to complete it
+                srw_lock_acquire_shared(threadpool->srw_lock);
+                TASK_RESULT curr_task_result = interlocked_compare_exchange(&threadpool->task_array[current_index].task_state, TASK_WORKING, TASK_WAITING);
+                srw_lock_release_shared(threadpool->srw_lock);
+                if (TASK_WAITING == curr_task_result)
+                {
+                    int64_t consume_pos = interlocked_compare_exchange_64(&threadpool->consume_idx, current_index+1, current_index);
+                    if (consume_pos == current_index)
                     {
-                        // Given number of seconds to wait
-                        ts.tv_sec += 2;
-                        if (sem_timedwait(&threadpool->semaphore, &ts) == 0)
+                        srw_lock_acquire_shared(threadpool->srw_lock);
+                        THREADPOOL_TASK* temp_item = &threadpool->task_array[consume_pos];
+                        srw_lock_release_shared(threadpool->srw_lock);
+
+                        // Get the item and make sure it's valid
+                        if (temp_item != NULL)
                         {
-                            break;
+                            temp_item->task_func(temp_item->task_param);
                         }
+                        // I'm done with this item mark it as complete
+                        srw_lock_acquire_shared(threadpool->srw_lock);
+                        interlocked_exchange(&threadpool->task_array[consume_pos].task_state, TASK_NOT_USED);
+                        srw_lock_release_shared(threadpool->srw_lock);
                     }
-                } while (interlocked_add(&threadpool->quitting, 0) != 1);
+                }
             }
         } while (interlocked_add(&threadpool->quitting, 0) != 1);
         (void)interlocked_decrement(&threadpool->thread_count);
     }
-    return 0;
+}
+
+static int reallocate_threadpool_array(THREADPOOL* threadpool)
+{
+    int result;
+    {
+        // Lock the array here
+        srw_lock_acquire_exclusive(threadpool->srw_lock);
+
+        int32_t existing_count = interlocked_add(&threadpool->task_array_count, 0);
+
+        // Double the items
+        (void)interlocked_exchange(&threadpool->task_array_count, existing_count*2);
+
+        // Reallocate here
+        THREADPOOL_TASK* temp_array = realloc_2((void*)threadpool->task_array, existing_count*2, sizeof(THREADPOOL_TASK));
+        if (temp_array == NULL)
+        {
+            LogError("Failure realloc_2(threadpool->task_array: %p, threadpool->task_array_count: %" PRId32", sizeof(THREADPOOL_TASK): %zu", threadpool->task_array, existing_count*2, sizeof(THREADPOOL_TASK));
+            result = MU_FAILURE;
+        }
+        else
+        {
+            // Clear the newly allocated memory
+            memset(temp_array+existing_count, 0, existing_count*sizeof(THREADPOOL_TASK));
+            threadpool->task_array = temp_array;
+
+            // Normalize the consumed index
+            //(void)interlocked_exchange_64(&threadpool->consume_idx, threadpool->consume_idx % existing_count);
+            // Make the insert index at the new items that were allocated
+            (void)interlocked_exchange_64(&threadpool->insert_idx, existing_count+1);
+
+            result = 0;
+        }
+        // Unlock the arrary here
+        srw_lock_release_exclusive(threadpool->srw_lock);
+    }
+    return result;
 }
 
 THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
@@ -136,33 +206,47 @@ THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
             result->thread_handle_list = malloc_2(result->max_thread_count, sizeof(THREAD_HANDLE));
             if (result->thread_handle_list == NULL)
             {
-                LogError("Failure allocating THREAD array structure %zu", sizeof(THREAD_HANDLE)*result->max_thread_count);
+                LogError("Failure malloc_2(result->max_thread_count: %" PRIu32 ", sizeof(THREAD_HANDLE)): %zu", result->max_thread_count, sizeof(THREAD_HANDLE));
             }
             else
             {
-                result->list_index = 0;
-                result->srw_lock = srw_lock_create(false, "");
-                if (result->srw_lock == NULL)
+                result->task_array = malloc_2(THREAD_LIMIT, sizeof(THREADPOOL_TASK));
+                if (result->task_array == NULL)
                 {
-                    LogError("Failure srw_lock_create");
+                    LogError("Failure malloc_2(THREAD_LIMIT: %" PRIu32 ", sizeof(THREADPOOL_TASK)): %zu", THREAD_LIMIT, sizeof(THREADPOOL_TASK));
                 }
                 else
                 {
-                    if (sem_init(&result->semaphore , 0 , 0) != 0)
+                    // ensure array items are clear
+                    memset(result->task_array, 0, THREAD_LIMIT*sizeof(THREADPOOL_TASK));
+                    result->srw_lock = srw_lock_create(false, "threadpool_lock");
+                    if (result->srw_lock == NULL)
                     {
-                        LogError("Failure creating semi_init");
+                        LogError("Failure srw_lock_create");
                     }
                     else
                     {
-                        result->thread_count = 0;
-                        result->task_count = 0;
-                        (void)interlocked_exchange(&result->quitting, 0);
+                        result->task_array_count = THREAD_LIMIT;
+                        result->list_index = 0;
+                        if (sem_init(&result->semaphore, 0 , 0) != 0)
+                        {
+                            LogError("Failure creating semi_init");
+                        }
+                        else
+                        {
+                            (void)interlocked_exchange(&result->state, THREADPOOL_STATE_NOT_OPEN);
+                            result->thread_count = 0;
+                            result->task_count = 0;
+                            (void)interlocked_exchange(&result->quitting, 0);
 
-                        result->task_list = NULL;
-                        result->task_list_last = NULL;
-                        goto all_ok;
+                            (void)interlocked_exchange_64(&result->insert_idx, 0);
+                            (void)interlocked_exchange_64(&result->consume_idx, 0);
+
+                            goto all_ok;
+                        }
+                        srw_lock_destroy(result->srw_lock);
                     }
-                    srw_lock_destroy(result->srw_lock);
+                    free(result->task_array);
                 }
                 free(result->thread_handle_list);
             }
@@ -194,14 +278,7 @@ void threadpool_destroy(THREADPOOL_HANDLE threadpool)
             }
         }
 
-        // Loop through
-        while (threadpool->task_list != NULL)
-        {
-            THREADPOOL_TASK* temp_item = threadpool->task_list;
-            threadpool->task_list = temp_item->next;
-            free(temp_item);
-        }
-
+        free(threadpool->task_array);
         free(threadpool->thread_handle_list);
 
         sem_destroy(&threadpool->semaphore);
@@ -220,70 +297,82 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
     }
     else
     {
-        THREADPOOL_TASK* task_item = malloc(sizeof(THREADPOOL_TASK));
-        if (task_item == NULL)
+        if (interlocked_add(&threadpool->state, 0) != (int32_t)THREADPOOL_STATE_OPEN)
         {
-            LogError("Failure allocating THREADPOOL_TASK structure");
+            LogWarning("Threadpool schedule work called on non-open pool");
             result = MU_FAILURE;
         }
         else
         {
-            task_item->next = NULL;
-            task_item->task_param = work_function_context;
-            task_item->task_func = work_function;
+            //int64_t insert_pos = (interlocked_increment_64(&threadpool->insert_idx) % threadpool->task_array_count) - 1;
+            int64_t insert_pos = interlocked_exchange_64(&threadpool->insert_idx, threadpool->insert_idx+1) % threadpool->task_array_count ;
 
+            // Do we need to reallocate or do we need to roll over
+            int32_t task_state = interlocked_add(&threadpool->task_array[insert_pos].task_state, 0);
+            if (task_state != TASK_NOT_USED && task_state != TASK_RESULT_INVALID)
             {
-                srw_lock_acquire_exclusive(threadpool->srw_lock);
-
-                if (threadpool->task_list == NULL)
+                // The first task is not complete, so we just need to reallocate and
+                // go to the next item
+                if (reallocate_threadpool_array(threadpool) != 0)
                 {
-                    threadpool->task_list = task_item;
+                    LogError("Failure reallocating threadpool");
+                    result = MU_FAILURE;
                 }
                 else
                 {
-                    threadpool->task_list_last->next = task_item;
+                    insert_pos = interlocked_add_64(&threadpool->insert_idx, 0) - 1;
+                    result = 0;
                 }
-                threadpool->task_list_last = task_item;
-                (void)interlocked_increment(&threadpool->task_count);
-
-                srw_lock_release_exclusive(threadpool->srw_lock);
+            }
+            else
+            {
+                result = 0;
             }
 
-            do
+            if (result == 0)
             {
-                // Check to see if we should create another thread
-                int32_t current_count = interlocked_add(&threadpool->thread_count, 0);
-                if (current_count < threadpool->max_thread_count)
+                srw_lock_acquire_shared(threadpool->srw_lock);
+                THREADPOOL_TASK* task_item = &threadpool->task_array[insert_pos];
+                task_item->task_param = work_function_context;
+                task_item->task_func = work_function;
+                (void)interlocked_exchange(&task_item->task_state, TASK_WAITING);
+                srw_lock_release_shared(threadpool->srw_lock);
+
+                do
                 {
-                    if (interlocked_compare_exchange(&threadpool->thread_count, current_count+1, current_count) == current_count)
+                    // Check to see if we should create another thread
+                    int32_t current_count = interlocked_add(&threadpool->thread_count, 0);
+                    if (current_count < threadpool->max_thread_count)
                     {
-                        if (ThreadAPI_Create(&threadpool->thread_handle_list[threadpool->list_index], threadpool_work_func, threadpool) != THREADAPI_OK)
+                        if (interlocked_compare_exchange(&threadpool->thread_count, current_count+1, current_count) == current_count)
                         {
-                            // Decrement the thread count since we didn't actually create the thread
-                            interlocked_decrement(&threadpool->thread_count);
-                            LogError("Failure creating thread");
-                            break;
-                        }
-                        else
-                        {
-                            sem_post(&threadpool->semaphore);
-                            threadpool->list_index++;
-                            result = 0;
-                            goto all_ok;
+                            if (ThreadAPI_Create(&threadpool->thread_handle_list[threadpool->list_index], threadpool_work_func, threadpool) != THREADAPI_OK)
+                            {
+                                // Decrement the thread count since we didn't actually create the thread
+                                interlocked_decrement(&threadpool->thread_count);
+                                LogError("Failure creating thread");
+                                break;
+                            }
+                            else
+                            {
+                                sem_post(&threadpool->semaphore);
+                                threadpool->list_index++;
+                                result = 0;
+                                goto all_ok;
+                            }
                         }
                     }
+                    else
+                    {
+                        sem_post(&threadpool->semaphore);
+                        result = 0;
+                        goto all_ok;
+                    }
                 }
-                else
-                {
-                    sem_post(&threadpool->semaphore);
-                    result = 0;
-                    goto all_ok;
-                }
+                while(1);
+                result = MU_FAILURE;
             }
-            while(1);
-            free(task_item);
         }
-        result = MU_FAILURE;
     }
 all_ok:
     return result;
@@ -302,15 +391,38 @@ int threadpool_open_async(THREADPOOL_HANDLE threadpool, ON_THREADPOOL_OPEN_COMPL
     }
     else
     {
-        on_open_complete(on_open_complete_context, THREADPOOL_OPEN_OK);
-        result = 0;
+        int32_t current_state = interlocked_compare_exchange(&threadpool->state, (int32_t)THREADPOOL_STATE_OPEN, (int32_t)THREADPOOL_STATE_NOT_OPEN);
+        if (current_state != (int32_t)THREADPOOL_STATE_NOT_OPEN)
+        {
+            LogError("Not closed, cannot open, current state is %" PRI_MU_ENUM "", MU_ENUM_VALUE(THREADPOOL_STATE, current_state));
+            result = MU_FAILURE;
+        }
+        else
+        {
+            on_open_complete(on_open_complete_context, THREADPOOL_OPEN_OK);
+            result = 0;
+        }
     }
     return result;
 }
 
 void threadpool_close(THREADPOOL_HANDLE threadpool)
 {
-    (void)threadpool;
+    int result;
+    if (threadpool == NULL)
+    {
+        LogError("THREADPOOL_HANDLE threadpool=%p", threadpool);
+        result = MU_FAILURE;
+    }
+    else
+    {
+        int32_t current_state = interlocked_compare_exchange(&threadpool->state, (int32_t)THREADPOOL_STATE_NOT_OPEN, (int32_t)THREADPOOL_STATE_OPEN);
+        if (current_state != (int32_t)THREADPOOL_STATE_NOT_OPEN)
+        {
+            LogError("Not closed, cannot open, current state is %" PRI_MU_ENUM "", MU_ENUM_VALUE(THREADPOOL_STATE, current_state));
+            result = MU_FAILURE;
+        }
+    }
 }
 
 int threadpool_timer_start(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context, TIMER_INSTANCE_HANDLE* timer_handle)
