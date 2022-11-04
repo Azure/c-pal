@@ -28,11 +28,12 @@
 #define THREAD_LIMIT        20
 
 #define TASK_RESULT_VALUES  \
+    TASK_NOT_USED,          \
     TASK_INITIALIZING,      \
     TASK_WAITING,           \
     TASK_WORKING
 
-MU_DEFINE_ENUM(TASK_RESULT, TASK_RESULT_VALUES);
+MU_DEFINE_ENUM_WITHOUT_INVALID(TASK_RESULT, TASK_RESULT_VALUES);
 MU_DEFINE_ENUM_STRINGS(TASK_RESULT, TASK_RESULT_VALUES)
 
 #define THREADPOOL_STATE_VALUES \
@@ -93,7 +94,7 @@ static void internal_close(THREADPOOL_HANDLE threadpool)
         }
         else
         {
-            interlocked_exchange(&threadpool->quitting, 1);
+            (void)interlocked_exchange(&threadpool->quitting, 1);
 
             while (interlocked_add(&threadpool->pending_call_count, 0) != 0)
             {
@@ -108,7 +109,7 @@ static void internal_close(THREADPOOL_HANDLE threadpool)
                     LogError("Failure joining thread number %" PRId32 "", index);
                 }
             }
-            interlocked_exchange(&threadpool->state, THREADPOOL_STATE_NOT_OPEN);
+            (void)interlocked_exchange(&threadpool->state, THREADPOOL_STATE_NOT_OPEN);
             should_wait_for_transition = true;
         }
     } while (should_wait_for_transition);
@@ -143,26 +144,27 @@ static int threadpool_work_func(void* param)
                 }
                 else
                 {
-                    // Is this index waiting for us to complete it
-                    srw_lock_acquire_shared(threadpool->srw_lock);
-
-                    int32_t existing_count = interlocked_add(&threadpool->task_array_size, 0);
-                    // We have a new item
-                    current_index = interlocked_increment_64(&threadpool->consume_idx) % existing_count;
-
                     THREADPOOL_WORK_FUNCTION task_func = NULL;
                     void* task_param = NULL;
-                    TASK_RESULT curr_task_result = interlocked_compare_exchange(&threadpool->task_array[current_index].task_state, TASK_WORKING, TASK_WAITING);
-                    if (TASK_WAITING == curr_task_result)
+                    // Is this index waiting for us to complete it
+                    srw_lock_acquire_shared(threadpool->srw_lock);
                     {
-                        task_func = threadpool->task_array[current_index].task_func;
-                        task_param = threadpool->task_array[current_index].task_param;
-                        (void)interlocked_exchange(&threadpool->task_array[current_index].task_state, TASK_RESULT_INVALID);
-                    }
-                    else
-                    {
-                        // Do nothing here, but log
-                        LogWarning("Someone got the item %" PRId64 " task value %" PRI_MU_ENUM "", current_index, MU_ENUM_VALUE(TASK_RESULT, curr_task_result));
+                        int32_t existing_count = interlocked_add(&threadpool->task_array_size, 0);
+                        // We have a new item
+                        current_index = interlocked_increment_64(&threadpool->consume_idx) % existing_count;
+
+                        TASK_RESULT curr_task_result = interlocked_compare_exchange(&threadpool->task_array[current_index].task_state, TASK_WORKING, TASK_WAITING);
+                        if (TASK_WAITING == curr_task_result)
+                        {
+                            task_func = threadpool->task_array[current_index].task_func;
+                            task_param = threadpool->task_array[current_index].task_param;
+                            (void)interlocked_exchange(&threadpool->task_array[current_index].task_state, TASK_NOT_USED);
+                        }
+                        else
+                        {
+                            // Do nothing here, but log
+                            LogWarning("Someone got the item %" PRId64 " task value %" PRI_MU_ENUM "", current_index, MU_ENUM_VALUE(TASK_RESULT, curr_task_result));
+                        }
                     }
                     srw_lock_release_shared(threadpool->srw_lock);
 
@@ -218,7 +220,7 @@ static int reallocate_threadpool_array(THREADPOOL* threadpool)
 
             for (int32_t index = insert_pos; index < consume_pos; index++)
             {
-                if (interlocked_add(&threadpool->task_array[index].task_state, 0) == TASK_RESULT_INVALID)
+                if (interlocked_add(&threadpool->task_array[index].task_state, 0) == TASK_NOT_USED)
                 {
 
                     memmove(&threadpool->task_array[index], &threadpool->task_array[index+1], sizeof(THREADPOOL_TASK));
@@ -282,8 +284,14 @@ THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                 }
                 else
                 {
+                    result->task_array_size = THREAD_LIMIT;
                     // ensure array items are clear
-                    memset(result->task_array, 0, THREAD_LIMIT*sizeof(THREADPOOL_TASK));
+                    for (int32_t index = 0; index < result->task_array_size; index++)
+                    {
+                        result->task_array[index].task_func = NULL;
+                        result->task_array[index].task_param = NULL;
+                        (void)interlocked_exchange(&result->task_array[index].task_state, TASK_NOT_USED);
+                    }
                     result->srw_lock = srw_lock_create(false, "threadpool_lock");
                     if (result->srw_lock == NULL)
                     {
@@ -291,7 +299,6 @@ THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                     }
                     else
                     {
-                        result->task_array_size = THREAD_LIMIT;
                         result->list_index = 0;
                         if (sem_init(&result->semaphore, 0 , 0) != 0)
                         {
@@ -300,8 +307,8 @@ THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                         else
                         {
                             (void)interlocked_exchange(&result->state, THREADPOOL_STATE_NOT_OPEN);
-                            result->thread_count = 0;
-                            result->task_count = 0;
+                            (void)interlocked_exchange(&result->thread_count, 0);
+                            (void)interlocked_exchange(&result->task_count, 0);
                             (void)interlocked_exchange(&result->quitting, 0);
                             (void)interlocked_exchange(&result->pending_call_count, 0);
 
@@ -438,8 +445,8 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
             {
                 srw_lock_acquire_shared(threadpool->srw_lock);
                 int64_t insert_pos = interlocked_increment_64(&threadpool->insert_idx) % threadpool->task_array_size;
-                int32_t task_state = interlocked_compare_exchange(&threadpool->task_array[insert_pos].task_state, TASK_INITIALIZING, TASK_RESULT_INVALID);
-                if (task_state != TASK_RESULT_INVALID)
+                int32_t task_state = interlocked_compare_exchange(&threadpool->task_array[insert_pos].task_state, TASK_INITIALIZING, TASK_NOT_USED);
+                if (task_state != TASK_NOT_USED)
                 {
                     srw_lock_release_shared(threadpool->srw_lock);
                     // go to the next item
