@@ -82,7 +82,7 @@ static void internal_close(THREADPOOL_HANDLE threadpool)
     bool should_wait_for_transition = false;
     do
     {
-        THREADPOOL_STATE current_state = (int32_t)interlocked_compare_exchange(&threadpool->state, (int32_t)THREADPOOL_STATE_CLOSING, (int32_t)THREADPOOL_STATE_OPEN);
+        THREADPOOL_STATE current_state = interlocked_compare_exchange(&threadpool->state, THREADPOOL_STATE_CLOSING, THREADPOOL_STATE_OPEN);
         if (current_state == THREADPOOL_STATE_NOT_OPEN || current_state == THREADPOOL_STATE_CLOSING)
         {
             should_wait_for_transition = false;
@@ -359,10 +359,10 @@ int threadpool_open_async(THREADPOOL_HANDLE threadpool, ON_THREADPOOL_OPEN_COMPL
     }
     else
     {
-        int32_t current_state = interlocked_compare_exchange(&threadpool->state, (int32_t)THREADPOOL_STATE_OPENING, (int32_t)THREADPOOL_STATE_NOT_OPEN);
-        if (current_state != (int32_t)THREADPOOL_STATE_NOT_OPEN)
+        int32_t current_state = interlocked_compare_exchange(&threadpool->state, THREADPOOL_STATE_OPENING, THREADPOOL_STATE_NOT_OPEN);
+        if (current_state != THREADPOOL_STATE_NOT_OPEN)
         {
-            LogError("Not closed, cannot open, current state is %" PRI_MU_ENUM "", MU_ENUM_VALUE(THREADPOOL_STATE, current_state));
+            LogError("Inconsistent state current state is %" PRI_MU_ENUM "", MU_ENUM_VALUE(THREADPOOL_STATE, current_state));
             result = MU_FAILURE;
         }
         else
@@ -420,14 +420,15 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
     int result;
     if (threadpool == NULL || work_function == NULL)
     {
-        LogError("Invalid arguments: THREADPOOL_HANDLE threadpool: %p, THREADPOOL_TASK_FUNC work_function: %p", threadpool, work_function);
+        LogError("Invalid arguments: THREADPOOL_HANDLE threadpool: %p, THREADPOOL_WORK_FUNCTION work_function: %p, void* work_function_context: %p", threadpool, work_function, work_function_context);
         result = MU_FAILURE;
     }
     else
     {
-        if (interlocked_add(&threadpool->state, 0) != (int32_t)THREADPOOL_STATE_OPEN)
+        int32_t current_state = interlocked_add(&threadpool->state, 0);
+        if (current_state != THREADPOOL_STATE_OPEN)
         {
-            LogWarning("Threadpool schedule work called on non-open pool");
+            LogWarning("Inconsistent state current state is %" PRI_MU_ENUM "", MU_ENUM_VALUE(THREADPOOL_STATE, current_state));
             result = MU_FAILURE;
         }
         else
