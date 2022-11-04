@@ -103,23 +103,24 @@ TEST_FUNCTION(one_work_item_schedule_works)
 
     // Create 1 thread pool
     LogInfo("Scheduling work item");
-    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_60_millisec, (void*)&thread_counter));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter));
 
     // assert
     LogInfo("Waiting for task to complete");
     do
     {
-        wait_on_address(&thread_counter, 1, UINT32_MAX);
+        (void)wait_on_address(&thread_counter, 1, UINT32_MAX);
     } while (thread_counter != 1);
 
     ASSERT_ARE_EQUAL(int32_t, thread_counter, 1, "Thread counter has timed out");
 
     // cleanup
+    threadpool_close(threadpool);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
 }
 
-#define N_WORK_ITEMS 15
+#define N_WORK_ITEMS 30
 
 TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
 {
@@ -136,7 +137,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
     LogInfo("Scheduling %" PRIu32 " work item", num_threads);
     for (uint32_t index = 0; index < num_threads; index++)
     {
-        ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter));
+        ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_60_millisec, (void*)&thread_counter));
     }
 
     // assert
@@ -149,6 +150,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
+    threadpool_close(threadpool);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
 }
@@ -170,7 +172,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
     ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_threadpool_open_complete, NULL));
 
     // Create double the amount of threads that is the max
-    LogInfo("Scheduling %" PRIu32 " work item", num_threads);
+    LogInfo("Scheduling %" PRIu32 " work item with 20 millisecons work", num_threads);
     for (uint32_t index = 0; index < num_threads; index++)
     {
         ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter));
@@ -184,6 +186,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
+    threadpool_close(threadpool);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
 }
@@ -220,6 +223,7 @@ TEST_FUNCTION(threadpool_chaos_knight)
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
+    threadpool_close(threadpool);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
 }
