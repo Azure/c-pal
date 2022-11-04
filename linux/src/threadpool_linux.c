@@ -202,7 +202,12 @@ static int reallocate_threadpool_array(THREADPOOL* threadpool)
         else
         {
             // Clear the newly allocated memory
-            memset(temp_array+existing_count, 0, existing_count*sizeof(THREADPOOL_TASK));
+            for (int32_t index = existing_count; index < existing_count*2; index++)
+            {
+                temp_array[index].task_func = NULL;
+                temp_array[index].task_param = NULL;
+                (void)interlocked_exchange(&temp_array[index].task_state, TASK_NOT_USED);
+            }
             threadpool->task_array = temp_array;
 
             // Ensure there are no gaps in the array
