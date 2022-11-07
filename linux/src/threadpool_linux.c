@@ -59,7 +59,6 @@ typedef struct THREADPOOL_TAG
     uint32_t max_thread_count;
     uint32_t min_thread_count;
     int32_t used_thread_count;
-    volatile_atomic int32_t quitting;
     volatile_atomic int32_t task_count;
 
     sem_t semaphore;
@@ -93,12 +92,15 @@ static void internal_close(THREADPOOL_HANDLE threadpool)
         }
         else
         {
-            (void)interlocked_exchange(&threadpool->quitting, 1);
-
             while (interlocked_add(&threadpool->pending_call_count, 0) != 0)
             {
-                ThreadAPI_Sleep(1);
+               ThreadAPI_Sleep(1);
             }
+            // Will change to this call after wait_on_address call has been examined
+            // do
+            // {
+            //     (void)wait_on_address(&threadpool->pending_call_count, 0, UINT32_MAX);
+            // } while (&threadpool->pending_call_count != 0);
 
             for (int32_t index = 0; index < threadpool->used_thread_count; index++)
             {
@@ -109,7 +111,7 @@ static void internal_close(THREADPOOL_HANDLE threadpool)
                 }
             }
             (void)interlocked_exchange(&threadpool->state, THREADPOOL_STATE_NOT_OPEN);
-            should_wait_for_transition = true;
+            should_wait_for_transition = false;
         }
     } while (should_wait_for_transition);
 }
@@ -161,8 +163,8 @@ static int threadpool_work_func(void* param)
                         }
                         else
                         {
-                            // Do nothing here, but log
-                            LogWarning("Someone got the item %" PRId64 " task value %" PRI_MU_ENUM "", current_index, MU_ENUM_VALUE(TASK_RESULT, curr_task_result));
+                            // Do nothing here, this should not happen, but log if it does
+                            LogWarning("The impossible has happend, someone got the item %" PRId64 " task value %" PRI_MU_ENUM "", current_index, MU_ENUM_VALUE(TASK_RESULT, curr_task_result));
                         }
                     }
                     srw_lock_release_shared(threadpool->srw_lock);
@@ -174,7 +176,7 @@ static int threadpool_work_func(void* param)
                 }
             }
 
-        } while (interlocked_add(&threadpool->quitting, 0) != 1);
+        } while (interlocked_add(&threadpool->state, 0) != THREADPOOL_STATE_CLOSING);
     }
     return 0;
 }
@@ -313,7 +315,6 @@ THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                             (void)interlocked_exchange(&result->state, THREADPOOL_STATE_NOT_OPEN);
                             (void)interlocked_exchange(&result->thread_count, 0);
                             (void)interlocked_exchange(&result->task_count, 0);
-                            (void)interlocked_exchange(&result->quitting, 0);
                             (void)interlocked_exchange(&result->pending_call_count, 0);
 
                             // Need to start the index at -1 so the first increment
@@ -445,6 +446,7 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
         else
         {
             (void)interlocked_increment(&threadpool->pending_call_count);
+            wake_by_address_single(&threadpool->pending_call_count);
             do
             {
                 srw_lock_acquire_shared(threadpool->srw_lock);

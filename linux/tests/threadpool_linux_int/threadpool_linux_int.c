@@ -25,7 +25,7 @@ static TEST_MUTEX_HANDLE test_serialize_mutex;
 static void on_threadpool_open_complete(void* context, THREADPOOL_OPEN_RESULT open_result)
 {
     (void)context;
-    (void)open_result;
+    ASSERT_ARE_EQUAL(THREADPOOL_OPEN_RESULT, THREADPOOL_OPEN_OK, open_result);
 }
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
