@@ -22,6 +22,8 @@
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 
+TEST_DEFINE_ENUM_TYPE(THREADPOOL_OPEN_RESULT, THREADPOOL_OPEN_RESULT_VALUES);
+
 static void on_threadpool_open_complete(void* context, THREADPOOL_OPEN_RESULT open_result)
 {
     (void)context;
