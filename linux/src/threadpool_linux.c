@@ -92,15 +92,11 @@ static void internal_close(THREADPOOL_HANDLE threadpool)
         }
         else
         {
-            while (interlocked_add(&threadpool->pending_call_count, 0) != 0)
+            int32_t value;
+            while ((value = interlocked_add(&threadpool->pending_call_count, 0)) != 0)
             {
-               ThreadAPI_Sleep(1);
+                (void)wait_on_address(&threadpool->pending_call_count, value, UINT32_MAX);
             }
-            // Will change to this call after wait_on_address call has been examined
-            // do
-            // {
-            //     (void)wait_on_address(&threadpool->pending_call_count, 0, UINT32_MAX);
-            // } while (&threadpool->pending_call_count != 0);
 
             for (int32_t index = 0; index < threadpool->used_thread_count; index++)
             {
