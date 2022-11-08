@@ -127,3 +127,8 @@ void ThreadAPI_Sleep(unsigned int milliseconds)
     (void)nanosleep(&timeToSleep, NULL);
 #endif
 }
+
+uint32_t ThreadAPI_GetCurrentThreadId(void)
+{
+    return (uint32_t)pthread_self();
+}
