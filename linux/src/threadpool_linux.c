@@ -1,6 +1,7 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -23,9 +24,7 @@
 
 #include "c_pal/threadpool.h"
 
-#define TIMEOUT_MS          100
-#define MAX_THREAD_COUNT    1
-#define THREAD_LIMIT        65536
+#define DEFAULT_TASK_ARRAY_SIZE 2048
 
 #define TASK_RESULT_VALUES  \
     TASK_NOT_USED,          \
@@ -55,7 +54,6 @@ typedef struct THREADPOOL_TASK_TAG
 typedef struct THREADPOOL_TAG
 {
     volatile_atomic int32_t state;
-    volatile_atomic int32_t thread_count;
     uint32_t max_thread_count;
     uint32_t min_thread_count;
     int32_t used_thread_count;
@@ -65,9 +63,9 @@ typedef struct THREADPOOL_TAG
 
     // Pool Array
     THREADPOOL_TASK* task_array;
+    volatile_atomic int32_t task_array_size;
     volatile_atomic int64_t insert_idx;
     volatile_atomic int64_t consume_idx;
-    volatile_atomic int32_t task_array_size;
     volatile_atomic int32_t pending_call_count;
 
     SRW_LOCK_HANDLE srw_lock;
@@ -82,11 +80,11 @@ static void internal_close(THREADPOOL_HANDLE threadpool)
     do
     {
         THREADPOOL_STATE current_state = interlocked_compare_exchange(&threadpool->state, THREADPOOL_STATE_CLOSING, THREADPOOL_STATE_OPEN);
-        if (current_state == THREADPOOL_STATE_NOT_OPEN || current_state == THREADPOOL_STATE_CLOSING)
+        if (current_state == THREADPOOL_STATE_NOT_OPEN)
         {
             should_wait_for_transition = false;
         }
-        else if (current_state == THREADPOOL_STATE_OPENING)
+        else if (current_state == THREADPOOL_STATE_OPENING || current_state == THREADPOOL_STATE_CLOSING)
         {
             should_wait_for_transition = true;
         }
@@ -185,60 +183,70 @@ static int reallocate_threadpool_array(THREADPOOL* threadpool)
         srw_lock_acquire_exclusive(threadpool->srw_lock);
 
         int32_t existing_count = interlocked_add(&threadpool->task_array_size, 0);
-
-        // Double the items
-        (void)interlocked_exchange(&threadpool->task_array_size, existing_count*2);
-
-        // Reallocate here
-        THREADPOOL_TASK* temp_array = realloc_2((void*)threadpool->task_array, existing_count*2, sizeof(THREADPOOL_TASK));
-        if (temp_array == NULL)
+        int32_t new_task_array_size = existing_count*2;
+        if (new_task_array_size < 0)
         {
-            LogError("Failure realloc_2(threadpool->task_array: %p, threadpool->task_array_size: %" PRId32", sizeof(THREADPOOL_TASK): %zu", threadpool->task_array, existing_count*2, sizeof(THREADPOOL_TASK));
+            LogError("overflow in computation task_array_size: %" PRId32 "*2 (%" PRId32 ") > UINT32_MAX: %" PRId32 " - 1. ", existing_count, new_task_array_size, INT32_MAX);
             result = MU_FAILURE;
         }
         else
         {
-            // Clear the newly allocated memory
-            for (int32_t index = existing_count; index < existing_count*2; index++)
+            // Double the items
+            (void)interlocked_exchange(&threadpool->task_array_size, new_task_array_size);
+
+            // Reallocate here
+            THREADPOOL_TASK* temp_array = realloc_2(threadpool->task_array, new_task_array_size, sizeof(THREADPOOL_TASK));
+            if (temp_array == NULL)
             {
-                temp_array[index].task_func = NULL;
-                temp_array[index].task_param = NULL;
-                (void)interlocked_exchange(&temp_array[index].task_state, TASK_NOT_USED);
+                LogError("Failure realloc_2(threadpool->task_array: %p, threadpool->task_array_size: %" PRId32", sizeof(THREADPOOL_TASK): %zu", threadpool->task_array, new_task_array_size, sizeof(THREADPOOL_TASK));
+                result = MU_FAILURE;
             }
-            threadpool->task_array = temp_array;
-
-            // Ensure there are no gaps in the array
-            // Consume = 2
-            // Produce = 2
-            // [x x x x]
-            // Consume = 3
-            // Produce = 2
-            // [x x 0 x]
-            // During resize we will have to memmove in the gap at 2
-            // [x x 0 x 0 0 0 0]
-
-            int32_t insert_pos = interlocked_add_64(&threadpool->insert_idx, 0);
-            int32_t consume_pos = interlocked_add_64(&threadpool->consume_idx, 0);
-
-            for (int32_t index = insert_pos; index < consume_pos; index++)
+            else
             {
-                if (interlocked_add(&threadpool->task_array[index].task_state, 0) == TASK_NOT_USED)
+                // Clear the newly allocated memory
+                for (int32_t index = existing_count; index < new_task_array_size; index++)
                 {
-
-                    memmove(&threadpool->task_array[index], &threadpool->task_array[index+1], sizeof(THREADPOOL_TASK));
-                    // Move the place where we're putting the insert_index back because we
-                    // compressing the list
-                    existing_count--;
+                    temp_array[index].task_func = NULL;
+                    temp_array[index].task_param = NULL;
+                    (void)interlocked_exchange(&temp_array[index].task_state, TASK_NOT_USED);
                 }
+                threadpool->task_array = temp_array;
+
+                // Ensure there are no gaps in the array
+                // Consume = 2
+                // Produce = 2
+                // [x x x x]
+                // Consume = 3
+                // Produce = 2
+                // [x x 0 x]
+                // During resize we will have to memmove in the gap at 2
+                // [x x 0 x 0 0 0 0]
+
+                int32_t insert_pos = interlocked_add_64(&threadpool->insert_idx, 0);
+                int32_t consume_pos = interlocked_add_64(&threadpool->consume_idx, 0);
+
+                if (insert_pos == consume_pos)
+                {
+                    for (int32_t index = insert_pos; index < consume_pos; index++)
+                    {
+                        if (interlocked_add(&threadpool->task_array[index].task_state, 0) == TASK_NOT_USED)
+                        {
+                            // Move the place where we're putting the insert_index back because we
+                            // compressing the list
+                            existing_count--;
+                        }
+                    }
+                    memmove(&threadpool->task_array[insert_pos], &threadpool->task_array[consume_pos+1], sizeof(THREADPOOL_TASK));
+                }
+
+                // Start back at zero (-1 because of the increment) for the consumed index which will
+                // ensure that there are no left over items
+                (void)interlocked_exchange_64(&threadpool->consume_idx, -1);
+                // Make the insert index at the new items that were allocated
+                (void)interlocked_exchange_64(&threadpool->insert_idx, existing_count-1);
+
+                result = 0;
             }
-
-            // Start back at zero (-1 because of the increment) for the consumed index which will
-            // ensure that there are no left over items
-            (void)interlocked_exchange_64(&threadpool->consume_idx, -1);
-            // Make the insert index at the new items that were allocated
-            (void)interlocked_exchange_64(&threadpool->insert_idx, existing_count-1);
-
-            result = 0;
         }
         // Unlock the array here
         srw_lock_release_exclusive(threadpool->srw_lock);
@@ -279,14 +287,14 @@ THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
             }
             else
             {
-                result->task_array = malloc_2(THREAD_LIMIT, sizeof(THREADPOOL_TASK));
+                result->task_array = malloc_2(DEFAULT_TASK_ARRAY_SIZE, sizeof(THREADPOOL_TASK));
                 if (result->task_array == NULL)
                 {
-                    LogError("Failure malloc_2(THREAD_LIMIT: %" PRIu32 ", sizeof(THREADPOOL_TASK)): %zu", THREAD_LIMIT, sizeof(THREADPOOL_TASK));
+                    LogError("Failure malloc_2(DEFAULT_TASK_ARRAY_SIZE: %" PRIu32 ", sizeof(THREADPOOL_TASK)): %zu", DEFAULT_TASK_ARRAY_SIZE, sizeof(THREADPOOL_TASK));
                 }
                 else
                 {
-                    result->task_array_size = THREAD_LIMIT;
+                    result->task_array_size = DEFAULT_TASK_ARRAY_SIZE;
                     // ensure array items are clear
                     for (int32_t index = 0; index < result->task_array_size; index++)
                     {
@@ -309,7 +317,6 @@ THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                         else
                         {
                             (void)interlocked_exchange(&result->state, THREADPOOL_STATE_NOT_OPEN);
-                            (void)interlocked_exchange(&result->thread_count, 0);
                             (void)interlocked_exchange(&result->task_count, 0);
                             (void)interlocked_exchange(&result->pending_call_count, 0);
 
