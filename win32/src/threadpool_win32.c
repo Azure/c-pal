@@ -37,6 +37,7 @@ typedef struct TIMER_INSTANCE_TAG
 
 typedef struct THREADPOOL_TAG
 {
+    EXECUTION_ENGINE_HANDLE execution_engine;
     volatile LONG state;
     PTP_POOL pool;
     TP_CALLBACK_ENVIRON tp_environment;
@@ -129,6 +130,10 @@ THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
             }
             else
             {
+                /* Codes_SRS_THREADPOOL_WIN32_42_027: [ threadpool_create shall increment the reference count on the execution_engine. ]*/
+                execution_engine_inc_ref(execution_engine);
+                result->execution_engine = execution_engine;
+
                 (void)InterlockedExchange(&result->pending_api_calls, 0);
                 (void)InterlockedExchange(&result->state, (LONG)THREADPOOL_WIN32_STATE_CLOSED);
 
@@ -172,6 +177,9 @@ void threadpool_destroy(THREADPOOL_HANDLE threadpool)
 
             (void)WaitOnAddress(&threadpool->state, &current_state, sizeof(current_state), INFINITE);
         } while (1);
+
+        /* Codes_SRS_THREADPOOL_WIN32_42_028: [ threadpool_destroy shall decrement the reference count on the execution_engine. ]*/
+        execution_engine_dec_ref(threadpool->execution_engine);
 
         /* Codes_SRS_THREADPOOL_WIN32_01_005: [ Otherwise, threadpool_destroy shall free all resources associated with threadpool. ]*/
         free(threadpool);

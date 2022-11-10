@@ -52,6 +52,8 @@ MOCKABLE_FUNCTION(, THREADPOOL_HANDLE, threadpool_create, EXECUTION_ENGINE_HANDL
 
 **SRS_THREADPOOL_WIN32_01_002: [** If `execution_engine` is `NULL`, `threadpool_create` shall fail and return `NULL`. **]**
 
+**SRS_THREADPOOL_WIN32_42_027: [** `threadpool_create` shall increment the reference count on the `execution_engine`. **]**
+
 **SRS_THREADPOOL_WIN32_01_025: [** `threadpool_create` shall obtain the PTP_POOL from the execution engine by calling `execution_engine_win32_get_threadpool`. **]**
 
 **SRS_THREADPOOL_WIN32_01_003: [** If any error occurs, `threadpool_create` shall fail and return `NULL`. **]**
@@ -71,6 +73,8 @@ MOCKABLE_FUNCTION(, void, threadpool_destroy, THREADPOOL_HANDLE, threadpool);
 **SRS_THREADPOOL_WIN32_01_006: [** While `threadpool` is OPENING or CLOSING, `threadpool_destroy` shall wait for the open to complete either successfully or with error. **]**
 
 **SRS_THREADPOOL_WIN32_01_007: [** `threadpool_destroy` shall perform an implicit close if `threadpool` is OPEN. **]**
+
+**SRS_THREADPOOL_WIN32_42_028: [** `threadpool_destroy` shall decrement the reference count on the `execution_engine`. **]**
 
 ### threadpool_open_async
 
