@@ -35,6 +35,8 @@
 MU_DEFINE_ENUM(TASK_RESULT, TASK_RESULT_VALUES);
 MU_DEFINE_ENUM_STRINGS(TASK_RESULT, TASK_RESULT_VALUES)
 
+MU_DEFINE_ENUM_STRINGS(THREADPOOL_OPEN_RESULT, THREADPOOL_OPEN_RESULT_VALUES)
+
 #define THREADPOOL_STATE_VALUES \
     THREADPOOL_STATE_NOT_OPEN,  \
     THREADPOOL_STATE_OPENING,   \
@@ -47,8 +49,8 @@ MU_DEFINE_ENUM_STRINGS(THREADPOOL_STATE, THREADPOOL_STATE_VALUES)
 typedef struct THREADPOOL_TASK_TAG
 {
     volatile_atomic int32_t task_state;
-    THREADPOOL_WORK_FUNCTION task_func;
-    void* task_param;
+    THREADPOOL_WORK_FUNCTION work_function;
+    void* work_function_ctx;
 } THREADPOOL_TASK;
 
 typedef struct THREADPOOL_TAG
@@ -139,20 +141,19 @@ static int threadpool_work_func(void* param)
                 }
                 else
                 {
-                    THREADPOOL_WORK_FUNCTION task_func = NULL;
-                    void* task_param = NULL;
+                    THREADPOOL_WORK_FUNCTION work_function = NULL;
+                    void* work_function_ctx = NULL;
                     // Is this index waiting for us to complete it
                     srw_lock_acquire_shared(threadpool->srw_lock);
                     {
                         int32_t existing_count = interlocked_add(&threadpool->task_array_size, 0);
                         // We have a new item
                         current_index = interlocked_increment_64(&threadpool->consume_idx) % existing_count;
-
                         TASK_RESULT curr_task_result = interlocked_compare_exchange(&threadpool->task_array[current_index].task_state, TASK_WORKING, TASK_WAITING);
                         if (TASK_WAITING == curr_task_result)
                         {
-                            task_func = threadpool->task_array[current_index].task_func;
-                            task_param = threadpool->task_array[current_index].task_param;
+                            work_function = threadpool->task_array[current_index].work_function;
+                            work_function_ctx = threadpool->task_array[current_index].work_function_ctx;
                             (void)interlocked_exchange(&threadpool->task_array[current_index].task_state, TASK_NOT_USED);
                         }
                         else
@@ -163,9 +164,9 @@ static int threadpool_work_func(void* param)
                     }
                     srw_lock_release_shared(threadpool->srw_lock);
 
-                    if (task_func != NULL)
+                    if (work_function != NULL)
                     {
-                        task_func(task_param);
+                        work_function(work_function_ctx);
                     }
                 }
             }
@@ -206,8 +207,8 @@ static int reallocate_threadpool_array(THREADPOOL* threadpool)
                 // Clear the newly allocated memory
                 for (int32_t index = existing_count; index < new_task_array_size; index++)
                 {
-                    temp_array[index].task_func = NULL;
-                    temp_array[index].task_param = NULL;
+                    temp_array[index].work_function = NULL;
+                    temp_array[index].work_function_ctx = NULL;
                     (void)interlocked_exchange(&temp_array[index].task_state, TASK_NOT_USED);
                 }
                 threadpool->task_array = temp_array;
@@ -222,28 +223,33 @@ static int reallocate_threadpool_array(THREADPOOL* threadpool)
                 // During resize we will have to memmove in the gap at 2
                 // [x x 0 x 0 0 0 0]
 
-                int32_t insert_pos = interlocked_add_64(&threadpool->insert_idx, 0);
-                int32_t consume_pos = interlocked_add_64(&threadpool->consume_idx, 0);
+                int64_t insert_pos = interlocked_add_64(&threadpool->insert_idx, 0) % existing_count;
+                int64_t consume_pos = interlocked_add_64(&threadpool->consume_idx, 0) % existing_count;
 
-                if (insert_pos == consume_pos)
+                uint32_t compress_count = 0;
+                if (insert_pos != consume_pos)
                 {
-                    for (int32_t index = insert_pos; index < consume_pos; index++)
+                    for (int64_t index = insert_pos; index < consume_pos; index++)
                     {
                         if (interlocked_add(&threadpool->task_array[index].task_state, 0) == TASK_NOT_USED)
                         {
                             // Move the place where we're putting the insert_index back because we
                             // compressing the list
                             existing_count--;
+                            compress_count++;
                         }
                     }
-                    memmove(&threadpool->task_array[insert_pos], &threadpool->task_array[consume_pos+1], sizeof(THREADPOOL_TASK));
+                    if (compress_count > 0)
+                    {
+                        memmove(&threadpool->task_array[insert_pos], &threadpool->task_array[consume_pos+1], sizeof(THREADPOOL_TASK)*compress_count);
+                    }
                 }
 
                 // Start back at zero (-1 because of the increment) for the consumed index which will
                 // ensure that there are no left over items
                 (void)interlocked_exchange_64(&threadpool->consume_idx, -1);
                 // Make the insert index at the new items that were allocated
-                (void)interlocked_exchange_64(&threadpool->insert_idx, existing_count-1);
+                (void)interlocked_exchange_64(&threadpool->insert_idx, existing_count-compress_count-1);
 
                 result = 0;
             }
@@ -298,8 +304,8 @@ THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                     // ensure array items are clear
                     for (int32_t index = 0; index < result->task_array_size; index++)
                     {
-                        result->task_array[index].task_func = NULL;
-                        result->task_array[index].task_param = NULL;
+                        result->task_array[index].work_function = NULL;
+                        result->task_array[index].work_function_ctx = NULL;
                         (void)interlocked_exchange(&result->task_array[index].task_state, TASK_NOT_USED);
                     }
                     result->srw_lock = srw_lock_create(false, "threadpool_lock");
@@ -430,12 +436,12 @@ void threadpool_close(THREADPOOL_HANDLE threadpool)
     }
 }
 
-int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context)
+int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_ctx)
 {
     int result;
     if (threadpool == NULL || work_function == NULL)
     {
-        LogError("Invalid arguments: THREADPOOL_HANDLE threadpool: %p, THREADPOOL_WORK_FUNCTION work_function: %p, void* work_function_context: %p", threadpool, work_function, work_function_context);
+        LogError("Invalid arguments: THREADPOOL_HANDLE threadpool: %p, THREADPOOL_WORK_FUNCTION work_function: %p, void* work_function_ctx: %p", threadpool, work_function, work_function_ctx);
         result = MU_FAILURE;
     }
     else
@@ -453,7 +459,9 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
             do
             {
                 srw_lock_acquire_shared(threadpool->srw_lock);
-                int64_t insert_pos = interlocked_increment_64(&threadpool->insert_idx) % threadpool->task_array_size;
+                int32_t existing_count = interlocked_add(&threadpool->task_array_size, 0);
+
+                int64_t insert_pos = interlocked_increment_64(&threadpool->insert_idx) % existing_count;
                 int32_t task_state = interlocked_compare_exchange(&threadpool->task_array[insert_pos].task_state, TASK_INITIALIZING, TASK_NOT_USED);
                 if (task_state != TASK_NOT_USED)
                 {
@@ -470,8 +478,8 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
                 else
                 {
                     THREADPOOL_TASK* task_item = &threadpool->task_array[insert_pos];
-                    task_item->task_param = work_function_context;
-                    task_item->task_func = work_function;
+                    task_item->work_function_ctx = work_function_ctx;
+                    task_item->work_function = work_function;
                     (void)interlocked_exchange(&task_item->task_state, TASK_WAITING);
                     srw_lock_release_shared(threadpool->srw_lock);
 
@@ -490,13 +498,13 @@ all_ok:
     return result;
 }
 
-int threadpool_timer_start(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context, TIMER_INSTANCE_HANDLE* timer_handle)
+int threadpool_timer_start(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_ctx, TIMER_INSTANCE_HANDLE* timer_handle)
 {
     (void)threadpool;
     (void)start_delay_ms;
     (void)timer_period_ms;
     (void)work_function;
-    (void)work_function_context;
+    (void)work_function_ctx;
     (void)timer_handle;
     return MU_FAILURE;
 }
