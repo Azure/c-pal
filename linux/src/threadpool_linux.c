@@ -241,7 +241,7 @@ static int reallocate_threadpool_array(THREADPOOL* threadpool)
                     }
                     if (compress_count > 0)
                     {
-                        memmove(&threadpool->task_array[insert_pos], &threadpool->task_array[consume_pos+1], sizeof(THREADPOOL_TASK)*compress_count);
+                        (void)memmove(&threadpool->task_array[insert_pos], &threadpool->task_array[consume_pos+1], sizeof(THREADPOOL_TASK)*compress_count);
                     }
                 }
 
