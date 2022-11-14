@@ -9,7 +9,7 @@ extern "C" {
 
 /* this type should abstract a socket for different platforms. I.e. for Windows it should simply wrap SOCKET */
 #ifdef WIN32
-    typedef SOCKET SOCKET_HANDLE;
+    typedef void* SOCKET_HANDLE;
 #else
     typedef int SOCKET_HANDLE;
     #define INVALID_SOCKET  -1

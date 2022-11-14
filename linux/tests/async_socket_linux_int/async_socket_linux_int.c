@@ -85,7 +85,7 @@ static void setup_server_socket(int port_num, SOCKET_HANDLE* listen_socket)
     service.sin_port = htons(port_num);
     service.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    ASSERT_ARE_EQUAL(int, 0, bind(*listen_socket, (struct sockaddr*)&service, sizeof(service)), "Failure on bind");
+    ASSERT_ARE_EQUAL(int, 0, bind(*listen_socket, (struct sockaddr*)&service, sizeof(service)), "Failure binding to port %d", port_num);
 
     // set it to async IO
     set_nonblocking(*listen_socket);
