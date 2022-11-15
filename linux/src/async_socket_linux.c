@@ -45,7 +45,8 @@ MU_DEFINE_ENUM_STRINGS(ASYNC_SOCKET_IO_TYPE, ASYNC_SOCKET_IO_TYPE_VALUES)
 
 MU_DEFINE_ENUM_STRINGS(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_RESULT_VALUES)
 
-// These will be in a separate file maybe
+// These will be in a separate file maybe along with the 
+// thread function?
 volatile_atomic int32_t g_threads_num;
 int g_epoll;
 #define THREAD_COUNT    1
@@ -102,7 +103,6 @@ typedef struct ASYNC_SOCKET_SEND_CONTEXT_TAG
 static int thread_worker_func(void* parameter)
 {
     (void)parameter;
-    struct epoll_event events[MAX_EVENTS_NUM];
 
     // Loop while true
     do
@@ -111,72 +111,76 @@ static int thread_worker_func(void* parameter)
         int num_ready = epoll_wait(g_epoll, events, MAX_EVENTS_NUM, EVENTS_TIMEOUT);
         for(int index = 0; index < num_ready; index++)
         {
-            if (events[index].events & EPOLLIN)
+            if (events[index].events & EPOLLRDHUP)
+            {
+                ASYNC_SOCKET_RECV_CONTEXT* recv_context = events[index].data.ptr;
+                if (recv_context != NULL)
+                {
+                    recv_context->on_receive_complete(recv_context->on_receive_complete_context, ASYNC_SOCKET_RECEIVE_ABANDONED, 0);
+                }
+            }
+            else if (events[index].events & EPOLLIN)
             {
                 // Receive data from the socket
                 ASYNC_SOCKET_RECEIVE_RESULT receive_result;
                 ASYNC_SOCKET_RECV_CONTEXT* recv_context = events[index].data.ptr;
 
-                // We need to remove the event ptr from the epoll, or
-                // we get EWOULDBLOCK on the next epoll wait since the EPOLLIN is still
-                // lingering around
-                struct epoll_event ev;
-                ev.events = 0;
-                ev.data.ptr = NULL;
-                (void)epoll_ctl(g_epoll, EPOLL_CTL_MOD, recv_context->socket_handle, &ev);
-
-                uint32_t index = 0;
-                ssize_t recv_size;
-                do
+                if (recv_context != NULL)
                 {
-                    recv_size = recv(recv_context->socket_handle, recv_context->recv_buffers[index].buffer, recv_context->recv_buffers[index].length, 0);
-                    if (recv_size < 0)
+                    uint32_t index = 0;
+                    ssize_t recv_size;
+                    do
                     {
-                        if (errno == EAGAIN || errno == EWOULDBLOCK)
+
+                        recv_size = recv(recv_context->socket_handle, recv_context->recv_buffers[index].buffer, recv_context->recv_buffers[index].length, 0);
+                        if (recv_size < 0)
                         {
-                            // No more data to recv
-                            receive_result = ASYNC_SOCKET_RECEIVE_OK;
-                            break;
-                        }
-                        else
-                        {
-                            if (errno == ECONNRESET)
+                            if (errno == EAGAIN || errno == EWOULDBLOCK)
                             {
-                                receive_result = ASYNC_SOCKET_RECEIVE_ABANDONED;
+                                // No more data to recv
+                                receive_result = ASYNC_SOCKET_RECEIVE_OK;
+                                break;
                             }
                             else
                             {
-                                // Error here
-                                receive_result = ASYNC_SOCKET_RECEIVE_ERROR;
-                                LogError("failure recv error: %d", errno);
+                                if (errno == ECONNRESET)
+                                {
+                                    receive_result = ASYNC_SOCKET_RECEIVE_ABANDONED;
+                                }
+                                else
+                                {
+                                    // Error here
+                                    receive_result = ASYNC_SOCKET_RECEIVE_ERROR;
+                                    LogError("failure recv error: %d", errno);
+                                }
+                                break;
                             }
-                            break;
                         }
-                    }
-                    else if (recv_size == 0)
-                    {
-                        receive_result = ASYNC_SOCKET_RECEIVE_ABANDONED;
-                        break;
-                    }
-                    else
-                    {
-                        if (index >= recv_context->total_buffer_count || recv_size < recv_context->recv_buffers[index].length)
+                        else if (recv_size == 0)
                         {
-                            // We gotten all the data we need to get or we don't have any more recv space
                             receive_result = ASYNC_SOCKET_RECEIVE_OK;
                             break;
                         }
                         else
                         {
-                            index++;
+                            if (index + 1 >= recv_context->total_buffer_count || recv_size < recv_context->recv_buffers[index].length)
+                            {
+                                // We gotten all the data we need to get or we don't have any more recv space
+                                receive_result = ASYNC_SOCKET_RECEIVE_OK;
+                                break;
+                            }
+                            else
+                            {
+                                index++;
+                            }
                         }
-                    }
-                } while (true);
-                // Call the callback
-                recv_context->on_receive_complete(recv_context->on_receive_complete_context, receive_result, recv_size);
+                    } while (true);
+                    // Call the callback
+                    recv_context->on_receive_complete(recv_context->on_receive_complete_context, receive_result, recv_size);
 
-                // If the total
-                free(recv_context);
+                    // Free the memory
+                    free(recv_context);
+                }
             }
             else if (events[index].events & EPOLLOUT)
             {
@@ -396,7 +400,7 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, ON_ASYNC_SOCKET_OP
             }
             else
             {
-                // Create thread
+                // Add the socket to the epoll so it can be just modified later
                 struct epoll_event ev;
                 ev.events = 0;
                 ev.data.fd = async_socket->socket_handle;
@@ -547,7 +551,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                                 }
                                 else
                                 {
-                                    // Do Nothing and wait for the epoll
+                                    // Do Nothing and the epoll will get called in the thread
                                 }
                             }
                         }
@@ -661,7 +665,7 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                     }
 
                     struct epoll_event ev;
-                    ev.events = EPOLLIN;
+                    ev.events = EPOLLIN | EPOLLRDHUP | EPOLLONESHOT;
                     ev.data.ptr = recv_context;
                     // Modify the socket value in the epoll, if the socket doesn't exist then we
                     // need to add the socket
