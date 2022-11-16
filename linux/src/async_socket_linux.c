@@ -25,7 +25,7 @@
 #include "c_pal/async_socket.h"
 
 #define MAX_EVENTS_NUM      64
-#define EVENTS_TIMEOUT      2*1000
+#define EVENTS_TIMEOUT_MS   2*1000
 
 #define ASYNC_SOCKET_LINUX_STATE_VALUES \
     ASYNC_SOCKET_LINUX_STATE_CLOSED, \
@@ -45,12 +45,13 @@ MU_DEFINE_ENUM_STRINGS(ASYNC_SOCKET_IO_TYPE, ASYNC_SOCKET_IO_TYPE_VALUES)
 
 MU_DEFINE_ENUM_STRINGS(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_RESULT_VALUES)
 
-// These will be in a separate file maybe along with the 
-// thread function?
-volatile_atomic int32_t g_threads_num;
-int g_epoll;
 #define THREAD_COUNT    1
-THREAD_HANDLE g_thread_array[THREAD_COUNT];
+
+// These will be in a separate file maybe along with the
+// thread function?
+static volatile_atomic int32_t g_threads_num;
+static int g_epoll;
+static THREAD_HANDLE g_thread_array[THREAD_COUNT];
 
 typedef struct ASYNC_SOCKET_TAG
 {
@@ -108,7 +109,7 @@ static int thread_worker_func(void* parameter)
     do
     {
         struct epoll_event events[MAX_EVENTS_NUM];
-        int num_ready = epoll_wait(g_epoll, events, MAX_EVENTS_NUM, EVENTS_TIMEOUT);
+        int num_ready = epoll_wait(g_epoll, events, MAX_EVENTS_NUM, EVENTS_TIMEOUT_MS);
         for(int index = 0; index < num_ready; index++)
         {
             if (events[index].events & EPOLLRDHUP)
@@ -146,6 +147,7 @@ static int thread_worker_func(void* parameter)
                                 if (errno == ECONNRESET)
                                 {
                                     receive_result = ASYNC_SOCKET_RECEIVE_ABANDONED;
+                                    LogInfo("A reset on the recv socket has been encountered");
                                 }
                                 else
                                 {
@@ -202,6 +204,7 @@ static int thread_worker_func(void* parameter)
                             if (errno == ECONNRESET)
                             {
                                 send_result = ASYNC_SOCKET_SEND_ABANDONED;
+                                LogInfo("A reset on the send socket has been encountered");
                             }
                             else
                             {
@@ -283,7 +286,10 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
     }
 
     // Remove the socket from the epoll
-    epoll_ctl(async_socket->epoll, EPOLL_CTL_DEL, async_socket->socket_handle, NULL);
+    if (epoll_ctl(async_socket->epoll, EPOLL_CTL_DEL, async_socket->socket_handle, NULL) == -1)
+    {
+        LogError("Failure removing socket from epoll_ctrl");
+    }
 
     // Close the socket
     (void)close(async_socket->socket_handle);
