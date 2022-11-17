@@ -203,6 +203,47 @@ TEST_FUNCTION(one_work_item_schedule_works)
     execution_engine_dec_ref(execution_engine);
 }
 
+TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work)
+{
+    // arrange
+    // create an execution engine
+    volatile LONG call_count;
+    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    // create the threadpool
+    THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    // this is safe because the threadpool has a reference
+    execution_engine_dec_ref(execution_engine);
+
+    // open
+    HANDLE open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
+    ASSERT_IS_NOT_NULL(open_event);
+
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_open_complete, &open_event));
+
+    // wait for open to complete
+    ASSERT_IS_TRUE(WaitForSingleObject(open_event, INFINITE) == WAIT_OBJECT_0);
+
+    (void)InterlockedExchange(&call_count, 0);
+
+    // act (schedule one work item)
+    LogInfo("Scheduling work");
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, work_function, (void*)&call_count));
+
+    // assert
+    wait_for_equal(&call_count, 1, INFINITE);
+    LogInfo("Work completed");
+
+    // cleanup
+    (void)CloseHandle(open_event);
+    threadpool_close(threadpool);
+    threadpool_destroy(threadpool);
+}
+
 #define N_WORK_ITEMS 100
 
 TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_works))

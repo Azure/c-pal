@@ -323,6 +323,7 @@ TEST_FUNCTION(threadpool_create_with_NULL_execution_engine_fails)
 }
 
 /* Tests_SRS_THREADPOOL_WIN32_01_001: [ threadpool_create shall allocate a new threadpool object and on success shall return a non-NULL handle. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_42_027: [ threadpool_create shall increment the reference count on the execution_engine. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_01_025: [ threadpool_create shall obtain the PTP_POOL from the execution engine by calling execution_engine_win32_get_threadpool. ]*/
 TEST_FUNCTION(threadpool_create_succeeds)
 {
@@ -331,6 +332,7 @@ TEST_FUNCTION(threadpool_create_succeeds)
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(execution_engine_win32_get_threadpool(test_execution_engine));
+    STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
 
     // act
     threadpool = threadpool_create(test_execution_engine);
@@ -352,6 +354,7 @@ TEST_FUNCTION(when_underlying_calls_fail_threadpool_create_fails)
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(execution_engine_win32_get_threadpool(test_execution_engine));
+    STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
 
     umock_c_negative_tests_snapshot();
 
@@ -386,12 +389,14 @@ TEST_FUNCTION(threadpool_destroy_with_NULL_threadpool_returns)
 }
 
 /* Tests_SRS_THREADPOOL_WIN32_01_005: [ Otherwise, threadpool_destroy shall free all resources associated with threadpool. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_42_028: [ threadpool_destroy shall decrement the reference count on the execution_engine. ]*/
 TEST_FUNCTION(threadpool_destroy_frees_resources)
 {
     // arrange
     THREADPOOL_HANDLE threadpool = threadpool_create(test_execution_engine);
     umock_c_reset_all_calls();
 
+    STRICT_EXPECTED_CALL(execution_engine_dec_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
     // act
@@ -426,6 +431,7 @@ TEST_FUNCTION(threadpool_destroy_performs_an_implicit_close)
     STRICT_EXPECTED_CALL(mocked_DestroyThreadpoolEnvironment(cbe));
 
     // destroy calls
+    STRICT_EXPECTED_CALL(execution_engine_dec_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
     // act
