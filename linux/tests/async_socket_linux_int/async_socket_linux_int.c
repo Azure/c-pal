@@ -87,7 +87,7 @@ static void set_nonblocking(SOCKET_HANDLE socket)
     ASSERT_IS_TRUE(opts >= 0, "Failure setting socket option");
 }
 
-static void setup_server_socket(int port_num, SOCKET_HANDLE* listen_socket)
+static void setup_server_socket(SOCKET_HANDLE* listen_socket)
 {
     // create a listening socket
     *listen_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -96,14 +96,26 @@ static void setup_server_socket(int port_num, SOCKET_HANDLE* listen_socket)
     const int enable = 1;
     ASSERT_ARE_EQUAL(int, 0, setsockopt(*listen_socket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)));
 
-    struct sockaddr_in service;
+    int bind_res;
+    uint32_t counter = 0;
+    // The gate machines fails on bind due to 3 different
+    // Process running, so we have to figure out the bind
+    do
+    {
+        struct sockaddr_in service;
 
-    service.sin_family = AF_INET;
-    service.sin_port = htons(port_num);
-    service.sin_addr.s_addr = htonl(INADDR_ANY);
+        service.sin_family = AF_INET;
+        service.sin_port = htons(g_port_num);
+        service.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    int bind_res = bind(*listen_socket, (struct sockaddr*)&service, sizeof(service));
-    ASSERT_ARE_EQUAL(int, 0, bind_res, "Failure attempting to bind (%d) to socket %d error (%d): %s", bind_res, port_num, errno, strerror(errno));
+        bind_res = bind(*listen_socket, (struct sockaddr*)&service, sizeof(service));
+        if (bind_res != 0)
+        {
+            g_port_num++;
+        }
+        counter++;
+    } while (bind_res != 0 && counter < 10);
+    ASSERT_ARE_EQUAL(int, 0, bind_res, "Failure attempting to bind (%d) to socket %d error (%d): %s", bind_res, g_port_num, errno, strerror(errno));
 
     // set it to async IO
     set_nonblocking(*listen_socket);
@@ -210,7 +222,7 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
     SOCKET_HANDLE accept_socket;
     SOCKET_HANDLE listen_socket;
 
-    setup_server_socket(g_port_num, &listen_socket);
+    setup_server_socket(&listen_socket);
     setup_client_sockets(g_port_num, &client_socket, &listen_socket, &accept_socket);
 
     // create the async socket object
@@ -265,7 +277,7 @@ TEST_FUNCTION(receive_and_send_2_buffers_succeeds)
     SOCKET_HANDLE accept_socket;
     SOCKET_HANDLE listen_socket;
 
-    setup_server_socket(g_port_num, &listen_socket);
+    setup_server_socket(&listen_socket);
     setup_client_sockets(g_port_num, &client_socket, &listen_socket, &accept_socket);
 
     // create the async socket object
@@ -325,7 +337,7 @@ TEST_FUNCTION(when_server_socket_is_closed_receive_errors_on_client_side)
     SOCKET_HANDLE accept_socket;
     SOCKET_HANDLE listen_socket;
 
-    setup_server_socket(g_port_num, &listen_socket);
+    setup_server_socket(&listen_socket);
     setup_client_sockets(g_port_num, &client_socket, &listen_socket, &accept_socket);
 
     // create the async socket object
@@ -369,7 +381,7 @@ TEST_FUNCTION(multiple_sends_and_receives_succeeds)
     SOCKET_HANDLE accept_socket;
     SOCKET_HANDLE listen_socket;
 
-    setup_server_socket(g_port_num, &listen_socket);
+    setup_server_socket(&listen_socket);
     setup_client_sockets(g_port_num, &client_socket, &listen_socket, &accept_socket);
 
     // create the async socket object
@@ -433,7 +445,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _sockets_items))
     ASYNC_SOCKET_HANDLE server_async_socket[N_WORK_ITEMS];
     ASYNC_SOCKET_HANDLE client_async_socket[N_WORK_ITEMS];
 
-    setup_server_socket(g_port_num, &listen_socket);
+    setup_server_socket(&listen_socket);
 
     uint32_t socket_count = N_WORK_ITEMS;
 

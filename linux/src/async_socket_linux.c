@@ -1,12 +1,11 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <inttypes.h>
-#include <sys/epoll.h>
 #include <unistd.h>
 #include <errno.h>
 
-#include <arpa/inet.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 
@@ -14,7 +13,7 @@
 
 #include "c_logging/xlogging.h"
 
-#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl.h"        // IWYU pragma: keep
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/interlocked.h"
