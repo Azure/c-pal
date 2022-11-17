@@ -215,7 +215,7 @@ If `param` is `NULL`, `threadpool_work_func` shall fail and return.
 
 `threadpool_work_func` shall get the real time by calling `clock_gettime`.
 
-`threadpool_work_func` shall decrement the threadpool semaphore with a time limit for 2 seconds.
+`threadpool_work_func` shall  shall wait on the semaphore with a time limit of 2 seconds.
 
 `threadpool_work_func` shall acquire the shared SRW lock by calling `srw_lock_acquire_shared`.
 
@@ -235,7 +235,7 @@ If `task_param` is not `NULL`, `threadpool_work_func` shall execute it with para
 static int reallocate_threadpool_array(THREADPOOL* threadpool);
 ```
 
-`reallocate_threadpool_array` resize the task array size by 2.
+`reallocate_threadpool_array` resize the task array size by doubling it.
 
 `reallocate_threadpool_array` shall acquire the SRW lock in exclusive mode by calling `srw_lock_acquire_exclusive`.
 
@@ -245,7 +245,7 @@ If the array size get overflowed after doubled, `reallocate_threadpool_array` sh
 
 Otherwise, `reallocate_threadpool_array` shall double the current task array size and return zero in success.
 
-`reallocate_threadpool_array` shall realloc the memory used for the doubled array items and on success return a non-NULL handle to it.
+`reallocate_threadpool_array` shall realloc the memory used for the array items and on success return a non-NULL handle to it.
 
 If any error occurs, `reallocate_threadpool_array` shall fail and return a non-zero value.
 
