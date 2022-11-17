@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#include <stdlib.h>
 #include <inttypes.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -13,7 +12,7 @@
 
 #include "testrunnerswitcher.h"
 
-#include "macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
 #include "c_pal/async_socket.h"
 #include "c_pal/execution_engine.h"
@@ -26,7 +25,7 @@
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 
-#define TEST_PORT 2233
+#define TEST_PORT 2244
 static int g_port_num = TEST_PORT;
 
 TEST_DEFINE_ENUM_TYPE(ASYNC_SOCKET_OPEN_RESULT, ASYNC_SOCKET_OPEN_RESULT_VALUES);
@@ -96,14 +95,15 @@ static void setup_server_socket(int port_num, SOCKET_HANDLE* listen_socket)
 
     const int enable = 1;
     ASSERT_ARE_EQUAL(int, 0, setsockopt(*listen_socket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)));
-    
+
     struct sockaddr_in service;
 
     service.sin_family = AF_INET;
     service.sin_port = htons(port_num);
     service.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    ASSERT_ARE_EQUAL(int, 0, bind(*listen_socket, (struct sockaddr*)&service, sizeof(service)), "Failure attempting to bind to socket %d error: %s", port_num, strerror(errno));
+    int bind_res = bind(*listen_socket, (struct sockaddr*)&service, sizeof(service));
+    ASSERT_ARE_EQUAL(int, 0, bind_res, "Failure attempting to bind (%d) to socket %d error (%d): %s", bind_res, port_num, errno, strerror(errno));
 
     // set it to async IO
     set_nonblocking(*listen_socket);
@@ -130,7 +130,7 @@ static void setup_client_sockets(int port_num, SOCKET_HANDLE* client_socket, SOC
     set_nonblocking(*client_socket);
 
     *accept_socket = accept(*listen_socket, NULL, NULL);
-    ASSERT_ARE_NOT_EQUAL(int, INVALID_SOCKET, *accept_socket, "Failure accepting socket");
+    ASSERT_ARE_NOT_EQUAL(int, INVALID_SOCKET, *accept_socket, "Failure accepting socket.  Error No: %s", strerror(errno));
 
     set_nonblocking(*accept_socket);
 }
@@ -383,7 +383,7 @@ TEST_FUNCTION(multiple_sends_and_receives_succeeds)
     open_async_handle(client_async_socket);
 
     uint8_t data_payload[] = { 0x42, 0x43, 0x44, 0x45 };
-    uint8_t receive_buffer[8];
+    uint8_t receive_buffer[4];
     ASYNC_SOCKET_BUFFER send_payload_buffers[1];
     send_payload_buffers[0].buffer = data_payload;
     send_payload_buffers[0].length = sizeof(data_payload);
@@ -398,10 +398,14 @@ TEST_FUNCTION(multiple_sends_and_receives_succeeds)
 
     // act (send one byte and receive it)
     ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(server_async_socket, send_payload_buffers, 1, on_send_complete, (void*)&send_counter), "Failure sending socket 1");
+    ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(client_async_socket, receive_payload_buffers, 1, on_receive_and_accumulate_complete, (void*)&recv_counter));
+    wait_for_value(&recv_counter, sizeof(data_payload));
+
     ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(server_async_socket, send_payload_buffers, 1, on_send_complete, (void*)&send_counter), "Failure sending socket 2");
+
     ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(server_async_socket, send_payload_buffers, 1, on_send_complete, (void*)&send_counter), "Failure sending socket 3");
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(client_async_socket, receive_payload_buffers, 1, on_receive_and_accumulate_complete, (void*)&recv_counter));
-    ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(client_async_socket, receive_payload_buffers, 1, on_receive_and_accumulate_complete, (void*)&recv_counter));
+    wait_for_value(&recv_counter, sizeof(data_payload)*2);
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(client_async_socket, receive_payload_buffers, 1, on_receive_and_accumulate_complete, (void*)&recv_counter));
 
     // assert

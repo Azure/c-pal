@@ -118,6 +118,7 @@ static int thread_worker_func(void* parameter)
                 if (recv_context != NULL)
                 {
                     recv_context->on_receive_complete(recv_context->on_receive_complete_context, ASYNC_SOCKET_RECEIVE_ABANDONED, 0);
+                    free(recv_context);
                 }
             }
             else if (events[index].events & EPOLLIN)
@@ -407,7 +408,7 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, ON_ASYNC_SOCKET_OP
             else
             {
                 // Add the socket to the epoll so it can be just modified later
-                struct epoll_event ev;
+                struct epoll_event ev = {0};
                 ev.events = 0;
                 ev.data.fd = async_socket->socket_handle;
                 if (epoll_ctl(async_socket->epoll, EPOLL_CTL_ADD, async_socket->socket_handle, &ev) < 0)
@@ -542,7 +543,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                                 send_context->buffers[index].buffer = buffers[index].buffer;
                                 send_context->buffers[index].length = buffers[index].length;
 
-                                struct epoll_event ev;
+                                struct epoll_event ev = {0};
                                 ev.events = EPOLLOUT;
                                 ev.data.ptr = (void*)send_context;
                                 // Modify the socket value in the epoll, if the socket doesn't exist then we
@@ -670,7 +671,7 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                         recv_context->recv_buffers[index].length = payload[index].length;
                     }
 
-                    struct epoll_event ev;
+                    struct epoll_event ev = {0};
                     ev.events = EPOLLIN | EPOLLRDHUP | EPOLLONESHOT;
                     ev.data.ptr = recv_context;
                     // Modify the socket value in the epoll, if the socket doesn't exist then we
