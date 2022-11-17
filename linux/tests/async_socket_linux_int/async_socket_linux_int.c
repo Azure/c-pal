@@ -7,6 +7,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "testrunnerswitcher.h"
 
@@ -18,6 +21,7 @@
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/interlocked.h"
 #include "c_pal/sync.h"
+#include "c_pal/socket_handle.h"
 #include "c_pal/platform.h"
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
@@ -90,6 +94,9 @@ static void setup_server_socket(int port_num, SOCKET_HANDLE* listen_socket)
     *listen_socket = socket(AF_INET, SOCK_STREAM, 0);
     ASSERT_ARE_NOT_EQUAL(int, INVALID_SOCKET, *listen_socket);
 
+    const int enable = 1;
+    ASSERT_ARE_EQUAL(int, 0, setsockopt(*listen_socket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)));
+    
     struct sockaddr_in service;
 
     service.sin_family = AF_INET;
