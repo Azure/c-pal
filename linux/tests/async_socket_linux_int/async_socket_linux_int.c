@@ -143,7 +143,10 @@ static void setup_client_sockets(int port_num, SOCKET_HANDLE* client_socket, SOC
     // set it to async IO
     set_nonblocking(*client_socket);
 
-    *accept_socket = accept(*listen_socket, NULL, NULL);
+    do
+    {
+        *accept_socket = accept(*listen_socket, NULL, NULL);
+    } while (*accept_socket == INVALID_SOCKET && errno == 11);
     ASSERT_ARE_NOT_EQUAL(int, INVALID_SOCKET, *accept_socket, "Failure accepting socket.  Error No: %s", strerror(errno));
 
     set_nonblocking(*accept_socket);

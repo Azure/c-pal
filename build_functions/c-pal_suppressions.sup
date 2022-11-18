@@ -1,0 +1,6 @@
+{
+   <epoll thread suppression>
+   Helgrind:Race
+   fun:thread_worker_func
+   ...
+}
