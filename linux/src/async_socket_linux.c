@@ -544,6 +544,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                                 send_context->on_send_complete = on_send_complete;
                                 send_context->on_send_complete_context = on_send_complete_context;
                                 send_context->socket_handle = async_socket->socket_handle;
+                                send_context->async_socket = async_socket;
 
                                 send_context->buffers[index].buffer = buffers[index].buffer;
                                 send_context->buffers[index].length = buffers[index].length;
@@ -669,6 +670,7 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                     recv_context->on_receive_complete = on_receive_complete;
                     recv_context->on_receive_complete_context = on_receive_complete_context;
                     recv_context->socket_handle = async_socket->socket_handle;
+                    recv_context->async_socket = async_socket;
 
                     for (index = 0; index < buffer_count; index++)
                     {
