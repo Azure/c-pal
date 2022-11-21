@@ -359,8 +359,8 @@ void async_socket_destroy(ASYNC_SOCKET_HANDLE async_socket)
     {
         do
         {
-            int32_t current_state = interlocked_compare_exchange(&async_socket->state, (int32_t)ASYNC_SOCKET_LINUX_STATE_CLOSING, (int32_t)ASYNC_SOCKET_LINUX_STATE_OPEN);
-            if (current_state == (int32_t)ASYNC_SOCKET_LINUX_STATE_OPEN)
+            int32_t current_state = interlocked_compare_exchange(&async_socket->state, ASYNC_SOCKET_LINUX_STATE_CLOSING, ASYNC_SOCKET_LINUX_STATE_OPEN);
+            if (current_state == ASYNC_SOCKET_LINUX_STATE_OPEN)
             {
                 internal_close(async_socket);
                 break;
