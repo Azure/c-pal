@@ -249,8 +249,11 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
     receive_payload_buffers[0].buffer = receive_buffer;
     receive_payload_buffers[0].length = sizeof(receive_buffer);
 
-    volatile_atomic int32_t send_counter = 0;
-    volatile_atomic int32_t recv_counter = 0;
+    volatile_atomic int32_t send_counter;
+    volatile_atomic int32_t recv_counter;
+
+    interlocked_exchange(&send_counter, 0);
+    interlocked_exchange(&recv_counter, 0);
 
     // act (send one byte and receive it)
     ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(server_async_socket, send_payload_buffers, 1, on_send_complete, (void*)&send_counter), "Failure sending socket");
@@ -310,8 +313,11 @@ HACK_TEST_FUNCTION(receive_and_send_2_buffers_succeeds)
     receive_payload_buffers[1].buffer = receive_buffer_2;
     receive_payload_buffers[1].length = sizeof(receive_buffer_2);
 
-    volatile_atomic int32_t send_counter = 0;
-    volatile_atomic int32_t recv_counter = 0;
+    volatile_atomic int32_t send_counter;
+    volatile_atomic int32_t recv_counter;
+
+    interlocked_exchange(&send_counter, 0);
+    interlocked_exchange(&recv_counter, 0);
 
     // act (send one byte and receive it)
     ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(server_async_socket, send_payload_buffers, 2, on_send_complete, (void*)&send_counter));
@@ -357,7 +363,8 @@ HACK_TEST_FUNCTION(when_server_socket_is_closed_receive_errors_on_client_side)
     receive_payload_buffers[0].buffer = receive_buffer_1;
     receive_payload_buffers[0].length = sizeof(receive_buffer_1);
 
-    volatile_atomic int32_t recv_counter = 0;
+    volatile_atomic int32_t recv_counter;
+    interlocked_exchange(&recv_counter, 0);
 
     close(accept_socket);
 
@@ -410,8 +417,10 @@ HACK_TEST_FUNCTION(multiple_sends_and_receives_succeeds)
 
     int32_t expected_recv_size = sizeof(data_payload)*3;
 
-    volatile_atomic int32_t send_counter = 0;
-    volatile_atomic int32_t recv_counter = 0;
+    volatile_atomic int32_t send_counter;
+    volatile_atomic int32_t recv_counter;
+    interlocked_exchange(&send_counter, 0);
+    interlocked_exchange(&recv_counter, 0);
 
     // act (send one byte and receive it)
     ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(server_async_socket, send_payload_buffers, 1, on_send_complete, (void*)&send_counter), "Failure sending socket 1");
@@ -480,8 +489,10 @@ HACK_TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _sockets_items))
 
     uint32_t expected_recv_size = 0;
 
-    volatile_atomic int32_t send_counter = 0;
-    volatile_atomic int32_t recv_size = 0;
+    volatile_atomic int32_t send_counter;
+    volatile_atomic int32_t recv_size;
+    interlocked_exchange(&send_counter, 0);
+    interlocked_exchange(&recv_size, 0);
 
     for (uint32_t index = 0; index < socket_count; index++)
     {

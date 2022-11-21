@@ -3,5 +3,5 @@
 
 set(VALGRIND_SUPPRESSIONS_FILE_EXTRA_PARAMETER
     ${VALGRIND_SUPPRESSIONS_FILE_EXTRA_PARAMETER}
-    --suppressions=${CMAKE_CURRENT_LIST_DIR}/c-pal_suppressions.sup
+    "--suppressions=${CMAKE_CURRENT_LIST_DIR}/c-pal_suppressions.sup" PARENT_SCOPE
 )
