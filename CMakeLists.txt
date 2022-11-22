@@ -165,7 +165,6 @@ set(run_traceability ${original_run_traceability})
 set(run_perf_tests ${original_run_perf_tests})
 set(run_reals_check ${original_run_reals_check})
 
-
 include(CTest)
 enable_testing()
 
@@ -173,6 +172,8 @@ set(C_PAL_INC_FOLDER
     ${CMAKE_CURRENT_LIST_DIR}/interfaces/inc
     ${CMAKE_CURRENT_LIST_DIR}/common/inc
     CACHE INTERNAL "this is what needs to be included if using c_pal" FORCE)
+
+add_subdirectory(build_functions)
 
 add_subdirectory(interfaces)
 add_subdirectory(common)

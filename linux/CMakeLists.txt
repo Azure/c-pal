@@ -26,6 +26,7 @@ set(pal_linux_h_files
 set(pal_linux_c_files
     ${pal_common_c_files}
     src/arithmetic_linux.c
+    src/async_socket_linux.c
     src/execution_engine_linux.c
     src/file_linux.c
     src/interlocked_linux.c

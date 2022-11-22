@@ -1,0 +1,14 @@
+{
+   <epoll thread suppression>
+   Helgrind:Race
+   fun:thread_worker_func
+   ...
+}
+{
+   <socket creation>
+   Helgrind:Race
+   fun:interlocked_add
+   fun:on_receive_and_accumulate_complete
+   fun:thread_worker_func
+   ...
+}
