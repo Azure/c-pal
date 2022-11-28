@@ -5,6 +5,7 @@
 #include <inttypes.h>
 #include <unistd.h>
 #include <errno.h>
+#include <poll.h>
 
 #include <sys/epoll.h>
 #include <sys/socket.h>
@@ -205,7 +206,7 @@ static int thread_worker_func(void* parameter)
                     {
                         void* send_pos = send_context->buffers[index].buffer + send_size;
                         uint32_t send_length = send_context->buffers[index].length - send_size;
-                        send_size += send(send_context->socket_handle, send_pos, send_length, 0);
+                        send_size += send(send_context->socket_handle, send_pos, send_length, MSG_NOSIGNAL);
                         if (send_size < 0 && (errno != EAGAIN && errno != EWOULDBLOCK) )
                         {
                             if (errno == ECONNRESET)
@@ -298,6 +299,8 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
         LogError("Failure removing socket from epoll_ctrl");
     }
 
+    LogInfo("async socket is closing socket: %" PRI_MU_SOCKET "", async_socket->socket_handle);
+
     // Close the socket
     (void)close(async_socket->socket_handle);
     async_socket->socket_handle = INVALID_SOCKET;
@@ -324,7 +327,6 @@ ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine
         }
         else
         {
-
             execution_engine_inc_ref(execution_engine);
             result->execution_engine = execution_engine;
 
@@ -522,8 +524,8 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                 ASYNC_SOCKET_SEND_RESULT send_result;
                 for (index = 0; index < buffer_count; index++)
                 {
-                    // Try to send the data
-                    ssize_t send_size = send(async_socket->socket_handle, buffers[index].buffer, buffers[index].length, 0);
+                    // Try to send the data with MSG_NOSIGNAL
+                    ssize_t send_size = send(async_socket->socket_handle, buffers[index].buffer, buffers[index].length, MSG_NOSIGNAL);
                     if (send_size < 0)
                     {
                         if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -568,7 +570,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                                 }
                             }
                         }
-                        else if (errno == ECONNRESET || errno == ENOTCONN)
+                        else if (errno == ECONNRESET || errno == ENOTCONN || errno == EPIPE)
                         {
                             LogWarning("The connection was forcibly closed by the peer");
                             send_result = ASYNC_SOCKET_SEND_ABANDONED;
@@ -586,8 +588,13 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                         send_result = ASYNC_SOCKET_SEND_OK;
                     }
                 }
-                // The buffer was sent immediatly call the callback
-                on_send_complete(on_send_complete_context, send_result);
+                // Only call the callback if the call was successfully sent
+                // Otherwise we're going to be returning an error
+                if (send_result == ASYNC_SOCKET_SEND_OK)
+                {
+                    // The buffer was sent immediatly call the callback
+                    on_send_complete(on_send_complete_context, send_result);
+                }
             }
             (void)interlocked_decrement(&async_socket->pending_api_calls);
             wake_by_address_single(&async_socket->pending_api_calls);
