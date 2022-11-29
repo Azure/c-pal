@@ -587,6 +587,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                     else
                     {
                         send_result = ASYNC_SOCKET_SEND_OK;
+                        result = ASYNC_SOCKET_SEND_SYNC_OK;
                     }
                 }
                 // Only call the callback if the call was successfully sent
