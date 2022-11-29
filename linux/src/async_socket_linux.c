@@ -205,6 +205,7 @@ static int thread_worker_func(void* parameter)
                     {
                         void* send_pos = send_context->buffers[index].buffer + send_size;
                         uint32_t send_length = send_context->buffers[index].length - send_size;
+                        // Setting MSG_NOSIGNAL so the send doesn't generate a exception when the other end closes the socket
                         send_size += send(send_context->socket_handle, send_pos, send_length, MSG_NOSIGNAL);
                         if (send_size < 0 && (errno != EAGAIN && errno != EWOULDBLOCK) )
                         {
@@ -519,11 +520,11 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
             }
             else
             {
-                result = ASYNC_SOCKET_SEND_SYNC_OK;
                 ASYNC_SOCKET_SEND_RESULT send_result;
                 for (index = 0; index < buffer_count; index++)
                 {
-                    // Try to send the data with MSG_NOSIGNAL
+                    // Send data buffer
+                    // Setting MSG_NOSIGNAL so the send doesn't generate a exception when the other end closes the socket
                     ssize_t send_size = send(async_socket->socket_handle, buffers[index].buffer, buffers[index].length, MSG_NOSIGNAL);
                     if (send_size < 0)
                     {
@@ -540,6 +541,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                             }
                             else
                             {
+                                send_result = ASYNC_SOCKET_SEND_ERROR;
                                 send_context->total_buffer_bytes = total_buffer_bytes;
                                 send_context->total_buffer_count = buffer_count;
                                 send_context->on_send_complete = on_send_complete;
@@ -560,12 +562,12 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                                 {
                                     LogError("failure with epoll_ctrl EPOLL_CTL_MOD error no: %d", errno);
                                     result = ASYNC_SOCKET_SEND_SYNC_ERROR;
-                                    send_result = ASYNC_SOCKET_SEND_ERROR;
                                     break;
                                 }
                                 else
                                 {
-                                    // Do Nothing and the epoll will get called in the thread
+                                    // return Ok with the anticipation that the epoll with call the callback
+                                    result = ASYNC_SOCKET_SEND_SYNC_OK;
                                 }
                             }
                         }
@@ -593,6 +595,10 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                 {
                     // The buffer was sent immediatly call the callback
                     on_send_complete(on_send_complete_context, send_result);
+                }
+                else
+                {
+                    // Do nothing failure happend do not call the callback
                 }
             }
             (void)interlocked_decrement(&async_socket->pending_api_calls);
