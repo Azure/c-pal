@@ -25,7 +25,7 @@
 #include "c_pal/threadpool.h"
 
 #define DEFAULT_TASK_ARRAY_SIZE         2048
-#define THREADPOOL_SEMEPHORE_TIMEOUT    1
+#define THREADPOOL_SEMEPHORE_MS         100
 
 #define TASK_RESULT_VALUES  \
     TASK_NOT_USED,          \
@@ -135,7 +135,7 @@ static int threadpool_work_func(void* param)
             else
             {
                 // Setup the timeout for the semaphore
-                ts.tv_sec += THREADPOOL_SEMEPHORE_TIMEOUT;
+                ts.tv_nsec += THREADPOOL_SEMEPHORE_MS;
                 if (sem_timedwait(&threadpool->semaphore, &ts) != 0)
                 {
                     // Timed out
