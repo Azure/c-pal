@@ -299,7 +299,7 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
         LogError("Failure removing socket from epoll_ctrl");
     }
 
-    LogInfo("async socket is closing socket: %" PRI_MU_SOCKET "", async_socket->socket_handle);
+    LogInfo("async socket is closing socket: %" PRI_SOCKET "", async_socket->socket_handle);
 
     // Close the socket
     (void)close(async_socket->socket_handle);
