@@ -10,11 +10,11 @@ extern "C" {
 /* this type should abstract a socket for different platforms. I.e. for Windows it should simply wrap SOCKET */
 #ifdef WIN32
     typedef void* SOCKET_HANDLE;
-    #define PRI_MU_SOCKET "p"
+    #define PRI_SOCKET "p"
 #else
     typedef int SOCKET_HANDLE;
     #define INVALID_SOCKET  -1
-    #define PRI_MU_SOCKET "d"
+    #define PRI_SOCKET "d"
 #endif
 
 #ifdef __cplusplus
