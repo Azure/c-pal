@@ -4,9 +4,11 @@
 #include <stdlib.h>
 
 #include "windows.h"
+
+#include "c_logging/xlogging.h"
+
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h"
-#include "c_logging/xlogging.h"
 #include "c_pal/threadpool.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_win32.h"
