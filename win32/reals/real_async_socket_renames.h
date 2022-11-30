@@ -7,3 +7,4 @@
 #define async_socket_send_async         real_async_socket_send_async
 #define async_socket_receive_async      real_async_socket_receive_async
 
+#define ASYNC_SOCKET_SEND_SYNC_RESULT   real_ASYNC_SOCKET_SEND_SYNC_RESULT
