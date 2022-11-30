@@ -17,7 +17,8 @@ set(reals_win32_c_files
     real_gballoc_hl_${gballoc_hl_type_lower}.c
     real_async_socket.c
     real_threadpool.c
-    real_execution_engine.c
+    real_execution_engine.c #note: also contains the code for execution_engine_win32.c
+    real_execution_engine_win32.c #note:empty file 
 )
 
 set(reals_win32_h_files
@@ -38,6 +39,8 @@ set(reals_win32_h_files
     real_threadpool_renames.h
     real_execution_engine.h
     real_execution_engine_renames.h
+    real_execution_engine_win32.h
+    real_execution_engine_win32_renames.h
 )
 
 add_library(win32_reals ${reals_win32_c_files} ${reals_win32_h_files})
