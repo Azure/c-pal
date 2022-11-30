@@ -3,8 +3,8 @@
 #ifndef EXECUTION_ENGINE_H
 #define EXECUTION_ENGINE_H
 
-#include "umock_c/umock_c_prod.h"
 
+#include "umock_c/umock_c_prod.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
