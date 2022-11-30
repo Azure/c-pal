@@ -117,10 +117,6 @@ static int thread_worker_func(void* parameter)
                 if (recv_context != NULL)
                 {
                     recv_context->on_receive_complete(recv_context->on_receive_complete_context, ASYNC_SOCKET_RECEIVE_ABANDONED, 0);
-
-                    (void)interlocked_decrement(&recv_context->async_socket->pending_api_calls);
-                    wake_by_address_single(&recv_context->async_socket->pending_api_calls);
-
                     free(recv_context);
                 }
             }
@@ -183,9 +179,6 @@ static int thread_worker_func(void* parameter)
                     } while (true);
                     // Call the callback
                     recv_context->on_receive_complete(recv_context->on_receive_complete_context, receive_result, recv_size);
-
-                    (void)interlocked_decrement(&recv_context->async_socket->pending_api_calls);
-                    wake_by_address_single(&recv_context->async_socket->pending_api_calls);
 
                     // Free the memory
                     free(recv_context);
@@ -704,6 +697,9 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                     }
                     else
                     {
+                        (void)interlocked_decrement(&async_socket->pending_api_calls);
+                        wake_by_address_single(&async_socket->pending_api_calls);
+
                         result = 0;
                         goto all_ok;
                     }
