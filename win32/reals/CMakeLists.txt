@@ -16,7 +16,7 @@ set(reals_win32_c_files
     real_gballoc_ll_${gballoc_ll_type_lower}.c
     real_gballoc_hl_${gballoc_hl_type_lower}.c
     real_async_socket.c
-    real_threadpool_win32.c
+    real_threadpool.c
 )
 
 set(reals_win32_h_files
