@@ -3,5 +3,7 @@
 
 #include "real_gballoc_hl_renames.h"
 
+#include "real_execution_engine_renames.h"
+
 #include "../src/execution_engine_win32.c"
 
