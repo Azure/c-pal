@@ -15,6 +15,7 @@ set(reals_win32_c_files
     real_interlocked.c
     real_gballoc_ll_${gballoc_ll_type_lower}.c
     real_gballoc_hl_${gballoc_hl_type_lower}.c
+    real_async_socket.c
 )
 
 set(reals_win32_h_files
@@ -29,6 +30,8 @@ set(reals_win32_h_files
     real_uuid.h
     real_uuid_renames.h
     ../../common/reals/real_refcount.h
+    real_async_socket.h
+    real_async_socket_renames.h
 )
 
 add_library(win32_reals ${reals_win32_c_files} ${reals_win32_h_files})
