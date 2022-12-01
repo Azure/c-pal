@@ -73,7 +73,6 @@ TEST_FUNCTION_CLEANUP(cleans)
 }
 
 /*Tests_SRS_SYNC_WIN32_43_001: [ wait_on_address shall call WaitOnAddress from windows.h with address as Address, a pointer to the value compare_value as CompareAddress, 4 as AddressSize and timeout_ms as dwMilliseconds. ]*/
-/*Tests_SRS_SYNC_WIN32_43_002: [ wait_on_address shall return the return value of WaitOnAddress ]*/
 /*Tests_SRS_SYNC_WIN32_24_003: [ If WaitOnAddress succeeds, wait_on_address shall return WAIT_ON_ADDRESS_OK. ]*/
 TEST_FUNCTION(wait_on_address_calls_WaitOnAddress_successfully)
 {
