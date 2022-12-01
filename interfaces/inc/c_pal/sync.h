@@ -18,7 +18,15 @@
 extern "C" {
 #endif
 
-MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, int32_t, compare_value, uint32_t, timeout_ms);
+#define WAIT_ON_ADDRESS_RESULT_VALUES \
+    WAIT_ON_ADDRESS_OK, \
+    WAIT_ON_ADDRESS_ERROR, \
+    WAIT_ON_ADDRESS_TIMEOUT, \
+    WAIT_ON_ADDRESS_CHANGED
+
+MU_DEFINE_ENUM(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES);
+
+MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_atomic int32_t*, address, int32_t, compare_value, uint32_t, timeout_ms);
 MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t*, address);
 MOCKABLE_FUNCTION(, void, wake_by_address_single, volatile_atomic int32_t*, address);
 

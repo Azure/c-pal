@@ -28,7 +28,7 @@ extern "C" {
 #endif
 
 
-bool real_wait_on_address(volatile_atomic int32_t* address, int32_t compare_value, uint32_t timeout_ms);
+WAIT_ON_ADDRESS_RESULT real_wait_on_address(volatile_atomic int32_t* address, int32_t compare_value, uint32_t timeout_ms);
 void real_wake_by_address_all(volatile_atomic int32_t* address);
 void real_wake_by_address_single(volatile_atomic int32_t* address);
 

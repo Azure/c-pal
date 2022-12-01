@@ -9,5 +9,7 @@
 #define WakeByAddressAll mock_WakeByAddressAll
 #undef WakeByAddressSingle 
 #define WakeByAddressSingle mock_WakeByAddressSingle
+#undef GetLastError
+#define GetLastError mock_GetLastError
 
 #include "../../src/sync_win32.c"

@@ -24,6 +24,7 @@
 
 TEST_DEFINE_ENUM_TYPE(LAZY_INIT_RESULT, LAZY_INIT_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);
+TEST_DEFINE_ENUM_TYPE(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES);
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 
@@ -63,7 +64,7 @@ static void same_as_interlocked_hl_wait_for_value(int32_t volatile_atomic* addre
             break;
         }
 
-        ASSERT_IS_TRUE(wait_on_address(address, current_value, milliseconds));
+        ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_OK, wait_on_address(address, current_value, milliseconds));
 
     } while (1);
 }
