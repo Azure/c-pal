@@ -6,8 +6,10 @@
 
 #ifdef __cplusplus
 #include <cstdbool>
+#include <cstdint>
 #else
 #include <stdbool.h>
+#include <stdint.h>
 #endif
 
 #include "macro_utils/macro_utils.h"
