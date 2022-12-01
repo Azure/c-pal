@@ -2,17 +2,22 @@
 
 #include <stdlib.h>
 #include <inttypes.h>
+
 #include "winsock2.h"
 #include "ws2tcpip.h"
 #include "windows.h"
+
 #include "macro_utils/macro_utils.h"
+
 #include "c_logging/xlogging.h"
+
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h"
-#include "c_pal/async_socket.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_win32.h"
 #include "c_pal/timer.h"
+
+#include "c_pal/async_socket.h"
 
 #define ASYNC_SOCKET_WIN32_STATE_VALUES \
     ASYNC_SOCKET_WIN32_STATE_CLOSED, \
