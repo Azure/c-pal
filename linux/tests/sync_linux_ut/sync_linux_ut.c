@@ -160,7 +160,7 @@ TEST_FUNCTION(when_syscall_fails_and_errno_is_ETIME_wait_on_address_fails)
     volatile_atomic int32_t var;
     int32_t val = INT32_MAX;
     (void)atomic_exchange(&var, val);
-    mock_errno = ETIME;
+    mock_errno = ETIMEDOUT;
 
     STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int*)&var, FUTEX_WAIT_PRIVATE, val, IGNORED_ARG, NULL, 0))
         .SetReturn(-1);

@@ -46,7 +46,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_
             /* Codes_SRS_SYNC_LINUX_01_001: [ if syscall returns a non-zero value and errno is EAGAIN, wait_on_address shall return WAIT_ON_ADDRESS_OK. ]*/
             result = WAIT_ON_ADDRESS_OK;
         }
-        else if (errno == ETIME)
+        else if (errno == ETIMEDOUT)
         {
             /* Codes_SRS_SYNC_LINUX_24_001: [ if syscall returns a non-zero value and errno is ETIME, wait_on_address shall return WAIT_ON_ADDRESS_TIMEOUT. ]*/
             result = WAIT_ON_ADDRESS_TIMEOUT;
