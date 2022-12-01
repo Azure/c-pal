@@ -26,7 +26,7 @@ MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_atomic int
 
 **SRS_SYNC_LINUX_01_001: [** if `syscall` returns a non-zero value and `errno` is `EAGAIN`, `wait_on_address` shall return `WAIT_ON_ADDRESS_OK`. **]**
 
-**SRS_SYNC_LINUX_24_001: [** if `syscall` returns a non-zero value and `errno` is `ETIME`, `wait_on_address` shall return `WAIT_ON_ADDRESS_TIMEOUT`. **]**
+**SRS_SYNC_LINUX_24_001: [** if `syscall` returns a non-zero value and `errno` is `ETIMEDOUT`, `wait_on_address` shall return `WAIT_ON_ADDRESS_TIMEOUT`. **]**
 
 **SRS_SYNC_LINUX_43_004: [** Otherwise, `wait_on_address` shall return `WAIT_ON_ADDRESS_ERROR`.**]**
 

@@ -153,7 +153,7 @@ TEST_FUNCTION(when_syscall_fails_and_errno_is_EAGAIN_wait_on_address_succeeds)
     ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_OK, return_val, "wait_on_address should have returned ok");
 }
 
-/* Tests_SRS_SYNC_LINUX_24_001: [ if syscall returns a non-zero value and errno is ETIME, wait_on_address shall return WAIT_ON_ADDRESS_TIMEOUT. ]*/
+/* Tests_SRS_SYNC_LINUX_24_001: [ if syscall returns a non-zero value and errno is ETIMEDOUT, wait_on_address shall return WAIT_ON_ADDRESS_TIMEOUT. ]*/
 TEST_FUNCTION(when_syscall_fails_and_errno_is_ETIME_wait_on_address_fails)
 {
     ///arrange
