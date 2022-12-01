@@ -17,6 +17,7 @@
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
+#include "umock_c/umocktypes.h"
 
 #include "c_pal/interlocked.h"
 #include "c_pal/sync.h"

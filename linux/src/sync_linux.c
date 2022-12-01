@@ -1,12 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#include <stdbool.h>
 #include <stdint.h>
 #include <unistd.h>
 #include <limits.h>
 #include <time.h>
+#include <string.h>
 #include <errno.h>
+
+#include "c_logging/xlogging.h"
 
 #include "sys/syscall.h"
 #include "linux/futex.h"
@@ -38,6 +40,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_
     }
     else
     {
+        LogError("failure in syscall, errno=%d (%s)", errno, strerror(errno));
         if (errno == EAGAIN)
         {
             /* Codes_SRS_SYNC_LINUX_01_001: [ if syscall returns a non-zero value and errno is EAGAIN, wait_on_address shall return WAIT_ON_ADDRESS_OK. ]*/
