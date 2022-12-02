@@ -4,3 +4,5 @@
 #define wait_on_address        real_wait_on_address
 #define wake_by_address_all    real_wake_by_address_all
 #define wake_by_address_single real_wake_by_address_single
+
+#define WAIT_ON_ADDRESS_RESULT real_WAIT_ON_ADDRESS_RESULT
