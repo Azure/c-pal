@@ -782,6 +782,7 @@ TEST_FUNCTION(gballoc_hl_realloc_with_non_NULL_ptr_calls_gballoc_ll_realloc_and_
     STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
     (void)gballoc_hl_init(NULL, NULL);
     ptr = gballoc_hl_malloc(42);
+    ASSERT_IS_NOT_NULL(ptr);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
@@ -813,6 +814,7 @@ TEST_FUNCTION(gballoc_hl_realloc_with_non_NULL_ptr_and_1_size_calls_gballoc_ll_r
     STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
     (void)gballoc_hl_init(NULL, NULL);
     ptr = gballoc_hl_malloc(42);
+    ASSERT_IS_NOT_NULL(ptr);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
@@ -844,6 +846,7 @@ TEST_FUNCTION(gballoc_hl_realloc_with_non_NULL_ptr_and_0_size_calls_gballoc_ll_r
     STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
     (void)gballoc_hl_init(NULL, NULL);
     ptr = gballoc_hl_malloc(42);
+    ASSERT_IS_NOT_NULL(ptr);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
@@ -872,6 +875,7 @@ TEST_FUNCTION(gballoc_hl_realloc_when_not_initialized_fails)
     void* ptr;
     (void)gballoc_hl_init(NULL, NULL);
     ptr = gballoc_hl_malloc(42);
+    ASSERT_IS_NOT_NULL(ptr);
     gballoc_hl_free(ptr);
     gballoc_hl_deinit();
     umock_c_reset_all_calls();
@@ -899,6 +903,7 @@ TEST_FUNCTION(gballoc_hl_realloc_2_succeeds)
     STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
     (void)gballoc_hl_init(NULL, NULL);
     ptr = gballoc_hl_malloc(42);
+    ASSERT_IS_NOT_NULL(ptr);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
@@ -929,6 +934,7 @@ TEST_FUNCTION(gballoc_hl_realloc_2_unhappy_path_1)
     STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
     (void)gballoc_hl_init(NULL, NULL);
     ptr = gballoc_hl_malloc(42);
+    ASSERT_IS_NOT_NULL(ptr);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
@@ -958,6 +964,7 @@ TEST_FUNCTION(gballoc_hl_realloc_2_unhappy_path_2)
     STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
     (void)gballoc_hl_init(NULL, NULL);
     ptr = gballoc_hl_malloc(42);
+    ASSERT_IS_NOT_NULL(ptr);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL))
@@ -988,6 +995,7 @@ TEST_FUNCTION(gballoc_hl_realloc_flex_succeeds)
     STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
     (void)gballoc_hl_init(NULL, NULL);
     ptr = gballoc_hl_malloc(42);
+    ASSERT_IS_NOT_NULL(ptr);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
@@ -1022,6 +1030,7 @@ TEST_FUNCTION(gballoc_hl_free_on_malloc_block_calls_gballoc_ll_free)
     STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
     (void)gballoc_hl_init(NULL, NULL);
     ptr = gballoc_hl_malloc(42);
+    ASSERT_IS_NOT_NULL(ptr);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
@@ -1051,6 +1060,7 @@ TEST_FUNCTION(gballoc_hl_free_on_calloc_block_calls_gballoc_ll_free)
     STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
     (void)gballoc_hl_init(NULL, NULL);
     ptr = gballoc_hl_calloc(3, 4);
+    ASSERT_IS_NOT_NULL(ptr);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
@@ -1080,7 +1090,9 @@ TEST_FUNCTION(gballoc_hl_free_on_realloc_block_calls_gballoc_ll_free)
     STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
     (void)gballoc_hl_init(NULL, NULL);
     ptr = gballoc_hl_calloc(3, 4);
+    ASSERT_IS_NOT_NULL(ptr);
     ptr = gballoc_hl_realloc(ptr, 1);
+    ASSERT_IS_NOT_NULL(ptr);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
@@ -1108,7 +1120,9 @@ TEST_FUNCTION(gballoc_hl_free_when_not_initialized_returns)
     STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
     (void)gballoc_hl_init(NULL, NULL);
     ptr = gballoc_hl_calloc(3, 4);
+    ASSERT_IS_NOT_NULL(ptr);
     ptr = gballoc_hl_realloc(ptr, 1);
+    ASSERT_IS_NOT_NULL(ptr);
     gballoc_hl_free(ptr);
     gballoc_hl_deinit();
     umock_c_reset_all_calls();
@@ -1132,9 +1146,12 @@ TEST_FUNCTION(gballoc_hl_reset_counters_resets_the_counters)
     STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
     (void)gballoc_hl_init(NULL, NULL);
     ptr = gballoc_hl_malloc(1);
+    ASSERT_IS_NOT_NULL(ptr);
     gballoc_hl_free(ptr);
     ptr = gballoc_hl_calloc(3, 4);
+    ASSERT_IS_NOT_NULL(ptr);
     ptr = gballoc_hl_realloc(ptr, 1);
+    ASSERT_IS_NOT_NULL(ptr);
     gballoc_hl_free(ptr);
     gballoc_hl_reset_counters();
     umock_c_reset_all_calls();
@@ -1176,6 +1193,7 @@ TEST_FUNCTION(gballoc_hl_get_malloc_latency_buckets_with_NULL_latency_buckets_ou
     STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
     (void)gballoc_hl_init(NULL, NULL);
     ptr = gballoc_hl_malloc(1);
+    ASSERT_IS_NOT_NULL(ptr);
     gballoc_hl_free(ptr);
     umock_c_reset_all_calls();
 
@@ -1207,6 +1225,7 @@ TEST_FUNCTION(gballoc_hl_get_malloc_latency_buckets_with_one_call_returns_the_co
     STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
         .SetReturn(43.0);
     ptr = gballoc_hl_malloc(1);
+    ASSERT_IS_NOT_NULL(ptr);
     umock_c_reset_all_calls();
 
     GBALLOC_LATENCY_BUCKETS malloc_latency_buckets;
@@ -1253,7 +1272,7 @@ TEST_FUNCTION(gballoc_hl_get_malloc_latency_buckets_with_2_calls_returns_the_ave
     STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
         .SetReturn(43.0);
     ptr1 = gballoc_hl_malloc(1);
-
+    ASSERT_IS_NOT_NULL(ptr1);
     STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
     STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
         .SetReturn(3.0);
@@ -1261,6 +1280,7 @@ TEST_FUNCTION(gballoc_hl_get_malloc_latency_buckets_with_2_calls_returns_the_ave
     STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
         .SetReturn(5.0);
     ptr2 = gballoc_hl_malloc(1);
+    ASSERT_IS_NOT_NULL(ptr2);
     umock_c_reset_all_calls();
 
     GBALLOC_LATENCY_BUCKETS malloc_latency_buckets;
@@ -1310,6 +1330,7 @@ TEST_FUNCTION(gballoc_hl_get_malloc_latency_buckets_with_one_call_in_each_bucket
         STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
             .SetReturn(43.0);
         ptr = gballoc_hl_malloc((1ULL << (9 + i)) - 1);
+        ASSERT_IS_NOT_NULL(ptr);
         gballoc_hl_free(ptr);
     }
     umock_c_reset_all_calls();
@@ -1346,6 +1367,7 @@ TEST_FUNCTION(gballoc_hl_get_calloc_latency_buckets_with_NULL_latency_buckets_ou
     STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
     (void)gballoc_hl_init(NULL, NULL);
     ptr = gballoc_hl_calloc(1, 1);
+    ASSERT_IS_NOT_NULL(ptr);
     gballoc_hl_free(ptr);
     umock_c_reset_all_calls();
 
@@ -1377,6 +1399,7 @@ TEST_FUNCTION(gballoc_hl_get_calloc_latency_buckets_with_one_call_returns_the_co
     STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
         .SetReturn(43.0);
     ptr = gballoc_hl_calloc(1, 1);
+    ASSERT_IS_NOT_NULL(ptr);
     umock_c_reset_all_calls();
 
     GBALLOC_LATENCY_BUCKETS calloc_latency_buckets;
@@ -1423,7 +1446,7 @@ TEST_FUNCTION(gballoc_hl_get_calloc_latency_buckets_with_2_calls_returns_the_ave
     STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
         .SetReturn(43.0);
     ptr1 = gballoc_hl_calloc(1, 1);
-
+    ASSERT_IS_NOT_NULL(ptr1);
     STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
     STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
         .SetReturn(3.0);
@@ -1431,6 +1454,7 @@ TEST_FUNCTION(gballoc_hl_get_calloc_latency_buckets_with_2_calls_returns_the_ave
     STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
         .SetReturn(5.0);
     ptr2 = gballoc_hl_calloc(1, 1);
+    ASSERT_IS_NOT_NULL(ptr2);
     umock_c_reset_all_calls();
 
     GBALLOC_LATENCY_BUCKETS calloc_latency_buckets;
@@ -1480,6 +1504,7 @@ TEST_FUNCTION(gballoc_hl_get_calloc_latency_buckets_with_one_call_in_each_bucket
         STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
             .SetReturn(43.0);
         ptr = gballoc_hl_calloc((1ULL << (9 + i)) - 1, 1);
+        ASSERT_IS_NOT_NULL(ptr);
         gballoc_hl_free(ptr);
     }
     umock_c_reset_all_calls();
@@ -1516,6 +1541,7 @@ TEST_FUNCTION(gballoc_hl_get_realloc_latency_buckets_with_NULL_latency_buckets_o
     STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
     (void)gballoc_hl_init(NULL, NULL);
     ptr = gballoc_hl_realloc(NULL, 1);
+    ASSERT_IS_NOT_NULL(ptr);
     gballoc_hl_free(ptr);
     umock_c_reset_all_calls();
 
@@ -1547,6 +1573,7 @@ TEST_FUNCTION(gballoc_hl_get_realloc_latency_buckets_with_one_call_returns_the_c
     STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
         .SetReturn(43.0);
     ptr = gballoc_hl_realloc(NULL, 1);
+    ASSERT_IS_NOT_NULL(ptr);
     umock_c_reset_all_calls();
 
     GBALLOC_LATENCY_BUCKETS realloc_latency_buckets;
@@ -1593,6 +1620,7 @@ TEST_FUNCTION(gballoc_hl_get_realloc_latency_buckets_with_2_calls_returns_the_av
     STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
         .SetReturn(43.0);
     ptr1 = gballoc_hl_realloc(NULL, 1);
+    ASSERT_IS_NOT_NULL(ptr1);
 
     STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
     STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
@@ -1601,6 +1629,7 @@ TEST_FUNCTION(gballoc_hl_get_realloc_latency_buckets_with_2_calls_returns_the_av
     STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
         .SetReturn(5.0);
     ptr2 = gballoc_hl_realloc(NULL, 1);
+    ASSERT_IS_NOT_NULL(ptr2);
     umock_c_reset_all_calls();
 
     GBALLOC_LATENCY_BUCKETS realloc_latency_buckets;
@@ -1650,6 +1679,7 @@ TEST_FUNCTION(gballoc_hl_get_realloc_latency_buckets_with_one_call_in_each_bucke
         STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
             .SetReturn(43.0);
         ptr = gballoc_hl_realloc(NULL, (1ULL << (9 + i)) - 1);
+        ASSERT_IS_NOT_NULL(ptr);
         gballoc_hl_free(ptr);
     }
     umock_c_reset_all_calls();
@@ -1686,6 +1716,7 @@ TEST_FUNCTION(gballoc_hl_get_free_latency_buckets_with_NULL_latency_buckets_out_
     STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
     (void)gballoc_hl_init(NULL, NULL);
     ptr = gballoc_hl_malloc(1);
+    ASSERT_IS_NOT_NULL(ptr);
     gballoc_hl_free(ptr);
     umock_c_reset_all_calls();
 
@@ -1709,6 +1740,7 @@ TEST_FUNCTION(gballoc_hl_get_free_latency_buckets_with_one_call_returns_the_corr
     STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
     (void)gballoc_hl_init(NULL, NULL);
     ptr = gballoc_hl_malloc(1);
+    ASSERT_IS_NOT_NULL(ptr);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
@@ -1754,7 +1786,9 @@ TEST_FUNCTION(gballoc_hl_get_free_latency_buckets_with_2_calls_returns_the_avera
     STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
     (void)gballoc_hl_init(NULL, NULL);
     ptr1 = gballoc_hl_malloc(1);
+    ASSERT_IS_NOT_NULL(ptr1);
     ptr2 = gballoc_hl_malloc(1);
+    ASSERT_IS_NOT_NULL(ptr2);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
@@ -1813,6 +1847,7 @@ TEST_FUNCTION(gballoc_hl_get_free_latency_buckets_with_one_call_in_each_bucket_r
     for (size_t i = 0; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         ptr = gballoc_hl_malloc((1ULL << (9 + i)) - 1);
+        ASSERT_IS_NOT_NULL(ptr);
         umock_c_reset_all_calls();
 
         STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
