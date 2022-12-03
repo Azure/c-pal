@@ -65,7 +65,7 @@ TEST_FUNCTION(alloc_performance_random)
         // arrange
         uint32_t i;
 
-        void** blocks = (void**)malloc(sizeof(void*) * ALLOC_COUNT);
+        void** blocks = malloc_2(ALLOC_COUNT, sizeof(void*));
         ASSERT_IS_NOT_NULL(blocks);
 
         double start_time = timer_global_get_elapsed_ms();
@@ -110,7 +110,7 @@ TEST_FUNCTION(alloc_performance)
     // arrange
     uint32_t i;
 
-    void** blocks = (void**)malloc_2(sizeof(void*), ALLOC_COUNT);
+    void** blocks = malloc_2(ALLOC_COUNT, sizeof(void*));
     ASSERT_IS_NOT_NULL(blocks);
 
     double start_time = timer_global_get_elapsed_ms();
@@ -153,7 +153,7 @@ TEST_FUNCTION(free_performance)
     // arrange
     uint32_t i;
 
-    void** blocks = (void**)malloc(sizeof(void*) * ALLOC_COUNT);
+    void** blocks = malloc_2(ALLOC_COUNT, sizeof(void*));
     ASSERT_IS_NOT_NULL(blocks);
 
     for (i = 0; i < ALLOC_COUNT; i++)

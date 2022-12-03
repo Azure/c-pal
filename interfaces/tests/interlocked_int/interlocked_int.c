@@ -255,7 +255,7 @@ TEST_FUNCTION(interlocked_compare_exchange_128_exchanges_when_equal)
     ///arrange
     volatile_atomic int64_t* destination;
     interlocked_exchange_pointer((void* volatile_atomic*)&destination, malloc(2 * sizeof(int64_t)));
-    int64_t* comperand_result = (int64_t*)malloc(2 * sizeof(int64_t));
+    int64_t* comperand_result = malloc(2 * sizeof(int64_t));
     ASSERT_IS_NOT_NULL(comperand_result);
 
     destination[0] = INT64_MAX;
@@ -289,7 +289,7 @@ TEST_FUNCTION(interlocked_compare_exchange_128_does_not_exchange_when_not_equal)
     ///arrange
     volatile_atomic int64_t* destination;
     interlocked_exchange_pointer((void* volatile_atomic*)&destination, malloc(2 * sizeof(int64_t)));
-    int64_t* comperand_result = (int64_t*)malloc(2 * sizeof(int64_t));
+    int64_t* comperand_result = malloc(2 * sizeof(int64_t));
     ASSERT_IS_NOT_NULL(comperand_result);
 
     destination[0] = INT64_MAX;
