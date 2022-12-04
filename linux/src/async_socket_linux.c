@@ -109,6 +109,13 @@ static int thread_worker_func(void* parameter)
     {
         struct epoll_event events[MAX_EVENTS_NUM];
         int num_ready = epoll_wait(g_epoll, events, MAX_EVENTS_NUM, EVENTS_TIMEOUT_MS);
+        if (num_ready == -1)
+        {
+            char err_msg[128] = {0};
+            (void)strerror_r(errno, err_msg, 128);
+            LogError("Failure epoll wait. Error: %s", MU_P_OR_NULL(err_msg));
+        }
+
         for(int index = 0; index < num_ready; index++)
         {
             if (events[index].events & EPOLLRDHUP)
