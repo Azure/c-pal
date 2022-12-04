@@ -4,6 +4,8 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <time.h>
+#include <stdbool.h>
+
 #include "c_logging/xlogging.h"
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
