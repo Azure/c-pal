@@ -5,6 +5,7 @@
 #include <inttypes.h>
 #include <unistd.h>
 #include <errno.h>
+#include <string.h>                     // for strerror_r
 
 #include <sys/epoll.h>
 #include <sys/socket.h>

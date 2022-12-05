@@ -11,6 +11,12 @@
 #include <signal.h>
 #include <errno.h>
 
+#include <bits/types/__sigval_t.h>         // for __sigval_t
+#include <bits/types/sigevent_t.h>         // for sigevent, sigev_notify_fun...
+#include <bits/types/sigval_t.h>           // for sigval_t
+#include <bits/types/struct_itimerspec.h>  // for itimerspec
+#include <bits/types/timer_t.h>            // for timer_t
+
 #include "macro_utils/macro_utils.h"
 
 #include "c_logging/xlogging.h"
