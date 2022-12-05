@@ -292,9 +292,6 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
     THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
-    // open
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_threadpool_open_complete, NULL));
-
     // NOTE: this test runs with retries because there are possible timing issues with thread scheduling
     // We are making sure the worker doesn't start before the delay time and does run once after the delay time
     // First check could fail in theory
@@ -328,7 +325,7 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
 
             // And should not run again
             ThreadAPI_Sleep(5000);
-            ASSERT_ARE_EQUAL(uint32_t, 1, (uint32_t)interlocked_add(&call_count, 0));
+            ASSERT_ARE_EQUAL(uint32_t, 1, interlocked_add(&call_count, 0));
             LogInfo("Done waiting for timer");
 
             need_to_retry = false;
@@ -338,7 +335,6 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
     } while (need_to_retry);
 
     // cleanup
-    threadpool_close(threadpool);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
 }
@@ -354,9 +350,6 @@ TEST_FUNCTION(restart_timer_works_runs_once)
     // create the threadpool
     THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
-
-    // open
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_threadpool_open_complete, NULL));
 
     // NOTE: this test runs with retries because there are possible timing issues with thread scheduling
     // We are making sure the worker doesn't start before the delay time and does run once after the delay time
@@ -394,7 +387,7 @@ TEST_FUNCTION(restart_timer_works_runs_once)
 
             // And should not run again
             ThreadAPI_Sleep(5000);
-            ASSERT_ARE_EQUAL(uint32_t, 1, (uint32_t)interlocked_add(&call_count, 0));
+            ASSERT_ARE_EQUAL(uint32_t, 1, interlocked_add(&call_count, 0));
             LogInfo("Done waiting for timer");
 
             need_to_retry = false;
@@ -404,7 +397,6 @@ TEST_FUNCTION(restart_timer_works_runs_once)
     } while (need_to_retry);
 
     // cleanup
-    threadpool_close(threadpool);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
 }
@@ -421,9 +413,6 @@ TEST_FUNCTION(one_start_timer_works_runs_periodically)
     THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
-    // open
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_threadpool_open_complete, NULL));
-
     (void)interlocked_exchange(&call_count, 0);
 
     // act (start a timer to start delayed and then execute every 500ms)
@@ -439,7 +428,6 @@ TEST_FUNCTION(one_start_timer_works_runs_periodically)
 
     // cleanup
     threadpool_timer_destroy(timer);
-    threadpool_close(threadpool);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
 }
@@ -455,9 +443,6 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
     // create the threadpool
     THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
-
-    // open
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_threadpool_open_complete, NULL));
 
     (void)interlocked_exchange(&call_count, 0);
 
@@ -484,7 +469,6 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
 
     // cleanup
     threadpool_timer_destroy(timer);
-    threadpool_close(threadpool);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
 }
@@ -501,9 +485,6 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
     // create the threadpool
     THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
-
-    // open
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_threadpool_open_complete, NULL));
 
     (void)interlocked_exchange(&wait_work_context.call_count, 0);
     (void)interlocked_exchange(&wait_work_context.wait_event, 0);
@@ -526,7 +507,6 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
     interlocked_increment(&wait_work_context.wait_event);
 
     // cleanup
-    threadpool_close(threadpool);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
 }
@@ -543,9 +523,6 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
     // create the threadpool
     THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
-
-    // open
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_threadpool_open_complete, NULL));
 
     (void)interlocked_exchange(&wait_work_context.call_count, 0);
     (void)interlocked_exchange(&wait_work_context.wait_event, 0);
@@ -569,7 +546,6 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
 
     // cleanup
     threadpool_timer_destroy(timer);
-    threadpool_close(threadpool);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
 }
