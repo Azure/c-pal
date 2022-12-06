@@ -40,7 +40,6 @@ IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_
     }
     else
     {
-        LogError("failure in syscall, errno=%d (%s)", errno, strerror(errno));
         if (errno == EAGAIN)
         {
             /* Codes_SRS_SYNC_LINUX_01_001: [ if syscall returns a non-zero value and errno is EAGAIN, wait_on_address shall return WAIT_ON_ADDRESS_OK. ]*/
@@ -53,6 +52,9 @@ IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_
         }
         else
         {
+            char err_msg[128];
+            (void)strerror_r(errno, err_msg, 128);
+            LogError("failure in syscall, Error: %d: (%s)", errno, err_msg);
             /*Codes_SRS_SYNC_LINUX_43_004: [ Otherwise, wait_on_address shall return WAIT_ON_ADDRESS_ERROR.*/
             result = WAIT_ON_ADDRESS_ERROR;
         }
