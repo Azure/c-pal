@@ -18,6 +18,7 @@
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/interlocked.h"
+#include "c_pal/s_list.h"
 #include "c_pal/sync.h"
 #include "c_pal/socket_handle.h"
 #include "c_pal/threadapi.h"
@@ -61,6 +62,8 @@ typedef struct ASYNC_SOCKET_TAG
     volatile_atomic int32_t state;
     volatile_atomic int32_t pending_api_calls;
 
+    S_LIST_ENTRY recv_data_head;
+
     int epoll;
 } ASYNC_SOCKET;
 
@@ -81,6 +84,7 @@ typedef struct ASYNC_SOCKET_IO_CONTEXT_TAG
 
 typedef struct ASYNC_SOCKET_RECV_CONTEXT_TAG
 {
+    S_LIST_ENTRY link;
     ASYNC_SOCKET* async_socket;
     uint32_t total_buffer_bytes;
     uint32_t total_buffer_count;
@@ -328,21 +332,28 @@ ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine
         }
         else
         {
-            execution_engine_inc_ref(execution_engine);
-            result->execution_engine = execution_engine;
-
-            result->epoll = initialize_global_thread();
-            if (result->epoll == -1)
+            if (s_list_initialize(&result->recv_data_head) != 0)
             {
-                LogError("failure epoll_create error num: %d", errno);
+                LogError("failure initializing recv list");
             }
             else
             {
-                result->socket_handle = socket_handle;
+                execution_engine_inc_ref(execution_engine);
+                result->execution_engine = execution_engine;
 
-                (void)interlocked_exchange(&result->pending_api_calls, 0);
-                (void)interlocked_exchange(&result->state, ASYNC_SOCKET_LINUX_STATE_CLOSED);
-                goto all_ok;
+                result->epoll = initialize_global_thread();
+                if (result->epoll == -1)
+                {
+                    LogError("failure epoll_create error num: %d", errno);
+                }
+                else
+                {
+                    result->socket_handle = socket_handle;
+
+                    (void)interlocked_exchange(&result->pending_api_calls, 0);
+                    (void)interlocked_exchange(&result->state, ASYNC_SOCKET_LINUX_STATE_CLOSED);
+                    goto all_ok;
+                }
             }
             free(result);
         }
@@ -705,11 +716,19 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                     }
                     else
                     {
-                        (void)interlocked_decrement(&async_socket->pending_api_calls);
-                        wake_by_address_single(&async_socket->pending_api_calls);
+                        if (s_list_add(&async_socket->recv_data_head, &recv_context->link) != 0)
+                        {
+                            LogError("failure adding receive data to list");
+                            result = MU_FAILURE;
+                        }
+                        else
+                        {
+                            (void)interlocked_decrement(&async_socket->pending_api_calls);
+                            wake_by_address_single(&async_socket->pending_api_calls);
 
-                        result = 0;
-                        goto all_ok;
+                            result = 0;
+                            goto all_ok;
+                        }
                     }
                     free(recv_context);
                 }
