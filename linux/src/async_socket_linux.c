@@ -14,6 +14,7 @@
 
 #include "c_logging/xlogging.h"
 
+#include "c_pal/containing_record.h"
 #include "c_pal/gballoc_hl.h"        // IWYU pragma: keep
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/execution_engine.h"
@@ -27,6 +28,7 @@
 
 #define MAX_EVENTS_NUM      64
 #define EVENTS_TIMEOUT_MS   2*1000
+#define EPOLL_TIMEOUT_MS    10
 
 #define ASYNC_SOCKET_LINUX_STATE_VALUES \
     ASYNC_SOCKET_LINUX_STATE_CLOSED, \
@@ -62,6 +64,7 @@ typedef struct ASYNC_SOCKET_TAG
     volatile_atomic int32_t state;
     volatile_atomic int32_t pending_api_calls;
 
+    volatile_atomic int32_t epoll_cleanup;
     S_LIST_ENTRY recv_data_head;
 
     int epoll;
@@ -128,8 +131,18 @@ static int thread_worker_func(void* parameter)
                 ASYNC_SOCKET_RECV_CONTEXT* recv_context = events[index].data.ptr;
                 if (recv_context != NULL)
                 {
-                    recv_context->on_receive_complete(recv_context->on_receive_complete_context, ASYNC_SOCKET_RECEIVE_ABANDONED, 0);
-                    free(recv_context);
+                    ASYNC_SOCKET* async_socket = recv_context->async_socket;
+                    if (s_list_remove(&recv_context->async_socket->recv_data_head, &(recv_context->link)) != 0)
+                    {
+                        LogError("Failure receive context has been previously removed");
+                    }
+                    else
+                    {
+                        recv_context->on_receive_complete(recv_context->on_receive_complete_context, ASYNC_SOCKET_RECEIVE_ABANDONED, 0);
+                        free(recv_context);
+                    }
+                    (void)interlocked_exchange(&async_socket->epoll_cleanup, 1);
+                    wake_by_address_single(&async_socket->epoll_cleanup);
                 }
             }
             else if (events[index].events & EPOLLIN)
@@ -189,6 +202,13 @@ static int thread_worker_func(void* parameter)
                             }
                         }
                     } while (true);
+
+                    // Remove the item from the list so it won't be used again
+                    if (s_list_remove(&recv_context->async_socket->recv_data_head, &recv_context->link) != 0)
+                    {
+                        LogError("Failure removing receive context");
+                    }
+
                     // Call the callback
                     recv_context->on_receive_complete(recv_context->on_receive_complete_context, receive_result, recv_size);
 
@@ -304,11 +324,24 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
         LogError("Failure removing socket from epoll_ctrl");
     }
 
-    LogInfo("async socket is closing socket: %" PRI_SOCKET "", async_socket->socket_handle);
-
     // Close the socket
     (void)close(async_socket->socket_handle);
     async_socket->socket_handle = INVALID_SOCKET;
+
+    // Ensure that all the cleanup on the epoll is complete
+    if ((value = interlocked_add(&async_socket->epoll_cleanup, 0)) != 1)
+    {
+        // Wait for the epoll to complete, if it doesn't finish, then
+        // it's not going to get signaled
+        (void)wait_on_address(&async_socket->epoll_cleanup, value, 10);
+    }
+    PS_LIST_ENTRY entry;
+    while ((entry = s_list_remove_head(&async_socket->recv_data_head)) != &async_socket->recv_data_head)
+    {
+        ASYNC_SOCKET_RECV_CONTEXT* recv_context = CONTAINING_RECORD(entry, ASYNC_SOCKET_RECV_CONTEXT, link);
+        recv_context->on_receive_complete(recv_context->on_receive_complete_context, ASYNC_SOCKET_RECEIVE_ABANDONED, 0);
+        free(recv_context);
+    }
 
     (void)interlocked_exchange(&async_socket->state, ASYNC_SOCKET_LINUX_STATE_CLOSED);
     wake_by_address_single(&async_socket->state);
@@ -350,6 +383,7 @@ ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine
                 {
                     result->socket_handle = socket_handle;
 
+                    (void)interlocked_exchange(&result->epoll_cleanup, 0);
                     (void)interlocked_exchange(&result->pending_api_calls, 0);
                     (void)interlocked_exchange(&result->state, ASYNC_SOCKET_LINUX_STATE_CLOSED);
                     goto all_ok;
@@ -696,6 +730,7 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                     recv_context->on_receive_complete_context = on_receive_complete_context;
                     recv_context->socket_handle = async_socket->socket_handle;
                     recv_context->async_socket = async_socket;
+                    recv_context->link.next = NULL;
 
                     for (index = 0; index < buffer_count; index++)
                     {

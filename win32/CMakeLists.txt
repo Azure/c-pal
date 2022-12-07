@@ -3,11 +3,13 @@
 set(pal_common_h_files
     ../common/inc/c_pal/call_once.h
     ../common/inc/c_pal/lazy_init.h
+    ../common/inc/c_pal/s_list.h
 )
 
 set(pal_common_c_files
     ../common/src/call_once.c
     ../common/src/lazy_init.c
+    ../common/src/s_list.c
 )
 
 #determining which one of the GBALLOC_LL implementations to use. By convention the file is called "gballoc_ll_" followed by "type".

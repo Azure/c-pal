@@ -3,14 +3,12 @@
 set(pal_common_h_files
     ../common/inc/c_pal/call_once.h
     ../common/inc/c_pal/containing_record.h
-    ../common/inc/c_pal/doublylinkedlist.h
     ../common/inc/c_pal/lazy_init.h
     ../common/inc/c_pal/s_list.h
 )
 
 set(pal_common_c_files
     ../common/src/call_once.c
-    ../common/src/doublylinkedlist.c
     ../common/src/lazy_init.c
     ../common/src/s_list.c
 )
