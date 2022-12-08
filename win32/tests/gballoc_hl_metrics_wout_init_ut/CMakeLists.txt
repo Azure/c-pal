@@ -8,7 +8,7 @@ ${theseTestsName}.c
 )
 
 set(${theseTestsName}_c_files
-./gballoc_hl_metrics_mocked.c
+../../src/gballoc_hl_metrics.c
 )
 
 set(${theseTestsName}_h_files
