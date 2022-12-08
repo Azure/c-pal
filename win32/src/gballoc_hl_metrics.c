@@ -59,10 +59,10 @@ static const GBALLOC_LATENCY_BUCKET_METADATA latency_buckets_metadata[GBALLOC_LA
 
 typedef struct LATENCY_BUCKET_TAG
 {
-    volatile int64_t latency_sum;
-    volatile int32_t latency_min;
-    volatile int32_t latency_max;
-    volatile int32_t count;
+    volatile_atomic int64_t latency_sum;
+    volatile_atomic int32_t latency_min;
+    volatile_atomic int32_t latency_max;
+    volatile_atomic int32_t count;
 } LATENCY_BUCKET;
 
 static LATENCY_BUCKET malloc_latency_buckets[GBALLOC_LATENCY_BUCKET_COUNT] = { 0 };
