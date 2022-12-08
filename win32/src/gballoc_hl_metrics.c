@@ -1,14 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#include <stdint.h>
 #include <stdlib.h>
-#include "windows.h"
+
 #include "macro_utils/macro_utils.h"
 #include "c_logging/xlogging.h"
 
 #include "c_pal/timer.h"
 #include "c_pal/gballoc_ll.h"
 #include "c_pal/lazy_init.h"
+#include "c_pal/interlocked.h"
 
 #include "c_pal/gballoc_hl.h"
 
@@ -57,10 +59,10 @@ static const GBALLOC_LATENCY_BUCKET_METADATA latency_buckets_metadata[GBALLOC_LA
 
 typedef struct LATENCY_BUCKET_TAG
 {
-    volatile LONG64 latency_sum;
-    volatile LONG latency_min;
-    volatile LONG latency_max;
-    volatile LONG count;
+    volatile int64_t latency_sum;
+    volatile int32_t latency_min;
+    volatile int32_t latency_max;
+    volatile int32_t count;
 } LATENCY_BUCKET;
 
 static LATENCY_BUCKET malloc_latency_buckets[GBALLOC_LATENCY_BUCKET_COUNT] = { 0 };
@@ -94,16 +96,17 @@ static size_t determine_latency_bucket_for_size(size_t size)
 
 static void init_latency_bucket(LATENCY_BUCKET* latency_bucket)
 {
-    (void)InterlockedExchange(&latency_bucket->count, 0);
-    (void)InterlockedExchange64(&latency_bucket->latency_sum, 0);
-    (void)InterlockedExchange(&latency_bucket->latency_min, LONG_MAX);
-    (void)InterlockedExchange(&latency_bucket->latency_max, 0);
+    (void)interlocked_exchange(&latency_bucket->count, 0);
+    (void)interlocked_exchange_64(&latency_bucket->latency_sum, 0);
+    (void)interlocked_exchange(&latency_bucket->latency_min, LONG_MAX);
+    (void)interlocked_exchange(&latency_bucket->latency_max, 0);
 }
 
 static void internal_init_latency_counters(void)
 {
     size_t i;
 
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_041: [ For each bucket, for each of the 4 flavors of latencies tracked, do_init shall initialize the count, latency sum used for computing the average and the min and max latency values. ]*/
     for (i = 0; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
         init_latency_bucket(&malloc_latency_buckets[i]);
@@ -119,10 +122,10 @@ static void internal_copy_latency_data(GBALLOC_LATENCY_BUCKETS* latency_buckets_
 
     for (i = 0; i < GBALLOC_LATENCY_BUCKET_COUNT; i++)
     {
-        latency_buckets_out->buckets[i].count = InterlockedAdd(&source_latency_buckets[i].count, 0);
-        latency_buckets_out->buckets[i].latency_avg = (latency_buckets_out->buckets[i].count == 0) ? 0 : (double)InterlockedAdd64(&source_latency_buckets[i].latency_sum, 0) / latency_buckets_out->buckets[i].count;
-        latency_buckets_out->buckets[i].latency_min = InterlockedAdd(&source_latency_buckets[i].latency_min, 0);
-        latency_buckets_out->buckets[i].latency_max = InterlockedAdd(&source_latency_buckets[i].latency_max, 0);
+        latency_buckets_out->buckets[i].count = interlocked_add(&source_latency_buckets[i].count, 0);
+        latency_buckets_out->buckets[i].latency_avg = (latency_buckets_out->buckets[i].count == 0) ? 0 : (double)interlocked_add_64(&source_latency_buckets[i].latency_sum, 0) / latency_buckets_out->buckets[i].count;
+        latency_buckets_out->buckets[i].latency_min = interlocked_add(&source_latency_buckets[i].latency_min, 0);
+        latency_buckets_out->buckets[i].latency_max = interlocked_add(&source_latency_buckets[i].latency_max, 0);
     }
 }
 
@@ -149,14 +152,13 @@ static int do_init(void* ll_params)
 
 int gballoc_hl_init(void* hl_params, void* ll_params)
 {
-    (void)hl_params;
     int result;
 
     /*Codes_SRS_GBALLOC_HL_METRICS_02_004: [ gballoc_hl_init shall call lazy_init with do_init as initialization function. ]*/
     if (lazy_init(&g_lazy, do_init, ll_params) != LAZY_INIT_OK)
     {
         /*Codes_SRS_GBALLOC_HL_METRICS_01_004: [ If any error occurs, gballoc_hl_init shall fail and return a non-zero value. ]*/
-        LogError("failure in lazy_init(&g_lazy=%p, do_init=%p, ll_params=%p)", &g_lazy, do_init, ll_params);
+        LogError("failure in lazy_init(&g_lazy=%p, do_init=%p, void* hl_params=%p, ll_params=%p)", &g_lazy, do_init, hl_params, ll_params);
         result = MU_FAILURE;
     }
     else
@@ -274,16 +276,33 @@ const GBALLOC_LATENCY_BUCKET_METADATA* gballoc_hl_get_latency_bucket_metadata(vo
     return latency_buckets_metadata;
 }
 
-static void internal_add_call_latency(LATENCY_BUCKET* latency_buckets, size_t size, LONG latency)
+static void internal_add_call_latency(LATENCY_BUCKET* latency_buckets, size_t size, int32_t latency)
 {
     size_t bucket = determine_latency_bucket_for_size(size);
-    (void)InterlockedAdd64(&latency_buckets[bucket].latency_sum, latency);
+
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_043: [ gballoc_hl_malloc shall add the computed latency to the running malloc latency sum used to compute the average. ]*/
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_046: [ gballoc_hl_malloc_2 shall add the computed latency to the running malloc latency sum used to compute the average. ]*/
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_050: [ gballoc_hl_malloc_flex shall add the computed latency to the running malloc latency sum used to compute the average. ]*/
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_054: [ gballoc_hl_calloc shall add the computed latency to the running calloc latency sum used to compute the average. ]*/
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_058: [ gballoc_hl_realloc shall add the computed latency to the running realloc latency sum used to compute the average. ]*/
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_062: [ gballoc_hl_realloc_2 shall add the computed latency to the running realloc latency sum used to compute the average. ]*/
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_066: [ gballoc_hl_realloc_flex shall add the computed latency to the running realloc latency sum used to compute the average. ]*/
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_070: [ gballoc_hl_free shall add the computed latency to the running free latency sum used to compute the average. ]*/
+    (void)interlocked_add_64(&latency_buckets[bucket].latency_sum, latency);
     do
     {
-        LONG current_min = InterlockedAdd(&latency_buckets[bucket].latency_min, 0);
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_044: [ If the computed latency is less than the minimum tracked latency, gballoc_hl_malloc shall store it as the new minimum malloc latency. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_047: [ If the computed latency is less than the minimum tracked latency, gballoc_hl_malloc_2 shall store it as the new minimum malloc latency. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_051: [ If the computed latency is less than the minimum tracked latency, gballoc_hl_malloc_flex shall store it as the new minimum malloc latency. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_055: [ If the computed latency is less than the minimum tracked latency, gballoc_hl_calloc shall store it as the new minimum calloc latency. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_059: [ If the computed latency is less than the minimum tracked latency, gballoc_hl_realloc shall store it as the new minimum realloc latency. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_063: [ If the computed latency is less than the minimum tracked latency, gballoc_hl_realloc_2 shall store it as the new minimum realloc latency. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_067: [ If the computed latency is less than the minimum tracked latency, gballoc_hl_realloc_flex shall store it as the new minimum realloc latency. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_071: [ If the computed latency is less than the minimum tracked latency, gballoc_hl_free shall store it as the new minimum free latency. ]*/
+        int32_t current_min = interlocked_add(&latency_buckets[bucket].latency_min, 0);
         if (current_min > latency)
         {
-            if (InterlockedCompareExchange(&latency_buckets[bucket].latency_min, latency, current_min) == current_min)
+            if (interlocked_compare_exchange(&latency_buckets[bucket].latency_min, latency, current_min) == current_min)
             {
                 break;
             }
@@ -295,10 +314,18 @@ static void internal_add_call_latency(LATENCY_BUCKET* latency_buckets, size_t si
     } while (1);
     do
     {
-        LONG current_max = InterlockedAdd(&latency_buckets[bucket].latency_max, 0);
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_045: [ If the computed latency is more than the maximum tracked latency, gballoc_hl_malloc shall store it as the new maximum malloc latency. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_048: [ If the computed latency is more than the maximum tracked latency, gballoc_hl_malloc_2 shall store it as the new maximum malloc latency. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_052: [ If the computed latency is more than the maximum tracked latency, gballoc_hl_malloc_flex shall store it as the new maximum malloc latency. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_056: [ If the computed latency is more than the maximum tracked latency, gballoc_hl_calloc shall store it as the new maximum calloc latency. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_060: [ If the computed latency is more than the maximum tracked latency, gballoc_hl_realloc shall store it as the new maximum realloc latency. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_064: [ If the computed latency is more than the maximum tracked latency, gballoc_hl_realloc_2 shall store it as the new maximum realloc latency. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_068: [ If the computed latency is more than the maximum tracked latency, gballoc_hl_realloc_flex shall store it as the new maximum realloc latency. ]*/
+        /* Codes_SRS_GBALLOC_HL_METRICS_01_072: [ If the computed latency is more than the maximum tracked latency, gballoc_hl_free shall store it as the new maximum free latency. ]*/
+        int32_t current_max = interlocked_add(&latency_buckets[bucket].latency_max, 0);
         if (current_max < latency)
         {
-            if (InterlockedCompareExchange(&latency_buckets[bucket].latency_max, latency, current_max) == current_max)
+            if (interlocked_compare_exchange(&latency_buckets[bucket].latency_max, latency, current_max) == current_max)
             {
                 break;
             }
@@ -308,8 +335,16 @@ static void internal_add_call_latency(LATENCY_BUCKET* latency_buckets, size_t si
             break;
         }
     } while (1);
-    (void)InterlockedIncrement(&latency_buckets[bucket].count);
-
+    
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_042: [ gballoc_hl_malloc shall increment the count of malloc latency samples. ]*/
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_049: [ gballoc_hl_malloc_2 shall increment the count of malloc latency samples. ]*/
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_053: [ gballoc_hl_malloc_flex shall increment the count of malloc latency samples. ]*/
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_057: [ gballoc_hl_calloc shall increment the count of calloc latency samples. ]*/
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_061: [ gballoc_hl_realloc shall increment the count of realloc latency samples. ]*/
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_065: [ gballoc_hl_realloc_2 shall increment the count of realloc latency samples. ]*/
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_069: [ gballoc_hl_realloc_flex shall increment the count of realloc latency samples. ]*/
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_073: [ gballoc_hl_free shall increment the count of free latency samples. ]*/
+    (void)interlocked_increment(&latency_buckets[bucket].count);
 }
 
 void* gballoc_hl_malloc(size_t size)
@@ -339,7 +374,7 @@ void* gballoc_hl_malloc(size_t size)
         /* Codes_SRS_GBALLOC_HL_METRICS_01_029: [ gballoc_hl_malloc shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
         double end_time = timer_global_get_elapsed_us();
 
-        LONG latency = (LONG)(end_time - start_time);
+        int32_t latency = (int32_t)(end_time - start_time);
         internal_add_call_latency(malloc_latency_buckets, size, latency);
     }
 
@@ -373,7 +408,7 @@ void* gballoc_hl_malloc_2(size_t nmemb, size_t size)
         /*Codes_SRS_GBALLOC_HL_METRICS_02_024: [ gballoc_hl_malloc_2 shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
         double end_time = timer_global_get_elapsed_us();
 
-        LONG latency = (LONG)(end_time - start_time);
+        int32_t latency = (int32_t)(end_time - start_time);
         internal_add_call_latency(malloc_latency_buckets, nmemb * size, latency);
     }
 
@@ -407,7 +442,7 @@ void* gballoc_hl_malloc_flex(size_t base, size_t nmemb, size_t size)
         /*Codes_SRS_GBALLOC_HL_METRICS_02_011: [ gballoc_hl_malloc_flex shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
         double end_time = timer_global_get_elapsed_us();
 
-        LONG latency = (LONG)(end_time - start_time);
+        int32_t latency = (int32_t)(end_time - start_time);
         internal_add_call_latency(malloc_latency_buckets, base + nmemb * size, latency);
     }
 
@@ -441,7 +476,7 @@ void* gballoc_hl_calloc(size_t nmemb, size_t size)
         /* Codes_SRS_GBALLOC_HL_METRICS_01_031: [ gballoc_hl_calloc shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
         double end_time = timer_global_get_elapsed_us();
 
-        LONG latency = (LONG)(end_time - start_time);
+        int32_t latency = (int32_t)(end_time - start_time);
         internal_add_call_latency(calloc_latency_buckets, nmemb * size, latency);
     }
 
@@ -475,7 +510,7 @@ void* gballoc_hl_realloc(void* ptr, size_t size)
         /* Codes_SRS_GBALLOC_HL_METRICS_01_033: [ gballoc_hl_realloc shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
         double end_time = timer_global_get_elapsed_us();
 
-        LONG latency = (LONG)(end_time - start_time);
+        int32_t latency = (int32_t)(end_time - start_time);
         internal_add_call_latency(realloc_latency_buckets, size, latency);
     }
 
@@ -509,7 +544,7 @@ void* gballoc_hl_realloc_2(void* ptr, size_t nmemb, size_t size)
         /*Codes_SRS_GBALLOC_HL_METRICS_02_015: [ gballoc_hl_realloc_2 shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
         double end_time = timer_global_get_elapsed_us();
 
-        LONG latency = (LONG)(end_time - start_time);
+        int32_t latency = (int32_t)(end_time - start_time);
         internal_add_call_latency(realloc_latency_buckets, nmemb * size, latency);
     }
 
@@ -543,7 +578,7 @@ void* gballoc_hl_realloc_flex(void* ptr, size_t base, size_t nmemb, size_t size)
         /*Codes_SRS_GBALLOC_HL_METRICS_02_020: [ gballoc_hl_realloc_flex shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
         double end_time = timer_global_get_elapsed_us();
 
-        LONG latency = (LONG)(end_time - start_time);
+        int32_t latency = (int32_t)(end_time - start_time);
         internal_add_call_latency(realloc_latency_buckets, base + nmemb * size, latency);
     }
 
@@ -574,7 +609,7 @@ void gballoc_hl_free(void* ptr)
             /* Codes_SRS_GBALLOC_HL_METRICS_01_035: [ gballoc_hl_free shall call timer_global_get_elapsed_us to obtain the end time of the free. ]*/
             double end_time = timer_global_get_elapsed_us();
 
-            LONG latency = (LONG)(end_time - start_time);
+            int32_t latency = (int32_t)(end_time - start_time);
             internal_add_call_latency(free_latency_buckets, size, latency);
         }
     }
