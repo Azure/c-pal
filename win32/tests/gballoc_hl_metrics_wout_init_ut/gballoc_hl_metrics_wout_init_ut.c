@@ -1,8 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-
+#include <stdint.h>
 #include <stddef.h>
-
 
 #include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
