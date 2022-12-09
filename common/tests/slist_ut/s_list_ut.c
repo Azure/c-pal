@@ -49,7 +49,6 @@ MOCK_FUNCTION_END(0);
 MOCK_FUNCTION_WITH_CODE(, int, test_action_function_fail, PS_LIST_ENTRY, list_entry, const void*, action_context, bool*, continueProcessing);
 *continueProcessing = true;
 SIMPLE_ITEM* item = CONTAINING_RECORD(list_entry, SIMPLE_ITEM, link);
-(int)item->index;
 MOCK_FUNCTION_END(item->index == 3 ? MU_FAILURE : 0);
 
 #undef ENABLE_MOCKS
