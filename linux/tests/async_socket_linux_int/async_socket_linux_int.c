@@ -549,6 +549,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _sockets_items))
     wait_for_value(&send_counter, socket_count);
     wait_for_value(&recv_size, expected_recv_size);
 
+    close(listen_socket);
     for (uint32_t index = 0; index < socket_count; index++)
     {
         async_socket_close(server_async_socket[index]);
@@ -556,7 +557,6 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _sockets_items))
         async_socket_destroy(server_async_socket[index]);
         async_socket_destroy(client_async_socket[index]);
     }
-    close(listen_socket);
     execution_engine_dec_ref(execution_engine);
 }
 

@@ -5,6 +5,14 @@
    ...
 }
 {
+   <insert_a_suppression_name_here>
+   Helgrind:Race
+   fun:interlocked_compare_exchange
+   fun:remove_item_from_list
+   fun:thread_worker_func
+   ...
+}
+{
    <socket creation>
    Helgrind:Race
    fun:interlocked_add

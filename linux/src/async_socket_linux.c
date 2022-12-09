@@ -65,6 +65,7 @@ typedef struct ASYNC_SOCKET_TAG
     volatile_atomic int32_t pending_api_calls;
 
     volatile_atomic int32_t epoll_cleanup;
+    volatile_atomic int32_t recv_data_access;
     S_LIST_ENTRY recv_data_head;
 
     int epoll;
@@ -108,6 +109,67 @@ typedef struct ASYNC_SOCKET_SEND_CONTEXT_TAG
     ASYNC_SOCKET_BUFFER buffers[];
 } ASYNC_SOCKET_SEND_CONTEXT;
 
+static int remove_item_from_list(ASYNC_SOCKET* async_socket, ASYNC_SOCKET_RECV_CONTEXT* recv_context)
+{
+    int result;
+    do
+    {
+        int32_t current_val = interlocked_compare_exchange(&async_socket->recv_data_access, 0, 1);
+        if (current_val == 0)
+        {
+            break;
+        }
+        else
+        {
+            // Do Nothing
+        }
+        (void)wait_on_address(&async_socket->recv_data_access, current_val, UINT32_MAX);
+    } while (true);
+
+    if (s_list_remove(&async_socket->recv_data_head, &recv_context->link) != 0)
+    {
+        LogError("failure removing receive data to list");
+        result = MU_FAILURE;
+    }
+    else
+    {
+        result = 0;
+    }
+    (void)interlocked_exchange(&async_socket->recv_data_access, 0);
+
+    return result;
+}
+
+static int add_item_to_list(ASYNC_SOCKET* async_socket, ASYNC_SOCKET_RECV_CONTEXT* recv_context)
+{
+    int result;
+    do
+    {
+        int32_t current_val = interlocked_compare_exchange(&async_socket->recv_data_access, 0, 1);
+        if (current_val == 0)
+        {
+            break;
+        }
+        else
+        {
+        }
+        (void)wait_on_address(&async_socket->recv_data_access, current_val, UINT32_MAX);
+    } while (true);
+
+    if (s_list_add(&async_socket->recv_data_head, &recv_context->link) != 0)
+    {
+        LogError("failure adding receive data to list");
+        result = MU_FAILURE;
+    }
+    else
+    {
+        result = 0;
+    }
+    (void)interlocked_exchange(&async_socket->recv_data_access, 0);
+
+    return result;
+}
+
 static int thread_worker_func(void* parameter)
 {
     (void)parameter;
@@ -132,7 +194,7 @@ static int thread_worker_func(void* parameter)
                 if (recv_context != NULL)
                 {
                     ASYNC_SOCKET* async_socket = recv_context->async_socket;
-                    if (s_list_remove(&recv_context->async_socket->recv_data_head, &(recv_context->link)) != 0)
+                    if (remove_item_from_list(recv_context->async_socket, recv_context) != 0)
                     {
                         LogError("Failure receive context has been previously removed");
                     }
@@ -204,7 +266,7 @@ static int thread_worker_func(void* parameter)
                     } while (true);
 
                     // Remove the item from the list so it won't be used again
-                    if (s_list_remove(&recv_context->async_socket->recv_data_head, &recv_context->link) != 0)
+                    if (remove_item_from_list(recv_context->async_socket, recv_context) != 0)
                     {
                         LogError("Failure removing receive context");
                     }
@@ -384,6 +446,7 @@ ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine
                     result->socket_handle = socket_handle;
 
                     (void)interlocked_exchange(&result->epoll_cleanup, 0);
+                    (void)interlocked_exchange(&result->recv_data_access, 0);
                     (void)interlocked_exchange(&result->pending_api_calls, 0);
                     (void)interlocked_exchange(&result->state, ASYNC_SOCKET_LINUX_STATE_CLOSED);
                     goto all_ok;
@@ -751,7 +814,7 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                     }
                     else
                     {
-                        if (s_list_add(&async_socket->recv_data_head, &recv_context->link) != 0)
+                        if (add_item_to_list(async_socket, recv_context) != 0)
                         {
                             LogError("failure adding receive data to list");
                             result = MU_FAILURE;
