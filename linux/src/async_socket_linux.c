@@ -14,10 +14,12 @@
 
 #include "c_logging/xlogging.h"
 
+#include "c_pal/containing_record.h"
 #include "c_pal/gballoc_hl.h"        // IWYU pragma: keep
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/interlocked.h"
+#include "c_pal/s_list.h"
 #include "c_pal/sync.h"
 #include "c_pal/socket_handle.h"
 #include "c_pal/threadapi.h"
@@ -26,6 +28,7 @@
 
 #define MAX_EVENTS_NUM      64
 #define EVENTS_TIMEOUT_MS   2*1000
+#define EPOLL_TIMEOUT_MS    10
 
 #define ASYNC_SOCKET_LINUX_STATE_VALUES \
     ASYNC_SOCKET_LINUX_STATE_CLOSED, \
@@ -61,6 +64,10 @@ typedef struct ASYNC_SOCKET_TAG
     volatile_atomic int32_t state;
     volatile_atomic int32_t pending_api_calls;
 
+    volatile_atomic int32_t epoll_cleanup;
+    volatile_atomic int32_t recv_data_access;
+    S_LIST_ENTRY recv_data_head;
+
     int epoll;
 } ASYNC_SOCKET;
 
@@ -81,6 +88,7 @@ typedef struct ASYNC_SOCKET_IO_CONTEXT_TAG
 
 typedef struct ASYNC_SOCKET_RECV_CONTEXT_TAG
 {
+    S_LIST_ENTRY link;
     ASYNC_SOCKET* async_socket;
     uint32_t total_buffer_bytes;
     uint32_t total_buffer_count;
@@ -100,6 +108,68 @@ typedef struct ASYNC_SOCKET_SEND_CONTEXT_TAG
     void* on_send_complete_context;
     ASYNC_SOCKET_BUFFER buffers[];
 } ASYNC_SOCKET_SEND_CONTEXT;
+
+static int remove_item_from_list(ASYNC_SOCKET* async_socket, ASYNC_SOCKET_RECV_CONTEXT* recv_context)
+{
+    int result;
+    do
+    {
+        int32_t current_val = interlocked_compare_exchange(&async_socket->recv_data_access, 0, 1);
+        if (current_val == 0)
+        {
+            break;
+        }
+        else
+        {
+            // Do Nothing
+        }
+        (void)wait_on_address(&async_socket->recv_data_access, current_val, UINT32_MAX);
+    } while (true);
+
+    if (s_list_remove(&async_socket->recv_data_head, &recv_context->link) != 0)
+    {
+        LogError("failure removing receive data to list %p", recv_context);
+        result = MU_FAILURE;
+    }
+    else
+    {
+        result = 0;
+    }
+    (void)interlocked_exchange(&async_socket->recv_data_access, 0);
+
+    return result;
+}
+
+static int add_item_to_list(ASYNC_SOCKET* async_socket, ASYNC_SOCKET_RECV_CONTEXT* recv_context)
+{
+    int result;
+    do
+    {
+        int32_t current_val = interlocked_compare_exchange(&async_socket->recv_data_access, 0, 1);
+        if (current_val == 0)
+        {
+            break;
+        }
+        else
+        {
+            // Do Nothing wait for address
+        }
+        (void)wait_on_address(&async_socket->recv_data_access, current_val, UINT32_MAX);
+    } while (true);
+
+    if (s_list_add(&async_socket->recv_data_head, &recv_context->link) != 0)
+    {
+        LogError("failure adding receive data to list");
+        result = MU_FAILURE;
+    }
+    else
+    {
+        result = 0;
+    }
+    (void)interlocked_exchange(&async_socket->recv_data_access, 0);
+
+    return result;
+}
 
 static int thread_worker_func(void* parameter)
 {
@@ -124,8 +194,18 @@ static int thread_worker_func(void* parameter)
                 ASYNC_SOCKET_RECV_CONTEXT* recv_context = events[index].data.ptr;
                 if (recv_context != NULL)
                 {
-                    recv_context->on_receive_complete(recv_context->on_receive_complete_context, ASYNC_SOCKET_RECEIVE_ABANDONED, 0);
-                    free(recv_context);
+                    ASYNC_SOCKET* async_socket = recv_context->async_socket;
+                    if (remove_item_from_list(recv_context->async_socket, recv_context) != 0)
+                    {
+                        LogError("Failure receive context has been previously removed %p", recv_context);
+                    }
+                    else
+                    {
+                        recv_context->on_receive_complete(recv_context->on_receive_complete_context, ASYNC_SOCKET_RECEIVE_ABANDONED, 0);
+                        free(recv_context);
+                    }
+                    (void)interlocked_exchange(&async_socket->epoll_cleanup, 1);
+                    wake_by_address_single(&async_socket->epoll_cleanup);
                 }
             }
             else if (events[index].events & EPOLLIN)
@@ -185,6 +265,13 @@ static int thread_worker_func(void* parameter)
                             }
                         }
                     } while (true);
+
+                    // Remove the item from the list so it won't be used again
+                    if (remove_item_from_list(recv_context->async_socket, recv_context) != 0)
+                    {
+                        LogError("Failure removing receive context %p", recv_context);
+                    }
+
                     // Call the callback
                     recv_context->on_receive_complete(recv_context->on_receive_complete_context, receive_result, recv_size);
 
@@ -300,11 +387,24 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
         LogError("Failure removing socket from epoll_ctrl");
     }
 
-    LogInfo("async socket is closing socket: %" PRI_SOCKET "", async_socket->socket_handle);
-
     // Close the socket
     (void)close(async_socket->socket_handle);
     async_socket->socket_handle = INVALID_SOCKET;
+
+    // Ensure that all the cleanup on the epoll is complete
+    if ((value = interlocked_add(&async_socket->epoll_cleanup, 0)) != 1)
+    {
+        // Wait for the epoll to complete, if it doesn't finish, then
+        // it's not going to get signaled
+        (void)wait_on_address(&async_socket->epoll_cleanup, value, 10);
+    }
+    PS_LIST_ENTRY entry;
+    while ((entry = s_list_remove_head(&async_socket->recv_data_head)) != &async_socket->recv_data_head)
+    {
+        ASYNC_SOCKET_RECV_CONTEXT* recv_context = CONTAINING_RECORD(entry, ASYNC_SOCKET_RECV_CONTEXT, link);
+        recv_context->on_receive_complete(recv_context->on_receive_complete_context, ASYNC_SOCKET_RECEIVE_ABANDONED, 0);
+        free(recv_context);
+    }
 
     (void)interlocked_exchange(&async_socket->state, ASYNC_SOCKET_LINUX_STATE_CLOSED);
     wake_by_address_single(&async_socket->state);
@@ -328,21 +428,30 @@ ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine
         }
         else
         {
-            execution_engine_inc_ref(execution_engine);
-            result->execution_engine = execution_engine;
-
-            result->epoll = initialize_global_thread();
-            if (result->epoll == -1)
+            if (s_list_initialize(&result->recv_data_head) != 0)
             {
-                LogError("failure epoll_create error num: %d", errno);
+                LogError("failure initializing recv list");
             }
             else
             {
-                result->socket_handle = socket_handle;
+                execution_engine_inc_ref(execution_engine);
+                result->execution_engine = execution_engine;
 
-                (void)interlocked_exchange(&result->pending_api_calls, 0);
-                (void)interlocked_exchange(&result->state, ASYNC_SOCKET_LINUX_STATE_CLOSED);
-                goto all_ok;
+                result->epoll = initialize_global_thread();
+                if (result->epoll == -1)
+                {
+                    LogError("failure epoll_create error num: %d", errno);
+                }
+                else
+                {
+                    result->socket_handle = socket_handle;
+
+                    (void)interlocked_exchange(&result->epoll_cleanup, 0);
+                    (void)interlocked_exchange(&result->recv_data_access, 0);
+                    (void)interlocked_exchange(&result->pending_api_calls, 0);
+                    (void)interlocked_exchange(&result->state, ASYNC_SOCKET_LINUX_STATE_CLOSED);
+                    goto all_ok;
+                }
             }
             free(result);
         }
@@ -685,6 +794,7 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                     recv_context->on_receive_complete_context = on_receive_complete_context;
                     recv_context->socket_handle = async_socket->socket_handle;
                     recv_context->async_socket = async_socket;
+                    recv_context->link.next = NULL;
 
                     for (index = 0; index < buffer_count; index++)
                     {
@@ -692,24 +802,33 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                         recv_context->recv_buffers[index].length = payload[index].length;
                     }
 
-                    struct epoll_event ev = {0};
-                    ev.events = EPOLLIN | EPOLLRDHUP | EPOLLONESHOT;
-                    ev.data.ptr = recv_context;
-                    // Modify the socket value in the epoll, if the socket doesn't exist then we
-                    // need to add the socket
-                    if (epoll_ctl(async_socket->epoll, EPOLL_CTL_MOD, async_socket->socket_handle, &ev) < 0 &&
-                        (errno == ENOENT && epoll_ctl(async_socket->epoll, EPOLL_CTL_ADD, async_socket->socket_handle, &ev) < 0) )
+                    if (add_item_to_list(async_socket, recv_context) != 0)
                     {
-                        LogError("failure with epoll_ctrl EPOLL_CTL_MOD error no: %d", errno);
+                        LogError("failure adding receive data to list");
                         result = MU_FAILURE;
                     }
                     else
                     {
-                        (void)interlocked_decrement(&async_socket->pending_api_calls);
-                        wake_by_address_single(&async_socket->pending_api_calls);
+                        struct epoll_event ev = {0};
+                        ev.events = EPOLLIN | EPOLLRDHUP | EPOLLONESHOT;
+                        ev.data.ptr = recv_context;
+                        // Modify the socket value in the epoll, if the socket doesn't exist then we
+                        // need to add the socket
+                        if (epoll_ctl(async_socket->epoll, EPOLL_CTL_MOD, async_socket->socket_handle, &ev) < 0 &&
+                            (errno == ENOENT && epoll_ctl(async_socket->epoll, EPOLL_CTL_ADD, async_socket->socket_handle, &ev) < 0) )
+                        {
+                            LogError("failure with epoll_ctrl EPOLL_CTL_MOD error no: %d", errno);
+                            result = MU_FAILURE;
+                            remove_item_from_list(async_socket, recv_context);
+                        }
+                        else
+                        {
+                            (void)interlocked_decrement(&async_socket->pending_api_calls);
+                            wake_by_address_single(&async_socket->pending_api_calls);
 
-                        result = 0;
-                        goto all_ok;
+                            result = 0;
+                            goto all_ok;
+                        }
                     }
                     free(recv_context);
                 }

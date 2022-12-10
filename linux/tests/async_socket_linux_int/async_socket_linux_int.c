@@ -60,6 +60,11 @@ static void on_receive_complete(void* context, ASYNC_SOCKET_RECEIVE_RESULT recei
     wake_by_address_single(thread_counter);
 }
 
+static void on_receive_abandoned_complete(void* context, ASYNC_SOCKET_RECEIVE_RESULT receive_result, uint32_t bytes_received)
+{
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_ABANDONED, receive_result);
+}
+
 static void on_receive_and_accumulate_complete(void* context, ASYNC_SOCKET_RECEIVE_RESULT receive_result, uint32_t bytes_received)
 {
     volatile_atomic int32_t* accumulator = (volatile_atomic int32_t*)context;
@@ -211,6 +216,46 @@ TEST_FUNCTION_INITIALIZE(method_init)
 TEST_FUNCTION_CLEANUP(method_cleanup)
 {
     TEST_MUTEX_RELEASE(test_serialize_mutex);
+}
+
+TEST_FUNCTION(connect_no_send_succeeds)
+{
+    // assert
+    // create an execution engine
+    EXECUTION_ENGINE_PARAMETERS_LINUX execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    SOCKET_HANDLE client_socket;
+    SOCKET_HANDLE accept_socket;
+    SOCKET_HANDLE listen_socket;
+
+    setup_server_socket(&listen_socket);
+    setup_test_socket(g_port_num, &client_socket, &listen_socket, &accept_socket);
+
+    // create the async socket object
+    ASYNC_SOCKET_HANDLE server_async_socket = async_socket_create(execution_engine, accept_socket);
+    ASSERT_IS_NOT_NULL(server_async_socket);
+    ASYNC_SOCKET_HANDLE client_async_socket = async_socket_create(execution_engine, client_socket);
+    ASSERT_IS_NOT_NULL(client_async_socket);
+
+    // wait for open to complete
+    open_async_handle(server_async_socket);
+    open_async_handle(client_async_socket);
+
+    uint8_t receive_buffer[2];
+    ASYNC_SOCKET_BUFFER receive_payload_buffers[1];
+    receive_payload_buffers[0].buffer = receive_buffer;
+    receive_payload_buffers[0].length = sizeof(receive_buffer);
+
+    ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(client_async_socket, receive_payload_buffers, 1, on_receive_abandoned_complete, NULL));
+
+    async_socket_close(server_async_socket);
+    async_socket_close(client_async_socket);
+    async_socket_destroy(server_async_socket);
+    async_socket_destroy(client_async_socket);
+    execution_engine_dec_ref(execution_engine);
+    close(listen_socket);
 }
 
 TEST_FUNCTION(send_and_receive_1_byte_succeeds)
@@ -504,6 +549,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _sockets_items))
     wait_for_value(&send_counter, socket_count);
     wait_for_value(&recv_size, expected_recv_size);
 
+    close(listen_socket);
     for (uint32_t index = 0; index < socket_count; index++)
     {
         async_socket_close(server_async_socket[index]);
@@ -511,7 +557,6 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _sockets_items))
         async_socket_destroy(server_async_socket[index]);
         async_socket_destroy(client_async_socket[index]);
     }
-    close(listen_socket);
     execution_engine_dec_ref(execution_engine);
 }
 
