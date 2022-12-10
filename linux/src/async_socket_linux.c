@@ -128,7 +128,7 @@ static int remove_item_from_list(ASYNC_SOCKET* async_socket, ASYNC_SOCKET_RECV_C
 
     if (s_list_remove(&async_socket->recv_data_head, &recv_context->link) != 0)
     {
-        LogError("failure removing receive data to list");
+        LogError("failure removing receive data to list %p", recv_context);
         result = MU_FAILURE;
     }
     else
@@ -152,6 +152,7 @@ static int add_item_to_list(ASYNC_SOCKET* async_socket, ASYNC_SOCKET_RECV_CONTEX
         }
         else
         {
+            // Do Nothing wait for address
         }
         (void)wait_on_address(&async_socket->recv_data_access, current_val, UINT32_MAX);
     } while (true);
@@ -196,7 +197,7 @@ static int thread_worker_func(void* parameter)
                     ASYNC_SOCKET* async_socket = recv_context->async_socket;
                     if (remove_item_from_list(recv_context->async_socket, recv_context) != 0)
                     {
-                        LogError("Failure receive context has been previously removed");
+                        LogError("Failure receive context has been previously removed %p", recv_context);
                     }
                     else
                     {
@@ -268,7 +269,7 @@ static int thread_worker_func(void* parameter)
                     // Remove the item from the list so it won't be used again
                     if (remove_item_from_list(recv_context->async_socket, recv_context) != 0)
                     {
-                        LogError("Failure removing receive context");
+                        LogError("Failure removing receive context %p", recv_context);
                     }
 
                     // Call the callback
@@ -801,23 +802,24 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                         recv_context->recv_buffers[index].length = payload[index].length;
                     }
 
-                    struct epoll_event ev = {0};
-                    ev.events = EPOLLIN | EPOLLRDHUP | EPOLLONESHOT;
-                    ev.data.ptr = recv_context;
-                    // Modify the socket value in the epoll, if the socket doesn't exist then we
-                    // need to add the socket
-                    if (epoll_ctl(async_socket->epoll, EPOLL_CTL_MOD, async_socket->socket_handle, &ev) < 0 &&
-                        (errno == ENOENT && epoll_ctl(async_socket->epoll, EPOLL_CTL_ADD, async_socket->socket_handle, &ev) < 0) )
+                    if (add_item_to_list(async_socket, recv_context) != 0)
                     {
-                        LogError("failure with epoll_ctrl EPOLL_CTL_MOD error no: %d", errno);
+                        LogError("failure adding receive data to list");
                         result = MU_FAILURE;
                     }
                     else
                     {
-                        if (add_item_to_list(async_socket, recv_context) != 0)
+                        struct epoll_event ev = {0};
+                        ev.events = EPOLLIN | EPOLLRDHUP | EPOLLONESHOT;
+                        ev.data.ptr = recv_context;
+                        // Modify the socket value in the epoll, if the socket doesn't exist then we
+                        // need to add the socket
+                        if (epoll_ctl(async_socket->epoll, EPOLL_CTL_MOD, async_socket->socket_handle, &ev) < 0 &&
+                            (errno == ENOENT && epoll_ctl(async_socket->epoll, EPOLL_CTL_ADD, async_socket->socket_handle, &ev) < 0) )
                         {
-                            LogError("failure adding receive data to list");
+                            LogError("failure with epoll_ctrl EPOLL_CTL_MOD error no: %d", errno);
                             result = MU_FAILURE;
+                            remove_item_from_list(async_socket, recv_context);
                         }
                         else
                         {
