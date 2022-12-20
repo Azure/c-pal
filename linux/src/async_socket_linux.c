@@ -207,9 +207,7 @@ static int thread_worker_func(void* parameter)
         int num_ready = epoll_wait(g_epoll, events, MAX_EVENTS_NUM, EVENTS_TIMEOUT_MS);
         if (num_ready == -1)
         {
-            char err_msg[128];
-            (void)strerror_r(errno, err_msg, 128);
-            LogError("Failure epoll wait. Error: %d: %s", errno, err_msg);
+            LogErrorNo("Failure epoll_wait, MAX_EVENTS_NUM: %d, EVENTS_TIMEOUT_MS", MAX_EVENTS_NUM, EVENTS_TIMEOUT_MS);
         }
         // SRS_ASYNC_SOCKET_LINUX_11_080: [ Onced signaled thread_worker_func shall loop through the signaled epolls. ]
         for (int index = 0; index < num_ready; index++)
@@ -377,7 +375,7 @@ static int initialize_global_thread(void)
         g_epoll = epoll_create(MAX_EVENTS_NUM);
         if (g_epoll == -1)
         {
-            LogError("failure epoll_create error num: %d", errno);
+            LogErrorNo("failure epoll_create MAX_EVENTS_NUM: %d", MAX_EVENTS_NUM);
             interlocked_decrement(&g_thread_access_cnt);
         }
         else
@@ -455,7 +453,7 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
     // SRS_ASYNC_SOCKET_LINUX_11_038: [ Then async_socket_close shall remove the underlying socket form the epoll by calling epoll_ctl with EPOLL_CTL_DEL. ]
     if (epoll_ctl(async_socket->epoll, EPOLL_CTL_DEL, async_socket->socket_handle, NULL) == -1)
     {
-        LogError("Failure removing socket from epoll_ctrl");
+        LogErrorNo("Failure epoll_ctrl with EPOLL_CTL_DEL");
     }
 
     // SRS_ASYNC_SOCKET_LINUX_11_039: [ async_socket_close shall call close on the underlying socket. ]
@@ -526,9 +524,7 @@ ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine
                 result->epoll = initialize_global_thread();
                 if (result->epoll == -1)
                 {
-                    char err_msg[128];
-                    (void)strerror_r(errno, err_msg, 128);
-                    LogError("Failure epoll_create. Error: %d: %s", errno, err_msg);
+                    LogError("Failure initializing global thread");
                 }
                 else
                 {
@@ -625,7 +621,7 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, ON_ASYNC_SOCKET_OP
                 if (epoll_ctl(async_socket->epoll, EPOLL_CTL_ADD, async_socket->socket_handle, &ev) < 0)
                 {
                     // SRS_ASYNC_SOCKET_LINUX_11_034: [ If any error occurs, async_socket_open_async shall fail and return a non-zero value. ]
-                    LogError("failure with epoll_ctrl EPOLL_CTL_ADD error no: %d", errno);
+                    LogErrorNo("failure with epoll_ctrl EPOLL_CTL_ADD");
                     result = MU_FAILURE;
                 }
                 else
@@ -781,7 +777,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                                         if (epoll_ctl(async_socket->epoll, EPOLL_CTL_ADD, async_socket->socket_handle, &ev) < 0)
                                         {
                                             // SRS_ASYNC_SOCKET_LINUX_11_063: [ If any error occurs, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]
-                                            LogError("failure with epoll_ctrl EPOLL_CTL_MOD error no: %d", errno);
+                                            LogErrorNo("failure with epoll_ctrl EPOLL_CTL_ADD");
                                             result = ASYNC_SOCKET_SEND_SYNC_ERROR;
                                         }
                                         else
@@ -791,7 +787,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                                     }
                                     else
                                     {
-                                        LogError("failure with epoll_ctrl EPOLL_CTL_MOD error no: %d", errno);
+                                        LogErrorNo("failure with epoll_ctrl EPOLL_CTL_MOD");
                                         result = ASYNC_SOCKET_SEND_SYNC_ERROR;
                                     }
                                 }
@@ -955,7 +951,7 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                                 if (epoll_ctl(async_socket->epoll, EPOLL_CTL_ADD, async_socket->socket_handle, &ev) < 0)
                                 {
                                     // SRS_ASYNC_SOCKET_LINUX_11_078: [ If any error occurs, async_socket_receive_async shall fail and return a non-zero value. ]
-                                    LogError("failure with epoll_ctrl EPOLL_CTL_MOD error no: %d", errno);
+                                    LogErrorNo("failure with epoll_ctrl EPOLL_CTL_ADD");
                                     result = MU_FAILURE;
                                 }
                                 else
@@ -967,7 +963,7 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                             else
                             {
                                 // SRS_ASYNC_SOCKET_LINUX_11_078: [ If any error occurs, async_socket_receive_async shall fail and return a non-zero value. ]
-                                LogError("failure with epoll_ctrl EPOLL_CTL_MOD error no: %d", errno);
+                                LogErrorNo("failure with epoll_ctrl EPOLL_CTL_MOD");
                                 result = MU_FAILURE;
                             }
                         }
