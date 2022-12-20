@@ -5,7 +5,6 @@
 #define REAL_S_LIST_H
 
 #include "macro_utils/macro_utils.h"
-#include "c_util/s_list.h"
 
 #define R2(X) REGISTER_GLOBAL_MOCK_HOOK(X, real_##X);
 
