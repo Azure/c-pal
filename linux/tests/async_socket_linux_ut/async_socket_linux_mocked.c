@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#include <sys/epoll.h>
+#include <stddef.h>     // for size_t
+#include <sys/types.h>  // for ssize_t
+#include <sys/epoll.h>  // IWYU pragma: keep
 
 #define epoll_create    mocked_epoll_create
 #define epoll_ctl       mocked_epoll_ctl
