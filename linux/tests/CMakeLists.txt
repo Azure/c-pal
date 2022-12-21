@@ -2,6 +2,7 @@
 
 # unit tests
 if(${run_unittests})
+    build_test_folder(async_socket_linux_ut)
     build_test_folder(interlocked_linux_ut)
     build_test_folder(linux_reals_ut)
     build_test_folder(pipe_linux_ut)

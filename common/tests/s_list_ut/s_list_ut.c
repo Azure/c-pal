@@ -34,7 +34,7 @@ MOCK_FUNCTION_END(true);
 
 MOCK_FUNCTION_WITH_CODE(, bool, test_condition_function_2, PS_LIST_ENTRY, list_entry, const void*, action_context, bool*, continueProcessing);
 SIMPLE_ITEM* item = CONTAINING_RECORD(list_entry, SIMPLE_ITEM, link);
-*continueProcessing = item->index != 3;
+*continueProcessing = item->index != 2;
 MOCK_FUNCTION_END(true);
 
 MOCK_FUNCTION_WITH_CODE(, int, test_action_function, PS_LIST_ENTRY, list_entry, const void*, action_context, bool*, continueProcessing);
@@ -43,13 +43,13 @@ MOCK_FUNCTION_END(0);
 
 MOCK_FUNCTION_WITH_CODE(, int, test_action_function_2, PS_LIST_ENTRY, list_entry, const void*, action_context, bool*, continueProcessing);
 SIMPLE_ITEM* item = CONTAINING_RECORD(list_entry, SIMPLE_ITEM, link);
-*continueProcessing = item->index != 3;
+*continueProcessing = item->index != 2;
 MOCK_FUNCTION_END(0);
 
 MOCK_FUNCTION_WITH_CODE(, int, test_action_function_fail, PS_LIST_ENTRY, list_entry, const void*, action_context, bool*, continueProcessing);
 *continueProcessing = true;
 SIMPLE_ITEM* item = CONTAINING_RECORD(list_entry, SIMPLE_ITEM, link);
-MOCK_FUNCTION_END(item->index == 3 ? MU_FAILURE : 0);
+MOCK_FUNCTION_END(item->index == 2 ? MU_FAILURE : 0);
 
 #undef ENABLE_MOCKS
 
@@ -227,7 +227,7 @@ TEST_FUNCTION(s_list_add_with_empty_list_succeeds)
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
     S_LIST_ENTRY head;
     (void)s_list_initialize(&head);
- 
+
     // act
     int result = s_list_add(&head, &(simp1.link));
 
@@ -256,7 +256,7 @@ TEST_FUNCTION(s_list_add_with_multiple_entries_in_the_list_succeeds)
 
     // assert
     ASSERT_ARE_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(void_ptr, simp1.link.next, &(simp4.link));
+    ASSERT_ARE_EQUAL(void_ptr, &simp3.link, simp4.link.next);
 }
 
 /*s_list_add_head*/
@@ -266,7 +266,7 @@ TEST_FUNCTION(s_list_add_head_with_head_NULL_fails)
 {
     // arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
-   
+
     // act
     int result = s_list_add_head(NULL, &(simp1.link));
 
@@ -300,7 +300,7 @@ TEST_FUNCTION(s_list_add_head_with_empty_list_succeeds)
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
     S_LIST_ENTRY head;
     (void)s_list_initialize(&head);
-    
+
     // act
     int result = s_list_add_head(&head, &(simp1.link));
 
@@ -431,11 +431,11 @@ TEST_FUNCTION(s_list_remove_with_multiple_entries_in_list_remove_tail_succeeds)
     (void)s_list_add(&head, &(simp4.link));
 
     // act
-    int result = s_list_remove(&head, &(simp4.link));
+    int result = s_list_remove(&head, &(simp1.link));
 
     // assert
     ASSERT_ARE_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(void_ptr, NULL, simp3.link.next);
+    ASSERT_ARE_EQUAL(void_ptr, NULL, simp2.link.next);
 }
 
 /* Tests_SRS_S_LIST_07_013: [ s_list_remove shall remove a list entry from the list and return zero on success. ]*/
@@ -459,7 +459,7 @@ TEST_FUNCTION(s_list_remove_with_multiple_entries_in_list_remove_head_succeeds)
 
     // assert
     ASSERT_ARE_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(void_ptr, head.next, &(simp2.link));
+    ASSERT_ARE_EQUAL(void_ptr, head.next, &(simp4.link));
 }
 
 /* Tests_SRS_S_LIST_07_013: [ s_list_remove shall remove a list entry from the list and return zero on success. ]*/
@@ -482,7 +482,7 @@ TEST_FUNCTION(s_list_remove_with_multiple_entries_in_list_remove_middle_succeeds
 
     // assert
     ASSERT_ARE_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(void_ptr, simp2.link.next, &(simp4.link));
+    ASSERT_ARE_EQUAL(void_ptr, simp4.link.next, &(simp2.link));
 }
 
 /*s_list_remove_head*/
@@ -536,7 +536,7 @@ TEST_FUNCTION(s_list_remove_head_with_multiple_entries_in_list_succeeds)
 
     // assert
     ASSERT_ARE_EQUAL(void_ptr, head.next, &(simp2.link));
-    ASSERT_ARE_EQUAL(void_ptr, &(simp1.link), result);
+    ASSERT_ARE_EQUAL(void_ptr, &(simp3.link), result);
 }
 
 /* Tests_SRS_S_LIST_07_017: [ s_list_remove_head shall return list_head if that's the only entry in the list. ]*/
@@ -698,7 +698,7 @@ TEST_FUNCTION(s_list_find_on_a_list_with_2_items_where_the_second_matches_yields
 
     // assert
     ASSERT_IS_NOT_NULL(result);
-    ASSERT_ARE_EQUAL(void_ptr, &(simp2.link), result);
+    ASSERT_ARE_EQUAL(void_ptr, &(simp1.link), result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
@@ -761,8 +761,8 @@ TEST_FUNCTION(s_list_find_on_a_list_with_100_items_where_none_matches_returns_NU
     SIMPLE_ITEM arr[100];
     S_LIST_ENTRY entry[100];
     for (int i = 0; i < 100; i++)
-    {   
-        arr[i].index = (unsigned char)i;      
+    {
+        arr[i].index = (unsigned char)i;
         entry[i].next = NULL;
         arr[i].link = entry[i];
         (void)s_list_add(&head, &(arr[i].link));
@@ -897,7 +897,7 @@ TEST_FUNCTION(s_list_remove_if_on_a_list_with_2_items_where_the_first_matches_de
 
     // assert
     ASSERT_ARE_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(void_ptr, head.next, &(simp2.link));
+    ASSERT_ARE_EQUAL(void_ptr, head.next, &(simp1.link));
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
@@ -975,9 +975,9 @@ TEST_FUNCTION(s_list_remove_if_on_a_list_with_2_items_where_none_matches_returns
 
     // assert
     ASSERT_ARE_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(void_ptr, head.next, &(simp1.link));
-    ASSERT_ARE_EQUAL(void_ptr, simp1.link.next, &(simp2.link));
-    ASSERT_IS_NULL(simp2.link.next);
+    ASSERT_ARE_EQUAL(void_ptr, head.next, &(simp2.link));
+    ASSERT_ARE_EQUAL(void_ptr, simp2.link.next, &(simp1.link));
+    ASSERT_IS_NULL(simp1.link.next);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
@@ -1008,7 +1008,7 @@ TEST_FUNCTION(s_list_remove_if_with_continue_processing_false_returns_original_h
 
     // assert
     ASSERT_ARE_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(void_ptr, &(simp4.link), simp2.link.next);
+    ASSERT_ARE_EQUAL(void_ptr, simp3.link.next, &simp1.link);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 

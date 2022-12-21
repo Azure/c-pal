@@ -69,15 +69,10 @@ int s_list_add(PS_LIST_ENTRY list_head, PS_LIST_ENTRY list_entry)
     }
     else
     {
-        /* Codes_SRS_S_LIST_07_007: [ s_list_add shall add one entry to the tail of the list and return zero on success. ]*/
+        /* Codes_SRS_S_LIST_07_007: [ s_list_add shall add one entry to the head of the list and return zero on success. ]*/
         PS_LIST_ENTRY list_instance = list_head;
 
-        // TODO: Add to front
-        while (list_instance->next != NULL)
-        {
-            list_instance = list_instance->next;
-        }
-
+        list_entry->next = list_instance->next;
         list_instance->next = list_entry;
 
         result = 0;
@@ -137,7 +132,7 @@ int s_list_remove(PS_LIST_ENTRY list_head, PS_LIST_ENTRY list_entry)
             /* Codes_SRS_S_LIST_07_014: [ If the entry list_entry is not found in the list, then s_list_remove shall fail and a non-zero value. ]*/
             result = MU_FAILURE;
         }
-        else 
+        else
         {
             /* Codes_SRS_S_LIST_07_013: [ s_list_remove shall remove a list entry from the list and return zero on success. ]*/
             if (prev_item != NULL)
