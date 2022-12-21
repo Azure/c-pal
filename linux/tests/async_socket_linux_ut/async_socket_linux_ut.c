@@ -6,20 +6,23 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <errno.h>
+#include <stdbool.h>                         // for bool
+#include <string.h>                          // for memset
+#include <sys/types.h>                       // for ssize_t
 
-#include "macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"  // IWYU pragma: keep
 
 #include "real_gballoc_ll.h"
 
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
+#include "umock_c/umocktypes.h"              // for IMPLEMENT_UMOCK_C_ENUM_TYPE
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umocktypes_charptr.h"
 #include "umock_c/umock_c_negative_tests.h"
 
 #define ENABLE_MOCKS
 
-#include "c_pal/containing_record.h"
 #include "c_pal/gballoc_hl.h"        // IWYU pragma: keep
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/execution_engine.h"
@@ -32,7 +35,7 @@
 #undef ENABLE_MOCKS
 
 #include "real_interlocked.h"
-#include "real_gballoc_hl.h"
+#include "real_gballoc_hl.h" // IWYU pragma: keep
 #include "real_s_list.h" // IWYU pragma: keep
 
 #include "c_pal/async_socket.h"
@@ -1657,6 +1660,7 @@ TEST_FUNCTION(when_errno_for_epoll_returns_ENOENT_it_adds_socket_again_successfu
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_086: [ thread_worker_func shall receive the ASYNC_SOCKET_RECV_CONTEXT value from the ptr variable from the epoll_event data ptr. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_087: [ Then thread_worker_func shall call recv and do the following: ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_092: [ If the recv size > 0, if we have another buffer to fill then we will attempt another read, otherwise we shall call on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_OK ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_093: [ The ASYNC_SOCKET_RECV_CONTEXT object shall be removed from list of stored pointers. ]
 TEST_FUNCTION(thread_worker_func_epoll_wait_contains_EPOLLIN)
 {
     // arrange
@@ -1885,6 +1889,7 @@ TEST_FUNCTION(thread_worker_func_recv_returns_any_random_error_no)
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_091: [ If the recv size equal 0, then thread_worker_func shall call on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_OK ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_093: [ The ASYNC_SOCKET_RECV_CONTEXT object shall be removed from list of stored pointers. ]
 TEST_FUNCTION(thread_worker_func_recv_returns_0_bytes_success)
 {
     // arrange

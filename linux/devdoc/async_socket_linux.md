@@ -2,7 +2,7 @@
 
 ## Overview
 
-`async_socket_win32` is an implementation of `async_socket` that wraps the asynchronous socket APIs for Windows.
+`async_socket_linux` is an implementation of `async_socket` that wraps the asynchronous socket APIs for linux.
 
 ## Design
 

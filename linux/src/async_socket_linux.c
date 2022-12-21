@@ -166,6 +166,7 @@ static int add_item_to_list(ASYNC_SOCKET* async_socket, ASYNC_SOCKET_RECV_CONTEX
         result = 0;
     }
     (void)interlocked_exchange(&async_socket->recv_data_access, 0);
+    wake_by_address_single(&async_socket->recv_data_access);
 
     return result;
 }
@@ -483,6 +484,8 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
         recv_context->on_receive_complete(recv_context->on_receive_complete_context, ASYNC_SOCKET_RECEIVE_ABANDONED, 0);
         free(recv_context);
     }
+    (void)interlocked_exchange(&async_socket->recv_data_access, 0);
+    wake_by_address_single(&async_socket->recv_data_access);
 
     // Codes_SRS_ASYNC_SOCKET_LINUX_11_041: [ async_socket_close shall set the state to closed. ]
     (void)interlocked_exchange(&async_socket->state, ASYNC_SOCKET_LINUX_STATE_CLOSED);
