@@ -72,7 +72,6 @@ MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle);
 
 **NON_FILE_LINUX_43_030: [** `file_destroy` shall free the `FILE_HANDLE`. **]**
 
-
 ## file_write_async
 
 ```c
@@ -85,7 +84,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE
 
 **NON_FILE_LINUX_43_051: [** If `position` + `size` is greater than `INT64_MAX`, then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
 
-**NON_FILE_LINUX_43_049: [** **NON_FILE_LINUX_43_033: [** If `user_callback` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]** **]**
+**NON_FILE_LINUX_43_049: [** If `user_callback` is `NULL` then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
 
 **NON_FILE_LINUX_43_048: [** If `size` is 0 then `file_write_async` shall fail and return `FILE_WRITE_ASYNC_INVALID_ARGS`. **]**
 
@@ -131,8 +130,8 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_H
 
 **NON_FILE_LINUX_43_015: [** If there are any failures, `file_read_async` shall return `FILE_READ_ASYNC_ERROR`. **]**
 
-
 ## file_extend
+
 ```c
 MOCKABLE_FUNCTION_WITH_RETURNS(, int, file_extend, FILE_HANDLE, handle, uint64_t, desired_size)(0, MU_FAILURE);
 ```
