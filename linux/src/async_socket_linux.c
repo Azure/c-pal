@@ -5,7 +5,6 @@
 #include <inttypes.h>
 #include <unistd.h>
 #include <errno.h>
-#include <string.h>                     // for strerror_r
 
 #include <sys/epoll.h>
 #include <sys/socket.h>
@@ -250,6 +249,7 @@ static int thread_worker_func(void* parameter)
                     {
                         // Codes_SRS_ASYNC_SOCKET_LINUX_11_087: [ Then thread_worker_func shall call recv and do the following: ]
                         recv_size = recv(recv_context->socket_handle, recv_context->recv_buffers[index].buffer, recv_context->recv_buffers[index].length, 0);
+                        // Codes_SRS_ASYNC_SOCKET_LINUX_11_088: [ If the recv size < 0, then: ]
                         if (recv_size < 0)
                         {
                             if (errno == EAGAIN || errno == EWOULDBLOCK)

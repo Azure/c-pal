@@ -401,6 +401,9 @@ TEST_FUNCTION(async_socket_destroy_closes_first_if_open)
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 
     mock_deinitialize_global_thread_setup();
 
@@ -631,6 +634,9 @@ TEST_FUNCTION(async_socket_close_reverses_the_actions_from_open)
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(s_list_remove_head(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
