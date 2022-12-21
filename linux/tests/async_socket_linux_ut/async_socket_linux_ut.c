@@ -12,7 +12,7 @@
 
 #include "macro_utils/macro_utils.h"  // IWYU pragma: keep
 
-#include "real_gballoc_ll.h"
+#include "real_gballoc_ll.h"    // IWYU pragma: keep
 
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
@@ -171,6 +171,7 @@ static void setup_async_socket_receive_async_mocks(void)
     STRICT_EXPECTED_CALL(s_list_add(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0))
         .CallCannotFail();
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_epoll_ctl(IGNORED_ARG, EPOLL_CTL_MOD, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG))
         .CallCannotFail();
@@ -1633,6 +1634,7 @@ TEST_FUNCTION(when_errno_for_epoll_returns_ENOENT_it_adds_socket_again_successfu
     STRICT_EXPECTED_CALL(s_list_add(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0))
         .CallCannotFail();
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_epoll_ctl(IGNORED_ARG, EPOLL_CTL_MOD, IGNORED_ARG, IGNORED_ARG))
         .SetReturn(-1);
     STRICT_EXPECTED_CALL(mocked_epoll_ctl(IGNORED_ARG, EPOLL_CTL_ADD, IGNORED_ARG, IGNORED_ARG));
