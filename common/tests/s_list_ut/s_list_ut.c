@@ -21,8 +21,6 @@ typedef struct SIMPLE_ITEM_TAG
     S_LIST_ENTRY link;
 } SIMPLE_ITEM, * PSIMPLE_ITEM;
 
-#define REMOVED_TEST_FUNCTION(X)    void X(void)
-
 #define TEST_CONTEXT ((const void*)0x0101)
 
 #define ENABLE_MOCKS
@@ -36,7 +34,7 @@ MOCK_FUNCTION_END(true);
 
 MOCK_FUNCTION_WITH_CODE(, bool, test_condition_function_2, PS_LIST_ENTRY, list_entry, const void*, action_context, bool*, continueProcessing);
 SIMPLE_ITEM* item = CONTAINING_RECORD(list_entry, SIMPLE_ITEM, link);
-*continueProcessing = item->index != 3;
+*continueProcessing = item->index != 2;
 MOCK_FUNCTION_END(true);
 
 MOCK_FUNCTION_WITH_CODE(, int, test_action_function, PS_LIST_ENTRY, list_entry, const void*, action_context, bool*, continueProcessing);
@@ -45,13 +43,13 @@ MOCK_FUNCTION_END(0);
 
 MOCK_FUNCTION_WITH_CODE(, int, test_action_function_2, PS_LIST_ENTRY, list_entry, const void*, action_context, bool*, continueProcessing);
 SIMPLE_ITEM* item = CONTAINING_RECORD(list_entry, SIMPLE_ITEM, link);
-*continueProcessing = item->index != 3;
+*continueProcessing = item->index != 2;
 MOCK_FUNCTION_END(0);
 
 MOCK_FUNCTION_WITH_CODE(, int, test_action_function_fail, PS_LIST_ENTRY, list_entry, const void*, action_context, bool*, continueProcessing);
 *continueProcessing = true;
 SIMPLE_ITEM* item = CONTAINING_RECORD(list_entry, SIMPLE_ITEM, link);
-MOCK_FUNCTION_END(item->index == 3 ? MU_FAILURE : 0);
+MOCK_FUNCTION_END(item->index == 2 ? MU_FAILURE : 0);
 
 #undef ENABLE_MOCKS
 
@@ -401,7 +399,7 @@ TEST_FUNCTION(s_list_remove_with_remove_entry_not_in_list_fails)
 }
 
 /* Tests_SRS_S_LIST_07_013: [ s_list_remove shall remove a list entry from the list and return zero on success. ]*/
-REMOVED_TEST_FUNCTION(s_list_remove_with_one_entry_in_list_succeeds)
+TEST_FUNCTION(s_list_remove_with_one_entry_in_list_succeeds)
 {
     //arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -417,31 +415,7 @@ REMOVED_TEST_FUNCTION(s_list_remove_with_one_entry_in_list_succeeds)
 }
 
 /* Tests_SRS_S_LIST_07_013: [ s_list_remove shall remove a list entry from the list and return zero on success. ]*/
-REMOVED_TEST_FUNCTION(s_list_remove_with_multiple_entries_in_list_remove_tail_succeeds)
-{
-    //arrange
-    static SIMPLE_ITEM simp1 = { 1, { NULL } };
-    static SIMPLE_ITEM simp2 = { 2, { NULL } };
-    static SIMPLE_ITEM simp3 = { 3, { NULL } };
-    static SIMPLE_ITEM simp4 = { 4, { NULL } };
-
-    S_LIST_ENTRY head;
-    (void)s_list_initialize(&head);
-    (void)s_list_add(&head, &(simp1.link));
-    (void)s_list_add(&head, &(simp2.link));
-    (void)s_list_add(&head, &(simp3.link));
-    (void)s_list_add(&head, &(simp4.link));
-
-    // act
-    int result = s_list_remove(&head, &(simp4.link));
-
-    // assert
-    ASSERT_ARE_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(void_ptr, NULL, simp3.link.next);
-}
-
-/* Tests_SRS_S_LIST_07_013: [ s_list_remove shall remove a list entry from the list and return zero on success. ]*/
-REMOVED_TEST_FUNCTION(s_list_remove_with_multiple_entries_in_list_remove_head_succeeds)
+TEST_FUNCTION(s_list_remove_with_multiple_entries_in_list_remove_tail_succeeds)
 {
     //arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -461,11 +435,35 @@ REMOVED_TEST_FUNCTION(s_list_remove_with_multiple_entries_in_list_remove_head_su
 
     // assert
     ASSERT_ARE_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(void_ptr, head.next, &(simp2.link));
+    ASSERT_ARE_EQUAL(void_ptr, NULL, simp2.link.next);
 }
 
 /* Tests_SRS_S_LIST_07_013: [ s_list_remove shall remove a list entry from the list and return zero on success. ]*/
-REMOVED_TEST_FUNCTION(s_list_remove_with_multiple_entries_in_list_remove_middle_succeeds)
+TEST_FUNCTION(s_list_remove_with_multiple_entries_in_list_remove_head_succeeds)
+{
+    //arrange
+    static SIMPLE_ITEM simp1 = { 1, { NULL } };
+    static SIMPLE_ITEM simp2 = { 2, { NULL } };
+    static SIMPLE_ITEM simp3 = { 3, { NULL } };
+    static SIMPLE_ITEM simp4 = { 4, { NULL } };
+
+    S_LIST_ENTRY head;
+    (void)s_list_initialize(&head);
+    (void)s_list_add(&head, &(simp1.link));
+    (void)s_list_add(&head, &(simp2.link));
+    (void)s_list_add(&head, &(simp3.link));
+    (void)s_list_add(&head, &(simp4.link));
+
+    // act
+    int result = s_list_remove(&head, &(simp1.link));
+
+    // assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(void_ptr, head.next, &(simp4.link));
+}
+
+/* Tests_SRS_S_LIST_07_013: [ s_list_remove shall remove a list entry from the list and return zero on success. ]*/
+TEST_FUNCTION(s_list_remove_with_multiple_entries_in_list_remove_middle_succeeds)
 {
     //arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -484,13 +482,13 @@ REMOVED_TEST_FUNCTION(s_list_remove_with_multiple_entries_in_list_remove_middle_
 
     // assert
     ASSERT_ARE_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(void_ptr, simp2.link.next, &(simp4.link));
+    ASSERT_ARE_EQUAL(void_ptr, simp4.link.next, &(simp2.link));
 }
 
 /*s_list_remove_head*/
 
 /* Tests_SRS_S_LIST_07_015: [ If list_head is NULL, s_list_remove_head shall fail and return NULL. ]*/
-REMOVED_TEST_FUNCTION(s_list_remove_head_with_head_NULL_fails)
+TEST_FUNCTION(s_list_remove_head_with_head_NULL_fails)
 {
     // arrange
 
@@ -502,7 +500,7 @@ REMOVED_TEST_FUNCTION(s_list_remove_head_with_head_NULL_fails)
 }
 
 /* Tests_SRS_S_LIST_07_016: [ s_list_remove_head removes the head entry from the list defined by the list_head parameter on success and return a pointer to that entry. ]*/
-REMOVED_TEST_FUNCTION(s_list_remove_head_with_one_entry_in_list_succeeds)
+TEST_FUNCTION(s_list_remove_head_with_one_entry_in_list_succeeds)
 {
     //arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -520,7 +518,7 @@ REMOVED_TEST_FUNCTION(s_list_remove_head_with_one_entry_in_list_succeeds)
 }
 
 /* Tests_SRS_S_LIST_07_016: [ s_list_remove_head removes the head entry from the list defined by the list_head parameter on success and return a pointer to that entry. ]*/
-REMOVED_TEST_FUNCTION(s_list_remove_head_with_multiple_entries_in_list_succeeds)
+TEST_FUNCTION(s_list_remove_head_with_multiple_entries_in_list_succeeds)
 {
     //arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -538,11 +536,11 @@ REMOVED_TEST_FUNCTION(s_list_remove_head_with_multiple_entries_in_list_succeeds)
 
     // assert
     ASSERT_ARE_EQUAL(void_ptr, head.next, &(simp2.link));
-    ASSERT_ARE_EQUAL(void_ptr, &(simp1.link), result);
+    ASSERT_ARE_EQUAL(void_ptr, &(simp3.link), result);
 }
 
 /* Tests_SRS_S_LIST_07_017: [ s_list_remove_head shall return list_head if that's the only entry in the list. ]*/
-REMOVED_TEST_FUNCTION(s_list_remove_head_with_empty_list_succeeds)
+TEST_FUNCTION(s_list_remove_head_with_empty_list_succeeds)
 {
     //arrange
     S_LIST_ENTRY head;
@@ -558,7 +556,7 @@ REMOVED_TEST_FUNCTION(s_list_remove_head_with_empty_list_succeeds)
 /*s_list_find*/
 
 /* Tests_SRS_S_LIST_07_018: [ If list_head is NULL, s_list_find shall fail and return NULL. ]*/
-REMOVED_TEST_FUNCTION(s_list_find_with_NULL_list_fails_with_NULL)
+TEST_FUNCTION(s_list_find_with_NULL_list_fails_with_NULL)
 {
     //arrange
 
@@ -571,7 +569,7 @@ REMOVED_TEST_FUNCTION(s_list_find_with_NULL_list_fails_with_NULL)
 }
 
 /* Tests_SRS_S_LIST_07_019: [ If match_function is NULL, s_list_find shall fail and return NULL. ]*/
-REMOVED_TEST_FUNCTION(s_list_find_with_NULL_match_function_fails_with_NULL)
+TEST_FUNCTION(s_list_find_with_NULL_match_function_fails_with_NULL)
 {
     // arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -589,7 +587,7 @@ REMOVED_TEST_FUNCTION(s_list_find_with_NULL_match_function_fails_with_NULL)
 }
 
 /* Tests_SRS_S_LIST_07_025: [ If the list is empty, s_list_find shall return NULL. ]*/
-REMOVED_TEST_FUNCTION(s_list_find_with_empty_list_fails_with_NULL)
+TEST_FUNCTION(s_list_find_with_empty_list_fails_with_NULL)
 {
     //arrange
     S_LIST_ENTRY head;
@@ -607,7 +605,7 @@ REMOVED_TEST_FUNCTION(s_list_find_with_empty_list_fails_with_NULL)
 /* Tests_SRS_S_LIST_07_021: [ s_list_find shall determine whether an item satisfies the match criteria by invoking the match_function for each entry in the list until a matching entry is found. ]*/
 /* Tests_SRS_S_LIST_07_022: [ The match_function shall get as arguments the list entry being attempted to be matched and the match_context as is. ]*/
 /* Tests_SRS_S_LIST_07_024: [ If the match_function returns true, s_list_find shall consider that item as matching. ]*/
-REMOVED_TEST_FUNCTION(s_list_find_on_a_list_with_1_matching_item_yields_that_item)
+TEST_FUNCTION(s_list_find_on_a_list_with_1_matching_item_yields_that_item)
 {
     // arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -629,7 +627,7 @@ REMOVED_TEST_FUNCTION(s_list_find_on_a_list_with_1_matching_item_yields_that_ite
 }
 
 /* Tests_SRS_S_LIST_07_023: [ If the match_function returns false, s_list_find shall consider that item as not matching. ]*/
-REMOVED_TEST_FUNCTION(s_list_find_on_a_list_with_1_items_that_does_not_match_returns_NULL)
+TEST_FUNCTION(s_list_find_on_a_list_with_1_items_that_does_not_match_returns_NULL)
 {
     // arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -653,7 +651,7 @@ REMOVED_TEST_FUNCTION(s_list_find_on_a_list_with_1_items_that_does_not_match_ret
 /* Tests_SRS_S_LIST_07_021: [ s_list_find shall determine whether an item satisfies the match criteria by invoking the match_function for each entry in the list until a matching entry is found. ]*/
 /* Tests_SRS_S_LIST_07_022: [ The match_function shall get as arguments the list entry being attempted to be matched and the match_context as is. ]*/
 /* Tests_SRS_S_LIST_07_024: [ If the match_function returns true, s_list_find shall consider that item as matching. ]*/
-REMOVED_TEST_FUNCTION(s_list_find_on_a_list_with_2_items_where_the_first_matches_yields_the_first_item)
+TEST_FUNCTION(s_list_find_on_a_list_with_2_items_where_the_first_matches_yields_the_first_item)
 {
     // arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -680,7 +678,7 @@ REMOVED_TEST_FUNCTION(s_list_find_on_a_list_with_2_items_where_the_first_matches
 /* Tests_SRS_S_LIST_07_022: [ The match_function shall get as arguments the list entry being attempted to be matched and the match_context as is. ]*/
 /* Tests_SRS_S_LIST_07_024: [ If the match_function returns true, s_list_find shall consider that item as matching. ]*/
 /* Tests_SRS_S_LIST_07_023: [ If the match_function returns false, s_list_find shall consider that item as not matching. ]*/
-REMOVED_TEST_FUNCTION(s_list_find_on_a_list_with_2_items_where_the_second_matches_yields_the_second_item)
+TEST_FUNCTION(s_list_find_on_a_list_with_2_items_where_the_second_matches_yields_the_second_item)
 {
     // arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -700,12 +698,12 @@ REMOVED_TEST_FUNCTION(s_list_find_on_a_list_with_2_items_where_the_second_matche
 
     // assert
     ASSERT_IS_NOT_NULL(result);
-    ASSERT_ARE_EQUAL(void_ptr, &(simp2.link), result);
+    ASSERT_ARE_EQUAL(void_ptr, &(simp1.link), result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 /* Tests_SRS_S_LIST_07_020: [ s_list_find shall iterate through all entris in the list and return the first entry that satisfies the match_function on success. ]*/
-REMOVED_TEST_FUNCTION(s_list_find_on_a_list_with_2_items_both_matching_yields_the_first_item)
+TEST_FUNCTION(s_list_find_on_a_list_with_2_items_both_matching_yields_the_first_item)
 {
     // arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -728,7 +726,7 @@ REMOVED_TEST_FUNCTION(s_list_find_on_a_list_with_2_items_both_matching_yields_th
 }
 
 /* Tests_SRS_S_LIST_07_039: [ If the item is not found, s_list_find shall return NULL. ]*/
-REMOVED_TEST_FUNCTION(s_list_find_on_a_list_with_2_items_where_none_matches_returns_NULL)
+TEST_FUNCTION(s_list_find_on_a_list_with_2_items_where_none_matches_returns_NULL)
 {
     // arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -753,7 +751,7 @@ REMOVED_TEST_FUNCTION(s_list_find_on_a_list_with_2_items_where_none_matches_retu
 }
 
 /* Tests_SRS_S_LIST_07_039: [ If the item is not found, s_list_find shall return NULL. ]*/
-REMOVED_TEST_FUNCTION(s_list_find_on_a_list_with_100_items_where_none_matches_returns_NULL)
+TEST_FUNCTION(s_list_find_on_a_list_with_100_items_where_none_matches_returns_NULL)
 {
     // arrange
 
@@ -787,7 +785,7 @@ REMOVED_TEST_FUNCTION(s_list_find_on_a_list_with_100_items_where_none_matches_re
 /*s_list_remove_if*/
 
 /* Tests_SRS_S_LIST_07_026: [ If list_head is NULL, s_list_remove_if shall fail and return a non-zero value. ]*/
-REMOVED_TEST_FUNCTION(s_list_remove_if_with_NULL_list_fails)
+TEST_FUNCTION(s_list_remove_if_with_NULL_list_fails)
 {
     //arrange
 
@@ -800,7 +798,7 @@ REMOVED_TEST_FUNCTION(s_list_remove_if_with_NULL_list_fails)
 }
 
 /* Tests_SRS_S_LIST_07_027: [ If condition_function is NULL, s_list_remove_if shall fail and return a non-zero value. ]*/
-REMOVED_TEST_FUNCTION(s_list_remove_if_with_NULL_condition_function_fails)
+TEST_FUNCTION(s_list_remove_if_with_NULL_condition_function_fails)
 {
     // arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -818,7 +816,7 @@ REMOVED_TEST_FUNCTION(s_list_remove_if_with_NULL_condition_function_fails)
 }
 
 /* Tests_SRS_S_LIST_07_040: [ If the list is empty, s_list_find shall return a non-zero value. ]*/
-REMOVED_TEST_FUNCTION(s_list_remove_if_with_empty_list_fails)
+TEST_FUNCTION(s_list_remove_if_with_empty_list_fails)
 {
     // arrange
     S_LIST_ENTRY head;
@@ -835,7 +833,7 @@ REMOVED_TEST_FUNCTION(s_list_remove_if_with_empty_list_fails)
 /* Tests_SRS_S_LIST_07_028: [ s_list_remove_if shall iterate through all entris in a list, remove all that satisfies the condition_function and return zero. ]*/
 /* Tests_SRS_S_LIST_07_029: [ s_list_remove_if shall determine whether an entry satisfies the condition criteria by invoking the condition function for that entry. ]*/
 /* Tests_SRS_S_LIST_07_030: [ If the condition_function returns true, s_list_remove_if shall consider that entry as to be removed. ]*/
-REMOVED_TEST_FUNCTION(s_list_remove_if_on_a_list_with_1_matching_item_removes_that_item)
+TEST_FUNCTION(s_list_remove_if_on_a_list_with_1_matching_item_removes_that_item)
 {
     // arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -855,7 +853,7 @@ REMOVED_TEST_FUNCTION(s_list_remove_if_on_a_list_with_1_matching_item_removes_th
 }
 
 /* Tests_SRS_S_LIST_07_031: [ If the condition_function returns false, s_list_remove_if shall consider that entry as not to be removed. ]*/
-REMOVED_TEST_FUNCTION(s_list_remove_if_on_a_list_with_1_items_that_does_not_match_returns_orginal_head)
+TEST_FUNCTION(s_list_remove_if_on_a_list_with_1_items_that_does_not_match_returns_orginal_head)
 {
     // arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -879,7 +877,7 @@ REMOVED_TEST_FUNCTION(s_list_remove_if_on_a_list_with_1_items_that_does_not_matc
 /* Tests_SRS_S_LIST_07_028: [ s_list_remove_if shall iterate through all entris in a list, remove all that satisfies the condition_function and return zero. ]*/
 /* Tests_SRS_S_LIST_07_029: [ s_list_remove_if shall determine whether an entry satisfies the condition criteria by invoking the condition function for that entry. ]*/
 /* Tests_SRS_S_LIST_07_030: [ If the condition_function returns true, s_list_remove_if shall consider that entry as to be removed. ]*/
-REMOVED_TEST_FUNCTION(s_list_remove_if_on_a_list_with_2_items_where_the_first_matches_deletes_the_first_item)
+TEST_FUNCTION(s_list_remove_if_on_a_list_with_2_items_where_the_first_matches_deletes_the_first_item)
 {
     // arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -899,7 +897,7 @@ REMOVED_TEST_FUNCTION(s_list_remove_if_on_a_list_with_2_items_where_the_first_ma
 
     // assert
     ASSERT_ARE_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(void_ptr, head.next, &(simp2.link));
+    ASSERT_ARE_EQUAL(void_ptr, head.next, &(simp1.link));
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
@@ -907,7 +905,7 @@ REMOVED_TEST_FUNCTION(s_list_remove_if_on_a_list_with_2_items_where_the_first_ma
 /* Tests_SRS_S_LIST_07_029: [ s_list_remove_if shall determine whether an entry satisfies the condition criteria by invoking the condition function for that entry. ]*/
 /* Tests_SRS_S_LIST_07_030: [ If the condition_function returns true, s_list_remove_if shall consider that entry as to be removed. ]*/
 /* Tests_SRS_S_LIST_07_031: [ If the condition_function returns false, s_list_remove_if shall consider that entry as not to be removed. ]*/
-REMOVED_TEST_FUNCTION(s_list_remove_if_on_a_list_with_2_items_where_the_second_matches_deletes_the_second_item)
+TEST_FUNCTION(s_list_remove_if_on_a_list_with_2_items_where_the_second_matches_deletes_the_second_item)
 {
     // arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -932,7 +930,7 @@ REMOVED_TEST_FUNCTION(s_list_remove_if_on_a_list_with_2_items_where_the_second_m
 }
 
 /* Tests_SRS_S_LIST_07_028: [ s_list_remove_if shall iterate through all entris in a list, remove all that satisfies the condition_function and return zero. ]*/
-REMOVED_TEST_FUNCTION(s_list_remove_if_on_a_list_with_2_items_both_matching_deletes_all_items)
+TEST_FUNCTION(s_list_remove_if_on_a_list_with_2_items_both_matching_deletes_all_items)
 {
     // arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -956,7 +954,7 @@ REMOVED_TEST_FUNCTION(s_list_remove_if_on_a_list_with_2_items_both_matching_dele
 }
 
 /* Tests_SRS_S_LIST_07_031: [ If the condition_function returns false, s_list_remove_if shall consider that entry as not to be removed. ]*/
-REMOVED_TEST_FUNCTION(s_list_remove_if_on_a_list_with_2_items_where_none_matches_returns_original_head)
+TEST_FUNCTION(s_list_remove_if_on_a_list_with_2_items_where_none_matches_returns_original_head)
 {
     // arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -977,14 +975,14 @@ REMOVED_TEST_FUNCTION(s_list_remove_if_on_a_list_with_2_items_where_none_matches
 
     // assert
     ASSERT_ARE_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(void_ptr, head.next, &(simp1.link));
-    ASSERT_ARE_EQUAL(void_ptr, simp1.link.next, &(simp2.link));
-    ASSERT_IS_NULL(simp2.link.next);
+    ASSERT_ARE_EQUAL(void_ptr, head.next, &(simp2.link));
+    ASSERT_ARE_EQUAL(void_ptr, simp2.link.next, &(simp1.link));
+    ASSERT_IS_NULL(simp1.link.next);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 /* Tests_SRS_S_LIST_07_032: [ If the condition_function returns continue_processing as false, s_list_remove_if shall stop iterating through the list and return. ]*/
-REMOVED_TEST_FUNCTION(s_list_remove_if_with_continue_processing_false_returns_original_head)
+TEST_FUNCTION(s_list_remove_if_with_continue_processing_false_returns_original_head)
 {
     // arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -1010,14 +1008,14 @@ REMOVED_TEST_FUNCTION(s_list_remove_if_with_continue_processing_false_returns_or
 
     // assert
     ASSERT_ARE_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(void_ptr, &(simp4.link), simp2.link.next);
+    ASSERT_ARE_EQUAL(void_ptr, simp3.link.next, &simp1.link);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 /*s_list_for_each*/
 
 /* Tests_SRS_S_LIST_07_033: [ If list_head is NULL, s_list_for_each shall fail and return a non - zero value. ]*/
-REMOVED_TEST_FUNCTION(s_list_for_each_with_NULL_list_fails_with_NULL)
+TEST_FUNCTION(s_list_for_each_with_NULL_list_fails_with_NULL)
 {
     //arrange
 
@@ -1030,7 +1028,7 @@ REMOVED_TEST_FUNCTION(s_list_for_each_with_NULL_list_fails_with_NULL)
 }
 
 /* Tests_SRS_S_LIST_07_034: [ If action_function is NULL, s_list_for_each shall fail and return a non - zero value. ]*/
-REMOVED_TEST_FUNCTION(s_list_for_each_with_NULL_action_function_fails_with_NULL)
+TEST_FUNCTION(s_list_for_each_with_NULL_action_function_fails_with_NULL)
 {
     // arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -1048,7 +1046,7 @@ REMOVED_TEST_FUNCTION(s_list_for_each_with_NULL_action_function_fails_with_NULL)
 }
 
 /* Tests_SRS_S_LIST_07_035: [ s_list_for_each shall iterate through all entries in the list, invoke action_function for each one of themand return zero on success. ]*/
-REMOVED_TEST_FUNCTION(s_list_for_each_succeeds)
+TEST_FUNCTION(s_list_for_each_succeeds)
 {
     // arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -1077,7 +1075,7 @@ REMOVED_TEST_FUNCTION(s_list_for_each_succeeds)
 }
 
 /* Tests_SRS_S_LIST_07_037: [ If the action_function returns continue_processing as false, s_list_for_each shall stop iterating through the list and return. ]*/
-REMOVED_TEST_FUNCTION(s_list_for_each_with_continue_processing_false_stops_processing)
+TEST_FUNCTION(s_list_for_each_with_continue_processing_false_stops_processing)
 {
     // arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
@@ -1105,7 +1103,7 @@ REMOVED_TEST_FUNCTION(s_list_for_each_with_continue_processing_false_stops_proce
 }
 
 /* Tests_SRS_S_LIST_07_036: [ If the action_function fails, s_list_for_each shall fail and return a non - zero value. ]*/
-REMOVED_TEST_FUNCTION(s_list_for_each_fails_when_continue_processing_fails)
+TEST_FUNCTION(s_list_for_each_fails_when_continue_processing_fails)
 {
     // arrange
     static SIMPLE_ITEM simp1 = { 1, { NULL } };
