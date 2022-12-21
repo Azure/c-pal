@@ -6,7 +6,6 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <errno.h>
-#include <stdbool.h>                         // for bool
 #include <string.h>                          // for memset
 #include <sys/types.h>                       // for ssize_t
 
@@ -1615,7 +1614,6 @@ TEST_FUNCTION(when_errno_for_epoll_returns_ENOENT_it_adds_socket_again_successfu
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_086: [ thread_worker_func shall receive the ASYNC_SOCKET_RECV_CONTEXT value from the ptr variable from the epoll_event data ptr. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_087: [ Then thread_worker_func shall call recv and do the following: ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_092: [ If the recv size > 0, if we have another buffer to fill then we will attempt another read, otherwise we shall call on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_OK ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_093: [ The ASYNC_SOCKET_RECV_CONTEXT object shall be removed from list of stored pointers. ]
 TEST_FUNCTION(thread_worker_func_epoll_wait_contains_EPOLLIN)
 {
     // arrange
@@ -1816,7 +1814,6 @@ TEST_FUNCTION(thread_worker_func_recv_returns_any_random_error_no)
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_091: [ If the recv size equal 0, then thread_worker_func shall call on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_OK ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_093: [ The ASYNC_SOCKET_RECV_CONTEXT object shall be removed from list of stored pointers. ]
 TEST_FUNCTION(thread_worker_func_recv_returns_0_bytes_success)
 {
     // arrange
@@ -1868,7 +1865,6 @@ TEST_FUNCTION(thread_worker_func_recv_returns_0_bytes_success)
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_081: [ If the events value contains EPOLLRDHUP (hang up), thread_worker_func shall the following: ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_082: [ thread_worker_func shall receive the ASYNC_SOCKET_RECV_CONTEXT value from the ptr variable from the epoll_event data ptr. ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_083: [ The ASYNC_SOCKET_RECV_CONTEXT object shall be removed from list of stored pointers. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_084: [ Then call the on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_ABANDONED. ]
 TEST_FUNCTION(thread_worker_func_epoll_contains_EPOLLRDHUP_and_abandons_the_connection)
 {
