@@ -22,7 +22,6 @@
 
 #define ENABLE_MOCKS
 
-#include "c_pal/containing_record.h"
 #include "c_pal/gballoc_hl.h"        // IWYU pragma: keep
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/execution_engine.h"
