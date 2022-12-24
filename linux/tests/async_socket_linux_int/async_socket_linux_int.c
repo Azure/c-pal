@@ -127,7 +127,7 @@ static void setup_server_socket(SOCKET_HANDLE* listen_socket)
     set_nonblocking(*listen_socket);
 
     // start listening
-    ASSERT_ARE_EQUAL(int, 0, listen(*listen_socket, SOMAXCONN), "Failure on listen socket");
+    ASSERT_ARE_EQUAL(int, 0, listen(*listen_socket, SOMAXCONN), "Failure on listen socket error (%d): port: %d", errno, g_port_num);
 }
 
 static void setup_test_socket(int port_num, SOCKET_HANDLE* client_socket, SOCKET_HANDLE* listen_socket, SOCKET_HANDLE* accept_socket)
@@ -249,6 +249,7 @@ TEST_FUNCTION(connect_no_send_succeeds)
     receive_payload_buffers[0].length = sizeof(receive_buffer);
 
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(client_async_socket, receive_payload_buffers, 1, on_receive_abandoned_complete, NULL));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(server_async_socket, receive_payload_buffers, 1, on_receive_abandoned_complete, NULL));
 
     async_socket_close(server_async_socket);
     async_socket_close(client_async_socket);

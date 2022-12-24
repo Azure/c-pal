@@ -26,6 +26,7 @@
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/interlocked.h"
+#include "c_pal/s_list.h"
 #include "c_pal/sync.h"
 #include "c_pal/socket_handle.h"
 #include "c_pal/threadapi.h"
@@ -34,6 +35,7 @@
 
 #include "real_interlocked.h"
 #include "real_gballoc_hl.h" // IWYU pragma: keep
+#include "real_s_list.h" // IWYU pragma: keep
 
 #include "c_pal/async_socket.h"
 
@@ -123,6 +125,9 @@ static void mock_internal_close_setup(void)
     STRICT_EXPECTED_CALL(mocked_epoll_ctl(IGNORED_ARG, EPOLL_CTL_DEL, IGNORED_ARG, NULL));
     STRICT_EXPECTED_CALL(ThreadAPI_Sleep(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_close(test_socket));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(s_list_remove_head(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
@@ -131,12 +136,15 @@ static void mock_internal_close_setup(void)
 static void mock_async_socket_create_setup(void)
 {
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
     STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(mocked_epoll_create(TEST_MAX_EVENTS_NUM));
     STRICT_EXPECTED_CALL(ThreadAPI_Create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CopyOutArgumentBuffer_threadHandle(&test_thread_handle, sizeof(test_thread_handle));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0))
+        .CallCannotFail();
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG))
@@ -150,6 +158,11 @@ static void setup_async_socket_receive_async_mocks(void)
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(ASYNC_SOCKET_BUFFER)));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(s_list_add(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0))
+        .CallCannotFail();
     STRICT_EXPECTED_CALL(mocked_epoll_ctl(IGNORED_ARG, EPOLL_CTL_MOD, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG))
         .CallCannotFail();
@@ -177,9 +190,13 @@ TEST_SUITE_INITIALIZE(suite_init)
     ASSERT_ARE_EQUAL(int, 0, result, "umocktypes_charptr_register_types failed");
 
     REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK();
+    REGISTER_S_LIST_GLOBAL_MOCK_HOOKS();
 
     REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(malloc, NULL);
+
+    REGISTER_GLOBAL_MOCK_RETURNS(s_list_initialize, 0, MU_FAILURE);
+    REGISTER_GLOBAL_MOCK_RETURNS(s_list_add, 0, MU_FAILURE);
 
     REGISTER_GLOBAL_MOCK_HOOK(ThreadAPI_Create, my_ThreadAPI_Create);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(ThreadAPI_Create, THREADAPI_ERROR);
@@ -191,8 +208,8 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_UMOCK_ALIAS_TYPE(EXECUTION_ENGINE_HANDLE, void*);
     REGISTER_UMOCK_ALIAS_TYPE(THREAD_START_FUNC, void*);
     REGISTER_UMOCK_ALIAS_TYPE(THREAD_HANDLE, void*);
+    REGISTER_UMOCK_ALIAS_TYPE(PS_LIST_ENTRY, void*);
     REGISTER_UMOCK_ALIAS_TYPE(ssize_t, long);
-
 
     REGISTER_TYPE(ASYNC_SOCKET_OPEN_RESULT, ASYNC_SOCKET_OPEN_RESULT);
     REGISTER_TYPE(ASYNC_SOCKET_SEND_RESULT, ASYNC_SOCKET_SEND_RESULT);
@@ -579,6 +596,7 @@ TEST_FUNCTION(async_socket_close_with_NULL_returns)
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_037: [ async_socket_close shall wait for all executing async_socket_send_async and async_socket_receive_async APIs. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_038: [ Then async_socket_close shall remove the underlying socket form the epoll by calling epoll_ctl with EPOLL_CTL_DEL. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_039: [ async_socket_close shall call close on the underlying socket. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_040: [ async_socket_close shall remove any memory that is stored in the epoll system ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_041: [ async_socket_close shall set the state to closed. ]
 TEST_FUNCTION(async_socket_close_reverses_the_actions_from_open)
 {
@@ -1082,6 +1100,7 @@ TEST_FUNCTION(when_errno_for_send_returns_EWOULDBLOCK_it_uses_epoll_treated_as_s
 
     // cleanup
     free(g_events[0].data.ptr);
+    memset(g_events, 0, sizeof(struct epoll_event)*2);
     async_socket_destroy(async_socket);
 }
 
@@ -1497,7 +1516,6 @@ TEST_FUNCTION(async_socket_receive_async_succeeds)
     ASSERT_ARE_EQUAL(int, 0, result);
 
     // cleanup
-    free(g_events[0].data.ptr);
     async_socket_destroy(async_socket);
 }
 
@@ -1525,7 +1543,6 @@ TEST_FUNCTION(async_socket_receive_async_with_NULL_on_recv_complete_context_succ
     ASSERT_ARE_EQUAL(int, 0, result);
 
     // cleanup
-    free(g_events[0].data.ptr);
     async_socket_destroy(async_socket);
 }
 
@@ -1586,6 +1603,11 @@ TEST_FUNCTION(when_errno_for_epoll_returns_ENOENT_it_adds_socket_again_successfu
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(ASYNC_SOCKET_BUFFER)));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(s_list_add(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0))
+        .CallCannotFail();
     STRICT_EXPECTED_CALL(mocked_epoll_ctl(IGNORED_ARG, EPOLL_CTL_MOD, IGNORED_ARG, IGNORED_ARG))
         .SetReturn(-1);
     STRICT_EXPECTED_CALL(mocked_epoll_ctl(IGNORED_ARG, EPOLL_CTL_ADD, IGNORED_ARG, IGNORED_ARG));
@@ -1602,7 +1624,6 @@ TEST_FUNCTION(when_errno_for_epoll_returns_ENOENT_it_adds_socket_again_successfu
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
-    free(g_events[0].data.ptr);
     async_socket_destroy(async_socket);
 }
 
@@ -1614,12 +1635,14 @@ TEST_FUNCTION(when_errno_for_epoll_returns_ENOENT_it_adds_socket_again_successfu
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_086: [ thread_worker_func shall receive the ASYNC_SOCKET_RECV_CONTEXT value from the ptr variable from the epoll_event data ptr. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_087: [ Then thread_worker_func shall call recv and do the following: ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_092: [ If the recv size > 0, if we have another buffer to fill then we will attempt another read, otherwise we shall call on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_OK ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_093: [ The ASYNC_SOCKET_RECV_CONTEXT object shall be removed from list of stored pointers. ]
 TEST_FUNCTION(thread_worker_func_epoll_wait_contains_EPOLLIN)
 {
     // arrange
     volatile_atomic int32_t* threads_num;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
     STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CaptureArgumentValue_addend(&threads_num);
@@ -1641,6 +1664,12 @@ TEST_FUNCTION(thread_worker_func_epoll_wait_contains_EPOLLIN)
         .CopyOutArgumentBuffer_events(&g_events, sizeof(struct epoll_event))
         .SetReturn(1);
     STRICT_EXPECTED_CALL(mocked_recv(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(s_list_remove(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
+
     STRICT_EXPECTED_CALL(test_on_receive_complete(test_callback_ctx, ASYNC_SOCKET_RECEIVE_OK, payload_size));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
@@ -1668,6 +1697,7 @@ TEST_FUNCTION(thread_worker_func_recv_returns_EWOULDBLOCK)
     volatile_atomic int32_t* threads_num;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
     STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CaptureArgumentValue_addend(&threads_num);
@@ -1691,6 +1721,12 @@ TEST_FUNCTION(thread_worker_func_recv_returns_EWOULDBLOCK)
         .SetReturn(1);
     STRICT_EXPECTED_CALL(mocked_recv(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .SetReturn(-1);
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(s_list_remove(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
+
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
 
@@ -1718,6 +1754,7 @@ TEST_FUNCTION(thread_worker_func_recv_returns_ECONNRESET)
     volatile_atomic int32_t* threads_num;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
     STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CaptureArgumentValue_addend(&threads_num);
@@ -1741,6 +1778,12 @@ TEST_FUNCTION(thread_worker_func_recv_returns_ECONNRESET)
         .SetReturn(1);
     STRICT_EXPECTED_CALL(mocked_recv(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .SetReturn(-1);
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(s_list_remove(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
+
     STRICT_EXPECTED_CALL(test_on_receive_complete(test_callback_ctx, ASYNC_SOCKET_RECEIVE_ABANDONED, 0));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
@@ -1769,6 +1812,7 @@ TEST_FUNCTION(thread_worker_func_recv_returns_any_random_error_no)
     volatile_atomic int32_t* threads_num;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
     STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CaptureArgumentValue_addend(&threads_num);
@@ -1792,6 +1836,12 @@ TEST_FUNCTION(thread_worker_func_recv_returns_any_random_error_no)
         .SetReturn(1);
     STRICT_EXPECTED_CALL(mocked_recv(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .SetReturn(-1);
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(s_list_remove(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
+
     STRICT_EXPECTED_CALL(test_on_receive_complete(test_callback_ctx, ASYNC_SOCKET_RECEIVE_ERROR, 0));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
@@ -1820,6 +1870,7 @@ TEST_FUNCTION(thread_worker_func_recv_returns_0_bytes_success)
     volatile_atomic int32_t* threads_num;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
     STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CaptureArgumentValue_addend(&threads_num);
@@ -1843,6 +1894,12 @@ TEST_FUNCTION(thread_worker_func_recv_returns_0_bytes_success)
         .SetReturn(1);
     STRICT_EXPECTED_CALL(mocked_recv(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .SetReturn(0);
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(s_list_remove(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
+
     STRICT_EXPECTED_CALL(test_on_receive_complete(test_callback_ctx, ASYNC_SOCKET_RECEIVE_OK, 0));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
@@ -1872,6 +1929,7 @@ TEST_FUNCTION(thread_worker_func_epoll_contains_EPOLLRDHUP_and_abandons_the_conn
     volatile_atomic int32_t* threads_num;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
     STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CaptureArgumentValue_addend(&threads_num);
@@ -1893,8 +1951,66 @@ TEST_FUNCTION(thread_worker_func_epoll_contains_EPOLLRDHUP_and_abandons_the_conn
     STRICT_EXPECTED_CALL(mocked_epoll_wait(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CopyOutArgumentBuffer_events(&g_events, sizeof(struct epoll_event))
         .SetReturn(1);
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(s_list_remove(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
     STRICT_EXPECTED_CALL(test_on_receive_complete(test_callback_ctx, ASYNC_SOCKET_RECEIVE_ABANDONED, 0));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+
+    // Set this so it stops the worker_thread_func loop from going
+    // around twice
+    *threads_num = 0;
+
+    // act
+    g_saved_worker_thread_func(NULL);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    *threads_num = 1;
+    async_socket_close(async_socket);
+    async_socket_destroy(async_socket);
+}
+
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_083: [ The ASYNC_SOCKET_RECV_CONTEXT object shall be removed from list of stored pointers. ]
+TEST_FUNCTION(thread_worker_func_epoll_contains_EPOLLRDHUP_and_list_item_has_been_removed)
+{
+    // arrange
+    volatile_atomic int32_t* threads_num;
+
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
+        .CaptureArgumentValue_addend(&threads_num);
+
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASSERT_IS_NOT_NULL(async_socket);
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+
+    uint8_t payload_bytes[] = { 0x42 };
+    ASYNC_SOCKET_BUFFER payload_buffers[1];
+    payload_buffers[0].buffer = payload_bytes;
+    payload_buffers[0].length = sizeof(payload_bytes);
+    uint32_t payload_size = sizeof(payload_buffers) / sizeof(payload_buffers[0]);
+    ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(async_socket, payload_buffers, payload_size, test_on_receive_complete, test_callback_ctx));
+    umock_c_reset_all_calls();
+
+    g_events[0].events = 0;
+    g_events[0].events |= EPOLLRDHUP;
+    STRICT_EXPECTED_CALL(mocked_epoll_wait(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CopyOutArgumentBuffer_events(&g_events, sizeof(struct epoll_event))
+        .SetReturn(1);
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, 0, 1))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(s_list_remove(IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(MU_FAILURE);
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
 
     // Set this so it stops the worker_thread_func loop from going
@@ -1924,6 +2040,7 @@ TEST_FUNCTION(thread_worker_func_epoll_contains_EPOLLOUT_and_sends_msg)
     volatile_atomic int32_t* threads_num;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
     STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CaptureArgumentValue_addend(&threads_num);
@@ -1982,6 +2099,7 @@ TEST_FUNCTION(thread_worker_func_epoll_contains_EPOLLOUT_and_sends_ECONNRESET)
     volatile_atomic int32_t* threads_num;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
     STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CaptureArgumentValue_addend(&threads_num);
@@ -2042,6 +2160,7 @@ TEST_FUNCTION(thread_worker_func_epoll_contains_EPOLLOUT_and_send_error)
     volatile_atomic int32_t* threads_num;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
     STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CaptureArgumentValue_addend(&threads_num);
