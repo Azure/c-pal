@@ -333,7 +333,7 @@ TEST_FUNCTION(async_socket_create_fails)
 // async_socket_destroy
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_019: [ If async_socket is NULL, async_socket_destroy shall return. ]
-REMOVE_TEST_FUNCTION(async_socket_destroy_with_NULL_returns)
+TEST_FUNCTION(async_socket_destroy_with_NULL_returns)
 {
     // arrange
 
