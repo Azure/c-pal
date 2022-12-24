@@ -249,6 +249,7 @@ TEST_FUNCTION(connect_no_send_succeeds)
     receive_payload_buffers[0].length = sizeof(receive_buffer);
 
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(client_async_socket, receive_payload_buffers, 1, on_receive_abandoned_complete, NULL));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(server_async_socket, receive_payload_buffers, 1, on_receive_abandoned_complete, NULL));
 
     async_socket_close(server_async_socket);
     async_socket_close(client_async_socket);

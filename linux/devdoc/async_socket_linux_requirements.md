@@ -189,6 +189,8 @@ MOCKABLE_FUNCTION(, void, async_socket_close, ASYNC_SOCKET_HANDLE, async_socket)
 
 **SRS_ASYNC_SOCKET_LINUX_11_039: [** `async_socket_close` shall call `close` on the underlying socket. **]**
 
+**SRS_ASYNC_SOCKET_LINUX_11_040: [** `async_socket_close` shall remove any memory that is stored in the epoll system **]**
+
 **SRS_ASYNC_SOCKET_LINUX_11_041: [** `async_socket_close` shall set the state to closed. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_042: [** If `async_socket` is not OPEN, `async_socket_close` shall return. **]**
@@ -297,6 +299,8 @@ static int thread_worker_func(void* parameter)
 
 - **SRS_ASYNC_SOCKET_LINUX_11_082: [** `thread_worker_func` shall receive the `ASYNC_SOCKET_RECV_CONTEXT` value from the ptr variable from the `epoll_event` data ptr. **]**
 
+- **SRS_ASYNC_SOCKET_LINUX_11_083: [** The `ASYNC_SOCKET_RECV_CONTEXT` object shall be removed from list of stored pointers. **]**
+
 - **SRS_ASYNC_SOCKET_LINUX_11_084: [** Then call the `on_receive_complete` callback with the `on_receive_complete_context` and `ASYNC_SOCKET_RECEIVE_ABANDONED`. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_085: [** If the events value contains `EPOLLIN` (recv), `thread_worker_func` shall the following: **]**
@@ -314,6 +318,8 @@ static int thread_worker_func(void* parameter)
 - **SRS_ASYNC_SOCKET_LINUX_11_091: [** If the recv size equal 0, then `thread_worker_func` shall call `on_receive_complete` callback with the `on_receive_complete_context` and `ASYNC_SOCKET_RECEIVE_OK` **]**
 
 - **SRS_ASYNC_SOCKET_LINUX_11_092: [** If the recv size > 0, if we have another buffer to fill then we will attempt another read, otherwise we shall call `on_receive_complete` callback with the `on_receive_complete_context` and `ASYNC_SOCKET_RECEIVE_OK` **]**
+
+- **SRS_ASYNC_SOCKET_LINUX_11_093: [** The `ASYNC_SOCKET_RECV_CONTEXT` object shall be removed from list of stored pointers. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_094: [** If the events value contains `EPOLLOUT` (send), `thread_worker_func` shall the following: **]**
 
