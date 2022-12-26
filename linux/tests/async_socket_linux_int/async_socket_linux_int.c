@@ -127,7 +127,9 @@ static void setup_server_socket(SOCKET_HANDLE* listen_socket)
     set_nonblocking(*listen_socket);
 
     // start listening
-    ASSERT_ARE_EQUAL(int, 0, listen(*listen_socket, SOMAXCONN), "Failure on listen socket error (%d): port: %d", errno, g_port_num);
+    int listen_res = listen(*listen_socket, SOMAXCONN);
+    int error_no = errno;
+    ASSERT_ARE_EQUAL(int, 0, listen_res, "Failure on listen socket error (%d): port: %d", error_no, g_port_num);
 }
 
 static void setup_test_socket(int port_num, SOCKET_HANDLE* client_socket, SOCKET_HANDLE* listen_socket, SOCKET_HANDLE* accept_socket)
