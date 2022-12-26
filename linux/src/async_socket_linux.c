@@ -9,6 +9,10 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 
+#ifdef USE_VALGRIND
+#include "valgrind/helgrind.h"
+#endif
+
 #include "macro_utils/macro_utils.h"
 
 #include "c_logging/xlogging.h"
@@ -50,6 +54,7 @@ MU_DEFINE_ENUM_STRINGS(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_RES
 #define THREAD_COUNT    1
 
 static volatile_atomic int32_t g_thread_access_cnt;
+static volatile_atomic int32_t g_epoll_access = 0;
 static int g_epoll = -1;
 static THREAD_HANDLE g_thread_array[THREAD_COUNT];
 
@@ -215,6 +220,9 @@ static int thread_worker_func(void* parameter)
             {
                 // Codes_SRS_ASYNC_SOCKET_LINUX_11_082: [ thread_worker_func shall receive the ASYNC_SOCKET_RECV_CONTEXT value from the ptr variable from the epoll_event data ptr. ]
                 ASYNC_SOCKET_RECV_CONTEXT* recv_context = events[index].data.ptr;
+                #ifdef USE_VALGRIND
+                    ANNOTATE_HAPPENS_AFTER(recv_context);
+                #endif
                 if (recv_context != NULL)
                 {
                     ASYNC_SOCKET* async_socket = recv_context->async_socket;
@@ -238,7 +246,9 @@ static int thread_worker_func(void* parameter)
                 ASYNC_SOCKET_RECEIVE_RESULT receive_result;
                 // Codes_SRS_ASYNC_SOCKET_LINUX_11_086: [ thread_worker_func shall receive the ASYNC_SOCKET_RECV_CONTEXT value from the ptr variable from the epoll_event data ptr. ]
                 ASYNC_SOCKET_RECV_CONTEXT* recv_context = events[index].data.ptr;
-
+                #ifdef USE_VALGRIND
+                    ANNOTATE_HAPPENS_AFTER(recv_context);
+                #endif
                 if (recv_context != NULL)
                 {
                     uint32_t index = 0;
@@ -370,12 +380,14 @@ static int initialize_global_thread(void)
     // Codes_SRS_ASYNC_SOCKET_LINUX_11_009: [ If the g_thread_access_cnt count is 1, initialize_global_thread shall do the following: ]
     if (current_count == 1)
     {
+        interlocked_increment(&g_epoll_access);
+
         // Codes_SRS_ASYNC_SOCKET_LINUX_11_010: [ initialize_global_thread shall create the epoll variable by calling epoll_create. ]
         g_epoll = epoll_create(MAX_EVENTS_NUM);
         if (g_epoll == -1)
         {
             LogErrorNo("failure epoll_create MAX_EVENTS_NUM: %d", MAX_EVENTS_NUM);
-            interlocked_decrement(&g_thread_access_cnt);
+            (void)interlocked_decrement(&g_thread_access_cnt);
         }
         else
         {
@@ -409,9 +421,17 @@ static int initialize_global_thread(void)
                 interlocked_decrement(&g_thread_access_cnt);
             }
         }
+        (void)interlocked_decrement(&g_epoll_access);
+        wake_by_address_single(&g_epoll_access);
     }
     else
     {
+        int32_t value;
+        while ((value = interlocked_add(&g_epoll_access, 0)) != 0)
+        {
+            (void)wait_on_address(&g_epoll_access, value, UINT32_MAX);
+        }
+
         // Codes_SRS_ASYNC_SOCKET_LINUX_11_013: [ On success initialize_global_thread shall return the value returned by epoll_create. ]
         result = g_epoll;
     }
@@ -944,6 +964,10 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                         struct epoll_event ev = {0};
                         ev.events = EPOLLIN | EPOLLRDHUP | EPOLLONESHOT;
                         ev.data.ptr = recv_context;
+                        // This is telling valgrind that this will happne before the epoll gets called
+                        #ifdef USE_VALGRIND
+                            ANNOTATE_HAPPENS_BEFORE(recv_context);
+                        #endif
                         // Codes_SRS_ASYNC_SOCKET_LINUX_11_075: [ async_socket_receive_async shall add the socket in the epoll system by calling epoll_ctl with EPOLL_CTL_MOD ]
                         if (epoll_ctl(async_socket->epoll, EPOLL_CTL_MOD, async_socket->socket_handle, &ev) < 0)
                         {

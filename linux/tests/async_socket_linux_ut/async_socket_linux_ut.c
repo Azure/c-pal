@@ -133,16 +133,22 @@ static void mock_internal_close_setup(void)
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 }
 
-static void mock_async_socket_create_setup(void)
+static void
+mock_async_socket_create_setup(void)
 {
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
     STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
+        .CallCannotFail();
     STRICT_EXPECTED_CALL(mocked_epoll_create(TEST_MAX_EVENTS_NUM));
     STRICT_EXPECTED_CALL(ThreadAPI_Create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CopyOutArgumentBuffer_threadHandle(&test_thread_handle, sizeof(test_thread_handle));
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0))
@@ -300,6 +306,41 @@ TEST_FUNCTION(async_socket_create_succeeds)
 
     // cleanup
     async_socket_destroy(async_socket);
+}
+
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_013: [ On success initialize_global_thread shall return the value returned by epoll_create. ]
+TEST_FUNCTION(async_socket_create_multiple_calls_succeeds)
+{
+    // arrange
+    ASYNC_SOCKET_HANDLE async_socket;
+    async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASSERT_IS_NOT_NULL(async_socket);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
+
+    // act
+    ASYNC_SOCKET_HANDLE async_socket_2 = async_socket_create(test_execution_engine, test_socket);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NOT_NULL(async_socket_2);
+
+    // cleanup
+    async_socket_destroy(async_socket);
+    async_socket_destroy(async_socket_2);
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_006: [ If any error occurs, async_socket_create shall fail and return NULL. ]
