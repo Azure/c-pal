@@ -1,10 +1,4 @@
 {
-   <epoll thread suppression>
-   Helgrind:Race
-   fun:thread_worker_func
-   ...
-}
-{
    <incorrect interlocked flagging>
    Helgrind:Race
    fun:interlocked_compare_exchange
