@@ -7,8 +7,7 @@
 #include <time.h>
 #include <string.h>
 #include <errno.h>
-#include <sys/syscall.h>
-#include <sys/types.h>
+#include <syscall.h>
 
 #include "c_logging/xlogging.h"
 
