@@ -7,10 +7,11 @@
 #include <time.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
 
 #include "c_logging/xlogging.h"
 
-#include "sys/syscall.h"
 #include "linux/futex.h"
 
 #include "umock_c/umock_c_prod.h"
