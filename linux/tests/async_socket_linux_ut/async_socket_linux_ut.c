@@ -123,7 +123,7 @@ static void mock_internal_close_setup(void)
 {
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(mocked_epoll_ctl(IGNORED_ARG, EPOLL_CTL_DEL, IGNORED_ARG, NULL));
-    STRICT_EXPECTED_CALL(ThreadAPI_Sleep(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(ThreadAPI_Sleep(1));
     STRICT_EXPECTED_CALL(mocked_close(test_socket));
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CallCannotFail();
@@ -133,12 +133,10 @@ static void mock_internal_close_setup(void)
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 }
 
-static void
-mock_async_socket_create_setup(void)
+static void mock_async_socket_create_setup(void)
 {
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
@@ -159,9 +157,9 @@ mock_async_socket_create_setup(void)
 
 static void setup_async_socket_receive_async_mocks(void)
 {
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
-        .CallCannotFail();
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(ASYNC_SOCKET_BUFFER)));
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
@@ -254,18 +252,23 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 
 // async_socket_create
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_002: [ If execution_engine is NULL, async_socket_create shall fail and return NULL. ]
-TEST_FUNCTION(async_socket_create_with_NULL_execution_engine_fails)
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_002: [ execution_engine shall be allowed to be NULL. ]
+TEST_FUNCTION(async_socket_create_with_NULL_execution_engine_success)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket;
+
+    mock_async_socket_create_setup();
 
     // act
     async_socket = async_socket_create(NULL, test_socket);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_IS_NULL(async_socket);
+    ASSERT_IS_NOT_NULL(async_socket);
+
+    // cleanup
+    async_socket_destroy(async_socket);
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_create shall fail and return NULL. ]
@@ -319,7 +322,6 @@ TEST_FUNCTION(async_socket_create_multiple_calls_succeeds)
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
@@ -402,7 +404,6 @@ TEST_FUNCTION(async_socket_destroy_frees_resources)
     // deinit
     mock_deinitialize_global_thread_setup();
 
-    STRICT_EXPECTED_CALL(execution_engine_dec_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
     // act
@@ -414,6 +415,7 @@ TEST_FUNCTION(async_socket_destroy_frees_resources)
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_020: [ While async_socket is OPENING or CLOSING, async_socket_destroy shall wait for the open to complete either successfully or with error. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_021: [ async_socket_destroy shall perform an implicit close if async_socket is OPEN. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_101: [ async_socket_close shall call delay 1 millisecond after EPOLL_CTL_DEL to let epoll issue the EPOLLRDHUP command. ]
 TEST_FUNCTION(async_socket_destroy_closes_first_if_open)
 {
     // arrange
@@ -427,7 +429,6 @@ TEST_FUNCTION(async_socket_destroy_closes_first_if_open)
     mock_internal_close_setup();
     mock_deinitialize_global_thread_setup();
 
-    STRICT_EXPECTED_CALL(execution_engine_dec_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
     // act
@@ -951,7 +952,10 @@ TEST_FUNCTION(async_socket_send_async_when_not_open_fails)
     payload_buffers[0].length = sizeof(payload_bytes);
     umock_c_reset_all_calls();
 
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 
     // act
     result = async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, test_callback_ctx);
@@ -979,7 +983,10 @@ TEST_FUNCTION(async_socket_send_async_after_close_fails)
     async_socket_close(async_socket);
     umock_c_reset_all_calls();
 
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 
     // act
     result = async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, test_callback_ctx);
@@ -1011,8 +1018,8 @@ TEST_FUNCTION(async_socket_send_async_succeeds)
 
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL));
     STRICT_EXPECTED_CALL(test_on_send_complete(test_callback_ctx, ASYNC_SOCKET_SEND_OK));
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
@@ -1030,6 +1037,86 @@ TEST_FUNCTION(async_socket_send_async_succeeds)
     async_socket_destroy(async_socket);
 }
 
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_052: [ async_socket_send_async shall attempt to send the data by calling send with the MSG_NOSIGNAL flag to ensure an exception is not generated. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_053: [ async_socket_send_async shall continue to send the data until the payload length has been sent. ]
+TEST_FUNCTION(async_socket_send_async_multiple_sends_succeeds)
+{
+    // arrange
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASSERT_IS_NOT_NULL(async_socket);
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+
+    uint8_t payload_bytes[] = { 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x50 };
+    ASYNC_SOCKET_BUFFER payload_buffers[1];
+    payload_buffers[0].buffer = payload_bytes;
+    payload_buffers[0].length = sizeof(payload_bytes);
+    ssize_t send_amt = payload_buffers[0].length/2;
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL))
+        .SetReturn(send_amt);
+    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL));
+    STRICT_EXPECTED_CALL(test_on_send_complete(test_callback_ctx, ASYNC_SOCKET_SEND_OK));
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
+
+    // act
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
+    result = async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, test_callback_ctx);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, result);
+
+    // cleanup
+    async_socket_destroy(async_socket);
+}
+
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_052: [ async_socket_send_async shall attempt to send the data by calling send with the MSG_NOSIGNAL flag to ensure an exception is not generated. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_053: [ async_socket_send_async shall continue to send the data until the payload length has been sent. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_057: [ The context shall then be added to the epoll system by calling epoll_ctl with EPOLL_CTL_MOD. ]
+TEST_FUNCTION(async_socket_send_async_multiple_sends_WOULDBLOCK_succeeds)
+{
+    // arrange
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASSERT_IS_NOT_NULL(async_socket);
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+
+    uint8_t payload_bytes[] = { 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x50 };
+    ASYNC_SOCKET_BUFFER payload_buffers[1];
+    payload_buffers[0].buffer = payload_bytes;
+    payload_buffers[0].length = sizeof(payload_bytes);
+    ssize_t send_amt = payload_buffers[0].length/2;
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, payload_buffers[0].buffer, payload_buffers[0].length, MSG_NOSIGNAL))
+        .SetReturn(send_amt);
+    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, payload_buffers[0].buffer + send_amt, payload_buffers[0].length - send_amt, MSG_NOSIGNAL))
+        .SetReturn(-1);
+
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_epoll_ctl(IGNORED_ARG, EPOLL_CTL_MOD, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
+
+    // act
+    errno = EWOULDBLOCK;
+    ASYNC_SOCKET_SEND_SYNC_RESULT result;
+    result = async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, test_callback_ctx);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, result);
+
+    // cleanup
+    async_socket_destroy(async_socket);
+    free(g_events[0].data.ptr);
+}
+
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_050: [ on_send_complete_context shall be allowed to be NULL. ]
 TEST_FUNCTION(async_socket_send_async_with_NULL_on_send_complete_context_succeeds)
 {
@@ -1045,8 +1132,8 @@ TEST_FUNCTION(async_socket_send_async_with_NULL_on_send_complete_context_succeed
 
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL));
     STRICT_EXPECTED_CALL(test_on_send_complete(NULL, ASYNC_SOCKET_SEND_OK));
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
@@ -1078,9 +1165,9 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_send_async_fails)
     payload_buffers[0].length = sizeof(payload_bytes);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
-        .CallCannotFail();
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL))
         .SetReturn(-1);
@@ -1102,7 +1189,7 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_send_async_fails)
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_054: [ If the send fails to send the data, async_socket_send_async shall do the following: ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_055: [ If the errno value is EAGAIN or EWOULDBLOCK. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_056: [ async_socket_send_async shall create a context for the send where the payload, on_send_complete and on_send_complete_context shall be stored. ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_057: [ The the context shall then be added to the epoll system by calling epoll_ctl with EPOLL_CTL_MOD. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_057: [ The context shall then be added to the epoll system by calling epoll_ctl with EPOLL_CTL_MOD. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_058: [ If the epoll_ctl call fails with ENOENT, async_socket_send_async shall call epoll_ctl again with EPOLL_CTL_ADD. ]
 TEST_FUNCTION(when_errno_for_send_returns_EWOULDBLOCK_it_uses_epoll_treated_as_successfull)
 {
@@ -1118,14 +1205,14 @@ TEST_FUNCTION(when_errno_for_send_returns_EWOULDBLOCK_it_uses_epoll_treated_as_s
     payload_buffers[0].length = sizeof(payload_bytes);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
-        .CallCannotFail();
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL))
         .SetReturn(-1);
 
-    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_epoll_ctl(IGNORED_ARG, EPOLL_CTL_MOD, IGNORED_ARG, IGNORED_ARG));
 
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
@@ -1159,9 +1246,9 @@ TEST_FUNCTION(when_errno_for_send_returns_ECONNRESET_async_socket_send_async_ret
     payload_buffers[0].length = sizeof(payload_bytes);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
-        .CallCannotFail();
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL))
         .SetReturn(-1);
@@ -1195,9 +1282,9 @@ TEST_FUNCTION(when_errno_for_send_returns_error_async_socket_send_async_returns_
     payload_buffers[0].length = sizeof(payload_bytes);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
-        .CallCannotFail();
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL))
         .SetReturn(-1);
@@ -1487,8 +1574,11 @@ TEST_FUNCTION(async_socket_receive_async_when_not_open_fails)
     payload_buffers[0].length = sizeof(payload_bytes);
     umock_c_reset_all_calls();
 
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
         .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 
     // act
     int result = async_socket_receive_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_receive_complete, test_callback_ctx);
@@ -1516,8 +1606,11 @@ TEST_FUNCTION(async_socket_receive_async_after_close_fails)
     payload_buffers[0].length = sizeof(payload_bytes);
     umock_c_reset_all_calls();
 
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
         .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 
     // act
     int result = async_socket_receive_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_receive_complete, test_callback_ctx);
@@ -1530,9 +1623,10 @@ TEST_FUNCTION(async_socket_receive_async_after_close_fails)
     async_socket_destroy(async_socket);
 }
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_073: [ Otherwise async_socket_receive_async shall create a context for the send where the payload, on_receive_complete and on_receive_complete_context shall be stored. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_073: [ Otherwise async_socket_receive_async shall create a context for the receive where the payload, on_receive_complete and on_receive_complete_context shall be stored. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_074: [ The context shall also allocate enough memory to keep an array of buffer_count items. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_075: [ async_socket_receive_async shall add the socket in the epoll system by calling epoll_ctl with EPOLL_CTL_MOD ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_102: [ async_socket_receive_async shall add the recv context to a list to track the items for later deallocation. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_077: [ On success, async_socket_receive_async shall return 0. ]
 TEST_FUNCTION(async_socket_receive_async_succeeds)
 {
@@ -1639,9 +1733,9 @@ TEST_FUNCTION(when_errno_for_epoll_returns_ENOENT_it_adds_socket_again_successfu
     payload_buffers[0].length = sizeof(payload_bytes);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
-        .CallCannotFail();
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(ASYNC_SOCKET_BUFFER)));
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
@@ -1671,7 +1765,7 @@ TEST_FUNCTION(when_errno_for_epoll_returns_ENOENT_it_adds_socket_again_successfu
 // thread_worker_func
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_079: [ thread_worker_func shall call epoll_wait waiting for the epoll to become signaled. ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_080: [ Onced signaled thread_worker_func shall loop through the signaled epolls. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_080: [ Once signaled thread_worker_func shall loop through the signaled epolls. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_085: [ If the events value contains EPOLLIN (recv), thread_worker_func shall the following: ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_086: [ thread_worker_func shall receive the ASYNC_SOCKET_RECV_CONTEXT value from the ptr variable from the epoll_event data ptr. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_087: [ Then thread_worker_func shall call recv and do the following: ]
@@ -1684,7 +1778,6 @@ TEST_FUNCTION(thread_worker_func_epoll_wait_contains_EPOLLIN)
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CaptureArgumentValue_addend(&threads_num);
 
@@ -1739,7 +1832,6 @@ TEST_FUNCTION(thread_worker_func_recv_returns_EWOULDBLOCK)
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CaptureArgumentValue_addend(&threads_num);
 
@@ -1796,7 +1888,6 @@ TEST_FUNCTION(thread_worker_func_recv_returns_ECONNRESET)
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CaptureArgumentValue_addend(&threads_num);
 
@@ -1854,7 +1945,6 @@ TEST_FUNCTION(thread_worker_func_recv_returns_any_random_error_no)
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CaptureArgumentValue_addend(&threads_num);
 
@@ -1912,7 +2002,6 @@ TEST_FUNCTION(thread_worker_func_recv_returns_0_bytes_success)
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CaptureArgumentValue_addend(&threads_num);
 
@@ -1961,7 +2050,7 @@ TEST_FUNCTION(thread_worker_func_recv_returns_0_bytes_success)
     async_socket_destroy(async_socket);
 }
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_081: [ If the events value contains EPOLLRDHUP (hang up), thread_worker_func shall the following: ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_081: [ If the events value contains EPOLLRDHUP (hang up), thread_worker_func shall do the following: ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_082: [ thread_worker_func shall receive the ASYNC_SOCKET_RECV_CONTEXT value from the ptr variable from the epoll_event data ptr. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_084: [ Then call the on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_ABANDONED. ]
 TEST_FUNCTION(thread_worker_func_epoll_contains_EPOLLRDHUP_and_abandons_the_connection)
@@ -1971,7 +2060,6 @@ TEST_FUNCTION(thread_worker_func_epoll_contains_EPOLLRDHUP_and_abandons_the_conn
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CaptureArgumentValue_addend(&threads_num);
 
@@ -2025,7 +2113,6 @@ TEST_FUNCTION(thread_worker_func_epoll_contains_EPOLLRDHUP_and_list_item_has_bee
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CaptureArgumentValue_addend(&threads_num);
 
@@ -2072,7 +2159,7 @@ TEST_FUNCTION(thread_worker_func_epoll_contains_EPOLLRDHUP_and_list_item_has_bee
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_094: [ If the events value contains EPOLLOUT (send), thread_worker_func shall the following: ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_095: [ thread_worker_func shall receive the ASYNC_SOCKET_SEND_CONTEXT value from the ptr variable from the epoll_event data ptr. ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_096: [ thread_worker_func shall loop through the total buffers and send the data. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_096: [ thread_worker_func shall send the data that is stored in the event. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_097: [ if send returns value is < 0 thread_worker_func shall do the following: ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_100: [ If the thread_access_cnt variable is not 0, thread_worker_func continue, otherwise it shall exit ]
 TEST_FUNCTION(thread_worker_func_epoll_contains_EPOLLOUT_and_sends_msg)
@@ -2082,7 +2169,6 @@ TEST_FUNCTION(thread_worker_func_epoll_contains_EPOLLOUT_and_sends_msg)
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CaptureArgumentValue_addend(&threads_num);
 
@@ -2096,9 +2182,9 @@ TEST_FUNCTION(thread_worker_func_epoll_contains_EPOLLOUT_and_sends_msg)
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
 
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
-        .CallCannotFail();
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL))
         .SetReturn(-1);
@@ -2141,7 +2227,6 @@ TEST_FUNCTION(thread_worker_func_epoll_contains_EPOLLOUT_and_sends_ECONNRESET)
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CaptureArgumentValue_addend(&threads_num);
 
@@ -2155,9 +2240,9 @@ TEST_FUNCTION(thread_worker_func_epoll_contains_EPOLLOUT_and_sends_ECONNRESET)
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
 
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
-        .CallCannotFail();
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL))
         .SetReturn(-1);
@@ -2202,7 +2287,6 @@ TEST_FUNCTION(thread_worker_func_epoll_contains_EPOLLOUT_and_send_error)
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(s_list_initialize(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CaptureArgumentValue_addend(&threads_num);
 
@@ -2216,9 +2300,9 @@ TEST_FUNCTION(thread_worker_func_epoll_contains_EPOLLOUT_and_send_error)
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
 
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
-        .CallCannotFail();
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL))
         .SetReturn(-1);

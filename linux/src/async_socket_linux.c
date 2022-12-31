@@ -53,7 +53,7 @@ MU_DEFINE_ENUM_STRINGS(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_RES
 
 #define THREAD_COUNT    1
 
-static volatile_atomic int32_t g_thread_access_cnt;
+static volatile_atomic int32_t g_thread_access_cnt = 0;
 static volatile_atomic int32_t g_epoll_access = 0;
 static int g_epoll = -1;
 static THREAD_HANDLE g_thread_array[THREAD_COUNT];
@@ -61,7 +61,6 @@ static THREAD_HANDLE g_thread_array[THREAD_COUNT];
 typedef struct ASYNC_SOCKET_TAG
 {
     int socket_handle;
-    EXECUTION_ENGINE_HANDLE execution_engine;
 
     volatile_atomic int32_t state;
     volatile_atomic int32_t pending_api_calls;
@@ -103,11 +102,9 @@ typedef struct ASYNC_SOCKET_SEND_CONTEXT_TAG
 {
     ASYNC_SOCKET* async_socket;
     uint32_t total_buffer_bytes;
-    uint32_t total_buffer_count;
-    int socket_handle;
     ON_ASYNC_SOCKET_SEND_COMPLETE on_send_complete;
     void* on_send_complete_context;
-    ASYNC_SOCKET_BUFFER buffers[];
+    ASYNC_SOCKET_BUFFER socket_buffer;
 } ASYNC_SOCKET_SEND_CONTEXT;
 
 static int remove_item_from_list(ASYNC_SOCKET* async_socket, ASYNC_SOCKET_RECV_CONTEXT* recv_context)
@@ -173,7 +170,7 @@ static int add_item_to_list(ASYNC_SOCKET* async_socket, ASYNC_SOCKET_RECV_CONTEX
     return result;
 }
 
-static int send_data(ASYNC_SOCKET* async_socket, const ASYNC_SOCKET_BUFFER* buff_dat)
+static int send_data(ASYNC_SOCKET* async_socket, const ASYNC_SOCKET_BUFFER* buff_data, ssize_t* total_data_sent, int* error_no)
 {
     int result;
 
@@ -181,9 +178,10 @@ static int send_data(ASYNC_SOCKET* async_socket, const ASYNC_SOCKET_BUFFER* buff
     do
     {
         // Codes_SRS_ASYNC_SOCKET_LINUX_11_052: [ async_socket_send_async shall attempt to send the data by calling send with the MSG_NOSIGNAL flag to ensure an exception is not generated. ]
-        ssize_t send_size = send(async_socket->socket_handle, buff_dat->buffer, buff_dat->length + data_sent, MSG_NOSIGNAL);
+        ssize_t send_size = send(async_socket->socket_handle, buff_data->buffer+data_sent, buff_data->length-data_sent, MSG_NOSIGNAL);
         if (send_size < 0)
         {
+            *error_no = errno;
             // Log will be done after it is determined if this is an actual error
             result = MU_FAILURE;
             break;
@@ -194,7 +192,8 @@ static int send_data(ASYNC_SOCKET* async_socket, const ASYNC_SOCKET_BUFFER* buff
             data_sent += send_size;
         }
         // Codes_SRS_ASYNC_SOCKET_LINUX_11_053: [ async_socket_send_async shall continue to send the data until the payload length has been sent. ]
-    } while(data_sent < buff_dat->length);
+    } while(data_sent < buff_data->length);
+    *total_data_sent = data_sent;
     return result;
 }
 
@@ -212,10 +211,10 @@ static int thread_worker_func(void* parameter)
         {
             LogErrorNo("Failure epoll_wait, MAX_EVENTS_NUM: %d, EVENTS_TIMEOUT_MS: %d", MAX_EVENTS_NUM, EVENTS_TIMEOUT_MS);
         }
-        // Codes_SRS_ASYNC_SOCKET_LINUX_11_080: [ Onced signaled thread_worker_func shall loop through the signaled epolls. ]
+        // Codes_SRS_ASYNC_SOCKET_LINUX_11_080: [ Once signaled thread_worker_func shall loop through the signaled epolls. ]
         for (int index = 0; index < num_ready; index++)
         {
-            // Codes_SRS_ASYNC_SOCKET_LINUX_11_081: [ If the events value contains EPOLLRDHUP (hang up), thread_worker_func shall the following: ]
+            // Codes_SRS_ASYNC_SOCKET_LINUX_11_081: [ If the events value contains EPOLLRDHUP (hang up), thread_worker_func shall do the following: ]
             if (events[index].events & EPOLLRDHUP)
             {
                 // Codes_SRS_ASYNC_SOCKET_LINUX_11_082: [ thread_worker_func shall receive the ASYNC_SOCKET_RECV_CONTEXT value from the ptr variable from the epoll_event data ptr. ]
@@ -223,20 +222,18 @@ static int thread_worker_func(void* parameter)
                 #ifdef USE_VALGRIND
                     ANNOTATE_HAPPENS_AFTER(recv_context);
                 #endif
-                if (recv_context != NULL)
+
+                ASYNC_SOCKET* async_socket = recv_context->async_socket;
+                // Codes_SRS_ASYNC_SOCKET_LINUX_11_083: [ The ASYNC_SOCKET_RECV_CONTEXT object shall be removed from list of stored pointers. ]
+                if (remove_item_from_list(recv_context->async_socket, recv_context) != 0)
                 {
-                    ASYNC_SOCKET* async_socket = recv_context->async_socket;
-                    // Codes_SRS_ASYNC_SOCKET_LINUX_11_083: [ The ASYNC_SOCKET_RECV_CONTEXT object shall be removed from list of stored pointers. ]
-                    if (remove_item_from_list(recv_context->async_socket, recv_context) != 0)
-                    {
-                        LogError("Failure receive context has been previously removed %p", recv_context);
-                    }
-                    else
-                    {
-                        // Codes_SRS_ASYNC_SOCKET_LINUX_11_084: [ Then call the on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_ABANDONED. ]
-                        recv_context->on_receive_complete(recv_context->on_receive_complete_context, ASYNC_SOCKET_RECEIVE_ABANDONED, 0);
-                        free(recv_context);
-                    }
+                    LogError("Failure receive context has been previously removed %p", recv_context);
+                }
+                else
+                {
+                    // Codes_SRS_ASYNC_SOCKET_LINUX_11_084: [ Then call the on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_ABANDONED. ]
+                    recv_context->on_receive_complete(recv_context->on_receive_complete_context, ASYNC_SOCKET_RECEIVE_ABANDONED, 0);
+                    free(recv_context);
                 }
             }
             // Codes_SRS_ASYNC_SOCKET_LINUX_11_085: [ If the events value contains EPOLLIN (recv), thread_worker_func shall the following: ]
@@ -249,78 +246,76 @@ static int thread_worker_func(void* parameter)
                 #ifdef USE_VALGRIND
                     ANNOTATE_HAPPENS_AFTER(recv_context);
                 #endif
-                if (recv_context != NULL)
+
+                uint32_t index = 0;
+                ssize_t recv_size;
+                do
                 {
-                    uint32_t index = 0;
-                    ssize_t recv_size;
-                    do
+                    // Codes_SRS_ASYNC_SOCKET_LINUX_11_087: [ Then thread_worker_func shall call recv and do the following: ]
+                    recv_size = recv(recv_context->socket_handle, recv_context->recv_buffers[index].buffer, recv_context->recv_buffers[index].length, 0);
+                    // Codes_SRS_ASYNC_SOCKET_LINUX_11_088: [ If the recv size < 0, then: ]
+                    if (recv_size < 0)
                     {
-                        // Codes_SRS_ASYNC_SOCKET_LINUX_11_087: [ Then thread_worker_func shall call recv and do the following: ]
-                        recv_size = recv(recv_context->socket_handle, recv_context->recv_buffers[index].buffer, recv_context->recv_buffers[index].length, 0);
-                        // Codes_SRS_ASYNC_SOCKET_LINUX_11_088: [ If the recv size < 0, then: ]
-                        if (recv_size < 0)
+                        if (errno == EAGAIN || errno == EWOULDBLOCK)
                         {
-                            if (errno == EAGAIN || errno == EWOULDBLOCK)
-                            {
-                                // Codes_SRS_ASYNC_SOCKET_LINUX_11_089: [ If errno is EAGAIN or EWOULDBLOCK, then unlikely errors will continue ]
-                                receive_result = ASYNC_SOCKET_RECEIVE_OK;
-                                break;
-                            }
-                            else
-                            {
-                                recv_size = 0;
-                                if (errno == ECONNRESET)
-                                {
-                                    // Codes_SRS_ASYNC_SOCKET_LINUX_11_090: [ If errno is ECONNRESET, then thread_worker_func shall call the on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_ABANDONED ]
-                                    receive_result = ASYNC_SOCKET_RECEIVE_ABANDONED;
-                                    LogInfo("A reset on the recv socket has been encountered");
-                                }
-                                else
-                                {
-                                    // Error here
-                                    receive_result = ASYNC_SOCKET_RECEIVE_ERROR;
-                                    LogErrorNo("failure recv data");
-                                }
-                                break;
-                            }
-                        }
-                        else if (recv_size == 0)
-                        {
-                            // Codes_SRS_ASYNC_SOCKET_LINUX_11_091: [ If the recv size equal 0, then thread_worker_func shall call on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_OK ]
+                            // Codes_SRS_ASYNC_SOCKET_LINUX_11_089: [ If errno is EAGAIN or EWOULDBLOCK, then unlikely errors will continue ]
                             receive_result = ASYNC_SOCKET_RECEIVE_OK;
                             break;
                         }
                         else
                         {
-                            // Codes_SRS_ASYNC_SOCKET_LINUX_11_092: [ If the recv size > 0, if we have another buffer to fill then we will attempt another read, otherwise we shall call on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_OK ]
-                            if (index + 1 >= recv_context->total_buffer_count || recv_size < recv_context->recv_buffers[index].length)
+                            recv_size = 0;
+                            if (errno == ECONNRESET)
                             {
-                                // We gotten all the data we need to get or we don't have any more recv space
-                                receive_result = ASYNC_SOCKET_RECEIVE_OK;
-                                break;
+                                // Codes_SRS_ASYNC_SOCKET_LINUX_11_090: [ If errno is ECONNRESET, then thread_worker_func shall call the on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_ABANDONED ]
+                                receive_result = ASYNC_SOCKET_RECEIVE_ABANDONED;
+                                LogInfo("A reset on the recv socket has been encountered");
                             }
                             else
                             {
-                                index++;
+                                // Error here
+                                receive_result = ASYNC_SOCKET_RECEIVE_ERROR;
+                                LogErrorNo("failure recv data");
                             }
+                            break;
                         }
-                    } while (true);
-
-                    // Codes_SRS_ASYNC_SOCKET_LINUX_11_093: [ The ASYNC_SOCKET_RECV_CONTEXT object shall be removed from list of stored pointers. ]
-                    if (remove_item_from_list(recv_context->async_socket, recv_context) != 0)
-                    {
-                        LogError("Failure removing receive context %p", recv_context);
                     }
-
-                    if (recv_size >= 0)
+                    else if (recv_size == 0)
                     {
-                        // Call the callback
-                        recv_context->on_receive_complete(recv_context->on_receive_complete_context, receive_result, recv_size);
+                        // Codes_SRS_ASYNC_SOCKET_LINUX_11_091: [ If the recv size equal 0, then thread_worker_func shall call on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_OK ]
+                        receive_result = ASYNC_SOCKET_RECEIVE_OK;
+                        break;
                     }
+                    else
+                    {
+                        // Codes_SRS_ASYNC_SOCKET_LINUX_11_092: [ If the recv size > 0, if we have another buffer to fill then we will attempt another read, otherwise we shall call on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_OK ]
+                        if (index + 1 >= recv_context->total_buffer_count || recv_size < recv_context->recv_buffers[index].length)
+                        {
+                            // We gotten all the data we need to get or we don't have any more recv space
+                            receive_result = ASYNC_SOCKET_RECEIVE_OK;
+                            break;
+                        }
+                        else
+                        {
+                            index++;
+                        }
+                    }
+                } while (true);
 
-                    // Free the memory
-                    free(recv_context);
+                // Codes_SRS_ASYNC_SOCKET_LINUX_11_093: [ The ASYNC_SOCKET_RECV_CONTEXT object shall be removed from list of stored pointers. ]
+                if (remove_item_from_list(recv_context->async_socket, recv_context) != 0)
+                {
+                    LogError("Failure removing receive context %p", recv_context);
                 }
+
+                if (recv_size >= 0)
+                {
+                    // Call the callback
+                    recv_context->on_receive_complete(recv_context->on_receive_complete_context, receive_result, recv_size);
+                }
+
+                // Free the memory
+                free(recv_context);
             }
             // Codes_SRS_ASYNC_SOCKET_LINUX_11_094: [ If the events value contains EPOLLOUT (send), thread_worker_func shall the following: ]
             else if (events[index].events & EPOLLOUT)
@@ -328,41 +323,37 @@ static int thread_worker_func(void* parameter)
                 // Codes_SRS_ASYNC_SOCKET_LINUX_11_095: [ thread_worker_func shall receive the ASYNC_SOCKET_SEND_CONTEXT value from the ptr variable from the epoll_event data ptr. ]
                 ASYNC_SOCKET_SEND_CONTEXT* send_context = events[index].data.ptr;
 
-                uint32_t index;
-                // Codes_SRS_ASYNC_SOCKET_LINUX_11_096: [ thread_worker_func shall loop through the total buffers and send the data. ]
-                for (index = 0; index < send_context->total_buffer_count; index++)
+                // Codes_SRS_ASYNC_SOCKET_LINUX_11_096: [ thread_worker_func shall send the data that is stored in the event. ]
+                ssize_t send_size = 0;
+                ASYNC_SOCKET_SEND_RESULT send_result = ASYNC_SOCKET_SEND_OK;
+                // loop here to send all the bytes
+                do
                 {
-                    ssize_t send_size = 0;
-                    ASYNC_SOCKET_SEND_RESULT send_result = ASYNC_SOCKET_SEND_OK;
-                    // loop here to send all the bytes
-                    do
+                    void* send_pos = send_context->socket_buffer.buffer + send_size;
+                    uint32_t send_length = send_context->socket_buffer.length - send_size;
+                    // Setting MSG_NOSIGNAL so the send doesn't generate a exception when the other end closes the socket
+                    send_size += send(send_context->async_socket->socket_handle, send_pos, send_length, MSG_NOSIGNAL);
+                    // Codes_SRS_ASYNC_SOCKET_LINUX_11_097: [ if send returns value is < 0 thread_worker_func shall do the following: ]
+                    if (send_size < 0 && (errno != EAGAIN && errno != EWOULDBLOCK) )
                     {
-                        void* send_pos = send_context->buffers[index].buffer + send_size;
-                        uint32_t send_length = send_context->buffers[index].length - send_size;
-                        // Setting MSG_NOSIGNAL so the send doesn't generate a exception when the other end closes the socket
-                        send_size += send(send_context->socket_handle, send_pos, send_length, MSG_NOSIGNAL);
-                        // Codes_SRS_ASYNC_SOCKET_LINUX_11_097: [ if send returns value is < 0 thread_worker_func shall do the following: ]
-                        if (send_size < 0 && (errno != EAGAIN && errno != EWOULDBLOCK) )
+                        if (errno == ECONNRESET)
                         {
-                            if (errno == ECONNRESET)
-                            {
-                                // Codes_SRS_ASYNC_SOCKET_LINUX_11_098: [ if errno is ECONNRESET, then on_send_complete shall be called with ASYNC_SOCKET_SEND_ABANDONED. ]
-                                send_result = ASYNC_SOCKET_SEND_ABANDONED;
-                                LogInfo("A reset on the send socket has been encountered");
-                            }
-                            else
-                            {
-                                // Codes_SRS_ASYNC_SOCKET_LINUX_11_099: [ if errno is anything else, then on_send_complete shall be called with ASYNC_SOCKET_SEND_ERROR. ]
-                                send_result = ASYNC_SOCKET_SEND_ERROR;
-                                // Log Error here
-                                LogError("failure sending data length: %" PRIu32 "", send_length);
-                            }
-                            break;
+                            // Codes_SRS_ASYNC_SOCKET_LINUX_11_098: [ if errno is ECONNRESET, then on_send_complete shall be called with ASYNC_SOCKET_SEND_ABANDONED. ]
+                            send_result = ASYNC_SOCKET_SEND_ABANDONED;
+                            LogInfo("A reset on the send socket has been encountered");
                         }
-                    } while (send_size < send_context->buffers[index].length);
+                        else
+                        {
+                            // Codes_SRS_ASYNC_SOCKET_LINUX_11_099: [ if errno is anything else, then on_send_complete shall be called with ASYNC_SOCKET_SEND_ERROR. ]
+                            send_result = ASYNC_SOCKET_SEND_ERROR;
+                            // Log Error here
+                            LogError("failure sending data length: %" PRIu32 "", send_length);
+                        }
+                        break;
+                    }
+                } while (send_size < send_context->socket_buffer.length);
 
-                    send_context->on_send_complete(send_context->on_send_complete_context, send_result);
-                }
+                send_context->on_send_complete(send_context->on_send_complete_context, send_result);
                 free(send_context);
             }
         }
@@ -373,14 +364,14 @@ static int thread_worker_func(void* parameter)
 
 static int initialize_global_thread(void)
 {
-    int result = -1;
+    int result;
 
     // Codes_SRS_ASYNC_SOCKET_LINUX_11_008: [ initialize_global_thread shall increment the global g_thread_access_cnt variable. ]
     int32_t current_count = interlocked_increment(&g_thread_access_cnt);
     // Codes_SRS_ASYNC_SOCKET_LINUX_11_009: [ If the g_thread_access_cnt count is 1, initialize_global_thread shall do the following: ]
     if (current_count == 1)
     {
-        interlocked_increment(&g_epoll_access);
+        (void)interlocked_increment(&g_epoll_access);
 
         // Codes_SRS_ASYNC_SOCKET_LINUX_11_010: [ initialize_global_thread shall create the epoll variable by calling epoll_create. ]
         g_epoll = epoll_create(MAX_EVENTS_NUM);
@@ -388,6 +379,7 @@ static int initialize_global_thread(void)
         {
             LogErrorNo("failure epoll_create MAX_EVENTS_NUM: %d", MAX_EVENTS_NUM);
             (void)interlocked_decrement(&g_thread_access_cnt);
+            result = -1;
         }
         else
         {
@@ -400,6 +392,7 @@ static int initialize_global_thread(void)
                 if (ThreadAPI_Create(&g_thread_array[index], thread_worker_func, NULL) != THREADAPI_OK)
                 {
                     LogCritical("Failure creating thread %" PRId32 "", index);
+                    result = -1;
                     break;
                 }
             }
@@ -418,11 +411,13 @@ static int initialize_global_thread(void)
                 result = -1;
                 (void)close(g_epoll);
                 g_epoll = -1;
-                interlocked_decrement(&g_thread_access_cnt);
+                (void)interlocked_decrement(&g_thread_access_cnt);
             }
         }
-        (void)interlocked_decrement(&g_epoll_access);
-        wake_by_address_single(&g_epoll_access);
+        if (interlocked_decrement(&g_epoll_access) == 0)
+        {
+            wake_by_address_single(&g_epoll_access);
+        }
     }
     else
     {
@@ -472,11 +467,10 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
     // Codes_SRS_ASYNC_SOCKET_LINUX_11_038: [ Then async_socket_close shall remove the underlying socket form the epoll by calling epoll_ctl with EPOLL_CTL_DEL. ]
     if (epoll_ctl(async_socket->epoll, EPOLL_CTL_DEL, async_socket->socket_handle, NULL) == -1)
     {
-        LogErrorNo("Failure epoll_ctrl with EPOLL_CTL_DEL");
+        LogErrorNo("Failure epoll_ctl with EPOLL_CTL_DEL");
     }
 
-    // Once a socket is removed from epoll we need to
-    // give epoll a moment to remove the socket in the other thread
+    // Codes_SRS_ASYNC_SOCKET_LINUX_11_101: [ async_socket_close shall call delay 1 millisecond after EPOLL_CTL_DEL to let epoll issue the EPOLLRDHUP command. ]
     ThreadAPI_Sleep(1);
 
     // Codes_SRS_ASYNC_SOCKET_LINUX_11_039: [ async_socket_close shall call close on the underlying socket. ]
@@ -515,13 +509,13 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
 ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine, SOCKET_HANDLE socket_handle)
 {
     ASYNC_SOCKET_HANDLE result;
+    // Codes_SRS_ASYNC_SOCKET_LINUX_11_002: [ execution_engine shall be allowed to be NULL. ]
     if (
-        // Codes_SRS_ASYNC_SOCKET_LINUX_11_002: [ If execution_engine is NULL, async_socket_create shall fail and return NULL. ]
-        (execution_engine == NULL) ||
         // Codes_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_create shall fail and return NULL. ]
-        (socket_handle == INVALID_SOCKET))
+        socket_handle == INVALID_SOCKET
+       )
     {
-        LogError("EXECUTION_ENGINE_HANDLE execution_engine:%p, SOCKET_HANDLE socket_handle:%" PRI_SOCKET "", execution_engine, socket_handle);
+        LogError("EXECUTION_ENGINE_HANDLE execution_engine=%p, SOCKET_HANDLE socket_handle=%" PRI_SOCKET "", execution_engine, socket_handle);
     }
     else
     {
@@ -529,7 +523,7 @@ ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine
         result = malloc(sizeof(ASYNC_SOCKET));
         if (result == NULL)
         {
-            LogError("failure allocating asyn socket %zu", sizeof(ASYNC_SOCKET));
+            LogError("failure allocating async socket %zu", sizeof(ASYNC_SOCKET));
         }
         else
         {
@@ -539,10 +533,6 @@ ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine
             }
             else
             {
-                // Codes_SRS_ASYNC_SOCKET_LINUX_11_004: [ async_socket_create shall increment the reference count on execution_engine. ]
-                execution_engine_inc_ref(execution_engine);
-                result->execution_engine = execution_engine;
-
                 // Codes_SRS_ASYNC_SOCKET_LINUX_11_005: [ async_socket_create shall initialize the global thread. ]
                 result->epoll = initialize_global_thread();
                 if (result->epoll == -1)
@@ -595,8 +585,6 @@ void async_socket_destroy(ASYNC_SOCKET_HANDLE async_socket)
         } while (1);
 
         deinitialize_global_thread();
-        // Codes_SRS_ASYNC_SOCKET_LINUX_11_022: [ async_socket_destroy shall decrement the reference count on the execution engine. ]
-        execution_engine_dec_ref(async_socket->execution_engine);
         // Codes_SRS_ASYNC_SOCKET_LINUX_11_023: [ async_socket_destroy shall free all resources associated with async_socket. ]
         free(async_socket);
     }
@@ -619,7 +607,7 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, ON_ASYNC_SOCKET_OP
     else
     {
         // Codes_SRS_ASYNC_SOCKET_LINUX_11_027: [ Otherwise, async_socket_open_async shall switch the state to OPENING. ]
-        int32_t current_state = interlocked_compare_exchange(&async_socket->state, (int32_t)ASYNC_SOCKET_LINUX_STATE_OPENING, (int32_t)ASYNC_SOCKET_LINUX_STATE_CLOSED);
+        int32_t current_state = interlocked_compare_exchange(&async_socket->state, ASYNC_SOCKET_LINUX_STATE_OPENING, ASYNC_SOCKET_LINUX_STATE_CLOSED);
         // Codes_SRS_ASYNC_SOCKET_LINUX_11_029: [ If async_socket is already OPEN or OPENING, async_socket_open_async shall fail and return a non-zero value. ]
         if (current_state != ASYNC_SOCKET_LINUX_STATE_CLOSED)
         {
@@ -643,7 +631,7 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, ON_ASYNC_SOCKET_OP
                 if (epoll_ctl(async_socket->epoll, EPOLL_CTL_ADD, async_socket->socket_handle, &ev) < 0)
                 {
                     // Codes_SRS_ASYNC_SOCKET_LINUX_11_034: [ If any error occurs, async_socket_open_async shall fail and return a non-zero value. ]
-                    LogErrorNo("failure with epoll_ctrl EPOLL_CTL_ADD");
+                    LogErrorNo("failure with epoll_ctl EPOLL_CTL_ADD");
                     result = MU_FAILURE;
                 }
                 else
@@ -658,7 +646,7 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, ON_ASYNC_SOCKET_OP
                     goto all_ok;
                 }
             }
-            interlocked_exchange(&async_socket->state, ASYNC_SOCKET_LINUX_STATE_CLOSED);
+            (void)interlocked_exchange(&async_socket->state, ASYNC_SOCKET_LINUX_STATE_CLOSED);
         }
     }
 
@@ -744,6 +732,8 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
         }
         else
         {
+            (void)interlocked_increment(&async_socket->pending_api_calls);
+
             ASYNC_SOCKET_LINUX_STATE current_state;
             // Codes_SRS_ASYNC_SOCKET_LINUX_11_051: [ If async_socket is not OPEN, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ABANDONED. ]
             if ((current_state = interlocked_add(&async_socket->state, 0)) != ASYNC_SOCKET_LINUX_STATE_OPEN)
@@ -753,23 +743,22 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
             }
             else
             {
-                (void)interlocked_increment(&async_socket->pending_api_calls);
-
                 ASYNC_SOCKET_SEND_RESULT send_result;
                 for (index = 0; index < buffer_count; index++)
                 {
+                    int error_no;
+                    ssize_t total_data_sent;
                     // Codes_SRS_ASYNC_SOCKET_LINUX_11_054: [ If the send fails to send the data, async_socket_send_async shall do the following: ]
-                    if (send_data(async_socket, &buffers[index]) != 0)
+                    if (send_data(async_socket, &buffers[index], &total_data_sent, &error_no) != 0)
                     {
                         // Codes_SRS_ASYNC_SOCKET_LINUX_11_055: [ If the errno value is EAGAIN or EWOULDBLOCK. ]
-                        if (errno == EAGAIN || errno == EWOULDBLOCK)
+                        if (error_no == EAGAIN || error_no == EWOULDBLOCK)
                         {
                             // Codes_SRS_ASYNC_SOCKET_LINUX_11_056: [ async_socket_send_async shall create a context for the send where the payload, on_send_complete and on_send_complete_context shall be stored. ]
-                            ASYNC_SOCKET_SEND_CONTEXT* send_context = malloc_flex(sizeof(ASYNC_SOCKET_SEND_CONTEXT), buffer_count, sizeof(ASYNC_SOCKET_BUFFER));
+                            ASYNC_SOCKET_SEND_CONTEXT* send_context = malloc(sizeof(ASYNC_SOCKET_SEND_CONTEXT));
                             if (send_context == NULL)
                             {
-                                LogError("failure in malloc_flex(sizeof(ASYNC_SOCKET_SEND_CONTEXT)=%zu, buffer_count=%" PRIu32 ", sizeof(ASYNC_SOCKET_BUFFER)=%zu) failed",
-                                    sizeof(ASYNC_SOCKET_SEND_CONTEXT), buffer_count, sizeof(ASYNC_SOCKET_BUFFER));
+                                LogError("failure in malloc(sizeof(ASYNC_SOCKET_SEND_CONTEXT)=%zu) failed", sizeof(ASYNC_SOCKET_SEND_CONTEXT));
                                 result = ASYNC_SOCKET_SEND_SYNC_ERROR;
                                 send_result = ASYNC_SOCKET_SEND_ABANDONED;
                                 break;
@@ -777,20 +766,18 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                             else
                             {
                                 send_result = ASYNC_SOCKET_SEND_ERROR;
-                                send_context->total_buffer_bytes = total_buffer_bytes;
-                                send_context->total_buffer_count = buffer_count;
+                                send_context->total_buffer_bytes = total_buffer_bytes - total_data_sent;
                                 send_context->on_send_complete = on_send_complete;
                                 send_context->on_send_complete_context = on_send_complete_context;
-                                send_context->socket_handle = async_socket->socket_handle;
                                 send_context->async_socket = async_socket;
 
-                                send_context->buffers[index].buffer = buffers[index].buffer;
-                                send_context->buffers[index].length = buffers[index].length;
+                                send_context->socket_buffer.buffer = buffers[index].buffer + total_data_sent;
+                                send_context->socket_buffer.length = buffers[index].length - total_data_sent;
 
                                 struct epoll_event ev = {0};
                                 ev.events = EPOLLOUT;
                                 ev.data.ptr = (void*)send_context;
-                                // Codes_SRS_ASYNC_SOCKET_LINUX_11_057: [ The the context shall then be added to the epoll system by calling epoll_ctl with EPOLL_CTL_MOD. ]
+                                // Codes_SRS_ASYNC_SOCKET_LINUX_11_057: [ The context shall then be added to the epoll system by calling epoll_ctl with EPOLL_CTL_MOD. ]
                                 if (epoll_ctl(async_socket->epoll, EPOLL_CTL_MOD, async_socket->socket_handle, &ev) < 0)
                                 {
                                     if (errno == ENOENT)
@@ -799,7 +786,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                                         if (epoll_ctl(async_socket->epoll, EPOLL_CTL_ADD, async_socket->socket_handle, &ev) < 0)
                                         {
                                             // Codes_SRS_ASYNC_SOCKET_LINUX_11_063: [ If any error occurs, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]
-                                            LogErrorNo("failure with epoll_ctrl EPOLL_CTL_ADD");
+                                            LogErrorNo("failure with epoll_ctl EPOLL_CTL_ADD");
                                             result = ASYNC_SOCKET_SEND_SYNC_ERROR;
                                         }
                                         else
@@ -809,7 +796,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                                     }
                                     else
                                     {
-                                        LogErrorNo("failure with epoll_ctrl EPOLL_CTL_MOD");
+                                        LogErrorNo("failure with epoll_ctl EPOLL_CTL_MOD");
                                         result = ASYNC_SOCKET_SEND_SYNC_ERROR;
                                     }
                                 }
@@ -853,7 +840,9 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                 {
                     // Do nothing failure happend do not call the callback
                 }
-                (void)interlocked_decrement(&async_socket->pending_api_calls);
+            }
+            if (interlocked_decrement(&async_socket->pending_api_calls) == 0)
+            {
                 wake_by_address_single(&async_socket->pending_api_calls);
             }
         }
@@ -917,6 +906,8 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
         }
         else
         {
+            (void)interlocked_increment(&async_socket->pending_api_calls);
+
             ASYNC_SOCKET_LINUX_STATE current_state;
             // Codes_SRS_ASYNC_SOCKET_LINUX_11_072: [ If async_socket is not OPEN, async_socket_receive_async shall fail and return a non-zero value. ]
             if ((current_state = interlocked_add(&async_socket->state, 0)) != ASYNC_SOCKET_LINUX_STATE_OPEN)
@@ -927,8 +918,6 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
             }
             else
             {
-                (void)interlocked_increment(&async_socket->pending_api_calls);
-
                 // Codes_SRS_ASYNC_SOCKET_LINUX_11_074: [ The context shall also allocate enough memory to keep an array of buffer_count items. ]
                 ASYNC_SOCKET_RECV_CONTEXT* recv_context = malloc_flex(sizeof(ASYNC_SOCKET_RECV_CONTEXT), buffer_count, sizeof(ASYNC_SOCKET_BUFFER));
                 if (recv_context == NULL)
@@ -939,7 +928,7 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                 }
                 else
                 {
-                    // Codes_SRS_ASYNC_SOCKET_LINUX_11_073: [ Otherwise async_socket_receive_async shall create a context for the send where the payload, on_receive_complete and on_receive_complete_context shall be stored. ]
+                    // Codes_SRS_ASYNC_SOCKET_LINUX_11_073: [ Otherwise async_socket_receive_async shall create a context for the receive where the payload, on_receive_complete and on_receive_complete_context shall be stored. ]
                     recv_context->total_buffer_bytes = total_buffer_bytes;
                     recv_context->total_buffer_count = buffer_count;
                     recv_context->on_receive_complete = on_receive_complete;
@@ -954,6 +943,7 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                         recv_context->recv_buffers[index].length = payload[index].length;
                     }
 
+                    // Codes_SRS_ASYNC_SOCKET_LINUX_11_102: [ async_socket_receive_async shall add the recv context to a list to track the items for later deallocation. ]
                     if (add_item_to_list(async_socket, recv_context) != 0)
                     {
                         LogError("failure adding receive data to list");
@@ -964,7 +954,7 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                         struct epoll_event ev = {0};
                         ev.events = EPOLLIN | EPOLLRDHUP | EPOLLONESHOT;
                         ev.data.ptr = recv_context;
-                        // This is telling valgrind that this will happne before the epoll gets called
+                        // This is telling valgrind that this will happen before the epoll gets called
                         #ifdef USE_VALGRIND
                             ANNOTATE_HAPPENS_BEFORE(recv_context);
                         #endif
@@ -977,7 +967,7 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                                 if (epoll_ctl(async_socket->epoll, EPOLL_CTL_ADD, async_socket->socket_handle, &ev) < 0)
                                 {
                                     // Codes_SRS_ASYNC_SOCKET_LINUX_11_078: [ If any error occurs, async_socket_receive_async shall fail and return a non-zero value. ]
-                                    LogErrorNo("failure with epoll_ctrl EPOLL_CTL_ADD");
+                                    LogErrorNo("failure with epoll_ctl EPOLL_CTL_ADD");
                                     result = MU_FAILURE;
                                 }
                                 else
@@ -989,7 +979,7 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                             else
                             {
                                 // Codes_SRS_ASYNC_SOCKET_LINUX_11_078: [ If any error occurs, async_socket_receive_async shall fail and return a non-zero value. ]
-                                LogErrorNo("failure with epoll_ctrl EPOLL_CTL_MOD");
+                                LogErrorNo("failure with epoll_ctl EPOLL_CTL_MOD");
                                 result = MU_FAILURE;
                             }
                         }
@@ -1005,14 +995,18 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                         }
                         else
                         {
-                            (void)interlocked_decrement(&async_socket->pending_api_calls);
-                            wake_by_address_single(&async_socket->pending_api_calls);
+                            if (interlocked_decrement(&async_socket->pending_api_calls) == 0)
+                            {
+                                wake_by_address_single(&async_socket->pending_api_calls);
+                            }
                             goto all_ok;
                         }
                     }
                     free(recv_context);
                 }
-                (void)interlocked_decrement(&async_socket->pending_api_calls);
+            }
+            if (interlocked_decrement(&async_socket->pending_api_calls) == 0)
+            {
                 wake_by_address_single(&async_socket->pending_api_calls);
             }
         }

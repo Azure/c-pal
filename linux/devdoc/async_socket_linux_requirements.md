@@ -77,11 +77,9 @@ MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create, EXECUTION_ENGINE_H
 
 **SRS_ASYNC_SOCKET_LINUX_11_001: [** `async_socket_create` shall allocate a new async socket and on success shall return a non-`NULL` handle. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_002: [** If `execution_engine` is NULL, `async_socket_create` shall fail and return `NULL`. **]**
+**SRS_ASYNC_SOCKET_LINUX_11_002: [** `execution_engine` shall be allowed to be `NULL`. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_003: [** If `socket_handle` is `INVALID_SOCKET`, `async_socket_create` shall fail and return `NULL`. **]**
-
-**SRS_ASYNC_SOCKET_LINUX_11_004: [** `async_socket_create` shall increment the reference count on `execution_engine`. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_005: [** `async_socket_create` shall initialize the global thread. **]**
 
@@ -137,8 +135,6 @@ MOCKABLE_FUNCTION(, void, async_socket_destroy, ASYNC_SOCKET_HANDLE, async_socke
 
 **SRS_ASYNC_SOCKET_LINUX_11_021: [** `async_socket_destroy` shall perform an implicit close if `async_socket` is `OPEN`. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_022: [** `async_socket_destroy` shall decrement the reference count on the execution engine. **]**
-
 **SRS_ASYNC_SOCKET_LINUX_11_023: [** `async_socket_destroy` shall free all resources associated with `async_socket`. **]**
 
 ### async_socket_open_async
@@ -187,6 +183,8 @@ MOCKABLE_FUNCTION(, void, async_socket_close, ASYNC_SOCKET_HANDLE, async_socket)
 
 **SRS_ASYNC_SOCKET_LINUX_11_038: [** Then `async_socket_close` shall remove the underlying socket form the epoll by calling  `epoll_ctl` with `EPOLL_CTL_DEL`. **]**
 
+**SRS_ASYNC_SOCKET_LINUX_11_101: [** `async_socket_close` shall call delay 1 millisecond after `EPOLL_CTL_DEL` to let epoll issue the `EPOLLRDHUP` command. **]**
+
 **SRS_ASYNC_SOCKET_LINUX_11_039: [** `async_socket_close` shall call `close` on the underlying socket. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_040: [** `async_socket_close` shall remove any memory that is stored in the epoll system **]**
@@ -231,7 +229,7 @@ MOCKABLE_FUNCTION(, ASYNC_SOCKET_SEND_SYNC_RESULT, async_socket_send_async, ASYN
 
   - **SRS_ASYNC_SOCKET_LINUX_11_056: [** `async_socket_send_async` shall create a context for the send where the `payload`, `on_send_complete` and `on_send_complete_context` shall be stored. **]**
 
-  - **SRS_ASYNC_SOCKET_LINUX_11_057: [** The the context shall then be added to the epoll system by calling `epoll_ctl` with `EPOLL_CTL_MOD`. **]**
+  - **SRS_ASYNC_SOCKET_LINUX_11_057: [** The context shall then be added to the epoll system by calling `epoll_ctl` with `EPOLL_CTL_MOD`. **]**
 
   - **SRS_ASYNC_SOCKET_LINUX_11_058: [** If the `epoll_ctl` call fails with `ENOENT`, `async_socket_send_async` shall call `epoll_ctl` again with `EPOLL_CTL_ADD`. **]**
 
@@ -271,7 +269,9 @@ MOCKABLE_FUNCTION(, int, async_socket_receive_async, ASYNC_SOCKET_HANDLE, async_
 
 **SRS_ASYNC_SOCKET_LINUX_11_072: [** If `async_socket` is not OPEN, `async_socket_receive_async` shall fail and return a non-zero value. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_073: [** Otherwise `async_socket_receive_async` shall create a context for the send where the `payload`, `on_receive_complete` and `on_receive_complete_context` shall be stored. **]**
+**SRS_ASYNC_SOCKET_LINUX_11_073: [** Otherwise `async_socket_receive_async` shall create a context for the receive where the `payload`, `on_receive_complete` and `on_receive_complete_context` shall be stored. **]**
+
+**SRS_ASYNC_SOCKET_LINUX_11_102: [** `async_socket_receive_async` shall add the recv context to a list to track the items for later deallocation. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_074: [** The context shall also allocate enough memory to keep an array of `buffer_count` items. **]**
 
@@ -293,9 +293,9 @@ static int thread_worker_func(void* parameter)
 
 **SRS_ASYNC_SOCKET_LINUX_11_079: [** `thread_worker_func` shall call `epoll_wait` waiting for the epoll to become signaled. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_080: [** Onced signaled `thread_worker_func` shall loop through the signaled epolls. **]**
+**SRS_ASYNC_SOCKET_LINUX_11_080: [** Once signaled `thread_worker_func` shall loop through the signaled epolls. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_081: [** If the events value contains `EPOLLRDHUP` (hang up), `thread_worker_func` shall the following: **]**
+**SRS_ASYNC_SOCKET_LINUX_11_081: [** If the events value contains `EPOLLRDHUP` (hang up), `thread_worker_func` shall do the following: **]**
 
 - **SRS_ASYNC_SOCKET_LINUX_11_082: [** `thread_worker_func` shall receive the `ASYNC_SOCKET_RECV_CONTEXT` value from the ptr variable from the `epoll_event` data ptr. **]**
 
