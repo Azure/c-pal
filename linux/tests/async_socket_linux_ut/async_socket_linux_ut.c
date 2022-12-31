@@ -286,7 +286,6 @@ TEST_FUNCTION(async_socket_create_with_INVALID_SOCKET_fails)
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_001: [ async_socket_create shall allocate a new async socket and on success shall return a non-NULL handle. ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_004: [ async_socket_create shall increment the reference count on execution_engine. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_005: [ async_socket_create shall initialize the global thread. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_008: [ initialize_global_thread shall increment the global g_thread_access_cnt variable. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_009: [ If the g_thread_access_cnt count is 1, initialize_global_thread shall do the following: ]
@@ -386,7 +385,6 @@ TEST_FUNCTION(async_socket_destroy_with_NULL_returns)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_022: [ async_socket_destroy shall decrement the reference count on the execution engine. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_015: [ deinitialize_global_thread shall decrement the global g_thread_access_cnt variable. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_016: [ If the g_thread_access_cnt count is 0, deinitialize_global_thread shall do the following: ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_017: [ deinitialize_global_thread shall call close on the global epoll variable. ]
