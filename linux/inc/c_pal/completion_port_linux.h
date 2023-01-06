@@ -53,10 +53,10 @@ extern "C" {
 #endif
 
 MOCKABLE_FUNCTION(, COMPLETION_PORT_HANDLE, completion_port_create);
-MOCKABLE_FUNCTION(, void, completion_port_dec_ref, COMPLETION_PORT_HANDLE, handle);
 MOCKABLE_FUNCTION(, void, completion_port_inc_ref, COMPLETION_PORT_HANDLE, handle);
-MOCKABLE_FUNCTION(, int, completion_port_post_queue, COMPLETION_PORT_HANDLE, handle, const COMPLETION_PORT_INGRESS_DATA*, epoll_data);
-MOCKABLE_FUNCTION(, void, completion_port_dequeue, COMPLETION_PORT_HANDLE, handle, SOCKET_HANDLE, socket);
+MOCKABLE_FUNCTION(, void, completion_port_dec_ref, COMPLETION_PORT_HANDLE, handle);
+MOCKABLE_FUNCTION(, int, completion_port_add, COMPLETION_PORT_HANDLE, handle, const COMPLETION_PORT_INGRESS_DATA*, epoll_data);
+MOCKABLE_FUNCTION(, void, completion_port_remove, COMPLETION_PORT_HANDLE, handle, SOCKET_HANDLE, socket);
 
 #ifdef __cplusplus
 }
