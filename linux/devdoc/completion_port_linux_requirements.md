@@ -52,7 +52,7 @@ If there are any errors then `completion_port_create` shall fail and return `NUL
 MOCKABLE_FUNCTION(, void, completion_port_inc_ref, COMPLETION_PORT_HANDLE, completion_port);
 ```
 
-`completion_port_inc_ref` handles the incrementing of the reference count of the module
+`completion_port_inc_ref` handles the incrementing of the reference count of the module.
 
 If `completion_port` is `NULL`, `completion_port_inc_ref` shall return.
 
@@ -97,7 +97,7 @@ If `event_callback` is `NULL`, `completion_port_add` shall return a non-NULL val
 
 `completion_port_add` shall ensure the thread completion flag is not set.
 
-`completion_port_add` shall increment the ongoing call count value to prevent close
+`completion_port_add` shall increment the ongoing call count value to prevent close.
 
 `completion_port_add` shall allocate a `EPOLL_THREAD_DATA` object to store thread data.
 
@@ -107,7 +107,7 @@ If `event_callback` is `NULL`, `completion_port_add` shall return a non-NULL val
 
 If the `epoll_ctl` call fails with `ENOENT`, `completion_port_add` shall call `epoll_ctl` again with `EPOLL_CTL_ADD`.
 
-`completion_port_add` shall decrement the ongoing call count value to unblock close
+`completion_port_add` shall decrement the ongoing call count value to unblock close.
 
 On success, `completion_port_add` shall return 0.
 
@@ -135,7 +135,7 @@ If `parameter` is `NULL`, `epoll_worker_func` shall do nothing.
 
 `epoll_worker_func` shall call `epoll_wait` to wait for an epoll event to become signaled with a timeout of 2 Seconds.
 
-On a `epoll_wait` timeout `epoll_worker_func` shall ensure it should not exit and issue another `epoll_wait`
+On a `epoll_wait` timeout `epoll_worker_func` shall ensure it should not exit and issue another `epoll_wait`.
 
 `epoll_worker_func` shall loop through the num of descriptors that was returned.
 
