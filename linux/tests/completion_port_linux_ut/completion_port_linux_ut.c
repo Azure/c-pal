@@ -314,10 +314,10 @@ TEST_FUNCTION(completion_port_dec_ref_1_ref_success)
 }
 
 // Tests_SRS_COMPLETION_PORT_LINUX_11_010: [ If the reference count reaches 0, completion_port_dec_ref shall do the following: ]
-// Tests_SRS_COMPLETION_PORT_LINUX_11_011: [ - wait for the ongoing call count to reach zero. ]
-// Tests_SRS_COMPLETION_PORT_LINUX_11_012: [ - increment the flag signaling that the threads can complete. ]
-// Tests_SRS_COMPLETION_PORT_LINUX_11_013: [ - close the epoll object. ]
-// Tests_SRS_COMPLETION_PORT_LINUX_11_014: [ - close the thread by calling ThreadAPI_Join. ]
+// Tests_SRS_COMPLETION_PORT_LINUX_11_011: [ wait for the ongoing call count to reach zero. ]
+// Tests_SRS_COMPLETION_PORT_LINUX_11_012: [ increment the flag signaling that the threads can complete. ]
+// Tests_SRS_COMPLETION_PORT_LINUX_11_013: [ close the epoll object. ]
+// Tests_SRS_COMPLETION_PORT_LINUX_11_014: [ close the thread by calling ThreadAPI_Join. ]
 TEST_FUNCTION(completion_port_dec_ref_0_ref_success)
 {
     //arrange
@@ -342,7 +342,7 @@ TEST_FUNCTION(completion_port_dec_ref_0_ref_success)
     // cleanup
 }
 
-// Tests_SRS_COMPLETION_PORT_LINUX_11_015: [ - then the memory associated with completion_port shall be freed. ]
+// Tests_SRS_COMPLETION_PORT_LINUX_11_015: [ then the memory associated with completion_port shall be freed. ]
 TEST_FUNCTION(completion_port_dec_ref_remove_item_success)
 {
     //arrange

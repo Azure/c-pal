@@ -260,26 +260,26 @@ void completion_port_dec_ref(COMPLETION_PORT_HANDLE completion_port)
 
             // Codes_SRS_COMPLETION_PORT_LINUX_11_010: [ If the reference count reaches 0, completion_port_dec_ref shall do the following: ]
             int32_t value;
-            // Codes_SRS_COMPLETION_PORT_LINUX_11_011: [ - wait for the ongoing call count to reach zero. ]
+            // Codes_SRS_COMPLETION_PORT_LINUX_11_011: [ wait for the ongoing call count to reach zero. ]
             while ((value = interlocked_add(&completion_port->pending_calls, 0)) != 0)
             {
                 (void)wait_on_address(&completion_port->pending_calls, value, UINT32_MAX);
             }
 
-            // Codes_SRS_COMPLETION_PORT_LINUX_11_013: [ - close the epoll object. ]
+            // Codes_SRS_COMPLETION_PORT_LINUX_11_013: [ close the epoll object. ]
             if (close(completion_port->epoll) != 0)
             {
                 LogErrorNo("failure closing epoll");
             }
 
             int dont_care;
-            // Codes_SRS_COMPLETION_PORT_LINUX_11_014: [ - close the thread by calling ThreadAPI_Join. ]
+            // Codes_SRS_COMPLETION_PORT_LINUX_11_014: [ close the thread by calling ThreadAPI_Join. ]
             if (ThreadAPI_Join(completion_port->thread_handle, &dont_care) != THREADAPI_OK)
             {
                 LogError("Failure joining thread");
             }
 
-            // Codes_SRS_COMPLETION_PORT_LINUX_11_015: [ - then the memory associated with completion_port shall be freed. ]
+            // Codes_SRS_COMPLETION_PORT_LINUX_11_015: [ then the memory associated with completion_port shall be freed. ]
             PS_LIST_ENTRY entry;
             while ((entry = s_list_remove_head(&completion_port->alloc_data_list)) != &completion_port->alloc_data_list)
             {

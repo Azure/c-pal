@@ -72,15 +72,15 @@ MOCKABLE_FUNCTION(, void, completion_port_dec_ref, COMPLETION_PORT_HANDLE, compl
 
 **SRS_COMPLETION_PORT_LINUX_11_010: [** If the reference count reaches 0, `completion_port_dec_ref` shall do the following: **]**
 
-**SRS_COMPLETION_PORT_LINUX_11_011: [** - wait for the ongoing call count to reach zero. **]**
+- **SRS_COMPLETION_PORT_LINUX_11_011: [** wait for the ongoing call count to reach zero. **]**
 
-**SRS_COMPLETION_PORT_LINUX_11_012: [** - increment the flag signaling that the threads can complete. **]**
+- **SRS_COMPLETION_PORT_LINUX_11_012: [** increment the flag signaling that the threads can complete. **]**
 
-**SRS_COMPLETION_PORT_LINUX_11_013: [** - close the epoll object. **]**
+- **SRS_COMPLETION_PORT_LINUX_11_013: [** close the epoll object. **]**
 
-**SRS_COMPLETION_PORT_LINUX_11_014: [** - close the thread by calling `ThreadAPI_Join`. **]**
+- **SRS_COMPLETION_PORT_LINUX_11_014: [** close the thread by calling `ThreadAPI_Join`. **]**
 
-**SRS_COMPLETION_PORT_LINUX_11_015: [** - then the memory associated with `completion_port` shall be freed. **]**
+- **SRS_COMPLETION_PORT_LINUX_11_015: [** then the memory associated with `completion_port` shall be freed. **]**
 
 ### completion_port_add
 
