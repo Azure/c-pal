@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <sys/epoll.h>
-#include <sys/socket.h>
 #include <errno.h>
 #include <string.h>                          // for memset
 
@@ -13,6 +12,7 @@
 
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
+#include "umock_c/umocktypes.h"
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umocktypes_charptr.h"
 #include "umock_c/umock_c_negative_tests.h"
@@ -21,9 +21,8 @@
 
 #include "c_pal/gballoc_hl.h"        // IWYU pragma: keep
 #include "c_pal/gballoc_hl_redirect.h"
-#include "c_pal/containing_record.h"
 #include "c_pal/interlocked.h"
-#include "c_pal/refcount.h"
+#include "c_pal/refcount.h"  // IWYU pragma: keep
 #include "c_pal/socket_handle.h"
 #include "c_pal/s_list.h"
 #include "c_pal/sync.h"
@@ -31,7 +30,7 @@
 
 #undef ENABLE_MOCKS
 
-#include "real_refcount.h"
+#include "real_refcount.h"  // IWYU pragma: keep
 #include "real_interlocked.h"
 #include "real_gballoc_hl.h" // IWYU pragma: keep
 #include "real_s_list.h" // IWYU pragma: keep
