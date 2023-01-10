@@ -20,11 +20,11 @@
 extern "C" {
 #endif
 
-    COMPLETION_PORT_HANDLE completion_port_create(void);
-    void completion_port_inc_ref(COMPLETION_PORT_HANDLE completion_port);
-    void completion_port_dec_ref(COMPLETION_PORT_HANDLE completion_port);
-    int completion_port_add(COMPLETION_PORT_HANDLE completion_port, int epoll_op, SOCKET_HANDLE socket, ON_COMPLETION_PORT_EVENT_COMPLETE event_callback, void* event_callback_ctx);
-    void completion_port_remove(COMPLETION_PORT_HANDLE completion_port, SOCKET_HANDLE socket);
+    COMPLETION_PORT_HANDLE real_completion_port_create(void);
+    void real_completion_port_inc_ref(COMPLETION_PORT_HANDLE completion_port);
+    void real_completion_port_dec_ref(COMPLETION_PORT_HANDLE completion_port);
+    int real_completion_port_add(COMPLETION_PORT_HANDLE completion_port, int epoll_op, SOCKET_HANDLE socket, ON_COMPLETION_PORT_EVENT_COMPLETE event_callback, void* event_callback_ctx);
+    void real_completion_port_remove(COMPLETION_PORT_HANDLE completion_port, SOCKET_HANDLE socket);
 
 #ifdef __cplusplus
 }
