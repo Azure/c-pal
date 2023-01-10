@@ -3,6 +3,9 @@
 # unit tests
 if(${run_unittests})
     build_test_folder(async_socket_linux_ut)
+    build_test_folder(completion_port_linux_ut)
+    build_test_folder(gballoc_ll_passthrough_ut)
+    build_test_folder(gballoc_hl_passthrough_ut)
     build_test_folder(interlocked_linux_ut)
     build_test_folder(linux_reals_ut)
     build_test_folder(pipe_linux_ut)
@@ -10,8 +13,6 @@ if(${run_unittests})
     build_test_folder(sysinfo_linux_ut)
     build_test_folder(timer_linux_ut)
     build_test_folder(uuid_linux_ut)
-    build_test_folder(gballoc_ll_passthrough_ut)
-    build_test_folder(gballoc_hl_passthrough_ut)
 endif()
 
 if(${run_int_tests})
