@@ -4,9 +4,11 @@
 #include <stdlib.h>
 
 #include "windows.h"
+
+#include "c_logging/xlogging.h"
+
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h"
-#include "c_logging/xlogging.h"
 #include "c_pal/threadpool.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_win32.h"
@@ -310,7 +312,7 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
         else
         {
             /* Codes_SRS_THREADPOOL_WIN32_01_023: [ Otherwise threadpool_schedule_work shall allocate a context where work_function and context shall be saved. ]*/
-            WORK_ITEM_CONTEXT* work_item_context = (WORK_ITEM_CONTEXT*)malloc(sizeof(WORK_ITEM_CONTEXT));
+            WORK_ITEM_CONTEXT* work_item_context = malloc(sizeof(WORK_ITEM_CONTEXT));
             if (work_item_context == NULL)
             {
                 /* Codes_SRS_THREADPOOL_WIN32_01_024: [ If any error occurs, threadpool_schedule_work shall fail and return a non-zero value. ]*/

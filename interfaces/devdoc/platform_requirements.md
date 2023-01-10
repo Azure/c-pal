@@ -1,6 +1,5 @@
 # platform
 
-
 ## Overview
 
 This document specifies the **platform** adapter for the Azure IoT C SDK. The purpose of _platform_ is
@@ -12,10 +11,11 @@ implementers
 may find it makes more sense to perform these operations outside of the scope of the Azure IoT SDK.
 In that case, the `platform_init` and `platform_deinit` calls may be left empty.
 
-###   Exposed API
+### Exposed API
+
 The platform adapter must implement `platform_init` and `platform_deinit`.
 
-###   platform_init
+### platform_init
 
 The `platform_init` call performs any global initialization necessary for a particular platform.
 
@@ -23,12 +23,11 @@ The `platform_init` call performs any global initialization necessary for a part
 int platform_init();
 ```
 
-**SRS_PLATFORM_30_000: [** The `platform_init` call shall perform any global initialization needed by the platform and return 0 on success. **]**
+**NON_PLATFORM_30_000: [** The `platform_init` call shall perform any global initialization needed by the platform and return 0 on success. **]**
 
-**SRS_PLATFORM_30_001: [** On failure, `platform_init` shall return a non-zero value. **]**
+**NON_PLATFORM_30_001: [** On failure, `platform_init` shall return a non-zero value. **]**
 
-
-###   platform_deinit
+### platform_deinit
 
 The `platform_deinit` call performs any global initialization necessary for a particular platform.
 
@@ -36,4 +35,4 @@ The `platform_deinit` call performs any global initialization necessary for a pa
 void platform_deinit();
 ```
 
-**SRS_PLATFORM_30_010: [** The `platform_deinit` call shall perform any global deinitialization needed by the platform. **]**
+**NON_PLATFORM_30_010: [** The `platform_deinit` call shall perform any global deinitialization needed by the platform. **]**

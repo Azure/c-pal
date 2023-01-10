@@ -8,6 +8,14 @@
 #include <semaphore.h>
 #include <time.h>
 #include <string.h>
+#include <signal.h>
+#include <errno.h>
+
+#include <bits/types/__sigval_t.h>         // for __sigval_t
+#include <bits/types/sigevent_t.h>         // for sigevent, sigev_notify_fun...
+#include <bits/types/sigval_t.h>           // for sigval_t
+#include <bits/types/struct_itimerspec.h>  // for itimerspec
+#include <bits/types/timer_t.h>            // for timer_t
 
 #include "macro_utils/macro_utils.h"
 
@@ -24,7 +32,9 @@
 
 #include "c_pal/threadpool.h"
 
-#define DEFAULT_TASK_ARRAY_SIZE 2048
+#define DEFAULT_TASK_ARRAY_SIZE         2048
+#define MILLISEC_TO_NANOSEC             1000000
+#define TP_SEMAPHORE_TIMEOUT_MS         (100*MILLISEC_TO_NANOSEC) // The timespec value is in nanoseconds so need to multiply to get 100 MS
 
 #define TASK_RESULT_VALUES  \
     TASK_NOT_USED,          \
@@ -46,11 +56,19 @@ MU_DEFINE_ENUM_STRINGS(THREADPOOL_OPEN_RESULT, THREADPOOL_OPEN_RESULT_VALUES)
 MU_DEFINE_ENUM(THREADPOOL_STATE, THREADPOOL_STATE_VALUES)
 MU_DEFINE_ENUM_STRINGS(THREADPOOL_STATE, THREADPOOL_STATE_VALUES)
 
+typedef struct TIMER_INSTANCE_TAG
+{
+    THREADPOOL_WORK_FUNCTION work_function;
+    void* work_function_ctx;
+    timer_t time_id;
+} TIMER_INSTANCE;
+
 typedef struct THREADPOOL_TASK_TAG
 {
     volatile_atomic int32_t task_state;
     THREADPOOL_WORK_FUNCTION work_function;
     void* work_function_ctx;
+    volatile uint32_t pending_api_calls;
 } THREADPOOL_TASK;
 
 typedef struct THREADPOOL_TAG
@@ -75,6 +93,19 @@ typedef struct THREADPOOL_TAG
 
     THREAD_HANDLE* thread_handle_array;
 } THREADPOOL;
+
+static void on_timer_callback(sigval_t timer_data)
+{
+    TIMER_INSTANCE* timer_instance = timer_data.sival_ptr;
+    if (timer_instance == NULL)
+    {
+        LogError("Invalid Argument timer_instance");
+    }
+    else
+    {
+        timer_instance->work_function(timer_instance->work_function_ctx);
+    }
+}
 
 static void internal_close(THREADPOOL_HANDLE threadpool)
 {
@@ -133,8 +164,8 @@ static int threadpool_work_func(void* param)
             }
             else
             {
-                // Setup the timeout for the semaphore to 2 sec
-                ts.tv_sec += 2;
+                // Setup the timeout for the semaphore
+                ts.tv_nsec += TP_SEMAPHORE_TIMEOUT_MS;
                 if (sem_timedwait(&threadpool->semaphore, &ts) != 0)
                 {
                     // Timed out
@@ -500,29 +531,155 @@ all_ok:
 
 int threadpool_timer_start(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_ctx, TIMER_INSTANCE_HANDLE* timer_handle)
 {
-    (void)threadpool;
-    (void)start_delay_ms;
-    (void)timer_period_ms;
-    (void)work_function;
-    (void)work_function_ctx;
-    (void)timer_handle;
-    return MU_FAILURE;
+    int result;
+
+    if (
+        threadpool == NULL ||
+        work_function == NULL ||
+        timer_handle == NULL
+        )
+    {
+        LogError("Invalid args: THREADPOOL_HANDLE threadpool = %p, uint32_t start_delay_ms = %" PRIu32 ", uint32_t timer_period_ms = %" PRIu32 ", THREADPOOL_WORK_FUNCTION work_function = %p, void* work_function_context = %p, TIMER_INSTANCE_HANDLE* timer_handle = %p",
+            threadpool, start_delay_ms, timer_period_ms, work_function, work_function_ctx, timer_handle);
+        result = MU_FAILURE;
+    }
+    else
+    {
+        TIMER_INSTANCE* timer_instance = malloc(sizeof(TIMER_INSTANCE));
+        if (timer_instance == NULL)
+        {
+            LogError("Failure allocating Timer Instance");
+        }
+        else
+        {
+            timer_instance->work_function = work_function;
+            timer_instance->work_function_ctx = work_function_ctx;
+
+            // Setup the timer
+            struct sigevent sigev = {0};
+            timer_t time_id = 0;
+
+            sigev.sigev_notify          = SIGEV_THREAD;
+            sigev.sigev_notify_function = on_timer_callback;
+            sigev.sigev_value.sival_ptr = timer_instance;
+
+            if (timer_create(CLOCK_REALTIME, &sigev, &time_id) != 0)
+            {
+                char err_msg[128];
+                (void)strerror_r(errno, err_msg, 128);
+                LogError("Failure calling timer_create. Error: %d: %s", errno, err_msg);
+            }
+            else
+            {
+                struct itimerspec its;
+                its.it_value.tv_sec = start_delay_ms / 1000;
+                its.it_value.tv_nsec = start_delay_ms * MILLISEC_TO_NANOSEC % 1000000000;
+                its.it_interval.tv_sec = timer_period_ms / 1000;
+                its.it_interval.tv_nsec = timer_period_ms * MILLISEC_TO_NANOSEC % 1000000000;
+
+                if (timer_settime(time_id, 0, &its, NULL) == -1)
+                {
+                    char err_msg[128];
+                    (void)strerror_r(errno, err_msg, 128);
+                    LogError("Failure calling timer_settime. Error: %s", MU_P_OR_NULL(err_msg));
+                }
+                else
+                {
+                    timer_instance->time_id = time_id;
+                    *timer_handle = timer_instance;
+                    result = 0;
+                    goto all_ok;
+                }
+
+                if (timer_delete(time_id) != 0)
+                {
+                    char err_msg[128];
+                    (void)strerror_r(errno, err_msg, 128);
+                    LogError("Failure calling timer_delete. Error: %d: (%s)", errno, err_msg);
+                }
+            }
+            free(timer_instance);
+        }
+        result = MU_FAILURE;
+    }
+all_ok:
+    return result;
 }
 
 int threadpool_timer_restart(TIMER_INSTANCE_HANDLE timer, uint32_t start_delay_ms, uint32_t timer_period_ms)
 {
-    (void)timer;
-    (void)start_delay_ms;
-    (void)timer_period_ms;
-    return MU_FAILURE;
+    int result;
+    if (
+        timer == NULL
+        )
+    {
+        LogError("Invalid args: TIMER_INSTANCE_HANDLE timer = %p, uint32_t start_delay_ms = %" PRIu32 ", uint32_t timer_period_ms = %" PRIu32 "",
+            timer, start_delay_ms, timer_period_ms);
+        result = MU_FAILURE;
+    }
+    else
+    {
+        struct itimerspec its = {0};
+        its.it_value.tv_sec = start_delay_ms / 1000;
+        its.it_value.tv_nsec = start_delay_ms * MILLISEC_TO_NANOSEC % 1000000000;
+        its.it_interval.tv_sec = timer_period_ms / 1000;
+        its.it_interval.tv_nsec = timer_period_ms * MILLISEC_TO_NANOSEC % 1000000000;
+
+        if (timer_settime(timer->time_id, 0, &its, NULL) != 0)
+        {
+            char err_msg[128];
+            (void)strerror_r(errno, err_msg, 128);
+            LogError("Failure calling timer_settime. Error: %d: (%s)", errno, err_msg);
+            result = MU_FAILURE;
+        }
+        else
+        {
+            result = 0;
+        }
+    }
+    return result;
 }
 
 void threadpool_timer_cancel(TIMER_INSTANCE_HANDLE timer)
 {
-    (void)timer;
+    if (timer == NULL)
+    {
+        LogError("Invalid args: TIMER_INSTANCE_HANDLE timer = %p", timer);
+    }
+    else
+    {
+        struct itimerspec its = {0};
+        if (timer_settime(timer->time_id, 0, &its, NULL) != 0)
+        {
+            char err_msg[128];
+            (void)strerror_r(errno, err_msg, 128);
+            LogError("Failure calling timer_settime. Error: %d: (%s)", errno, err_msg);
+        }
+        else
+        {
+            // Do Nothing
+        }
+    }
 }
 
 void threadpool_timer_destroy(TIMER_INSTANCE_HANDLE timer)
 {
-    (void)timer;
+    if (timer == NULL)
+    {
+        LogError("Invalid args: TIMER_INSTANCE_HANDLE timer = %p", timer);
+    }
+    else
+    {
+        if (timer_delete(timer->time_id) != 0)
+        {
+            char err_msg[128];
+            (void)strerror_r(errno, err_msg, 128);
+            LogError("Failure calling timer_delete. Error: %d: (%s)", errno, err_msg);
+        }
+        else
+        {
+            // Do Nothing
+        }
+        free(timer);
+    }
 }

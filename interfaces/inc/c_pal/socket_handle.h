@@ -8,7 +8,14 @@ extern "C" {
 #endif
 
 /* this type should abstract a socket for different platforms. I.e. for Windows it should simply wrap SOCKET */
-typedef void* SOCKET_HANDLE;
+#ifdef WIN32
+    typedef void* SOCKET_HANDLE;
+    #define PRI_SOCKET "p"
+#else
+    typedef int SOCKET_HANDLE;
+    #define INVALID_SOCKET  -1
+    #define PRI_SOCKET "d"
+#endif
 
 #ifdef __cplusplus
 }

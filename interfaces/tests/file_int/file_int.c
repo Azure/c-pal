@@ -515,7 +515,7 @@ TEST_FUNCTION(large_simultaneous_writes_succeed)
     ///act
     for (int i = 0; i < num_blocks; ++i)
     {
-        sources[i] = (unsigned char*)malloc(block_size);
+        sources[i] = malloc(block_size);
         ASSERT_IS_NOT_NULL(sources[i]);
         (void)memset(sources[i], 'a' + i, block_size);
         contexts[i].pre_callback_value = num_blocks + 1;
@@ -534,7 +534,7 @@ TEST_FUNCTION(large_simultaneous_writes_succeed)
     }
 
     ///assert
-    unsigned char* destination = (unsigned char*)malloc_2(block_size, num_blocks);
+    unsigned char* destination = malloc_2(block_size, num_blocks);
     ASSERT_IS_NOT_NULL(destination);
     READ_COMPLETE_CONTEXT read_context;
     read_context.pre_callback_value = 0;
@@ -579,7 +579,7 @@ TEST_FUNCTION(large_simultaneous_reads_succeed)
     ///arrange
     int block_size = 4096;
     int num_blocks = 50;
-    unsigned char* source = (unsigned char*)malloc_2(block_size, num_blocks);
+    unsigned char* source = malloc_2(block_size, num_blocks);
     ASSERT_IS_NOT_NULL(source);
 
     for (int i = 0; i < num_blocks; ++i)
@@ -607,7 +607,7 @@ TEST_FUNCTION(large_simultaneous_reads_succeed)
     ///act
     for (int i = 0; i < num_blocks; ++i)
     {
-        destinations[i] = (unsigned char*)malloc(block_size);
+        destinations[i] = malloc(block_size);
         ASSERT_IS_NOT_NULL(destinations[i]);
         contexts[i].pre_callback_value = num_blocks + 1;
         (void)interlocked_exchange(&contexts[i].value, contexts[i].pre_callback_value);

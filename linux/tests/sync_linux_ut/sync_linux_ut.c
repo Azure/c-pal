@@ -17,6 +17,7 @@
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
+#include "umock_c/umocktypes.h"
 
 #include "c_pal/interlocked.h"
 #include "c_pal/sync.h"
@@ -53,6 +54,8 @@ static int hook_mock_syscall(long call_code, int* uaddr, int futex_op, int val, 
     return expected_return_val;
 }
 
+TEST_DEFINE_ENUM_TYPE(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES);
+IMPLEMENT_UMOCK_C_ENUM_TYPE(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES);
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
@@ -102,11 +105,11 @@ TEST_FUNCTION(wait_on_address_calls_syscall_successfully)
     STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int32_t*)&var, FUTEX_WAIT_PRIVATE, INT32_MAX, IGNORED_ARG, NULL, 0));
 
     ///act
-    bool return_val = wait_on_address(&var, INT32_MAX, expected_timeout_ms);
+    WAIT_ON_ADDRESS_RESULT return_val = wait_on_address(&var, INT32_MAX, expected_timeout_ms);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
-    ASSERT_IS_TRUE(return_val, "Return value is incorrect.");
+    ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_OK, return_val, "wait_on_address should have returned ok");
 }
 
 /*Tests_SRS_SYNC_LINUX_43_002: [ wait_on_address shall call syscall from sys/syscall.h with arguments SYS_futex, address, FUTEX_WAIT_PRIVATE, *compare_address, timeout_struct, NULL, NULL. ]*/
@@ -123,11 +126,11 @@ TEST_FUNCTION(wait_on_address_calls_sycall_unsuccessfully)
     STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int*)&var, FUTEX_WAIT_PRIVATE, val, IGNORED_ARG, NULL, 0));
 
     ///act
-    bool return_val = wait_on_address(&var, val, expected_timeout_ms);
+    WAIT_ON_ADDRESS_RESULT return_val = wait_on_address(&var, val, expected_timeout_ms);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
-    ASSERT_IS_FALSE(return_val, "Return value is incorrect.");
+    ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_ERROR, return_val, "wait_on_address should have returned error");
 }
 
 /* Tests_SRS_SYNC_LINUX_01_001: [ if syscall returns a non-zero value and errno is EAGAIN, wait_on_address shall return true. ]*/
@@ -143,11 +146,31 @@ TEST_FUNCTION(when_syscall_fails_and_errno_is_EAGAIN_wait_on_address_succeeds)
         .SetReturn(-1);
 
     ///act
-    bool return_val = wait_on_address(&var, val, expected_timeout_ms);
+    WAIT_ON_ADDRESS_RESULT return_val = wait_on_address(&var, val, expected_timeout_ms);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
-    ASSERT_IS_TRUE(return_val, "Return value is incorrect.");
+    ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_OK, return_val, "wait_on_address should have returned ok");
+}
+
+/* Tests_SRS_SYNC_LINUX_24_001: [ if syscall returns a non-zero value and errno is ETIMEDOUT, wait_on_address shall return WAIT_ON_ADDRESS_TIMEOUT. ]*/
+TEST_FUNCTION(when_syscall_fails_and_errno_is_ETIME_wait_on_address_fails)
+{
+    ///arrange
+    volatile_atomic int32_t var;
+    int32_t val = INT32_MAX;
+    (void)atomic_exchange(&var, val);
+    mock_errno = ETIMEDOUT;
+
+    STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int*)&var, FUTEX_WAIT_PRIVATE, val, IGNORED_ARG, NULL, 0))
+        .SetReturn(-1);
+
+    ///act
+    WAIT_ON_ADDRESS_RESULT return_val = wait_on_address(&var, val, expected_timeout_ms);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
+    ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_TIMEOUT, return_val, "wait_on_address should have returned timeout");
 }
 
 /*Tests_SRS_SYNC_LINUX_43_005: [ wake_by_address_all shall call syscall from sys/syscall.h with arguments SYS_futex, address, FUTEX_WAKE_PRIVATE, INT_MAX, NULL, NULL, NULL. ]*/

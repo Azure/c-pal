@@ -211,7 +211,7 @@ TEST_FUNCTION(interlocked_compare_exchange_128_calls_InterlockedCompareExchange1
     volatile int64_t* destination;
     InterlockedExchangePointer((PVOID volatile*)&destination, malloc(2 * sizeof(int64_t)));
     ASSERT_IS_NOT_NULL(destination);
-    int64_t* comperand_result = (int64_t*)malloc(2 * sizeof(int64_t));
+    int64_t* comperand_result = malloc(2 * sizeof(int64_t));
     ASSERT_IS_NOT_NULL(comperand_result);
 
     destination[0] = INT64_MAX;
@@ -244,7 +244,7 @@ TEST_FUNCTION(interlocked_compare_exchange_128_calls_InterlockedCompareExchange1
     ///arrange
     volatile int64_t* destination;
     InterlockedExchangePointer((PVOID volatile*)&destination, malloc(2 * sizeof(int64_t)));
-    int64_t* comperand_result = (int64_t*)malloc(2 * sizeof(int64_t));
+    int64_t* comperand_result = malloc(2 * sizeof(int64_t));
     ASSERT_IS_NOT_NULL(comperand_result);
 
     destination[0] = INT64_MAX;

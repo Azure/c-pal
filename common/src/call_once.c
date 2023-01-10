@@ -51,7 +51,7 @@ CALL_ONCE_RESULT call_once_begin(call_once_t* state)
         {
             /*Codes_SRS_CALL_ONCE_02_003: [ If interlocked_compare_exchange returns 1 then call_once_begin shall call wait_on_address(state) with timeout UINT32_MAX and call again interlocked_compare_exchange(state, 1, 0). ]*/
             /*state cannot be "2" because while condition, so that means state is "1", and that means, need to wait until it is not 1*/
-            if (!wait_on_address(state, CALL_ONCE_STATE_CALLING, UINT32_MAX))
+            if (wait_on_address(state, CALL_ONCE_STATE_CALLING, UINT32_MAX) != WAIT_ON_ADDRESS_OK)
             {
                 /*look the other way and retry*/
                 LogError("failure in wait_on_address, var=%p", state);

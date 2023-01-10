@@ -2,6 +2,7 @@
 
 # unit tests
 if(${run_unittests})
+    build_test_folder(async_socket_linux_ut)
     build_test_folder(interlocked_linux_ut)
     build_test_folder(linux_reals_ut)
     build_test_folder(pipe_linux_ut)
@@ -14,6 +15,7 @@ if(${run_unittests})
 endif()
 
 if(${run_int_tests})
+    build_test_folder(async_socket_linux_int)
     build_test_folder(gballoc_ll_passthrough_int)
     build_test_folder(string_utils_int)
     build_test_folder(threadpool_linux_int)

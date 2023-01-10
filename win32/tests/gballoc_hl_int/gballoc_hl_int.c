@@ -73,7 +73,7 @@ TEST_FUNCTION(gballoc_hl_deinit_works)
 TEST_FUNCTION(gballoc_hl_malloc_works)
 {
     ///act (1)
-    unsigned char* ptr = (unsigned char*)gballoc_hl_malloc(1);
+    unsigned char* ptr = gballoc_hl_malloc(1);
 
     ///assert (1)
     ASSERT_IS_NOT_NULL(ptr);
@@ -90,7 +90,7 @@ TEST_FUNCTION(gballoc_hl_malloc_works)
 TEST_FUNCTION(gballoc_hl_malloc_1MB_works)
 {
     ///act (1)
-    unsigned char* ptr = (unsigned char*)gballoc_hl_malloc(1024 * 1024);
+    unsigned char* ptr = gballoc_hl_malloc(1024 * 1024);
 
     ///assert (1)
     ASSERT_IS_NOT_NULL(ptr);
@@ -107,7 +107,7 @@ TEST_FUNCTION(gballoc_hl_malloc_1MB_works)
 TEST_FUNCTION(gballoc_hl_malloc_2_works)
 {
     ///act (1)
-    unsigned char* ptr = (unsigned char*)gballoc_hl_malloc_2(2,3);
+    unsigned char* ptr = gballoc_hl_malloc_2(2,3);
 
     ///assert (1)
     ASSERT_IS_NOT_NULL(ptr);
@@ -124,7 +124,7 @@ TEST_FUNCTION(gballoc_hl_malloc_2_works)
 TEST_FUNCTION(gballoc_hl_malloc_2_1MB_works)
 {
     ///act (1)
-    unsigned char* ptr = (unsigned char*)gballoc_hl_malloc_2(1024, 1024);
+    unsigned char* ptr = gballoc_hl_malloc_2(1024, 1024);
 
     ///assert (1)
     ASSERT_IS_NOT_NULL(ptr);
@@ -141,7 +141,7 @@ TEST_FUNCTION(gballoc_hl_malloc_2_1MB_works)
 TEST_FUNCTION(gballoc_hl_malloc_flex_works)
 {
     ///act (1)
-    unsigned char* ptr = (unsigned char*)gballoc_hl_malloc_flex(2, 3, 5);
+    unsigned char* ptr = gballoc_hl_malloc_flex(2, 3, 5);
 
     ///assert (1)
     ASSERT_IS_NOT_NULL(ptr);
@@ -158,7 +158,7 @@ TEST_FUNCTION(gballoc_hl_malloc_flex_works)
 TEST_FUNCTION(gballoc_hl_malloc_flex_1MB_works)
 {
     ///act (1)
-    unsigned char* ptr = (unsigned char*)gballoc_hl_malloc_flex(1024, 1024, 1024);
+    unsigned char* ptr = gballoc_hl_malloc_flex(1024, 1024, 1024);
 
     ///assert (1)
     ASSERT_IS_NOT_NULL(ptr);
@@ -175,7 +175,7 @@ TEST_FUNCTION(gballoc_hl_malloc_flex_1MB_works)
 TEST_FUNCTION(gballoc_hl_free_works)
 {
     ///arrange
-    unsigned char* ptr = (unsigned char*)gballoc_hl_malloc(1);
+    unsigned char* ptr = gballoc_hl_malloc(1);
     ASSERT_IS_NOT_NULL(ptr);
 
     ///act 
@@ -187,12 +187,12 @@ TEST_FUNCTION(gballoc_hl_free_works)
 TEST_FUNCTION(gballoc_hl_realloc_works)
 {
     ///arrange
-    unsigned char* ptr1 = (unsigned char*)gballoc_hl_malloc(1);
+    unsigned char* ptr1 = gballoc_hl_malloc(1);
     ASSERT_IS_NOT_NULL(ptr1);
     unsigned char* ptr2;
 
     ///act 
-    ptr2 = (unsigned char*)gballoc_hl_realloc(ptr1, 2);
+    ptr2 = gballoc_hl_realloc(ptr1, 2);
 
     ///assert - doesn't crash
     ASSERT_IS_NOT_NULL(ptr2);
@@ -204,12 +204,12 @@ TEST_FUNCTION(gballoc_hl_realloc_works)
 TEST_FUNCTION(gballoc_hl_realloc_2_works)
 {
     ///arrange
-    unsigned char* ptr1 = (unsigned char*)gballoc_hl_malloc(1);
+    unsigned char* ptr1 = gballoc_hl_malloc(1);
     ASSERT_IS_NOT_NULL(ptr1);
     unsigned char* ptr2;
 
     ///act 
-    ptr2 = (unsigned char*)gballoc_hl_realloc_2(ptr1, 2, 3);
+    ptr2 = gballoc_hl_realloc_2(ptr1, 2, 3);
 
     ///assert - doesn't crash
     ASSERT_IS_NOT_NULL(ptr2);
@@ -221,12 +221,12 @@ TEST_FUNCTION(gballoc_hl_realloc_2_works)
 TEST_FUNCTION(gballoc_hl_realloc_flex_works)
 {
     ///arrange
-    unsigned char* ptr1 = (unsigned char*)gballoc_hl_malloc(1);
+    unsigned char* ptr1 = gballoc_hl_malloc(1);
     ASSERT_IS_NOT_NULL(ptr1);
     unsigned char* ptr2;
 
     ///act 
-    ptr2 = (unsigned char*)gballoc_hl_realloc_flex(ptr1, 2, 3, 5);
+    ptr2 = gballoc_hl_realloc_flex(ptr1, 2, 3, 5);
 
     ///assert - doesn't crash
     ASSERT_IS_NOT_NULL(ptr2);
@@ -241,7 +241,7 @@ TEST_FUNCTION(gballoc_hl_calloc_works)
     unsigned char* ptr;
 
     ///act 
-    ptr = (unsigned char*)gballoc_hl_calloc(1, 1);
+    ptr = gballoc_hl_calloc(1, 1);
 
     ///assert - doesn't crash
     ASSERT_IS_NOT_NULL(ptr);

@@ -1,12 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#include <stdbool.h>
 #include <stdint.h>
 #include <unistd.h>
 #include <limits.h>
 #include <time.h>
+#include <string.h>
 #include <errno.h>
+
+#include "c_logging/xlogging.h"
 
 #include "sys/syscall.h"
 #include "linux/futex.h"
@@ -16,9 +18,9 @@
 #include "c_pal/interlocked.h"     // for volatile_atomic
 #include "c_pal/sync.h"
 
-IMPLEMENT_MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, address, int32_t, compare_value, uint32_t, timeout_ms)
+IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_atomic int32_t*, address, int32_t, compare_value, uint32_t, timeout_ms)
 {
-    bool result;
+    WAIT_ON_ADDRESS_RESULT result;
 
     /*Codes_SRS_SYNC_43_001: [ wait_on_address shall atomically compare *address and *compare_address.]*/
     /*Codes_SRS_SYNC_43_002: [ wait_on_address shall immediately return true if *address is not equal to *compare_address.]*/
@@ -34,19 +36,27 @@ IMPLEMENT_MOCKABLE_FUNCTION(, bool, wait_on_address, volatile_atomic int32_t*, a
     if (syscall_result == 0)
     {
         /*Codes_SRS_SYNC_LINUX_43_003: [ wait_on_address shall return true if syscall returns 0.]*/
-        result = true;
+        result = WAIT_ON_ADDRESS_OK;
     }
     else
     {
         if (errno == EAGAIN)
         {
-            /* Codes_SRS_SYNC_LINUX_01_001: [ if syscall returns a non-zero value and errno is EAGAIN, wait_on_address shall return true. ]*/
-            result = true;
+            /* Codes_SRS_SYNC_LINUX_01_001: [ if syscall returns a non-zero value and errno is EAGAIN, wait_on_address shall return WAIT_ON_ADDRESS_OK. ]*/
+            result = WAIT_ON_ADDRESS_OK;
+        }
+        else if (errno == ETIMEDOUT)
+        {
+            /* Codes_SRS_SYNC_LINUX_24_001: [ if syscall returns a non-zero value and errno is ETIMEDOUT, wait_on_address shall return WAIT_ON_ADDRESS_TIMEOUT. ]*/
+            result = WAIT_ON_ADDRESS_TIMEOUT;
         }
         else
         {
-            /*Codes_SRS_SYNC_LINUX_43_004: [ Otherwise, wait_on_address shall return false.*/
-            result = false;
+            char err_msg[128];
+            (void)strerror_r(errno, err_msg, 128);
+            LogError("failure in syscall, Error: %d: (%s)", errno, err_msg);
+            /*Codes_SRS_SYNC_LINUX_43_004: [ Otherwise, wait_on_address shall return WAIT_ON_ADDRESS_ERROR.*/
+            result = WAIT_ON_ADDRESS_ERROR;
         }
     }
 

@@ -11,6 +11,7 @@ if(${run_unittests})
     build_test_folder(refcount_ut)
     build_test_folder(call_once_ut)
     build_test_folder(lazy_init_ut)
+    build_test_folder(s_list_ut)
 endif()
 
 if(${run_int_tests})

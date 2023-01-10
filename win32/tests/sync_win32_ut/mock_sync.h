@@ -8,4 +8,4 @@
 MOCKABLE_FUNCTION(, BOOL, mock_WaitOnAddress, volatile VOID*, Address, PVOID, CompareAddress, SIZE_T, AddressSize, DWORD, dwMilliseconds);
 MOCKABLE_FUNCTION(, void, mock_WakeByAddressAll, PVOID, address);
 MOCKABLE_FUNCTION(, void, mock_WakeByAddressSingle, PVOID, address);
-
+MOCKABLE_FUNCTION(, DWORD, mock_GetLastError);

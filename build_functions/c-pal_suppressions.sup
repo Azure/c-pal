@@ -1,0 +1,36 @@
+{
+   <epoll thread suppression>
+   Helgrind:Race
+   fun:thread_worker_func
+   ...
+}
+{
+   <incorrect interlocked flagging>
+   Helgrind:Race
+   fun:interlocked_compare_exchange
+   fun:remove_item_from_list
+   fun:thread_worker_func
+   ...
+}
+{
+   <socket creation>
+   Helgrind:Race
+   fun:interlocked_add
+   fun:on_receive_and_accumulate_complete
+   fun:thread_worker_func
+   ...
+}
+{
+   <linux_sys_timer>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:calloc
+   fun:allocate_dtv
+   fun:_dl_allocate_tls
+   fun:allocate_stack
+   fun:pthread_create@@GLIBC_2.2.5
+   fun:__start_helper_thread
+   fun:__pthread_once_slow
+   fun:timer_create@@GLIBC_2.3.3
+   ...
+}

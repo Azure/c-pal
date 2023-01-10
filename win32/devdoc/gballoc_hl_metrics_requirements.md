@@ -67,6 +67,8 @@
 
 **SRS_GBALLOC_HL_METRICS_02_005: [** `do_init` shall call `gballoc_ll_init(ll_params)`. **]**
 
+**SRS_GBALLOC_HL_METRICS_01_041: [** For each bucket, for each of the 4 flavors of latencies tracked, `do_init` shall initialize the count, latency sum used for computing the average and the min and max latency values. **]**
+
 **SRS_GBALLOC_HL_METRICS_02_006: [** `do_init` shall succeed and return 0. **]**
 
 **SRS_GBALLOC_HL_METRICS_02_007: [** If `gballoc_ll_init` fails then `do_init` shall return a non-zero value. **]**
@@ -105,6 +107,14 @@ MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc, size_t, size);
 
 **SRS_GBALLOC_HL_METRICS_01_029: [** `gballoc_hl_malloc` shall call `timer_global_get_elapsed_us` to obtain the end time of the allocate. **]**
 
+**SRS_GBALLOC_HL_METRICS_01_043: [** `gballoc_hl_malloc` shall add the computed latency to the running `malloc` latency sum used to compute the average. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_044: [** If the computed latency is less than the minimum tracked latency, `gballoc_hl_malloc` shall store it as the new minimum `malloc` latency. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_045: [** If the computed latency is more than the maximum tracked latency, `gballoc_hl_malloc` shall store it as the new maximum `malloc` latency. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_042: [** `gballoc_hl_malloc` shall increment the count of `malloc` latency samples. **]**
+
 ### gballoc_hl_malloc_2
 ```c
 MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc_2, size_t, nmemb, size_t, size);
@@ -122,6 +132,14 @@ MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc_2, size_t, nmemb, size_t, size);
 
 **SRS_GBALLOC_HL_METRICS_02_024: [** `gballoc_hl_malloc_2` shall call `timer_global_get_elapsed_us` to obtain the end time of the allocate. **]**
 
+**SRS_GBALLOC_HL_METRICS_01_046: [** `gballoc_hl_malloc_2` shall add the computed latency to the running `malloc` latency sum used to compute the average. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_047: [** If the computed latency is less than the minimum tracked latency, `gballoc_hl_malloc_2` shall store it as the new minimum `malloc` latency. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_048: [** If the computed latency is more than the maximum tracked latency, `gballoc_hl_malloc_2` shall store it as the new maximum `malloc` latency. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_049: [** `gballoc_hl_malloc_2` shall increment the count of `malloc` latency samples. **]**
+
 ### gballoc_hl_malloc_flex
 ```c
 MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc_flex, size_t, base, size_t, nmemb, size_t, size);
@@ -138,6 +156,14 @@ MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc_flex, size_t, base, size_t, nmemb, 
 **SRS_GBALLOC_HL_METRICS_02_010: [** `gballoc_hl_malloc_flex` shall call `gballoc_ll_malloc_flex(base, nmemb, size)` and return the result of `gballoc_ll_malloc_flex`. **]**
 
 **SRS_GBALLOC_HL_METRICS_02_011: [** `gballoc_hl_malloc_flex` shall call `timer_global_get_elapsed_us` to obtain the end time of the allocate. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_050: [** `gballoc_hl_malloc_flex` shall add the computed latency to the running `malloc` latency sum used to compute the average. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_051: [** If the computed latency is less than the minimum tracked latency, `gballoc_hl_malloc_flex` shall store it as the new minimum `malloc` latency. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_052: [** If the computed latency is more than the maximum tracked latency, `gballoc_hl_malloc_flex` shall store it as the new maximum `malloc` latency. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_053: [** `gballoc_hl_malloc_flex` shall increment the count of `malloc` latency samples. **]**
 
 ### gballoc_hl_calloc
 
@@ -157,6 +183,14 @@ MOCKABLE_FUNCTION(, void*, gballoc_hl_calloc, size_t, nmemb, size_t, size);
 
 **SRS_GBALLOC_HL_METRICS_01_031: [** `gballoc_hl_calloc` shall call `timer_global_get_elapsed_us` to obtain the end time of the allocate. **]**
 
+**SRS_GBALLOC_HL_METRICS_01_054: [** `gballoc_hl_calloc` shall add the computed latency to the running `calloc` latency sum used to compute the average. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_055: [** If the computed latency is less than the minimum tracked latency, `gballoc_hl_calloc` shall store it as the new minimum `calloc` latency. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_056: [** If the computed latency is more than the maximum tracked latency, `gballoc_hl_calloc` shall store it as the new maximum `calloc` latency. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_057: [** `gballoc_hl_calloc` shall increment the count of `calloc` latency samples. **]**
+
 ### gballoc_hl_realloc
 
 ```c
@@ -175,6 +209,13 @@ MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc, void*, ptr, size_t, size);
 
 **SRS_GBALLOC_HL_METRICS_01_033: [** `gballoc_hl_realloc` shall call `timer_global_get_elapsed_us` to obtain the end time of the allocate. **]**
 
+**SRS_GBALLOC_HL_METRICS_01_058: [** `gballoc_hl_realloc` shall add the computed latency to the running `realloc` latency sum used to compute the average. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_059: [** If the computed latency is less than the minimum tracked latency, `gballoc_hl_realloc` shall store it as the new minimum `realloc` latency. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_060: [** If the computed latency is more than the maximum tracked latency, `gballoc_hl_realloc` shall store it as the new maximum `realloc` latency. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_061: [** `gballoc_hl_realloc` shall increment the count of `realloc` latency samples. **]**
 
 ### gballoc_hl_realloc_2
 ```c
@@ -193,6 +234,14 @@ MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc_2, void*, ptr, size_t, nmemb, size
 
 **SRS_GBALLOC_HL_METRICS_02_015: [** `gballoc_hl_realloc_2` shall call `timer_global_get_elapsed_us` to obtain the end time of the allocate. **]**
 
+**SRS_GBALLOC_HL_METRICS_01_062: [** `gballoc_hl_realloc_2` shall add the computed latency to the running `realloc` latency sum used to compute the average. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_063: [** If the computed latency is less than the minimum tracked latency, `gballoc_hl_realloc_2` shall store it as the new minimum `realloc` latency. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_064: [** If the computed latency is more than the maximum tracked latency, `gballoc_hl_realloc_2` shall store it as the new maximum `realloc` latency. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_065: [** `gballoc_hl_realloc_2` shall increment the count of `realloc` latency samples. **]**
+
 ### gballoc_hl_realloc_flex
 ```c
 MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc_flex, void*, ptr, size_t, base, size_t, nmemb, size_t, size);
@@ -210,6 +259,13 @@ MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc_flex, void*, ptr, size_t, base, si
 
 **SRS_GBALLOC_HL_METRICS_02_020: [** `gballoc_hl_realloc_flex` shall call `timer_global_get_elapsed_us` to obtain the end time of the allocate. **]**
 
+**SRS_GBALLOC_HL_METRICS_01_066: [** `gballoc_hl_realloc_flex` shall add the computed latency to the running `realloc` latency sum used to compute the average. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_067: [** If the computed latency is less than the minimum tracked latency, `gballoc_hl_realloc_flex` shall store it as the new minimum `realloc` latency. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_068: [** If the computed latency is more than the maximum tracked latency, `gballoc_hl_realloc_flex` shall store it as the new maximum `realloc` latency. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_069: [** `gballoc_hl_realloc_flex` shall increment the count of `realloc` latency samples. **]**
 
 ### gballoc_hl_free
 
@@ -228,6 +284,14 @@ MOCKABLE_FUNCTION(, void, gballoc_hl_free, void*, ptr);
 **SRS_GBALLOC_HL_METRICS_01_017: [** `gballoc_hl_free` shall call `gballoc_ll_free(ptr)`. **]**
 
 **SRS_GBALLOC_HL_METRICS_01_035: [** `gballoc_hl_free` shall call `timer_global_get_elapsed_us` to obtain the end time of the free. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_070: [** `gballoc_hl_free` shall add the computed latency to the running `free` latency sum used to compute the average. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_071: [** If the computed latency is less than the minimum tracked latency, `gballoc_hl_free` shall store it as the new minimum `free` latency. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_072: [** If the computed latency is more than the maximum tracked latency, `gballoc_hl_free` shall store it as the new maximum `free` latency. **]**
+
+**SRS_GBALLOC_HL_METRICS_01_073: [** `gballoc_hl_free` shall increment the count of `free` latency samples. **]**
 
 ### gballoc_hl_reset_counters
 

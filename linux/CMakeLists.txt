@@ -2,12 +2,15 @@
 
 set(pal_common_h_files
     ../common/inc/c_pal/call_once.h
+    ../common/inc/c_pal/containing_record.h
     ../common/inc/c_pal/lazy_init.h
+    ../common/inc/c_pal/s_list.h
 )
 
 set(pal_common_c_files
     ../common/src/call_once.c
     ../common/src/lazy_init.c
+    ../common/src/s_list.c
 )
 
 #determining which one of the GBALLOC_LL implementations to use. By convention the file is called "gballoc_ll_" followed by "type".
@@ -26,6 +29,7 @@ set(pal_linux_h_files
 set(pal_linux_c_files
     ${pal_common_c_files}
     src/arithmetic_linux.c
+    src/async_socket_linux.c
     src/execution_engine_linux.c
     src/file_linux.c
     src/interlocked_linux.c

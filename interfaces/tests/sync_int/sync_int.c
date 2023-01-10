@@ -1,11 +1,8 @@
 //Copyright(c) Microsoft.All rights reserved.
 //Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-
 #include <stddef.h>
 #include <inttypes.h>
-#include <stdbool.h>
-
 
 // IWYU pragma: no_include <wchar.h>
 #include "testrunnerswitcher.h"
@@ -20,6 +17,7 @@
 #include "c_pal/timer.h"
 
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES)
+TEST_DEFINE_ENUM_TYPE(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES);
 
 static TEST_MUTEX_HANDLE g_testByTest;
 
@@ -68,7 +66,7 @@ static int increment_on_wake_up(void* address)
     (void)interlocked_increment(&create_count);
     wake_by_address_single(&create_count);
 
-    ASSERT_IS_TRUE(wait_on_address(ptr, value, UINT32_MAX));
+    ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_OK, wait_on_address(ptr, value, UINT32_MAX));
     (void)interlocked_increment(&woken_threads);
 
     return 0;
@@ -153,7 +151,7 @@ TEST_FUNCTION(wake_up_all_threads)
     int32_t current_create_count = interlocked_add(&create_count, 0);
     while (current_create_count < 100)
     {
-        ASSERT_IS_TRUE(wait_on_address(&create_count, current_create_count, UINT32_MAX));
+        ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_OK, wait_on_address(&create_count, current_create_count, UINT32_MAX));
         current_create_count = interlocked_add(&create_count, 0);
     }
 
@@ -190,10 +188,10 @@ TEST_FUNCTION(wait_on_address_returns_immediately)
     int value = 1;
 
     ///act
-    bool return_val = wait_on_address(&var, value, UINT32_MAX);
+    WAIT_ON_ADDRESS_RESULT return_val = wait_on_address(&var, value, UINT32_MAX);
 
     ///assert
-    ASSERT_IS_TRUE(return_val, "wait_on_address should have returned true");
+    ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_OK, return_val, "wait_on_address should have returned ok");
 }
 
 /*Tests_SRS_SYNC_43_001: [ wait_on_address shall atomically compare *address and *compare_address.]*/
@@ -210,12 +208,12 @@ TEST_FUNCTION(wait_on_address_returns_after_timeout_elapses)
 
     /// act
     double start_time = timer_global_get_elapsed_ms();
-    bool return_val = wait_on_address(&var, value, timeout);
+    WAIT_ON_ADDRESS_RESULT return_val = wait_on_address(&var, value, timeout);
     double time_elapsed = timer_global_get_elapsed_ms() - start_time;
 
     ///assert
     ASSERT_IS_TRUE(time_elapsed < timeout* tolerance_factor, "Too much time elapsed. Maximum Expected: %lf, Actual: %lf", timeout*tolerance_factor, time_elapsed);
-    ASSERT_IS_FALSE(return_val, "wait_on_address should have returned false");
+    ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_TIMEOUT, return_val, "wait_on_address should have returned timeout");
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
