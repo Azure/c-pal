@@ -77,51 +77,15 @@ MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create, EXECUTION_ENGINE_H
 
 **SRS_ASYNC_SOCKET_LINUX_11_001: [** `async_socket_create` shall allocate a new async socket and on success shall return a non-`NULL` handle. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_002: [** If `execution_engine` is NULL, `async_socket_create` shall fail and return `NULL`. **]**
+**SRS_ASYNC_SOCKET_LINUX_11_002: [** `execution_engine` shall be allowed to be `NULL`. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_003: [** If `socket_handle` is `INVALID_SOCKET`, `async_socket_create` shall fail and return `NULL`. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_004: [** `async_socket_create` shall increment the reference count on `execution_engine`. **]**
+**SRS_ASYNC_SOCKET_LINUX_11_005: [** `async_socket_create` shall retreive an `COMPLETION_PORT_HANDLE` object by calling `platform_get_completion_port`. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_005: [** `async_socket_create` shall initialize the global thread. **]**
+**SRS_ASYNC_SOCKET_LINUX_11_101: [** `async_socket_create` shall increment the reference count of the `COMPLETION_PORT_HANDLE` object by calling completion_port_inc_ref. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_006: [** If any error occurs, `async_socket_create` shall fail and return `NULL`. **]**
-
-### initialize_global_thread
-
-```c
-static int initialize_global_thread(void)
-```
-
-`initialize_global_thread` shall initialize the epoll object and create the global worker thread(s).
-
-**SRS_ASYNC_SOCKET_LINUX_11_008: [** `initialize_global_thread` shall increment the global g_thread_access_cnt variable. **]**
-
-**SRS_ASYNC_SOCKET_LINUX_11_009: [** If the g_thread_access_cnt count is 1, `initialize_global_thread` shall do the following: **]**
-
-- **SRS_ASYNC_SOCKET_LINUX_11_010: [** `initialize_global_thread` shall create the epoll variable by calling `epoll_create`. **]**
-
-- **SRS_ASYNC_SOCKET_LINUX_11_011: [** `initialize_global_thread` shall create the threads specified in `THREAD_COUNT` by calling `ThreadAPI_Create`. **]**
-
-**SRS_ASYNC_SOCKET_LINUX_11_012: [** If any error occurs `initialize_global_thread` shall fail and return -1. **]**
-
-**SRS_ASYNC_SOCKET_LINUX_11_013: [** On success `initialize_global_thread` shall return the value returned by `epoll_create`. **]**
-
-### deinitialize_global_thread
-
-```c
-static void deinitialize_global_thread(void)
-```
-
-`deinitialize_global_thread` shall deinitialize the epoll object and close the global worker thread(s).
-
-**SRS_ASYNC_SOCKET_LINUX_11_015: [** `deinitialize_global_thread` shall decrement the global g_thread_access_cnt variable. **]**
-
-**SRS_ASYNC_SOCKET_LINUX_11_016: [** If the g_thread_access_cnt count is 0, `deinitialize_global_thread` shall do the following: **]**
-
-- **SRS_ASYNC_SOCKET_LINUX_11_017: [** `deinitialize_global_thread` shall call `close` on the global epoll variable. **]**
-
-- **SRS_ASYNC_SOCKET_LINUX_11_018: [** `deinitialize_global_thread` shall wait for the global threads to close by calling `ThreadAPI_Join`. **]**
 
 ### async_socket_destroy
 
@@ -137,7 +101,7 @@ MOCKABLE_FUNCTION(, void, async_socket_destroy, ASYNC_SOCKET_HANDLE, async_socke
 
 **SRS_ASYNC_SOCKET_LINUX_11_021: [** `async_socket_destroy` shall perform an implicit close if `async_socket` is `OPEN`. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_022: [** `async_socket_destroy` shall decrement the reference count on the execution engine. **]**
+**SRS_ASYNC_SOCKET_LINUX_11_022: [** `async_socket_destroy` shall decrement the reference count on the completion port. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_023: [** `async_socket_destroy` shall free all resources associated with `async_socket`. **]**
 
@@ -185,11 +149,7 @@ MOCKABLE_FUNCTION(, void, async_socket_close, ASYNC_SOCKET_HANDLE, async_socket)
 
 **SRS_ASYNC_SOCKET_LINUX_11_037: [** `async_socket_close` shall wait for all executing `async_socket_send_async` and `async_socket_receive_async` APIs. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_038: [** Then `async_socket_close` shall remove the underlying socket form the epoll by calling  `epoll_ctl` with `EPOLL_CTL_DEL`. **]**
-
 **SRS_ASYNC_SOCKET_LINUX_11_039: [** `async_socket_close` shall call `close` on the underlying socket. **]**
-
-**SRS_ASYNC_SOCKET_LINUX_11_040: [** `async_socket_close` shall remove any memory that is stored in the epoll system **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_041: [** `async_socket_close` shall set the state to closed. **]**
 
@@ -231,9 +191,7 @@ MOCKABLE_FUNCTION(, ASYNC_SOCKET_SEND_SYNC_RESULT, async_socket_send_async, ASYN
 
   - **SRS_ASYNC_SOCKET_LINUX_11_056: [** `async_socket_send_async` shall create a context for the send where the `payload`, `on_send_complete` and `on_send_complete_context` shall be stored. **]**
 
-  - **SRS_ASYNC_SOCKET_LINUX_11_057: [** The the context shall then be added to the epoll system by calling `epoll_ctl` with `EPOLL_CTL_MOD`. **]**
-
-  - **SRS_ASYNC_SOCKET_LINUX_11_058: [** If the `epoll_ctl` call fails with `ENOENT`, `async_socket_send_async` shall call `epoll_ctl` again with `EPOLL_CTL_ADD`. **]**
+  - **SRS_ASYNC_SOCKET_LINUX_11_057: [** The context shall then be added to the completion port system by calling `completion_port_add` with `EPOLL_CTL_MOD`. **]**
 
 - **SRS_ASYNC_SOCKET_LINUX_11_059: [** If the `errno` value is `ECONNRESET`, `ENOTCONN`, or `EPIPE` shall fail and return `ASYNC_SOCKET_SEND_SYNC_ABANDONED`. **]**
 
@@ -275,7 +233,7 @@ MOCKABLE_FUNCTION(, int, async_socket_receive_async, ASYNC_SOCKET_HANDLE, async_
 
 **SRS_ASYNC_SOCKET_LINUX_11_074: [** The context shall also allocate enough memory to keep an array of `buffer_count` items. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_075: [** `async_socket_receive_async` shall add the socket in the epoll system by calling `epoll_ctl` with `EPOLL_CTL_MOD` **]**
+**SRS_ASYNC_SOCKET_LINUX_11_075: [** `async_socket_receive_async` shall add the socket in the epoll system by calling `epoll_ctl` with `EPOLL_CTL_MOD`. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_076: [** If the `epoll_ctl` call fails with `ENOENT`, `async_socket_send_async` shall call `epoll_ctl` again with `EPOLL_CTL_ADD`. **]**
 
@@ -283,54 +241,54 @@ MOCKABLE_FUNCTION(, int, async_socket_receive_async, ASYNC_SOCKET_HANDLE, async_
 
 **SRS_ASYNC_SOCKET_LINUX_11_078: [** If any error occurs, `async_socket_receive_async` shall fail and return a non-zero value. **]**
 
-### thread_worker_func
+### event_complete_callback
 
 ```c
-static int thread_worker_func(void* parameter)
+static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION action)
 ```
 
-`thread_worker_func` handles the epoll thread.
+`event_complete_callback` handles all the completion port callback info.
 
-**SRS_ASYNC_SOCKET_LINUX_11_079: [** `thread_worker_func` shall call `epoll_wait` waiting for the epoll to become signaled. **]**
+**SRS_ASYNC_SOCKET_LINUX_11_079: [** If context is `NULL`, `event_complete_callback` shall do nothing. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_080: [** Onced signaled `thread_worker_func` shall loop through the signaled epolls. **]**
+**SRS_ASYNC_SOCKET_LINUX_11_080: [** If `COMPLETION_PORT_EPOLL_ACTION` is `COMPLETION_PORT_EPOLL_EPOLLRDHUP` or `COMPLETION_PORT_EPOLL_ABANDONED`, `event_complete_callback` shall do the following: **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_081: [** If the events value contains `EPOLLRDHUP` (hang up), `thread_worker_func` shall the following: **]**
+- **SRS_ASYNC_SOCKET_LINUX_11_081: [** `event_complete_callback` shall call either the send or recv complete callback with an `ABANDONED` flag. **]**
 
-- **SRS_ASYNC_SOCKET_LINUX_11_082: [** `thread_worker_func` shall receive the `ASYNC_SOCKET_RECV_CONTEXT` value from the ptr variable from the `epoll_event` data ptr. **]**
+- **SRS_ASYNC_SOCKET_LINUX_11_084: [** Then `event_complete_callback` shall and free the `io_context` memory. **]**
 
-- **SRS_ASYNC_SOCKET_LINUX_11_083: [** The `ASYNC_SOCKET_RECV_CONTEXT` object shall be removed from list of stored pointers. **]**
+**SRS_ASYNC_SOCKET_LINUX_11_082: [** If `COMPLETION_PORT_EPOLL_ACTION` is `COMPLETION_PORT_EPOLL_EPOLLRDHUP`, `event_complete_callback` shall do the following: **]**
 
-- **SRS_ASYNC_SOCKET_LINUX_11_084: [** Then call the `on_receive_complete` callback with the `on_receive_complete_context` and `ASYNC_SOCKET_RECEIVE_ABANDONED`. **]**
+- **SRS_ASYNC_SOCKET_LINUX_11_083: [** `event_complete_callback` shall call `recv` and do the following: **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_085: [** If the events value contains `EPOLLIN` (recv), `thread_worker_func` shall the following: **]**
+  - **SRS_ASYNC_SOCKET_LINUX_11_088: [** If the recv size < 0, then: **]**
 
-- **SRS_ASYNC_SOCKET_LINUX_11_086: [** `thread_worker_func` shall receive the `ASYNC_SOCKET_RECV_CONTEXT` value from the ptr variable from the `epoll_event` data ptr. **]**
+    - **SRS_ASYNC_SOCKET_LINUX_11_089: [** If `errno` is `EAGAIN` or `EWOULDBLOCK`, then no data is available and `event_complete_callback` will break out of the function. **]**
 
-- **SRS_ASYNC_SOCKET_LINUX_11_087: [** Then `thread_worker_func` shall call `recv` and do the following: **]**
+    - **SRS_ASYNC_SOCKET_LINUX_11_090: [** If `errno` is `ECONNRESET`, then `event_complete_callback` shall call the `on_receive_complete` callback with the `on_receive_complete_context` and `ASYNC_SOCKET_RECEIVE_ABANDONED`. **]**
 
-- **SRS_ASYNC_SOCKET_LINUX_11_088: [** If the recv size < 0, then: **]**
+    - **SRS_ASYNC_SOCKET_LINUX_11_095: [** If `errno` is any other error, then `event_complete_callback` shall call the `on_receive_complete` callback with the `on_receive_complete_context` and `ASYNC_SOCKET_RECEIVE_ERROR`. **]**
 
-  - **SRS_ASYNC_SOCKET_LINUX_11_089: [** If `errno` is `EAGAIN` or `EWOULDBLOCK`, then unlikely errors will continue **]**
+  - **SRS_ASYNC_SOCKET_LINUX_11_091: [** If the recv size equal 0, then `event_complete_callback` shall call `on_receive_complete` callback with the `on_receive_complete_context` and `ASYNC_SOCKET_RECEIVE_OK`. **]**
 
-  - **SRS_ASYNC_SOCKET_LINUX_11_090: [** If `errno` is `ECONNRESET`, then `thread_worker_func` shall call the `on_receive_complete` callback with the `on_receive_complete_context` and `ASYNC_SOCKET_RECEIVE_ABANDONED` **]**
+  - **SRS_ASYNC_SOCKET_LINUX_11_092: [** If the recv size > 0, if we have another buffer to fill then we will attempt another read, otherwise we shall call `on_receive_complete` callback with the `on_receive_complete_context` and `ASYNC_SOCKET_RECEIVE_OK`. **]**
 
-- **SRS_ASYNC_SOCKET_LINUX_11_091: [** If the recv size equal 0, then `thread_worker_func` shall call `on_receive_complete` callback with the `on_receive_complete_context` and `ASYNC_SOCKET_RECEIVE_OK` **]**
+- **SRS_ASYNC_SOCKET_LINUX_11_093: [** `event_complete_callback` shall then free the `io_context` memory. **]**
 
-- **SRS_ASYNC_SOCKET_LINUX_11_092: [** If the recv size > 0, if we have another buffer to fill then we will attempt another read, otherwise we shall call `on_receive_complete` callback with the `on_receive_complete_context` and `ASYNC_SOCKET_RECEIVE_OK` **]**
+**SRS_ASYNC_SOCKET_LINUX_11_094: [** If the events value contains `COMPLETION_PORT_EPOLL_EPOLLOUT`, `event_complete_callback` shall the following: **]**
 
-- **SRS_ASYNC_SOCKET_LINUX_11_093: [** The `ASYNC_SOCKET_RECV_CONTEXT` object shall be removed from list of stored pointers. **]**
+- **SRS_ASYNC_SOCKET_LINUX_11_096: [** `event_complete_callback` shall call `send` on the data in the `ASYNC_SOCKET_SEND_CONTEXT` buffer. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_094: [** If the events value contains `EPOLLOUT` (send), `thread_worker_func` shall the following: **]**
-
-- **SRS_ASYNC_SOCKET_LINUX_11_095: [** `thread_worker_func` shall receive the `ASYNC_SOCKET_SEND_CONTEXT` value from the ptr variable from the `epoll_event` data ptr. **]**
-
-- **SRS_ASYNC_SOCKET_LINUX_11_096: [** `thread_worker_func` shall loop through the total buffers and send the data. **]**
-
-- **SRS_ASYNC_SOCKET_LINUX_11_097: [** if send returns value is < 0 `thread_worker_func` shall do the following: **]**
+- **SRS_ASYNC_SOCKET_LINUX_11_097: [** If send returns value is < 0 `event_complete_callback` shall do the following: **]**
 
   - **SRS_ASYNC_SOCKET_LINUX_11_098: [** if `errno` is `ECONNRESET`, then `on_send_complete` shall be called with `ASYNC_SOCKET_SEND_ABANDONED`. **]**
 
   - **SRS_ASYNC_SOCKET_LINUX_11_099: [** if `errno` is anything else, then `on_send_complete` shall be called with `ASYNC_SOCKET_SEND_ERROR`. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_100: [** If the thread_access_cnt variable is not 0, `thread_worker_func` continue, otherwise it shall exit **]**
+**SRS_ASYNC_SOCKET_LINUX_11_100: [** Then `event_complete_callback` shall free the `io_context` memory **]**
+
+**SRS_ASYNC_SOCKET_LINUX_11_085: [** If the events value contains `COMPLETION_PORT_EPOLL_ERROR`, `event_complete_callback` shall the following: **]**
+
+- **SRS_ASYNC_SOCKET_LINUX_11_086: [** `event_complete_callback` shall call either the send or recv complete callback with an `ERROR` flag. **]**
+
+- **SRS_ASYNC_SOCKET_LINUX_11_087: [** Then `event_complete_callback` shall and free the `io_context` memory. **]**

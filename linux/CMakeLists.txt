@@ -23,13 +23,16 @@ set(gballoc_hl_c gballoc_hl_${gballoc_hl_type_lower}.c)
 
 set(pal_linux_h_files
     ${pal_common_h_files}
+    inc/c_pal/completion_port_linux.h
     inc/c_pal/execution_engine_linux.h
+    inc/c_pal/platform_linux.h
 )
 
 set(pal_linux_c_files
     ${pal_common_c_files}
     src/arithmetic_linux.c
     src/async_socket_linux.c
+    src/completion_port_linux.c
     src/execution_engine_linux.c
     src/file_linux.c
     src/interlocked_linux.c
