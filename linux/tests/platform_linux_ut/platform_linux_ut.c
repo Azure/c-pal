@@ -66,6 +66,7 @@ TEST_FUNCTION_CLEANUP(function_cleanup)
 // platform_init
 
 // Tests_SRS_PLATFORM_LINUX_11_001: [ If the completion_port object is NULL, platform_init shall call completion_port_create. ]
+// Tests_SRS_PLATFORM_LINUX_11_002: [ If completion_port_create returns a valid completion port object, platform_init shall return zero. ]
 TEST_FUNCTION(platform_init_succeeds)
 {
     //arrange

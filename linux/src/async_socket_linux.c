@@ -281,9 +281,8 @@ ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine
     ASYNC_SOCKET_HANDLE result;
     // Codes_SRS_ASYNC_SOCKET_LINUX_11_002: [ execution_engine shall be allowed to be NULL. ]
 
-    if (
-        // Codes_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_create shall fail and return NULL. ]
-        (socket_handle == INVALID_SOCKET))
+    // Codes_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_create shall fail and return NULL. ]
+    if (socket_handle == INVALID_SOCKET)
     {
         LogError("EXECUTION_ENGINE_HANDLE execution_engine:%p, SOCKET_HANDLE socket_handle:%" PRI_SOCKET "", execution_engine, socket_handle);
     }
@@ -385,6 +384,7 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, ON_ASYNC_SOCKET_OP
             // Codes_SRS_ASYNC_SOCKET_LINUX_11_030: [ If async_socket has already closed the underlying socket handle then async_socket_open_async shall fail and return a non-zero value. ]
             if (async_socket->socket_handle == INVALID_SOCKET)
             {
+                // Codes_SRS_ASYNC_SOCKET_LINUX_11_034: [ If any error occurs, async_socket_open_async shall fail and return a non-zero value. ]
                 LogError("Open called after socket was closed");
                 result = MU_FAILURE;
             }
@@ -481,6 +481,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
 
         if (index < buffer_count)
         {
+            // Codes_SRS_ASYNC_SOCKET_LINUX_11_063: [ If any error occurs, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]
             LogError("Invalid buffers passed to async_socket_send_async");
             result = ASYNC_SOCKET_SEND_SYNC_ERROR;
         }
@@ -574,7 +575,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                 }
                 else
                 {
-                    // Do nothing failure happend do not call the callback
+                    // Do nothing.  If failure happend do not call the callback
                 }
 all_ok:
                 if (interlocked_decrement(&async_socket->pending_api_calls) == 0)
@@ -679,11 +680,13 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
 
                     if (completion_port_add(async_socket->completion_port, EPOLLIN | EPOLLRDHUP | EPOLLONESHOT, async_socket->socket_handle, event_complete_callback, io_context) != 0)
                     {
+                        // Codes_SRS_ASYNC_SOCKET_LINUX_11_078: [ If any error occurs, async_socket_receive_async shall fail and return a non-zero value. ]
                         LogWarning("failure with completion_port_add");
                         result = MU_FAILURE;
                     }
                     else
                     {
+                        // Codes_SRS_ASYNC_SOCKET_LINUX_11_077: [ On success, async_socket_receive_async shall return 0. ]
                         result = 0;
                         goto all_ok;
                     }

@@ -233,10 +233,6 @@ MOCKABLE_FUNCTION(, int, async_socket_receive_async, ASYNC_SOCKET_HANDLE, async_
 
 **SRS_ASYNC_SOCKET_LINUX_11_074: [** The context shall also allocate enough memory to keep an array of `buffer_count` items. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_075: [** `async_socket_receive_async` shall add the socket in the epoll system by calling `epoll_ctl` with `EPOLL_CTL_MOD`. **]**
-
-**SRS_ASYNC_SOCKET_LINUX_11_076: [** If the `epoll_ctl` call fails with `ENOENT`, `async_socket_send_async` shall call `epoll_ctl` again with `EPOLL_CTL_ADD`. **]**
-
 **SRS_ASYNC_SOCKET_LINUX_11_077: [** On success, `async_socket_receive_async` shall return 0. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_078: [** If any error occurs, `async_socket_receive_async` shall fail and return a non-zero value. **]**
