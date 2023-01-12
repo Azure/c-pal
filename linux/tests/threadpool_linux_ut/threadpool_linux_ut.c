@@ -46,6 +46,17 @@ static TEST_MUTEX_HANDLE test_serialize_mutex;
 static EXECUTION_ENGINE_PARAMETERS_LINUX execution_engine = {MIN_THREAD_COUNT, MAX_THREAD_COUNT};
 static SRW_LOCK_HANDLE test_srw_lock = (SRW_LOCK_HANDLE)0x4242;
 static EXECUTION_ENGINE_HANDLE test_execution_engine = (EXECUTION_ENGINE_HANDLE)0x4243;
+static THREAD_HANDLE test_thread_handle = (THREAD_HANDLE)0x4200;
+static THREAD_START_FUNC g_saved_worker_thread_func;
+static void* g_saved_worker_thread_func_context; 
+
+THREADAPI_RESULT my_ThreadAPI_Create(THREAD_HANDLE* threadHandle, THREAD_START_FUNC func, void* arg)
+{
+    g_saved_worker_thread_func = func;
+    g_saved_worker_thread_func_context = arg;
+    *threadHandle = test_thread_handle;
+    return THREADAPI_OK;
+}
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
@@ -76,6 +87,9 @@ MOCK_FUNCTION_END(0)
 MOCK_FUNCTION_WITH_CODE(, int, mocked_sem_post, sem_t*, sem)
 MOCK_FUNCTION_END(0)
 
+MOCK_FUNCTION_WITH_CODE(, int, mocked_sem_timedwait, sem_t*, sem, const struct timespec*, abs_timeout)
+MOCK_FUNCTION_END(0)
+
 MOCK_FUNCTION_WITH_CODE(, int, mocked_timer_create, clockid_t,clockid, struct sigevent*, sevp, timer_t *, timerid)
    timer_create(clockid, sevp, timerid);
 MOCK_FUNCTION_END(0)
@@ -84,6 +98,9 @@ MOCK_FUNCTION_WITH_CODE(, int, mocked_timer_settime, timer_t, timerid, int, flag
 MOCK_FUNCTION_END(0)
 
 MOCK_FUNCTION_WITH_CODE(, int, mocked_timer_delete, timer_t, timerid)
+MOCK_FUNCTION_END(0)
+
+MOCK_FUNCTION_WITH_CODE(, int, mocked_clock_gettime, clockid_t, clockid, struct timespec*, tp)
 MOCK_FUNCTION_END(0)
 
 static void threadpool_create_succeed_expectations(void)
@@ -186,6 +203,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_GLOBAL_MOCK_RETURNS(srw_lock_create, test_srw_lock, NULL);
     REGISTER_GLOBAL_MOCK_RETURNS(mocked_sem_init, 0, -1);
     REGISTER_GLOBAL_MOCK_RETURN(ThreadAPI_Join, THREADAPI_OK);
+    REGISTER_GLOBAL_MOCK_HOOK(ThreadAPI_Create, my_ThreadAPI_Create);
     REGISTER_GLOBAL_MOCK_RETURNS(ThreadAPI_Create, THREADAPI_OK, THREADAPI_ERROR);
 
     REGISTER_TYPE(THREADPOOL_OPEN_RESULT, THREADPOOL_OPEN_RESULT);
@@ -215,6 +233,8 @@ TEST_FUNCTION_INITIALIZE(method_init)
 
     umock_c_reset_all_calls();
     ASSERT_ARE_EQUAL(int, 0, umock_c_negative_tests_init(), "umock_c_negative_tests_init failed");
+    g_saved_worker_thread_func = NULL;
+    g_saved_worker_thread_func_context = NULL;
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
@@ -494,8 +514,112 @@ TEST_FUNCTION(threadpool_open_async_succeeds_with_NULL_context)
     threadpool_destroy(threadpool);
 }
 
+/* Tests_SRS_THREADPOOL_LINUX_11_055: [ If param is NULL, threadpool_work_func shall return. ]*/
+TEST_FUNCTION(threadpool_work_func_parameter_NULL_succeeds)
+{
+    //arrange
+    THREADPOOL_HANDLE threadpool = threadpool_create(test_execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, test_on_open_complete, (void*)0x4242));
+    umock_c_reset_all_calls();
+
+    //act
+    g_saved_worker_thread_func(NULL);
+
+    //assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    threadpool_destroy(threadpool);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_11_056: [ threadpool_work_func shall get the real time by calling clock_gettime. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_11_080: [ If clock_gettime fails, threadpool_work_func shall return. ]*/
+TEST_FUNCTION(threadpool_work_func_succeeds_when_clock_gettime_fails)
+{
+    //arrange
+    THREADPOOL_HANDLE threadpool = threadpool_create(test_execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, test_on_open_complete, (void*)0x4242));
+    umock_c_reset_all_calls();
+    
+    STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_REALTIME, IGNORED_ARG)).SetReturn(-1);
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0)).SetReturn(4);
+
+    //act
+    g_saved_worker_thread_func(g_saved_worker_thread_func_context);
+
+    //assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    threadpool_destroy(threadpool);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_11_081: [ If sem_timedwait fails, threadpool_work_func shall timeout and return. ]*/
+TEST_FUNCTION(threadpool_work_func_succeeds_when_sem_timedwait_fails)
+{
+    //arrange
+    THREADPOOL_HANDLE threadpool = threadpool_create(test_execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, test_on_open_complete, (void*)0x4242));
+    umock_c_reset_all_calls();
+    
+    STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_REALTIME, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_sem_timedwait(IGNORED_ARG, IGNORED_ARG)).SetReturn(1);
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0)).SetReturn(4);
+
+    //act
+    g_saved_worker_thread_func(g_saved_worker_thread_func_context);
+
+    //assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    threadpool_destroy(threadpool);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_11_056: [ threadpool_work_func shall get the real time by calling clock_gettime. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_11_057: [ threadpool_work_func shall decrement the threadpool semaphore with a time limit for 2 seconds. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_11_058: [ threadpool_work_func shall acquire the shared SRW lock by calling srw_lock_acquire_shared. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_11_059: [ threadpool_work_func shall get the current task array size and next waiting task consume index. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_11_060: [ If consume index has task state TASK_WAITING, threadpool_work_func shall set the task state to TASK_WORKING. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_11_061: [ threadpool_work_func shall initialize task_func and task_param and then set the task state to TASK_NOT_USED. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_11_062: [ threadpool_work_func shall release the shared SRW lock by calling srw_lock_release_shared. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_11_063: [ If task_param is not NULL, threadpool_work_func shall execute it with parameter task_param. ]*/
+TEST_FUNCTION(threadpool_work_func_succeeds)
+{
+    //arrange
+    THREADPOOL_HANDLE threadpool = threadpool_create(test_execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, test_on_open_complete, (void*)0x4242));
+    threadpool_schedule_work(threadpool, test_work_function, (void*)0x4242);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_REALTIME, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_sem_timedwait(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(srw_lock_acquire_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_increment_64(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(test_work_function(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0)).SetReturn(4);
+
+    //act
+    g_saved_worker_thread_func(g_saved_worker_thread_func_context);
+
+    //assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    threadpool_destroy(threadpool);
+}
+
 /* Tests_SRS_THREADPOOL_LINUX_11_017: [ threadpool_open_async shall set the state to THREADPOOL_STATE_OPENING. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_11_019: [ threadpool_open_async shall create the threads for threadpool using ThreadAPI_Create. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_11_020: [ If one of the thread creation fails, threadpool_open_async shall fail and return a non-zero value, terminate all threads already created, indicate an error to the user by calling the on_open_complete callback with THREADPOOL_OPEN_ERROR and set threadpool state to THREADPOOL_STATE_NOT_OPEN. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_11_076: [ If ThreadAPI_Create fails, threadpool_open_async shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(threadpool_open_async_fails_when_threadAPI_create_fails)
 {

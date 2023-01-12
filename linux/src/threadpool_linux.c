@@ -149,7 +149,7 @@ static int threadpool_work_func(void* param)
 {
     if (param == NULL)
     {
-        /* Codes_SRS_THREADPOOL_LINUX_11_055: [ If param is NULL, threadpool_work_func shall fail and return. **]**/
+        /* Codes_SRS_THREADPOOL_LINUX_11_055: [ If param is NULL, threadpool_work_func shall return. ]*/
         LogCritical("Invalid args: param: %p", param);
     }
     else
@@ -163,17 +163,16 @@ static int threadpool_work_func(void* param)
             /* Codes_SRS_THREADPOOL_LINUX_11_056: [ threadpool_work_func shall get the real time by calling clock_gettime. ]*/
             if (clock_gettime(CLOCK_REALTIME, &ts) == -1)
             {
-                // Consider Log
+                /* Codes_SRS_THREADPOOL_LINUX_11_080: [ If clock_gettime fails, threadpool_work_func shall return. ]*/
                 LogError("Failure getting time from clock_gettime");
             }
             else
             {
-                // Setup the timeout for the semaphore
                 ts.tv_nsec += TP_SEMAPHORE_TIMEOUT_MS;
                 /* Codes_SRS_THREADPOOL_LINUX_11_057: [ threadpool_work_func shall decrement the threadpool semaphore with a time limit for 2 seconds. ]*/
                 if (sem_timedwait(&threadpool->semaphore, &ts) != 0)
                 {
-                    // Timed out
+                    /* Codes_SRS_THREADPOOL_LINUX_11_081: [ If sem_timedwait fails, threadpool_work_func shall timeout and return. ]*/
                 }
                 else
                 {
