@@ -10,7 +10,7 @@ set(linux_reals_c_files
     real_sync.c
     real_uuid.c
     real_string_utils_linux.c
-    ../../common/reals/real_s_list.c
+    real_threadpool.c
 )
 
 set(linux_reals_h_files
@@ -18,9 +18,9 @@ set(linux_reals_h_files
     real_interlocked.h
     real_uuid_renames.h
     real_uuid.h
+    real_threadpool.h
+    real_threadpool_renames.h
     ../../common/reals/real_refcount.h
-    ../../common/reals/real_s_list.h
-    ../../common/reals/real_s_list_renames.h
 )
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../src)
