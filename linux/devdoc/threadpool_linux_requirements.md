@@ -269,9 +269,13 @@ static int threadpool_work_func(void* param);
 
 `threadpool_work_func` shall obtain a work function.
 
-**SRS_THREADPOOL_LINUX_11_055: [** If `param` is `NULL`, `threadpool_work_func` shall fail and return. **]**
+**SRS_THREADPOOL_LINUX_11_055: [** If `param` is `NULL`, `threadpool_work_func` shall return. **]**
 
 **SRS_THREADPOOL_LINUX_11_056: [** `threadpool_work_func` shall get the real time by calling `clock_gettime`. **]**
+
+**SRS_THREADPOOL_LINUX_11_080: [** If `clock_gettime` fails, `threadpool_work_func` shall return. **]**
+
+**SRS_THREADPOOL_LINUX_11_081: [** If `sem_timedwait` fails, `threadpool_work_func` shall timeout and return. **]**
 
 **SRS_THREADPOOL_LINUX_11_057: [** `threadpool_work_func` shall decrement the threadpool semaphore with a time limit for 2 seconds. **]**
 
