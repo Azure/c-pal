@@ -4,10 +4,9 @@
 #ifndef PLATFORM_LINUX_H
 #define PLATFORM_LINUX_H
 
-#include "umock_c/umock_c_prod.h"
-
 #include "c_pal/completion_port_linux.h"
 
+#include "umock_c/umock_c_prod.h"
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */

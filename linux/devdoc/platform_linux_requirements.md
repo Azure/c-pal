@@ -2,7 +2,7 @@
 
 ## Overview
 
-`platform_linux` provides initializes the completion_port system.
+`platform_linux` provides initializes the completion_port object.
 
 ## Exposed API
 
@@ -36,7 +36,7 @@ MOCKABLE_FUNCTION(, void, platform_deinit);
 
 `platform_deinit` .
 
-**SRS_PLATFORM_LINUX_11_004: [** If the completion port object is non-NULL, `platform_deinit` shall decrement the reference by calling `completion_port_dec_ref`. **]**
+**SRS_PLATFORM_LINUX_11_004: [** If the completion port object is non-NULL, `platform_deinit` shall decrement whose reference by calling `completion_port_dec_ref`. **]**
 
 **SRS_PLATFORM_LINUX_11_008: [** If the completion port object is non-NULL, `platform_deinit` shall do nothing. **]**
 
@@ -47,5 +47,7 @@ MOCKABLE_FUNCTION(, COMPLETION_PORT_HANDLE, platform_get_completion_port);
 ```
 
 `platform_get_completion_port` returns the completion port object reference.
+
+**SRS_PLATFORM_LINUX_11_005: [** If the completion object is not NULL, `platform_get_completion_port` shall increment the reference count of the `COMPLETION_PORT_HANDLE` object by calling `completion_port_inc_ref`. **]**
 
 **SRS_PLATFORM_LINUX_11_006: [** `platform_get_completion_port` shall return the completion object. **]**

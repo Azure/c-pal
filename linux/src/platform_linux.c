@@ -3,8 +3,9 @@
 
 #include "c_logging/xlogging.h"
 
-#include "c_pal/platform.h"
 #include "c_pal/completion_port_linux.h"
+#include "c_pal/platform.h"
+#include "c_pal/platform_linux.h"
 
 COMPLETION_PORT_HANDLE g_completion_port = NULL;
 
@@ -40,7 +41,7 @@ void platform_deinit(void)
     // Codes_SRS_PLATFORM_LINUX_11_008: [ If the completion port object is non-NULL, platform_deinit shall do nothing. ]
     if (g_completion_port != NULL)
     {
-        // Codes_SRS_PLATFORM_LINUX_11_004: [ If the completion port object is non-NULL, platform_deinit shall decrement the reference by calling completion_port_dec_ref. ]
+        // Codes_SRS_PLATFORM_LINUX_11_004: [ If the completion port object is non-NULL, platform_deinit shall decrement whose reference by calling completion_port_dec_ref. ]
         completion_port_dec_ref(g_completion_port);
         g_completion_port = NULL;
     }
@@ -48,6 +49,11 @@ void platform_deinit(void)
 
 COMPLETION_PORT_HANDLE platform_get_completion_port(void)
 {
+    if (g_completion_port != NULL)
+    {
+        // Codes_SRS_PLATFORM_LINUX_11_005: [ If the completion object is not NULL, platform_get_completion_port shall increment the reference count of the COMPLETION_PORT_HANDLE object by calling completion_port_inc_ref. ]
+        completion_port_inc_ref(g_completion_port);
+    }
     // Codes_SRS_PLATFORM_LINUX_11_006: [ platform_get_completion_port shall return the completion object. ]
     return g_completion_port;
 }

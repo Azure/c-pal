@@ -1,7 +1,6 @@
 // Copyright(C) Microsoft Corporation.All rights reserved.
 
 #include <stdlib.h>
-#include <time.h>
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
@@ -121,7 +120,8 @@ TEST_FUNCTION(platform_init_completion_port_fail_fail)
 
 // platform_deinit
 
-// Tests_SRS_PLATFORM_LINUX_11_004: [ If the completion port object is non-NULL, platform_deinit shall decrement the reference by calling completion_port_dec_ref. ]
+// Tests_SRS_PLATFORM_LINUX_11_004: [ If the completion port object is non-NULL, platform_deinit shall decrement whose reference by calling completion_port_dec_ref. ]
+// Tests_SRS_PLATFORM_LINUX_11_005: [ If the completion object is not NULL, platform_get_completion_port shall increment the reference count of the COMPLETION_PORT_HANDLE object by calling completion_port_inc_ref. ]
 TEST_FUNCTION(platform_deinit_succeeds)
 {
     //arrange
@@ -161,6 +161,8 @@ TEST_FUNCTION(platform_get_completion_port_succeeds)
     //arrange
     ASSERT_ARE_EQUAL(int, 0, platform_init());
     umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(completion_port_inc_ref(test_completion_port));
 
     //act
     COMPLETION_PORT_HANDLE completion_port = platform_get_completion_port();
