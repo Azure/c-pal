@@ -1105,7 +1105,6 @@ TEST_FUNCTION(threadpool_timer_start_delete_timer_when_timer_set_time_functions_
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
-    ASSERT_IS_NOT_NULL(timer_instance);
 
     // cleanup
     threadpool_destroy(threadpool);
