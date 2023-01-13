@@ -1,11 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#include <stdio.h>
 #include <inttypes.h>
 #include <stdlib.h>
+#include <stdbool.h> 
 #include <semaphore.h>
 #include <time.h>
-#include <signal.h>
 #include <bits/types/timer_t.h>  
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
@@ -20,7 +19,6 @@
 #include "real_gballoc_ll.h"
 
 #define ENABLE_MOCKS
-#include "c_pal/gballoc_ll.h"
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/threadapi.h"
@@ -41,6 +39,10 @@
 #define DEFAULT_TASK_ARRAY_SIZE 2048
 #define MIN_THREAD_COUNT 5
 #define MAX_THREAD_COUNT 10
+
+struct itimerspec;
+struct sigevent;
+struct timespec;
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 static EXECUTION_ENGINE_PARAMETERS_LINUX execution_engine = {MIN_THREAD_COUNT, MAX_THREAD_COUNT};
