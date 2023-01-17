@@ -14,13 +14,13 @@
 #include "c_logging/xlogging.h"
 
 #include "c_pal/completion_port_linux.h"
+#include "c_pal/execution_engine.h"
 #include "c_pal/gballoc_hl.h"        // IWYU pragma: keep
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/interlocked.h"
 #include "c_pal/platform_linux.h"
 #include "c_pal/sync.h"
 #include "c_pal/socket_handle.h"
-#include "c_pal/threadapi.h"
 
 #include "c_pal/async_socket.h"
 

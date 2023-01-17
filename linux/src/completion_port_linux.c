@@ -1,11 +1,12 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 #include <stddef.h>
+#include <stdbool.h>                      // for true
+#include <stdlib.h>                       // for free, malloc
 #include <inttypes.h>
 #include <unistd.h>
 #include <errno.h>
 
 #include <sys/epoll.h>
-#include <sys/socket.h>
 
 #ifdef USE_VALGRIND
 #include "valgrind/helgrind.h"
