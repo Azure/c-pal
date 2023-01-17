@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#include <stddef.h>                       // for NULL
+#include "macro_utils/macro_utils.h"      // for MU_FAILURE
+
 #include "c_logging/xlogging.h"
 
 #include "c_pal/completion_port_linux.h"
