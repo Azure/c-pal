@@ -48,6 +48,7 @@ typedef struct ASYNC_SOCKET_TAG
     volatile_atomic int32_t state;
     volatile_atomic int32_t pending_api_calls;
     COMPLETION_PORT_HANDLE completion_port;
+    volatile_atomic int32_t added_to_completion_port;
 } ASYNC_SOCKET;
 
 typedef struct ASYNC_SOCKET_RECV_CONTEXT_TAG
@@ -268,6 +269,11 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
         (void)wait_on_address(&async_socket->pending_api_calls, value, UINT32_MAX);
     }
 
+    if (interlocked_add(&async_socket->added_to_completion_port, 0) > 0)
+    {
+        completion_port_remove(async_socket->completion_port, async_socket->socket_handle);
+    }
+
     // Codes_SRS_ASYNC_SOCKET_LINUX_11_039: [ async_socket_close shall call close on the underlying socket. ]
     (void)close(async_socket->socket_handle);
     async_socket->socket_handle = INVALID_SOCKET;
@@ -307,6 +313,7 @@ ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine
                 result->socket_handle = socket_handle;
 
                 (void)interlocked_exchange(&result->pending_api_calls, 0);
+                (void)interlocked_exchange(&result->added_to_completion_port, 0);
                 (void)interlocked_exchange(&result->state, ASYNC_SOCKET_LINUX_STATE_CLOSED);
                 goto all_ok;
             }
@@ -536,6 +543,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                                 }
                                 else
                                 {
+                                    (void)interlocked_increment(&async_socket->added_to_completion_port);
                                     result = ASYNC_SOCKET_SEND_SYNC_OK;
                                     goto all_ok;
                                 }
@@ -687,6 +695,7 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                     {
                         // Codes_SRS_ASYNC_SOCKET_LINUX_11_077: [ On success, async_socket_receive_async shall return 0. ]
                         result = 0;
+                        (void)interlocked_increment(&async_socket->added_to_completion_port);
                         goto all_ok;
                     }
                     free(io_context);

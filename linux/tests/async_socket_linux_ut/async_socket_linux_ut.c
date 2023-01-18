@@ -95,6 +95,7 @@ MOCK_FUNCTION_END()
 static void mock_internal_close_setup(void)
 {
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(mocked_close(test_socket));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG))
         .CallCannotFail();
@@ -109,6 +110,8 @@ static void mock_async_socket_create_setup(void)
         .CallCannotFail();
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG))
         .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
 }
 
 static void setup_async_socket_receive_async_mocks(void)
@@ -119,6 +122,8 @@ static void setup_async_socket_receive_async_mocks(void)
         .CallCannotFail();
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(ASYNC_SOCKET_BUFFER)));
     STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLIN | EPOLLRDHUP | EPOLLONESHOT, test_socket, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
+        .CallCannotFail();
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
@@ -591,6 +596,40 @@ TEST_FUNCTION(async_socket_close_after_close_returns)
     async_socket_destroy(async_socket);
 }
 
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_039: [ async_socket_close shall call close on the underlying socket. ]
+TEST_FUNCTION(async_socket_close_after_open_and_recv)
+{
+    // arrange
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASSERT_IS_NOT_NULL(async_socket);
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    uint8_t payload_bytes[] = { 0x42 };
+    ASYNC_SOCKET_BUFFER payload_buffers[1];
+    payload_buffers[0].buffer = payload_bytes;
+    payload_buffers[0].length = sizeof(payload_bytes);
+    umock_c_reset_all_calls();
+    ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_receive_complete, test_callback_ctx));
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(completion_port_remove(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_close(test_socket));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
+
+    // act
+    async_socket_close(async_socket);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    async_socket_destroy(async_socket);
+}
+
 // async_socket_send_async
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_043: [ If async_socket is NULL, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]
@@ -981,6 +1020,7 @@ TEST_FUNCTION(async_socket_send_async_multiple_sends_WOULDBLOCK_succeeds)
         .SetReturn(-1);
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_socket, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 
@@ -995,6 +1035,7 @@ TEST_FUNCTION(async_socket_send_async_multiple_sends_WOULDBLOCK_succeeds)
 
     // cleanup
     async_socket_destroy(async_socket);
+    free(g_event_callback_ctx);
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_050: [ on_send_complete_context shall be allowed to be NULL. ]
@@ -1092,6 +1133,8 @@ TEST_FUNCTION(when_errno_for_send_returns_EWOULDBLOCK_it_uses_completion_port_tr
         .SetReturn(-1);
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_socket, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
+        .CallCannotFail();
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 
