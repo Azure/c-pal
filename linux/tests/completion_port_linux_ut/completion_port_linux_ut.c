@@ -115,6 +115,8 @@ static void setup_completion_port_add_mocks(void)
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(s_list_add(IGNORED_ARG, IGNORED_ARG));
@@ -357,7 +359,6 @@ TEST_FUNCTION(completion_port_dec_ref_remove_item_success)
     STRICT_EXPECTED_CALL(mocked_close(IGNORED_ARG));
     STRICT_EXPECTED_CALL(ThreadAPI_Join(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(s_list_remove_head(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(test_port_event_complete(test_callback_ctx, COMPLETION_PORT_EPOLL_ABANDONED));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
     STRICT_EXPECTED_CALL(s_list_remove_head(IGNORED_ARG));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
@@ -518,6 +519,8 @@ TEST_FUNCTION(completion_port_add_epoll_add_success)
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
+
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(s_list_add(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
@@ -585,6 +588,43 @@ TEST_FUNCTION(completion_port_remove_success)
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_epoll_ctl(g_test_epoll, EPOLL_CTL_DEL, test_socket, NULL));
+
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
+
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
+
+    //act
+    completion_port_remove(port_handle, test_socket);
+
+    //assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    completion_port_dec_ref(port_handle);
+}
+
+// Tests_SRS_COMPLETION_PORT_LINUX_11_037: [ completion_port_remove shall loop through the list of EPOLL_THREAD_DATA object and call the event_callback with COMPLETION_PORT_EPOLL_ABANDONED ]
+TEST_FUNCTION(completion_port_remove_port_event_callback_called_success)
+{
+    //arrange
+    COMPLETION_PORT_HANDLE port_handle = completion_port_create();
+    ASSERT_IS_NOT_NULL(port_handle);
+    ASSERT_ARE_EQUAL(int, 0, completion_port_add(port_handle, EPOLLOUT | EPOLLRDHUP, test_socket, test_port_event_complete, test_callback_ctx));
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_epoll_ctl(g_test_epoll, EPOLL_CTL_DEL, test_socket, NULL));
+
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(test_port_event_complete(test_callback_ctx, COMPLETION_PORT_EPOLL_ABANDONED));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
+
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 
@@ -658,6 +698,7 @@ TEST_FUNCTION(epoll_worker_func_epoll_wait_EPOLLRDHUP_success)
     STRICT_EXPECTED_CALL(mocked_epoll_wait(g_test_epoll, IGNORED_ARG, TEST_MAX_EVENTS_NUM, EVENTS_TIMEOUT_MS))
         .CopyOutArgumentBuffer_events(&g_events, sizeof(struct epoll_event))
         .SetReturn(1);
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(test_port_event_complete(test_callback_ctx, COMPLETION_PORT_EPOLL_EPOLLRDHUP));
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CallCannotFail();
@@ -696,6 +737,7 @@ TEST_FUNCTION(epoll_worker_func_epoll_wait_EPOLLIN_success)
     STRICT_EXPECTED_CALL(mocked_epoll_wait(g_test_epoll, IGNORED_ARG, TEST_MAX_EVENTS_NUM, EVENTS_TIMEOUT_MS))
         .CopyOutArgumentBuffer_events(&g_events, sizeof(struct epoll_event))
         .SetReturn(1);
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(test_port_event_complete(test_callback_ctx, COMPLETION_PORT_EPOLL_EPOLLIN));
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CallCannotFail();
@@ -734,6 +776,7 @@ TEST_FUNCTION(epoll_worker_func_epoll_wait_EPOLLOUT_success)
     STRICT_EXPECTED_CALL(mocked_epoll_wait(g_test_epoll, IGNORED_ARG, TEST_MAX_EVENTS_NUM, EVENTS_TIMEOUT_MS))
         .CopyOutArgumentBuffer_events(&g_events, sizeof(struct epoll_event))
         .SetReturn(1);
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(test_port_event_complete(test_callback_ctx, COMPLETION_PORT_EPOLL_EPOLLOUT));
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CallCannotFail();
@@ -773,6 +816,8 @@ TEST_FUNCTION(epoll_worker_func_epoll_wait_multiple_values_success)
     STRICT_EXPECTED_CALL(mocked_epoll_wait(g_test_epoll, IGNORED_ARG, TEST_MAX_EVENTS_NUM, EVENTS_TIMEOUT_MS))
         .CopyOutArgumentBuffer_events(&g_events, sizeof(struct epoll_event)*2)
         .SetReturn(2);
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
     STRICT_EXPECTED_CALL(test_port_event_complete(test_callback_ctx, COMPLETION_PORT_EPOLL_EPOLLOUT));
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CallCannotFail();
@@ -782,6 +827,8 @@ TEST_FUNCTION(epoll_worker_func_epoll_wait_multiple_values_success)
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
     STRICT_EXPECTED_CALL(test_port_event_complete(test_callback_ctx, COMPLETION_PORT_EPOLL_EPOLLRDHUP));
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CallCannotFail();

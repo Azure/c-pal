@@ -129,6 +129,8 @@ MOCKABLE_FUNCTION(, void, completion_port_remove, COMPLETION_PORT_HANDLE, comple
 
 **SRS_COMPLETION_PORT_LINUX_11_030: [** `completion_port_remove` shall remove the underlying socket from the epoll by calling `epoll_ctl` with `EPOLL_CTL_DEL`. **]**
 
+**SRS_COMPLETION_PORT_LINUX_11_037: [** `completion_port_remove` shall loop through the list of `EPOLL_THREAD_DATA` object and call the event_callback with `COMPLETION_PORT_EPOLL_ABANDONED` **]**
+
 ### epoll_worker_func
 
 ```c
