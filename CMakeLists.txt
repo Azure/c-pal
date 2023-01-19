@@ -175,6 +175,24 @@ set(C_PAL_INC_FOLDER
 
 add_subdirectory(build_functions)
 
+if(NOT WIN32)
+    # test for UUID.
+    include (CheckIncludeFile)
+    CHECK_INCLUDE_FILE(uuid.h HAVE_UUID_H)
+    CHECK_INCLUDE_FILE(uuid/uuid.h HAVE_UUID_UUID_H)
+    if (NOT HAVE_UUID_H AND NOT HAVE_UUID_UUID_H)
+        message(FATAL "No UUID implemenation found")
+    elseif(HAVE_UUID_UUID_H)
+        # libuuid implementation
+        add_definitions(-DHAVE_UUID_UUID_H)
+        set(uuid_lib uuid)
+    else()
+        # OSSP uuid
+        add_definitions(-DHAVE_UUID_H)
+        set(uuid_lib ossp-uuid)
+    endif()
+endif()
+
 add_subdirectory(interfaces)
 add_subdirectory(common)
 add_subdirectory(umocktypes)
@@ -214,6 +232,23 @@ endif()
 if(${run_reals_check})
     add_reals_check_target()
 endif()
+
+# Add an installation step
+# Set CMAKE_INSTALL_* if not defined
+include(GNUInstallDirs)
+
+if(NOT DEFINED CMAKE_INSTALL_LIBDIR)
+    set(CMAKE_INSTALL_LIBDIR "lib")
+endif()
+
+# Installation for c_pal
+set(package_location "cmake")
+
+install(TARGETS c_pal EXPORT c_palTargets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/../bin
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
 
 include(CMakePackageConfigHelpers)
 

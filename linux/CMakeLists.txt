@@ -59,7 +59,7 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/inc)
 include_directories(../common/inc)
 
 add_library(pal_linux ${pal_linux_h_files} ${pal_linux_c_files} ${pal_linux_md_files} ${pal_common_md_files})
-target_link_libraries(pal_linux pal_interfaces rt uuid pthread)
+target_link_libraries(pal_linux pal_interfaces rt pthread ${uuid_lib})
 target_include_directories(pal_linux PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc)
 
 add_subdirectory(linux_reals)

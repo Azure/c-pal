@@ -38,8 +38,28 @@ MOCKABLE_FUNCTION(, int, uuid_produce, UUID_T, destination);
 
 `uuid_produce` fills destination's bytes with a unique ID.
 
+If the system has `libuuid` available:
+
 **SRS_UUID_LINUX_02_001: [** If `destination` is `NULL` then `uuid_produce` shall fail and return a non-NULL value. **]**
 
 **SRS_UUID_LINUX_02_002: [** `uuid_produce` shall call `uuid_generate` to generate a `UUID`. **]**
 
 **SRS_UUID_LINUX_02_004: [** `uuid_produce` shall succeed and return 0. **]**
+
+If the system only has OSSP uuid available:
+
+**SRS_UUID_LINUX_45_001: [** If `destination` is `NULL` then `uuid_produce` shall fail and return a non-NULL value. **]**
+
+**SRS_UUID_LINUX_45_003: [** `uuid_produce` shall call `uuid_create` to allocate a uuid. **]**
+
+**SRS_UUID_LINUX_45_004: [** `uuid_produce` shall call `uuid_make` with mode = UUID_MAKE_V4 to generate the UUID value. **]**
+
+**SRS_UUID_LINUX_45_005: [** `uuid_produce` shall call `uuid_export` with fmt = UUID_FMT_BIN to load the value into the destination. **]**
+
+**SRS_UUID_LINUX_45_008: [** If `uuid_export` does not write `size_of(UUID_T)` bytes into the destination, the call shall fail and return a non-zero value. **]**
+
+**SRS_UUID_LINUX_45_006: [** `uuid_produce` shall call `uuid_destroy` to deallocate the uuid. **]**
+
+**SRS_UUID_LINUX_45_007: [** If any uuid call returns a value other than `UUID_RC_OK`, the call shall fail and return a non-zero value. **]**
+
+**SRS_UUID_LINUX_45_002: [** If all uuid calls return success, `uuid_produce` shall succeed and return 0. **]**
