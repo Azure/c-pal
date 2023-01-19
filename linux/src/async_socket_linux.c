@@ -493,11 +493,11 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
         else
         {
             ASYNC_SOCKET_LINUX_STATE current_state;
-            // Codes_SRS_ASYNC_SOCKET_LINUX_11_051: [ If async_socket is not OPEN, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ABANDONED. ]
+            // Codes_SRS_ASYNC_SOCKET_LINUX_11_051: [ If async_socket is not OPEN, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_NOT_OPEN. ]
             if ((current_state = interlocked_add(&async_socket->state, 0)) != ASYNC_SOCKET_LINUX_STATE_OPEN)
             {
                 LogWarning("Not open, current state is %" PRI_MU_ENUM "", MU_ENUM_VALUE(ASYNC_SOCKET_LINUX_STATE, current_state));
-                result = ASYNC_SOCKET_SEND_SYNC_ABANDONED;
+                result = ASYNC_SOCKET_SEND_SYNC_NOT_OPEN;
             }
             else
             {
@@ -549,13 +549,13 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                                 }
                             }
                         }
-                        // Codes_SRS_ASYNC_SOCKET_LINUX_11_059: [ If the errno value is ECONNRESET, ENOTCONN, or EPIPE shall fail and return ASYNC_SOCKET_SEND_SYNC_ABANDONED. ]
+                        // Codes_SRS_ASYNC_SOCKET_LINUX_11_059: [ If the errno value is ECONNRESET, ENOTCONN, or EPIPE shall fail and return ASYNC_SOCKET_SEND_SYNC_NOT_OPEN. ]
                         else if (errno == ECONNRESET || errno == ENOTCONN || errno == EPIPE)
                         {
                             LogWarning("The connection was forcibly closed by the peer");
                             send_result = ASYNC_SOCKET_SEND_ABANDONED;
                             // Socket was closed
-                            result = ASYNC_SOCKET_SEND_SYNC_ABANDONED;
+                            result = ASYNC_SOCKET_SEND_SYNC_NOT_OPEN;
                         }
                         else
                         {
