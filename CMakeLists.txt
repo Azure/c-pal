@@ -215,5 +215,22 @@ if(${run_reals_check})
     add_reals_check_target()
 endif()
 
+# Add an installation step
+# Set CMAKE_INSTALL_* if not defined
+include(GNUInstallDirs)
+
+if(NOT DEFINED CMAKE_INSTALL_LIBDIR)
+    set(CMAKE_INSTALL_LIBDIR "lib")
+endif()
+
+# Installation for c_pal
+set(package_location "cmake")
+
+install(TARGETS c_pal EXPORT c_palTargets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/../bin
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
 include(CMakePackageConfigHelpers)
 
