@@ -7,5 +7,6 @@
 #include "umock_c/umock_c_prod.h"
 
 MOCKABLE_FUNCTION(, int, mock_syscall, long, call_code, int*, uaddr, int, futex_op, int, val, const struct timespec*, timeout, int*, uaddr2, int, val3);
+extern int mock_errno;
 
 #endif

@@ -42,7 +42,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 static bool check_timeout;
 static uint32_t expected_timeout_ms;
 static int expected_return_val;
-int mock_errno;
+
 static int hook_mock_syscall(long call_code, int* uaddr, int futex_op, int val, const struct timespec* timeout, int* uaddr2, int val3)
 {
     /*Tests_SRS_SYNC_LINUX_43_001: [ wait_on_address shall initialize a timespec struct with .tv_nsec equal to timeout_ms* 10^6. ]*/
