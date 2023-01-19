@@ -499,9 +499,9 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                 ASYNC_SOCKET_WIN32_STATE current_state;
                 if ((current_state = InterlockedAdd(&async_socket->state, 0)) != (LONG)ASYNC_SOCKET_WIN32_STATE_OPEN)
                 {
-                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_097: [ If async_socket is not OPEN, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ABANDONED. ]*/
+                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_097: [ If async_socket is not OPEN, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_NOT_OPEN. ]*/
                     LogWarning("Not open, current state is %" PRI_MU_ENUM "", MU_ENUM_VALUE(ASYNC_SOCKET_WIN32_STATE, current_state));
-                    result = ASYNC_SOCKET_SEND_SYNC_ABANDONED;
+                    result = ASYNC_SOCKET_SEND_SYNC_NOT_OPEN;
                 }
                 else
                 {
@@ -582,9 +582,9 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                                         }
                                         case WSAECONNRESET:
                                         {
-                                            /* Codes_SRS_ASYNC_SOCKET_WIN32_42_002: [ If WSAGetLastError returns WSAECONNRESET, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ABANDONED. ]*/
+                                            /* Codes_SRS_ASYNC_SOCKET_WIN32_42_002: [ If WSAGetLastError returns WSAECONNRESET, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_NOT_OPEN. ]*/
                                             LogLastError("WSASend failed with %d, WSAGetLastError returned %lu", wsa_send_result, (unsigned long)wsa_last_error);
-                                            result = ASYNC_SOCKET_SEND_SYNC_ABANDONED;
+                                            result = ASYNC_SOCKET_SEND_SYNC_NOT_OPEN;
 
                                             break;
                                         }
