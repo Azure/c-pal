@@ -1,12 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-
-#include <stdlib.h>
-
-
-#include "macro_utils/macro_utils.h"
-
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
 
@@ -14,15 +8,10 @@ static TEST_MUTEX_HANDLE g_testByTest;
 
 #include "c_pal/ps_util.h"
 
-
-
 MOCK_FUNCTION_WITH_CODE(, void, mock_abort);
 MOCK_FUNCTION_END()
 MOCK_FUNCTION_WITH_CODE(, void, mock_exit, int, exit_code);
 MOCK_FUNCTION_END()
-
-
-
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 

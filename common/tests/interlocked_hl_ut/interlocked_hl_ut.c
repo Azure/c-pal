@@ -1,12 +1,13 @@
 // Copyright(C) Microsoft Corporation.All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-
+#include <string.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "umock_c/umocktypes.h"  
 
 static void* my_gballoc_malloc(size_t size)
 {
@@ -18,7 +19,6 @@ static void my_gballoc_free(void* s)
     free(s);
 }
 
-#include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
 
 static TEST_MUTEX_HANDLE g_testByTest;

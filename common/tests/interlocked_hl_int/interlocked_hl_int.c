@@ -10,9 +10,9 @@
 #include "testrunnerswitcher.h"
 
 #include "c_pal/threadapi.h"
-#include "macro_utils/macro_utils.h"
 
 #include "c_pal/interlocked_hl.h"
+#include "c-pal/interlocked.h"
 
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
