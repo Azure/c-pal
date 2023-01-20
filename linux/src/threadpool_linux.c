@@ -102,10 +102,10 @@ typedef struct THREADPOOL_TAG
 
     THREAD_HANDLE* thread_handle_array;
 
-    // Due to the fact that the POSIX timer will send a ramdom 
+    // Due to the fact that the POSIX timer will send a ramdom
     // signal after deletion we need to not allocate the TIMER_INSTANCES
     TIMER_INSTANCE timer_instance[MAX_TIMER_INSTANCE_COUNT];
-    volatile_atomic int32_t next_instance_idx;
+    volatile_atomic int32_t timer_instance_access;
 } THREADPOOL;
 
 static void on_timer_callback(sigval_t timer_data)
@@ -311,30 +311,40 @@ static int reallocate_threadpool_array(THREADPOOL* threadpool)
 static TIMER_INSTANCE* get_next_timer_instance(THREADPOOL* threadpool)
 {
     TIMER_INSTANCE* result;
-    int32_t current_instance = interlocked_increment(&threadpool->next_instance_idx);
-    if (current_instance < MAX_TIMER_INSTANCE_COUNT && interlocked_add(&threadpool->timer_instance[current_instance].timer_status, 0) == TIMER_DISABLED)
+
+    // Make sure only one thread access the loop at once
+    do
     {
-        result = &threadpool->timer_instance[current_instance];
-    }
-    else
+        int32_t current_val = interlocked_compare_exchange(&threadpool->timer_instance_access, 1, 0);
+        if (current_val == 0)
+        {
+            break;
+        }
+        else
+        {
+            // Do Nothing wait for address
+        }
+        (void)wait_on_address(&threadpool->timer_instance_access, current_val, UINT32_MAX);
+    } while (true);
+
+    // Loop through the list and find the first disabled timer
+    int32_t index;
+    for (index = 0; index < MAX_TIMER_INSTANCE_COUNT; index++)
     {
-        int32_t index;
-        // Loop through all the array items and find deallocated ones
-        for (index = 0; index < MAX_TIMER_INSTANCE_COUNT; index++)
+        if (interlocked_add(&threadpool->timer_instance[index].timer_status, 0) == TIMER_DISABLED)
         {
-            if (interlocked_add(&threadpool->timer_instance[index].timer_status, 0) == TIMER_DISABLED)
-            {
-                (void)interlocked_exchange(&threadpool->next_instance_idx, index);
-                result = &threadpool->timer_instance[index];
-            }
-        }
-        if (index == MAX_TIMER_INSTANCE_COUNT)
-        {
-            // We don't have any more slots available
-            result = NULL;
-            LogError("No more timers");
+            result = &threadpool->timer_instance[index];
+            break;
         }
     }
+    if (index == MAX_TIMER_INSTANCE_COUNT)
+    {
+        result = NULL;
+        LogError("Failure All timers instances are in use");
+    }
+
+    (void)interlocked_exchange(&threadpool->timer_instance_access, 0);
+    wake_by_address_single(&threadpool->timer_instance_access);
     return result;
 }
 
@@ -403,7 +413,7 @@ THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                             (void)interlocked_exchange(&result->state, THREADPOOL_STATE_NOT_OPEN);
                             (void)interlocked_exchange(&result->task_count, 0);
                             (void)interlocked_exchange(&result->pending_call_count, 0);
-                            (void)interlocked_exchange(&result->next_instance_idx, 0);
+                            (void)interlocked_exchange(&result->timer_instance_access, 0);
 
                             // Need to start the index at -1 so the first increment
                             // will start at zero
