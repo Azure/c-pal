@@ -15,4 +15,4 @@ set(${theseTestsName}_cpp_files
 set(${theseTestsName}_h_files
 )
 
-build_test_artifacts(${theseTestsName} "tests/c_pal" ADDITIONAL_LIBS c_pal)
+build_test_artifacts(${theseTestsName} "tests/c_pal" ADDITIONAL_LIBS pal_interfaces c_pal c_pal_reals)

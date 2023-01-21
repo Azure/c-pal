@@ -3,4 +3,4 @@
 
 #include "real_ps_util_renames.h" // IWYU pragma: keep
 
-#include "ps_util.c"
+#include "../src/ps_util.c"

@@ -11,6 +11,9 @@ set(linux_reals_c_files
     real_uuid.c
     real_string_utils_linux.c
     ../../common/reals/real_s_list.c
+    ../../common/reals/real_ps_util.c
+    ../../common/reals/real_sm.c
+    ../../common/reals/real_interlocked_hl.c
 )
 
 set(linux_reals_h_files
@@ -21,6 +24,12 @@ set(linux_reals_h_files
     ../../common/reals/real_refcount.h
     ../../common/reals/real_s_list.h
     ../../common/reals/real_s_list_renames.h
+    ../../common/reals/real_ps_util.h
+    ../../common/reals/real_ps_util_renames.h
+    ../../common/reals/real_sm.h
+    ../../common/reals/real_sm_renames.h
+    ../../common/reals/real_interlocked_hl.h
+    ../../common/reals/real_interlocked_hl_renames.h
 )
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../src)

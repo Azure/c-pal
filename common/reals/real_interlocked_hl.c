@@ -4,4 +4,4 @@
 #include "real_interlocked_hl_renames.h" // IWYU pragma: keep
 #include "real_sync_renames.h" // IWYU pragma: keep
 
-#include "interlocked_hl.c"
+#include "../src/interlocked_hl.c"

@@ -3,12 +3,13 @@
 
 #include <stdlib.h>
 #include <stdint.h>
-#include <string.h>
+#include <inttypes.h>
 #include <stdbool.h>
 
 #include "macro_utils/macro_utils.h"
 
 #include "c_logging/xlogging.h"
+#include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/interlocked.h"
 #include "c_pal/threadapi.h"
