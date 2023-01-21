@@ -13,7 +13,7 @@
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umocktypes.h"
-
+// IWYU pragma: no_include "c_pal/ps_util.h"
 
 #define ENABLE_MOCKS
 #include "c_pal/gballoc_hl.h" 
