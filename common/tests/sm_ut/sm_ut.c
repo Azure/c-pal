@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
 #include "testrunnerswitcher.h"
 
@@ -22,7 +22,7 @@
 #include "c_pal/gballoc_hl.h" 
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/interlocked_hl.h"
-#include "c_pal/log_critical_and_terminate.h"
+#include "c_pal/log_critical_and_terminate.h" // IWYU pragma: keep
 #undef ENABLE_MOCKS
 
 #include "real_interlocked_hl.h"
