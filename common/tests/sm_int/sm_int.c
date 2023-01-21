@@ -1,7 +1,7 @@
 // Copyright(C) Microsoft Corporation.All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-
+#include <string.h>
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -10,14 +10,12 @@
 
 #include "testrunnerswitcher.h"
 
-#include "macro_utils/macro_utils.h"
 
 #include "c_pal/timer.h"
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/threadapi.h"
 #include "c_pal/interlocked.h"
-#include "c_pal/sysinfo.h"
-#include "c_pal/sync.h"
+#include "c_pal/sysinfo.h" // IWYU pragma: keep
 #include "c_pal/interlocked_hl.h"
 #include "c_logging/xlogging.h"
 
