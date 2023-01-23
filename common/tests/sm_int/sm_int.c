@@ -10,14 +10,14 @@
 
 #include "testrunnerswitcher.h"
 
-
+#include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
 #include "c_pal/timer.h"
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/threadapi.h"
 #include "c_pal/interlocked.h"
 #include "c_pal/sysinfo.h" // IWYU pragma: keep
-
+#include "c_pal/sync.h" // IWYU pragma: keep
 #include "c_pal/interlocked_hl.h"
 #include "c_logging/xlogging.h"
 
