@@ -23,6 +23,8 @@
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_linux.h"
 
+#define TEST_TIMER_INSTANCE_COUNT        64
+
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 
 TEST_DEFINE_ENUM_TYPE(THREADPOOL_OPEN_RESULT, THREADPOOL_OPEN_RESULT_VALUES);
@@ -542,6 +544,62 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
 
     // cleanup
     threadpool_timer_destroy(timer);
+    threadpool_destroy(threadpool);
+    execution_engine_dec_ref(execution_engine);
+}
+
+TEST_FUNCTION(exhaust_timers_making_sure_delete_does_not_call_invalid_callback)
+{
+    // create an execution engine
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    // create the threadpool
+    THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    TIMER_INSTANCE_HANDLE timer[TEST_TIMER_INSTANCE_COUNT];
+    volatile_atomic int32_t dummy;
+    volatile_atomic int32_t call_count;
+    volatile_atomic int32_t new_callback_ctx;
+
+    (void)interlocked_exchange(&call_count, 0);
+    (void)interlocked_exchange(&new_callback_ctx, 0);
+
+    LogInfo("Starting timers");
+    // Fill up the array of timer instance and leave 1 spot left.
+    for (int32_t index = 0; index < TEST_TIMER_INSTANCE_COUNT-1; index++)
+    {
+        ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 0, 30000, work_function, (void*)&dummy, &timer[index]));
+    }
+
+    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&call_count, &timer[TEST_TIMER_INSTANCE_COUNT-1]));
+
+    // act
+    wait_for_equal(&call_count, 3, 10000);
+    ASSERT_ARE_EQUAL(int32_t, call_count, 3, "Call counter has timed out");
+
+    // call cancel
+    LogInfo("Timer should be running and waiting, now destroy timer");
+    threadpool_timer_destroy(timer[TEST_TIMER_INSTANCE_COUNT-1]);
+
+    LogInfo("Now create a new timer");
+    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&new_callback_ctx, &timer[TEST_TIMER_INSTANCE_COUNT-1]));
+
+    // Make sure  that th new callback was sent correctly
+    wait_for_equal(&new_callback_ctx, 1, 10000);
+
+    // Make sure the old call count remains at 3
+    // assert
+    ASSERT_ARE_EQUAL(int32_t, call_count, 3, "Thread called an invalid callback");
+    ASSERT_ARE_EQUAL(int32_t, new_callback_ctx, 1, "Thread counter has timed out");
+
+    // cleanup
+    for (int32_t index = 0; index < TEST_TIMER_INSTANCE_COUNT; index++)
+    {
+        threadpool_timer_destroy(timer[index]);
+    }
+
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
 }
