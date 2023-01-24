@@ -37,6 +37,16 @@
 #define TP_SEMAPHORE_TIMEOUT_MS         (100*MILLISEC_TO_NANOSEC) // The timespec value is in nanoseconds so need to multiply to get 100 MS
 #define MAX_TIMER_INSTANCE_COUNT        64
 
+#define timespec_diff_macro(a, b, result)       \
+do {                                            \
+    result.tv_sec = (a).tv_sec - (b).tv_sec;    \
+    result.tv_nsec = (a).tv_nsec - (b).tv_nsec; \
+    if ((result).tv_nsec < 0) {                 \
+      --(result).tv_sec;                        \
+      (result).tv_nsec += 1000000000;           \
+    }                                           \
+} while (0)
+
 #define TASK_RESULT_VALUES  \
     TASK_NOT_USED,          \
     TASK_INITIALIZING,      \
@@ -70,6 +80,9 @@ typedef struct TIMER_INSTANCE_TAG
     void* work_function_ctx;
     timer_t time_id;
     volatile_atomic int32_t timer_status;
+    struct itimerspec its;
+    struct timespec start_time;
+    volatile_atomic int32_t timer_trigger;
 } TIMER_INSTANCE;
 
 typedef struct THREADPOOL_TASK_TAG
@@ -102,8 +115,9 @@ typedef struct THREADPOOL_TAG
 
     THREAD_HANDLE* thread_handle_array;
 
-    // Due to the fact that the POSIX timer will send a ramdom
-    // signal after deletion we need to not allocate the TIMER_INSTANCES
+    // Due to the fact that there is a race condition in the POSIX
+    // timer where it can send the callback after the timer has been deleted
+    // so we need to not allocate the TIMER_INSTANCES
     TIMER_INSTANCE timer_instance[MAX_TIMER_INSTANCE_COUNT];
 } THREADPOOL;
 
@@ -118,7 +132,37 @@ static void on_timer_callback(sigval_t timer_data)
     {
         if (interlocked_add(&timer_instance->timer_status, 0) == TIMER_ENABLED)
         {
-            timer_instance->work_function(timer_instance->work_function_ctx);
+            // Make sure this timer is 
+            if (interlocked_add(&timer_instance->timer_trigger, 0) == 0)
+            {
+                // Increment the timer trigger so we know it won't go again
+                interlocked_increment(&timer_instance->timer_trigger);
+                struct timespec ts;
+                if (clock_gettime(CLOCK_REALTIME, &ts) == -1)
+                {
+                    LogInfo("Failure getting time from clock");
+                }
+                else
+                {
+                    struct timespec result;
+                    timespec_diff_macro(ts, timer_instance->start_time, result);
+
+                    if (result.tv_sec - timer_instance->its.it_interval.tv_sec < 0)
+                    {
+                        // The timer triggered too soo, this is to combat a race condition in POSIX
+                        // timer if you delete it too soon.
+                        LogVerbose("Timer triggered, but time value was invalid, waiting for next trigger");
+                    }
+                    else
+                    {
+                        timer_instance->work_function(timer_instance->work_function_ctx);
+                    }
+                }
+            }
+            else
+            {
+                timer_instance->work_function(timer_instance->work_function_ctx);
+            }
         }
     }
 }
@@ -593,10 +637,15 @@ int threadpool_timer_start(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms
         {
             LogError("Failure getting Timer Instance all timers are being used");
         }
+        else if (clock_gettime(CLOCK_REALTIME, &timer_instance->start_time) == -1)
+        {
+            LogError("Failure clock_gettime");
+        }
         else
         {
             timer_instance->work_function = work_function;
             timer_instance->work_function_ctx = work_function_ctx;
+            (void)interlocked_exchange(&timer_instance->timer_trigger, 0);
 
             // Setup the timer
             struct sigevent sigev = {0};
@@ -608,23 +657,18 @@ int threadpool_timer_start(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms
 
             if (timer_create(CLOCK_REALTIME, &sigev, &time_id) != 0)
             {
-                char err_msg[128];
-                (void)strerror_r(errno, err_msg, 128);
-                LogError("Failure calling timer_create. Error: %d: %s", errno, err_msg);
+                LogErrorNo("Failure calling timer_create.");
             }
             else
             {
-                struct itimerspec its;
-                its.it_value.tv_sec = start_delay_ms / 1000;
-                its.it_value.tv_nsec = start_delay_ms * MILLISEC_TO_NANOSEC % 1000000000;
-                its.it_interval.tv_sec = timer_period_ms / 1000;
-                its.it_interval.tv_nsec = timer_period_ms * MILLISEC_TO_NANOSEC % 1000000000;
+                timer_instance->its.it_value.tv_sec = start_delay_ms / 1000;
+                timer_instance->its.it_value.tv_nsec = start_delay_ms * MILLISEC_TO_NANOSEC % 1000000000;
+                timer_instance->its.it_interval.tv_sec = timer_period_ms / 1000;
+                timer_instance->its.it_interval.tv_nsec = timer_period_ms * MILLISEC_TO_NANOSEC % 1000000000;
 
-                if (timer_settime(time_id, 0, &its, NULL) == -1)
+                if (timer_settime(time_id, 0, &timer_instance->its, NULL) == -1)
                 {
-                    char err_msg[128];
-                    (void)strerror_r(errno, err_msg, 128);
-                    LogError("Failure calling timer_settime. Error: %s", MU_P_OR_NULL(err_msg));
+                    LogErrorNo("Failure calling timer_settime");
                 }
                 else
                 {
@@ -636,9 +680,7 @@ int threadpool_timer_start(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms
 
                 if (timer_delete(time_id) != 0)
                 {
-                    char err_msg[128];
-                    (void)strerror_r(errno, err_msg, 128);
-                    LogError("Failure calling timer_delete. Error: %d: (%s)", errno, err_msg);
+                    LogErrorNo("Failure calling timer_delete.");
                 }
             }
         }
@@ -669,9 +711,7 @@ int threadpool_timer_restart(TIMER_INSTANCE_HANDLE timer, uint32_t start_delay_m
 
         if (timer_settime(timer->time_id, 0, &its, NULL) != 0)
         {
-            char err_msg[128];
-            (void)strerror_r(errno, err_msg, 128);
-            LogError("Failure calling timer_settime. Error: %d: (%s)", errno, err_msg);
+            LogErrorNo("Failure calling timer_settime.");
             result = MU_FAILURE;
         }
         else
@@ -693,9 +733,7 @@ void threadpool_timer_cancel(TIMER_INSTANCE_HANDLE timer)
         struct itimerspec its = {0};
         if (timer_settime(timer->time_id, 0, &its, NULL) != 0)
         {
-            char err_msg[128];
-            (void)strerror_r(errno, err_msg, 128);
-            LogError("Failure calling timer_settime. Error: %d: (%s)", errno, err_msg);
+            LogErrorNo("Failure calling timer_settime");
         }
         else
         {
@@ -714,9 +752,7 @@ void threadpool_timer_destroy(TIMER_INSTANCE_HANDLE timer)
     {
         if (timer_delete(timer->time_id) != 0)
         {
-            char err_msg[128];
-            (void)strerror_r(errno, err_msg, 128);
-            LogError("Failure calling timer_delete. Error: %d: (%s)", errno, err_msg);
+            LogErrorNo("Failure calling timer_delete.");
         }
         else
         {
