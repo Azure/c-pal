@@ -9,7 +9,6 @@
 #include <time.h>
 #include <string.h>
 #include <signal.h>
-#include <errno.h>
 
 #include <bits/types/__sigval_t.h>         // for __sigval_t
 #include <bits/types/sigevent_t.h>         // for sigevent, sigev_notify_fun...
@@ -80,7 +79,7 @@ typedef struct TIMER_INSTANCE_TAG
     void* work_function_ctx;
     timer_t time_id;
     volatile_atomic int32_t timer_status;
-    struct itimerspec its;
+    volatile_atomic int64_t time_sec;
     struct timespec start_time;
     volatile_atomic int32_t timer_trigger;
 } TIMER_INSTANCE;
@@ -121,6 +120,13 @@ typedef struct THREADPOOL_TAG
     TIMER_INSTANCE timer_instance[MAX_TIMER_INSTANCE_COUNT];
 } THREADPOOL;
 
+// POSIX Bug:
+// The Timer can be triggered after a timer_delete call has been issued
+// The following is the reason:
+// If the time is set to trigger at 01:00:24:05
+// and the timer_delete occurs at 01:00:24:01
+// the callback will be triggered.  The code here is to guard against
+// this from making unaccounted for timer callbacks
 static void on_timer_callback(sigval_t timer_data)
 {
     TIMER_INSTANCE* timer_instance = timer_data.sival_ptr;
@@ -132,7 +138,8 @@ static void on_timer_callback(sigval_t timer_data)
     {
         if (interlocked_add(&timer_instance->timer_status, 0) == TIMER_ENABLED)
         {
-            // Make sure this timer is 
+            // Make sure that if this timer has not been triggered previously that we
+            // don't go through the logic again
             if (interlocked_add(&timer_instance->timer_trigger, 0) == 0)
             {
                 // Increment the timer trigger so we know it won't go again
@@ -140,16 +147,16 @@ static void on_timer_callback(sigval_t timer_data)
                 struct timespec ts;
                 if (clock_gettime(CLOCK_REALTIME, &ts) == -1)
                 {
-                    LogInfo("Failure getting time from clock");
+                    LogError("Failure getting time from clock");
                 }
                 else
                 {
                     struct timespec result;
                     timespec_diff_macro(ts, timer_instance->start_time, result);
 
-                    if (result.tv_sec - timer_instance->its.it_interval.tv_sec < 0)
+                    if (result.tv_sec - interlocked_add_64(&timer_instance->time_sec, 0) < 0)
                     {
-                        // The timer triggered too soo, this is to combat a race condition in POSIX
+                        // The timer triggered too soon, this is to combat a race condition in POSIX
                         // timer if you delete it too soon.
                         LogVerbose("Timer triggered, but time value was invalid, waiting for next trigger");
                     }
@@ -661,17 +668,19 @@ int threadpool_timer_start(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms
             }
             else
             {
-                timer_instance->its.it_value.tv_sec = start_delay_ms / 1000;
-                timer_instance->its.it_value.tv_nsec = start_delay_ms * MILLISEC_TO_NANOSEC % 1000000000;
-                timer_instance->its.it_interval.tv_sec = timer_period_ms / 1000;
-                timer_instance->its.it_interval.tv_nsec = timer_period_ms * MILLISEC_TO_NANOSEC % 1000000000;
+                struct itimerspec its;
+                its.it_value.tv_sec = start_delay_ms / 1000;
+                its.it_value.tv_nsec = start_delay_ms * MILLISEC_TO_NANOSEC % 1000000000;
+                its.it_interval.tv_sec = timer_period_ms / 1000;
+                its.it_interval.tv_nsec = timer_period_ms * MILLISEC_TO_NANOSEC % 1000000000;
 
-                if (timer_settime(time_id, 0, &timer_instance->its, NULL) == -1)
+                if (timer_settime(time_id, 0, &its, NULL) == -1)
                 {
                     LogErrorNo("Failure calling timer_settime");
                 }
                 else
                 {
+                    (void)interlocked_exchange_64(&timer_instance->time_sec, its.it_interval.tv_sec);
                     timer_instance->time_id = time_id;
                     *timer_handle = timer_instance;
                     result = 0;
@@ -682,6 +691,7 @@ int threadpool_timer_start(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms
                 {
                     LogErrorNo("Failure calling timer_delete.");
                 }
+                (void)interlocked_exchange(&timer_instance->timer_status,  TIMER_DISABLED);
             }
         }
         result = MU_FAILURE;
