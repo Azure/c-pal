@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <inttypes.h> // IWYU pragma: keep
 #include <stdbool.h>
 #include <string.h>
 
