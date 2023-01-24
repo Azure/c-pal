@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include <stdlib.h>
-#include <stdint.h>
+#include <stdint.h> // IWYU pragma: keep
 #include <inttypes.h> // IWYU pragma: keep
 #include <stdbool.h>
 #include <string.h>
