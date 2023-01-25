@@ -57,6 +57,7 @@ MU_DEFINE_ENUM_STRINGS(TASK_RESULT, TASK_RESULT_VALUES)
 
 #define TIMER_INSTANCE_STATUS_VALUES  \
     TIMER_ENABLED,                    \
+    TIMER_ENABLING,                   \
     TIMER_DISABLED
 
 MU_DEFINE_ENUM(TIMER_INSTANCE_STATUS, TIMER_INSTANCE_STATUS_VALUES);
@@ -366,7 +367,7 @@ static TIMER_INSTANCE* get_next_timer_instance(THREADPOOL* threadpool)
     int32_t index;
     for (index = 0; index < MAX_TIMER_INSTANCE_COUNT; index++)
     {
-        if (interlocked_compare_exchange(&threadpool->timer_instance[index].timer_status, TIMER_ENABLED, TIMER_DISABLED) == TIMER_DISABLED)
+        if (interlocked_compare_exchange(&threadpool->timer_instance[index].timer_status, TIMER_ENABLING, TIMER_DISABLED) == TIMER_DISABLED)
         {
             result = &threadpool->timer_instance[index];
             break;
@@ -652,7 +653,7 @@ int threadpool_timer_start(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms
         {
             timer_instance->work_function = work_function;
             timer_instance->work_function_ctx = work_function_ctx;
-            (void)interlocked_exchange(&timer_instance->timer_trigger, 0);
+            (void)interlocked_exchange(&timer_instance->timer_status, TIMER_ENABLED);
 
             // Setup the timer
             struct sigevent sigev = {0};
@@ -673,6 +674,7 @@ int threadpool_timer_start(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms
                 its.it_value.tv_nsec = start_delay_ms * MILLISEC_TO_NANOSEC % 1000000000;
                 its.it_interval.tv_sec = timer_period_ms / 1000;
                 its.it_interval.tv_nsec = timer_period_ms * MILLISEC_TO_NANOSEC % 1000000000;
+                (void)interlocked_exchange(&timer_instance->timer_trigger, TIMER_ENABLED);
 
                 if (timer_settime(time_id, 0, &its, NULL) == -1)
                 {
@@ -691,8 +693,8 @@ int threadpool_timer_start(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms
                 {
                     LogErrorNo("Failure calling timer_delete.");
                 }
-                (void)interlocked_exchange(&timer_instance->timer_status,  TIMER_DISABLED);
             }
+            (void)interlocked_exchange(&timer_instance->timer_status,  TIMER_DISABLED);
         }
         result = MU_FAILURE;
     }
