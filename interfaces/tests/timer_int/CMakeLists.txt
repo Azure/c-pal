@@ -11,4 +11,4 @@ set(${theseTestsName}_h_files
     ../../inc/c_pal/timer.h
 )
 
-build_test_artifacts(${theseTestsName} "tests/c_pal/int" ADDITIONAL_LIBS c_pal)
+build_test_artifacts(${theseTestsName} "tests/c_pal/int" ADDITIONAL_LIBS c_pal c_pal_ll)

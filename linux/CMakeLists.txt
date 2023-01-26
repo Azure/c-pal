@@ -42,12 +42,10 @@ set(pal_linux_c_files
     src/completion_port_linux.c
     src/execution_engine_linux.c
     src/file_linux.c
-    src/interlocked_linux.c
     src/pipe_linux.c
     src/platform_linux.c
     src/srw_lock_linux.c
     src/string_utils.c
-    src/sync_linux.c
     src/string_utils.c
     src/sysinfo_linux.c
     src/threadapi_pthreads.c

@@ -6,14 +6,12 @@ set(pal_interfaces_h_files
     inc/c_pal/async_socket.h
     inc/c_pal/socket_handle.h
     inc/c_pal/threadpool.h
-    inc/c_pal/interlocked.h
     inc/c_pal/pipe.h
     inc/c_pal/platform.h
     inc/c_pal/threadapi.h
     inc/c_pal/timer.h
     inc/c_pal/uuid.h
     inc/c_pal/srw_lock.h
-    inc/c_pal/sync.h
     inc/c_pal/file.h
     inc/c_pal/gballoc_ll.h
     inc/c_pal/gballoc_ll_redirects.h

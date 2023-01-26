@@ -4,8 +4,6 @@
 set(reals_pal_interface_h_files
     real_pipe.h
     real_pipe_renames.h
-    real_sync.h
-    real_sync_renames.h
     real_threadapi.h
     real_threadapi_renames.h
 )

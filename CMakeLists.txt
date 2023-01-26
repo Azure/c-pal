@@ -171,6 +171,7 @@ enable_testing()
 set(C_PAL_INC_FOLDER 
     ${CMAKE_CURRENT_LIST_DIR}/interfaces/inc
     ${CMAKE_CURRENT_LIST_DIR}/common/inc
+    ${CMAKE_CURRENT_LIST_DIR}/c_pal_ll/interfaces/inc
     CACHE INTERNAL "this is what needs to be included if using c_pal" FORCE)
 
 add_subdirectory(build_functions)
@@ -178,6 +179,7 @@ add_subdirectory(build_functions)
 add_subdirectory(interfaces)
 add_subdirectory(common)
 add_subdirectory(umocktypes)
+add_subdirectory(c_pal_ll)
 
 if(WIN32)
     add_subdirectory(win32)
@@ -191,9 +193,9 @@ FILE(GLOB c_pal_md_files "doc/*.md")
 SOURCE_GROUP(devdoc FILES ${c_pal_md_files})
 
 if(MSVC)
-    target_link_libraries(c_pal INTERFACE pal_win32)
+    target_link_libraries(c_pal INTERFACE pal_win32 pal_ll_win32)
 else()
-    target_link_libraries(c_pal INTERFACE pal_linux)
+    target_link_libraries(c_pal INTERFACE pal_linux pal_ll_linux)
 endif()
 
 
@@ -206,9 +208,9 @@ endif()
 
 add_library(c_pal_reals INTERFACE)
 if(MSVC)
-    target_link_libraries(c_pal_reals INTERFACE win32_reals)
+    target_link_libraries(c_pal_reals INTERFACE win32_reals win32_ll_reals)
 else()
-    target_link_libraries(c_pal_reals INTERFACE linux_reals)
+    target_link_libraries(c_pal_reals INTERFACE linux_reals linux_ll_reals)
 endif()
 
 if(${run_reals_check})
