@@ -23,7 +23,3 @@ else()
     target_link_libraries(c_pal_ll_reals INTERFACE linux_ll_reals)
 endif()
 
-if(${run_reals_check})
-    add_reals_check_target()
-endif()
-
