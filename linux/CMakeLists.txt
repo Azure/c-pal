@@ -62,6 +62,7 @@ SOURCE_GROUP(devdoc FILES ${pal_linux_md_files} ${pal_common_md_files})
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/inc)
 include_directories(../common/inc)
+include_directories(../c_pal_ll/interfaces/inc)
 
 add_library(pal_linux ${pal_linux_h_files} ${pal_linux_c_files} ${pal_linux_md_files} ${pal_common_md_files})
 target_link_libraries(pal_linux pal_interfaces rt uuid pthread)

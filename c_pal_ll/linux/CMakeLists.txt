@@ -12,6 +12,8 @@ FILE(GLOB pal_ll_linux_md_files "devdoc/*.md")
 SOURCE_GROUP(devdoc FILES ${pal_ll_linux_md_files})
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/inc)
+include_directories(../common/inc)
+include_directories(../interfaces/inc)
 
 add_library(pal_ll_linux ${pal_ll_linux_h_files} ${pal_ll_linux_c_files} ${pal_ll_linux_md_files})
 set_target_properties(pal_ll_linux PROPERTIES LINKER_LANGUAGE C)

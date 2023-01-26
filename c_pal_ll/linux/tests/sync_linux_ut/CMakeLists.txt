@@ -13,7 +13,7 @@ mock_sync.c
 )
 
 set(${theseTestsName}_h_files
-../../../c_pal_ll/inc/c_pal/sync.h
+../../../interfaces/inc/c_pal/sync.h
 mock_sync.h
 )
 

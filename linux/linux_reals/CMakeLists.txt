@@ -31,4 +31,4 @@ set(linux_reals_h_files
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../src)
 add_library(linux_reals ${linux_reals_c_files} ${linux_reals_h_files})
 target_include_directories(linux_reals PUBLIC . ${CMAKE_CURRENT_LIST_DIR}/../../common/reals  ${CMAKE_CURRENT_LIST_DIR}/../inc)
-target_link_libraries(linux_reals pal_interfaces pal_interfaces_reals rt uuid pthread)
+target_link_libraries(linux_reals linux_ll_reals pal_interfaces pal_interfaces_reals rt uuid pthread)
