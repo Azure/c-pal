@@ -62,6 +62,7 @@ add_library(pal_linux ${pal_linux_h_files} ${pal_linux_c_files} ${pal_linux_md_f
 target_link_libraries(pal_linux pal_interfaces rt uuid pthread)
 target_include_directories(pal_linux PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc)
 
+# make an install target so we can produce a Linux native client package.
 install_library_with_prefix(pal_linux c_pal  ${pal_linux_h_files} )
 
 add_subdirectory(linux_reals)
