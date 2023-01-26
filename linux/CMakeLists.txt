@@ -62,22 +62,8 @@ add_library(pal_linux ${pal_linux_h_files} ${pal_linux_c_files} ${pal_linux_md_f
 target_link_libraries(pal_linux pal_interfaces rt uuid pthread)
 target_include_directories(pal_linux PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc)
 
-# Set CMAKE_INSTALL_* if not defined
-include(GNUInstallDirs)
-
-if(NOT DEFINED CMAKE_INSTALL_LIBDIR)
-    set(CMAKE_INSTALL_LIBDIR "lib")
-endif()
-
-# Install pal_linux
-set(package_location "cmake")
-
-install(TARGETS pal_linux EXPORT pal_linuxTargets
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/../bin
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
-install(FILES ${pal_linux_h_files} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/c_pal)
+# make an install target so we can produce a Linux native client package.
+install_library_with_prefix(pal_linux c_pal  ${pal_linux_h_files} )
 
 add_subdirectory(linux_reals)
 add_subdirectory(tests)

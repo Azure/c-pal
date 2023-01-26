@@ -215,22 +215,11 @@ if(${run_reals_check})
     add_reals_check_target()
 endif()
 
-# Add an installation step
-# Set CMAKE_INSTALL_* if not defined
-include(GNUInstallDirs)
-
-if(NOT DEFINED CMAKE_INSTALL_LIBDIR)
-    set(CMAKE_INSTALL_LIBDIR "lib")
-endif()
-
-# Installation for c_pal
-set(package_location "cmake")
-
-install(TARGETS c_pal EXPORT c_palTargets
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/../bin
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
+# make an install target so we can produce a Linux native client package.
+# ensure the interface and common headers are a part of the installation.
+FILE(GLOB c_pal_interace_includes "${CMAKE_CURRENT_LIST_DIR}/interfaces/inc/c_pal/*")
+FILE(GLOB c_pal_common_includes "${CMAKE_CURRENT_LIST_DIR}/common/inc/c_pal/*")
+install_library_with_prefix(c_pal c_pal  ${c_pal_interace_includes} ${c_pal_common_includes})
 
 include(CMakePackageConfigHelpers)
 
