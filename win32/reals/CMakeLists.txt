@@ -6,7 +6,6 @@ set(reals_win32_c_files
     real_call_once.c
     real_lazy_init.c
     real_pipe.c
-    real_threadapi.c
     real_srw_lock_win32.c
     real_string_utils_win32.c
     real_timer_win32.c

@@ -1,5 +1,4 @@
-`log_critical_and_terminate` requirements
-================
+# log_critical_and_terminate requirements
 
 ## Overview
 

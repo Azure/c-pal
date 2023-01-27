@@ -3,6 +3,7 @@
 set(pal_ll_interfaces_h_files
     inc/c_pal/interlocked.h
     inc/c_pal/sync.h
+    inc/c_pal/threadapi.h
 )
 
 FILE(GLOB pal_ll_interfaces_md_files "devdoc/*.md")

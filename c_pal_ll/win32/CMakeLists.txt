@@ -3,11 +3,13 @@
 set(pal_ll_win32_h_files
     ../interfaces/inc/c_pal/interlocked.h
     ../interfaces/inc/c_pal/sync.h
+    ../interfaces/inc/c_pal/threadapi.h
 )
 
 set(pal_ll_win32_c_files    
     src/interlocked_win32.c
     src/sync_win32.c
+    src/threadapi_win32.c
 )
 
 FILE(GLOB pal_ll_win32_md_files "devdoc/*.md")

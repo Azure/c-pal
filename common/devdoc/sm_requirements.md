@@ -1,5 +1,4 @@
 # State manager requirements
-================
 
 ## Overview
 

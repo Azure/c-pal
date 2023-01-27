@@ -4,6 +4,7 @@
 set(reals_win32_ll_c_files
     real_interlocked.c
     real_sync.c
+    real_threadapi.c
 )
 
 set(reals_win32_ll_h_files

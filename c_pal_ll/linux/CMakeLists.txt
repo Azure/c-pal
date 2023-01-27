@@ -6,6 +6,7 @@ set(pal_ll_linux_h_files
 set(pal_ll_linux_c_files
     src/interlocked_linux.c
     src/sync_linux.c
+    src/threadapi_pthreads.c
 )
 
 FILE(GLOB pal_ll_linux_md_files "devdoc/*.md")

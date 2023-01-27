@@ -48,7 +48,6 @@ set(pal_linux_c_files
     src/string_utils.c
     src/string_utils.c
     src/sysinfo_linux.c
-    src/threadapi_pthreads.c
     src/threadpool_linux.c
     src/timer_linux.c
     src/uuid_linux.c

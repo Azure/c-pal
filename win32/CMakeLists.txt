@@ -40,7 +40,6 @@ set(pal_win32_c_files
     src/threadpool_win32.c
     src/pipe_win32.c
     src/platform_win32.c
-    src/threadapi_win32.c
     src/srw_lock_win32.c
     src/string_utils.c
     src/timer_win32.c

@@ -4,6 +4,8 @@
 set(reals_pal_ll_h_files
     real_sync.h
     real_sync_renames.h
+    real_threadapi.h
+    real_threadapi_renames.h
 )
 
 add_library(pal_ll_interfaces_reals INTERFACE)

@@ -2,6 +2,7 @@
 #Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 set(linux_ll_reals_c_files
+    real_threadapi_linux.c
     real_interlocked.c
     real_sync.c
 )
