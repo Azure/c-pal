@@ -8,16 +8,22 @@ endif()
 
 # unit tests
 if(${run_unittests})
+    build_test_folder(interlocked_hl_ut)
+    build_test_folder(log_critical_and_terminate_ut)
+    build_test_folder(ps_util_ut)
     build_test_folder(refcount_ut)
     build_test_folder(call_once_ut)
     build_test_folder(lazy_init_ut)
+    build_test_folder(sm_ut)
     build_test_folder(s_list_ut)
 endif()
 
 if(${run_int_tests})
     build_test_folder(arithmetic_int)
     build_test_folder(call_once_int)
+    build_test_folder(interlocked_hl_int)
     build_test_folder(lazy_init_int)
+    build_test_folder(sm_int)
 endif()
 
 

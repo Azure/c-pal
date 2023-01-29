@@ -17,4 +17,4 @@ set(${theseTestsName}_h_files
 mocks.h
 )
 
-build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS pal_interfaces c_pal_reals)
+build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS pal_interfaces c_pal_reals pal_ll_interfaces win32_ll_reals)

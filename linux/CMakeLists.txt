@@ -3,14 +3,21 @@
 set(pal_common_h_files
     ../common/inc/c_pal/call_once.h
     ../common/inc/c_pal/containing_record.h
+    ../common/inc/c_pal/interlocked_hl.h
     ../common/inc/c_pal/lazy_init.h
+    ../common/inc/c_pal/log_critical_and_terminate.h
+    ../common/inc/c_pal/ps_util.h
     ../common/inc/c_pal/s_list.h
+    ../common/inc/c_pal/sm.h
 )
 
 set(pal_common_c_files
     ../common/src/call_once.c
     ../common/src/lazy_init.c
+    ../common/src/interlocked_hl.c
+    ../common/src/ps_util.c
     ../common/src/s_list.c
+    ../common/src/sm.c
 )
 
 #determining which one of the GBALLOC_LL implementations to use. By convention the file is called "gballoc_ll_" followed by "type".
@@ -35,15 +42,12 @@ set(pal_linux_c_files
     src/completion_port_linux.c
     src/execution_engine_linux.c
     src/file_linux.c
-    src/interlocked_linux.c
     src/pipe_linux.c
     src/platform_linux.c
     src/srw_lock_linux.c
     src/string_utils.c
-    src/sync_linux.c
     src/string_utils.c
     src/sysinfo_linux.c
-    src/threadapi_pthreads.c
     src/threadpool_linux.c
     src/timer_linux.c
     src/uuid_linux.c
@@ -57,6 +61,7 @@ SOURCE_GROUP(devdoc FILES ${pal_linux_md_files} ${pal_common_md_files})
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/inc)
 include_directories(../common/inc)
+include_directories(../c_pal_ll/interfaces/inc)
 
 add_library(pal_linux ${pal_linux_h_files} ${pal_linux_c_files} ${pal_linux_md_files} ${pal_common_md_files})
 target_link_libraries(pal_linux pal_interfaces rt uuid pthread)
