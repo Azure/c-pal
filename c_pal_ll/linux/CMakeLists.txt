@@ -36,7 +36,7 @@ install(TARGETS pal_ll_linux EXPORT pal_ll_linuxTargets
     RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/../bin
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
-install(FILES ${pal_ll_linux_h_files} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/c_pal)
+install_library_with_prefix(pal_ll_linux c_pal  ${pal_ll_linux_h_files} )
 
 add_subdirectory(linux_reals)
 add_subdirectory(tests)
