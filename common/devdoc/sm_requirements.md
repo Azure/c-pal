@@ -211,7 +211,7 @@ static SM_RESULT sm_close_begin_internal(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CA
 
 If the state is `SM_OPENING` and the `close_while_opening_callback` is non-NULL then ...
 
-... `sm_close_begin_internal` shall call the `close_while_opening_callback` and then re-evaluate the state.
+... `sm_close_begin_internal` shall call the `close_while_opening_callback` and then return `SM_EXEC_REFUSED`.
 
 **SRS_SM_02_052: [** If the state is any other value then `sm_close_begin_internal` shall return `SM_EXEC_REFUSED`. **]**
 
