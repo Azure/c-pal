@@ -1637,7 +1637,7 @@ TEST_FUNCTION(sm_close_begin_with_cb_triggers_cancel)
     ThreadAPI_Sleep(500);
 
     /// assert
-    ASSERT_ARE_EQUAL(SM_RESULT, sm_close_begin_with_cb(context.sm, cancellingCallback, (void*)(&context.cancel_wait), NULL, NULL), SM_EXEC_GRANTED);
+    ASSERT_ARE_EQUAL(SM_RESULT, SM_EXEC_GRANTED, sm_close_begin_with_cb(context.sm, cancellingCallback, (void*)(&context.cancel_wait), NULL, NULL));
     sm_close_end(context.sm);
 
     /// cleanup
@@ -1653,6 +1653,7 @@ static void close_while_in_opening(void* context)
 
 TEST_FUNCTION(sm_close_begin_with_cb_while_opening_with_sm_open_end_false)
 {
+    /// arrange
     WAIT_FOR_CANCEL wait_for_cancel;
     wait_for_cancel.close_cb_called = 0;
     wait_for_cancel.sm_open_result = false;
@@ -1662,16 +1663,20 @@ TEST_FUNCTION(sm_close_begin_with_cb_while_opening_with_sm_open_end_false)
 
     ASSERT_ARE_EQUAL(SM_RESULT, sm_open_begin(wait_for_cancel.sm), SM_EXEC_GRANTED);
 
+    /// act
     // This call should be refused because we are going to fail the sm_open_end
-    ASSERT_ARE_EQUAL(SM_RESULT, sm_close_begin_with_cb(wait_for_cancel.sm, cancellingCallback, (void*)&wait_for_cancel.cancel_wait, close_while_in_opening, &wait_for_cancel), SM_EXEC_REFUSED);
+    ASSERT_ARE_EQUAL(SM_RESULT, SM_EXEC_REFUSED, sm_close_begin_with_cb(wait_for_cancel.sm, cancellingCallback, (void*)&wait_for_cancel.cancel_wait, close_while_in_opening, &wait_for_cancel));
 
+    /// assert
     ASSERT_ARE_EQUAL(int, 1, wait_for_cancel.close_cb_called);
 
+    /// cleanup
     sm_destroy(wait_for_cancel.sm);
 }
 
 TEST_FUNCTION(sm_close_begin_with_cb_while_opening_with_sm_open_end_true)
 {
+    /// arrange
     WAIT_FOR_CANCEL wait_for_cancel;
     wait_for_cancel.close_cb_called = 0;
     wait_for_cancel.sm_open_result = true;
@@ -1681,12 +1686,15 @@ TEST_FUNCTION(sm_close_begin_with_cb_while_opening_with_sm_open_end_true)
 
     ASSERT_ARE_EQUAL(SM_RESULT, sm_open_begin(wait_for_cancel.sm), SM_EXEC_GRANTED);
 
-    // This call should be refused because we are going to fail the sm_open_end
-    ASSERT_ARE_EQUAL(SM_RESULT, sm_close_begin_with_cb(wait_for_cancel.sm, cancellingCallback, (void*)&wait_for_cancel.cancel_wait, close_while_in_opening, &wait_for_cancel), SM_EXEC_GRANTED);
+    /// act
+    // This call should be accepted because we are going to pass the sm_open_end
+    ASSERT_ARE_EQUAL(SM_RESULT, SM_EXEC_GRANTED, sm_close_begin_with_cb(wait_for_cancel.sm, cancellingCallback, (void*)&wait_for_cancel.cancel_wait, close_while_in_opening, &wait_for_cancel));
     sm_close_end(wait_for_cancel.sm);
 
+    /// assert
     ASSERT_ARE_EQUAL(int, 1, wait_for_cancel.close_cb_called);
 
+    /// cleanup
     sm_destroy(wait_for_cancel.sm);
 }
 

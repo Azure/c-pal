@@ -49,7 +49,6 @@ MOCK_FUNCTION_WITH_CODE(, void, test_on_sm_closing_complete, void*, context)
 MOCK_FUNCTION_END()
 
 MOCK_FUNCTION_WITH_CODE(, void, test_on_closing_on_opening_callback, void*, context)
-    
 MOCK_FUNCTION_END()
 
 static SM_HANDLE TEST_sm_create(void)
