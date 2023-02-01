@@ -5,9 +5,9 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
-#include "c_logging/xlogging.h"
-
 #include "windows.h"
+
+#include "c_logging/xlogging.h"
 
 #include "c_pal/interlocked.h"
 #include "c_pal/sync.h"
@@ -22,14 +22,12 @@ IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_
     {
         if (GetLastError() == ERROR_TIMEOUT)
         {
-            LogError("failure in WaitOnAddress(address=%p, &compare_value=%p, address_size=%zu, timeout_ms=%" PRId32 ") due to timeout",
-                address, &compare_value, sizeof(int32_t), timeout_ms);
             /* Codes_SRS_SYNC_WIN32_24_001: [ If WaitOnAddress fails due to timeout, wait_on_address shall fail and return WAIT_ON_ADDRESS_TIMEOUT. ]*/
             result = WAIT_ON_ADDRESS_TIMEOUT;
         }
         else
         {
-            LogError("failure in WaitOnAddress(address=%p, &compare_value=%p, address_size=%zu, timeout_ms=%" PRId32 ")",
+            LogLastError("failure in WaitOnAddress(address=%p, &compare_value=%p, address_size=%zu, timeout_ms=%" PRIu32 ")",
                 address, &compare_value, sizeof(int32_t), timeout_ms);
             /* Codes_SRS_SYNC_WIN32_24_002: [ If WaitOnAddress fails due to any other reason, wait_on_address shall fail and return WAIT_ON_ADDRESS_ERROR. ]*/
             result = WAIT_ON_ADDRESS_ERROR;
