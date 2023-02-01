@@ -89,7 +89,7 @@ SM_HANDLE sm_create(const char* name)
 }
 
 /*forwards*/
-static SM_RESULT sm_close_begin_internal(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CALLBACK callback, void* callback_context);
+static SM_RESULT sm_close_begin_internal(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CALLBACK callback, void* callback_context, ON_SM_CLOSING_WILE_OPENING_CALLBACK close_while_opening_callback, void* close_while_opening_context);
 static void sm_close_end_internal(SM_HANDLE sm);
 
 void sm_destroy(SM_HANDLE sm)
@@ -102,7 +102,7 @@ void sm_destroy(SM_HANDLE sm)
     else
     {
         /*Codes_SRS_SM_02_038: [ sm_destroy behave as if sm_close_begin would have been called. ]*/
-        if (sm_close_begin_internal(sm, NULL, NULL) == SM_EXEC_GRANTED)
+        if (sm_close_begin_internal(sm, NULL, NULL, NULL, NULL) == SM_EXEC_GRANTED)
         {
             sm_close_end_internal(sm);
         }
@@ -205,7 +205,7 @@ void sm_open_end(SM_HANDLE sm, bool success)
     }
 }
 
-static SM_RESULT sm_close_begin_internal(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CALLBACK callback, void* callback_context)
+static SM_RESULT sm_close_begin_internal(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CALLBACK callback, void* callback_context, ON_SM_CLOSING_WILE_OPENING_CALLBACK close_while_opening_callback, void* close_while_opening_context)
 {
     SM_RESULT result;
 
@@ -219,6 +219,7 @@ static SM_RESULT sm_close_begin_internal(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CA
     }
     else
     {
+        bool initial_iteration = true;
         do
         {
             state = interlocked_add(&sm->state, 0);
@@ -267,6 +268,17 @@ static SM_RESULT sm_close_begin_internal(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CA
             {
                 ThreadAPI_Sleep(1);
             }
+            else if (
+                // Codes_SRS_SM_11_002: [ If the state is SM_OPENING, the close_while_opening_callback is non-NULL and this is the first evaluation of the close then ... ]
+                ((state & SM_STATE_MASK) == SM_OPENING) && 
+                (close_while_opening_callback != NULL) &&
+                (initial_iteration)
+                )
+            {
+                // Codes_SRS_SM_11_003: [ ... sm_close_begin_internal shall call the close_while_opening_callback and then re-evaluate the state. ]
+                close_while_opening_callback(close_while_opening_context);
+                initial_iteration = false;
+            }
             else
             {
                 /*Codes_SRS_SM_02_052: [ If the state is any other value then sm_close_begin_internal shall return SM_EXEC_REFUSED. ]*/
@@ -283,7 +295,6 @@ static SM_RESULT sm_close_begin_internal(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CA
 
 SM_RESULT sm_close_begin(SM_HANDLE sm)
 {
-
     SM_RESULT result;
     /*Codes_SRS_SM_02_013: [ If sm is NULL then sm_close_begin shall fail and return SM_ERROR. ]*/
     if (sm == NULL)
@@ -295,15 +306,15 @@ SM_RESULT sm_close_begin(SM_HANDLE sm)
     {
         /* Codes_SRS_SM_28_005: [ sm_close_begin shall call sm_close_begin_internal with callback as NULL and callback_context as NULL. ] */
         /* Codes_SRS_SM_28_006: [ sm_close_begin shall return the returned SM_RESULT from sm_close_begin_internal. ] */
-        result = sm_close_begin_internal(sm, NULL, NULL);
+        result = sm_close_begin_internal(sm, NULL, NULL, NULL, NULL);
     }
 
     return result;
 }
 
-SM_RESULT sm_close_begin_with_cb(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CALLBACK callback, void* callback_context)
+SM_RESULT sm_close_begin_with_cb(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CALLBACK callback, void* callback_context, ON_SM_CLOSING_WILE_OPENING_CALLBACK close_while_opening_callback, void* close_while_opening_context)
 {
-
+    // Codes_SRS_SM_11_001: [ close_while_opening_callback shall be allowed to be NULL ]
     SM_RESULT result;
     if (
         /* Codes_SRS_SM_28_001: [ If sm is NULL then sm_close_begin_with_cb shall fail and return SM_ERROR. ] */
@@ -318,7 +329,7 @@ SM_RESULT sm_close_begin_with_cb(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CALLBACK c
     {
         /* Codes_SRS_SM_28_003: [ sm_close_begin_with_cb shall call sm_close_begin_internal with callback and callback_context as arguments. ] */
         /* Codes_SRS_SM_28_004: [ sm_close_begin_with_cb shall return the returned SM_RESULT from sm_close_begin_internal. ] */
-        result = sm_close_begin_internal(sm, callback, callback_context);
+        result = sm_close_begin_internal(sm, callback, callback_context, close_while_opening_callback, close_while_opening_context);
     }
 
     return result;

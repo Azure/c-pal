@@ -248,7 +248,7 @@ static int callsBeginCloseWithCB(
     while (interlocked_add(&data->threadsShouldFinish, 0) == 0)
     {
         bool test_value = false;
-        if (sm_close_begin_with_cb(data->sm, test_close_begin_with_cb_callback, (void*)&test_value) == SM_EXEC_GRANTED)
+        if (sm_close_begin_with_cb(data->sm, test_close_begin_with_cb_callback, (void*)&test_value, NULL, NULL) == SM_EXEC_GRANTED)
         {
             ASSERT_IS_TRUE(test_value);
             (void)interlocked_increment(&data->begin_close_pending); // now make sure end_close is called
@@ -1563,7 +1563,7 @@ TEST_FUNCTION(STATE_and_API)
                 {
                     bool test_value = false;
                     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_SetAndWake(&goToState.targetAPICalledInNextLine, 1));
-                    ASSERT_ARE_EQUAL(SM_RESULT, expected[i][j].expected_sm_result, sm_close_begin_with_cb(goToState.sm, test_close_begin_with_cb_callback, (void*)&test_value));
+                    ASSERT_ARE_EQUAL(SM_RESULT, expected[i][j].expected_sm_result, sm_close_begin_with_cb(goToState.sm, test_close_begin_with_cb_callback, (void*)&test_value, NULL, NULL));
                     if (expected[i][j].expected_sm_result == SM_EXEC_GRANTED)
                     {
                         ASSERT_IS_TRUE(test_value);
@@ -1596,6 +1596,8 @@ typedef struct WAIT_FOR_CANCEL_TAG
 {
     SM_HANDLE sm;
     volatile_atomic int32_t cancel_wait;
+    int32_t close_cb_called;
+    bool sm_open_result;
 } WAIT_FOR_CANCEL;
 
 static int waitForCancel(void* context)
@@ -1635,11 +1637,57 @@ TEST_FUNCTION(sm_close_begin_with_cb_triggers_cancel)
     ThreadAPI_Sleep(500);
 
     /// assert
-    ASSERT_ARE_EQUAL(SM_RESULT, sm_close_begin_with_cb(context.sm, cancellingCallback, (void*)(&context.cancel_wait)), SM_EXEC_GRANTED);
+    ASSERT_ARE_EQUAL(SM_RESULT, sm_close_begin_with_cb(context.sm, cancellingCallback, (void*)(&context.cancel_wait), NULL, NULL), SM_EXEC_GRANTED);
     sm_close_end(context.sm);
 
     /// cleanup
     sm_destroy(context.sm);
+}
+
+static void close_while_in_opening(void* context)
+{
+    WAIT_FOR_CANCEL* wait_for_cancel = (WAIT_FOR_CANCEL*)context;
+    wait_for_cancel->close_cb_called = 1;
+    sm_open_end(wait_for_cancel->sm, wait_for_cancel->sm_open_result);
+}
+
+TEST_FUNCTION(sm_close_begin_with_cb_while_opening_with_sm_open_end_false)
+{
+    WAIT_FOR_CANCEL wait_for_cancel;
+    wait_for_cancel.close_cb_called = 0;
+    wait_for_cancel.sm_open_result = false;
+
+    wait_for_cancel.sm = sm_create(NULL);
+    ASSERT_IS_NOT_NULL(wait_for_cancel.sm);
+
+    ASSERT_ARE_EQUAL(SM_RESULT, sm_open_begin(wait_for_cancel.sm), SM_EXEC_GRANTED);
+
+    // This call should be refused because we are going to fail the sm_open_end
+    ASSERT_ARE_EQUAL(SM_RESULT, sm_close_begin_with_cb(wait_for_cancel.sm, cancellingCallback, (void*)&wait_for_cancel.cancel_wait, close_while_in_opening, &wait_for_cancel), SM_EXEC_REFUSED);
+
+    ASSERT_ARE_EQUAL(int, 1, wait_for_cancel.close_cb_called);
+
+    sm_destroy(wait_for_cancel.sm);
+}
+
+TEST_FUNCTION(sm_close_begin_with_cb_while_opening_with_sm_open_end_true)
+{
+    WAIT_FOR_CANCEL wait_for_cancel;
+    wait_for_cancel.close_cb_called = 0;
+    wait_for_cancel.sm_open_result = true;
+
+    wait_for_cancel.sm = sm_create(NULL);
+    ASSERT_IS_NOT_NULL(wait_for_cancel.sm);
+
+    ASSERT_ARE_EQUAL(SM_RESULT, sm_open_begin(wait_for_cancel.sm), SM_EXEC_GRANTED);
+
+    // This call should be refused because we are going to fail the sm_open_end
+    ASSERT_ARE_EQUAL(SM_RESULT, sm_close_begin_with_cb(wait_for_cancel.sm, cancellingCallback, (void*)&wait_for_cancel.cancel_wait, close_while_in_opening, &wait_for_cancel), SM_EXEC_GRANTED);
+    sm_close_end(wait_for_cancel.sm);
+
+    ASSERT_ARE_EQUAL(int, 1, wait_for_cancel.close_cb_called);
+
+    sm_destroy(wait_for_cancel.sm);
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
