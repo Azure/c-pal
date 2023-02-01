@@ -22,8 +22,6 @@ IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_
     {
         if (GetLastError() == ERROR_TIMEOUT)
         {
-            LogError("failure in WaitOnAddress(address=%p, &compare_value=%p, address_size=%zu, timeout_ms=%" PRId32 ") due to timeout",
-                address, &compare_value, sizeof(int32_t), timeout_ms);
             /* Codes_SRS_SYNC_WIN32_24_001: [ If WaitOnAddress fails due to timeout, wait_on_address shall fail and return WAIT_ON_ADDRESS_TIMEOUT. ]*/
             result = WAIT_ON_ADDRESS_TIMEOUT;
         }
