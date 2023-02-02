@@ -221,7 +221,8 @@ endif()
 # ensure the interface and common headers are a part of the installation.
 FILE(GLOB c_pal_interace_includes "${CMAKE_CURRENT_LIST_DIR}/interfaces/inc/c_pal/*")
 FILE(GLOB c_pal_common_includes "${CMAKE_CURRENT_LIST_DIR}/common/inc/c_pal/*")
-install_library_with_prefix(c_pal c_pal  ${c_pal_interace_includes} ${c_pal_common_includes})
+FILE(GLOB c_pal_ll_includes "${CMAKE_CURRENT_LIST_DIR}/c_pal_ll/interfaces/inc/c_pal/*")
+install_library_with_prefix(c_pal c_pal  ${c_pal_interace_includes} ${c_pal_common_includes} ${c_pal_ll_includes} )
 
 include(CMakePackageConfigHelpers)
 
