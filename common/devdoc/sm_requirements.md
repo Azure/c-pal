@@ -209,9 +209,9 @@ static SM_RESULT sm_close_begin_internal(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CA
 
 **SRS_SM_02_051: [** If the state is `SM_OPENED_DRAINING_TO_BARRIER` then `sm_close_begin_internal` shall re-evaluate the state. **]**
 
-If the state is `SM_OPENING` and the `close_while_opening_callback` is non-NULL then ...
+**SRS_SM_11_002: [** If the state is `SM_OPENING`, the `close_while_opening_callback` is non-NULL and this is the first evaluation of the close then ... **]**
 
-... `sm_close_begin_internal` shall call the `close_while_opening_callback` and then re-evaluate the state.
+**SRS_SM_11_003: [** ... `sm_close_begin_internal` shall call the `close_while_opening_callback` and then re-evaluate the state. **]**
 
 **SRS_SM_02_052: [** If the state is any other value then `sm_close_begin_internal` shall return `SM_EXEC_REFUSED`. **]**
 
@@ -246,7 +246,7 @@ MOCKABLE_FUNCTION(, SM_RESULT, sm_close_begin_with_cb, SM_HANDLE, sm, ON_SM_CLOS
 
 **SRS_SM_28_002: [** If `callback` is `NULL` then `sm_close_begin_with_cb` shall fail and return `SM_ERROR`. **]**
 
-`close_while_opening_callback` shall be allowed to be `NULL`
+**SRS_SM_11_001: [** `close_while_opening_callback` shall be allowed to be `NULL` **]**
 
 **SRS_SM_28_003: [** `sm_close_begin_with_cb` shall call `sm_close_begin_internal` with `callback`, `callback_context`, `close_while_opening_callback`, and `close_while_opening_context` as arguments. **]**
 

@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -47,6 +46,9 @@ TEST_DEFINE_ENUM_TYPE(SM_RESULT, SM_RESULT_VALUES);
 IMPLEMENT_UMOCK_C_ENUM_TYPE(SM_RESULT, SM_RESULT_VALUES);
 
 MOCK_FUNCTION_WITH_CODE(, void, test_on_sm_closing_complete, void*, context)
+MOCK_FUNCTION_END()
+
+MOCK_FUNCTION_WITH_CODE(, void, test_on_closing_on_opening_callback, void*, context)
 MOCK_FUNCTION_END()
 
 static SM_HANDLE TEST_sm_create(void)
@@ -532,7 +534,7 @@ TEST_FUNCTION(sm_close_begin_with_cb_with_sm_NULL_returns_SM_ERROR)
     SM_RESULT result;
 
     ///act
-    result = sm_close_begin_with_cb(NULL, test_on_sm_closing_complete, (void*)0x4246);
+    result = sm_close_begin_with_cb(NULL, test_on_sm_closing_complete, (void*)0x4246, NULL, NULL);
 
     ///assert
     ASSERT_ARE_EQUAL(SM_RESULT, SM_ERROR, result);
@@ -549,7 +551,7 @@ TEST_FUNCTION(sm_close_begin_with_cb_with_callback_NULL_returns_SM_ERROR)
     SM_RESULT result;
 
     ///act
-    result = sm_close_begin_with_cb(sm, NULL, (void*)0x4246);
+    result = sm_close_begin_with_cb(sm, NULL, (void*)0x4246, NULL, NULL);
 
     ///assert
     ASSERT_ARE_EQUAL(SM_RESULT, SM_ERROR, result);
@@ -560,6 +562,7 @@ TEST_FUNCTION(sm_close_begin_with_cb_with_callback_NULL_returns_SM_ERROR)
 }
 
 /* Tests_SRS_SM_28_003: [ sm_close_begin_with_cb shall call sm_close_begin_internal with callback and callback_context as arguments. ] */
+// Tests_SRS_SM_11_001: [ close_while_opening_callback shall be allowed to be NULL ]
 /*Tests_SRS_SM_02_045: [ sm_close_begin_internal shall set SM_CLOSE_BIT to 1. ]*/
 /*Tests_SRS_SM_02_047: [ If the state is SM_OPENED then sm_close_begin_internal shall switch it to SM_OPENED_DRAINING_TO_CLOSE. ]*/
 /*Tests_SRS_SM_28_008: [ If callback is not NULL, sm_close_begin_internal shall invoke callback function with callback_context as argument. ] */
@@ -578,7 +581,7 @@ TEST_FUNCTION(sm_close_begin_with_cb_in_SM_OPENED_succeeds)
     STRICT_EXPECTED_CALL(InterlockedHL_WaitForValue(IGNORED_ARG, 0, UINT32_MAX));
 
     ///act
-    result = sm_close_begin_with_cb(sm, test_on_sm_closing_complete, (void*)0x4246);
+    result = sm_close_begin_with_cb(sm, test_on_sm_closing_complete, (void*)0x4246, NULL, NULL);
 
     ///assert
     ASSERT_ARE_EQUAL(SM_RESULT, SM_EXEC_GRANTED, result);
@@ -605,7 +608,7 @@ TEST_FUNCTION(sm_close_begin_with_cb_with_SM_CLOSE_BIT_refuses)
     ASSERT_ARE_EQUAL(SM_RESULT, SM_EXEC_GRANTED, result);
 
     ///act
-    result = sm_close_begin_with_cb(sm, test_on_sm_closing_complete, (void*)0x4246);
+    result = sm_close_begin_with_cb(sm, test_on_sm_closing_complete, (void*)0x4246, NULL, NULL);
     ASSERT_ARE_EQUAL(SM_RESULT, SM_EXEC_REFUSED, result);
 
     ///assert
@@ -624,7 +627,7 @@ TEST_FUNCTION(sm_close_begin_with_cb_in_SM_CREATED_fails)
     SM_RESULT result;
 
     ///act
-    result = sm_close_begin_with_cb(sm, test_on_sm_closing_complete, (void*)0x4246);
+    result = sm_close_begin_with_cb(sm, test_on_sm_closing_complete, (void*)0x4246, NULL, NULL);
     ASSERT_ARE_EQUAL(SM_RESULT, SM_EXEC_REFUSED, result);
 
     ///assert
@@ -661,7 +664,7 @@ TEST_FUNCTION(sm_close_begin_with_cb_after_close_begin_close_end_open_begin_open
     STRICT_EXPECTED_CALL(InterlockedHL_WaitForValue(IGNORED_ARG, 0, UINT32_MAX));
 
     ///act
-    result = sm_close_begin_with_cb(sm, test_on_sm_closing_complete, (void*)0x4246);
+    result = sm_close_begin_with_cb(sm, test_on_sm_closing_complete, (void*)0x4246, NULL, NULL);
     ASSERT_ARE_EQUAL(SM_RESULT, SM_EXEC_GRANTED, result);
 
     ///assert
@@ -690,13 +693,36 @@ TEST_FUNCTION(sm_close_begin_with_cb_unhappy_path)
         .SetReturn(INTERLOCKED_HL_ERROR);
 
     ///act
-    result = sm_close_begin_with_cb(sm, test_on_sm_closing_complete, (void*)0x4246);
+    result = sm_close_begin_with_cb(sm, test_on_sm_closing_complete, (void*)0x4246, NULL, NULL);
 
     ///assert
     ASSERT_ARE_EQUAL(SM_RESULT, SM_ERROR, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
+    sm_destroy(sm);
+}
+
+// Tests_SRS_SM_11_002: [ If the state is SM_OPENING, the close_while_opening_callback is non-NULL and this is the first evaluation of the close then ... ]
+// Tests_SRS_SM_11_003: [ ... sm_close_begin_internal shall call the close_while_opening_callback and then re-evaluate the state. ]
+TEST_FUNCTION(sm_close_begin_with_cb_in_SM_OPENING_succeeds)
+{
+    ///arrange
+    SM_HANDLE sm = TEST_sm_create();
+    SM_RESULT result = sm_open_begin(sm);
+    ASSERT_ARE_EQUAL(SM_RESULT, SM_EXEC_GRANTED, result);
+
+    STRICT_EXPECTED_CALL(test_on_closing_on_opening_callback((void*)0x4247));
+
+    ///act
+    result = sm_close_begin_with_cb(sm, test_on_sm_closing_complete, (void*)0x4246, test_on_closing_on_opening_callback, (void*)0x4247);
+
+    ///assert
+    ASSERT_ARE_EQUAL(SM_RESULT, SM_EXEC_REFUSED, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    sm_close_end(sm);
     sm_destroy(sm);
 }
 
