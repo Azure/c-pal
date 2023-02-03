@@ -26,8 +26,6 @@
 
 #include "c_pal/sm.h"
 
-
-
 SM_HANDLE real_sm_create(const char* name);
 void real_sm_destroy(SM_HANDLE sm);
 
@@ -35,7 +33,7 @@ SM_RESULT real_sm_open_begin(SM_HANDLE sm);
 void real_sm_open_end(SM_HANDLE sm, bool success);
 
 SM_RESULT real_sm_close_begin(SM_HANDLE sm);
-SM_RESULT real_sm_close_begin_with_cb(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CALLBACK callback, void* callback_context);
+SM_RESULT real_sm_close_begin_with_cb(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CALLBACK callback, void* callback_context, ON_SM_CLOSING_WHILE_OPENING_CALLBACK close_while_opening_callback, void* close_while_opening_context);
 void real_sm_close_end(SM_HANDLE sm);
 
 SM_RESULT real_sm_exec_begin(SM_HANDLE sm);
