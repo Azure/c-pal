@@ -58,7 +58,7 @@ To achieve the above goals, `sm` maintains the following state:
 Barriers - since they are exclusive - are realized by switching to a state called `SM_OPENED_BARRIER`. Prohibiting regular calls to _begin is achieved by switching temporarily the state from `SM_OPENED` to `SM_OPENED_DRAINING_TO_BARRIER`.
 
 Close is realized by prohibiting all calls (including competing `sm_close_begin` calls) by setting a bit with `InterlockedOr`. `sm_close_begin` will wait for the state to reach `SM_OPENED` and the number of executing calls to be `0`. This allows an ongoing barrier to finish (and return to `SM_OPENED` state), or the executing APIs to finish.
-`sm_close_begin_with_cb` will invoke a callback function between prohibiting all the calls and waiting for the number of executing calls to be `0`. The callback function is useful in various cases, such as, when we need to cancel the ongoing operations, before we wait for the outstanding calls to finish.  `sm_close_begin_with_cb` will also invoke an additional callback function (`ON_SM_CLOSING_WILE_OPENING_CALLBACK`) which will let the calling function know if sm is currently in the `opening` state.  This is useful in the scenario where the user will need to do additional steps to close if they are in the opening state.  It is expected that the user will perform actions to complete the pending open in this callback before returning so that the close can continue.
+`sm_close_begin_with_cb` will invoke a callback function between prohibiting all the calls and waiting for the number of executing calls to be `0`. The callback function is useful in various cases, such as, when we need to cancel the ongoing operations, before we wait for the outstanding calls to finish.  `sm_close_begin_with_cb` will also invoke an additional callback function (`ON_SM_CLOSING_WHILE_OPENING_CALLBACK`) which will let the calling function know if sm is currently in the `opening` state.  This is useful in the scenario where the user will need to do additional steps to close if they are in the opening state.  It is expected that the user will perform actions to complete the pending open in this callback before returning so that the close can continue.
 
 Fault is realized by prohibiting all calls (except for `sm_close_begin` calls and all `_end` calls) by setting a bit with `InterlockedOr`. This means that any currently executing operations can complete, but the faulted state is terminal.
 
@@ -98,7 +98,7 @@ typedef struct SM_HANDLE_DATA_TAG* SM_HANDLE;
 MU_DEFINE_ENUM(SM_RESULT, SM_RESULT_VALUES);
 
 typedef void(*ON_SM_CLOSING_COMPLETE_CALLBACK)(void* context);
-typedef void(*ON_SM_CLOSING_WILE_OPENING_CALLBACK)(void* context);
+typedef void(*ON_SM_CLOSING_WHILE_OPENING_CALLBACK)(void* context);
 
 MOCKABLE_FUNCTION(, SM_HANDLE, sm_create, const char*, name);
 MOCKABLE_FUNCTION(, void, sm_destroy, SM_HANDLE, sm);
@@ -107,7 +107,7 @@ MOCKABLE_FUNCTION(, SM_RESULT, sm_open_begin, SM_HANDLE, sm);
 MOCKABLE_FUNCTION(, void, sm_open_end, SM_HANDLE, sm, bool, success);
 
 MOCKABLE_FUNCTION(, SM_RESULT, sm_close_begin, SM_HANDLE, sm);
-MOCKABLE_FUNCTION(, SM_RESULT, sm_close_begin_with_cb, SM_HANDLE, sm, ON_SM_CLOSING_COMPLETE_CALLBACK, callback, void*, callback_context, ON_SM_CLOSING_WILE_OPENING_CALLBACK, close_while_opening_callback, void*, close_while_opening_context);
+MOCKABLE_FUNCTION(, SM_RESULT, sm_close_begin_with_cb, SM_HANDLE, sm, ON_SM_CLOSING_COMPLETE_CALLBACK, callback, void*, callback_context, ON_SM_CLOSING_WHILE_OPENING_CALLBACK, close_while_opening_callback, void*, close_while_opening_context);
 MOCKABLE_FUNCTION(, void, sm_close_end, SM_HANDLE, sm);
 
 MOCKABLE_FUNCTION(, SM_RESULT, sm_exec_begin, SM_HANDLE, sm);
@@ -186,7 +186,7 @@ MOCKABLE_FUNCTION(, void, sm_open_end, SM_HANDLE, sm, bool, success);
 ### sm_close_begin_internal
 
 ```c
-static SM_RESULT sm_close_begin_internal(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CALLBACK callback, void* callback_context, ON_SM_CLOSING_WILE_OPENING_CALLBACK close_while_opening_callback, void* close_while_opening_context);
+static SM_RESULT sm_close_begin_internal(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CALLBACK callback, void* callback_context, ON_SM_CLOSING_WHILE_OPENING_CALLBACK close_while_opening_callback, void* close_while_opening_context);
 ```
 
 `sm_close_begin_internal` is the helper function for sm_close_begin and sm_close_begin_cb.
@@ -236,7 +236,7 @@ MOCKABLE_FUNCTION(, SM_RESULT, sm_close_begin, SM_HANDLE, sm);
 ### sm_close_begin_with_cb
 
 ```c
-MOCKABLE_FUNCTION(, SM_RESULT, sm_close_begin_with_cb, SM_HANDLE, sm, ON_SM_CLOSING_COMPLETE_CALLBACK, callback, void*, callback_context, ON_SM_CLOSING_WILE_OPENING_CALLBACK, close_while_opening_callback, void*, close_while_opening_context);
+MOCKABLE_FUNCTION(, SM_RESULT, sm_close_begin_with_cb, SM_HANDLE, sm, ON_SM_CLOSING_COMPLETE_CALLBACK, callback, void*, callback_context, ON_SM_CLOSING_WHILE_OPENING_CALLBACK, close_while_opening_callback, void*, close_while_opening_context);
 
 ```
 

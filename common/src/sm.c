@@ -89,7 +89,7 @@ SM_HANDLE sm_create(const char* name)
 }
 
 /*forwards*/
-static SM_RESULT sm_close_begin_internal(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CALLBACK callback, void* callback_context, ON_SM_CLOSING_WILE_OPENING_CALLBACK close_while_opening_callback, void* close_while_opening_context);
+static SM_RESULT sm_close_begin_internal(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CALLBACK callback, void* callback_context, ON_SM_CLOSING_WHILE_OPENING_CALLBACK close_while_opening_callback, void* close_while_opening_context);
 static void sm_close_end_internal(SM_HANDLE sm);
 
 void sm_destroy(SM_HANDLE sm)
@@ -205,7 +205,7 @@ void sm_open_end(SM_HANDLE sm, bool success)
     }
 }
 
-static SM_RESULT sm_close_begin_internal(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CALLBACK callback, void* callback_context, ON_SM_CLOSING_WILE_OPENING_CALLBACK close_while_opening_callback, void* close_while_opening_context)
+static SM_RESULT sm_close_begin_internal(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CALLBACK callback, void* callback_context, ON_SM_CLOSING_WHILE_OPENING_CALLBACK close_while_opening_callback, void* close_while_opening_context)
 {
     SM_RESULT result;
 
@@ -312,7 +312,7 @@ SM_RESULT sm_close_begin(SM_HANDLE sm)
     return result;
 }
 
-SM_RESULT sm_close_begin_with_cb(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CALLBACK callback, void* callback_context, ON_SM_CLOSING_WILE_OPENING_CALLBACK close_while_opening_callback, void* close_while_opening_context)
+SM_RESULT sm_close_begin_with_cb(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CALLBACK callback, void* callback_context, ON_SM_CLOSING_WHILE_OPENING_CALLBACK close_while_opening_callback, void* close_while_opening_context)
 {
     // Codes_SRS_SM_11_001: [ close_while_opening_callback shall be allowed to be NULL ]
     SM_RESULT result;
