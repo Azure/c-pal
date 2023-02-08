@@ -2,22 +2,11 @@
 
 ## Overview
 
-The Platform Abstraction Layer interfaces presented here are:
+The modules in PAL is splited into 3 layers:
+- c_pal_ll - contains platform abstractions with no additional dependencies on other modules outside of c_pal_ll itself : arithmetic, gballoc, interlocked, sync, threadapi, platform, socket_handle, srw_lock, sysinfo, timer, uuid
+- c_pal/common - contains utilities needed by the PAL, which may depend on the c_pal_ll : call_once, containing_record, interlocked_hl, lazy_init, log_critical_and_terminate, ps_util, refcount, s_list, sm
+- c_pal - contains remaining platform abstractions, which may depend on the c_pal_ll and/or common utilities : asynchronous_socket, execution_engine, file, pipe, threadpool, string_utils
 
-- Asynchronous socket
-- Execution engine
-- InterlockedHL 
-- Interlocked
-- Lock
-- Platform
-- Refcount
-- Socket handle
-- SRW lock
-- String utils
-- Thread API
-- Threadpool
-- Timer
-- Unique ID
 Each of these APIs have:
 - an interface header (for example execution_engine.h)
 - specific platform implementations (for example execution_engine_win32.c)
