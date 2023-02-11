@@ -92,7 +92,7 @@ If `execution_engine` is `NULL`, `threadpool_create` shall fail and return `NULL
 
 `threadpool_create` shall get the `min_thread_count` and `max_thread_count` thread parameters from the `execution_engine`.
 
-`threadpool_create` shall allocate memory with size `min_thread_count` for an array of thread objects and on success return a non-`NULL` handle to it.
+`threadpool_create` shall allocate memory for an array of thread handles of size `min_thread_count` and on success return a non-`NULL` handle to it.
 
 `threadpool_create` shall allocate memory with default task array size 2048 for an array of tasks and on success return a non-`NULL` handle to it.
 
@@ -186,7 +186,7 @@ If `sm_exec_begin` returns `SM_EXEC_REFUSED`, `threadpool_schedule_work` shall f
 
 If task state is `TASK_NOT_USED`, `threadpool_schedule_work` shall set the current task state to `TASK_INITIALIZING`.
 
-Otherwise, `threadpool_schedule_work` shall release the shared SRW lock by calling `srw_lock_release_shared` and increase `task_array` capacity.
+Otherwise, `threadpool_schedule_work` shall release the shared SRW lock by calling `srw_lock_release_shared` and increase `task_array` capacity:
 
   - `threadpool_schedule_work` shall acquire the SRW lock in exclusive mode by calling `srw_lock_acquire_exclusive`.
 
@@ -198,17 +198,17 @@ Otherwise, `threadpool_schedule_work` shall release the shared SRW lock by calli
 
   - `threadpool_schedule_work` shall realloc the memory used for the array items.
 
-  - If any error occurs, `reallocate_threadpool_array` shall fail and return a non-zero value.
+  - If any error occurs, `threadpool_schedule_work` shall fail and return a non-zero value.
 
-  - `reallocate_threadpool_array` shall initialize every task item in the new task array with `task_func` and `task_param` set to `NULL` and `task_state` set to `TASK_NOT_USED`.
+  - `threadpool_schedule_work` shall initialize every task item in the new task array with `task_func` and `task_param` set to `NULL` and `task_state` set to `TASK_NOT_USED`.
 
-  - `reallocate_threadpool_array` shall remove any gap in the task array.
+  - `threadpool_schedule_work` shall remove any gap in the task array.
 
-  - `reallocate_threadpool_array` shall reset the `consume_idx` and `insert_idx` to 0 after resize the task array.
+  - `threadpool_schedule_work` shall reset the `consume_idx` and `insert_idx` to 0 after resize the task array.
 
-  - `reallocate_threadpool_array` shall release the SRW lock by calling `srw_lock_release_exclusive`.
+  - `threadpool_schedule_work` shall release the SRW lock by calling `srw_lock_release_exclusive`.
 
-  - `reallocate_threadpool_array` shall return zero on success.
+  - `threadpool_schedule_work` shall return zero on success.
 
 If reallocating the task array fails, `threadpool_schedule_work` shall fail and return a non-zero value.
 
