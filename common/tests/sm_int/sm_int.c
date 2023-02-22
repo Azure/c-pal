@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-
 #include "testrunnerswitcher.h"
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
@@ -835,6 +834,7 @@ TEST_FUNCTION_INITIALIZE(function_initialize)
     timeSinceTestFunctionStartMs = timer_global_get_elapsed_ms();
 }
 
+#ifndef USE_HELGRIND
 /*tests aims to mindlessly execute the APIs.
 The test follows the contract of the API so that begin/end calls are matched
 At least 1 sm_open_begin and at least 1 sm_exec_begin are waited to happen*/
@@ -1074,6 +1074,7 @@ TEST_FUNCTION(sm_chaos_with_faults)
 
     xlogging_set_log_function(toBeRestored);
 }
+#endif
 
 TEST_FUNCTION(sm_does_not_block)
 {
@@ -1639,6 +1640,9 @@ TEST_FUNCTION(sm_close_begin_with_cb_triggers_cancel)
     /// assert
     ASSERT_ARE_EQUAL(SM_RESULT, SM_EXEC_GRANTED, sm_close_begin_with_cb(context.sm, cancellingCallback, (void*)(&context.cancel_wait), NULL, NULL));
     sm_close_end(context.sm);
+
+    int dont_care;
+    ThreadAPI_Join(cancel_wait_thread, &dont_care);
 
     /// cleanup
     sm_destroy(context.sm);

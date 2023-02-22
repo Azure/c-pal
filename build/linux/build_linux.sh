@@ -18,7 +18,6 @@ pushd $build_folder
 cmake -Drun_valgrind:BOOL=ON -Drun_helgrind:BOOL=ON $build_root -Drun_unittests:BOOL=ON -Drun_int_tests:BOOL=ON
 make --jobs=$CORES
 
-# /*reenable with this task Task 10086393: reenable sm_chaos (https://msazure.visualstudio.com/One/_workitems/edit/10086393)*/
-ctest -j $CORES --output-on-failure -E "sm_int_helgrind|sm_int_valgrind"
+ctest -j $CORES --output-on-failure
 
 popd 
