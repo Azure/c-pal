@@ -834,6 +834,8 @@ TEST_FUNCTION_INITIALIZE(function_initialize)
     timeSinceTestFunctionStartMs = timer_global_get_elapsed_ms();
 }
 
+// For Helgrind these test take too long (double the time of normal and valgrind combined) 
+// so we will not enable the task to enable is still here: https://msazure.visualstudio.com/One/_workitems/edit/10086393
 #ifndef USE_HELGRIND
 /*tests aims to mindlessly execute the APIs.
 The test follows the contract of the API so that begin/end calls are matched
