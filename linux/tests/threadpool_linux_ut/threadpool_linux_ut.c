@@ -610,11 +610,14 @@ TEST_FUNCTION(threadpool_work_func_succeeds_when_sem_timedwait_fails)
 /* Tests_SRS_THREADPOOL_LINUX_07_075: [ threadpool_work_func shall wait on the semaphore with a time limit. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_076: [ threadpool_work_func shall acquire the shared SRW lock by calling srw_lock_acquire_shared. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_077: [ threadpool_work_func shall get the current task array size by calling interlocked_add. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_078: [ threadpool_work_func shall increment the current consume index by calling interlocked_increment_64. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_079: [ threadpool_work_func shall get the next waiting task consume index from incremented consume index modulo current task array size. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_080: [ If consume index has task state TASK_WAITING, threadpool_work_func shall set the task state to TASK_WORKING. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_081: [ threadpool_work_func shall copy the function and parameter to local variables. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_082: [ threadpool_work_func shall set the task state to TASK_NOT_USED. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_083: [ threadpool_work_func shall release the shared SRW lock by calling srw_lock_release_shared. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_084: [ If the work item function is not NULL, threadpool_work_func shall execute it with work_function_ctx. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_085: [ threadpool_work_func shall loop until threadpool_close or threadpool_destroy is called. ]*/
 TEST_FUNCTION(threadpool_work_func_succeeds)
 {
     //arrange
@@ -947,6 +950,44 @@ TEST_FUNCTION(threadpool_schedule_work_realloc_array_with_no_empty_space)
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_EQUAL(int, 0, result);
+
+    // cleanup
+    threadpool_destroy(threadpool);
+}
+/* Tests_SRS_THREADPOOL_LINUX_07_031: [ threadpool_schedule_work shall call sm_exec_begin. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_033: [ threadpool_schedule_work shall acquire the SRW lock in shared mode by calling srw_lock_acquire_shared. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_034: [ threadpool_schedule_work shall increment the insert_pos. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_035: [ If task state is TASK_NOT_USED, threadpool_schedule_work shall set the current task state to TASK_INITIALIZING. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_036: [ Otherwise, threadpool_schedule_work shall release the shared SRW lock by calling srw_lock_release_shared and increase task_array capacity: ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_037: [ threadpool_schedule_work shall acquire the SRW lock in exclusive mode by calling srw_lock_acquire_exclusive. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_038: [ threadpool_schedule_work shall get the current size of task array by calling interlocked_add. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_039: [ If there is any overflow computing the new size, threadpool_schedule_work shall fail and return a non-zero value . ]*/
+TEST_FUNCTION(threadpool_schedule_work_fails_when_new_array_size_overflows)
+{
+    // arrange
+    THREADPOOL_HANDLE threadpool = test_create_and_open_threadpool();
+    int result;
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+
+    STRICT_EXPECTED_CALL(srw_lock_acquire_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_increment_64(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG)).SetReturn(0);
+
+    STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(srw_lock_acquire_exclusive(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0)).SetReturn(INT32_MAX/2+1);
+    STRICT_EXPECTED_CALL(srw_lock_release_exclusive(IGNORED_ARG));
+
+    STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
+
+    // act
+    result = threadpool_schedule_work(threadpool, test_work_function, (void*)0x4243);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
 
     // cleanup
     threadpool_destroy(threadpool);

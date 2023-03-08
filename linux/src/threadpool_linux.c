@@ -1,7 +1,6 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 
 #include <stdlib.h>
-#include <stdint.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -25,7 +24,6 @@
 #include "c_pal/threadapi.h"
 #include "c_pal/interlocked.h"
 #include "c_pal/interlocked_hl.h"
-#include "c_pal/sync.h"
 #include "c_pal/srw_lock.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_linux.h"
