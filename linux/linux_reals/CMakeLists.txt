@@ -7,6 +7,7 @@ set(linux_reals_c_files
     real_pipe.c
     real_uuid.c
     real_string_utils_linux.c
+    real_threadpool.c
     ../../common/reals/real_s_list.c
     ../../common/reals/real_ps_util.c
     ../../common/reals/real_sm.c
@@ -14,6 +15,8 @@ set(linux_reals_c_files
 )
 
 set(linux_reals_h_files
+    real_threadpool.h
+    real_threadpool_renames.h
     real_uuid_renames.h
     real_uuid.h
     ../../common/reals/real_refcount.h
