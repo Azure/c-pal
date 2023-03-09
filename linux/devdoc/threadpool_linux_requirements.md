@@ -30,9 +30,9 @@
 
 When reallocating the task array, there is overhead due to the memory allocation and copy. But the performance impact would be very infrequent since the size of array is doubled every time.
 
-If there is a context switch right after getting the insert index and the consume index is incremented after that, there will be a gap between consume index and insert index during reallocation. In this case, the size of gaps shall be calculated and a memory move shall be performed to remove the gap.
+If there is a context switch right after getting the insert index and the consume index is incremented after that, there will be a gap between consume index and insert index during reallocation. In this case, the tasks between consume index to the end of the array before resize should be moved to the end of the new resized array.
 
-New task array memory layout should be in same order of the original array with eliminated gaps between items.  `compress_count` is used to record the number of gaps between `insert_idx` and `consume_idx`. New task array should initialize `consume_idx` as -1 and `insert_idx` as (original array size - gap size - 1) to get the correct index when incremented.
+New task array memory layout should be in same order of the original array except more empty slots is needed to make sure there is no trailing gaps in the new resized array.  `moving_count` is used to record the number of tasks between `consume_idx` and `task_array_size` before resize. New task array should initialize `consume_idx` as 0 and `insert_idx` as original array size if there's no gaps; `consume_idx` remains the same and `insert_idx` set to `new_array_size` - `move_count` if gaps exist.
 
 If the doubled array size get overflowed for a 32 bits integer, resize failed and return. In this case, the maximum size of task array is 2^32 and the maximum value of `insert_idx` and `consume_idx` is 2^64 which will never get overflowed.
 
@@ -102,7 +102,7 @@ MOCKABLE_FUNCTION(, THREADPOOL_HANDLE, threadpool_create, EXECUTION_ENGINE_HANDL
 
 **SRS_THREADPOOL_LINUX_07_009: [** `threadpool_create` shall create a shared semaphore with initialized value zero. **]**
 
-**SRS_THREADPOOL_LINUX_07_010: [** `insert_idx`  and `consume_idx` for the task array shall be initialized to 0. **]**
+**SRS_THREADPOOL_LINUX_07_010: [** `insert_idx` and `consume_idx` for the task array shall be initialized to 0. **]**
 
 **SRS_THREADPOOL_LINUX_07_011: [** If any error occurs, `threadpool_create` shall fail and return `NULL`. **]**
 
@@ -206,7 +206,7 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THREADPOOL_HANDLE, threadpool
 
   - **SRS_THREADPOOL_LINUX_07_043: [** `threadpool_schedule_work` shall initialize every task item in the new task array with `task_func` and `task_param` set to `NULL` and `task_state` set to `TASK_NOT_USED`. **]**
 
-  - **SRS_THREADPOOL_LINUX_07_044: [** `threadpool_schedule_work` shall remove any gap in the task array. **]**
+  - **SRS_THREADPOOL_LINUX_07_044: [** `threadpool_schedule_work` shall memmove everything between the consume index and the size of the array before resize to the end of the new resized array. **]**
 
   - **SRS_THREADPOOL_LINUX_07_045: [** `threadpool_schedule_work` shall reset the `consume_idx` and `insert_idx` to 0 after resize the task array. **]**
 

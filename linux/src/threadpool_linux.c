@@ -96,7 +96,7 @@ static void on_timer_callback(sigval_t timer_data)
     TIMER_INSTANCE* timer_instance = timer_data.sival_ptr;
     if (timer_instance == NULL)
     {
-        LogError("Invalid Argument timer_instance");
+        LogError("invalid timer_data.sival_ptr=%p", timer_instance);
     }
     else
     {
@@ -246,30 +246,33 @@ static int reallocate_threadpool_array(THREADPOOL* threadpool)
                 }
                 threadpool->task_array = temp_array;
 
+                // Ensure there are no gaps in the array
+                // Consume = 2
+                // Produce = 2
+                // [x x x x]
+                // Consume = 3
+                // Produce = 2
+                // [x x 0 x]
+                // During resize we will have to memmove in the gap at 2
+                // [x x 0 x 0 0 0 0]
+
                 int64_t insert_pos = interlocked_add_64(&threadpool->insert_idx, 0) % existing_count;
                 int64_t consume_pos = interlocked_add_64(&threadpool->consume_idx, 0) % existing_count;
-                uint32_t compress_count = 0;
+                uint32_t move_count = 0;
 
-                /* Codes_SRS_THREADPOOL_LINUX_07_044: [ threadpool_schedule_work shall remove any gap in the task array. ]*/
-                if (insert_pos != consume_pos)
+                /* Codes_SRS_THREADPOOL_LINUX_07_044: [ threadpool_schedule_work shall shall memmove everything between the consume index and the size of the array before resize to the end of the new resized array. ]*/
+                if (insert_pos < consume_pos)
                 {
-                    for (int64_t index = insert_pos; index < consume_pos; index++)
-                    {
-                        if (interlocked_add(&threadpool->task_array[index].task_state, 0) == TASK_NOT_USED)
-                        {
-                            existing_count--;
-                            compress_count++;
-                        }
-                    }
-                    if (compress_count > 0)
-                    {
-                        (void)memmove(&threadpool->task_array[insert_pos], &threadpool->task_array[consume_pos+1], sizeof(THREADPOOL_TASK)*compress_count);
-                    }
+                    move_count = existing_count - consume_pos;
+                    (void)memmove(&threadpool->task_array[new_task_array_size - move_count], &threadpool->task_array[consume_pos], sizeof(THREADPOOL_TASK)*move_count);
+                    (void)interlocked_exchange_64(&threadpool->consume_idx, new_task_array_size - move_count);
                 }
-
-                /* Codes_SRS_THREADPOOL_LINUX_07_045: [ threadpool_schedule_work shall reset the consume_idx and insert_idx to 0 after resize the task array. ]*/
-                (void)interlocked_exchange_64(&threadpool->consume_idx, 0);
-                (void)interlocked_exchange_64(&threadpool->insert_idx, existing_count-compress_count);
+                else
+                {
+                    /* Codes_SRS_THREADPOOL_LINUX_07_045: [ threadpool_schedule_work shall reset the consume_idx and insert_idx to 0 after resize the task array. ]*/
+                    (void)interlocked_exchange_64(&threadpool->consume_idx, 0);
+                    (void)interlocked_exchange_64(&threadpool->insert_idx, existing_count - move_count);
+                }
 
                 result = 0;
             }

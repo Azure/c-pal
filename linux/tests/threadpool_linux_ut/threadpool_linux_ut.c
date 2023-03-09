@@ -214,7 +214,6 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_GLOBAL_MOCK_RETURNS(mocked_sem_init, 0, -1);
     REGISTER_GLOBAL_MOCK_RETURNS(mocked_clock_gettime, 0, -1);
     REGISTER_GLOBAL_MOCK_RETURN(ThreadAPI_Join, THREADAPI_OK);
-    //REGISTER_GLOBAL_MOCK_RETURN(sm_close_begin, SM_EXEC_GRANTED);
     REGISTER_GLOBAL_MOCK_HOOK(ThreadAPI_Create, my_ThreadAPI_Create);
     REGISTER_GLOBAL_MOCK_RETURNS(ThreadAPI_Create, THREADAPI_OK, THREADAPI_ERROR);
 
@@ -228,8 +227,6 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(malloc_2, NULL);
     REGISTER_GLOBAL_MOCK_RETURNS(mocked_timer_create, 0, 1);
     REGISTER_GLOBAL_MOCK_RETURNS(mocked_timer_settime, 0, -1);
-    // REGISTER_GLOBAL_MOCK_FAIL_RETURNS(mocked_timer_create, 1);
-    // REGISTER_GLOBAL_MOCK_FAIL_RETURNS(mocked_timer_settime, -1);
 
     REGISTER_TYPE(SM_RESULT, SM_RESULT);
 
@@ -907,7 +904,7 @@ TEST_FUNCTION(threadpool_schedule_work_fails_when_threadpool_not_open)
 /* Tests_SRS_THREADPOOL_LINUX_07_040: [ Otherwise, threadpool_schedule_work shall double the current task array size. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_041: [ threadpool_schedule_work shall realloc the memory used for the array items. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_043: [ threadpool_schedule_work shall initialize every task item in the new task array with task_func and task_param set to NULL and task_state set to TASK_NOT_USED. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_044: [ threadpool_schedule_work shall remove any gap in the task array. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_044: [ threadpool_schedule_work shall shall memmove everything between the consume index and the size of the array before resize to the end of the new resized array. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_045: [ threadpool_schedule_work shall reset the consume_idx and insert_idx to 0 after resize the task array. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_046: [ threadpool_schedule_work shall release the SRW lock by calling srw_lock_release_exclusive. ]*/
 TEST_FUNCTION(threadpool_schedule_work_realloc_array_with_no_empty_space)
