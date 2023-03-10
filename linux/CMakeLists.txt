@@ -20,6 +20,11 @@ set(pal_common_c_files
     ../common/src/sm.c
 )
 
+if(${run_helgrind})
+    add_definitions(-DUSE_HELGRIND)
+endif()
+
+
 #determining which one of the GBALLOC_LL implementations to use. By convention the file is called "gballoc_ll_" followed by "type".
 string(TOLOWER "${GBALLOC_LL_TYPE}" gballoc_ll_type_lower)
 set(gballoc_ll_c gballoc_ll_${gballoc_ll_type_lower}.c)
