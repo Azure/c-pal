@@ -186,7 +186,7 @@ static int threadpool_work_func(void* param)
                         }
                         else
                         {
-                            LogWarning("The impossible has happend, someone got the item %" PRId64 " task value %" PRI_MU_ENUM "", current_index, MU_ENUM_VALUE(TASK_RESULT, curr_task_result));
+                            //do nothing
                         }
                     }
                     /* Codes_SRS_THREADPOOL_LINUX_07_083: [ threadpool_work_func shall release the shared SRW lock by calling srw_lock_release_shared. ]*/
