@@ -30,9 +30,9 @@
 
 When reallocating the task array, there is overhead due to the memory allocation and copy. But the performance impact would be very infrequent since the size of array is doubled every time.
 
-If there is a context switch right after getting the insert index and the consume index is incremented after that, there will be a gap between consume index and insert index during reallocation. In this case, the size of gaps shall be calculated and a memory move shall be performed to remove the gap.
+If there is a context switch right after getting the insert index and the consume index is incremented after that, there will be a gap between consume index and insert index during reallocation. In this case, the tasks between consume index to the end of the array before resize should be moved to the end of the new resized array.
 
-New task array memory layout should be in same order of the original array with eliminated gaps between items.  `compress_count` is used to record the number of gaps between `insert_idx` and `consume_idx`. New task array should initialize `consume_idx` as -1 and `insert_idx` as (original array size - gap size - 1) to get the correct index when incremented.
+New task array memory layout should be in same order of the original array except more empty slots is needed to make sure there is no trailing gaps in the new resized array.  `moving_count` is used to record the number of tasks between `consume_idx` and `task_array_size` before resize. New task array should initialize `consume_idx` as 0 and `insert_idx` as original array size if there's no gaps; `consume_idx` remains the same and `insert_idx` set to `new_array_size` - `move_count` if gaps exist.
 
 If the doubled array size get overflowed for a 32 bits integer, resize failed and return. In this case, the maximum size of task array is 2^32 and the maximum value of `insert_idx` and `consume_idx` is 2^64 which will never get overflowed.
 
@@ -84,27 +84,27 @@ MOCKABLE_FUNCTION(, THREADPOOL_HANDLE, threadpool_create, EXECUTION_ENGINE_HANDL
 
 `threadpool_create` creates a new threadpool.
 
-`threadpool_create` shall allocate memory for a threadpool object and on success return a non-`NULL` handle to it.
+**SRS_THREADPOOL_LINUX_07_001: [** `threadpool_create` shall allocate memory for a threadpool object and on success return a non-`NULL` handle to it. **]**
 
-If `execution_engine` is `NULL`, `threadpool_create` shall fail and return `NULL`.
+**SRS_THREADPOOL_LINUX_07_002: [** If `execution_engine` is `NULL`, `threadpool_create` shall fail and return `NULL`. **]**
 
-`threadpool_create` shall create a `SM_HANDLE` by calling `sm_create`.
+**SRS_THREADPOOL_LINUX_07_003: [** `threadpool_create` shall create a `SM_HANDLE` by calling `sm_create`. **]**
 
-`threadpool_create` shall get the `min_thread_count` and `max_thread_count` thread parameters from the `execution_engine`.
+**SRS_THREADPOOL_LINUX_07_004: [** `threadpool_create` shall get the `min_thread_count` and `max_thread_count` thread parameters from the `execution_engine`. **]**
 
-`threadpool_create` shall allocate memory for an array of thread handles of size `min_thread_count` and on success return a non-`NULL` handle to it.
+**SRS_THREADPOOL_LINUX_07_005: [** `threadpool_create` shall allocate memory for an array of thread handles of size `min_thread_count` and on success return a non-`NULL` handle to it. **]**
 
-`threadpool_create` shall allocate memory with default task array size 2048 for an array of tasks and on success return a non-`NULL` handle to it.
+**SRS_THREADPOOL_LINUX_07_006: [** `threadpool_create` shall allocate memory with default task array size 2048 for an array of tasks and on success return a non-`NULL` handle to it. **]**
 
-`threadpool_create` shall initialize every task item in the tasks array with `task_func` and `task_param` set to `NULL` and `task_state` set to `TASK_NOT_USED`.
+**SRS_THREADPOOL_LINUX_07_007: [** `threadpool_create` shall initialize every task item in the tasks array with `task_func` and `task_param` set to `NULL` and `task_state` set to `TASK_NOT_USED`. **]**
 
-`threadpool_create` shall create a SRW lock by calling `srw_lock_create`.
+**SRS_THREADPOOL_LINUX_07_008: [** `threadpool_create` shall create a SRW lock by calling `srw_lock_create`. **]**
 
-`threadpool_create` shall create a shared semaphore with initialized value zero.
+**SRS_THREADPOOL_LINUX_07_009: [** `threadpool_create` shall create a shared semaphore with initialized value zero. **]**
 
-`insert_idx`  and `consume_idx` for the task array shall be initialized to 0.
+**SRS_THREADPOOL_LINUX_07_010: [** `insert_idx` and `consume_idx` for the task array shall be initialized to 0. **]**
 
-If any error occurs, `threadpool_create` shall fail and return `NULL`.
+**SRS_THREADPOOL_LINUX_07_011: [** If any error occurs, `threadpool_create` shall fail and return `NULL`. **]**
 
 ### threadpool_destroy
 
@@ -114,15 +114,15 @@ MOCKABLE_FUNCTION(, void, threadpool_destroy, THREADPOOL_HANDLE, threadpool);
 
 `threadpool_destroy` frees the resouces associated with `threadpool`.
 
-If `threadpool` is `NULL`, `threadpool_destroy` shall return.
+**SRS_THREADPOOL_LINUX_07_012: [** If `threadpool` is `NULL`, `threadpool_destroy` shall return. **]**
 
-`threadpool_destroy` shall perform an implicit close if `threadpool` is open.
+**SRS_THREADPOOL_LINUX_07_013: [** `threadpool_destroy` shall perform an implicit close if `threadpool` is open. **]**
 
-`threadpool_destroy` shall destroy the semphore by calling `sem_destroy`.
+**SRS_THREADPOOL_LINUX_07_014: [** `threadpool_destroy` shall destroy the semphore by calling `sem_destroy`. **]**
 
-`threadpool_destroy` shall destroy the SRW lock by calling `srw_lock_destroy`.
+**SRS_THREADPOOL_LINUX_07_015: [** `threadpool_destroy` shall destroy the SRW lock by calling `srw_lock_destroy`. **]**
 
-`threadpool_destroy` shall free the memory allocated in `threadpool_create`.
+**SRS_THREADPOOL_LINUX_07_016: [** `threadpool_destroy` shall free the memory allocated in `threadpool_create`. **]**
 
 ### threadpool_open_async
 
@@ -132,21 +132,23 @@ MOCKABLE_FUNCTION(, int, threadpool_open_async, THREADPOOL_HANDLE, threadpool, O
 
 `threadpool_open_async` opens the threadpool asynchronously.
 
-If `threadpool` is `NULL`, `threadpool_open_async` shall fail and return a non-zero value.
+**SRS_THREADPOOL_LINUX_07_017: [** If `threadpool` is `NULL`, `threadpool_open_async` shall fail and return a non-zero value. **]**
 
-`threadpool_open_async` shall call `sm_open_begin`.
+**SRS_THREADPOOL_LINUX_07_086: [** If `on_open_complete` is `NULL`, `threadpool_open_async` shall fail and return a non-zero value. **]**
 
-If `sm_open_begin` indicates the open cannot be performed, `threadpool_open_async` shall fail and return a non-zero value.
+**SRS_THREADPOOL_LINUX_07_018: [** `threadpool_open_async` shall call `sm_open_begin`. **]**
 
-`threadpool_open_async` shall create number of `min_thread_count` threads for `threadpool` using `ThreadAPI_Create`.
+**SRS_THREADPOOL_LINUX_07_019: [** If `sm_open_begin` indicates the open cannot be performed, `threadpool_open_async` shall fail and return a non-zero value. **]**
 
-If any error occurs, `threadpool_open_async` shall fail and return a non-zero value.
+**SRS_THREADPOOL_LINUX_07_020: [** `threadpool_open_async` shall create number of `min_thread_count` threads for `threadpool` using `ThreadAPI_Create`. **]**
 
-If one of the thread creation fails, `threadpool_open_async` shall fail and return a non-zero value, terminate all threads already created.
+**SRS_THREADPOOL_LINUX_07_021: [** If any error occurs, `threadpool_open_async` shall fail and return a non-zero value. **]**
 
-Otherwise, `threadpool_open_async` shall shall call `sm_open_end` with true for success.
+**SRS_THREADPOOL_LINUX_07_022: [** If one of the thread creation fails, `threadpool_open_async` shall fail and return a non-zero value, terminate all threads already created. **]**
 
-`threadpool_open_async` shall succeed, indicate open success to the user by calling the `on_open_complete` callback with `THREADPOOL_OPEN_OK` and return zero.
+**SRS_THREADPOOL_LINUX_07_023: [** Otherwise, `threadpool_open_async` shall shall call `sm_open_end` with true for success. **]**
+
+**SRS_THREADPOOL_LINUX_07_024: [** `threadpool_open_async` shall succeed, indicate open success to the user by calling the `on_open_complete` callback with `THREADPOOL_OPEN_OK` and return zero. **]**
 
 ### threadpool_close
 
@@ -156,13 +158,15 @@ MOCKABLE_FUNCTION(, void, threadpool_close, THREADPOOL_HANDLE, threadpool);
 
 `threadpool_close` closes the threadpool.
 
-If `threadpool` is `NULL`, `threadpool_close` shall fail and return.
+**SRS_THREADPOOL_LINUX_07_025: [** If `threadpool` is `NULL`, `threadpool_close` shall fail and return. **]**
 
-Otherwise, `threadpool_close` shall call `sm_close_begin`.
+**SRS_THREADPOOL_LINUX_07_026: [** Otherwise, `threadpool_close` shall call `sm_close_begin`. **]**
 
-`threadpool_close` shall join all threads in the `threadpool`.
+**SRS_THREADPOOL_LINUX_07_089: [** `threadpool_close` shall signal all threads `threadpool` is closing by calling `InterlockedHL_SetAndWakeAll`.  **]**
 
-`threadpool_close` shall call `sm_close_end`.
+**SRS_THREADPOOL_LINUX_07_027: [** `threadpool_close` shall join all threads in the `threadpool`. **]**
+
+**SRS_THREADPOOL_LINUX_07_028: [** `threadpool_close` shall call `sm_close_end`. **]**
 
 ### threadpool_schedule_work
 
@@ -172,55 +176,53 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THREADPOOL_HANDLE, threadpool
 
 `threadpool_schedule_work` schedule the threadpool to work.
 
-If `threadpool` is `NULL`, `threadpool_schedule_work` shall fail and return a non-zero value.
+**SRS_THREADPOOL_LINUX_07_029: [** If `threadpool` is `NULL`, `threadpool_schedule_work` shall fail and return a non-zero value. **]**
 
-If `work_function` is `NULL`, `threadpool_schedule_work` shall fail and return a non-zero value.
+**SRS_THREADPOOL_LINUX_07_030: [** If `work_function` is `NULL`, `threadpool_schedule_work` shall fail and return a non-zero value. **]**
 
-`threadpool_schedule_work` shall call `sm_exec_begin`.
+**SRS_THREADPOOL_LINUX_07_031: [** `threadpool_schedule_work` shall call `sm_exec_begin`. **]**
 
-If `sm_exec_begin` returns `SM_EXEC_REFUSED`, `threadpool_schedule_work` shall fail and return a non-zero value.
+**SRS_THREADPOOL_LINUX_07_032: [** If `sm_exec_begin` returns `SM_EXEC_REFUSED`, `threadpool_schedule_work` shall fail and return a non-zero value. **]**
 
-`threadpool_schedule_work` shall acquire the SRW lock in shared mode by calling `srw_lock_acquire_shared`.
+**SRS_THREADPOOL_LINUX_07_033: [** `threadpool_schedule_work` shall acquire the SRW lock in shared mode by calling `srw_lock_acquire_shared`. **]**
 
-`threadpool_schedule_work` shall increment the `insert_pos`.
+**SRS_THREADPOOL_LINUX_07_034: [** `threadpool_schedule_work` shall increment the `insert_pos`. **]**
 
-If task state is `TASK_NOT_USED`, `threadpool_schedule_work` shall set the current task state to `TASK_INITIALIZING`.
+**SRS_THREADPOOL_LINUX_07_035: [** If task state is `TASK_NOT_USED`, `threadpool_schedule_work` shall set the current task state to `TASK_INITIALIZING`. **]**
 
-Otherwise, `threadpool_schedule_work` shall release the shared SRW lock by calling `srw_lock_release_shared` and increase `task_array` capacity:
+**SRS_THREADPOOL_LINUX_07_036: [** Otherwise, `threadpool_schedule_work` shall release the shared SRW lock by calling `srw_lock_release_shared` and increase `task_array` capacity: **]**
 
-  - `threadpool_schedule_work` shall acquire the SRW lock in exclusive mode by calling `srw_lock_acquire_exclusive`.
+  - **SRS_THREADPOOL_LINUX_07_037: [** `threadpool_schedule_work` shall acquire the SRW lock in exclusive mode by calling `srw_lock_acquire_exclusive`. **]**
 
-  - `threadpool_schedule_work` shall get the current size of task array by calling `interlocked_add`.
+  - **SRS_THREADPOOL_LINUX_07_038: [** `threadpool_schedule_work` shall get the current size of task array by calling `interlocked_add`. **]**
 
-  - If there is any overflow computing the new size, `threadpool_schedule_work` shall fail and return a non-zero value .
+  - **SRS_THREADPOOL_LINUX_07_039: [** If there is any overflow computing the new size, `threadpool_schedule_work` shall fail and return a non-zero value . **]**
 
-  - Otherwise, `threadpool_schedule_work` shall double the current task array size.
+  - **SRS_THREADPOOL_LINUX_07_040: [** Otherwise, `threadpool_schedule_work` shall double the current task array size. **]**
 
-  - `threadpool_schedule_work` shall realloc the memory used for the array items.
+  - **SRS_THREADPOOL_LINUX_07_041: [** `threadpool_schedule_work` shall realloc the memory used for the array items. **]**
 
-  - If any error occurs, `threadpool_schedule_work` shall fail and return a non-zero value.
+  - **SRS_THREADPOOL_LINUX_07_042: [** If any error occurs, `threadpool_schedule_work` shall fail and return a non-zero value. **]**
 
-  - `threadpool_schedule_work` shall initialize every task item in the new task array with `task_func` and `task_param` set to `NULL` and `task_state` set to `TASK_NOT_USED`.
+  - **SRS_THREADPOOL_LINUX_07_043: [** `threadpool_schedule_work` shall initialize every task item in the new task array with `task_func` and `task_param` set to `NULL` and `task_state` set to `TASK_NOT_USED`. **]**
 
-  - `threadpool_schedule_work` shall remove any gap in the task array.
+  - **SRS_THREADPOOL_LINUX_07_044: [** `threadpool_schedule_work` shall memmove everything between the consume index and the size of the array before resize to the end of the new resized array. **]**
 
-  - `threadpool_schedule_work` shall reset the `consume_idx` and `insert_idx` to 0 after resize the task array.
+  - **SRS_THREADPOOL_LINUX_07_045: [** `threadpool_schedule_work` shall reset the `consume_idx` and `insert_idx` to 0 after resize the task array. **]**
 
-  - `threadpool_schedule_work` shall release the SRW lock by calling `srw_lock_release_exclusive`.
+  - **SRS_THREADPOOL_LINUX_07_046: [** `threadpool_schedule_work` shall release the SRW lock by calling `srw_lock_release_exclusive`. **]**
 
-  - `threadpool_schedule_work` shall return zero on success.
+**SRS_THREADPOOL_LINUX_07_048: [** If reallocating the task array fails, `threadpool_schedule_work` shall fail and return a non-zero value. **]**
 
-If reallocating the task array fails, `threadpool_schedule_work` shall fail and return a non-zero value.
+**SRS_THREADPOOL_LINUX_07_049: [** `threadpool_schedule_work` shall copy the work function and work function context into insert position in the task array and return zero on success. **]**
 
-`threadpool_schedule_work` shall copy the work function and work function context into insert position in the task array and return zero on success.
+**SRS_THREADPOOL_LINUX_07_050: [** `threadpool_schedule_work` shall set the `task_state` to `TASK_WAITING` and then release the shared SRW lock. **]**
 
-`threadpool_schedule_work` shall set the `task_state` to `TASK_WAITING` and then release the shared SRW lock.
+**SRS_THREADPOOL_LINUX_07_051: [** `threadpool_schedule_work` shall unblock the `threadpool` semaphore by calling `sem_post`. **]**
 
-`threadpool_schedule_work` shall unblock the `threadpool` semaphore by calling `sem_post`.
+**SRS_THREADPOOL_LINUX_07_053: [** `threadpool_schedule_work` shall call `sm_exec_end`. **]**
 
-`threadpool_schedule_work` shall decrement the count of pending call that are in progress to be executed.
-
-`threadpool_schedule_work` shall call `sm_exec_end`.
+**SRS_THREADPOOL_LINUX_07_047: [** `threadpool_schedule_work` shall return zero on success. **]**
 
 ### threadpool_timer_start
 
@@ -230,25 +232,25 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_start, THREADPOOL_HANDLE, threadpool, 
 
 `threadpool_timer_start` starts a threadpool timer which runs after `start_delay_ms` milliseconds and then runs again every `timer_period_ms` milliseconds until `threadpool_timer_cancel` or `threadpool_timer_destroy` is called. The `timer_handle` must be stopped before closing/destroying the threadpool.
 
-If `threadpool` is `NULL`, `threadpool_timer_start` shall fail and return a non-zero value.
+**SRS_THREADPOOL_LINUX_07_054: [** If `threadpool` is `NULL`, `threadpool_timer_start` shall fail and return a non-zero value. **]**
 
-If `work_function` is `NULL`, `threadpool_timer_start` shall fail and return a non-zero value.
+**SRS_THREADPOOL_LINUX_07_055: [** If `work_function` is `NULL`, `threadpool_timer_start` shall fail and return a non-zero value. **]**
 
-If `timer_handle` is `NULL`, `threadpool_timer_start` shall fail and return a non-zero value.
+**SRS_THREADPOOL_LINUX_07_056: [** If `timer_handle` is `NULL`, `threadpool_timer_start` shall fail and return a non-zero value. **]**
 
-`work_function_ctx` shall be allowed to be `NULL`.
+**SRS_THREADPOOL_LINUX_07_057: [** `work_function_ctx` shall be allowed to be `NULL`. **]**
 
-`threadpool_timer_start` shall allocate a context for the timer being started and store `work_function` and `work_function_ctx` in it.
+**SRS_THREADPOOL_LINUX_07_058: [** `threadpool_timer_start` shall allocate a context for the timer being started and store `work_function` and `work_function_ctx` in it. **]**
 
-`threadpool_timer_start` shall call `timer_create` and `timer_settime` to schedule execution.
+**SRS_THREADPOOL_LINUX_07_059: [** `threadpool_timer_start` shall call `timer_create` and `timer_settime` to schedule execution. **]**
 
-If any error occurs, `threadpool_timer_start` shall fail and return a non-zero value.
+**SRS_THREADPOOL_LINUX_07_060: [** If any error occurs, `threadpool_timer_start` shall fail and return a non-zero value. **]**
 
-`threadpool_timer_start` shall return and allocated handle in `timer_handle`.
+**SRS_THREADPOOL_LINUX_07_061: [** `threadpool_timer_start` shall return and allocated handle in `timer_handle`. **]**
 
-`threadpool_timer_start` shall succeed and return 0.
+**SRS_THREADPOOL_LINUX_07_062: [** `threadpool_timer_start` shall succeed and return 0. **]**
 
-If `timer_settime` fails, `threadpool_timer_start` shall delete the timer by calling `timer_delete`.
+**SRS_THREADPOOL_LINUX_07_063: [** If `timer_settime` fails, `threadpool_timer_start` shall delete the timer by calling `timer_delete`. **]**
 
 ### threadpool_timer_restart
 
@@ -258,13 +260,13 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_restart, TIMER_INSTANCE_HANDLE, timer,
 
 `threadpool_timer_restart` changes the delay and period of an existing timer.
 
-If `timer` is `NULL`, `threadpool_timer_restart` shall fail and return a non-zero value.
+**SRS_THREADPOOL_LINUX_07_064: [** If `timer` is `NULL`, `threadpool_timer_restart` shall fail and return a non-zero value. **]**
 
-`threadpool_timer_restart` shall call `timer_settime` to changethe delay and period.
+**SRS_THREADPOOL_LINUX_07_065: [** `threadpool_timer_restart` shall call `timer_settime` to change the delay and period. **]**
 
-If `timer_settime` fails, `threadpool_timer_restart` shall fail and return a non-zero value.
+**SRS_THREADPOOL_LINUX_07_066: [** If `timer_settime` fails, `threadpool_timer_restart` shall fail and return a non-zero value. **]**
 
-`threadpool_timer_restart` shall succeed and return 0.
+**SRS_THREADPOOL_LINUX_07_067: [** `threadpool_timer_restart` shall succeed and return 0. **]**
 
 ### threadpool_timer_cancel
 
@@ -274,9 +276,9 @@ MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, TIMER_INSTANCE_HANDLE, timer)
 
 `threadpool_timer_cancel` shall stops the timer. Afterward, the timer may be resumed with a new time by calling `threadpool_timer_restart` or cleaned up by calling `threadpool_timer_destroy`.
 
-If `timer` is `NULL`, `threadpool_timer_cancel` shall fail and return.
+**SRS_THREADPOOL_LINUX_07_068: [** If `timer` is `NULL`, `threadpool_timer_cancel` shall fail and return. **]**
 
-`threadpool_timer_cancel` shall call `timer_settime` with 0 for `flags` and `NULL` for `old_value` and `{0}` for `new_value` to cancel the ongoing timers.
+**SRS_THREADPOOL_LINUX_07_069: [** `threadpool_timer_cancel` shall call `timer_settime` with 0 for `flags` and `NULL` for `old_value` and `{0}` for `new_value` to cancel the ongoing timers. **]**
 
 
 ### threadpool_timer_destroy
@@ -287,11 +289,11 @@ MOCKABLE_FUNCTION(, void, threadpool_timer_destroy, TIMER_INSTANCE_HANDLE, timer
 
 `threadpool_timer_destroy` stops the timer started by `threadpool_timer_start` and cleans up its resources.
 
-If `timer` is `NULL`, `threadpool_timer_destroy` shall fail and return.
+**SRS_THREADPOOL_LINUX_07_070: [** If `timer` is `NULL`, `threadpool_timer_destroy` shall fail and return. **]**
 
-`threadpool_timer_cancel` shall call `timer_delete` to destroy the ongoing timers.
+**SRS_THREADPOOL_LINUX_07_071: [** `threadpool_timer_cancel` shall call `timer_delete` to destroy the ongoing timers. **]**
 
-`threadpool_timer_destroy` shall free all resources in `timer`.
+**SRS_THREADPOOL_LINUX_07_072: [** `threadpool_timer_destroy` shall free all resources in `timer`. **]**
 
 ### threadpool_work_func
 
@@ -301,28 +303,32 @@ static int threadpool_work_func(void* param);
 
 `threadpool_work_func` executes work items for as long as it can acquire work items from the threadpool's task array.
 
-If `param` is `NULL`, `threadpool_work_func` shall fail and return.
+**SRS_THREADPOOL_LINUX_07_073: [** If `param` is `NULL`, `threadpool_work_func` shall fail and return. **]**
 
-`threadpool_work_func` shall get the real time by calling `clock_gettime` to set the waiting time for semaphore.
+**SRS_THREADPOOL_LINUX_07_074: [** `threadpool_work_func` shall get the real time by calling `clock_gettime` to set the waiting time for semaphore. **]**
 
-`threadpool_work_func` shall wait on the semaphore with a time limit.
+**SRS_THREADPOOL_LINUX_07_088: [** If `clock_gettime` fails, `threadpool_work_func` shall run the loop again. **]**
 
-`threadpool_work_func` shall acquire the shared SRW lock by calling `srw_lock_acquire_shared`.
+**SRS_THREADPOOL_LINUX_07_075: [** `threadpool_work_func` shall wait on the semaphore with a time limit. **]**
 
-`threadpool_work_func` shall get the current task array size by calling `interlocked_add`.
+**SRS_THREADPOOL_LINUX_07_087: [** If `sem_timedwait` fails, `threadpool_work_func` shall timeout and run the loop again. **]**
 
-`threadpool_work_func` shall increment the current consume index by calling `interlocked_increment_64`.
+**SRS_THREADPOOL_LINUX_07_076: [** `threadpool_work_func` shall acquire the shared SRW lock by calling `srw_lock_acquire_shared`. **]**
 
-`threadpool_work_func` shall get the next waiting task consume index from incremented consume index modulo current task array size.
+**SRS_THREADPOOL_LINUX_07_077: [** `threadpool_work_func` shall get the current task array size by calling `interlocked_add`. **]**
 
-If consume index has task state `TASK_WAITING`, `threadpool_work_func` shall set the task state to `TASK_WORKING`.
+**SRS_THREADPOOL_LINUX_07_078: [** `threadpool_work_func` shall increment the current consume index by calling `interlocked_increment_64`. **]**
 
-`threadpool_work_func` shall copy the function and parameter to local variables.
+**SRS_THREADPOOL_LINUX_07_079: [** `threadpool_work_func` shall get the next waiting task consume index from incremented consume index modulo current task array size. **]**
 
-`threadpool_work_func` shall set the task state to `TASK_NOT_USED`.
+**SRS_THREADPOOL_LINUX_07_080: [** If consume index has task state `TASK_WAITING`, `threadpool_work_func` shall set the task state to `TASK_WORKING`. **]**
 
-`threadpool_work_func` shall release the shared SRW lock by calling `srw_lock_release_shared`.
+**SRS_THREADPOOL_LINUX_07_081: [** `threadpool_work_func` shall copy the function and parameter to local variables. **]**
 
-If the work item function is not `NULL`, `threadpool_work_func` shall execute it with `work_function_ctx`.
+**SRS_THREADPOOL_LINUX_07_082: [** `threadpool_work_func` shall set the task state to `TASK_NOT_USED`. **]**
 
-`threadpool_work_func` shall loop until `threadpool_close` is called.
+**SRS_THREADPOOL_LINUX_07_083: [** `threadpool_work_func` shall release the shared SRW lock by calling `srw_lock_release_shared`. **]**
+
+**SRS_THREADPOOL_LINUX_07_084: [** If the work item function is not `NULL`, `threadpool_work_func` shall execute it with `work_function_ctx`. **]**
+
+**SRS_THREADPOOL_LINUX_07_085: [** `threadpool_work_func` shall loop until `threadpool_close` or `threadpool_destroy` is called. **]**

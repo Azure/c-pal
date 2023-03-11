@@ -11,6 +11,7 @@ if(${run_unittests})
     build_test_folder(platform_linux_ut)
     build_test_folder(sysinfo_linux_ut)
     build_test_folder(timer_linux_ut)
+    build_test_folder(threadpool_linux_ut)
     build_test_folder(uuid_linux_ut)
 endif()
 
