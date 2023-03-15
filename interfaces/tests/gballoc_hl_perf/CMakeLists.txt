@@ -1,6 +1,5 @@
 #Copyright (c) Microsoft. All rights reserved.
 
-compileAsC11()
 set(theseTestsName gballoc_hl_perf)
 
 set(${theseTestsName}_test_files

@@ -1,6 +1,5 @@
 #Copyright (c) Microsoft. All rights reserved.
 
-compileAsC11()
 set(theseTestsName call_once_ut)
 
 set(${theseTestsName}_test_files

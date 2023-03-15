@@ -1,6 +1,5 @@
 #Copyright (c) Microsoft. All rights reserved.
 
-compileAsC11()
 set(theseTestsName threadpool_win32_ut)
 
 set(${theseTestsName}_test_files
