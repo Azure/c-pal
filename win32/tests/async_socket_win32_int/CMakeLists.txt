@@ -1,6 +1,5 @@
 #Copyright (c) Microsoft. All rights reserved.
 
-compileAsC11()
 set(theseTestsName async_socket_win32_int)
 
 set(${theseTestsName}_test_files
