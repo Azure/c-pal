@@ -2,7 +2,6 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
-#include <stdbool.h>
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
@@ -10,7 +9,6 @@
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umocktypes_bool.h"
-#include "umock_c/umocktypes.h"
 #include "umock_c/umock_c_negative_tests.h"
 
 #include "real_gballoc_ll.h"
@@ -20,7 +18,6 @@
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/interlocked.h"
 #include "c_pal/interlocked_hl.h"
-#include "c_pal/sync.h"
 
 #undef ENABLE_MOCKS
 
