@@ -2,12 +2,13 @@
 #Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 set(linux_reals_c_files
+    real_execution_engine.c
     real_gballoc_ll_${gballoc_ll_type_lower}.c
     real_gballoc_hl_${gballoc_hl_type_lower}.c
     real_pipe.c
-    real_uuid.c
     real_string_utils_linux.c
     real_threadpool.c
+    real_uuid.c
     ../../common/reals/real_s_list.c
     ../../common/reals/real_ps_util.c
     ../../common/reals/real_sm.c
@@ -15,6 +16,8 @@ set(linux_reals_c_files
 )
 
 set(linux_reals_h_files
+    real_execution_engine.h
+    real_execution_engine_renames.h
     real_threadpool.h
     real_threadpool_renames.h
     real_uuid_renames.h
