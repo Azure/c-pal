@@ -109,6 +109,9 @@ TEST_FUNCTION(execution_engine_create_with_NULL_execution_engine_succeeds)
     ASSERT_ARE_EQUAL(uint32_t, DEFAULT_MAX_THREAD_COUNT, result->max_thread_count);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_IS_NOT_NULL(execution_engine);
+
+    // cleanup
+    execution_engine_dec_ref(execution_engine);
 }
 
 /* Tests_SRS_EXECUTION_ENGINE_LINUX_07_001: [ execution_engine_create shall allocate a new execution engine and on success shall return a non-NULL handle. ]*/
@@ -131,6 +134,9 @@ TEST_FUNCTION(execution_engine_create_succeeds)
     ASSERT_ARE_EQUAL(uint32_t, MAX_THREAD_COUNT, result->max_thread_count);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_IS_NOT_NULL(execution_engine);
+
+    // cleanup
+    execution_engine_dec_ref(execution_engine);
 }
 
 /* Tests_SRS_EXECUTION_ENGINE_LINUX_07_001: [ execution_engine_create shall allocate a new execution engine and on success shall return a non-NULL handle. ]*/
