@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
-
 #include "winsock2.h"
 #include "ws2tcpip.h"
 #include "windows.h"
@@ -46,7 +45,6 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
-
 
 
 static char* umocktypes_stringify_PFILETIME(PFILETIME* value)
@@ -426,7 +424,6 @@ TEST_FUNCTION(threadpool_destroy_performs_an_implicit_close)
     umock_c_reset_all_calls();
 
     // close
-    STRICT_EXPECTED_CALL(mocked_CloseThreadpoolCleanupGroupMembers(test_cleanup_group, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_CloseThreadpoolCleanupGroup(test_cleanup_group));
     STRICT_EXPECTED_CALL(mocked_DestroyThreadpoolEnvironment(cbe));
 
@@ -622,7 +619,6 @@ TEST_FUNCTION(threadpool_close_with_NULL_handle_returns)
 }
 
 /* Tests_SRS_THREADPOOL_WIN32_01_017: [ Otherwise, threadpool_close shall switch the state to CLOSING. ]*/
-/* Tests_SRS_THREADPOOL_WIN32_01_030: [ threadpool_close shall wait for any executing callbacks by calling CloseThreadpoolCleanupGroupMembers, passing FALSE as fCancelPendingCallbacks. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_01_032: [ threadpool_close shall close the threadpool cleanup group by calling CloseThreadpoolCleanupGroup. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_01_033: [ threadpool_close shall destroy the thread pool environment created in threadpool_open_async. ]*/
 TEST_FUNCTION(threadpool_close_reverses_the_open_actions)
@@ -642,7 +638,6 @@ TEST_FUNCTION(threadpool_close_reverses_the_open_actions)
     (void)threadpool_open_async(threadpool, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(mocked_CloseThreadpoolCleanupGroupMembers(test_cleanup_group, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_CloseThreadpoolCleanupGroup(test_cleanup_group));
     STRICT_EXPECTED_CALL(mocked_DestroyThreadpoolEnvironment(cbe));
 

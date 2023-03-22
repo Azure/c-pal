@@ -122,8 +122,6 @@ MOCKABLE_FUNCTION(, void, threadpool_close, THREADPOOL_HANDLE, threadpool);
 
 **SRS_THREADPOOL_WIN32_01_017: [** Otherwise, `threadpool_close` shall switch the state to CLOSING. **]**
 
-**SRS_THREADPOOL_WIN32_01_030: [** `threadpool_close` shall wait for any executing callbacks by calling `CloseThreadpoolCleanupGroupMembers`, passing `FALSE` as `fCancelPendingCallbacks`. **]**
-
 **SRS_THREADPOOL_WIN32_01_032: [** `threadpool_close` shall close the threadpool cleanup group by calling `CloseThreadpoolCleanupGroup`. **]**
 
 **SRS_THREADPOOL_WIN32_01_033: [** `threadpool_close` shall destroy the thread pool environment created in `threadpool_open_async`. **]**
@@ -188,7 +186,7 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_start, THREADPOOL_HANDLE, threadpool, 
 
 **SRS_THREADPOOL_WIN32_42_005: [** `threadpool_timer_start` shall allocate a context for the timer being started and store `work_function` and `work_function_context` in it. **]**
 
-**SRS_THREADPOOL_WIN32_42_006: [** `threadpool_timer_start` shall call `CreateThreadpoolTimer ` to schedule execution the callback while passing to it the `on_timer_callback` function and the newly created context. **]**
+**SRS_THREADPOOL_WIN32_42_006: [** `threadpool_timer_start` shall call `CreateThreadpoolTimer` to schedule execution the callback while passing to it the `on_timer_callback` function and the newly created context. **]**
 
 **SRS_THREADPOOL_WIN32_42_007: [** `threadpool_timer_start` shall call `SetThreadpoolTimer`, passing negative `start_delay_ms` as `pftDueTime`, `timer_period_ms` as `msPeriod`, and 0 as `msWindowLength`. **]**
 

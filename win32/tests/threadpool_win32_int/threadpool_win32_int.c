@@ -1,10 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-
 #include <stdlib.h>
 #include <inttypes.h>
 #include <math.h>
-
 
 #include "windows.h"
 
@@ -19,6 +17,8 @@
 #include "c_pal/gballoc_hl_redirect.h"
 
 #include "c_pal/execution_engine_win32.h"
+
+#define XTEST_FUNCTION(A) void A(void)
 
 static TEST_MUTEX_HANDLE test_serialize_mutex;
 
