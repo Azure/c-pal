@@ -4,8 +4,6 @@
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 #include "testrunnerswitcher.h"
 
-static TEST_MUTEX_HANDLE g_testByTest;
-
 #include "umock_c/umock_c.h"
 
 #define ENABLE_MOCKS
@@ -28,9 +26,6 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(TestClassInitialize)
 {
-    g_testByTest = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(g_testByTest);
-
     umock_c_init(on_umock_c_error);
 
     ASSERT_ARE_EQUAL(int, 0, umocktypes_UUID_T_register_types());
@@ -39,23 +34,15 @@ TEST_SUITE_INITIALIZE(TestClassInitialize)
 TEST_SUITE_CLEANUP(TestClassCleanup)
 {
     umock_c_deinit();
-
-    TEST_MUTEX_DESTROY(g_testByTest);
 }
 
 TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
 {
-    if (TEST_MUTEX_ACQUIRE(g_testByTest))
-    {
-        ASSERT_FAIL("our mutex is ABANDONED. Failure in test framework");
-    }
-
     umock_c_reset_all_calls();
 }
 
 TEST_FUNCTION_CLEANUP(TestMethodCleanup)
 {
-    TEST_MUTEX_RELEASE(g_testByTest);
 }
 
 TEST_FUNCTION(module_calls_submodule_1) /*wants to see that the UUID_Ts match*/

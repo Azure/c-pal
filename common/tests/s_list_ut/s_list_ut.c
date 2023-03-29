@@ -54,7 +54,6 @@ MOCK_FUNCTION_END(item->index == 2 ? MU_FAILURE : 0);
 #undef ENABLE_MOCKS
 
 TEST_DEFINE_ENUM_TYPE(S_LIST_IS_EMPTY_RESULT, S_LIST_IS_EMPTY_RESULT_VALUES);
-static TEST_MUTEX_HANDLE test_serialize_mutex;
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
@@ -67,9 +66,6 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(TestClassInitialize)
 {
-    test_serialize_mutex = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(test_serialize_mutex);
-
     umock_c_init(on_umock_c_error);
 
     ASSERT_ARE_EQUAL(int, 0, umocktypes_bool_register_types());
@@ -80,21 +76,15 @@ TEST_SUITE_INITIALIZE(TestClassInitialize)
 TEST_SUITE_CLEANUP(TestClassCleanup)
 {
     umock_c_deinit();
-    TEST_MUTEX_DESTROY(test_serialize_mutex);
 }
 
 TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
 {
-    if (TEST_MUTEX_ACQUIRE(test_serialize_mutex))
-    {
-        ASSERT_FAIL("our mutex is ABANDONED. Failure in test framework");
-    }
 }
 
 TEST_FUNCTION_CLEANUP(TestMethodCleanup)
 {
     umock_c_reset_all_calls();
-    TEST_MUTEX_RELEASE(test_serialize_mutex);
 }
 
 /*s_list_initialize*/

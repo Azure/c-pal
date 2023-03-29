@@ -23,8 +23,6 @@
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_linux.h"
 
-static TEST_MUTEX_HANDLE test_serialize_mutex;
-
 TEST_DEFINE_ENUM_TYPE(THREADPOOL_OPEN_RESULT, THREADPOOL_OPEN_RESULT_VALUES);
 
 typedef struct WAIT_WORK_CONTEXT_TAG
@@ -45,9 +43,6 @@ TEST_SUITE_INITIALIZE(suite_init)
 {
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 
-    test_serialize_mutex = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(test_serialize_mutex);
-
     time_t seed = time(NULL);
     LogInfo("Test using random seed = %u", (unsigned int)seed);
     srand((unsigned int)seed);
@@ -55,22 +50,15 @@ TEST_SUITE_INITIALIZE(suite_init)
 
 TEST_SUITE_CLEANUP(suite_cleanup)
 {
-    TEST_MUTEX_DESTROY(test_serialize_mutex);
-
     gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(method_init)
 {
-    if (TEST_MUTEX_ACQUIRE(test_serialize_mutex))
-    {
-        ASSERT_FAIL("Could not acquire test serialization mutex.");
-    }
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
 {
-    TEST_MUTEX_RELEASE(test_serialize_mutex);
 }
 
 static void threadpool_task_wait_20_millisec(void* parameter)

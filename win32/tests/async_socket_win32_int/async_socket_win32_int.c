@@ -1,9 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-
 #include <stdlib.h>
 #include <inttypes.h>
-
 
 #include "winsock2.h"
 #include "ws2tcpip.h"
@@ -16,8 +14,6 @@
 #include "c_pal/execution_engine.h"
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/execution_engine_win32.h"
-
-static TEST_MUTEX_HANDLE test_serialize_mutex;
 
 #define TEST_PORT 4266
 
@@ -124,15 +120,10 @@ TEST_SUITE_INITIALIZE(suite_init)
 
     WSADATA wsaData;
     ASSERT_ARE_EQUAL(int, 0, WSAStartup(MAKEWORD(2, 2), &wsaData));
-
-    test_serialize_mutex = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(test_serialize_mutex);
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
 {
-    TEST_MUTEX_DESTROY(test_serialize_mutex);
-
     (void)WSACleanup();
 
     gballoc_hl_deinit();
@@ -140,15 +131,10 @@ TEST_SUITE_CLEANUP(suite_cleanup)
 
 TEST_FUNCTION_INITIALIZE(method_init)
 {
-    if (TEST_MUTEX_ACQUIRE(test_serialize_mutex))
-    {
-        ASSERT_FAIL("Could not acquire test serialization mutex.");
-    }
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
 {
-    TEST_MUTEX_RELEASE(test_serialize_mutex);
 }
 
 TEST_FUNCTION(send_and_receive_1_byte_succeeds)

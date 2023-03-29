@@ -4,10 +4,7 @@
 
 #include <stdint.h>
 
-
 #include "testrunnerswitcher.h"
-
-static TEST_MUTEX_HANDLE g_testByTest;
 
 #include "c_pal/arithmetic.h"
 
@@ -15,26 +12,18 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(TestClassInitialize)
 {
-    g_testByTest = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(g_testByTest);
 }
 
 TEST_SUITE_CLEANUP(TestClassCleanup)
 {
-    TEST_MUTEX_DESTROY(g_testByTest);
 }
 
 TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
 {
-    if (TEST_MUTEX_ACQUIRE(g_testByTest))
-    {
-        ASSERT_FAIL("our mutex is ABANDONED. Failure in test framework");
-    }
 }
 
 TEST_FUNCTION_CLEANUP(TestMethodCleanup)
 {
-    TEST_MUTEX_RELEASE(g_testByTest);
 }
 
 typedef struct TEST_TAG

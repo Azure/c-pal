@@ -20,12 +20,9 @@
 
     MOCKABLE_FUNCTION(, DWORD, mocked_GetActiveProcessorCount, WORD, GroupNumber)
 
-
 #undef ENABLE_MOCKS
 
 #include "c_pal/sysinfo.h"
-
-static TEST_MUTEX_HANDLE test_serialize_mutex;
 
 static const uint32_t TEST_PROC_COUNT = 4;
 
@@ -40,37 +37,26 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
-    test_serialize_mutex = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(test_serialize_mutex);
-
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error), "umock_c_init failed");
     ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types(), "umocktypes_stdint_register_types failed");
 
     REGISTER_UMOCK_ALIAS_TYPE(WORD, uint16_t);
     REGISTER_UMOCK_ALIAS_TYPE(DWORD, uint32_t);
-
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
 {
     umock_c_deinit();
     umock_c_negative_tests_deinit();
-    TEST_MUTEX_DESTROY(test_serialize_mutex);
 }
 
 TEST_FUNCTION_INITIALIZE(init)
 {
-    if (TEST_MUTEX_ACQUIRE(test_serialize_mutex))
-    {
-        ASSERT_FAIL("Could not acquire test serialization mutex.");
-    }
-
     umock_c_reset_all_calls();
 }
 
 TEST_FUNCTION_CLEANUP(cleanup)
 {
-    TEST_MUTEX_RELEASE(test_serialize_mutex);
 }
 
 /* sysinfo_get_processor_count */

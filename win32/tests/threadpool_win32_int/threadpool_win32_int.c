@@ -1,10 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-
 #include <stdlib.h>
 #include <inttypes.h>
 #include <math.h>
-
 
 #include "windows.h"
 
@@ -19,8 +17,6 @@
 #include "c_pal/gballoc_hl_redirect.h"
 
 #include "c_pal/execution_engine_win32.h"
-
-static TEST_MUTEX_HANDLE test_serialize_mutex;
 
 static void on_open_complete(void* context, THREADPOOL_OPEN_RESULT open_result)
 {
@@ -141,27 +137,19 @@ TEST_SUITE_INITIALIZE(suite_init)
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 
     xlogging_set_log_function(NULL);
-    test_serialize_mutex = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(test_serialize_mutex);
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
 {
-    TEST_MUTEX_DESTROY(test_serialize_mutex);
     gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(method_init)
 {
-    if (TEST_MUTEX_ACQUIRE(test_serialize_mutex))
-    {
-        ASSERT_FAIL("Could not acquire test serialization mutex.");
-    }
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
 {
-    TEST_MUTEX_RELEASE(test_serialize_mutex);
 }
 
 TEST_FUNCTION(one_work_item_schedule_works)

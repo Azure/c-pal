@@ -21,8 +21,6 @@ static void my_gballoc_free(void* s)
 
 #include "testrunnerswitcher.h"
 
-static TEST_MUTEX_HANDLE g_testByTest;
-
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umocktypes_bool.h"
@@ -89,9 +87,6 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(a)
 {
-    g_testByTest = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(g_testByTest);
-
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error));
     ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types());
     ASSERT_ARE_EQUAL(int, 0, umocktypes_bool_register_types());
@@ -108,23 +103,15 @@ TEST_SUITE_INITIALIZE(a)
 TEST_SUITE_CLEANUP(b)
 {
     umock_c_deinit();
-
-    TEST_MUTEX_DESTROY(g_testByTest);
 }
 
 TEST_FUNCTION_INITIALIZE(c)
 {
-    if (TEST_MUTEX_ACQUIRE(g_testByTest))
-    {
-        ASSERT_FAIL("our mutex is ABANDONED. Failure in test framework");
-    }
-
     umock_c_reset_all_calls();
 }
 
 TEST_FUNCTION_CLEANUP(d)
 {
-    TEST_MUTEX_RELEASE(g_testByTest);
 }
 
 /*Tests_SRS_INTERLOCKED_HL_02_001: [ If Addend is NULL then InterlockedHL_Add64WithCeiling shall fail and return INTERLOCKED_HL_ERROR. ]*/

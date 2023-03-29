@@ -1,15 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-
 #include <stdlib.h>
 #include <stddef.h>
 
-
 #include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
-
-static TEST_MUTEX_HANDLE g_testByTest;
 
 #include "c_pal/gballoc_ll.h"
 
@@ -17,32 +13,21 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(TestClassInitialize)
 {
-    g_testByTest = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(g_testByTest);
-
     ASSERT_ARE_EQUAL(int, 0, gballoc_ll_init(NULL));
 }
 
 TEST_SUITE_CLEANUP(TestClassCleanup)
 {
     gballoc_ll_deinit();
-
-    TEST_MUTEX_DESTROY(g_testByTest);
 }
 
 TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
 {
-    if (TEST_MUTEX_ACQUIRE(g_testByTest))
-    {
-        ASSERT_FAIL("our mutex is ABANDONED. Failure in test framework");
-    }
 }
 
 TEST_FUNCTION_CLEANUP(TestMethodCleanup)
 {
-    TEST_MUTEX_RELEASE(g_testByTest);
 }
-
 
 TEST_FUNCTION(gballoc_ll_init_works)
 {

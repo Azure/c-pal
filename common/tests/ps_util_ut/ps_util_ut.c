@@ -4,8 +4,6 @@
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
 
-static TEST_MUTEX_HANDLE g_testByTest;
-
 #include "c_pal/ps_util.h"
 
 MOCK_FUNCTION_WITH_CODE(, void, mock_abort);
@@ -24,32 +22,21 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
     TEST_SUITE_INITIALIZE(TestClassInitialize)
     {
-        g_testByTest = TEST_MUTEX_CREATE();
-        ASSERT_IS_NOT_NULL(g_testByTest);
-
         ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error));
     }
 
     TEST_SUITE_CLEANUP(TestClassCleanup)
     {
         umock_c_deinit();
-
-        TEST_MUTEX_DESTROY(g_testByTest);
     }
 
     TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
     {
-        if (TEST_MUTEX_ACQUIRE(g_testByTest))
-        {
-            ASSERT_FAIL("our mutex is ABANDONED. Failure in test framework");
-        }
-
         umock_c_reset_all_calls();
     }
 
     TEST_FUNCTION_CLEANUP(TestMethodCleanup)
     {
-        TEST_MUTEX_RELEASE(g_testByTest);
     }
 
     /* Tests_SRS_PS_UTIL_01_001: [ ps_util_terminate_process shall call abort. ]*/

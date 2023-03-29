@@ -12,35 +12,24 @@
 #include "c_pal/threadapi.h"
 #include "c_pal/timer.h"
 
-static TEST_MUTEX_HANDLE g_testByTest;
-
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(a)
 {
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
-
-    g_testByTest = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(g_testByTest);
 }
 
 TEST_SUITE_CLEANUP(b)
 {
-    TEST_MUTEX_DESTROY(g_testByTest);
     gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(c)
 {
-    if (TEST_MUTEX_ACQUIRE(g_testByTest))
-    {
-        ASSERT_FAIL("our mutex is ABANDONED. Failure in test framework");
-    }
 }
 
 TEST_FUNCTION_CLEANUP(d)
 {
-    TEST_MUTEX_RELEASE(g_testByTest);
 }
 
 /* timer_create_new */

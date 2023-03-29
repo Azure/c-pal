@@ -40,7 +40,6 @@
 #define TEST_MAX_EVENTS_NUM     64
 #define EVENTS_TIMEOUT_MS       2*1000
 
-static TEST_MUTEX_HANDLE test_serialize_mutex;
 static SOCKET_HANDLE test_socket = (SOCKET_HANDLE)0x4242;
 static void* test_callback_ctx = (void*)0x4244;
 static THREAD_HANDLE test_thread_handle = (THREAD_HANDLE)0x4200;
@@ -135,8 +134,6 @@ TEST_SUITE_INITIALIZE(suite_init)
 {
     ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
 
-    ASSERT_IS_NOT_NULL(test_serialize_mutex = TEST_MUTEX_CREATE());
-
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error), "umock_c_init failed");
     ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types(), "umocktypes_stdint_register_types failed");
     ASSERT_ARE_EQUAL(int, 0, umocktypes_charptr_register_types(), "umocktypes_charptr_register_types failed");
@@ -168,17 +165,11 @@ TEST_SUITE_INITIALIZE(suite_init)
 TEST_SUITE_CLEANUP(suite_cleanup)
 {
     umock_c_deinit();
-    TEST_MUTEX_DESTROY(test_serialize_mutex);
     real_gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(init)
 {
-    if (TEST_MUTEX_ACQUIRE(test_serialize_mutex))
-    {
-        ASSERT_FAIL("Could not acquire test serialization mutex.");
-    }
-
     umock_c_reset_all_calls();
     umock_c_negative_tests_init();
     errno = 0;
@@ -189,7 +180,6 @@ TEST_FUNCTION_INITIALIZE(init)
 TEST_FUNCTION_CLEANUP(cleanup)
 {
     umock_c_negative_tests_deinit();
-    TEST_MUTEX_RELEASE(test_serialize_mutex);
 }
 
 // completion_port_create

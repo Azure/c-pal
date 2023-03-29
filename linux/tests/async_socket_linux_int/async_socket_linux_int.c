@@ -23,8 +23,6 @@
 #include "c_pal/socket_handle.h"
 #include "c_pal/platform.h"
 
-static TEST_MUTEX_HANDLE test_serialize_mutex;
-
 #define TEST_PORT 2244
 static int g_port_num = TEST_PORT;
 
@@ -190,15 +188,10 @@ TEST_SUITE_INITIALIZE(suite_init)
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 
     ASSERT_ARE_EQUAL(int, 0, platform_init());
-
-    test_serialize_mutex = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(test_serialize_mutex);
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
 {
-    TEST_MUTEX_DESTROY(test_serialize_mutex);
-
     platform_deinit();
 
     gballoc_hl_deinit();
@@ -206,16 +199,11 @@ TEST_SUITE_CLEANUP(suite_cleanup)
 
 TEST_FUNCTION_INITIALIZE(method_init)
 {
-    if (TEST_MUTEX_ACQUIRE(test_serialize_mutex))
-    {
-        ASSERT_FAIL("Could not acquire test serialization mutex.");
-    }
     g_port_num++;
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
 {
-    TEST_MUTEX_RELEASE(test_serialize_mutex);
 }
 
 TEST_FUNCTION(connect_no_send_succeeds)

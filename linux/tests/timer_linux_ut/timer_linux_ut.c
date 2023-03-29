@@ -1,9 +1,7 @@
 // Copyright(C) Microsoft Corporation.All rights reserved.
 
-
 #include <stdlib.h>
 #include <time.h>
-
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
@@ -38,8 +36,6 @@ static void my_gballoc_free(void* s)
 // No idea why iwyu warns about this since we include time.h but...
 // IWYU pragma: no_forward_declare timespec
 
-static TEST_MUTEX_HANDLE test_serialize_mutex;
-
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
@@ -52,9 +48,6 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 TEST_SUITE_INITIALIZE(suite_init)
 {
     ASSERT_ARE_EQUAL(int, 0, real_gballoc_ll_init(NULL));
-
-    test_serialize_mutex = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(test_serialize_mutex);
 
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error), "umock_c_init");
 
@@ -71,18 +64,12 @@ TEST_SUITE_CLEANUP(suite_cleanup)
 {
     umock_c_deinit();
     umock_c_negative_tests_deinit();
-    TEST_MUTEX_DESTROY(test_serialize_mutex);
 
     real_gballoc_ll_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(function_init)
 {
-    if (TEST_MUTEX_ACQUIRE(test_serialize_mutex))
-    {
-        ASSERT_FAIL("Could not acquire test serialization mutex.");
-    }
-
     umock_c_reset_all_calls();
     ASSERT_ARE_EQUAL(int, 0, umock_c_negative_tests_init(), "umock_c_negative_tests_init failed");
 }
@@ -90,7 +77,6 @@ TEST_FUNCTION_INITIALIZE(function_init)
 TEST_FUNCTION_CLEANUP(function_cleanup)
 {
     umock_c_negative_tests_deinit();
-    TEST_MUTEX_RELEASE(test_serialize_mutex);
 }
 
 /* timer_create_new */
