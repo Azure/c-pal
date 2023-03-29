@@ -26,8 +26,6 @@ TEST_DEFINE_ENUM_TYPE(LAZY_INIT_RESULT, LAZY_INIT_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES);
 
-static TEST_MUTEX_HANDLE test_serialize_mutex;
-
 static int32_t nThreadsForChaos;
 
 static call_once_t lazy_chaos = LAZY_INIT_NOT_DONE;
@@ -99,28 +97,19 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
-    test_serialize_mutex = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(test_serialize_mutex);
-
     nThreadsForChaos = sysinfo_get_processor_count();
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
 {
-    TEST_MUTEX_DESTROY(test_serialize_mutex);
 }
 
 TEST_FUNCTION_INITIALIZE(method_init)
 {
-    if (TEST_MUTEX_ACQUIRE(test_serialize_mutex))
-    {
-        ASSERT_FAIL("Could not acquire test serialization mutex.");
-    }
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
 {
-    TEST_MUTEX_RELEASE(test_serialize_mutex);
 }
 
 TEST_FUNCTION(lazy_init_chaos_knight)

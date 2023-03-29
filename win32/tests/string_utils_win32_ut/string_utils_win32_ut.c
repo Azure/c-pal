@@ -18,7 +18,6 @@
 #include "umock_c/umocktypes_bool.h"
 #include "umock_c/umock_c_negative_tests.h"
 
-
 #define ENABLE_MOCKS
 
 #include "c_pal/gballoc_hl.h"
@@ -30,8 +29,6 @@
 #include "real_gballoc_hl.h"
 
 #include "c_pal/string_utils.h"
-
-static TEST_MUTEX_HANDLE g_testByTest;
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
@@ -78,8 +75,6 @@ TEST_SUITE_INITIALIZE(suite_init)
 {
     ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
 
-    g_testByTest = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(g_testByTest);
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error));
     ASSERT_ARE_EQUAL(int, 0, umocktypes_windows_register_types());
     ASSERT_ARE_EQUAL(int, 0, umocktypes_bool_register_types());
@@ -102,18 +97,11 @@ TEST_SUITE_CLEANUP(TestClassCleanup)
 {
     umock_c_deinit();
 
-    TEST_MUTEX_DESTROY(g_testByTest);
-
     real_gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(f)
 {
-    if (TEST_MUTEX_ACQUIRE(g_testByTest))
-    {
-        ASSERT_FAIL("our mutex is ABANDONED. Failure in test framework");
-    }
-
     umock_c_reset_all_calls();
     umock_c_negative_tests_init();
 }
@@ -121,7 +109,6 @@ TEST_FUNCTION_INITIALIZE(f)
 TEST_FUNCTION_CLEANUP(cleans)
 {
     umock_c_negative_tests_deinit();
-    TEST_MUTEX_RELEASE(g_testByTest);
 }
 
 /*Tests_SRS_STRING_UTILS_02_001: [ If fileTime is NULL then FILETIME_to_string_UTC shall fail and return NULL. ]*/
