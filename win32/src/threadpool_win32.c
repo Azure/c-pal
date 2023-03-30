@@ -67,17 +67,24 @@ static VOID CALLBACK on_work_callback(PTP_CALLBACK_INSTANCE instance, PVOID cont
         /* Codes_SRS_THREADPOOL_WIN32_01_036: [ Otherwise context shall be used as the context created in threadpool_schedule_work. ]*/
         WORK_ITEM_CONTEXT* work_item_context = (WORK_ITEM_CONTEXT*)context;
 
-        (void)InterlockedDecrement(&work_item_context->threadpool->pending_api_calls);
-        WakeByAddressSingle((PVOID)&work_item_context->threadpool->pending_api_calls);
-
-        /* Codes_SRS_THREADPOOL_WIN32_01_037: [ The work_function callback passed to threadpool_schedule_work shall be called, passing to it the work_function_context argument passed to threadpool_schedule_work. ]*/
-        work_item_context->work_function(work_item_context->work_function_context);
+        THREADPOOL_WORK_FUNCTION work_function = work_item_context->work_function;
+        void* work_function_context = work_item_context->work_function_context;
+        THREADPOOL* threadpool = work_item_context->threadpool;
 
         /* Codes_SRS_THREADPOOL_WIN32_01_038: [ on_work_callback shall call CloseThreadpoolWork. ]*/
         CloseThreadpoolWork(work);
 
         /* Codes_SRS_THREADPOOL_WIN32_01_039: [ on_work_callback shall free the context allocated in threadpool_schedule_work. ]*/
         free(context);
+
+        DWORD thread_id = GetCurrentThreadId();
+        (void)thread_id;
+
+        (void)InterlockedDecrement(&threadpool->pending_api_calls);
+        WakeByAddressSingle((PVOID)&threadpool->pending_api_calls);
+
+        /* Codes_SRS_THREADPOOL_WIN32_01_037: [ The work_function callback passed to threadpool_schedule_work shall be called, passing to it the work_function_context argument passed to threadpool_schedule_work. ]*/
+        work_function(work_function_context);
     }
 }
 
@@ -92,6 +99,9 @@ static void internal_close(THREADPOOL_HANDLE threadpool)
         }
         (void)WaitOnAddress(&threadpool->pending_api_calls, &current_pending_api_calls, sizeof(current_pending_api_calls), INFINITE);
     } while (1);
+
+    DWORD thread_id = GetCurrentThreadId();
+    (void)thread_id;
 
     /* Codes_SRS_THREADPOOL_WIN32_01_032: [ threadpool_close shall close the threadpool cleanup group by calling CloseThreadpoolCleanupGroup. ]*/
     CloseThreadpoolCleanupGroup(threadpool->tp_cleanup_group);

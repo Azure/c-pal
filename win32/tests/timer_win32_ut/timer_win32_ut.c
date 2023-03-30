@@ -40,8 +40,6 @@ static void my_gballoc_free(void* s)
 
 #include "c_pal/timer.h"
 
-static TEST_MUTEX_HANDLE test_serialize_mutex;
-
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
@@ -56,9 +54,6 @@ TEST_SUITE_INITIALIZE(suite_init)
     int result;
 
     ASSERT_ARE_EQUAL(int, 0, real_gballoc_ll_init(NULL));
-
-    test_serialize_mutex = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(test_serialize_mutex);
 
     result = umock_c_init(on_umock_c_error);
     ASSERT_ARE_EQUAL(int, 0, result, "umock_c_init");
@@ -80,19 +75,17 @@ TEST_SUITE_CLEANUP(suite_cleanup)
 {
     umock_c_deinit();
     umock_c_negative_tests_deinit();
-    TEST_MUTEX_DESTROY(test_serialize_mutex);
 
     real_gballoc_ll_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(init)
 {
-    if (TEST_MUTEX_ACQUIRE(test_serialize_mutex))
-    {
-        ASSERT_FAIL("Could not acquire test serialization mutex.");
-    }
-
     umock_c_reset_all_calls();
+}
+
+TEST_FUNCTION_CLEANUP(cleanup)
+{
 }
 
 /* timer_create_new */
@@ -289,11 +282,6 @@ TEST_FUNCTION(g_timer_get_elapsed_in_ms_succeeds)
 
     //assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-TEST_FUNCTION_CLEANUP(cleanup)
-{
-    TEST_MUTEX_RELEASE(test_serialize_mutex);
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

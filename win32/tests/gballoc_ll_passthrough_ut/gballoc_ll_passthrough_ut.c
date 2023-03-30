@@ -1,14 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-
 #include <stdlib.h>
-
 
 #include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
-
-static TEST_MUTEX_HANDLE g_testByTest;
 
 static void* TEST_MALLOC_RESULT = (void*)0x1;
 static void* TEST_CALLOC_RESULT = (void*)0x2;
@@ -41,9 +37,6 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(TestClassInitialize)
 {
-    g_testByTest = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(g_testByTest);
-
     umock_c_init(on_umock_c_error);
 
     REGISTER_GLOBAL_MOCK_RETURN(mock_malloc, TEST_MALLOC_RESULT);
@@ -54,23 +47,15 @@ TEST_SUITE_INITIALIZE(TestClassInitialize)
 TEST_SUITE_CLEANUP(TestClassCleanup)
 {
     umock_c_deinit();
-
-    TEST_MUTEX_DESTROY(g_testByTest);
 }
 
 TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
 {
-    if (TEST_MUTEX_ACQUIRE(g_testByTest))
-    {
-        ASSERT_FAIL("our mutex is ABANDONED. Failure in test framework");
-    }
-
     umock_c_reset_all_calls();
 }
 
 TEST_FUNCTION_CLEANUP(TestMethodCleanup)
 {
-    TEST_MUTEX_RELEASE(g_testByTest);
 }
 
 /*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_001: [ gballoc_ll_init shall return 0. ]*/

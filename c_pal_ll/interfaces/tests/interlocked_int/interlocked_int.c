@@ -8,35 +8,24 @@
 
 #include "testrunnerswitcher.h"
 
-static TEST_MUTEX_HANDLE g_testByTest;
-
 #include "c_pal/interlocked.h"
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(a)
 {
-    g_testByTest = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(g_testByTest);
 }
 
 TEST_SUITE_CLEANUP(b)
 {
-
-    TEST_MUTEX_DESTROY(g_testByTest);
 }
 
 TEST_FUNCTION_INITIALIZE(c)
 {
-    if (TEST_MUTEX_ACQUIRE(g_testByTest))
-    {
-        ASSERT_FAIL("our mutex is ABANDONED. Failure in test framework");
-    }
 }
 
 TEST_FUNCTION_CLEANUP(d)
 {
-    TEST_MUTEX_RELEASE(g_testByTest);
 }
 
 /*Tests_SRS_INTERLOCKED_43_001: [ interlocked_add shall atomically add 32-bit integers *addend and value and store the result in *addend.]*/

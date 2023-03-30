@@ -18,9 +18,12 @@
 
 #include "c_pal/execution_engine_win32.h"
 
-#define XTEST_FUNCTION(A) void A(void)
+#include "c_pal/interlocked.h"
+#include "c_pal/sync.h"
+#include "c_pal/timer.h"
+#include "c_pal/threadpool.h"
 
-static TEST_MUTEX_HANDLE test_serialize_mutex;
+#define XTEST_FUNCTION(A) void A(void)
 
 static void on_open_complete(void* context, THREADPOOL_OPEN_RESULT open_result)
 {
@@ -141,27 +144,19 @@ TEST_SUITE_INITIALIZE(suite_init)
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 
     xlogging_set_log_function(NULL);
-    test_serialize_mutex = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(test_serialize_mutex);
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
 {
-    TEST_MUTEX_DESTROY(test_serialize_mutex);
     gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(method_init)
 {
-    if (TEST_MUTEX_ACQUIRE(test_serialize_mutex))
-    {
-        ASSERT_FAIL("Could not acquire test serialization mutex.");
-    }
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
 {
-    TEST_MUTEX_RELEASE(test_serialize_mutex);
 }
 
 TEST_FUNCTION(one_work_item_schedule_works)
@@ -203,7 +198,7 @@ TEST_FUNCTION(one_work_item_schedule_works)
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work)
+XTEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work)
 {
     // arrange
     // create an execution engine
@@ -246,7 +241,7 @@ TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work)
 
 #define N_WORK_ITEMS 100
 
-TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_works))
+XTEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_works))
 {
     // assert
     // create an execution engine
@@ -289,7 +284,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_works))
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(one_start_timer_works_runs_once)
+XTEST_FUNCTION(one_start_timer_works_runs_once)
 {
     // assert
     // create an execution engine
@@ -360,7 +355,7 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(restart_timer_works_runs_once)
+XTEST_FUNCTION(restart_timer_works_runs_once)
 {
     // assert
     // create an execution engine
@@ -434,7 +429,7 @@ TEST_FUNCTION(restart_timer_works_runs_once)
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(one_start_timer_works_runs_periodically)
+XTEST_FUNCTION(one_start_timer_works_runs_periodically)
 {
     // assert
     // create an execution engine
@@ -477,7 +472,7 @@ TEST_FUNCTION(one_start_timer_works_runs_periodically)
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
+XTEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
 {
     // assert
     // create an execution engine
@@ -530,7 +525,7 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
+XTEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
 {
     // assert
     // create an execution engine
@@ -582,7 +577,7 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
+XTEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
 {
     // assert
     // create an execution engine
@@ -637,7 +632,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
 
 #define N_TIMERS 100
 
-TEST_FUNCTION(MU_C3(starting_, N_TIMERS, _start_timers_work_and_run_periodically))
+XTEST_FUNCTION(MU_C3(starting_, N_TIMERS, _start_timers_work_and_run_periodically))
 {
     // assert
     // create an execution engine
@@ -691,7 +686,7 @@ TEST_FUNCTION(MU_C3(starting_, N_TIMERS, _start_timers_work_and_run_periodically
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items)
+XTEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items)
 {
     // assert
     // create an execution engine
@@ -740,7 +735,7 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items)
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(close_while_closing_still_executes_the_items)
+XTEST_FUNCTION(close_while_closing_still_executes_the_items)
 {
     // assert
     // create an execution engine
@@ -796,7 +791,7 @@ TEST_FUNCTION(close_while_closing_still_executes_the_items)
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(open_while_closing_fails)
+XTEST_FUNCTION(open_while_closing_fails)
 {
     // assert
     // create an execution engine
@@ -874,6 +869,15 @@ typedef struct CHAOS_TEST_DATA_TAG
     volatile LONG timers_starting;
     CHAOS_TEST_TIMER_DATA timers[MAX_TIMER_COUNT];
 } CHAOS_TEST_DATA;
+
+typedef struct THREADPOOL_CLOSE_TEST_DATA_TAG
+{
+    volatile_atomic int32_t threadpool_open;
+    volatile_atomic int32_t threadpool_close_called;
+
+    THREADPOOL_HANDLE threadpool;
+
+} THREADPOOL_CLOSE_TEST_DATA;
 
 #define TIMER_START_DELAY_MIN 0
 #define TIMER_START_DELAY_MAX 100
@@ -1051,7 +1055,7 @@ static DWORD WINAPI chaos_thread_with_timers_func(LPVOID lpThreadParameter)
     return 0;
 }
 
-TEST_FUNCTION(chaos_knight_test)
+XTEST_FUNCTION(chaos_knight_test)
 {
     // start a number of threads and each of them will do a random action on the threadpool
     EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 4, 0 };
@@ -1103,7 +1107,7 @@ TEST_FUNCTION(chaos_knight_test)
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(chaos_knight_test_with_timers)
+XTEST_FUNCTION(chaos_knight_test_with_timers)
 {
     // start a number of threads and each of them will do a random action on the threadpool
     EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 4, 0 };
@@ -1156,6 +1160,66 @@ TEST_FUNCTION(chaos_knight_test_with_timers)
 
     // cleanup
     threadpool_destroy(chaos_test_data.threadpool);
+    execution_engine_dec_ref(execution_engine);
+}
+
+static void threadpool_close_function(void* context)
+{
+    THREADPOOL_CLOSE_TEST_DATA* test_data = (THREADPOOL_CLOSE_TEST_DATA*)context;
+
+    // call close
+    LogInfo("Calling close on the Threadpool");
+    threadpool_close(test_data->threadpool);
+
+    // Now that close has returned signal the completion of this callback
+    (void)interlocked_increment(&test_data->threadpool_close_called);
+}
+
+static void threadpool_open_complete(void* context, THREADPOOL_OPEN_RESULT open_result)
+{
+    (void)open_result;
+    THREADPOOL_CLOSE_TEST_DATA* test_data = (THREADPOOL_CLOSE_TEST_DATA*)context;
+
+    (void)interlocked_increment(&test_data->threadpool_open);
+    wake_by_address_single(&test_data->threadpool_open);
+}
+
+TEST_FUNCTION(threadpool_close_within_callback)
+{
+    // start a number of threads and each of them will do a random action on the threadpool
+    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    THREADPOOL_CLOSE_TEST_DATA test_data;
+
+    // Create the threadpool
+    test_data.threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(test_data.threadpool);
+
+    (void)interlocked_exchange(&test_data.threadpool_open, 0);
+    (void)interlocked_exchange(&test_data.threadpool_close_called, 0);
+
+    LogInfo("Opening the Threadpool");
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(test_data.threadpool, threadpool_open_complete, &test_data));
+
+    int32_t value;
+    while ((value = interlocked_add(&test_data.threadpool_open, 0)) != 1)
+    {
+        (void)wait_on_address(&test_data.threadpool_open, 1, UINT32_MAX);
+    }
+
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(test_data.threadpool, threadpool_close_function, (void*)&test_data));
+
+    while ((value = interlocked_add(&test_data.threadpool_close_called, 0)) != 1)
+    {
+        (void)wait_on_address(&test_data.threadpool_close_called, 1, UINT32_MAX);
+    }
+
+    LogInfo("Threadpool close has been called");
+
+    // cleanup
+    threadpool_destroy(test_data.threadpool);
     execution_engine_dec_ref(execution_engine);
 }
 

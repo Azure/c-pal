@@ -19,8 +19,6 @@
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES)
 TEST_DEFINE_ENUM_TYPE(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES);
 
-static TEST_MUTEX_HANDLE g_testByTest;
-
 static int increment_on_odd_values(void* address)
 {
     volatile_atomic int32_t* ptr = (volatile_atomic int32_t*)address;
@@ -72,35 +70,24 @@ static int increment_on_wake_up(void* address)
     return 0;
 }
 
-
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
-
 
 TEST_SUITE_INITIALIZE(a)
 {
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
-
-    g_testByTest = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(g_testByTest);
 }
 
 TEST_SUITE_CLEANUP(b)
 {
-    TEST_MUTEX_DESTROY(g_testByTest);
     gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(c)
 {
-    if (TEST_MUTEX_ACQUIRE(g_testByTest))
-    {
-        ASSERT_FAIL("our mutex is ABANDONED. Failure in test framework");
-    }
 }
 
 TEST_FUNCTION_CLEANUP(d)
 {
-    TEST_MUTEX_RELEASE(g_testByTest);
 }
 
 /*Tests_SRS_SYNC_43_001: [ wait_on_address shall atomically compare *address and *compare_address.]*/

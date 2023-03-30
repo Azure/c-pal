@@ -32,7 +32,6 @@
 #include "c_pal/string_utils.h"
 #include "c_pal/threadpool.h"
 
-static TEST_MUTEX_HANDLE test_serialize_mutex;
 static EXECUTION_ENGINE_HANDLE test_execution_engine = (EXECUTION_ENGINE_HANDLE)0x4243;
 static PTP_POOL test_pool = (PTP_POOL)0x4244;
 
@@ -45,7 +44,6 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
-
 
 static char* umocktypes_stringify_PFILETIME(PFILETIME* value)
 {
@@ -255,9 +253,6 @@ TEST_SUITE_INITIALIZE(suite_init)
 {
     ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
 
-    test_serialize_mutex = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(test_serialize_mutex);
-
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error), "umock_c_init failed");
     ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types(), "umocktypes_stdint_register_types failed");
     ASSERT_ARE_EQUAL(int, 0, umocktypes_windows_register_types(), "umocktypes_windows_register_types failed");
@@ -282,18 +277,11 @@ TEST_SUITE_CLEANUP(suite_cleanup)
 {
     umock_c_deinit();
 
-    TEST_MUTEX_DESTROY(test_serialize_mutex);
-
     real_gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(method_init)
 {
-    if (TEST_MUTEX_ACQUIRE(test_serialize_mutex))
-    {
-        ASSERT_FAIL("Could not acquire test serialization mutex.");
-    }
-
     umock_c_reset_all_calls();
     umock_c_negative_tests_init();
 }
@@ -301,7 +289,6 @@ TEST_FUNCTION_INITIALIZE(method_init)
 TEST_FUNCTION_CLEANUP(method_cleanup)
 {
     umock_c_negative_tests_deinit();
-    TEST_MUTEX_RELEASE(test_serialize_mutex);
 }
 
 /* threadpool_create */

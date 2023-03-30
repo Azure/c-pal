@@ -1,16 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-
 #include <stdlib.h>
-
 
 #include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
 
 #include "windows.h"
-
-static TEST_MUTEX_HANDLE g_testByTest;
 
 static void* TEST_MALLOC_RESULT = (void*)0x1;
 static void* TEST_REALLOC_RESULT = (void*)0x3;
@@ -81,9 +77,6 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(TestClassInitialize)
 {
-    g_testByTest = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(g_testByTest);
-
     umock_c_init(on_umock_c_error);
 
     ASSERT_ARE_EQUAL(int, 0, umocktypes_windows_register_types());
@@ -105,25 +98,16 @@ TEST_SUITE_INITIALIZE(TestClassInitialize)
 TEST_SUITE_CLEANUP(TestClassCleanup)
 {
     umock_c_deinit();
-
-    TEST_MUTEX_DESTROY(g_testByTest);
 }
 
 TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
 {
-    if (TEST_MUTEX_ACQUIRE(g_testByTest))
-    {
-        ASSERT_FAIL("our mutex is ABANDONED. Failure in test framework");
-    }
-
     umock_c_reset_all_calls();
 }
 
 TEST_FUNCTION_CLEANUP(TestMethodCleanup)
 {
-    TEST_MUTEX_RELEASE(g_testByTest);
 }
-
 
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_018: [ gballoc_ll_init shall call lazy_init with parameter do_init set to heap_init. ]*/
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_019: [ heap_init shall call HeapCreate(0,0,0) to create a heap. ]*/

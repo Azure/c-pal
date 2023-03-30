@@ -57,8 +57,6 @@ static void hook_uuid_generate(uuid_t out)
     out[15] = TEST_DATA_15;
 }
 
-static TEST_MUTEX_HANDLE g_testByTest;
-
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
@@ -128,9 +126,6 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
-    g_testByTest = TEST_MUTEX_CREATE();
-    ASSERT_IS_NOT_NULL(g_testByTest);
-
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error));
 
     REGISTER_UMOCK_VALUE_TYPE(uuid_t);
@@ -142,17 +137,10 @@ TEST_SUITE_INITIALIZE(suite_init)
 TEST_SUITE_CLEANUP(suite_cleanup)
 {
     umock_c_deinit();
-
-    TEST_MUTEX_DESTROY(g_testByTest);
 }
 
 TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
 {
-    if (TEST_MUTEX_ACQUIRE(g_testByTest))
-    {
-        ASSERT_FAIL("our mutex is ABANDONED. Failure in test framework");
-    }
-
     umock_c_reset_all_calls();
     umock_c_negative_tests_init();
 }
@@ -160,7 +148,6 @@ TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
 TEST_FUNCTION_CLEANUP(TestMethodCleanup)
 {
     umock_c_negative_tests_deinit();
-    TEST_MUTEX_RELEASE(g_testByTest);
 }
 
 /*Tests_SRS_UUID_LINUX_02_001: [ If destination is NULL then uuid_produce shall fail and return a non-NULL value. ]*/
