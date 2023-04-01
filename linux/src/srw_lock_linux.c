@@ -10,7 +10,7 @@
 #include "c_logging/xlogging.h"
 
 #include "c_pal/gballoc_hl.h" // IWYU pragma: keep
-#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 #include "c_pal/string_utils.h"
 #include "c_pal/srw_lock.h"
 
