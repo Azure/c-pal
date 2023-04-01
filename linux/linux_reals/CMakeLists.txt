@@ -7,6 +7,7 @@ set(linux_reals_c_files
     real_gballoc_hl_${gballoc_hl_type_lower}.c
     real_pipe.c
     real_string_utils_linux.c
+    real_srw_lock.c
     real_threadpool.c
     real_uuid.c
     ../../common/reals/real_s_list.c
@@ -18,6 +19,8 @@ set(linux_reals_c_files
 set(linux_reals_h_files
     real_execution_engine.h
     real_execution_engine_renames.h
+    real_srw_lock.h
+    real_srw_lock_renames.h
     real_threadpool.h
     real_threadpool_renames.h
     real_uuid_renames.h
