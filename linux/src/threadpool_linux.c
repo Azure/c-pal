@@ -44,8 +44,6 @@
 MU_DEFINE_ENUM(TASK_RESULT, TASK_RESULT_VALUES);
 MU_DEFINE_ENUM_STRINGS(TASK_RESULT, TASK_RESULT_VALUES)
 
-MU_DEFINE_ENUM_STRINGS(THREADPOOL_OPEN_RESULT, THREADPOOL_OPEN_RESULT_VALUES)
-
 #define THREADPOOL_STATE_VALUES \
     THREADPOOL_STATE_NOT_OPEN,  \
     THREADPOOL_STATE_OPENING,   \
@@ -416,26 +414,24 @@ void threadpool_destroy(THREADPOOL_HANDLE threadpool)
     }
 }
 
-int threadpool_open_async(THREADPOOL_HANDLE threadpool, ON_THREADPOOL_OPEN_COMPLETE on_open_complete, void* on_open_complete_context)
+int threadpool_open(THREADPOOL_HANDLE threadpool)
 {
     int result;
     if (
-        /* Codes_SRS_THREADPOOL_LINUX_07_017: [ If threadpool is NULL, threadpool_open_async shall fail and return a non-zero value. ]*/
-        (threadpool == NULL) ||
-        /* Codes_SRS_THREADPOOL_LINUX_07_086: [ If on_open_complete is NULL, threadpool_open_async shall fail and return a non-zero value. ]*/
-        (on_open_complete == NULL))
+        /* Codes_SRS_THREADPOOL_LINUX_07_017: [ If threadpool is NULL, threadpool_open shall fail and return a non-zero value. ]*/
+        threadpool == NULL
+    )
     {
-        LogError("THREADPOOL_HANDLE threadpool=%p, ON_THREADPOOL_OPEN_COMPLETE on_open_complete=%p, void* on_open_complete_context=%p",
-            threadpool, on_open_complete, on_open_complete_context);
+        LogError("THREADPOOL_HANDLE threadpool=%p", threadpool);
         result = MU_FAILURE;
     }
     else
     {
-        /* Codes_SRS_THREADPOOL_LINUX_07_018: [ threadpool_open_async shall call sm_open_begin. ]*/
+        /* Codes_SRS_THREADPOOL_LINUX_07_018: [ threadpool_open shall call sm_open_begin. ]*/
         SM_RESULT open_result = sm_open_begin(threadpool->sm);
         if(open_result != SM_EXEC_GRANTED)
         {
-            /* Codes_SRS_THREADPOOL_LINUX_07_019: [ If sm_open_begin indicates the open cannot be performed, threadpool_open_async shall fail and return a non-zero value. ]*/
+            /* Codes_SRS_THREADPOOL_LINUX_07_019: [ If sm_open_begin indicates the open cannot be performed, threadpool_open shall fail and return a non-zero value. ]*/
             LogError("sm_open_begin failed with %" PRI_MU_ENUM, MU_ENUM_VALUE(SM_RESULT, open_result));
             result = MU_FAILURE;
         }
@@ -444,16 +440,16 @@ int threadpool_open_async(THREADPOOL_HANDLE threadpool, ON_THREADPOOL_OPEN_COMPL
             int32_t index;
             for (index = 0; index < threadpool->used_thread_count; index++)
             {
-                /* Codes_SRS_THREADPOOL_LINUX_07_020: [ threadpool_open_async shall create number of min_thread_count threads for threadpool using ThreadAPI_Create. ]*/
+                /* Codes_SRS_THREADPOOL_LINUX_07_020: [ threadpool_open shall create number of min_thread_count threads for threadpool using ThreadAPI_Create. ]*/
                 if (ThreadAPI_Create(&threadpool->thread_handle_array[index], threadpool_work_func, threadpool) != THREADAPI_OK)
                 {
-                    /* Codes_SRS_THREADPOOL_LINUX_07_021: [ If any error occurs, threadpool_open_async shall fail and return a non-zero value. ]*/
+                    /* Codes_SRS_THREADPOOL_LINUX_07_021: [ If any error occurs, threadpool_open shall fail and return a non-zero value. ]*/
                     LogError("Failure creating thread %" PRId32 "", index);
                     break;
                 }
             }
 
-            /* Codes_SRS_THREADPOOL_LINUX_07_022: [ If one of the thread creation fails, threadpool_open_async shall fail and return a non-zero value, terminate all threads already created. ]*/
+            /* Codes_SRS_THREADPOOL_LINUX_07_022: [ If one of the thread creation fails, threadpool_open shall fail and return a non-zero value, terminate all threads already created. ]*/
             if (index < threadpool->used_thread_count)
             {
                 for (int32_t inner = 0; inner < index; inner++)
@@ -465,15 +461,13 @@ int threadpool_open_async(THREADPOOL_HANDLE threadpool, ON_THREADPOOL_OPEN_COMPL
                     }
                 }
                 sm_open_end(threadpool->sm, false);
-                on_open_complete(on_open_complete_context, THREADPOOL_OPEN_ERROR);
                 result = MU_FAILURE;
             }
-            /* Codes_SRS_THREADPOOL_LINUX_07_023: [ Otherwise, threadpool_open_async shall shall call sm_open_end with true for success. ]*/
-            /* Codes_SRS_THREADPOOL_LINUX_07_024: [ threadpool_open_async shall succeed, indicate open success to the user by calling the on_open_complete callback with THREADPOOL_OPEN_OK and return zero. ]*/
             else
             {
+                /* Codes_SRS_THREADPOOL_LINUX_07_023: [ Otherwise, threadpool_open shall shall call sm_open_end with true for success. ]*/
                 sm_open_end(threadpool->sm, true);
-                on_open_complete(on_open_complete_context, THREADPOOL_OPEN_OK);
+                /* Codes_SRS_THREADPOOL_LINUX_07_024: [ threadpool_open shall succeed and return zero. ]*/
                 result = 0;
             }
         }

@@ -23,19 +23,11 @@
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_linux.h"
 
-TEST_DEFINE_ENUM_TYPE(THREADPOOL_OPEN_RESULT, THREADPOOL_OPEN_RESULT_VALUES);
-
 typedef struct WAIT_WORK_CONTEXT_TAG
 {
     volatile_atomic int32_t call_count;
     volatile_atomic int32_t wait_event;
 } WAIT_WORK_CONTEXT;
-
-static void on_threadpool_open_complete(void* context, THREADPOOL_OPEN_RESULT open_result)
-{
-    (void)context;
-    ASSERT_ARE_EQUAL(THREADPOOL_OPEN_RESULT, THREADPOOL_OPEN_OK, open_result);
-}
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
@@ -135,7 +127,7 @@ TEST_FUNCTION(one_work_item_schedule_works)
     THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_threadpool_open_complete, NULL));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     // Create 1 thread pool
     LogInfo("Scheduling work item");
@@ -167,7 +159,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
     THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_threadpool_open_complete, NULL));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     // Create double the amount of threads that is the max
     LogInfo("Scheduling %" PRIu32 " work item", num_threads);
@@ -202,7 +194,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
     THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_threadpool_open_complete, NULL));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     // Create double the amount of threads that is the max
     LogInfo("Scheduling %" PRIu32 " work item with 20 millisecons work", num_threads);
@@ -235,7 +227,7 @@ TEST_FUNCTION(threadpool_chaos_knight)
     THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_threadpool_open_complete, NULL));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     // Create double the amount of threads that is the max
     LogInfo("Scheduling %" PRIu32 " work items", num_threads);

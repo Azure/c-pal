@@ -70,9 +70,6 @@ MU_DEFINE_ENUM_STRINGS(SM_RESULT, SM_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(SM_RESULT, SM_RESULT_VALUES);
 IMPLEMENT_UMOCK_C_ENUM_TYPE(SM_RESULT, SM_RESULT_VALUES);
 
-TEST_DEFINE_ENUM_TYPE(THREADPOOL_OPEN_RESULT, THREADPOOL_OPEN_RESULT_VALUES);
-IMPLEMENT_UMOCK_C_ENUM_TYPE(THREADPOOL_OPEN_RESULT, THREADPOOL_OPEN_RESULT_VALUES);
-
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
@@ -82,11 +79,6 @@ MOCK_FUNCTION_WITH_CODE(, void, mocked_internal_close, THREADPOOL_HANDLE, thread
     real_gballoc_hl_free(threadpool);
 MOCK_FUNCTION_END()
 
-MOCK_FUNCTION_WITH_CODE(, void, test_on_open_complete, void*, context, THREADPOOL_OPEN_RESULT, open_result)
-MOCK_FUNCTION_END()
-
-MOCK_FUNCTION_WITH_CODE(, void, test_threadpool_work_func, void*, context, THREADPOOL_OPEN_RESULT, open_result)
-MOCK_FUNCTION_END()
 
 MOCK_FUNCTION_WITH_CODE(, void, test_work_function, void*, parameter)
 MOCK_FUNCTION_END()
@@ -148,12 +140,6 @@ static void threadpool_schedule_work_succeed_expectations(void)
     STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
 }
 
-static void on_threadpool_open_complete(void* context, THREADPOOL_OPEN_RESULT open_result)
-{
-    (void)context;
-    ASSERT_ARE_EQUAL(THREADPOOL_OPEN_RESULT, THREADPOOL_OPEN_OK, open_result);
-}
-
 static void threadpool_task(void* parameter)
 {
     volatile_atomic int32_t* thread_counter = (volatile_atomic int32_t*)parameter;
@@ -168,7 +154,7 @@ static THREADPOOL_HANDLE test_create_and_open_threadpool()
     ASSERT_IS_NOT_NULL(threadpool);
     umock_c_reset_all_calls();
 
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, test_on_open_complete, (void*)0x4242));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
     umock_c_reset_all_calls();
 
     return threadpool;
@@ -212,8 +198,6 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_GLOBAL_MOCK_RETURN(ThreadAPI_Join, THREADAPI_OK);
     REGISTER_GLOBAL_MOCK_HOOK(ThreadAPI_Create, my_ThreadAPI_Create);
     REGISTER_GLOBAL_MOCK_RETURNS(ThreadAPI_Create, THREADAPI_OK, THREADAPI_ERROR);
-
-    REGISTER_TYPE(THREADPOOL_OPEN_RESULT, THREADPOOL_OPEN_RESULT);
 
     REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
     REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK();
@@ -409,7 +393,7 @@ TEST_FUNCTION(threadpool_destroy_performs_an_implicit_close)
     // arrange
     THREADPOOL_HANDLE threadpool;
     threadpool = threadpool_create(test_execution_engine);
-    threadpool_open_async(threadpool, test_on_open_complete, (void*)0x4242);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(sm_close_begin(IGNORED_ARG));
@@ -432,46 +416,27 @@ TEST_FUNCTION(threadpool_destroy_performs_an_implicit_close)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/* threadpool_open_async */
+/* threadpool_open */
 
-/* Tests_SRS_THREADPOOL_LINUX_07_017: [ If threadpool is NULL, threadpool_open_async shall fail and return a non-zero value. ]*/
-TEST_FUNCTION(threadpool_open_async_with_NULL_threadpool_fails)
+/* Tests_SRS_THREADPOOL_LINUX_07_017: [ If threadpool is NULL, threadpool_open shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(threadpool_open_with_NULL_threadpool_fails)
 {
     // arrange
     int result;
 
     // act
-    result = threadpool_open_async(NULL, test_on_open_complete, (void*)0x4242);
+    result = threadpool_open(NULL);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_07_086: [ If on_open_complete is NULL, threadpool_open_async shall fail and return a non-zero value. ]*/
-TEST_FUNCTION(threadpool_open_async_with_NULL_on_open_complete_fails)
-{
-    // arrange
-    THREADPOOL_HANDLE threadpool = threadpool_create(test_execution_engine);
-    int result;
-    umock_c_reset_all_calls();
-
-    // act
-    result = threadpool_open_async(threadpool, NULL, (void*)0x4242);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
-
-    // cleanup
-    threadpool_destroy(threadpool);
-}
-
-/* Tests_SRS_THREADPOOL_LINUX_07_018: [ threadpool_open_async shall call sm_open_begin. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_020: [ threadpool_open_async shall create number of min_thread_count threads for threadpool using ThreadAPI_Create. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_023: [ Otherwise, threadpool_open_async shall shall call sm_open_end with true for success. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_024: [ threadpool_open_async shall succeed, indicate open success to the user by calling the on_open_complete callback with THREADPOOL_OPEN_OK and return zero. ]*/
-TEST_FUNCTION(threadpool_open_async_succeeds)
+/* Tests_SRS_THREADPOOL_LINUX_07_018: [ threadpool_open shall call sm_open_begin. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_020: [ threadpool_open shall create number of min_thread_count threads for threadpool using ThreadAPI_Create. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_023: [ Otherwise, threadpool_open shall shall call sm_open_end with true for success. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_024: [ threadpool_open shall succeed, indicate open success to the user by calling the on_open_complete callback with THREADPOOL_OPEN_OK and return zero. ]*/
+TEST_FUNCTION(threadpool_open_succeeds)
 {
     // arrange
     THREADPOOL_HANDLE threadpool = threadpool_create(test_execution_engine);
@@ -484,40 +449,9 @@ TEST_FUNCTION(threadpool_open_async_succeeds)
         STRICT_EXPECTED_CALL(ThreadAPI_Create(IGNORED_ARG, IGNORED_ARG, threadpool));
     }
     STRICT_EXPECTED_CALL(sm_open_end(IGNORED_ARG, true));
-    STRICT_EXPECTED_CALL(test_on_open_complete((void*)0x4242, THREADPOOL_OPEN_OK));
 
     // act
-    result = threadpool_open_async(threadpool, test_on_open_complete, (void*)0x4242);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(int, 0, result);
-
-    // cleanup
-    threadpool_destroy(threadpool);
-}
-
-/* Tests_SRS_THREADPOOL_LINUX_07_018: [ threadpool_open_async shall call sm_open_begin. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_020: [ threadpool_open_async shall create number of min_thread_count threads for threadpool using ThreadAPI_Create. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_023: [ Otherwise, threadpool_open_async shall shall call sm_open_end with true for success. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_024: [ threadpool_open_async shall succeed, indicate open success to the user by calling the on_open_complete callback with THREADPOOL_OPEN_OK and return zero. ]*/
-TEST_FUNCTION(threadpool_open_async_succeeds_with_NULL_context)
-{
-    // arrange
-    THREADPOOL_HANDLE threadpool = threadpool_create(test_execution_engine);
-    int result;
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(sm_open_begin(IGNORED_ARG));
-    for(size_t i = 0; i < MIN_THREAD_COUNT; i++)
-    {
-        STRICT_EXPECTED_CALL(ThreadAPI_Create(IGNORED_ARG, IGNORED_ARG, threadpool));
-    }
-    STRICT_EXPECTED_CALL(sm_open_end(IGNORED_ARG, true));
-    STRICT_EXPECTED_CALL(test_on_open_complete(NULL, THREADPOOL_OPEN_OK));
-
-    // act
-    result = threadpool_open_async(threadpool, test_on_open_complete, NULL);
+    result = threadpool_open(threadpool);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -533,7 +467,7 @@ TEST_FUNCTION(threadpool_work_func_parameter_NULL_succeeds)
     //arrange
     THREADPOOL_HANDLE threadpool = threadpool_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, test_on_open_complete, (void*)0x4242));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
     umock_c_reset_all_calls();
 
     //act
@@ -553,7 +487,7 @@ TEST_FUNCTION(threadpool_work_func_succeeds_when_clock_gettime_fails)
     //arrange
     THREADPOOL_HANDLE threadpool = threadpool_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, test_on_open_complete, (void*)0x4242));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_REALTIME, IGNORED_ARG)).SetReturn(-1);
@@ -575,7 +509,7 @@ TEST_FUNCTION(threadpool_work_func_succeeds_when_sem_timedwait_fails)
     //arrange
     THREADPOOL_HANDLE threadpool = threadpool_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, test_on_open_complete, (void*)0x4242));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_REALTIME, IGNORED_ARG));
@@ -609,7 +543,7 @@ TEST_FUNCTION(threadpool_work_func_succeeds)
     //arrange
     THREADPOOL_HANDLE threadpool = threadpool_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, test_on_open_complete, (void*)0x4242));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
     threadpool_schedule_work(threadpool, test_work_function, (void*)0x4242);
     umock_c_reset_all_calls();
 
@@ -634,11 +568,11 @@ TEST_FUNCTION(threadpool_work_func_succeeds)
     threadpool_destroy(threadpool);
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_07_018: [ threadpool_open_async shall call sm_open_begin. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_020: [ threadpool_open_async shall create number of min_thread_count threads for threadpool using ThreadAPI_Create. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_022: [ If one of the thread creation fails, threadpool_open_async shall fail and return a non-zero value, terminate all threads already created. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_021: [ If any error occurs, threadpool_open_async shall fail and return a non-zero value. ]*/
-TEST_FUNCTION(threadpool_open_async_fails_when_threadAPI_create_fails)
+/* Tests_SRS_THREADPOOL_LINUX_07_018: [ threadpool_open shall call sm_open_begin. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_020: [ threadpool_open shall create number of min_thread_count threads for threadpool using ThreadAPI_Create. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_022: [ If one of the thread creation fails, threadpool_open shall fail and return a non-zero value, terminate all threads already created. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_021: [ If any error occurs, threadpool_open shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(threadpool_open_fails_when_threadAPI_create_fails)
 {
     // arrange
     THREADPOOL_HANDLE threadpool = threadpool_create(test_execution_engine);
@@ -651,10 +585,9 @@ TEST_FUNCTION(threadpool_open_async_fails_when_threadAPI_create_fails)
         .SetReturn(THREADAPI_ERROR);
     STRICT_EXPECTED_CALL(ThreadAPI_Join(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(sm_open_end(IGNORED_ARG, false));
-    STRICT_EXPECTED_CALL(test_on_open_complete(NULL, THREADPOOL_OPEN_ERROR));
 
     // act
-    result = threadpool_open_async(threadpool, test_on_open_complete, NULL);
+    result = threadpool_open(threadpool);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -664,19 +597,19 @@ TEST_FUNCTION(threadpool_open_async_fails_when_threadAPI_create_fails)
     threadpool_destroy(threadpool);
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_07_018: [ threadpool_open_async shall call sm_open_begin. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_019: [ If sm_open_begin indicates the open cannot be performed, threadpool_open_async shall fail and return a non-zero value. ]*/
-TEST_FUNCTION(threadpool_open_async_after_open_fails)
+/* Tests_SRS_THREADPOOL_LINUX_07_018: [ threadpool_open shall call sm_open_begin. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_019: [ If sm_open_begin indicates the open cannot be performed, threadpool_open shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(threadpool_open_after_open_fails)
 {
     // arrange
     THREADPOOL_HANDLE threadpool = threadpool_create(test_execution_engine);
-    (void)threadpool_open_async(threadpool, test_on_open_complete, (void*)0x4242);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
     int result;
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(sm_open_begin(IGNORED_ARG));
 
     // act
-    result = threadpool_open_async(threadpool, test_on_open_complete, (void*)0x4242);
+    result = threadpool_open(threadpool);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -708,7 +641,7 @@ TEST_FUNCTION(threadpool_close_succeeds)
 {
     // arrange
     THREADPOOL_HANDLE threadpool = threadpool_create(test_execution_engine);
-    (void)threadpool_open_async(threadpool, test_on_open_complete, (void*)0x4242);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(sm_close_begin(IGNORED_ARG));
@@ -752,7 +685,7 @@ TEST_FUNCTION(threadpool_close_after_close_returns)
 {
     // arrange
     THREADPOOL_HANDLE threadpool = threadpool_create(test_execution_engine);
-    (void)threadpool_open_async(threadpool, test_on_open_complete, (void*)0x4242);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
     threadpool_close(threadpool);
     umock_c_reset_all_calls();
 

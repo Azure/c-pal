@@ -17,12 +17,12 @@
        - `TASK_NOT_USED` : Entry is not used. Entered after a call to `threadpool_create`, new array items after a call to `reallocate_threadpool_array`, and a call to `threadpool_work_func`.
        - `TASK_INITIALIZING` : Start copying work item into the entry. Entered in the progress of a call to `threadpool_schedule_work`.
        - `TASK_WAITING` : Work item in the entry is waiting to be executed. Entered after a call to `threadpool_schedule_work` with a zero return value.
-       - `TASK_WORKING` : Work item is executing. Entered in the progress of a call to `threadpool_work_func` by calling `threadpool_open_async`.
+       - `TASK_WORKING` : Work item is executing. Entered in the progress of a call to `threadpool_work_func` by calling `threadpool_open`.
 5. `task_array_size` : a 32 bit variable represents the size of the task array.
 6. `insert_idx` : a 64 bit variable represents the next available insert position in the circular task array.
 7. `consume_idx` : a 64 bit variable represents the next available consume position in the circular task array.
 8. `srw_lock` : a SRW lock to ensure the progress of resize array will not be interupted as well as task array insert and consume get locked when task array resize happens.
-9. `thread_handle_array` : an array of threads in the `threadpool`, all intialized in `threadpool_open_async`.
+9. `thread_handle_array` : an array of threads in the `threadpool`, all intialized in `threadpool_open`.
 
 ### Reallocating the Task Array
 
@@ -50,19 +50,12 @@ graph TD
 typedef struct THREADPOOL_TAG* THREADPOOL_HANDLE;
 typedef struct TIMER_INSTANCE_TAG* TIMER_INSTANCE_HANDLE;
 
-#define THREADPOOL_OPEN_RESULT_VALUES \
-    THREADPOOL_OPEN_OK, \
-    THREADPOOL_OPEN_ERROR
-
-MU_DEFINE_ENUM(THREADPOOL_OPEN_RESULT, THREADPOOL_OPEN_RESULT_VALUES)
-
-typedef void (*ON_THREADPOOL_OPEN_COMPLETE)(void* context, THREADPOOL_OPEN_RESULT open_result);
 typedef void (*THREADPOOL_WORK_FUNCTION)(void* context);
 
 MOCKABLE_FUNCTION(, THREADPOOL_HANDLE, threadpool_create, EXECUTION_ENGINE_HANDLE, execution_engine);
 MOCKABLE_FUNCTION(, void, threadpool_destroy, THREADPOOL_HANDLE, threadpool);
 
-MOCKABLE_FUNCTION(, int, threadpool_open_async, THREADPOOL_HANDLE, threadpool, ON_THREADPOOL_OPEN_COMPLETE, on_open_complete, void*, on_open_complete_context);
+MOCKABLE_FUNCTION(, int, threadpool_open, THREADPOOL_HANDLE, threadpool);
 MOCKABLE_FUNCTION(, void, threadpool_close, THREADPOOL_HANDLE, threadpool);
 
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THREADPOOL_HANDLE, threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
@@ -74,9 +67,9 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_restart, TIMER_INSTANCE_HANDLE, timer,
 MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, TIMER_INSTANCE_HANDLE, timer);
 
 MOCKABLE_FUNCTION(, void, threadpool_timer_destroy, TIMER_INSTANCE_HANDLE, timer);
-
 ```
-###  threadpool_create
+
+### threadpool_create
 
 ```C
 MOCKABLE_FUNCTION(, THREADPOOL_HANDLE, threadpool_create, EXECUTION_ENGINE_HANDLE, execution_engine);
@@ -124,31 +117,29 @@ MOCKABLE_FUNCTION(, void, threadpool_destroy, THREADPOOL_HANDLE, threadpool);
 
 **SRS_THREADPOOL_LINUX_07_016: [** `threadpool_destroy` shall free the memory allocated in `threadpool_create`. **]**
 
-### threadpool_open_async
+### threadpool_open
 
 ```C
-MOCKABLE_FUNCTION(, int, threadpool_open_async, THREADPOOL_HANDLE, threadpool, ON_THREADPOOL_OPEN_COMPLETE, on_open_complete, void*, on_open_complete_context);
+MOCKABLE_FUNCTION(, int, threadpool_open, THREADPOOL_HANDLE, threadpool);
 ```
 
-`threadpool_open_async` opens the threadpool asynchronously.
+`threadpool_open` opens the threadpool asynchronously.
 
-**SRS_THREADPOOL_LINUX_07_017: [** If `threadpool` is `NULL`, `threadpool_open_async` shall fail and return a non-zero value. **]**
+**SRS_THREADPOOL_LINUX_07_017: [** If `threadpool` is `NULL`, `threadpool_open` shall fail and return a non-zero value. **]**
 
-**SRS_THREADPOOL_LINUX_07_086: [** If `on_open_complete` is `NULL`, `threadpool_open_async` shall fail and return a non-zero value. **]**
+**SRS_THREADPOOL_LINUX_07_018: [** `threadpool_open` shall call `sm_open_begin`. **]**
 
-**SRS_THREADPOOL_LINUX_07_018: [** `threadpool_open_async` shall call `sm_open_begin`. **]**
+**SRS_THREADPOOL_LINUX_07_019: [** If `sm_open_begin` indicates the open cannot be performed, `threadpool_open` shall fail and return a non-zero value. **]**
 
-**SRS_THREADPOOL_LINUX_07_019: [** If `sm_open_begin` indicates the open cannot be performed, `threadpool_open_async` shall fail and return a non-zero value. **]**
+**SRS_THREADPOOL_LINUX_07_020: [** `threadpool_open` shall create number of `min_thread_count` threads for `threadpool` using `ThreadAPI_Create`. **]**
 
-**SRS_THREADPOOL_LINUX_07_020: [** `threadpool_open_async` shall create number of `min_thread_count` threads for `threadpool` using `ThreadAPI_Create`. **]**
+**SRS_THREADPOOL_LINUX_07_021: [** If any error occurs, `threadpool_open` shall fail and return a non-zero value. **]**
 
-**SRS_THREADPOOL_LINUX_07_021: [** If any error occurs, `threadpool_open_async` shall fail and return a non-zero value. **]**
+**SRS_THREADPOOL_LINUX_07_022: [** If one of the thread creation fails, `threadpool_open` shall fail and return a non-zero value, terminate all threads already created. **]**
 
-**SRS_THREADPOOL_LINUX_07_022: [** If one of the thread creation fails, `threadpool_open_async` shall fail and return a non-zero value, terminate all threads already created. **]**
+**SRS_THREADPOOL_LINUX_07_023: [** Otherwise, `threadpool_open` shall shall call `sm_open_end` with true for success. **]**
 
-**SRS_THREADPOOL_LINUX_07_023: [** Otherwise, `threadpool_open_async` shall shall call `sm_open_end` with true for success. **]**
-
-**SRS_THREADPOOL_LINUX_07_024: [** `threadpool_open_async` shall succeed, indicate open success to the user by calling the `on_open_complete` callback with `THREADPOOL_OPEN_OK` and return zero. **]**
+**SRS_THREADPOOL_LINUX_07_024: [** `threadpool_open` shall return zero. **]**
 
 ### threadpool_close
 

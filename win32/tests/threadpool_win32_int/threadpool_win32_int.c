@@ -18,19 +18,6 @@
 
 #include "c_pal/execution_engine_win32.h"
 
-static void on_open_complete(void* context, THREADPOOL_OPEN_RESULT open_result)
-{
-    HANDLE* event = (HANDLE*)context;
-    (void)SetEvent(*event);
-    (void)open_result;
-}
-
-static void on_open_complete_do_nothing(void* context, THREADPOOL_OPEN_RESULT open_result)
-{
-    (void)context;
-    (void)open_result;
-}
-
 static void work_function(void* context)
 {
     volatile LONG64* call_count = (volatile LONG64*)context;
@@ -75,7 +62,7 @@ typedef struct OPEN_WORK_CONTEXT_TAG
 static void open_work_function(void* context)
 {
     OPEN_WORK_CONTEXT* open_work_context = (OPEN_WORK_CONTEXT*)context;
-    ASSERT_ARE_NOT_EQUAL(int, 0, threadpool_open_async(open_work_context->threadpool, on_open_complete, open_work_context->threadpool));
+    ASSERT_ARE_NOT_EQUAL(int, 0, threadpool_open(open_work_context->threadpool));
     (void)InterlockedIncrement(&open_work_context->call_count);
     WakeByAddressSingle((PVOID)&open_work_context->call_count);
 }
@@ -166,13 +153,7 @@ TEST_FUNCTION(one_work_item_schedule_works)
     ASSERT_IS_NOT_NULL(threadpool);
 
     // open
-    HANDLE open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
-    ASSERT_IS_NOT_NULL(open_event);
-
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_open_complete, &open_event));
-
-    // wait for open to complete
-    ASSERT_IS_TRUE(WaitForSingleObject(open_event, INFINITE) == WAIT_OBJECT_0);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     (void)InterlockedExchange(&call_count, 0);
 
@@ -185,7 +166,6 @@ TEST_FUNCTION(one_work_item_schedule_works)
     LogInfo("Work completed");
 
     // cleanup
-    (void)CloseHandle(open_event);
     threadpool_close(threadpool);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
@@ -208,13 +188,7 @@ TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work)
     execution_engine_dec_ref(execution_engine);
 
     // open
-    HANDLE open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
-    ASSERT_IS_NOT_NULL(open_event);
-
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_open_complete, &open_event));
-
-    // wait for open to complete
-    ASSERT_IS_TRUE(WaitForSingleObject(open_event, INFINITE) == WAIT_OBJECT_0);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     (void)InterlockedExchange(&call_count, 0);
 
@@ -227,7 +201,6 @@ TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work)
     LogInfo("Work completed");
 
     // cleanup
-    (void)CloseHandle(open_event);
     threadpool_close(threadpool);
     threadpool_destroy(threadpool);
 }
@@ -249,13 +222,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_works))
     ASSERT_IS_NOT_NULL(threadpool);
 
     // open
-    HANDLE open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
-    ASSERT_IS_NOT_NULL(open_event);
-
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_open_complete, &open_event));
-
-    // wait for open to complete
-    ASSERT_IS_TRUE(WaitForSingleObject(open_event, INFINITE) == WAIT_OBJECT_0);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     (void)InterlockedExchange(&call_count, 0);
 
@@ -271,7 +238,6 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_works))
     LogInfo("Work completed");
 
     // cleanup
-    (void)CloseHandle(open_event);
     threadpool_close(threadpool);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
@@ -291,13 +257,7 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
     ASSERT_IS_NOT_NULL(threadpool);
 
     // open
-    HANDLE open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
-    ASSERT_IS_NOT_NULL(open_event);
-
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_open_complete, &open_event));
-
-    // wait for open to complete
-    ASSERT_IS_TRUE(WaitForSingleObject(open_event, INFINITE) == WAIT_OBJECT_0);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     // NOTE: this test runs with retries because there are possible timing issues with thread scheduling
     // We are making sure the worker doesn't start before the delay time and does run once after the delay time
@@ -342,7 +302,6 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
     } while (need_to_retry);
 
     // cleanup
-    (void)CloseHandle(open_event);
     threadpool_close(threadpool);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
@@ -362,13 +321,7 @@ TEST_FUNCTION(restart_timer_works_runs_once)
     ASSERT_IS_NOT_NULL(threadpool);
 
     // open
-    HANDLE open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
-    ASSERT_IS_NOT_NULL(open_event);
-
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_open_complete, &open_event));
-
-    // wait for open to complete
-    ASSERT_IS_TRUE(WaitForSingleObject(open_event, INFINITE) == WAIT_OBJECT_0);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     // NOTE: this test runs with retries because there are possible timing issues with thread scheduling
     // We are making sure the worker doesn't start before the delay time and does run once after the delay time
@@ -416,7 +369,6 @@ TEST_FUNCTION(restart_timer_works_runs_once)
     } while (need_to_retry);
 
     // cleanup
-    (void)CloseHandle(open_event);
     threadpool_close(threadpool);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
@@ -436,13 +388,7 @@ TEST_FUNCTION(one_start_timer_works_runs_periodically)
     ASSERT_IS_NOT_NULL(threadpool);
 
     // open
-    HANDLE open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
-    ASSERT_IS_NOT_NULL(open_event);
-
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_open_complete, &open_event));
-
-    // wait for open to complete
-    ASSERT_IS_TRUE(WaitForSingleObject(open_event, INFINITE) == WAIT_OBJECT_0);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     (void)InterlockedExchange(&call_count, 0);
 
@@ -458,7 +404,6 @@ TEST_FUNCTION(one_start_timer_works_runs_periodically)
     LogInfo("Timer completed 4 times");
 
     // cleanup
-    (void)CloseHandle(open_event);
     threadpool_timer_destroy(timer);
     threadpool_close(threadpool);
     threadpool_destroy(threadpool);
@@ -479,13 +424,7 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
     ASSERT_IS_NOT_NULL(threadpool);
 
     // open
-    HANDLE open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
-    ASSERT_IS_NOT_NULL(open_event);
-
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_open_complete, &open_event));
-
-    // wait for open to complete
-    ASSERT_IS_TRUE(WaitForSingleObject(open_event, INFINITE) == WAIT_OBJECT_0);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     (void)InterlockedExchange(&call_count, 0);
 
@@ -511,7 +450,6 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
     LogInfo("Timer completed 2 more times");
 
     // cleanup
-    (void)CloseHandle(open_event);
     threadpool_timer_destroy(timer);
     threadpool_close(threadpool);
     threadpool_destroy(threadpool);
@@ -532,13 +470,7 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
     ASSERT_IS_NOT_NULL(threadpool);
 
     // open
-    HANDLE open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
-    ASSERT_IS_NOT_NULL(open_event);
-
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_open_complete, &open_event));
-
-    // wait for open to complete
-    ASSERT_IS_TRUE(WaitForSingleObject(open_event, INFINITE) == WAIT_OBJECT_0);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     wait_work_context.wait_event = CreateEvent(NULL, FALSE, FALSE, NULL);
     ASSERT_IS_NOT_NULL(wait_work_context.wait_event);
@@ -564,7 +496,6 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
     SetEvent(wait_work_context.wait_event);
 
     // cleanup
-    (void)CloseHandle(open_event);
     threadpool_close(threadpool);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
@@ -584,13 +515,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
     ASSERT_IS_NOT_NULL(threadpool);
 
     // open
-    HANDLE open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
-    ASSERT_IS_NOT_NULL(open_event);
-
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_open_complete, &open_event));
-
-    // wait for open to complete
-    ASSERT_IS_TRUE(WaitForSingleObject(open_event, INFINITE) == WAIT_OBJECT_0);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     wait_work_context.wait_event = CreateEvent(NULL, FALSE, FALSE, NULL);
     ASSERT_IS_NOT_NULL(wait_work_context.wait_event);
@@ -617,7 +542,6 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
 
     // cleanup
     threadpool_timer_destroy(timer);
-    (void)CloseHandle(open_event);
     threadpool_close(threadpool);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
@@ -639,13 +563,7 @@ TEST_FUNCTION(MU_C3(starting_, N_TIMERS, _start_timers_work_and_run_periodically
     ASSERT_IS_NOT_NULL(threadpool);
 
     // open
-    HANDLE open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
-    ASSERT_IS_NOT_NULL(open_event);
-
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_open_complete, &open_event));
-
-    // wait for open to complete
-    ASSERT_IS_TRUE(WaitForSingleObject(open_event, INFINITE) == WAIT_OBJECT_0);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     (void)InterlockedExchange(&call_count, 0);
 
@@ -673,7 +591,6 @@ TEST_FUNCTION(MU_C3(starting_, N_TIMERS, _start_timers_work_and_run_periodically
     }
 
     // cleanup
-    (void)CloseHandle(open_event);
     threadpool_close(threadpool);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
@@ -693,13 +610,7 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items)
     ASSERT_IS_NOT_NULL(threadpool);
 
     // open
-    HANDLE open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
-    ASSERT_IS_NOT_NULL(open_event);
-
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_open_complete, &open_event));
-
-    // wait for open to complete
-    ASSERT_IS_TRUE(WaitForSingleObject(open_event, INFINITE) == WAIT_OBJECT_0);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     wait_work_context.wait_event = CreateEvent(NULL, FALSE, FALSE, NULL);
     ASSERT_IS_NOT_NULL(wait_work_context.wait_event);
@@ -722,7 +633,6 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items)
     wait_for_equal(&wait_work_context.call_count, 2, INFINITE);
 
     // cleanup
-    (void)CloseHandle(open_event);
     (void)CloseHandle(wait_work_context.wait_event);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
@@ -745,13 +655,7 @@ TEST_FUNCTION(close_while_closing_still_executes_the_items)
     CLOSE_WORK_CONTEXT close_work_context;
 
     // open
-    HANDLE open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
-    ASSERT_IS_NOT_NULL(open_event);
-
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_open_complete, &open_event));
-
-    // wait for open to complete
-    ASSERT_IS_TRUE(WaitForSingleObject(open_event, INFINITE) == WAIT_OBJECT_0);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     wait_work_context.wait_event = CreateEvent(NULL, FALSE, FALSE, NULL);
     ASSERT_IS_NOT_NULL(wait_work_context.wait_event);
@@ -778,7 +682,6 @@ TEST_FUNCTION(close_while_closing_still_executes_the_items)
     wait_for_equal(&wait_work_context.call_count, 2, INFINITE);
 
     // cleanup
-    (void)CloseHandle(open_event);
     (void)CloseHandle(wait_work_context.wait_event);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
@@ -801,13 +704,7 @@ TEST_FUNCTION(open_while_closing_fails)
     OPEN_WORK_CONTEXT open_work_context;
 
     // open
-    HANDLE open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
-    ASSERT_IS_NOT_NULL(open_event);
-
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open_async(threadpool, on_open_complete, &open_event));
-
-    // wait for open to complete
-    ASSERT_IS_TRUE(WaitForSingleObject(open_event, INFINITE) == WAIT_OBJECT_0);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     wait_work_context.wait_event = CreateEvent(NULL, FALSE, FALSE, NULL);
     ASSERT_IS_NOT_NULL(wait_work_context.wait_event);
@@ -834,7 +731,6 @@ TEST_FUNCTION(open_while_closing_fails)
     wait_for_equal(&wait_work_context.call_count, 2, INFINITE);
 
     // cleanup
-    (void)CloseHandle(open_event);
     (void)CloseHandle(wait_work_context.wait_event);
     threadpool_destroy(threadpool);
     execution_engine_dec_ref(execution_engine);
@@ -880,7 +776,7 @@ static DWORD WINAPI chaos_thread_func(LPVOID lpThreadParameter)
         {
             case 0:
                 // perform an open
-                (void)threadpool_open_async(chaos_test_data->threadpool, on_open_complete_do_nothing, NULL);
+                (void)threadpool_open(chaos_test_data->threadpool);
                 break;
             case 1:
                 // perform a close
@@ -923,7 +819,7 @@ static DWORD WINAPI chaos_thread_with_timers_func(LPVOID lpThreadParameter)
         {
         case 0:
             // perform an open
-            (void)threadpool_open_async(chaos_test_data->threadpool, on_open_complete_do_nothing, NULL);
+            (void)threadpool_open(chaos_test_data->threadpool);
             break;
         case 1:
             // perform a close

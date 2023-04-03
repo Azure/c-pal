@@ -22,7 +22,6 @@
 MU_DEFINE_ENUM(THREADPOOL_WIN32_STATE, THREADPOOL_WIN32_STATE_VALUES)
 MU_DEFINE_ENUM_STRINGS(THREADPOOL_WIN32_STATE, THREADPOOL_WIN32_STATE_VALUES)
 
-MU_DEFINE_ENUM_STRINGS(THREADPOOL_OPEN_RESULT, THREADPOOL_OPEN_RESULT_VALUES)
 
 typedef struct WORK_ITEM_CONTEXT_TAG
 {
@@ -188,27 +187,23 @@ void threadpool_destroy(THREADPOOL_HANDLE threadpool)
     }
 }
 
-int threadpool_open_async(THREADPOOL_HANDLE threadpool, ON_THREADPOOL_OPEN_COMPLETE on_open_complete, void* on_open_complete_context)
+int threadpool_open(THREADPOOL_HANDLE threadpool)
 {
     int result;
 
-    /* Codes_SRS_THREADPOOL_WIN32_01_010: [ on_open_complete_context shall be allowed to be NULL. ]*/
-
     if (
         /* Codes_SRS_THREADPOOL_WIN32_01_008: [ If threadpool is NULL, threadpool_open_async shall fail and return a non-zero value. ]*/
-        (threadpool == NULL) ||
-        /* Codes_SRS_THREADPOOL_WIN32_01_009: [ If on_open_complete is NULL, threadpool_open_async shall fail and return a non-zero value. ]*/
-        (on_open_complete == NULL))
+        threadpool == NULL
+    )
     {
-        LogError("THREADPOOL_HANDLE threadpool=%p, ON_THREADPOOL_OPEN_COMPLETE on_open_complete=%p, void* on_open_complete_context=%p",
-            threadpool, on_open_complete, on_open_complete_context);
+        LogError("THREADPOOL_HANDLE threadpool=%p", threadpool);
         result = MU_FAILURE;
     }
     else
     {
         /* Codes_SRS_THREADPOOL_WIN32_01_011: [ Otherwise, threadpool_open_async shall switch the state to OPENING. ]*/
-        LONG current_state = InterlockedCompareExchange(&threadpool->state, (LONG)THREADPOOL_WIN32_STATE_OPENING, (LONG)THREADPOOL_WIN32_STATE_CLOSED);
-        if (current_state != (LONG)THREADPOOL_WIN32_STATE_CLOSED)
+        LONG current_state = InterlockedCompareExchange(&threadpool->state, THREADPOOL_WIN32_STATE_OPENING, THREADPOOL_WIN32_STATE_CLOSED);
+        if (current_state != THREADPOOL_WIN32_STATE_CLOSED)
         {
             /* Codes_SRS_THREADPOOL_WIN32_01_013: [ If threadpool is already OPEN or OPENING, threadpool_open_async shall fail and return a non-zero value. ]*/
             LogError("Open called in state %" PRI_MU_ENUM "", MU_ENUM_VALUE(THREADPOOL_WIN32_STATE, current_state));
@@ -238,9 +233,6 @@ int threadpool_open_async(THREADPOOL_HANDLE threadpool, ON_THREADPOOL_OPEN_COMPL
                 /* Codes_SRS_THREADPOOL_WIN32_01_015: [ threadpool_open_async shall set the state to OPEN. ]*/
                 (void)InterlockedExchange(&threadpool->state, (LONG)THREADPOOL_WIN32_STATE_OPEN);
                 WakeByAddressSingle((PVOID)&threadpool->state);
-
-                /* Codes_SRS_THREADPOOL_WIN32_01_014: [ On success, threadpool_open_async shall call on_open_complete_context shall with THREADPOOL_OPEN_OK. ]*/
-                on_open_complete(on_open_complete_context, THREADPOOL_OPEN_OK);
 
                 /* Codes_SRS_THREADPOOL_WIN32_01_012: [ On success, threadpool_open_async shall return 0. ]*/
                 result = 0;
