@@ -3,8 +3,9 @@
 
 #include <stdlib.h>
 #include <stddef.h>
+#include <string.h>
 
-#include "macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
 #include "testrunnerswitcher.h"
 
@@ -29,8 +30,10 @@ static void my_gballoc_free(void* ptr)
 
 #include "c_pal/thandle.h"
 #include "thandle_user.h"
-#include "thandle_user_33_characters.h"
+#include "thandle_user_33_characters.h" // IWYU pragma: keep
 #include "thandle_flex_user.h"
+
+#include "c_pal/thandle_ll.h"
 
 #define TEST_A_DEFINE 1
 static const int TEST_A = TEST_A_DEFINE;
@@ -176,7 +179,7 @@ TEST_FUNCTION_CLEANUP(cleans)
 {
 }
 
-/* THANDLE_MALLOC * /
+/* THANDLE_MALLOC */
 
 /*Tests_SRS_THANDLE_02_043: [ THANDLE_MALLOC_WITH_MALLOC_FUNCTIONS shall allocate memory. ]*/
 TEST_FUNCTION(thandle_user_create_succeeds)

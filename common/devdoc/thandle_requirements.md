@@ -1,5 +1,4 @@
 # thandle_requirements
-================
 
 ## Overview
 
@@ -45,6 +44,7 @@ The type is const - so the following incorrect assignment fails at compile time:
 ```
 
 ## THANDLE_TYPE_DECLARE(T)
+
 ```c
 #define THANDLE_TYPE_DECLARE(T)
 ```
@@ -52,6 +52,7 @@ The type is const - so the following incorrect assignment fails at compile time:
 `THANDLE_TYPE_DECLARE` introduces several functions that can be used with `THANDLE(T)` type. These are `THANDLE_ASSIGN(T)`, `THANDLE_INITIALIZE(T)`, `THANDLE_MOVE(T)`, `THANDLE_INITIALIZE_MOVE(T)`.
 
 ### THANDLE_ASSIGN(T)
+
 ```c
 MOCKABLE_FUNCTION(, void, THANDLE_ASSIGN(T), THANDLE(T) *, t1, THANDLE(T), t2 );
 ```
@@ -68,7 +69,8 @@ MOCKABLE_FUNCTION(, void, THANDLE_ASSIGN(T), THANDLE(T) *, t1, THANDLE(T), t2 );
 
 **SRS_THANDLE_02_010: [** If `*t1` is not `NULL` and `t2` is not `NULL` then `THANDLE_ASSIGN` shall increment the reference count of `t2`, shall decrement the reference count of `*t1` and store `t2` in `*t1`. **]**
 
-###  THANDLE_INITIALIZE(T)
+### THANDLE_INITIALIZE(T)
+
 ```c
  MOCKABLE_FUNCTION(, void, THANDLE_INITIALIZE(T), THANDLE(T) *, lvalue, THANDLE(T), rvalue );
  ```
@@ -82,13 +84,15 @@ MOCKABLE_FUNCTION(, void, THANDLE_ASSIGN(T), THANDLE(T) *, t1, THANDLE(T), t2 );
 **SRS_THANDLE_02_012: [** `THANDLE_INITIALIZE` shall increment the reference count of `rvalue` and store it in `*lvalue`. **]**
 
 ## THANDLE_TYPE_DEFINE(T)
-```
+
+```c
 #define THANDLE_TYPE_DEFINE(T)
 ```
 
 `THANDLE_TYPE_DEFINE` introduces the implementation for the functions in `THANDLE_TYPE_DECLARE` (`THANDLE_ASSIGN`, `THANDLE_INITIALIZE`, `THANDLE_GET_T`) and three new memory management functions `THANDLE_MALLOC(T)`, `THANDLE_MALLOC_WITH_EXTRA_SIZE(T)` and `THANDLE_FREE(T)`.
 
 ### THANDLE_MALLOC_WITH_MALLOC_FUNCTIONS(C)
+
 ```c
 static T* THANDLE_MALLOC_WITH_MALLOC_FUNCTIONS(C)(void(*dispose)(T*), THANDLE_LL_MALLOC_FUNCTION_POINTER_T malloc_function, THANDLE_LL_FREE_FUNCTION_POINTER_T free_function) \
 ```
@@ -108,6 +112,7 @@ static T* THANDLE_MALLOC_WITH_MALLOC_FUNCTIONS(C)(void(*dispose)(T*), THANDLE_LL
 **SRS_THANDLE_02_045: [** If allocating memory fails then `THANDLE_MALLOC_WITH_MALLOC_FUNCTIONS` shall fail and return `NULL`. **]**
 
 ### THANDLE_MALLOC(T)
+
 ```c
 static T* THANDLE_MALLOC(T)(void(*dispose)(T*))
 ```
@@ -115,11 +120,12 @@ static T* THANDLE_MALLOC(T)(void(*dispose)(T*))
 `THANDLE_MALLOC` behaves as `THANDLE_MALLOC_WITH_MALLOC_FUNCTIONS` when called with `malloc_function` `NULL` and with `free_function` `NULL`.
 
 ### THANDLE_MALLOC_WITH_EXTRA_SIZE_WITH_MALLOC_FUNCTIONS(C)
+
 ```c
 static T* THANDLE_MALLOC_WITH_EXTRA_SIZE_WITH_MALLOC_FUNCTIONS(C)(void(*dispose)(T*), size_t extra_size, THANDLE_LL_MALLOC_FLEX_FUNCTION_POINTER_T malloc_flex_function, THANDLE_LL_FREE_FUNCTION_POINTER_T free_function)
 ```
 
-`THANDLE_MALLOC_WITH_EXTRA_SIZE_WITH_MALLOC_FUNCTIONS` returns a `T*` pointer that has `extra_size` bytes allocated. This is useful for example when allocating a character string in a flexible array structure. 
+`THANDLE_MALLOC_WITH_EXTRA_SIZE_WITH_MALLOC_FUNCTIONS` returns a `T*` pointer that has `extra_size` bytes allocated. This is useful for example when allocating a character string in a flexible array structure.
 
 **SRS_THANDLE_02_046: [** If `malloc_flex_function` is not `NULL` then `malloc_flex_function` and `free_function` shall be used to allocate memory. **]**
 
@@ -133,16 +139,16 @@ static T* THANDLE_MALLOC_WITH_EXTRA_SIZE_WITH_MALLOC_FUNCTIONS(C)(void(*dispose)
 
 **SRS_THANDLE_02_052: [** If allocating memory fails then `THANDLE_MALLOC_WITH_EXTRA_SIZE_WITH_MALLOC_FUNCTIONS` shall fail and return `NULL`. **]**
 
-
 ### THANDLE_MALLOC_WITH_EXTRA_SIZE
+
 ```c
 static T* THANDLE_MALLOC_WITH_EXTRA_SIZE(T)(void(*dispose)(T*), size_t extra_size)
 ```
 
 `THANDLE_MALLOC_WITH_EXTRA_SIZE` return a pointer to `T`. `dispose` is a function that the `THANDLE` calls when the reference count reaches 0 in order to free the resources allocated by the user in `T`. `dispose` can be `NULL` in which case there are no user resources to be de-allocated. `T` is a type that has a flexible array. `extra_size` is the size in bytes of the flexible array.
 
-
 ### THANDLE_FREE(T)
+
 ```c
     THANDLE_FREE(T)(T* t)
 ```
@@ -153,8 +159,8 @@ static T* THANDLE_MALLOC_WITH_EXTRA_SIZE(T)(void(*dispose)(T*), size_t extra_siz
 
 **SRS_THANDLE_02_017: [** `THANDLE_FREE` shall free the allocated memory by `THANDLE_MALLOC`. **]**
 
-
 ### THANDLE_GET_T(T)
+
 ```c
 static T* THANDLE_GET_T(T)(THANDLE(T) t)
 ```
@@ -166,6 +172,7 @@ Given a previously constructed `THANDLE(T)`, `THANDLE_GET_T(T)` returns a pointe
 **SRS_THANDLE_02_024: [** `THANDLE_GET_T(T)` shall return the same pointer as `THANDLE_MALLOC`/`THANDLE_MALLOC_WITH_EXTRA_SIZE` returned at the handle creation time. **]**
 
 ### THANDLE_CREATE_FROM_CONTENT_FLEX_WITH_MALLOC_FUNCTIONS(C)
+
 ```c
 static T* THANDLE_CREATE_FROM_CONTENT_FLEX_WITH_MALLOC_FUNCTIONS(C)(const T* source, void(*dispose)(T*), int(*copy)(T* destination, const T* source), size_t(*get_sizeof)(const T* source), THANDLE_LL_MALLOC_FLEX_FUNCTION_POINTER_T malloc_flex_function, THANDLE_LL_FREE_FUNCTION_POINTER_T free_function)
 ```
@@ -195,6 +202,7 @@ static T* THANDLE_CREATE_FROM_CONTENT_FLEX_WITH_MALLOC_FUNCTIONS(C)(const T* sou
 **SRS_THANDLE_02_063: [** If there are any failures then `THANDLE_CREATE_FROM_CONTENT_FLEX_WITH_MALLOC_FUNCTIONS` shall fail and return `NULL`. **]**
 
 ### THANDLE_CREATE_FROM_CONTENT_FLEX_MACRO(T)
+
 ```c
 THANDLE_CREATE_FROM_CONTENT_FLEX_MACRO(T)
 THANDLE(T) THANDLE_CREATE_FROM_CONTENT_FLEX(T)(const T* source, void(*dispose)(T*), int(*copy)(T* destination, const T* source), size_t(*get_sizeof)(const T* source))
@@ -205,14 +213,15 @@ Given a previously existing T, `THANDLE_CREATE_FROM_CONTENT_FLEX` will copy `T`'
 `THANDLE_CREATE_FROM_CONTENT_FLEX_MACRO` behaves exactly like `THANDLE_CREATE_FROM_CONTENT_FLEX_WITH_MALLOC_FUNCTIONS` when called with `malloc_flex_function` set to `NULL` and `free_function` set to `NULL`.
 
 ### THANDLE_GET_SIZEOF(T)
+
 ```c
 static size_t THANDLE_GET_SIZEOF(T)(const T* t)
 ```
 
 `THANDLE_GET_SIZEOF(T)` is a helper macro for `THANDLE_CREATE_FROM_CONTENT_MACRO(T)` (below) that returns `sizeof(T)`.
 
+### THANDLE_CREATE_FROM_CONTENT_MACRO(T)
 
-###  THANDLE_CREATE_FROM_CONTENT_MACRO(T)
 ```c
 THANDLE_CREATE_FROM_CONTENT_MACRO(T)
 THANDLE(T) THANDLE_CREATE_FROM_CONTENT(T)(const T* source, void(*dispose)(T*), int(*copy)(T* destination, const T* source))
@@ -222,13 +231,14 @@ THANDLE(T) THANDLE_CREATE_FROM_CONTENT(T)(const T* source, void(*dispose)(T*), i
 
 **SRS_THANDLE_02_032: [** `THANDLE_CREATE_FROM_CONTENT` returns what `THANDLE_CREATE_FROM_CONTENT_FLEX(T)(source, dispose, copy, THANDLE_GET_SIZEOF(T));` returns. **]**
 
-###  THANDLE_MOVE_MACRO(T)
+### THANDLE_MOVE_MACRO(T)
+
 ```c
 THANDLE_MOVE_MACRO(T)
 void THANDLE_MOVE(T)(THANDLE(T) * t1, THANDLE(T) * t2)
 ```
 
-`THANDLE_MOVE` moves `*t2` under `*t1` and NULLs *t2. 
+`THANDLE_MOVE` moves `*t2` under `*t1` and NULLs *t2.
 
 **SRS_THANDLE_02_033: [** If `t1` is `NULL` then `THANDLE_MOVE` shall return. **]**
 
@@ -242,13 +252,14 @@ void THANDLE_MOVE(T)(THANDLE(T) * t1, THANDLE(T) * t2)
 
 **SRS_THANDLE_02_038: [** If `*t1` is not `NULL` and `*t2` is not `NULL` then `THANDLE_MOVE` shall `THANDLE_DEC_REF` `*t1`, set `*t1` to `*t2`, set `*t2` to `NULL` and return. **]**
 
-###  THANDLE_INITIALIZE_MOVE_MACRO(T)
+### THANDLE_INITIALIZE_MOVE_MACRO(T)
+
 ```c
 THANDLE_INITIALIZE_MOVE_MACRO(T)
 void THANDLE_INITIALIZE_MOVE(T)(THANDLE(T) * t1, THANDLE(T) * t2)
 ```
 
-`THANDLE_INITIALIZE_MOVE` moves `*t2` under `*t1` and NULLs *t2, assuming that `t1` is not initialized. 
+`THANDLE_INITIALIZE_MOVE` moves `*t2` under `*t1` and NULLs *t2, assuming that `t1` is not initialized.
 
 **SRS_THANDLE_01_001: [** If `t1` is `NULL` then `THANDLE_INITIALIZE_MOVE` shall return. **]**
 
