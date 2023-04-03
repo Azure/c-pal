@@ -24,6 +24,7 @@ if(${run_int_tests})
     build_test_folder(interlocked_hl_int)
     build_test_folder(lazy_init_int)
     build_test_folder(sm_int)
+    build_test_folder(sm_state_transition_int)
 endif()
 
 

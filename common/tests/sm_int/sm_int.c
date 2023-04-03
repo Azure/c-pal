@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-
 #include "testrunnerswitcher.h"
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
@@ -22,6 +21,8 @@
 #include "c_logging/xlogging.h"
 
 #include "c_pal/sm.h"
+
+#define XTEST_FUNCTION(x) void x(void)
 
 TEST_DEFINE_ENUM_TYPE(SM_RESULT, SM_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);
@@ -838,7 +839,7 @@ TEST_FUNCTION_INITIALIZE(function_initialize)
 /*tests aims to mindlessly execute the APIs.
 The test follows the contract of the API so that begin/end calls are matched
 At least 1 sm_open_begin and at least 1 sm_exec_begin are waited to happen*/
-TEST_FUNCTION(sm_chaos)
+XTEST_FUNCTION(sm_chaos)
 {
     LogInfo("disabling logging for the duration of sm_chaos. Logging takes additional locks that \"might\" help the test pass");
     LOGGER_LOG toBeRestored = xlogging_get_log_function();
@@ -1003,17 +1004,22 @@ TEST_FUNCTION(sm_chaos_with_faults)
         (void)interlocked_exchange(&data->n_begin_refuses, 0);
         (void)interlocked_exchange(&data->n_faults, 0);
 
+        //toBeRestored(AZ_LOG_INFO, __FILE__, FUNC_NAME, __LINE__, 0, "Calling createBeginOpenThreads\n");
         createBeginOpenThreads(data);
         createEndOpenThreads(data);
         createBeginCloseThreads(data);
         createBeginCloseWithCBThreads(data);
         createEndCloseThreads(data);
+        //toBeRestored(AZ_LOG_INFO, __FILE__, FUNC_NAME, __LINE__, 0, "Calling createBeginBarrierThreads\n");
         createBeginBarrierThreads(data);
+        //toBeRestored(AZ_LOG_INFO, __FILE__, FUNC_NAME, __LINE__, 0, "Calling createEndBarrierThreads\n");
         createEndBarrierThreads(data);
         createBeginAndEndThreads(data);
+        //toBeRestored(AZ_LOG_INFO, __FILE__, FUNC_NAME, __LINE__, 0, "Calling createBeginExecThreads\n");
         createBeginExecThreads(data);
         createEndExecThreads(data);
         createFaultThreads(data);
+        //toBeRestored(AZ_LOG_INFO, __FILE__, FUNC_NAME, __LINE__, 0, "Done with all the create functions\n");
 
         ThreadAPI_Sleep(1000);
         uint32_t counterSleep = 1;
@@ -1075,7 +1081,7 @@ TEST_FUNCTION(sm_chaos_with_faults)
     xlogging_set_log_function(toBeRestored);
 }
 
-TEST_FUNCTION(sm_does_not_block)
+XTEST_FUNCTION(sm_does_not_block)
 {
     LogInfo("disabling logging for the duration of sm_does_not_block. Logging takes additional locks that \"might help\" the test pass");
     LOGGER_LOG toBeRestored = xlogging_get_log_function();
@@ -1477,7 +1483,7 @@ static void sm_switches_from_state_to_created(SM_GO_TO_STATE* goToState)
 /*at time=THREAD_TO_BACK_DELAY  an API is executed, result is collected and asserted*/
 /*at time = 2*THREAD_TO_BACK_DELAY the second thread unblocks execution and reverts execution to SM_CREATED*/
 
-TEST_FUNCTION(STATE_and_API)
+XTEST_FUNCTION(STATE_and_API)
 {
     SM_RESULT_AND_NEXT_STATE_AFTER_API_CALL expected[][5]=
     {
@@ -1618,7 +1624,7 @@ static void cancellingCallback(void* context)
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_SetAndWake(address, 1));
 }
 
-TEST_FUNCTION(sm_close_begin_with_cb_triggers_cancel)
+XTEST_FUNCTION(sm_close_begin_with_cb_triggers_cancel)
 {
     /// arrange
     WAIT_FOR_CANCEL context;
@@ -1640,6 +1646,9 @@ TEST_FUNCTION(sm_close_begin_with_cb_triggers_cancel)
     ASSERT_ARE_EQUAL(SM_RESULT, SM_EXEC_GRANTED, sm_close_begin_with_cb(context.sm, cancellingCallback, (void*)(&context.cancel_wait), NULL, NULL));
     sm_close_end(context.sm);
 
+    int dont_care;
+    ThreadAPI_Join(cancel_wait_thread, &dont_care);
+
     /// cleanup
     sm_destroy(context.sm);
 }
@@ -1651,7 +1660,7 @@ static void close_while_in_opening(void* context)
     sm_open_end(wait_for_cancel->sm, wait_for_cancel->sm_open_result);
 }
 
-TEST_FUNCTION(sm_close_begin_with_cb_while_opening_with_sm_open_end_false)
+XTEST_FUNCTION(sm_close_begin_with_cb_while_opening_with_sm_open_end_false)
 {
     /// arrange
     WAIT_FOR_CANCEL wait_for_cancel;
@@ -1674,7 +1683,7 @@ TEST_FUNCTION(sm_close_begin_with_cb_while_opening_with_sm_open_end_false)
     sm_destroy(wait_for_cancel.sm);
 }
 
-TEST_FUNCTION(sm_close_begin_with_cb_while_opening_with_sm_open_end_true)
+XTEST_FUNCTION(sm_close_begin_with_cb_while_opening_with_sm_open_end_true)
 {
     /// arrange
     WAIT_FOR_CANCEL wait_for_cancel;

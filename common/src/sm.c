@@ -27,6 +27,7 @@
     SM_OPENED_DRAINING_TO_BARRIER,  \
     SM_OPENED_DRAINING_TO_CLOSE,    \
     SM_OPENED_BARRIER,              \
+    SM_OPENING_CANCELLED,           \
     SM_CLOSING                      \
 
 MU_DEFINE_ENUM(SM_STATE, SM_STATE_VALUES)
@@ -73,7 +74,7 @@ SM_HANDLE sm_create(const char* name)
     if (result == NULL)
     {
         /*Codes_SRS_SM_02_004: [ If there are any failures then sm_create shall fail and return NULL. ]*/
-        LogError("sm name=%s, failure in malloc_flex(sizeof(SM_HANDLE_DATA)=%zu, flexSize=%zu, 1);", 
+        LogError("sm name=%s, failure in malloc_flex(sizeof(SM_HANDLE_DATA)=%zu, flexSize=%zu, 1);",
             MU_P_OR_NULL(name), sizeof(SM_HANDLE_DATA), flexSize);
         /*return as is*/
     }
@@ -211,7 +212,7 @@ static SM_RESULT sm_close_begin_internal(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CA
 
     int32_t state;
     /*Codes_SRS_SM_02_045: [ sm_close_begin_internal shall set SM_CLOSE_BIT to 1. ]*/
-    if (((state=interlocked_or(&sm->state, SM_CLOSE_BIT)) & SM_CLOSE_BIT) == SM_CLOSE_BIT)
+    if (((state = interlocked_or(&sm->state, SM_CLOSE_BIT)) & SM_CLOSE_BIT) == SM_CLOSE_BIT)
     {
         /*Codes_SRS_SM_02_046: [ If SM_CLOSE_BIT was already 1 then sm_close_begin_internal shall return SM_EXEC_REFUSED. ]*/
         LogError("sm name=%s. another thread is performing close (state=%" PRI_SM_STATE ")", sm->name, SM_STATE_VALUE(state));
@@ -270,7 +271,7 @@ static SM_RESULT sm_close_begin_internal(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CA
             }
             else if (
                 // Codes_SRS_SM_11_002: [ If the state is SM_OPENING, the close_while_opening_callback is non-NULL and this is the first evaluation of the close then ... ]
-                ((state & SM_STATE_MASK) == SM_OPENING) && 
+                ((state & SM_STATE_MASK) == SM_OPENING) &&
                 (close_while_opening_callback != NULL) &&
                 (initial_iteration)
                 )
@@ -278,6 +279,21 @@ static SM_RESULT sm_close_begin_internal(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CA
                 // Codes_SRS_SM_11_003: [ ... sm_close_begin_internal shall call the close_while_opening_callback and then re-evaluate the state. ]
                 close_while_opening_callback(close_while_opening_context);
                 initial_iteration = false;
+
+#if 0
+                if (interlocked_compare_exchange(&sm->state, state - SM_OPENING + SM_OPENING_CANCELLED + SM_STATE_INCREMENT, state) != state)
+                {
+                    /*go and retry*/
+                }
+                else
+                {
+                    // Codes_SRS_SM_11_003: [ ... sm_close_begin_internal shall call the close_while_opening_callback and then re-evaluate the state. ]
+                    close_while_opening_callback(close_while_opening_context);
+
+                    (void)interlocked_add(&sm->state, -SM_OPENING_CANCELLED + SM_CLOSING + SM_STATE_INCREMENT);
+                    result = SM_EXEC_REFUSED;
+                }
+#endif
             }
             else
             {

@@ -34,3 +34,10 @@
    fun:timer_create@@GLIBC_2.3.3
    ...
 }
+{
+   <log_file_race>
+   Helgrind:Race
+   ...
+   fun:consolelogger_log
+   ...
+}

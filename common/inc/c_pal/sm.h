@@ -37,6 +37,9 @@ MOCKABLE_FUNCTION(, void, sm_destroy, SM_HANDLE, sm);
 MOCKABLE_FUNCTION(, SM_RESULT, sm_open_begin, SM_HANDLE, sm);
 MOCKABLE_FUNCTION(, void, sm_open_end, SM_HANDLE, sm, bool, success);
 
+MOCKABLE_FUNCTION(, SM_RESULT, sm_open_cancel_begin, SM_HANDLE, sm);
+MOCKABLE_FUNCTION(, void, sm_open_cancel_end, SM_HANDLE, sm);
+
 MOCKABLE_FUNCTION(, SM_RESULT, sm_close_begin, SM_HANDLE, sm);
 MOCKABLE_FUNCTION(, SM_RESULT, sm_close_begin_with_cb, SM_HANDLE, sm, ON_SM_CLOSING_COMPLETE_CALLBACK, callback, void*, callback_context, ON_SM_CLOSING_WHILE_OPENING_CALLBACK, close_while_opening_callback, void*, close_while_opening_context);
 MOCKABLE_FUNCTION(, void, sm_close_end, SM_HANDLE, sm);

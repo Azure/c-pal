@@ -85,6 +85,17 @@ The state is a 32-bit variable. It is made up of the following components:
 - The 7th bit (decimal 128) set to 1 when `sm_close_begin` is called. The bit is reset by `sm_close_end`.
 - Remaining bits (most-significant 3 bytes, decimal >=256) representing an ever increasing counter of calls that is needed to avoid potential ABA problems. That is, a `SM_OPENED` state will be different from `SM_OPENED_STATE` after it went through a `sm_close_begin`/`sm_close_end`/`sm_open_begin`/`sm_open_end`.
 
+```mermaid
+graph TD
+A[SM_CREATED] -->|sm_open_begin| B[SM_OPENING]
+B -->|sm_open_end - true| C[SM_OPENED]
+B -->|sm_open_end - false| A
+C -->|sm_barrier_begin| D[SM_OPENED_BARRIER]
+D -->|sm_barrier_end| C
+C -->|sm_close_begin| E[SM_CLOSING]
+E -->|sm_close_end| A
+```
+
 ## Exposed API
 
 ```c
