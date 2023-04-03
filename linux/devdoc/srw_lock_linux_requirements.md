@@ -2,11 +2,11 @@
 
 ## Overview
 
-`srw_lock_linux` is an implementation of slim read-write for linux.
+`srw_lock_linux` is an implementation of slim reader-writer lock for linux.
 
 ## Design
 
-`srw_lock_linux` used for synchronize resources across threads. It contains `exclusive mode` for write lock and `shared mode` for read lock. Acquire APIs will apply the required type of lock to `SRWLOCK` and get blocked if it cannot. Try acquire APIs will fail if the equivalent acquire APIs get blocked.
+`srw_lock_linux` can be used for synchronizing resources across threads. It has on `exclusive mode` for write lock and `shared mode` for read lock. Acquire APIs will apply the required type of lock to `pthread_rwlock_t ` and get blocked if the operation can not be done. Try acquire APIs will fail if the equivalent acquire APIs get blocked.
 
 ## Exposed API
 
@@ -46,9 +46,9 @@ MOCKABLE_FUNCTION(, SRW_LOCK_HANDLE, srw_lock_create, bool, do_statistics, const
 
 **SRS_SRW_LOCK_LINUX_07_002: [** `srw_lock_create` shall copy the `lock_name`. **]**
 
-**SRS_SRW_LOCK_LINUX_07_003: [** `srw_lock_create` shall initialized the `SRWLOCK` by calling `pthread_rwlock_init`. **]**
+**SRS_SRW_LOCK_LINUX_07_003: [** `srw_lock_create` shall initialized the `pthread_rwlock_t ` by calling `pthread_rwlock_init`. **]**
 
-**SRS_SRW_LOCK_LINUX_07_006: [** If initializing lock failed, `srw_lock_create` shall fail and return `NULL`. **]**
+**SRS_SRW_LOCK_LINUX_07_006: [** If initializing the lock failed, `srw_lock_create` shall fail and return `NULL`. **]**
 
 **SRS_SRW_LOCK_LINUX_07_004: [** `srw_lock_create` shall succeed and return a non-`NULL` value. **]**
 
@@ -63,7 +63,7 @@ MOCKABLE_FUNCTION(, void, srw_lock_acquire_exclusive, SRW_LOCK_HANDLE, handle);
 
 **SRS_SRW_LOCK_LINUX_07_007: [** If `handle` is `NULL`, `srw_lock_acquire_exclusive` shall return. **]**
 
-**SRS_SRW_LOCK_LINUX_07_008: [** `srw_lock_acquire_exclusive` shall lock the `SRWLOCK` for writing by calling `pthread_rwlock_wrlock`. **]**
+**SRS_SRW_LOCK_LINUX_07_008: [** `srw_lock_acquire_exclusive` shall lock the `pthread_rwlock_t ` for writing by calling `pthread_rwlock_wrlock`. **]**
 
 ### srw_lock_try_acquire_exclusive
 ```c
@@ -74,7 +74,7 @@ MOCKABLE_FUNCTION(, SRW_LOCK_TRY_ACQUIRE_RESULT, srw_lock_try_acquire_exclusive,
 
 **SRS_SRW_LOCK_LINUX_07_009: [** If `handle` is `NULL`, `srw_lock_try_acquire_exclusive` shall fail and return `SRW_LOCK_TRY_ACQUIRE_INVALID_ARGS`. **]**
 
-**SRS_SRW_LOCK_LINUX_07_010: [** Otherwise `srw_lock_acquire_exclusive` shall apply a write lock on `SRWLOCK` only if no other threads are currently holding the `SRWLOCK` by calling `pthread_rwlock_trywrlock`. **]**
+**SRS_SRW_LOCK_LINUX_07_010: [** Otherwise `srw_lock_acquire_exclusive` shall apply a write lock on `pthread_rwlock_t ` only if no other threads are currently holding the `pthread_rwlock_t ` by calling `pthread_rwlock_trywrlock`. **]**
 
 **SRS_SRW_LOCK_LINUX_07_011: [** If `pthread_rwlock_trywrlock` returns 0, `srw_lock_acquire_exclusive` shall return `SRW_LOCK_TRY_ACQUIRE_OK`. **]**
 
@@ -85,7 +85,7 @@ MOCKABLE_FUNCTION(, SRW_LOCK_TRY_ACQUIRE_RESULT, srw_lock_try_acquire_exclusive,
 MOCKABLE_FUNCTION(, void, srw_lock_release_exclusive, SRW_LOCK_HANDLE, handle);
 ```
 
-`srw_lock_release_exclusive` releases the underlying `SRWLOCK` from exclusive (write) mode.
+`srw_lock_release_exclusive` releases the underlying `pthread_rwlock_t ` from exclusive (write) mode.
 
 **SRS_SRW_LOCK_LINUX_07_013: [** If `handle` is `NULL`, `srw_lock_release_exclusive` shall return. **]**
 
@@ -97,22 +97,22 @@ MOCKABLE_FUNCTION(, void, srw_lock_release_exclusive, SRW_LOCK_HANDLE, handle);
 MOCKABLE_FUNCTION(, void, srw_lock_acquire_shared, SRW_LOCK_HANDLE, handle);
 ```
 
-`srw_lock_acquire_shared` acquires the SRWLOCK in shared (read) mode.
+`srw_lock_acquire_shared` acquires the `pthread_rwlock_t`  in shared (read) mode.
 
 **SRS_SRW_LOCK_LINUX_07_015: [** If `handle` is `NULL`, `srw_lock_acquire_shared` shall return. **]**
 
-**SRS_SRW_LOCK_LINUX_07_016: [** `srw_lock_acquire_shared` shall apply a read lock to `SRWLOCK` by calling `pthread_rwlock_rdlock`. **]**
+**SRS_SRW_LOCK_LINUX_07_016: [** `srw_lock_acquire_shared` shall apply a read lock to `pthread_rwlock_t ` by calling `pthread_rwlock_rdlock`. **]**
 
 ### srw_lock_try_acquire_shared
 ```c
 MOCKABLE_FUNCTION(, SRW_LOCK_TRY_ACQUIRE_RESULT, srw_lock_try_acquire_shared, SRW_LOCK_HANDLE, handle);
 ```
 
-`srw_lock_try_acquire_shared` attempts to acquire the SRWLOCK in shared (read) mode.
+`srw_lock_try_acquire_shared` attempts to acquire the pthread_rwlock_t  in shared (read) mode.
 
 **SRS_SRW_LOCK_LINUX_07_017: [** If `handle` is `NULL` then `srw_lock_try_acquire_shared` shall fail and return `SRW_LOCK_TRY_ACQUIRE_INVALID_ARGS`. **]**
 
-**SRS_SRW_LOCK_LINUX_07_018: [** Otherwise `srw_lock_try_acquire_shared` shall apply a read lock on `SRWLOCK` if there's no writers hold the lock and no writers blocked on the lock by calling `pthread_rwlock_tryrdlock`. **]**
+**SRS_SRW_LOCK_LINUX_07_018: [** Otherwise `srw_lock_try_acquire_shared` shall apply a read lock on `pthread_rwlock_t ` if there's no writers hold the lock and no writers blocked on the lock by calling `pthread_rwlock_tryrdlock`. **]**
 
 **SRS_SRW_LOCK_LINUX_07_019: [** If `pthread_rwlock_tryrdlock` returns 0, `srw_lock_try_acquire_shared` shall return `SRW_LOCK_TRY_ACQUIRE_OK`. **]**
 
@@ -123,7 +123,7 @@ MOCKABLE_FUNCTION(, SRW_LOCK_TRY_ACQUIRE_RESULT, srw_lock_try_acquire_shared, SR
 MOCKABLE_FUNCTION(, void, srw_lock_release_shared, SRW_LOCK_HANDLE, handle);
 ```
 
-`srw_lock_release_exclusive` releases the underlying `SRWLOCK` from shared (read) mode.
+`srw_lock_release_exclusive` releases the underlying `pthread_rwlock_t ` from shared (read) mode.
 
 **SRS_SRW_LOCK_LINUX_07_021: [** If `handle` is `NULL`, `srw_lock_release_shared` shall return. **]**
 
@@ -139,8 +139,8 @@ MOCKABLE_FUNCTION(, void, srw_lock_destroy, SRW_LOCK_HANDLE, handle);
 
 **SRS_SRW_LOCK_LINUX_07_023: [** If `handle` is `NULL` then `srw_lock_destroy` shall return. **]**
 
-**SRS_SRW_LOCK_LINUX_07_024: [** `srw_lock_destroy` shall free stored lock name. **]**
+**SRS_SRW_LOCK_LINUX_07_024: [** `srw_lock_destroy` shall free the stored lock name. **]**
 
-**SRS_SRW_LOCK_LINUX_07_025: [** `srw_lock_destroy` shall destroy the `SRWLOCK` by calling `pthread_rwlock_destroy`. **]**
+**SRS_SRW_LOCK_LINUX_07_025: [** `srw_lock_destroy` shall destroy the `pthread_rwlock_t ` by calling `pthread_rwlock_destroy`. **]**
 
 **SRS_SRW_LOCK_LINUX_07_026: [** `srw_lock_destroy` shall free the lock handle. **]**

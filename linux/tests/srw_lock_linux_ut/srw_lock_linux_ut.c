@@ -51,7 +51,7 @@ static char* umockvalue_stringify_va_list(const void* value)
     (void)value;
     char* result = real_gballoc_hl_malloc(sizeof(va_list_to_string));
     ASSERT_IS_NOT_NULL(result);
-    memcpy(result, va_list_to_string, sizeof(va_list_to_string));
+    (void)memcpy(result, va_list_to_string, sizeof(va_list_to_string));
     return result;
 }
 

@@ -12,6 +12,8 @@
 
 #include "macro_utils/macro_utils.h"
 
+#include <stdbool.h>
+
 #include "c_pal/srw_lock.h"
 
 #define R2(X) REGISTER_GLOBAL_MOCK_HOOK(X, real_##X);
