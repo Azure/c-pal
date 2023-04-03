@@ -3,8 +3,9 @@
 
 #include <stdlib.h>
 #include <stddef.h>
+#include <stdint.h>
 
-#include "macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
 #include "testrunnerswitcher.h"
 
@@ -19,6 +20,8 @@
 
 #include "t_off.h"
 #include "t_on.h"
+
+#include "c_pal/thandle_ll.h"
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
