@@ -16,6 +16,8 @@ if(${run_unittests})
     build_test_folder(lazy_init_ut)
     build_test_folder(sm_ut)
     build_test_folder(s_list_ut)
+    build_test_folder(thandle_2_ut)
+    build_test_folder(thandle_ut)
 endif()
 
 if(${run_int_tests})

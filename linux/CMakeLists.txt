@@ -9,6 +9,8 @@ set(pal_common_h_files
     ../common/inc/c_pal/ps_util.h
     ../common/inc/c_pal/s_list.h
     ../common/inc/c_pal/sm.h
+    ../common/inc/c_pal/thandle_ll.h
+    ../common/inc/c_pal/thandle.h
 )
 
 set(pal_common_c_files
