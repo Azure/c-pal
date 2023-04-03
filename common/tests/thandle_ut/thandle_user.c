@@ -3,11 +3,14 @@
 
 #include <stdlib.h>
 #include <limits.h>
+#include <string.h>                   // for strlen, memcpy
+
+#include "c_logging/xlogging.h"       // for LogError
 
 #include "macro_utils/macro_utils.h"
 
-#include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/gballoc_hl.h" // IWYU pragma: keep
+#include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 
 #include "c_pal/thandle.h"
 

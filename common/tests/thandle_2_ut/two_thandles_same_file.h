@@ -7,8 +7,6 @@
 this file exists to prove the 2 THANDLEs can be compiled in the same .h/.c file
 */
 
-#include <stdint.h>
-
 #include "c_pal/thandle.h"
 
 #include "umock_c/umock_c_prod.h"

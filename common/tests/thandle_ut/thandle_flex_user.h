@@ -4,7 +4,12 @@
 #ifndef THANDLE_FLEX_USER_H
 #define THANDLE_FLEX_USER_H
 
+#include <stddef.h>                   // for size_t
+
 #include "c_pal/thandle.h"
+#include "c_pal/thandle_ll.h"         // for THANDLE
+
+#include "macro_utils/macro_utils.h"  // for MU_COUNT_ARG_0, MU_DISPATCH_EMP...
 
     typedef struct LL_FLEX_TAG LL_FLEX;
 

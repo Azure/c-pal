@@ -5,6 +5,9 @@
 #define THANDLE_USER_33_CHARACTERS_H
 
 #include "c_pal/thandle.h"
+#include "c_pal/thandle_ll.h"         // for THANDLE
+
+#include "macro_utils/macro_utils.h"  // for MU_COUNT_ARG_0, MU_DISPATCH_EMP...
 
     typedef struct LL3456789012345678901234567890123_TAG LL3456789012345678901234567890123;
 

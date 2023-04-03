@@ -10,6 +10,7 @@ T_ON will use THANDLE_LL_TYPE_DEFINE (will not use THANDLE_TYPE_DEFINE_WITH_MALL
 #include <stdint.h>
 
 #include "c_pal/thandle.h"
+#include "c_pal/thandle_ll.h"      // for THANDLE
 
 #include "umock_c/umock_c_prod.h"
 
