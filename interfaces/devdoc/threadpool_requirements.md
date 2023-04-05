@@ -27,7 +27,7 @@ typedef void (*THREADPOOL_WORK_FUNCTION)(void* context);
 MOCKABLE_FUNCTION(, THREADPOOL_HANDLE, threadpool_create, EXECUTION_ENGINE_HANDLE, execution_engine);
 MOCKABLE_FUNCTION(, void, threadpool_destroy, THREADPOOL_HANDLE, threadpool);
 
-MOCKABLE_FUNCTION(, int, threadpool_open_async, THREADPOOL_HANDLE, threadpool, ON_THREADPOOL_OPEN_COMPLETE, on_open_complete, void*, on_open_complete_context);
+MOCKABLE_FUNCTION(, int, threadpool_open, THREADPOOL_HANDLE, threadpool);
 MOCKABLE_FUNCTION(, void, threadpool_close, THREADPOOL_HANDLE, threadpool);
 
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THREADPOOL_HANDLE, threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
@@ -71,29 +71,23 @@ MOCKABLE_FUNCTION(, void, threadpool_destroy, THREADPOOL_HANDLE, threadpool);
 
 **NON_THREADPOOL_01_007: [** `threadpool_destroy` shall perform an implicit close if `threadpool` is OPEN. **]**
 
-### threadpool_open_async
+### threadpool_open
 
 ```c
-MOCKABLE_FUNCTION(, int, threadpool_open_async, THREADPOOL_HANDLE, threadpool, ON_THREADPOOL_OPEN_COMPLETE, on_open_complete, void*, on_open_complete_context);
+MOCKABLE_FUNCTION(, int, threadpool_open, THREADPOOL_HANDLE, threadpool);
 ```
 
-`threadpool_open_async` opens the threadpool object so that subsequent calls to `threadpool_schedule_work` can be made.
+`threadpool_open` opens the threadpool object so that subsequent calls to `threadpool_schedule_work` can be made.
 
-**NON_THREADPOOL_01_008: [** If `threadpool` is `NULL`, `threadpool_open_async` shall fail and return a non-zero value. **]**
+**NON_THREADPOOL_01_008: [** If `threadpool` is `NULL`, `threadpool_open` shall fail and return a non-zero value. **]**
 
-**NON_THREADPOOL_01_009: [** If `on_open_complete` is `NULL`, `threadpool_open_async` shall fail and return a non-zero value. **]**
+**NON_THREADPOOL_01_009: [** If `on_open_complete` is `NULL`, `threadpool_open` shall fail and return a non-zero value. **]**
 
-**NON_THREADPOOL_01_010: [** `on_open_complete_context` shall be allowed to be `NULL`. **]**
+**NON_THREADPOOL_01_011: [** Otherwise, `threadpool_open` shall switch the state to OPENING and perform any actions needed to open the `threadpool` object. **]**
 
-**NON_THREADPOOL_01_011: [** Otherwise, `threadpool_open_async` shall switch the state to OPENING and perform any actions needed to open the `threadpool` object. **]**
+**NON_THREADPOOL_01_012: [** On success, `threadpool_open` shall return 0. **]**
 
-**NON_THREADPOOL_01_012: [** On success, `threadpool_open_async` shall return 0. **]**
-
-**NON_THREADPOOL_01_013: [** If `threadpool` is already OPEN or OPENING, `threadpool_open_async` shall fail and return a non-zero value. **]**
-
-**NON_THREADPOOL_01_014: [** When opening the threadpool object completes successfully, `on_open_complete_context` shall be called with `THREADPOOL_OPEN_OK`. **]**
-
-**NON_THREADPOOL_01_015: [** When opening the threadpool object completes with failure, `on_open_complete_context` shall be called with `THREADPOOL_OPEN_ERROR`. **]**
+**NON_THREADPOOL_01_013: [** If `threadpool` is already OPEN or OPENING, `threadpool_open` shall fail and return a non-zero value. **]**
 
 ### threadpool_close
 
@@ -107,7 +101,7 @@ MOCKABLE_FUNCTION(, void, threadpool_close, THREADPOOL_HANDLE, threadpool);
 
 **NON_THREADPOOL_01_017: [** Otherwise, `threadpool_close` shall switch the state to CLOSING. **]**
 
-**NON_THREADPOOL_01_018: [** Then `threadpool_close` shall close the threadpool, leaving it in a state where an `threadpool_open_async` can be performed. **]**
+**NON_THREADPOOL_01_018: [** Then `threadpool_close` shall close the threadpool, leaving it in a state where an `threadpool_open` can be performed. **]**
 
 **NON_THREADPOOL_01_019: [** If `threadpool` is not OPEN, `threadpool_close` shall return. **]**
 
