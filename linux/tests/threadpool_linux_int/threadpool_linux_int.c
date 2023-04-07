@@ -22,6 +22,7 @@
 #include "c_pal/sync.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_linux.h"
+#include "c_pal/thandle.h"
 
 typedef struct WAIT_WORK_CONTEXT_TAG
 {
@@ -124,7 +125,7 @@ TEST_FUNCTION(one_work_item_schedule_works)
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
     volatile_atomic int32_t thread_counter = 0;
 
-    THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
     ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
@@ -144,7 +145,7 @@ TEST_FUNCTION(one_work_item_schedule_works)
 
     // cleanup
     threadpool_close(threadpool);
-    threadpool_destroy(threadpool);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
 
@@ -156,7 +157,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
     uint32_t num_threads = N_WORK_ITEMS;
     volatile_atomic int32_t thread_counter = 0;
 
-    THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
     ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
@@ -179,7 +180,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
 
     // cleanup
     threadpool_close(threadpool);
-    threadpool_destroy(threadpool);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
 
@@ -191,7 +192,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
     uint32_t num_threads = N_WORK_ITEMS;
     volatile_atomic int32_t thread_counter = 0;
 
-    THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
     ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
@@ -211,7 +212,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
 
     // cleanup
     threadpool_close(threadpool);
-    threadpool_destroy(threadpool);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
 
@@ -224,7 +225,7 @@ TEST_FUNCTION(threadpool_chaos_knight)
     uint32_t num_threads = N_CHAOS_WORK_ITEMS;
     volatile_atomic int32_t thread_counter = 0;
 
-    THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
     ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
@@ -248,7 +249,7 @@ TEST_FUNCTION(threadpool_chaos_knight)
 
     // cleanup
     threadpool_close(threadpool);
-    threadpool_destroy(threadpool);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
 
@@ -265,7 +266,7 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
     ASSERT_IS_NOT_NULL(execution_engine);
 
     // create the threadpool
-    THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
     // NOTE: this test runs with retries because there are possible timing issues with thread scheduling
@@ -311,7 +312,7 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
     } while (need_to_retry);
 
     // cleanup
-    threadpool_destroy(threadpool);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
 
@@ -324,7 +325,7 @@ TEST_FUNCTION(restart_timer_works_runs_once)
     ASSERT_IS_NOT_NULL(execution_engine);
 
     // create the threadpool
-    THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
     // NOTE: this test runs with retries because there are possible timing issues with thread scheduling
@@ -373,7 +374,7 @@ TEST_FUNCTION(restart_timer_works_runs_once)
     } while (need_to_retry);
 
     // cleanup
-    threadpool_destroy(threadpool);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
 
@@ -386,7 +387,7 @@ TEST_FUNCTION(one_start_timer_works_runs_periodically)
     ASSERT_IS_NOT_NULL(execution_engine);
 
     // create the threadpool
-    THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
     (void)interlocked_exchange(&call_count, 0);
@@ -404,7 +405,7 @@ TEST_FUNCTION(one_start_timer_works_runs_periodically)
 
     // cleanup
     threadpool_timer_destroy(timer);
-    threadpool_destroy(threadpool);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
 
@@ -417,7 +418,7 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
     ASSERT_IS_NOT_NULL(execution_engine);
 
     // create the threadpool
-    THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
     (void)interlocked_exchange(&call_count, 0);
@@ -445,7 +446,7 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
 
     // cleanup
     threadpool_timer_destroy(timer);
-    threadpool_destroy(threadpool);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
 
@@ -459,7 +460,7 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
     ASSERT_IS_NOT_NULL(execution_engine);
 
     // create the threadpool
-    THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
     (void)interlocked_exchange(&wait_work_context.call_count, 0);
@@ -483,7 +484,7 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
     interlocked_increment(&wait_work_context.wait_event);
 
     // cleanup
-    threadpool_destroy(threadpool);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
 
@@ -497,7 +498,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
     ASSERT_IS_NOT_NULL(execution_engine);
 
     // create the threadpool
-    THREADPOOL_HANDLE threadpool = threadpool_create(execution_engine);
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
     (void)interlocked_exchange(&wait_work_context.call_count, 0);
@@ -522,7 +523,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
 
     // cleanup
     threadpool_timer_destroy(timer);
-    threadpool_destroy(threadpool);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
 

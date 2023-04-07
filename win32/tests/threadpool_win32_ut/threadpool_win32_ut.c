@@ -223,12 +223,10 @@ static THANDLE(THREADPOOL) test_create_and_open_threadpool(PTP_CALLBACK_ENVIRON*
     return threadpool;
 }
 
-static void test_create_threadpool_and_start_timer(uint32_t start_delay_ms, uint32_t timer_period_ms, void* work_function_context, THANDLE(THREADPOOL) threadpool, PTP_TIMER* ptp_timer, PTP_TIMER_CALLBACK* test_timer_callback, PVOID* test_timer_callback_context, TIMER_INSTANCE_HANDLE* timer_instance)
+static void test_create_threadpool_and_start_timer(uint32_t start_delay_ms, uint32_t timer_period_ms, void* work_function_context, THANDLE(THREADPOOL)* threadpool, PTP_TIMER* ptp_timer, PTP_TIMER_CALLBACK* test_timer_callback, PVOID* test_timer_callback_context, TIMER_INSTANCE_HANDLE* timer_instance)
 {
     PTP_CALLBACK_ENVIRON cbe;
     THANDLE(THREADPOOL) test_result = test_create_and_open_threadpool(&cbe);
-
-    THANDLE_MOVE(THREADPOOL)(&threadpool, &test_result);
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, cbe))
@@ -237,7 +235,9 @@ static void test_create_threadpool_and_start_timer(uint32_t start_delay_ms, uint
         .CaptureReturn(ptp_timer);
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, 2000, 0));
 
-    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, start_delay_ms, timer_period_ms, test_work_function, work_function_context, timer_instance));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(test_result, start_delay_ms, timer_period_ms, test_work_function, work_function_context, timer_instance));
+
+    THANDLE_MOVE(THREADPOOL)(threadpool, &test_result);
     umock_c_reset_all_calls();
 }
 
@@ -525,7 +525,6 @@ TEST_FUNCTION(threadpool_open_after_open_fails)
 
 /* threadpool_close */
 
-#if 0
 /* Tests_SRS_THREADPOOL_WIN32_01_016: [ If threadpool is NULL, threadpool_close shall return. ]*/
 TEST_FUNCTION(threadpool_close_with_NULL_handle_returns)
 {
@@ -595,7 +594,7 @@ TEST_FUNCTION(threadpool_close_after_close_returns)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THREADPOOL_HANDLE threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
     threadpool_close(threadpool);
     umock_c_reset_all_calls();
 
@@ -630,7 +629,7 @@ TEST_FUNCTION(threadpool_schedule_work_with_NULL_work_function_fails)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THREADPOOL_HANDLE threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
     int result;
 
     // act
@@ -651,7 +650,7 @@ TEST_FUNCTION(threadpool_schedule_work_succeeds)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THREADPOOL_HANDLE threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
 
     int result;
     PTP_WORK_CALLBACK test_work_callback;
@@ -683,7 +682,7 @@ TEST_FUNCTION(threadpool_schedule_work_succeeds_with_NULL_work_function_context)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THREADPOOL_HANDLE threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
 
     int result;
     PTP_WORK_CALLBACK test_work_callback;
@@ -715,7 +714,7 @@ TEST_FUNCTION(when_underlying_calls_fail_threadpool_schedule_work_fails)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THREADPOOL_HANDLE threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
 
     int result;
     size_t i;
@@ -755,7 +754,7 @@ TEST_FUNCTION(on_work_callback_with_NULL_context_returns)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THREADPOOL_HANDLE threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
 
     PTP_WORK_CALLBACK test_work_callback;
     PVOID test_work_callback_context;
@@ -788,7 +787,7 @@ TEST_FUNCTION(on_work_callback_triggers_the_user_work_function)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THREADPOOL_HANDLE threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
 
     PTP_WORK_CALLBACK test_work_callback;
     PVOID test_work_callback_context;
@@ -824,7 +823,7 @@ TEST_FUNCTION(on_work_callback_triggers_2_user_work_functions)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THREADPOOL_HANDLE threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
 
     PTP_WORK_CALLBACK test_work_callback;
     PVOID test_work_callback_context_1;
@@ -879,7 +878,7 @@ TEST_FUNCTION(on_work_callback_triggers_the_user_work_function_with_NULL_work_fu
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THREADPOOL_HANDLE threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
 
     PTP_WORK_CALLBACK test_work_callback;
     PVOID test_work_callback_context;
@@ -928,7 +927,7 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_fails)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THREADPOOL_HANDLE threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
 
     TIMER_INSTANCE_HANDLE timer_instance;
 
@@ -948,7 +947,7 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_timer_handle_fails)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THREADPOOL_HANDLE threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
 
     // act
     int result = threadpool_timer_start(threadpool, 42, 2000, test_work_function, (void*)0x4243, NULL);
@@ -970,7 +969,7 @@ TEST_FUNCTION(threadpool_timer_start_succeeds)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THREADPOOL_HANDLE threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
 
     PTP_TIMER_CALLBACK test_timer_callback;
     PVOID test_timer_callback_context;
@@ -1010,7 +1009,7 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_context_succeeds)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THREADPOOL_HANDLE threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
 
     PTP_TIMER_CALLBACK test_timer_callback;
     PVOID test_timer_callback_context;
@@ -1050,7 +1049,7 @@ TEST_FUNCTION(threadpool_timer_start_fails_when_underlying_functions_fail)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THREADPOOL_HANDLE threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
 
     PTP_TIMER_CALLBACK test_timer_callback;
     PVOID test_timer_callback_context;
@@ -1114,7 +1113,7 @@ TEST_FUNCTION(threadpool_timer_restart_with_NULL_timer_fails)
 TEST_FUNCTION(threadpool_timer_restart_succeeds)
 {
     // arrange
-    THREADPOOL_HANDLE threadpool;
+    THANDLE(THREADPOOL) threadpool = NULL;
     PTP_TIMER_CALLBACK test_timer_callback;
     PVOID test_timer_callback_context;
     PTP_TIMER ptp_timer;
@@ -1161,7 +1160,7 @@ TEST_FUNCTION(threadpool_timer_cancel_with_NULL_timer_fails)
 TEST_FUNCTION(threadpool_timer_cancel_succeeds)
 {
     // arrange
-    THREADPOOL_HANDLE threadpool;
+    THANDLE(THREADPOOL) threadpool = NULL;
     PTP_TIMER_CALLBACK test_timer_callback;
     PVOID test_timer_callback_context;
     PTP_TIMER ptp_timer;
@@ -1203,7 +1202,7 @@ TEST_FUNCTION(threadpool_timer_destroy_with_NULL_timer_fails)
 TEST_FUNCTION(threadpool_timer_destroy_succeeds)
 {
     // arrange
-    THREADPOOL_HANDLE threadpool;
+    THANDLE(THREADPOOL) threadpool = NULL;
     PTP_TIMER_CALLBACK test_timer_callback;
     PVOID test_timer_callback_context;
     PTP_TIMER ptp_timer;
@@ -1231,7 +1230,7 @@ TEST_FUNCTION(threadpool_timer_destroy_succeeds)
 TEST_FUNCTION(on_timer_callback_with_NULL_context_returns)
 {
     // arrange
-    THREADPOOL_HANDLE threadpool;
+    THANDLE(THREADPOOL) threadpool = NULL;
     PTP_TIMER_CALLBACK test_timer_callback;
     PVOID test_timer_callback_context;
     PTP_TIMER ptp_timer;
@@ -1254,7 +1253,7 @@ TEST_FUNCTION(on_timer_callback_with_NULL_context_returns)
 TEST_FUNCTION(on_timer_callback_calls_user_callback)
 {
     // arrange
-    THREADPOOL_HANDLE threadpool;
+    THANDLE(THREADPOOL) threadpool = NULL;
     PTP_TIMER_CALLBACK test_timer_callback;
     PVOID test_timer_callback_context;
     PTP_TIMER ptp_timer;
@@ -1279,7 +1278,7 @@ TEST_FUNCTION(on_timer_callback_calls_user_callback)
 TEST_FUNCTION(on_timer_callback_calls_user_callback_multiple_times_as_timer_fires)
 {
     // arrange
-    THREADPOOL_HANDLE threadpool;
+    THANDLE(THREADPOOL) threadpool = NULL;
     PTP_TIMER_CALLBACK test_timer_callback;
     PVOID test_timer_callback_context;
     PTP_TIMER ptp_timer;
@@ -1306,5 +1305,5 @@ TEST_FUNCTION(on_timer_callback_calls_user_callback_multiple_times_as_timer_fire
     threadpool_timer_destroy(timer_instance);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
-#endif
+
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
