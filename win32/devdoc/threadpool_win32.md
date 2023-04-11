@@ -11,20 +11,21 @@ It uses the PTP_POOL associated with the execution engine passed as argument to 
 `threadpool_win32` implements the `threadpool` API:
 
 ```c
-typedef struct THREADPOOL_TAG* THREADPOOL_HANDLE;
+typedef struct THREADPOOL_TAG THREADPOOL;
 typedef struct TIMER_INSTANCE_TAG* TIMER_INSTANCE_HANDLE;
 
 typedef void (*THREADPOOL_WORK_FUNCTION)(void* context);
 
-MOCKABLE_FUNCTION(, THREADPOOL_HANDLE, threadpool_create, EXECUTION_ENGINE_HANDLE, execution_engine);
-MOCKABLE_FUNCTION(, void, threadpool_destroy, THREADPOOL_HANDLE, threadpool);
+THANDLE_TYPE_DECLARE(THREADPOOL);
 
-MOCKABLE_FUNCTION(, int, threadpool_open, THREADPOOL_HANDLE, threadpool);
-MOCKABLE_FUNCTION(, void, threadpool_close, THREADPOOL_HANDLE, threadpool);
+MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HANDLE, execution_engine);
 
-MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THREADPOOL_HANDLE, threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
+MOCKABLE_FUNCTION(, int, threadpool_open, THANDLE(THREADPOOL), threadpool);
+MOCKABLE_FUNCTION(, void, threadpool_close, THANDLE(THREADPOOL), threadpool);
 
-MOCKABLE_FUNCTION(, int, threadpool_timer_start, THREADPOOL_HANDLE, threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, TIMER_INSTANCE_HANDLE*, timer_handle);
+MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
+
+MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, TIMER_INSTANCE_HANDLE*, timer_handle);
 
 MOCKABLE_FUNCTION(, int, threadpool_timer_restart, TIMER_INSTANCE_HANDLE, timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
 
@@ -36,7 +37,7 @@ MOCKABLE_FUNCTION(, void, threadpool_timer_destroy, TIMER_INSTANCE_HANDLE, timer
 ### threadpool_create
 
 ```c
-MOCKABLE_FUNCTION(, THREADPOOL_HANDLE, threadpool_create, EXECUTION_ENGINE_HANDLE, execution_engine);
+MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HANDLE, execution_engine);
 ```
 
 `threadpool_create` creates a threadpool object that can execute work items.
@@ -51,23 +52,21 @@ MOCKABLE_FUNCTION(, THREADPOOL_HANDLE, threadpool_create, EXECUTION_ENGINE_HANDL
 
 **SRS_THREADPOOL_WIN32_01_003: [** If any error occurs, `threadpool_create` shall fail and return `NULL`. **]**
 
-### threadpool_destroy
+### threadpool_dispose
 
-```c
-MOCKABLE_FUNCTION(, void, threadpool_destroy, THREADPOOL_HANDLE, threadpool);
+```C
+static void threadpool_dispose(THREADPOOL* threadpool)
 ```
 
-`threadpool_destroy` frees all resources associated with `threadpool`.
+`threadpool_dispose` frees all resources associated with `threadpool`.
 
-**SRS_THREADPOOL_WIN32_01_004: [** If `threadpool` is `NULL`, `threadpool_destroy` shall return. **]**
+**SRS_THREADPOOL_WIN32_01_005: [** `threadpool_dispose` shall free all resources associated with `threadpool`. **]**
 
-**SRS_THREADPOOL_WIN32_01_005: [** Otherwise, `threadpool_destroy` shall free all resources associated with `threadpool`. **]**
+**SRS_THREADPOOL_WIN32_01_006: [** While `threadpool` is OPENING or CLOSING, `threadpool_dispose` shall wait for the open to complete either successfully or with error. **]**
 
-**SRS_THREADPOOL_WIN32_01_006: [** While `threadpool` is OPENING or CLOSING, `threadpool_destroy` shall wait for the open to complete either successfully or with error. **]**
+**SRS_THREADPOOL_WIN32_01_007: [** `threadpool_dispose` shall perform an implicit close if `threadpool` is OPEN. **]**
 
-**SRS_THREADPOOL_WIN32_01_007: [** `threadpool_destroy` shall perform an implicit close if `threadpool` is OPEN. **]**
-
-**SRS_THREADPOOL_WIN32_42_028: [** `threadpool_destroy` shall decrement the reference count on the `execution_engine`. **]**
+**SRS_THREADPOOL_WIN32_42_028: [** `threadpool_dispose` shall decrement the reference count on the `execution_engine`. **]**
 
 ### threadpool_open
 

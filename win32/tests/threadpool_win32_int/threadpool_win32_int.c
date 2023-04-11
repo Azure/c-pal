@@ -21,6 +21,8 @@
 
 #include "c_pal/execution_engine_win32.h"
 
+#define XTEST_FUNCTION(A) void A(void)
+
 static void work_function(void* context)
 {
     volatile LONG64* call_count = (volatile LONG64*)context;
@@ -126,6 +128,8 @@ TEST_SUITE_INITIALIZE(suite_init)
 {
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 
+    // Turn off logging so it doesn't put unneccesary
+    // sleeps in the code.
     xlogging_set_log_function(NULL);
 }
 
@@ -551,6 +555,49 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
 }
 
 #define N_TIMERS 100
+
+TEST_FUNCTION(MU_C3(starting_, N_TIMERS, _timer_start_runs_once))
+{
+    // assert
+    // create an execution engine
+    volatile uint32_t call_count;
+    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    // create the threadpool
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    THANDLE(THREADPOOL) threadpool_1 = NULL;
+    THANDLE_INITIALIZE(THREADPOOL)(&threadpool_1, threadpool);
+
+    // open
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
+
+    TIMER_INSTANCE_HANDLE timers[N_TIMERS];
+    for (uint32_t index = 0; index < 1; index++)
+    {
+        ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool_1, 200, 200, work_function, (void*)&call_count, &timers[index]));
+
+    }
+
+    Sleep(5000);
+    LogInfo("Waiting for timer to execute after short delay of no execution");
+
+    for (uint32_t index = 0; index < 1; index++)
+    {
+        threadpool_timer_destroy(timers[index]);
+    }
+
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool_1, NULL);
+
+    // cleanup
+    threadpool_close(threadpool);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
 
 TEST_FUNCTION(MU_C3(starting_, N_TIMERS, _start_timers_work_and_run_periodically))
 {

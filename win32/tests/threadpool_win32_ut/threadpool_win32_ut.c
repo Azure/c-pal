@@ -229,7 +229,7 @@ static void test_create_threadpool_and_start_timer(uint32_t start_delay_ms, uint
     THANDLE(THREADPOOL) test_result = test_create_and_open_threadpool(&cbe);
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, cbe))
+    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, NULL))
         .CaptureArgumentValue_pfnti(test_timer_callback)
         .CaptureArgumentValue_pv(test_timer_callback_context)
         .CaptureReturn(ptp_timer);
@@ -352,11 +352,12 @@ TEST_FUNCTION(when_underlying_calls_fail_threadpool_create_fails)
     }
 }
 
-/* threadpool_destroy */
+/* threadpool_dispose */
 
-/* Tests_SRS_THREADPOOL_WIN32_01_005: [ Otherwise, threadpool_destroy shall free all resources associated with threadpool. ]*/
-/* Tests_SRS_THREADPOOL_WIN32_42_028: [ threadpool_destroy shall decrement the reference count on the execution_engine. ]*/
-TEST_FUNCTION(threadpool_destroy_frees_resources)
+
+/* Tests_SRS_THREADPOOL_WIN32_01_005: [ threadpool_dispose shall free all resources associated with threadpool. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_42_028: [ threadpool_dispose shall decrement the reference count on the execution_engine. ]*/
+TEST_FUNCTION(threadpool_dispose_frees_resources)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
@@ -373,9 +374,9 @@ TEST_FUNCTION(threadpool_destroy_frees_resources)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/* Tests_SRS_THREADPOOL_WIN32_01_006: [ While threadpool is OPENING or CLOSING, threadpool_destroy shall wait for the open to complete either successfully or with error. ]*/
-/* Tests_SRS_THREADPOOL_WIN32_01_007: [ threadpool_destroy shall perform an implicit close if threadpool is OPEN. ]*/
-TEST_FUNCTION(threadpool_destroy_performs_an_implicit_close)
+/* Tests_SRS_THREADPOOL_WIN32_01_006: [ While threadpool is OPENING or CLOSING, threadpool_dispose shall wait for the open to complete either successfully or with error. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_01_007: [ threadpool_dispose shall perform an implicit close if threadpool is OPEN. ]*/
+TEST_FUNCTION(threadpool_dispose_performs_an_implicit_close)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
@@ -984,7 +985,7 @@ TEST_FUNCTION(threadpool_timer_start_succeeds)
     filetime_expected.dwLowDateTime = ularge_due_time.LowPart;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, cbe))
+    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, NULL))
         .CaptureArgumentValue_pfnti(&test_timer_callback)
         .CaptureArgumentValue_pv(&test_timer_callback_context)
         .CaptureReturn(&ptp_timer);
@@ -1024,7 +1025,7 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_context_succeeds)
     filetime_expected.dwLowDateTime = ularge_due_time.LowPart;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, cbe))
+    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, NULL))
         .CaptureArgumentValue_pfnti(&test_timer_callback)
         .CaptureArgumentValue_pv(&test_timer_callback_context)
         .CaptureReturn(&ptp_timer);
@@ -1064,7 +1065,7 @@ TEST_FUNCTION(threadpool_timer_start_fails_when_underlying_functions_fail)
     filetime_expected.dwLowDateTime = ularge_due_time.LowPart;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, cbe))
+    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, NULL))
         .CaptureArgumentValue_pfnti(&test_timer_callback)
         .CaptureArgumentValue_pv(&test_timer_callback_context)
         .CaptureReturn(&ptp_timer);

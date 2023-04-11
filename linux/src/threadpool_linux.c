@@ -286,26 +286,18 @@ static int reallocate_threadpool_array(THREADPOOL* threadpool)
 
 static void threadpool_dispose(THREADPOOL* threadpool)
 {
-    if (threadpool == NULL)
-    {
-        /* Codes_SRS_THREADPOOL_LINUX_07_012: [ If threadpool is NULL, threadpool_destroy shall return. ]*/
-        LogError("Invalid arguments: THANDLE(THREADPOOL) threadpool: %p", threadpool);
-    }
-    else
-    {
-        /* Codes_SRS_THREADPOOL_LINUX_07_013: [ threadpool_destroy shall perform an implicit close if threadpool is open. ]*/
-        internal_close(threadpool);
+    /* Codes_SRS_THREADPOOL_LINUX_07_013: [ threadpool_destroy shall perform an implicit close if threadpool is open. ]*/
+    internal_close(threadpool);
 
-        /* Codes_SRS_THREADPOOL_LINUX_07_016: [ threadpool_destroy shall free the memory allocated in threadpool_create. ]*/
-        free(threadpool->task_array);
-        free(threadpool->thread_handle_array);
+    /* Codes_SRS_THREADPOOL_LINUX_07_016: [ threadpool_destroy shall free the memory allocated in threadpool_create. ]*/
+    free(threadpool->task_array);
+    free(threadpool->thread_handle_array);
 
-        /* Codes_SRS_THREADPOOL_LINUX_07_014: [ threadpool_destroy shall destroy the semphore by calling sem_destroy. ]*/
-        sem_destroy(&threadpool->semaphore);
-        /* Codes_SRS_THREADPOOL_LINUX_07_015: [ threadpool_destroy shall destroy the SRW lock by calling srw_lock_destroy. ]*/
-        srw_lock_destroy(threadpool->srw_lock);
-        sm_destroy(threadpool->sm);
-    }
+    /* Codes_SRS_THREADPOOL_LINUX_07_014: [ threadpool_destroy shall destroy the semphore by calling sem_destroy. ]*/
+    sem_destroy(&threadpool->semaphore);
+    /* Codes_SRS_THREADPOOL_LINUX_07_015: [ threadpool_destroy shall destroy the SRW lock by calling srw_lock_destroy. ]*/
+    srw_lock_destroy(threadpool->srw_lock);
+    sm_destroy(threadpool->sm);
 }
 
 THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
