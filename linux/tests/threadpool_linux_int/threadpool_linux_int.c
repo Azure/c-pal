@@ -22,7 +22,8 @@
 #include "c_pal/sync.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_linux.h"
-#include "c_pal/thandle.h"
+#include "c_pal/thandle.h" // IWYU pragma: keep
+#include "c_pal/thandle_ll.h"
 
 typedef struct WAIT_WORK_CONTEXT_TAG
 {

@@ -19,20 +19,21 @@ The lifetime of the execution engine should supersede the lifetime of the `threa
 ## Exposed API
 
 ```c
-typedef struct THREADPOOL_TAG* THREADPOOL_HANDLE;
+typedef struct THREADPOOL_TAG THREADPOOL;
 typedef struct TIMER_INSTANCE_TAG* TIMER_INSTANCE_HANDLE;
 
 typedef void (*THREADPOOL_WORK_FUNCTION)(void* context);
 
-MOCKABLE_FUNCTION(, THREADPOOL_HANDLE, threadpool_create, EXECUTION_ENGINE_HANDLE, execution_engine);
-MOCKABLE_FUNCTION(, void, threadpool_destroy, THREADPOOL_HANDLE, threadpool);
+THANDLE_TYPE_DECLARE(THREADPOOL);
 
-MOCKABLE_FUNCTION(, int, threadpool_open, THREADPOOL_HANDLE, threadpool);
-MOCKABLE_FUNCTION(, void, threadpool_close, THREADPOOL_HANDLE, threadpool);
+MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HANDLE, execution_engine);
 
-MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THREADPOOL_HANDLE, threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
+MOCKABLE_FUNCTION(, int, threadpool_open, THANDLE(THREADPOOL), threadpool);
+MOCKABLE_FUNCTION(, void, threadpool_close, THANDLE(THREADPOOL), threadpool);
 
-MOCKABLE_FUNCTION(, int, threadpool_timer_start, THREADPOOL_HANDLE, threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, TIMER_INSTANCE_HANDLE*, timer_handle);
+MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
+
+MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, TIMER_INSTANCE_HANDLE*, timer_handle);
 
 MOCKABLE_FUNCTION(, int, threadpool_timer_restart, TIMER_INSTANCE_HANDLE, timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
 
@@ -81,9 +82,7 @@ MOCKABLE_FUNCTION(, int, threadpool_open, THREADPOOL_HANDLE, threadpool);
 
 **NON_THREADPOOL_01_008: [** If `threadpool` is `NULL`, `threadpool_open` shall fail and return a non-zero value. **]**
 
-**NON_THREADPOOL_01_009: [** If `on_open_complete` is `NULL`, `threadpool_open` shall fail and return a non-zero value. **]**
-
-**NON_THREADPOOL_01_011: [** Otherwise, `threadpool_open` shall switch the state to OPENING and perform any actions needed to open the `threadpool` object. **]**
+**NON_THREADPOOL_01_011: [** `threadpool_open` shall switch the state to OPENING and perform any actions needed to open the `threadpool` object. **]**
 
 **NON_THREADPOOL_01_012: [** On success, `threadpool_open` shall return 0. **]**
 

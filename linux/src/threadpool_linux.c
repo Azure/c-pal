@@ -28,7 +28,8 @@
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_linux.h"
 #include "c_pal/sm.h"
-#include "c_pal/thandle.h"
+#include "c_pal/thandle.h" // IWYU pragma: keep
+#include "c_pal/thandle_ll.h"
 
 #include "c_pal/threadpool.h"
 

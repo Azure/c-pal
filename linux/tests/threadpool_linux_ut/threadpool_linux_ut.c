@@ -33,7 +33,8 @@
 
 #undef ENABLE_MOCKS
 
-#include "c_pal/thandle.h"
+#include "c_pal/thandle.h" // IWYU pragma: keep
+#include "c_pal/thandle_ll.h"
 
 #include "real_interlocked.h"
 #include "real_gballoc_hl.h"

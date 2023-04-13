@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+#define THREADPOOL                      real_THREADPOOL
+
 #define threadpool_create               real_threadpool_create
-#define threadpool_destroy              real_threadpool_destroy
 #define threadpool_open                 real_threadpool_open
 #define threadpool_close                real_threadpool_close
 #define threadpool_schedule_work        real_threadpool_schedule_work

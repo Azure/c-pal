@@ -119,10 +119,10 @@ static void threadpool_dispose(THREADPOOL* threadpool)
 ### threadpool_open
 
 ```C
-MOCKABLE_FUNCTION(, int, threadpool_open, THREADPOOL_HANDLE, threadpool);
+MOCKABLE_FUNCTION(, int, threadpool_open, THANDLE(THREADPOOL), threadpool);
 ```
 
-`threadpool_open` opens the threadpool asynchronously.
+`threadpool_open` opens the threadpool.
 
 **SRS_THREADPOOL_LINUX_07_017: [** If `threadpool` is `NULL`, `threadpool_open` shall fail and return a non-zero value. **]**
 
@@ -143,7 +143,7 @@ MOCKABLE_FUNCTION(, int, threadpool_open, THREADPOOL_HANDLE, threadpool);
 ### threadpool_close
 
 ```C
-MOCKABLE_FUNCTION(, void, threadpool_close, THREADPOOL_HANDLE, threadpool);
+MOCKABLE_FUNCTION(, void, threadpool_close, THANDLE(THREADPOOL), threadpool);
 ```
 
 `threadpool_close` closes the threadpool.
@@ -161,7 +161,7 @@ MOCKABLE_FUNCTION(, void, threadpool_close, THREADPOOL_HANDLE, threadpool);
 ### threadpool_schedule_work
 
 ```C
-MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THREADPOOL_HANDLE, threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
+MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 ```
 
 `threadpool_schedule_work` schedule the threadpool to work.
@@ -217,7 +217,7 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THREADPOOL_HANDLE, threadpool
 ### threadpool_timer_start
 
 ```C
-MOCKABLE_FUNCTION(, int, threadpool_timer_start, THREADPOOL_HANDLE, threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_ctx, TIMER_INSTANCE_HANDLE*, timer_handle);
+MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_ctx, TIMER_INSTANCE_HANDLE*, timer_handle);
 ```
 
 `threadpool_timer_start` starts a threadpool timer which runs after `start_delay_ms` milliseconds and then runs again every `timer_period_ms` milliseconds until `threadpool_timer_cancel` or `threadpool_timer_destroy` is called. The `timer_handle` must be stopped before closing/destroying the threadpool.

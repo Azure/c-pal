@@ -253,7 +253,7 @@ void threadpool_close(THANDLE(THREADPOOL) threadpool)
 
         /* Codes_SRS_THREADPOOL_WIN32_01_017: [ Otherwise, threadpool_close shall switch the state to CLOSING. ]*/
         THREADPOOL_WIN32_STATE current_state;
-        if ((current_state = InterlockedCompareExchange(&threadpool_ptr->state, (LONG)THREADPOOL_WIN32_STATE_CLOSING, THREADPOOL_WIN32_STATE_OPEN)) != THREADPOOL_WIN32_STATE_OPEN)
+        if ((current_state = InterlockedCompareExchange(&threadpool_ptr->state, THREADPOOL_WIN32_STATE_CLOSING, THREADPOOL_WIN32_STATE_OPEN)) != THREADPOOL_WIN32_STATE_OPEN)
         {
             /* Codes_SRS_THREADPOOL_WIN32_01_019: [ If threadpool is not OPEN, threadpool_close shall return. ]*/
             LogWarning("Not open, current state = %" PRI_MU_ENUM "", MU_ENUM_VALUE(THREADPOOL_WIN32_STATE, current_state));
@@ -420,7 +420,7 @@ int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_
             else
             {
                 /* Codes_SRS_THREADPOOL_WIN32_42_006: [ threadpool_timer_start shall call CreateThreadpoolTimer to schedule execution the callback while passing to it the on_timer_callback function and the newly created context. ]*/
-                PTP_TIMER tp_timer = CreateThreadpoolTimer(on_timer_callback, timer_temp, NULL);
+                PTP_TIMER tp_timer = CreateThreadpoolTimer(on_timer_callback, timer_temp, &threadpool_ptr->tp_environment);
                 if (tp_timer == NULL)
                 {
                     /* Codes_SRS_THREADPOOL_WIN32_42_008: [ If any error occurs, threadpool_timer_start shall fail and return a non-zero value. ]*/
