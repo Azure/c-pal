@@ -28,6 +28,8 @@
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_linux.h"
 #include "c_pal/sm.h"
+#include "c_pal/thandle.h" // IWYU pragma: keep
+#include "c_pal/thandle_ll.h"
 
 #include "c_pal/threadpool.h"
 
@@ -43,8 +45,6 @@
 
 MU_DEFINE_ENUM(TASK_RESULT, TASK_RESULT_VALUES);
 MU_DEFINE_ENUM_STRINGS(TASK_RESULT, TASK_RESULT_VALUES)
-
-MU_DEFINE_ENUM_STRINGS(THREADPOOL_OPEN_RESULT, THREADPOOL_OPEN_RESULT_VALUES)
 
 #define THREADPOOL_STATE_VALUES \
     THREADPOOL_STATE_NOT_OPEN,  \
@@ -91,6 +91,8 @@ typedef struct THREADPOOL_TAG
     THREAD_HANDLE* thread_handle_array;
 } THREADPOOL;
 
+THANDLE_TYPE_DEFINE(THREADPOOL);
+
 static void on_timer_callback(sigval_t timer_data)
 {
     TIMER_INSTANCE* timer_instance = timer_data.sival_ptr;
@@ -104,7 +106,7 @@ static void on_timer_callback(sigval_t timer_data)
     }
 }
 
-static void internal_close(THREADPOOL_HANDLE threadpool)
+static void internal_close(THREADPOOL* threadpool)
 {
     bool should_wait_for_transition = false;
     /* Codes_SRS_THREADPOOL_LINUX_07_026: [ Otherwise, threadpool_close shall call sm_close_begin. ]*/
@@ -283,12 +285,28 @@ static int reallocate_threadpool_array(THREADPOOL* threadpool)
     return result;
 }
 
-THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
+static void threadpool_dispose(THREADPOOL* threadpool)
 {
-    THREADPOOL* result;
+    /* Codes_SRS_THREADPOOL_LINUX_07_013: [ threadpool_destroy shall perform an implicit close if threadpool is open. ]*/
+    internal_close(threadpool);
+
+    /* Codes_SRS_THREADPOOL_LINUX_07_016: [ threadpool_destroy shall free the memory allocated in threadpool_create. ]*/
+    free(threadpool->task_array);
+    free(threadpool->thread_handle_array);
+
+    /* Codes_SRS_THREADPOOL_LINUX_07_014: [ threadpool_destroy shall destroy the semphore by calling sem_destroy. ]*/
+    sem_destroy(&threadpool->semaphore);
+    /* Codes_SRS_THREADPOOL_LINUX_07_015: [ threadpool_destroy shall destroy the SRW lock by calling srw_lock_destroy. ]*/
+    srw_lock_destroy(threadpool->srw_lock);
+    sm_destroy(threadpool->sm);
+}
+
+THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
+{
+    THREADPOOL* result = NULL;
 
     /* Codes_SRS_THREADPOOL_LINUX_07_002: [ If execution_engine is NULL, threadpool_create shall fail and return NULL. ]*/
-    if (execution_engine == 0)
+    if (execution_engine == NULL)
     {
         LogError("Invalid arguments: EXECUTION_ENGINE_HANDLE execution_engine: %p", execution_engine);
         result = NULL;
@@ -296,7 +314,7 @@ THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
     else
     {
         /* Codes_SRS_THREADPOOL_LINUX_07_001: [ threadpool_create shall allocate memory for a threadpool object and on success return a non-NULL handle to it. ]*/
-        result = malloc(sizeof(THREADPOOL));
+        result = THANDLE_MALLOC(THREADPOOL)(threadpool_dispose);
         if (result == NULL)
         {
             LogError("Failure allocating THREADPOOL structure");
@@ -381,7 +399,7 @@ THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                 }
                 sm_destroy(result->sm);
             }
-            free(result);
+            THANDLE_FREE(THREADPOOL)(result);
             result = NULL;
         }
     }
@@ -389,91 +407,62 @@ all_ok:
     return result;
 }
 
-void threadpool_destroy(THREADPOOL_HANDLE threadpool)
-{
-    if (threadpool == NULL)
-    {
-        /* Codes_SRS_THREADPOOL_LINUX_07_012: [ If threadpool is NULL, threadpool_destroy shall return. ]*/
-        LogError("Invalid arguments: THREADPOOL_HANDLE threadpool: %p", threadpool);
-    }
-    else
-    {
-        /* Codes_SRS_THREADPOOL_LINUX_07_013: [ threadpool_destroy shall perform an implicit close if threadpool is open. ]*/
-        internal_close(threadpool);
-
-        /* Codes_SRS_THREADPOOL_LINUX_07_016: [ threadpool_destroy shall free the memory allocated in threadpool_create. ]*/
-        free(threadpool->task_array);
-        free(threadpool->thread_handle_array);
-
-        /* Codes_SRS_THREADPOOL_LINUX_07_014: [ threadpool_destroy shall destroy the semphore by calling sem_destroy. ]*/
-        sem_destroy(&threadpool->semaphore);
-        /* Codes_SRS_THREADPOOL_LINUX_07_015: [ threadpool_destroy shall destroy the SRW lock by calling srw_lock_destroy. ]*/
-        srw_lock_destroy(threadpool->srw_lock);
-        sm_destroy(threadpool->sm);
-
-        /* Codes_SRS_THREADPOOL_LINUX_07_016: [ threadpool_destroy shall free the memory allocated in threadpool_create. ]*/
-        free(threadpool);
-    }
-}
-
-int threadpool_open_async(THREADPOOL_HANDLE threadpool, ON_THREADPOOL_OPEN_COMPLETE on_open_complete, void* on_open_complete_context)
+int threadpool_open(THANDLE(THREADPOOL) threadpool)
 {
     int result;
     if (
-        /* Codes_SRS_THREADPOOL_LINUX_07_017: [ If threadpool is NULL, threadpool_open_async shall fail and return a non-zero value. ]*/
-        (threadpool == NULL) ||
-        /* Codes_SRS_THREADPOOL_LINUX_07_086: [ If on_open_complete is NULL, threadpool_open_async shall fail and return a non-zero value. ]*/
-        (on_open_complete == NULL))
+        /* Codes_SRS_THREADPOOL_LINUX_07_017: [ If threadpool is NULL, threadpool_open shall fail and return a non-zero value. ]*/
+        threadpool == NULL
+    )
     {
-        LogError("THREADPOOL_HANDLE threadpool=%p, ON_THREADPOOL_OPEN_COMPLETE on_open_complete=%p, void* on_open_complete_context=%p",
-            threadpool, on_open_complete, on_open_complete_context);
+        LogError("THANDLE(THREADPOOL) threadpool=%p", threadpool);
         result = MU_FAILURE;
     }
     else
     {
-        /* Codes_SRS_THREADPOOL_LINUX_07_018: [ threadpool_open_async shall call sm_open_begin. ]*/
-        SM_RESULT open_result = sm_open_begin(threadpool->sm);
+        THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
+
+        /* Codes_SRS_THREADPOOL_LINUX_07_018: [ threadpool_open shall call sm_open_begin. ]*/
+        SM_RESULT open_result = sm_open_begin(threadpool_ptr->sm);
         if(open_result != SM_EXEC_GRANTED)
         {
-            /* Codes_SRS_THREADPOOL_LINUX_07_019: [ If sm_open_begin indicates the open cannot be performed, threadpool_open_async shall fail and return a non-zero value. ]*/
+            /* Codes_SRS_THREADPOOL_LINUX_07_019: [ If sm_open_begin indicates the open cannot be performed, threadpool_open shall fail and return a non-zero value. ]*/
             LogError("sm_open_begin failed with %" PRI_MU_ENUM, MU_ENUM_VALUE(SM_RESULT, open_result));
             result = MU_FAILURE;
         }
         else
         {
             int32_t index;
-            for (index = 0; index < threadpool->used_thread_count; index++)
+            for (index = 0; index < threadpool_ptr->used_thread_count; index++)
             {
-                /* Codes_SRS_THREADPOOL_LINUX_07_020: [ threadpool_open_async shall create number of min_thread_count threads for threadpool using ThreadAPI_Create. ]*/
-                if (ThreadAPI_Create(&threadpool->thread_handle_array[index], threadpool_work_func, threadpool) != THREADAPI_OK)
+                /* Codes_SRS_THREADPOOL_LINUX_07_020: [ threadpool_open shall create number of min_thread_count threads for threadpool using ThreadAPI_Create. ]*/
+                if (ThreadAPI_Create(&threadpool_ptr->thread_handle_array[index], threadpool_work_func, threadpool_ptr) != THREADAPI_OK)
                 {
-                    /* Codes_SRS_THREADPOOL_LINUX_07_021: [ If any error occurs, threadpool_open_async shall fail and return a non-zero value. ]*/
+                    /* Codes_SRS_THREADPOOL_LINUX_07_021: [ If any error occurs, threadpool_open shall fail and return a non-zero value. ]*/
                     LogError("Failure creating thread %" PRId32 "", index);
                     break;
                 }
             }
 
-            /* Codes_SRS_THREADPOOL_LINUX_07_022: [ If one of the thread creation fails, threadpool_open_async shall fail and return a non-zero value, terminate all threads already created. ]*/
-            if (index < threadpool->used_thread_count)
+            /* Codes_SRS_THREADPOOL_LINUX_07_022: [ If one of the thread creation fails, threadpool_open shall fail and return a non-zero value, terminate all threads already created. ]*/
+            if (index < threadpool_ptr->used_thread_count)
             {
                 for (int32_t inner = 0; inner < index; inner++)
                 {
                     int dont_care;
-                    if (ThreadAPI_Join(threadpool->thread_handle_array[inner], &dont_care) != THREADAPI_OK)
+                    if (ThreadAPI_Join(threadpool_ptr->thread_handle_array[inner], &dont_care) != THREADAPI_OK)
                     {
                         LogError("Failure joining thread number %" PRId32 "", inner);
                     }
                 }
-                sm_open_end(threadpool->sm, false);
-                on_open_complete(on_open_complete_context, THREADPOOL_OPEN_ERROR);
+                sm_open_end(threadpool_ptr->sm, false);
                 result = MU_FAILURE;
             }
-            /* Codes_SRS_THREADPOOL_LINUX_07_023: [ Otherwise, threadpool_open_async shall shall call sm_open_end with true for success. ]*/
-            /* Codes_SRS_THREADPOOL_LINUX_07_024: [ threadpool_open_async shall succeed, indicate open success to the user by calling the on_open_complete callback with THREADPOOL_OPEN_OK and return zero. ]*/
             else
             {
-                sm_open_end(threadpool->sm, true);
-                on_open_complete(on_open_complete_context, THREADPOOL_OPEN_OK);
+                /* Codes_SRS_THREADPOOL_LINUX_07_023: [ Otherwise, threadpool_open shall shall call sm_open_end with true for success. ]*/
+                sm_open_end(threadpool_ptr->sm, true);
+                /* Codes_SRS_THREADPOOL_LINUX_07_024: [ threadpool_open shall succeed and return zero. ]*/
                 result = 0;
             }
         }
@@ -481,20 +470,21 @@ int threadpool_open_async(THREADPOOL_HANDLE threadpool, ON_THREADPOOL_OPEN_COMPL
     return result;
 }
 
-void threadpool_close(THREADPOOL_HANDLE threadpool)
+void threadpool_close(THANDLE(THREADPOOL) threadpool)
 {
     /* Codes_SRS_THREADPOOL_LINUX_07_025: [ If threadpool is NULL, threadpool_close shall fail and return. ]*/
     if (threadpool == NULL)
     {
-        LogError("THREADPOOL_HANDLE threadpool=%p", threadpool);
+        LogError("THANDLE(THREADPOOL) threadpool=%p", threadpool);
     }
     else
     {
-        internal_close(threadpool);
+        THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
+        internal_close(threadpool_ptr);
     }
 }
 
-int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_ctx)
+int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_ctx)
 {
     int result;
     if (
@@ -503,13 +493,15 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
         /* Codes_SRS_THREADPOOL_LINUX_07_030: [ If work_function is NULL, threadpool_schedule_work shall fail and return a non-zero value. ]*/
         work_function == NULL)
     {
-        LogError("Invalid arguments: THREADPOOL_HANDLE threadpool: %p, THREADPOOL_WORK_FUNCTION work_function: %p, void* work_function_ctx: %p", threadpool, work_function, work_function_ctx);
+        LogError("Invalid arguments: THANDLE(THREADPOOL) threadpool: %p, THREADPOOL_WORK_FUNCTION work_function: %p, void* work_function_ctx: %p", threadpool, work_function, work_function_ctx);
         result = MU_FAILURE;
     }
     else
     {
+        THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
+
         /* Codes_SRS_THREADPOOL_LINUX_07_031: [ threadpool_schedule_work shall call sm_exec_begin. ]*/
-        SM_RESULT sm_result = sm_exec_begin(threadpool->sm);
+        SM_RESULT sm_result = sm_exec_begin(threadpool_ptr->sm);
         if (sm_result != SM_EXEC_GRANTED)
         {
             /* Codes_SRS_THREADPOOL_LINUX_07_032: [ If sm_exec_begin returns SM_EXEC_REFUSED, threadpool_schedule_work shall fail and return a non-zero value. ]*/
@@ -521,24 +513,24 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
             do
             {
                 /* Codes_SRS_THREADPOOL_LINUX_07_033: [ threadpool_schedule_work shall acquire the SRW lock in shared mode by calling srw_lock_acquire_shared. ]*/
-                srw_lock_acquire_shared(threadpool->srw_lock);
-                int32_t existing_count = interlocked_add(&threadpool->task_array_size, 0);
+                srw_lock_acquire_shared(threadpool_ptr->srw_lock);
+                int32_t existing_count = interlocked_add(&threadpool_ptr->task_array_size, 0);
 
                 /* Codes_SRS_THREADPOOL_LINUX_07_034: [ threadpool_schedule_work shall increment the insert_pos. ]*/
-                int64_t insert_pos = interlocked_increment_64(&threadpool->insert_idx) - 1 % existing_count;
+                int64_t insert_pos = interlocked_increment_64(&threadpool_ptr->insert_idx) - 1 % existing_count;
 
                 /* Codes_SRS_THREADPOOL_LINUX_07_035: [ If task state is TASK_NOT_USED, threadpool_schedule_work shall set the current task state to TASK_INITIALIZING. ]*/
-                int32_t task_state = interlocked_compare_exchange(&threadpool->task_array[insert_pos].task_state, TASK_INITIALIZING, TASK_NOT_USED);
+                int32_t task_state = interlocked_compare_exchange(&threadpool_ptr->task_array[insert_pos].task_state, TASK_INITIALIZING, TASK_NOT_USED);
 
                 if (task_state != TASK_NOT_USED)
                 {
                     /* Codes_SRS_THREADPOOL_LINUX_07_036: [ Otherwise, threadpool_schedule_work shall release the shared SRW lock by calling srw_lock_release_shared and increase task_array capacity: ]*/
-                    srw_lock_release_shared(threadpool->srw_lock);
+                    srw_lock_release_shared(threadpool_ptr->srw_lock);
 
-                    if (reallocate_threadpool_array(threadpool) != 0)
+                    if (reallocate_threadpool_array(threadpool_ptr) != 0)
                     {
                         /* Codes_SRS_THREADPOOL_LINUX_07_048: [ If reallocating the task array fails, threadpool_schedule_work shall fail and return a non-zero value. ]*/
-                        LogError("Failure reallocating threadpool");
+                        LogError("Failure reallocating threadpool_ptr");
                         result = MU_FAILURE;
                         break;
                     }
@@ -547,16 +539,16 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
                 /* Codes_SRS_THREADPOOL_LINUX_07_049: [ threadpool_schedule_work shall copy the work function and work function context into insert position in the task array and return zero on success. ]*/
                 else
                 {
-                    THREADPOOL_TASK* task_item = &threadpool->task_array[insert_pos];
+                    THREADPOOL_TASK* task_item = &threadpool_ptr->task_array[insert_pos];
                     task_item->work_function_ctx = work_function_ctx;
                     task_item->work_function = work_function;
 
                     /* Codes_SRS_THREADPOOL_LINUX_07_050: [ threadpool_schedule_work shall set the task_state to TASK_WAITING and then release the shared SRW lock. ]*/
                     (void)interlocked_exchange(&task_item->task_state, TASK_WAITING);
-                    srw_lock_release_shared(threadpool->srw_lock);
+                    srw_lock_release_shared(threadpool_ptr->srw_lock);
 
                     /* Codes_SRS_THREADPOOL_LINUX_07_051: [ threadpool_schedule_work shall unblock the threadpool semaphore by calling sem_post. ]*/
-                    sem_post(&threadpool->semaphore);
+                    sem_post(&threadpool_ptr->semaphore);
 
                     /* Codes_SRS_THREADPOOL_LINUX_07_047: [ threadpool_schedule_work shall return zero on success. ]*/
                     result = 0;
@@ -564,14 +556,14 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
                 }
             } while (true);
             /* Codes_SRS_THREADPOOL_LINUX_07_053: [ threadpool_schedule_work shall call sm_exec_end. ]*/
-            sm_exec_end(threadpool->sm);
+            sm_exec_end(threadpool_ptr->sm);
         }
     }
 all_ok:
     return result;
 }
 
-int threadpool_timer_start(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_ctx, TIMER_INSTANCE_HANDLE* timer_handle)
+int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_ctx, TIMER_INSTANCE_HANDLE* timer_handle)
 {
     int result;
 
@@ -584,7 +576,7 @@ int threadpool_timer_start(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms
         timer_handle == NULL
         )
     {
-        LogError("Invalid args: THREADPOOL_HANDLE threadpool = %p, uint32_t start_delay_ms = %" PRIu32 ", uint32_t timer_period_ms = %" PRIu32 ", THREADPOOL_WORK_FUNCTION work_function = %p, void* work_function_context = %p, TIMER_INSTANCE_HANDLE* timer_handle = %p",
+        LogError("Invalid args: THANDLE(THREADPOOL) threadpool = %p, uint32_t start_delay_ms = %" PRIu32 ", uint32_t timer_period_ms = %" PRIu32 ", THREADPOOL_WORK_FUNCTION work_function = %p, void* work_function_context = %p, TIMER_INSTANCE_HANDLE* timer_handle = %p",
             threadpool, start_delay_ms, timer_period_ms, work_function, work_function_ctx, timer_handle);
         result = MU_FAILURE;
     }

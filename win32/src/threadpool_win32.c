@@ -7,11 +7,12 @@
 
 #include "c_logging/xlogging.h"
 
-#include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
-#include "c_pal/threadpool.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_win32.h"
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/thandle.h"
+#include "c_pal/threadpool.h"
 
 #define THREADPOOL_WIN32_STATE_VALUES \
     THREADPOOL_WIN32_STATE_CLOSED, \
@@ -21,8 +22,6 @@
 
 MU_DEFINE_ENUM(THREADPOOL_WIN32_STATE, THREADPOOL_WIN32_STATE_VALUES)
 MU_DEFINE_ENUM_STRINGS(THREADPOOL_WIN32_STATE, THREADPOOL_WIN32_STATE_VALUES)
-
-MU_DEFINE_ENUM_STRINGS(THREADPOOL_OPEN_RESULT, THREADPOOL_OPEN_RESULT_VALUES)
 
 typedef struct WORK_ITEM_CONTEXT_TAG
 {
@@ -46,6 +45,8 @@ typedef struct THREADPOOL_TAG
     PTP_CLEANUP_GROUP tp_cleanup_group;
     volatile LONG pending_api_calls;
 } THREADPOOL;
+
+THANDLE_TYPE_DEFINE(THREADPOOL);
 
 static VOID NTAPI on_io_cancelled(PVOID ObjectContext, PVOID CleanupContext)
 {
@@ -77,7 +78,7 @@ static VOID CALLBACK on_work_callback(PTP_CALLBACK_INSTANCE instance, PVOID cont
     }
 }
 
-static void internal_close(THREADPOOL_HANDLE threadpool)
+static void internal_close(THREADPOOL* threadpool)
 {
     do
     {
@@ -99,14 +100,38 @@ static void internal_close(THREADPOOL_HANDLE threadpool)
     /* Codes_SRS_THREADPOOL_WIN32_01_033: [ threadpool_close shall destroy the thread pool environment created in threadpool_open_async. ]*/
     DestroyThreadpoolEnvironment(&threadpool->tp_environment);
 
-    (void)InterlockedExchange(&threadpool->state, (LONG)THREADPOOL_WIN32_STATE_CLOSED);
+    (void)InterlockedExchange(&threadpool->state, THREADPOOL_WIN32_STATE_CLOSED);
     WakeByAddressSingle((PVOID)&threadpool->state);
 }
 
-THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
+static void threadpool_dispose(THREADPOOL* threadpool)
 {
-    THREADPOOL_HANDLE result;
+    /* Codes_SRS_THREADPOOL_WIN32_01_005: [ threadpool_dispose shall free all resources associated with threadpool. ] */
+    /* Codes_SRS_THREADPOOL_WIN32_01_006: [ While threadpool is OPENING or CLOSING, threadpool_dispose shall wait for the open to complete either successfully or with error. ]*/
+    do
+    {
+        int32_t current_state = InterlockedCompareExchange(&threadpool->state, THREADPOOL_WIN32_STATE_CLOSING, THREADPOOL_WIN32_STATE_OPEN);
+        if (current_state == THREADPOOL_WIN32_STATE_OPEN)
+        {
+            /* Codes_SRS_THREADPOOL_WIN32_01_007: [ threadpool_destroy shall perform an implicit close if threadpool is OPEN. ]*/
+            internal_close(threadpool);
+            break;
+        }
+        else if (current_state == THREADPOOL_WIN32_STATE_CLOSED)
+        {
+            break;
+        }
 
+        (void)WaitOnAddress(&threadpool->state, &current_state, sizeof(current_state), INFINITE);
+    } while (1);
+
+    /* Codes_SRS_THREADPOOL_WIN32_42_028: [ threadpool_dispose shall decrement the reference count on the execution_engine. ]*/
+    execution_engine_dec_ref(threadpool->execution_engine);
+}
+
+THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
+{
+    THREADPOOL* result = NULL;
     /* Codes_SRS_THREADPOOL_WIN32_01_002: [ If execution_engine is NULL, threadpool_create shall fail and return NULL. ]*/
     if (execution_engine == NULL)
     {
@@ -115,11 +140,11 @@ THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
     else
     {
         /* Codes_SRS_THREADPOOL_WIN32_01_001: [ threadpool_create shall allocate a new threadpool object and on success shall return a non-NULL handle. ]*/
-        result = malloc(sizeof(THREADPOOL));
+        result = THANDLE_MALLOC(THREADPOOL)(threadpool_dispose);
         if (result == NULL)
         {
             /* Codes_SRS_THREADPOOL_WIN32_01_003: [ If any error occurs, threadpool_create shall fail and return NULL. ]*/
-            LogError("malloc failed");
+            LogError("THANDLE_MALLOC(THREADPOOL) failed");
         }
         else
         {
@@ -137,121 +162,77 @@ THREADPOOL_HANDLE threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                 result->execution_engine = execution_engine;
 
                 (void)InterlockedExchange(&result->pending_api_calls, 0);
-                (void)InterlockedExchange(&result->state, (LONG)THREADPOOL_WIN32_STATE_CLOSED);
+                (void)InterlockedExchange(&result->state, THREADPOOL_WIN32_STATE_CLOSED);
 
                 goto all_ok;
             }
-
-            free(result);
+            THANDLE_FREE(THREADPOOL)(result);
+            result = NULL;
         }
     }
-
-    result = NULL;
-
 all_ok:
     return result;
 }
 
-void threadpool_destroy(THREADPOOL_HANDLE threadpool)
-{
-    if (threadpool == NULL)
-    {
-        /* Codes_SRS_THREADPOOL_WIN32_01_004: [ If threadpool is NULL, threadpool_destroy shall return. ]*/
-        LogError("Invalid arguments: THREADPOOL_HANDLE threadpool=%p", threadpool);
-    }
-    else
-    {
-        /* Codes_SRS_THREADPOOL_WIN32_01_006: [ While threadpool is OPENING or CLOSING, threadpool_destroy shall wait for the open to complete either successfully or with error. ]*/
-        do
-        {
-            LONG current_state = InterlockedCompareExchange(&threadpool->state, (LONG)THREADPOOL_WIN32_STATE_CLOSING, (LONG)THREADPOOL_WIN32_STATE_OPEN);
-
-            if (current_state == (LONG)THREADPOOL_WIN32_STATE_OPEN)
-            {
-                /* Codes_SRS_THREADPOOL_WIN32_01_007: [ threadpool_destroy shall perform an implicit close if threadpool is OPEN. ]*/
-                internal_close(threadpool);
-                break;
-            }
-            else if (current_state == (LONG)THREADPOOL_WIN32_STATE_CLOSED)
-            {
-                break;
-            }
-
-            (void)WaitOnAddress(&threadpool->state, &current_state, sizeof(current_state), INFINITE);
-        } while (1);
-
-        /* Codes_SRS_THREADPOOL_WIN32_42_028: [ threadpool_destroy shall decrement the reference count on the execution_engine. ]*/
-        execution_engine_dec_ref(threadpool->execution_engine);
-
-        /* Codes_SRS_THREADPOOL_WIN32_01_005: [ Otherwise, threadpool_destroy shall free all resources associated with threadpool. ]*/
-        free(threadpool);
-    }
-}
-
-int threadpool_open_async(THREADPOOL_HANDLE threadpool, ON_THREADPOOL_OPEN_COMPLETE on_open_complete, void* on_open_complete_context)
+int threadpool_open(THANDLE(THREADPOOL) threadpool)
 {
     int result;
 
-    /* Codes_SRS_THREADPOOL_WIN32_01_010: [ on_open_complete_context shall be allowed to be NULL. ]*/
-
     if (
-        /* Codes_SRS_THREADPOOL_WIN32_01_008: [ If threadpool is NULL, threadpool_open_async shall fail and return a non-zero value. ]*/
-        (threadpool == NULL) ||
-        /* Codes_SRS_THREADPOOL_WIN32_01_009: [ If on_open_complete is NULL, threadpool_open_async shall fail and return a non-zero value. ]*/
-        (on_open_complete == NULL))
+        /* Codes_SRS_THREADPOOL_WIN32_01_008: [ If threadpool is NULL, threadpool_open shall fail and return a non-zero value. ]*/
+        threadpool == NULL
+    )
     {
-        LogError("THREADPOOL_HANDLE threadpool=%p, ON_THREADPOOL_OPEN_COMPLETE on_open_complete=%p, void* on_open_complete_context=%p",
-            threadpool, on_open_complete, on_open_complete_context);
+        LogError("THREADPOOL_HANDLE threadpool=%p", threadpool);
         result = MU_FAILURE;
     }
     else
     {
-        /* Codes_SRS_THREADPOOL_WIN32_01_011: [ Otherwise, threadpool_open_async shall switch the state to OPENING. ]*/
-        LONG current_state = InterlockedCompareExchange(&threadpool->state, (LONG)THREADPOOL_WIN32_STATE_OPENING, (LONG)THREADPOOL_WIN32_STATE_CLOSED);
-        if (current_state != (LONG)THREADPOOL_WIN32_STATE_CLOSED)
+        THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
+
+        /* Codes_SRS_THREADPOOL_WIN32_01_011: [ Otherwise, threadpool_open shall switch the state to OPENING. ]*/
+        LONG current_state = InterlockedCompareExchange(&threadpool_ptr->state, THREADPOOL_WIN32_STATE_OPENING, THREADPOOL_WIN32_STATE_CLOSED);
+        if (current_state != THREADPOOL_WIN32_STATE_CLOSED)
         {
-            /* Codes_SRS_THREADPOOL_WIN32_01_013: [ If threadpool is already OPEN or OPENING, threadpool_open_async shall fail and return a non-zero value. ]*/
+            /* Codes_SRS_THREADPOOL_WIN32_01_013: [ If threadpool is already OPEN or OPENING, threadpool_open shall fail and return a non-zero value. ]*/
             LogError("Open called in state %" PRI_MU_ENUM "", MU_ENUM_VALUE(THREADPOOL_WIN32_STATE, current_state));
             result = MU_FAILURE;
         }
         else
         {
-            /* Codes_SRS_THREADPOOL_WIN32_01_026: [ threadpool_open_async shall initialize a thread pool environment by calling InitializeThreadpoolEnvironment. ]*/
-            InitializeThreadpoolEnvironment(&threadpool->tp_environment);
+            /* Codes_SRS_THREADPOOL_WIN32_01_026: [ threadpool_open shall initialize a thread pool environment by calling InitializeThreadpoolEnvironment. ]*/
+            InitializeThreadpoolEnvironment(&threadpool_ptr->tp_environment);
 
-            /* Codes_SRS_THREADPOOL_WIN32_01_027: [ threadpool_open_async shall set the thread pool for the environment to the pool obtained from the execution engine by calling SetThreadpoolCallbackPool. ]*/
-            SetThreadpoolCallbackPool(&threadpool->tp_environment, threadpool->pool);
+            /* Codes_SRS_THREADPOOL_WIN32_01_027: [ threadpool_open shall set the thread pool for the environment to the pool obtained from the execution engine by calling SetThreadpoolCallbackPool. ]*/
+            SetThreadpoolCallbackPool(&threadpool_ptr->tp_environment, threadpool->pool);
 
-            /* Codes_SRS_THREADPOOL_WIN32_01_028: [ threadpool_open_async shall create a threadpool cleanup group by calling CreateThreadpoolCleanupGroup. ]*/
-            threadpool->tp_cleanup_group = CreateThreadpoolCleanupGroup();
-            if (threadpool->tp_cleanup_group == NULL)
+            /* Codes_SRS_THREADPOOL_WIN32_01_028: [ threadpool_open shall create a threadpool cleanup group by calling CreateThreadpoolCleanupGroup. ]*/
+            threadpool_ptr->tp_cleanup_group = CreateThreadpoolCleanupGroup();
+            if (threadpool_ptr->tp_cleanup_group == NULL)
             {
-                /* Codes_SRS_THREADPOOL_WIN32_01_040: [ If any error occurrs, threadpool_open_async shall fail and return a non-zero value. ]*/
+                /* Codes_SRS_THREADPOOL_WIN32_01_040: [ If any error occurrs, threadpool_open shall fail and return a non-zero value. ]*/
                 LogLastError("CreateThreadpoolCleanupGroup failed");
                 result = MU_FAILURE;
             }
             else
             {
-                /* Codes_SRS_THREADPOOL_WIN32_01_029: [ threadpool_open_async shall associate the cleanup group with the just created environment by calling SetThreadpoolCallbackCleanupGroup. ]*/
-                SetThreadpoolCallbackCleanupGroup(&threadpool->tp_environment, threadpool->tp_cleanup_group, on_io_cancelled);
+                /* Codes_SRS_THREADPOOL_WIN32_01_029: [ threadpool_open shall associate the cleanup group with the just created environment by calling SetThreadpoolCallbackCleanupGroup. ]*/
+                SetThreadpoolCallbackCleanupGroup(&threadpool_ptr->tp_environment, threadpool_ptr->tp_cleanup_group, on_io_cancelled);
 
-                /* Codes_SRS_THREADPOOL_WIN32_01_015: [ threadpool_open_async shall set the state to OPEN. ]*/
-                (void)InterlockedExchange(&threadpool->state, (LONG)THREADPOOL_WIN32_STATE_OPEN);
-                WakeByAddressSingle((PVOID)&threadpool->state);
+                /* Codes_SRS_THREADPOOL_WIN32_01_015: [ threadpool_open shall set the state to OPEN. ]*/
+                (void)InterlockedExchange(&threadpool_ptr->state, THREADPOOL_WIN32_STATE_OPEN);
+                WakeByAddressSingle((PVOID)&threadpool_ptr->state);
 
-                /* Codes_SRS_THREADPOOL_WIN32_01_014: [ On success, threadpool_open_async shall call on_open_complete_context shall with THREADPOOL_OPEN_OK. ]*/
-                on_open_complete(on_open_complete_context, THREADPOOL_OPEN_OK);
-
-                /* Codes_SRS_THREADPOOL_WIN32_01_012: [ On success, threadpool_open_async shall return 0. ]*/
+                /* Codes_SRS_THREADPOOL_WIN32_01_012: [ On success, threadpool_open shall return 0. ]*/
                 result = 0;
 
                 goto all_ok;
             }
 
-            DestroyThreadpoolEnvironment(&threadpool->tp_environment);
+            DestroyThreadpoolEnvironment(&threadpool_ptr->tp_environment);
 
-            (void)InterlockedExchange(&threadpool->state, (LONG)THREADPOOL_WIN32_STATE_CLOSED);
-            WakeByAddressSingle((PVOID)&threadpool->state);
+            (void)InterlockedExchange(&threadpool_ptr->state, THREADPOOL_WIN32_STATE_CLOSED);
+            WakeByAddressSingle((PVOID)&threadpool_ptr->state);
         }
     }
 
@@ -259,7 +240,7 @@ all_ok:
     return result;
 }
 
-void threadpool_close(THREADPOOL_HANDLE threadpool)
+void threadpool_close(THANDLE(THREADPOOL) threadpool)
 {
     if (threadpool == NULL)
     {
@@ -268,21 +249,23 @@ void threadpool_close(THREADPOOL_HANDLE threadpool)
     }
     else
     {
+        THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
+
         /* Codes_SRS_THREADPOOL_WIN32_01_017: [ Otherwise, threadpool_close shall switch the state to CLOSING. ]*/
         THREADPOOL_WIN32_STATE current_state;
-        if ((current_state = InterlockedCompareExchange(&threadpool->state, (LONG)THREADPOOL_WIN32_STATE_CLOSING, (LONG)THREADPOOL_WIN32_STATE_OPEN)) != (LONG)THREADPOOL_WIN32_STATE_OPEN)
+        if ((current_state = InterlockedCompareExchange(&threadpool_ptr->state, THREADPOOL_WIN32_STATE_CLOSING, THREADPOOL_WIN32_STATE_OPEN)) != THREADPOOL_WIN32_STATE_OPEN)
         {
             /* Codes_SRS_THREADPOOL_WIN32_01_019: [ If threadpool is not OPEN, threadpool_close shall return. ]*/
             LogWarning("Not open, current state = %" PRI_MU_ENUM "", MU_ENUM_VALUE(THREADPOOL_WIN32_STATE, current_state));
         }
         else
         {
-            internal_close(threadpool);
+            internal_close(threadpool_ptr);
         }
     }
 }
 
-int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context)
+int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context)
 {
     int result;
 
@@ -295,15 +278,17 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
         (work_function == NULL)
         )
     {
-        LogError("Invalid arguments: THREADPOOL_HANDLE threadpool=%p, THREADPOOL_WORK_FUNCTION work_function=%p, void* work_function_context=%p",
+        LogError("Invalid arguments: THANDLE(THREADPOOL) threadpool=%p, THREADPOOL_WORK_FUNCTION work_function=%p, void* work_function_context=%p",
             threadpool, work_function, work_function_context);
         result = MU_FAILURE;
     }
     else
     {
-        (void)InterlockedIncrement(&threadpool->pending_api_calls);
+        THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
 
-        THREADPOOL_WIN32_STATE state = InterlockedAdd(&threadpool->state, 0);
+        (void)InterlockedIncrement(&threadpool_ptr->pending_api_calls);
+
+        THREADPOOL_WIN32_STATE state = InterlockedAdd(&threadpool_ptr->state, 0);
         if (state != (LONG)THREADPOOL_WIN32_STATE_OPEN)
         {
             LogWarning("Bad state: %" PRI_MU_ENUM, MU_ENUM_VALUE(THREADPOOL_WIN32_STATE, state));
@@ -325,7 +310,7 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
                 work_item_context->work_function_context = work_function_context;
 
                 /* Codes_SRS_THREADPOOL_WIN32_01_034: [ threadpool_schedule_work shall call CreateThreadpoolWork to schedule execution the callback while passing to it the on_work_callback function and the newly created context. ]*/
-                PTP_WORK ptp_work = CreateThreadpoolWork(on_work_callback, work_item_context, &threadpool->tp_environment);
+                PTP_WORK ptp_work = CreateThreadpoolWork(on_work_callback, work_item_context, &threadpool_ptr->tp_environment);
                 if (ptp_work == NULL)
                 {
                     /* Codes_SRS_THREADPOOL_WIN32_01_024: [ If any error occurs, threadpool_schedule_work shall fail and return a non-zero value. ]*/
@@ -337,8 +322,8 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
                     /* Codes_SRS_THREADPOOL_WIN32_01_041: [ threadpool_schedule_work shall call SubmitThreadpoolWork to submit the work item for execution. ]*/
                     SubmitThreadpoolWork(ptp_work);
 
-                    (void)InterlockedDecrement(&threadpool->pending_api_calls);
-                    WakeByAddressSingle((PVOID)&threadpool->pending_api_calls);
+                    (void)InterlockedDecrement(&threadpool_ptr->pending_api_calls);
+                    WakeByAddressSingle((PVOID)&threadpool_ptr->pending_api_calls);
 
                     result = 0;
 
@@ -349,8 +334,8 @@ int threadpool_schedule_work(THREADPOOL_HANDLE threadpool, THREADPOOL_WORK_FUNCT
             }
         }
 
-        (void)InterlockedDecrement(&threadpool->pending_api_calls);
-        WakeByAddressSingle((PVOID)&threadpool->pending_api_calls);
+        (void)InterlockedDecrement(&threadpool_ptr->pending_api_calls);
+        WakeByAddressSingle((PVOID)&threadpool_ptr->pending_api_calls);
     }
 
 all_ok:
@@ -391,7 +376,7 @@ static void threadpool_internal_cancel_timer_and_wait(PTP_TIMER tp_timer)
     WaitForThreadpoolTimerCallbacks(tp_timer, TRUE);
 }
 
-int threadpool_timer_start(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context, TIMER_INSTANCE_HANDLE* timer_handle)
+int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context, TIMER_INSTANCE_HANDLE* timer_handle)
 {
     int result;
 
@@ -405,15 +390,17 @@ int threadpool_timer_start(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms
         timer_handle == NULL
         )
     {
-        LogError("Invalid args: THREADPOOL_HANDLE threadpool = %p, uint32_t start_delay_ms = %" PRIu32 ", uint32_t timer_period_ms = %" PRIu32 ", THREADPOOL_WORK_FUNCTION work_function = %p, void* work_function_context = %p, TIMER_INSTANCE_HANDLE* timer_handle = %p",
+        LogError("Invalid args: THANDLE(THREADPOOL) threadpool = %p, uint32_t start_delay_ms = %" PRIu32 ", uint32_t timer_period_ms = %" PRIu32 ", THREADPOOL_WORK_FUNCTION work_function = %p, void* work_function_context = %p, TIMER_INSTANCE_HANDLE* timer_handle = %p",
             threadpool, start_delay_ms, timer_period_ms, work_function, work_function_context, timer_handle);
         result = MU_FAILURE;
     }
     else
     {
-        (void)InterlockedIncrement(&threadpool->pending_api_calls);
+        THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
 
-        THREADPOOL_WIN32_STATE state = InterlockedAdd(&threadpool->state, 0);
+        (void)InterlockedIncrement(&threadpool_ptr->pending_api_calls);
+
+        THREADPOOL_WIN32_STATE state = InterlockedAdd(&threadpool_ptr->state, 0);
         if (state != (LONG)THREADPOOL_WIN32_STATE_OPEN)
         {
             LogWarning("Bad state: %" PRI_MU_ENUM, MU_ENUM_VALUE(THREADPOOL_WIN32_STATE, state));
@@ -433,8 +420,7 @@ int threadpool_timer_start(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms
             else
             {
                 /* Codes_SRS_THREADPOOL_WIN32_42_006: [ threadpool_timer_start shall call CreateThreadpoolTimer to schedule execution the callback while passing to it the on_timer_callback function and the newly created context. ]*/
-                PTP_TIMER tp_timer = CreateThreadpoolTimer(on_timer_callback, timer_temp, &threadpool->tp_environment);
-
+                PTP_TIMER tp_timer = CreateThreadpoolTimer(on_timer_callback, timer_temp, &threadpool_ptr->tp_environment);
                 if (tp_timer == NULL)
                 {
                     /* Codes_SRS_THREADPOOL_WIN32_42_008: [ If any error occurs, threadpool_timer_start shall fail and return a non-zero value. ]*/
@@ -465,8 +451,8 @@ int threadpool_timer_start(THREADPOOL_HANDLE threadpool, uint32_t start_delay_ms
             }
         }
 
-        (void)InterlockedDecrement(&threadpool->pending_api_calls);
-        WakeByAddressSingle((PVOID)&threadpool->pending_api_calls);
+        (void)InterlockedDecrement(&threadpool_ptr->pending_api_calls);
+        WakeByAddressSingle((PVOID)&threadpool_ptr->pending_api_calls);
     }
 
     return result;
