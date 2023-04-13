@@ -229,7 +229,7 @@ static void test_create_threadpool_and_start_timer(uint32_t start_delay_ms, uint
     THANDLE(THREADPOOL) test_result = test_create_and_open_threadpool(&cbe);
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, NULL))
+    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, cbe))
         .CaptureArgumentValue_pfnti(test_timer_callback)
         .CaptureArgumentValue_pv(test_timer_callback_context)
         .CaptureReturn(ptp_timer);
@@ -985,7 +985,7 @@ TEST_FUNCTION(threadpool_timer_start_succeeds)
     filetime_expected.dwLowDateTime = ularge_due_time.LowPart;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, NULL))
+    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, cbe))
         .CaptureArgumentValue_pfnti(&test_timer_callback)
         .CaptureArgumentValue_pv(&test_timer_callback_context)
         .CaptureReturn(&ptp_timer);
@@ -1025,7 +1025,7 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_context_succeeds)
     filetime_expected.dwLowDateTime = ularge_due_time.LowPart;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, NULL))
+    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, cbe))
         .CaptureArgumentValue_pfnti(&test_timer_callback)
         .CaptureArgumentValue_pv(&test_timer_callback_context)
         .CaptureReturn(&ptp_timer);
@@ -1065,7 +1065,7 @@ TEST_FUNCTION(threadpool_timer_start_fails_when_underlying_functions_fail)
     filetime_expected.dwLowDateTime = ularge_due_time.LowPart;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, NULL))
+    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, cbe))
         .CaptureArgumentValue_pfnti(&test_timer_callback)
         .CaptureArgumentValue_pv(&test_timer_callback_context)
         .CaptureReturn(&ptp_timer);
