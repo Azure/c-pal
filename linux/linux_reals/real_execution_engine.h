@@ -12,28 +12,22 @@
 
 #include "macro_utils/macro_utils.h"
 
-#include "c_pal/execution_engine.h"
-
-#include "c_pal/execution_engine_linux.h"
-
 #define R2(X) REGISTER_GLOBAL_MOCK_HOOK(X, real_##X);
 
-#define REGISTER_EXECUTION_ENGINE_GLOBAL_MOCK_HOOK() \
-    MU_FOR_EACH_1(R2, \
-        execution_engine_create, \
+#define REGISTER_EXECUTION_ENGINE_GLOBAL_MOCK_HOOK()          \
+    MU_FOR_EACH_1(R2,                                   \
+        execution_engine_create,                                       \
         execution_engine_dec_ref, \
-        execution_engine_inc_ref, \
-        execution_engine_linux_get_parameters \
-)
+        execution_engine_inc_ref \
+    )
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-EXECUTION_ENGINE_HANDLE execution_engine_create(void* execution_engine_parameters);
-void execution_engine_dec_ref(EXECUTION_ENGINE_HANDLE execution_engine);
-void execution_engine_inc_ref(EXECUTION_ENGINE_HANDLE execution_engine);
-const EXECUTION_ENGINE_PARAMETERS_LINUX* execution_engine_linux_get_parameters(EXECUTION_ENGINE_HANDLE execution_engine);
+    EXECUTION_ENGINE_HANDLE real_execution_engine_create(void* execution_engine_parameters);
+    void real_execution_engine_dec_ref(EXECUTION_ENGINE_HANDLE execution_engine);
+    void real_execution_engine_inc_ref(EXECUTION_ENGINE_HANDLE execution_engine);
 
 #ifdef __cplusplus
 }

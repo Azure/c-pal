@@ -4,20 +4,14 @@
 #ifndef REAL_THREADPOOL_H
 #define REAL_THREADPOOL_H
 
-#ifdef __cplusplus
-#include <cstdint>
-#else
-#include <stdint.h>
-#endif
-
 #include "macro_utils/macro_utils.h"
 
 #include "c_pal/thandle.h"
 
 #define R2(X) REGISTER_GLOBAL_MOCK_HOOK(X, real_##X);
 
-#define REGISTER_THREADPOOL_GLOBAL_MOCK_HOOK() \
-    MU_FOR_EACH_1(R2, \
+#define REGISTER_THREADPOOL_GLOBAL_MOCK_HOOK()          \
+    MU_FOR_EACH_1(R2,                                   \
         threadpool_create, \
         threadpool_open, \
         threadpool_close, \
@@ -26,8 +20,7 @@
         threadpool_timer_restart, \
         threadpool_timer_cancel, \
         threadpool_timer_destroy \
-)
-\
+    ) \
     REGISTER_GLOBAL_MOCK_HOOK(THANDLE_MOVE(THREADPOOL), THANDLE_MOVE(real_THREADPOOL)) \
     REGISTER_GLOBAL_MOCK_HOOK(THANDLE_INITIALIZE(THREADPOOL), THANDLE_INITIALIZE(real_THREADPOOL)) \
     REGISTER_GLOBAL_MOCK_HOOK(THANDLE_INITIALIZE_MOVE(THREADPOOL), THANDLE_INITIALIZE_MOVE(real_THREADPOOL)) \

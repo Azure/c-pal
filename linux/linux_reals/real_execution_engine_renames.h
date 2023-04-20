@@ -4,4 +4,3 @@
 #define execution_engine_create                     real_execution_engine_create
 #define execution_engine_dec_ref                    real_execution_engine_dec_ref
 #define execution_engine_inc_ref                    real_execution_engine_inc_ref
-#define execution_engine_linux_get_parameters       real_execution_engine_linux_get_parameters
