@@ -97,7 +97,7 @@ static void internal_close(THREADPOOL* threadpool)
     /* Codes_SRS_THREADPOOL_WIN32_01_032: [ threadpool_close shall close the threadpool cleanup group by calling CloseThreadpoolCleanupGroup. ]*/
     CloseThreadpoolCleanupGroup(threadpool->tp_cleanup_group);
 
-    /* Codes_SRS_THREADPOOL_WIN32_01_033: [ threadpool_close shall destroy the thread pool environment created in threadpool_open_async. ]*/
+    /* Codes_SRS_THREADPOOL_WIN32_01_033: [ threadpool_close shall destroy the thread pool environment created in threadpool_open. ]*/
     DestroyThreadpoolEnvironment(&threadpool->tp_environment);
 
     (void)InterlockedExchange(&threadpool->state, THREADPOOL_WIN32_STATE_CLOSED);

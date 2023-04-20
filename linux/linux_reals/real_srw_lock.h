@@ -18,7 +18,7 @@
 
 #define R2(X) REGISTER_GLOBAL_MOCK_HOOK(X, real_##X);
 
-#define REGISTER_THREADPOOL_GLOBAL_MOCK_HOOK() \
+#define REGISTER_SRW_LOCK_GLOBAL_MOCK_HOOK() \
     MU_FOR_EACH_1(R2, \
         srw_lock_create, \
         srw_lock_acquire_exclusive, \
