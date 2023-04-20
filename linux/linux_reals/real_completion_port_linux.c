@@ -3,5 +3,5 @@
 
 #include "real_completion_port_linux_renames.h" // IWYU pragma: keep
 
-#include "../src/completion_port_linux.c"
+#include "../src/completion_port_linux.c"  // IWYU pragma: keep
 

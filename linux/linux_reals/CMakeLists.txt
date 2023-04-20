@@ -3,6 +3,7 @@
 
 set(linux_reals_c_files
     real_execution_engine.c
+    real_execution_engine_linux.c #note:empty file 
     real_gballoc_ll_${gballoc_ll_type_lower}.c
     real_gballoc_hl_${gballoc_hl_type_lower}.c
     real_pipe.c
@@ -19,6 +20,8 @@ set(linux_reals_c_files
 set(linux_reals_h_files
     real_execution_engine.h
     real_execution_engine_renames.h
+    real_execution_engine_linux.h
+    real_execution_engine_linux_renames.h
     real_srw_lock.h
     real_srw_lock_renames.h
     real_threadpool.h

@@ -18,7 +18,7 @@
 
 #define R2(X) REGISTER_GLOBAL_MOCK_HOOK(X, real_##X);
 
-#define REGISTER_THREADPOOL_GLOBAL_MOCK_HOOK() \
+#define REGISTER_SRW_LOCK_GLOBAL_MOCK_HOOK() \
     MU_FOR_EACH_1(R2, \
         srw_lock_create, \
         srw_lock_acquire_exclusive, \
@@ -34,14 +34,14 @@
 extern "C" {
 #endif
 
-SRW_LOCK_HANDLE srw_lock_create(bool do_statistics, const char* lock_name);
-void srw_lock_acquire_exclusive(SRW_LOCK_HANDLE handle);
-SRW_LOCK_TRY_ACQUIRE_RESULT srw_lock_try_acquire_exclusive(SRW_LOCK_HANDLE handle);
-void srw_lock_release_exclusive(SRW_LOCK_HANDLE handle);
-void srw_lock_acquire_shared(SRW_LOCK_HANDLE handle);
-SRW_LOCK_TRY_ACQUIRE_RESULT srw_lock_try_acquire_shared(SRW_LOCK_HANDLE handle);
-void srw_lock_release_shared(SRW_LOCK_HANDLE handle);
-void srw_lock_destroy(SRW_LOCK_HANDLE handle);
+SRW_LOCK_HANDLE real_srw_lock_create(bool do_statistics, const char* lock_name);
+void real_srw_lock_acquire_exclusive(SRW_LOCK_HANDLE handle);
+SRW_LOCK_TRY_ACQUIRE_RESULT real_srw_lock_try_acquire_exclusive(SRW_LOCK_HANDLE handle);
+void real_srw_lock_release_exclusive(SRW_LOCK_HANDLE handle);
+void real_srw_lock_acquire_shared(SRW_LOCK_HANDLE handle);
+SRW_LOCK_TRY_ACQUIRE_RESULT real_srw_lock_try_acquire_shared(SRW_LOCK_HANDLE handle);
+void real_srw_lock_release_shared(SRW_LOCK_HANDLE handle);
+void real_srw_lock_destroy(SRW_LOCK_HANDLE handle);
 
 #ifdef __cplusplus
 }
