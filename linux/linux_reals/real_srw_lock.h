@@ -34,14 +34,14 @@
 extern "C" {
 #endif
 
-SRW_LOCK_HANDLE srw_lock_create(bool do_statistics, const char* lock_name);
-void srw_lock_acquire_exclusive(SRW_LOCK_HANDLE handle);
-SRW_LOCK_TRY_ACQUIRE_RESULT srw_lock_try_acquire_exclusive(SRW_LOCK_HANDLE handle);
-void srw_lock_release_exclusive(SRW_LOCK_HANDLE handle);
-void srw_lock_acquire_shared(SRW_LOCK_HANDLE handle);
-SRW_LOCK_TRY_ACQUIRE_RESULT srw_lock_try_acquire_shared(SRW_LOCK_HANDLE handle);
-void srw_lock_release_shared(SRW_LOCK_HANDLE handle);
-void srw_lock_destroy(SRW_LOCK_HANDLE handle);
+SRW_LOCK_HANDLE real_srw_lock_create(bool do_statistics, const char* lock_name);
+void real_srw_lock_acquire_exclusive(SRW_LOCK_HANDLE handle);
+SRW_LOCK_TRY_ACQUIRE_RESULT real_srw_lock_try_acquire_exclusive(SRW_LOCK_HANDLE handle);
+void real_srw_lock_release_exclusive(SRW_LOCK_HANDLE handle);
+void real_srw_lock_acquire_shared(SRW_LOCK_HANDLE handle);
+SRW_LOCK_TRY_ACQUIRE_RESULT real_srw_lock_try_acquire_shared(SRW_LOCK_HANDLE handle);
+void real_srw_lock_release_shared(SRW_LOCK_HANDLE handle);
+void real_srw_lock_destroy(SRW_LOCK_HANDLE handle);
 
 #ifdef __cplusplus
 }
