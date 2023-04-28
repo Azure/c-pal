@@ -64,7 +64,7 @@ add_library(pal_win32 ${pal_win32_h_files} ${pal_win32_c_files} ${pal_win32_md_f
 
 target_link_libraries(pal_win32 pal_interfaces ws2_32 synchronization rpcrt4 c_logging)
 if(${GBALLOC_LL_TYPE} STREQUAL "MIMALLOC")
-    target_link_libraries(pal_win32 mimalloc-obj)
+    target_link_libraries(pal_win32 mimalloc)
 endif()
 
 if(${GBALLOC_LL_TYPE} STREQUAL "JEMALLOC")
