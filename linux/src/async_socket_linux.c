@@ -124,8 +124,8 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
         }
         else
         {
-            volatile_atomic int32_t* event_complete_executing = &io_context->async_socket->event_complete_executing;
-            (void)interlocked_increment(event_complete_executing);
+            ASYNC_SOCKET* async_socket = io_context->async_socket;
+            (void)interlocked_increment(&async_socket->event_complete_executing);
 
             switch (action)
             {
@@ -269,11 +269,11 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
                     break;
                 }
             }
-            if (interlocked_decrement(event_complete_executing) == 0)
+            if (interlocked_decrement(&async_socket->event_complete_executing) == 0)
             {
-                if (interlocked_add(&io_context->async_socket->state, 0) == ASYNC_SOCKET_LINUX_STATE_CLOSING)
+                if (interlocked_add(&async_socket->state, 0) == ASYNC_SOCKET_LINUX_STATE_CLOSING)
                 {
-                    wake_by_address_single(event_complete_executing);
+                    wake_by_address_single(&async_socket->event_complete_executing);
                 }
             }
         }
