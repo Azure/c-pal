@@ -522,6 +522,7 @@ TEST_FUNCTION(async_socket_close_with_NULL_returns)
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_036: [ Otherwise, async_socket_close shall switch the state to CLOSING. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_037: [ async_socket_close shall wait for all executing async_socket_send_async and async_socket_receive_async APIs. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_103: [ async_socket_close shall wait for the event_complete_callback to complete ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_039: [ async_socket_close shall call close on the underlying socket. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_041: [ async_socket_close shall set the state to closed. ]
 TEST_FUNCTION(async_socket_close_reverses_the_actions_from_open)
