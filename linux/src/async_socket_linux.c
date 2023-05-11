@@ -116,8 +116,10 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
     else
     {
         ASYNC_SOCKET_IO_CONTEXT* io_context = (ASYNC_SOCKET_IO_CONTEXT*)context;
-        if (interlocked_add(&io_context->async_socket->state, 0) != ASYNC_SOCKET_LINUX_STATE_OPEN)
+        int32_t current_state = interlocked_add(&io_context->async_socket->state, 0);
+        if (current_state != ASYNC_SOCKET_LINUX_STATE_OPEN)
         {
+            LogError("event_complete_callback called in state %" PRI_MU_ENUM "", MU_ENUM_VALUE(ASYNC_SOCKET_LINUX_STATE, current_state));
             free(io_context);
         }
         else
