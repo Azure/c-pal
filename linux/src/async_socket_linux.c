@@ -49,6 +49,7 @@ typedef struct ASYNC_SOCKET_TAG
     volatile_atomic int32_t pending_api_calls;
     COMPLETION_PORT_HANDLE completion_port;
     volatile_atomic int32_t added_to_completion_port;
+    volatile_atomic int32_t event_complete_executing;
 } ASYNC_SOCKET;
 
 typedef struct ASYNC_SOCKET_RECV_CONTEXT_TAG
@@ -115,6 +116,9 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
     else
     {
         ASYNC_SOCKET_IO_CONTEXT* io_context = (ASYNC_SOCKET_IO_CONTEXT*)context;
+        volatile_atomic int32_t* event_complete_executing = &io_context->async_socket->event_complete_executing;
+        (void)interlocked_increment(event_complete_executing);
+
         switch (action)
         {
             // Codes_SRS_ASYNC_SOCKET_LINUX_11_080: [ If COMPLETION_PORT_EPOLL_ACTION is COMPLETION_PORT_EPOLL_EPOLLRDHUP or COMPLETION_PORT_EPOLL_ABANDONED, event_complete_callback shall do the following: ]
@@ -257,6 +261,10 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
                 break;
             }
         }
+        if (interlocked_decrement(event_complete_executing) == 0)
+        {
+            wake_by_address_single(event_complete_executing);
+        }
     }
 }
 
@@ -272,6 +280,12 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
     if (interlocked_add(&async_socket->added_to_completion_port, 0) > 0)
     {
         completion_port_remove(async_socket->completion_port, async_socket->socket_handle);
+    }
+
+    // Codes_SRS_ASYNC_SOCKET_LINUX_11_103: [ async_socket_close shall wait for the event_complete_callback to complete ]
+    while ((value = interlocked_add(&async_socket->event_complete_executing, 0)) != 0)
+    {
+        (void)wait_on_address(&async_socket->event_complete_executing, value, UINT32_MAX);
     }
 
     // Codes_SRS_ASYNC_SOCKET_LINUX_11_039: [ async_socket_close shall call close on the underlying socket. ]
@@ -315,6 +329,7 @@ ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine
                 (void)interlocked_exchange(&result->pending_api_calls, 0);
                 (void)interlocked_exchange(&result->added_to_completion_port, 0);
                 (void)interlocked_exchange(&result->state, ASYNC_SOCKET_LINUX_STATE_CLOSED);
+                (void)interlocked_exchange(&result->event_complete_executing, 0);
                 goto all_ok;
             }
             free(result);

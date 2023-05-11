@@ -149,6 +149,8 @@ MOCKABLE_FUNCTION(, void, async_socket_close, ASYNC_SOCKET_HANDLE, async_socket)
 
 **SRS_ASYNC_SOCKET_LINUX_11_037: [** `async_socket_close` shall wait for all executing `async_socket_send_async` and `async_socket_receive_async` APIs. **]**
 
+**SRS_ASYNC_SOCKET_LINUX_11_103: [** `async_socket_close` shall wait for the `event_complete_callback` to complete **]**
+
 **SRS_ASYNC_SOCKET_LINUX_11_039: [** `async_socket_close` shall call `close` on the underlying socket. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_041: [** `async_socket_close` shall set the state to CLOSED. **]**
