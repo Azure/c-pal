@@ -5,4 +5,4 @@
 
 #include "real_timer_renames.h" // IWYU pragma: keep
 
-#include "timer_linux.c"
+#include "../src/timer_linux.c"
