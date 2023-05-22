@@ -3,13 +3,14 @@
 
 set(linux_reals_c_files
     real_execution_engine.c
-    real_execution_engine_linux.c #note:empty file 
+    real_execution_engine_linux.c #note:empty file
     real_gballoc_ll_${gballoc_ll_type_lower}.c
     real_gballoc_hl_${gballoc_hl_type_lower}.c
     real_pipe.c
     real_string_utils_linux.c
     real_srw_lock.c
     real_threadpool.c
+    real_timer.c
     real_uuid.c
     ../../common/reals/real_s_list.c
     ../../common/reals/real_ps_util.c
@@ -35,6 +36,8 @@ set(linux_reals_h_files
     ../../common/reals/real_ps_util_renames.h
     ../../common/reals/real_sm.h
     ../../common/reals/real_sm_renames.h
+    ../../common/reals/real_timer.h
+    ../../common/reals/real_timer_renames.h
     ../../common/reals/real_interlocked_hl.h
     ../../common/reals/real_interlocked_hl_renames.h
 )
