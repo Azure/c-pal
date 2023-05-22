@@ -36,13 +36,13 @@ set(linux_reals_h_files
     ../../common/reals/real_ps_util_renames.h
     ../../common/reals/real_sm.h
     ../../common/reals/real_sm_renames.h
-    ../../common/reals/real_timer.h
-    ../../common/reals/real_timer_renames.h
     ../../common/reals/real_interlocked_hl.h
     ../../common/reals/real_interlocked_hl_renames.h
+    ../../interfaces/reals/real_timer.h
+    ../../interfaces/reals/real_timer_renames.h
 )
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../src)
 add_library(linux_reals ${linux_reals_c_files} ${linux_reals_h_files})
-target_include_directories(linux_reals PUBLIC . ${CMAKE_CURRENT_LIST_DIR}/../../common/reals  ${CMAKE_CURRENT_LIST_DIR}/../inc)
+target_include_directories(linux_reals PUBLIC . ${CMAKE_CURRENT_LIST_DIR}/../../common/reals ${CMAKE_CURRENT_LIST_DIR}/../../interfaces/reals ${CMAKE_CURRENT_LIST_DIR}/../inc)
 target_link_libraries(linux_reals linux_ll_reals pal_interfaces pal_interfaces_reals rt uuid pthread)
