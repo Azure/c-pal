@@ -15,7 +15,7 @@ set(reals_win32_c_files
     real_async_socket.c
     real_threadpool.c
     real_execution_engine.c #note: also contains the code for execution_engine_win32.c
-    real_execution_engine_win32.c #note:empty file 
+    real_execution_engine_win32.c #note:empty file
     ../../common/reals/real_ps_util.c
     ../../common/reals/real_sm.c
     ../../common/reals/real_s_list.c
@@ -52,7 +52,7 @@ set(reals_win32_h_files
 
 add_library(win32_reals ${reals_win32_c_files} ${reals_win32_h_files})
 target_include_directories(win32_reals PUBLIC . ${CMAKE_CURRENT_LIST_DIR}/../../common/reals ${CMAKE_CURRENT_LIST_DIR}/../src "$<TARGET_PROPERTY:pal_win32,INTERFACE_INCLUDE_DIRECTORIES>")
-target_link_libraries(win32_reals pal_interfaces_reals win32_ll_reals synchronization)
+target_link_libraries(win32_reals pal_interfaces_reals win32_ll_reals synchronization rpcrt4)
 
 if(${GBALLOC_LL_TYPE} STREQUAL "MIMALLOC")
     target_link_libraries(win32_reals mimalloc-obj)
