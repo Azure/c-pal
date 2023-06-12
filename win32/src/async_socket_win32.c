@@ -150,7 +150,7 @@ static VOID WINAPI on_io_complete(PTP_CALLBACK_INSTANCE instance, PVOID context,
                 case ERROR_CONNECTION_ABORTED:
                 {
                     /* Codes_SRS_ASYNC_SOCKET_WIN32_42_001: [ If io_result is ERROR_NETNAME_DELETED or ERROR_CONNECTION_ABORTED, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_ABANDONED as result and 0 for bytes_received. ]*/
-                    LogInfo("Receive IO completed with error %lu (socket seems to be closed)", io_result);
+                    LogError("Receive IO completed with error %lu (socket seems to be closed)", io_result);
                     receive_result = ASYNC_SOCKET_RECEIVE_ABANDONED;
                     bytes_received = 0;
                     break;
