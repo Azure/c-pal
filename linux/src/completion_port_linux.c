@@ -462,7 +462,7 @@ void completion_port_remove(COMPLETION_PORT_HANDLE completion_port, SOCKET_HANDL
                         else if (callback_state == COMPLETION_PORT_CALLBACK_EXECUTING)
                         {
                             // Callback is executing, so wait till the callback is done
-                            (void)InterlockedHL_WaitForNotValue(&epoll_data->event_callback_called, COMPLETION_PORT_CALLBACK_EXECUTING, UINT32_MAX);
+                            (void)InterlockedHL_WaitForValue(&epoll_data->event_callback_called, COMPLETION_PORT_CALLBACK_EXECUTED, UINT32_MAX);
                         }
                         else
                         {
