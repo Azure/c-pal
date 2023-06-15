@@ -131,6 +131,10 @@ MOCKABLE_FUNCTION(, void, completion_port_remove, COMPLETION_PORT_HANDLE, comple
 
 **SRS_COMPLETION_PORT_LINUX_11_037: [** `completion_port_remove` shall loop through the list of `EPOLL_THREAD_DATA` object and call the event_callback with `COMPLETION_PORT_EPOLL_ABANDONED` **]**
 
+**SRS_COMPLETION_PORT_LINUX_11_038: [** If the event_callback has not been called, `completion_port_remove` shall call the event_callback. **]**
+
+**SRS_COMPLETION_PORT_LINUX_11_039: [** If the event_callback is currently executing, `completion_port_remove` shall wait for the event_callback function to finish before completing. **]**
+
 ### epoll_worker_func
 
 ```c

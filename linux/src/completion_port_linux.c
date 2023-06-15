@@ -18,6 +18,7 @@
 
 #include "c_pal/containing_record.h"
 #include "c_pal/interlocked.h"
+#include "c_pal/interlocked_hl.h"
 #include "c_pal/refcount.h"
 #include "c_pal/socket_handle.h"
 #include "c_pal/s_list.h"
@@ -47,6 +48,14 @@ typedef struct COMPLETION_PORT_TAG
     volatile_atomic int32_t recv_data_access;
     volatile_atomic int32_t pending_calls;
 } COMPLETION_PORT;
+
+#define COMPLETION_PORT_CALLBACK_STATE_VALUES \
+    COMPLETION_PORT_CALLBACK_INIT, \
+    COMPLETION_PORT_CALLBACK_EXECUTING, \
+    COMPLETION_PORT_CALLBACK_EXECUTED
+
+MU_DEFINE_ENUM(COMPLETION_PORT_CALLBACK_STATE, COMPLETION_PORT_CALLBACK_STATE_VALUES)
+MU_DEFINE_ENUM_STRINGS(COMPLETION_PORT_CALLBACK_STATE, COMPLETION_PORT_CALLBACK_STATE_VALUES)
 
 MU_DEFINE_ENUM_STRINGS(COMPLETION_PORT_EPOLL_ACTION, COMPLETION_PORT_EPOLL_ACTION_VALUES)
 
@@ -166,10 +175,13 @@ static int epoll_worker_func(void* parameter)
                     ANNOTATE_HAPPENS_AFTER(epoll_data);
                 #endif
                 // If we haven't called into event_callback yet
-                if (interlocked_compare_exchange(&epoll_data->event_callback_called, 1, 0) == 0)
+                if (interlocked_compare_exchange(&epoll_data->event_callback_called, COMPLETION_PORT_CALLBACK_EXECUTING, COMPLETION_PORT_CALLBACK_INIT) == COMPLETION_PORT_CALLBACK_INIT)
                 {
                     // Codes_SRS_COMPLETION_PORT_LINUX_11_035: [ epoll_worker_func shall call the event_callback with the specified COMPLETION_PORT_EPOLL_ACTION that was returned. ]
                     epoll_data->event_callback(epoll_data->event_callback_ctx, epoll_action);
+
+                    (void)interlocked_exchange(&epoll_data->event_callback_called, COMPLETION_PORT_CALLBACK_EXECUTED);
+                    wake_by_address_single(&epoll_data->event_callback_called);
                 }
                 // Codes_SRS_COMPLETION_PORT_LINUX_11_036: [ Then epoll_worker_func shall remove the EPOLL_THREAD_DATA from the list and free the object. ]
                 if (remove_thread_data_from_list(completion_port, epoll_data) != 0)
@@ -342,7 +354,7 @@ int completion_port_add(COMPLETION_PORT_HANDLE completion_port, int epoll_op, SO
             {
                 epoll_thread_data->event_callback = event_callback;
                 epoll_thread_data->event_callback_ctx = event_callback_ctx;
-                (void)interlocked_exchange(&epoll_thread_data->event_callback_called, 0);
+                (void)interlocked_exchange(&epoll_thread_data->event_callback_called, COMPLETION_PORT_CALLBACK_INIT);
                 epoll_thread_data->socket = socket;
                 epoll_thread_data->link.next = NULL;
 
@@ -396,7 +408,7 @@ int completion_port_add(COMPLETION_PORT_HANDLE completion_port, int epoll_op, SO
             // Codes_SRS_COMPLETION_PORT_LINUX_11_027: [ If any error occurs, completion_port_add shall fail and return a non-zero value. ]
             result = MU_FAILURE;
 all_ok:
-                        // Codes_SRS_COMPLETION_PORT_LINUX_11_025: [ completion_port_add shall decrement the ongoing call count value to unblock close. ]
+            // Codes_SRS_COMPLETION_PORT_LINUX_11_025: [ completion_port_add shall decrement the ongoing call count value to unblock close. ]
             (void)interlocked_decrement(&completion_port->pending_calls);
             wake_by_address_single(&completion_port->pending_calls);
         }
@@ -439,9 +451,22 @@ void completion_port_remove(COMPLETION_PORT_HANDLE completion_port, SOCKET_HANDL
                     EPOLL_THREAD_DATA* epoll_data = CONTAINING_RECORD(current_item, EPOLL_THREAD_DATA, link);
                     if (epoll_data->socket == socket)
                     {
-                        if (interlocked_compare_exchange(&epoll_data->event_callback_called, 1, 0) == 0)
+                        COMPLETION_PORT_CALLBACK_STATE callback_state = interlocked_compare_exchange(&epoll_data->event_callback_called, COMPLETION_PORT_CALLBACK_EXECUTING, COMPLETION_PORT_CALLBACK_INIT);
+                        // Codes_SRS_COMPLETION_PORT_LINUX_11_038: [ If the event_callback has not been called, completion_port_remove shall call the event_callback. ]
+                        if (callback_state == COMPLETION_PORT_CALLBACK_INIT)
                         {
                             epoll_data->event_callback(epoll_data->event_callback_ctx, COMPLETION_PORT_EPOLL_ABANDONED);
+                            (void)interlocked_exchange(&epoll_data->event_callback_called, COMPLETION_PORT_CALLBACK_EXECUTED);
+                        }
+                        // Codes_SRS_COMPLETION_PORT_LINUX_11_039: [ If the event_callback is currently executing, completion_port_remove shall wait for the event_callback function to finish before completing. ]
+                        else if (callback_state == COMPLETION_PORT_CALLBACK_EXECUTING)
+                        {
+                            // Callback is executing, so wait till the callback is done
+                            (void)InterlockedHL_WaitForValue(&epoll_data->event_callback_called, COMPLETION_PORT_CALLBACK_EXECUTED, UINT32_MAX);
+                        }
+                        else
+                        {
+                            // callback state is Executed Do Nothing
                         }
                     }
                     current_item = current_item->next;
