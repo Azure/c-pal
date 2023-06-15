@@ -22,6 +22,7 @@
 #include "c_pal/gballoc_hl.h"        // IWYU pragma: keep
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/interlocked.h"
+#include "c_pal/interlocked_hl.h"
 #include "c_pal/refcount.h"  // IWYU pragma: keep
 #include "c_pal/socket_handle.h"
 #include "c_pal/s_list.h"
@@ -32,6 +33,7 @@
 
 #include "real_refcount.h"  // IWYU pragma: keep
 #include "real_interlocked.h"
+#include "real_interlocked_hl.h"
 #include "real_gballoc_hl.h" // IWYU pragma: keep
 #include "real_s_list.h" // IWYU pragma: keep
 
@@ -39,6 +41,9 @@
 
 #define TEST_MAX_EVENTS_NUM     64
 #define EVENTS_TIMEOUT_MS       2*1000
+
+#define TEST_COMPLETION_PORT_CALLBACK_EXECUTING  2
+#define TEST_COMPLETION_PORT_CALLBACK_EXECUTED   3
 
 static SOCKET_HANDLE test_socket = (SOCKET_HANDLE)0x4242;
 static void* test_callback_ctx = (void*)0x4244;
@@ -63,6 +68,10 @@ IMPLEMENT_UMOCK_C_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);
 
 TEST_DEFINE_ENUM_TYPE(COMPLETION_PORT_EPOLL_ACTION, COMPLETION_PORT_EPOLL_ACTION_VALUES);
 IMPLEMENT_UMOCK_C_ENUM_TYPE(COMPLETION_PORT_EPOLL_ACTION, COMPLETION_PORT_EPOLL_ACTION_VALUES);
+
+MU_DEFINE_ENUM_STRINGS(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
+TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
+IMPLEMENT_UMOCK_C_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
@@ -128,6 +137,16 @@ static void setup_completion_port_add_mocks(void)
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 }
 
+static void setup_remove_thread_data(void)
+{
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(s_list_remove(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
+}
+
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
@@ -139,6 +158,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     ASSERT_ARE_EQUAL(int, 0, umocktypes_charptr_register_types(), "umocktypes_charptr_register_types failed");
 
     REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK();
+    REGISTER_INTERLOCKED_HL_GLOBAL_MOCK_HOOK();
     REGISTER_S_LIST_GLOBAL_MOCK_HOOKS();
 
     REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
@@ -159,6 +179,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_UMOCK_ALIAS_TYPE(PS_LIST_ENTRY, void*);
 
     REGISTER_TYPE(THREADAPI_RESULT, THREADAPI_RESULT);
+    REGISTER_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT);
     REGISTER_TYPE(COMPLETION_PORT_EPOLL_ACTION, COMPLETION_PORT_EPOLL_ACTION);
 }
 
@@ -596,7 +617,43 @@ TEST_FUNCTION(completion_port_remove_success)
     completion_port_dec_ref(port_handle);
 }
 
+// Tests_SRS_COMPLETION_PORT_LINUX_11_030: [ completion_port_remove shall remove the underlying socket from the epoll by calling epoll_ctl with EPOLL_CTL_DEL. ]
+// Tests_SRS_COMPLETION_PORT_LINUX_11_039: [ If the event_callback is currently executing, completion_port_remove shall wait for the event_callback function to finish before completing. ]
+TEST_FUNCTION(completion_port_remove_callback_executing)
+{
+    //arrange
+    COMPLETION_PORT_HANDLE port_handle = completion_port_create();
+    ASSERT_IS_NOT_NULL(port_handle);
+    ASSERT_ARE_EQUAL(int, 0, completion_port_add(port_handle, EPOLLOUT | EPOLLRDHUP, test_socket, test_port_event_complete, test_callback_ctx));
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_epoll_ctl(g_test_epoll, EPOLL_CTL_DEL, test_socket, NULL));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(TEST_COMPLETION_PORT_CALLBACK_EXECUTING);
+
+    STRICT_EXPECTED_CALL(InterlockedHL_WaitForNotValue(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(TEST_COMPLETION_PORT_CALLBACK_EXECUTED);
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
+
+    //act
+    completion_port_remove(port_handle, test_socket);
+
+    //assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    completion_port_dec_ref(port_handle);
+}
+
 // Tests_SRS_COMPLETION_PORT_LINUX_11_037: [ completion_port_remove shall loop through the list of EPOLL_THREAD_DATA object and call the event_callback with COMPLETION_PORT_EPOLL_ABANDONED ]
+// Tests_SRS_COMPLETION_PORT_LINUX_11_038: [ If the event_callback has not been called, completion_port_remove shall call the event_callback. ]
 TEST_FUNCTION(completion_port_remove_port_event_callback_called_success)
 {
     //arrange
@@ -613,6 +670,7 @@ TEST_FUNCTION(completion_port_remove_port_event_callback_called_success)
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(test_port_event_complete(test_callback_ctx, COMPLETION_PORT_EPOLL_ABANDONED));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
@@ -627,6 +685,8 @@ TEST_FUNCTION(completion_port_remove_port_event_callback_called_success)
     // cleanup
     completion_port_dec_ref(port_handle);
 }
+
+// epoll worker func
 
 // Tests_SRS_COMPLETION_PORT_LINUX_11_031: [ If parameter is NULL, epoll_worker_func shall do nothing. ]
 TEST_FUNCTION(epoll_worker_func_parameter_NULL_success)
@@ -690,12 +750,9 @@ TEST_FUNCTION(epoll_worker_func_epoll_wait_EPOLLRDHUP_success)
         .SetReturn(1);
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(test_port_event_complete(test_callback_ctx, COMPLETION_PORT_EPOLL_EPOLLRDHUP));
-    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .CallCannotFail();
-    STRICT_EXPECTED_CALL(s_list_remove(IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG))
-        .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
+    setup_remove_thread_data();
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
         .SetReturn(1);
@@ -729,12 +786,9 @@ TEST_FUNCTION(epoll_worker_func_epoll_wait_EPOLLIN_success)
         .SetReturn(1);
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(test_port_event_complete(test_callback_ctx, COMPLETION_PORT_EPOLL_EPOLLIN));
-    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .CallCannotFail();
-    STRICT_EXPECTED_CALL(s_list_remove(IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG))
-        .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
+    setup_remove_thread_data();
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
         .SetReturn(1);
@@ -768,12 +822,9 @@ TEST_FUNCTION(epoll_worker_func_epoll_wait_EPOLLOUT_success)
         .SetReturn(1);
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(test_port_event_complete(test_callback_ctx, COMPLETION_PORT_EPOLL_EPOLLOUT));
-    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .CallCannotFail();
-    STRICT_EXPECTED_CALL(s_list_remove(IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG))
-        .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
+    setup_remove_thread_data();
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
         .SetReturn(1);
@@ -809,23 +860,17 @@ TEST_FUNCTION(epoll_worker_func_epoll_wait_multiple_values_success)
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(test_port_event_complete(test_callback_ctx, COMPLETION_PORT_EPOLL_EPOLLOUT));
-    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .CallCannotFail();
-    STRICT_EXPECTED_CALL(s_list_remove(IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG))
-        .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
+    setup_remove_thread_data();
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(test_port_event_complete(test_callback_ctx, COMPLETION_PORT_EPOLL_EPOLLRDHUP));
-    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .CallCannotFail();
-    STRICT_EXPECTED_CALL(s_list_remove(IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG))
-        .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
+    setup_remove_thread_data();
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
