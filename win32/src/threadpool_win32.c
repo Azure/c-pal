@@ -5,7 +5,7 @@
 
 #include "windows.h"
 
-#include "c_logging/xlogging.h"
+#include "c_logging/logger.h"
 
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_win32.h"
