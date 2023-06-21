@@ -18,7 +18,7 @@
 #include "c_pal/sysinfo.h" // IWYU pragma: keep
 #include "c_pal/sync.h" // IWYU pragma: keep
 #include "c_pal/interlocked_hl.h"
-#include "c_logging/xlogging.h"
+#include "c_logging/logger.h"
 
 #include "c_pal/sm.h"
 

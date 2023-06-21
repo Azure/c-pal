@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-#include "c_logging/xlogging.h"
+#include "c_logging/logger.h"
 #include "c_pal/gballoc_ll.h"
 
 #include "jemalloc/jemalloc.h"

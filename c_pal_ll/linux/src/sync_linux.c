@@ -8,7 +8,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "c_logging/xlogging.h"
+#include "c_logging/logger.h"
 
 #include "sys/syscall.h"
 #include "linux/futex.h"

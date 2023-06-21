@@ -5,7 +5,7 @@
 #include <limits.h>
 #include <string.h>                   // for strlen, memcpy
 
-#include "c_logging/xlogging.h"       // for LogError
+#include "c_logging/logger.h"       // for LogError
 
 #include "macro_utils/macro_utils.h"
 

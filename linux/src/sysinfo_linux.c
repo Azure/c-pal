@@ -3,7 +3,7 @@
 #include <inttypes.h>
 #include <unistd.h>
 
-#include "c_logging/xlogging.h"
+#include "c_logging/logger.h"
 #include "c_pal/sysinfo.h"
 
 uint32_t sysinfo_get_processor_count(void)

@@ -3,7 +3,7 @@
 #include <stddef.h>
 #include <inttypes.h>
 
-#include "c_logging/xlogging.h"
+#include "c_logging/logger.h"
 #include "testrunnerswitcher.h"
 
 #include "c_pal/timer.h"
