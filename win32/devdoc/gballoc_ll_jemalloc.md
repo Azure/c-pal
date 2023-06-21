@@ -165,4 +165,4 @@ static void jemalloc_print_stats_callback(void* context, const char* text)
 
 **SRS_GBALLOC_LL_JEMALLOC_01_009: [** If `text` is NULL, `jemalloc_print_stats_callback` shall return. **]**
 
-**SRS_GBALLOC_LL_JEMALLOC_01_010: [** Otherwise, `jemalloc_print_stats_callback` shall print (log) `text`, breaking it does in chunks of `LOG_SIZE_REGULAR / 2`. **]**
+**SRS_GBALLOC_LL_JEMALLOC_01_010: [** Otherwise, `jemalloc_print_stats_callback` shall print (log) `text`, breaking it does in chunks of `LOG_MAX_MESSAGE_LENGTH / 2`. **]**

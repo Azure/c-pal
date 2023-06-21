@@ -554,7 +554,7 @@ TEST_FUNCTION(gballoc_ll_print_stats_does_not_call_the_print_function)
 }
 
 /* Tests_SRS_GBALLOC_LL_JEMALLOC_01_008: [ gballoc_ll_print_stats shall call je_malloc_stats_print and pass to it jemalloc_print_stats_callback as print callback. ]*/
-/* Tests_SRS_GBALLOC_LL_JEMALLOC_01_010: [ Otherwise, jemalloc_print_stats_callback shall print (log) text, breaking it does in chunks of LOG_SIZE_REGULAR / 2. ]*/
+/* Tests_SRS_GBALLOC_LL_JEMALLOC_01_010: [ Otherwise, jemalloc_print_stats_callback shall print (log) text, breaking it does in chunks of LOG_MAX_MESSAGE_LENGTH / 2. ]*/
 TEST_FUNCTION(gballoc_ll_print_stats_calls_the_print_function_and_prints_1_small_text_line)
 {
     ///arrange
@@ -570,7 +570,7 @@ TEST_FUNCTION(gballoc_ll_print_stats_calls_the_print_function_and_prints_1_small
 }
 
 /* Tests_SRS_GBALLOC_LL_JEMALLOC_01_008: [ gballoc_ll_print_stats shall call je_malloc_stats_print and pass to it jemalloc_print_stats_callback as print callback. ]*/
-/* Tests_SRS_GBALLOC_LL_JEMALLOC_01_010: [ Otherwise, jemalloc_print_stats_callback shall print (log) text, breaking it does in chunks of LOG_SIZE_REGULAR / 2. ]*/
+/* Tests_SRS_GBALLOC_LL_JEMALLOC_01_010: [ Otherwise, jemalloc_print_stats_callback shall print (log) text, breaking it does in chunks of LOG_MAX_MESSAGE_LENGTH / 2. ]*/
 TEST_FUNCTION(gballoc_ll_print_stats_calls_the_print_function_and_prints_multiple_small_text_lines)
 {
     ///arrange
@@ -588,7 +588,7 @@ TEST_FUNCTION(gballoc_ll_print_stats_calls_the_print_function_and_prints_multipl
 }
 
 /* Tests_SRS_GBALLOC_LL_JEMALLOC_01_008: [ gballoc_ll_print_stats shall call je_malloc_stats_print and pass to it jemalloc_print_stats_callback as print callback. ]*/
-/* Tests_SRS_GBALLOC_LL_JEMALLOC_01_010: [ Otherwise, jemalloc_print_stats_callback shall print (log) text, breaking it does in chunks of LOG_SIZE_REGULAR / 2. ]*/
+/* Tests_SRS_GBALLOC_LL_JEMALLOC_01_010: [ Otherwise, jemalloc_print_stats_callback shall print (log) text, breaking it does in chunks of LOG_MAX_MESSAGE_LENGTH / 2. ]*/
 TEST_FUNCTION(gballoc_ll_print_stats_calls_the_print_function_and_prints_one_huge_line)
 {
     ///arrange
