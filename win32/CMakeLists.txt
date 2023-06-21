@@ -63,7 +63,7 @@ include_directories(../c_pal_ll/interfaces/inc)
 
 add_library(pal_win32 ${pal_win32_h_files} ${pal_win32_c_files} ${pal_win32_md_files} ${pal_common_md_files})
 
-target_link_libraries(pal_win32 pal_interfaces ws2_32 synchronization rpcrt4 c_logging)
+target_link_libraries(pal_win32 pal_interfaces ws2_32 synchronization rpcrt4 c_logging_v2)
 if(${GBALLOC_LL_TYPE} STREQUAL "MIMALLOC")
     target_link_libraries(pal_win32 mimalloc-obj)
 endif()
