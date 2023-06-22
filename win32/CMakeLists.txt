@@ -43,6 +43,7 @@ set(pal_win32_c_files
     src/pipe_win32.c
     src/platform_win32.c
     src/srw_lock_win32.c
+    src/srw_lock_ll_win32.c
     src/string_utils.c
     src/timer_win32.c
     src/sysinfo_win32.c
