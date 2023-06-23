@@ -7,7 +7,8 @@ if(${run_int_tests})
     build_test_folder(sysinfo_int)
     build_test_folder(uuid_int)
     if(MSVC)
-        # waiting for timer to be implemented on linux
+        build_test_folder(srw_lock_ll_int)
+        # file_int is not yet there on Linux
         build_test_folder(file_int)
     endif()
 endif()
