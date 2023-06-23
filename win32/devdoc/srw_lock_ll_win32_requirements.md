@@ -4,7 +4,17 @@
 
 `srw_lock_ll_win32` is the implementation of a slim reader writer lock (`srw_lock_ll` interface). On Windows it simply wraps `SRWLOCK`.
 
+References:
+
+[https://learn.microsoft.com/en-us/windows/win32/sync/slim-reader-writer--srw--locks](https://learn.microsoft.com/en-us/windows/win32/sync/slim-reader-writer--srw--locks)
+
 ## Exposed API
+
+For Windows the type `SRW_LOCK_LL` is defined to be `SRWLOCK`.
+
+```c
+typedef SRWLOCK SRW_LOCK_LL;
+```
 
 ```c
 #define SRW_LOCK_LL_TRY_ACQUIRE_RESULT_VALUES \
@@ -12,11 +22,9 @@
     SRW_LOCK_LL_TRY_ACQUIRE_COULD_NOT_ACQUIRE, \
     SRW_LOCK_LL_TRY_ACQUIRE_INVALID_ARGS
 
-typedef void* SRW_LOCK_LL;
-
 MU_DEFINE_ENUM(SRW_LOCK_LL_TRY_ACQUIRE_RESULT, SRW_LOCK_LL_TRY_ACQUIRE_RESULT_VALUES)
 
-MOCKABLE_FUNCTION(, void, srw_lock_ll_init);
+MOCKABLE_FUNCTION(, void, srw_lock_ll_init, SRW_LOCK_LL*, srw_lock_ll);
 MOCKABLE_FUNCTION(, void, srw_lock_ll_deinit, SRW_LOCK_LL*, srw_lock_ll);
 
 /*writer APIs*/
@@ -37,16 +45,18 @@ MOCKABLE_FUNCTION(, void, srw_lock_ll_init, SRW_LOCK_LL*, srw_lock_ll);
 
 `srw_lock_ll_init` initializes a slim reader writer lock.
 
-If `srw_lock_ll` is `NULL`, `srw_lock_ll_init` shall return.
+If `srw_lock_ll` is `NULL`, `srw_lock_ll_init` shall fail and return a non-zero value.
 
 Otherwise, `srw_lock_ll_init` shall call `InitializeSRWLock`.
+
+`srw_lock_ll_init` shall succeed and return 0.
 
 ### srw_lock_ll_deinit
 ```c
 MOCKABLE_FUNCTION(, void, srw_lock_ll_deinit, SRW_LOCK_LL*, srw_lock_ll);
 ```
 
-`srw_lock_ll_deinit` frees deinitializes the slim reader writer lock.
+`srw_lock_ll_deinit` deinitializes the slim reader writer lock.
 
 If `srw_lock_ll` is `NULL` then `srw_lock_ll_deinit` shall return.
 
@@ -94,7 +104,7 @@ If `srw_lock_ll` is `NULL` then `srw_lock_ll_release_exclusive` shall return.
 MOCKABLE_FUNCTION(, void, srw_lock_ll_acquire_shared, SRW_LOCK_LL*, srw_lock_ll);
 ```
 
-`srw_lock_ll_acquire_shared` acquires the SRWLOCK in shared (read) mode.
+`srw_lock_ll_acquire_shared` acquires the slim reader writer lock in shared (read) mode.
 
 If `srw_lock_ll` is `NULL` then `srw_lock_ll_acquire_shared` shall return.
 

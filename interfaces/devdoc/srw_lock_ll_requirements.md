@@ -4,6 +4,10 @@
 
 `srw_lock_ll` is the implementation of a slim reader writer lock.
 
+References:
+
+[https://learn.microsoft.com/en-us/windows/win32/sync/slim-reader-writer--srw--locks](https://learn.microsoft.com/en-us/windows/win32/sync/slim-reader-writer--srw--locks)
+
 ## Exposed API
 
 ```c
@@ -12,11 +16,9 @@
     SRW_LOCK_LL_TRY_ACQUIRE_COULD_NOT_ACQUIRE, \
     SRW_LOCK_LL_TRY_ACQUIRE_INVALID_ARGS
 
-typedef void* SRW_LOCK_LL;
-
 MU_DEFINE_ENUM(SRW_LOCK_LL_TRY_ACQUIRE_RESULT, SRW_LOCK_LL_TRY_ACQUIRE_RESULT_VALUES)
 
-MOCKABLE_FUNCTION(, void, srw_lock_ll_init);
+MOCKABLE_FUNCTION(, int, srw_lock_ll_init, SRW_LOCK_LL*, srw_lock_ll);
 MOCKABLE_FUNCTION(, void, srw_lock_ll_deinit, SRW_LOCK_LL*, srw_lock_ll);
 
 /*writer APIs*/
@@ -30,6 +32,8 @@ MOCKABLE_FUNCTION(, SRW_LOCK_LL_TRY_ACQUIRE_RESULT, srw_lock_ll_try_acquire_shar
 MOCKABLE_FUNCTION(, void, srw_lock_ll_release_shared, SRW_LOCK_LL*, srw_lock_ll);
 ```
 
+Note that the type `SRW_LOCK_LL` is defined individually for each platform.
+
 ### srw_lock_ll_init
 ```c
 MOCKABLE_FUNCTION(, void, srw_lock_ll_init, SRW_LOCK_LL*, srw_lock_ll);
@@ -42,7 +46,7 @@ MOCKABLE_FUNCTION(, void, srw_lock_ll_init, SRW_LOCK_LL*, srw_lock_ll);
 MOCKABLE_FUNCTION(, void, srw_lock_ll_deinit, SRW_LOCK_LL*, srw_lock_ll);
 ```
 
-`srw_lock_ll_deinit` frees deinitializes the slim reader writer lock.
+`srw_lock_ll_deinit` deinitializes the slim reader writer lock.
 
 ### srw_lock_ll_acquire_exclusive
 ```c
@@ -71,7 +75,7 @@ MOCKABLE_FUNCTION(, void, srw_lock_ll_release_exclusive, SRW_LOCK_LL*, srw_lock_
 MOCKABLE_FUNCTION(, void, srw_lock_ll_acquire_shared, SRW_LOCK_LL*, srw_lock_ll);
 ```
 
-`srw_lock_ll_acquire_shared` acquires the SRWLOCK in shared (read) mode.
+`srw_lock_ll_acquire_shared` acquires the slim reader writer lock in shared (read) mode.
 
 ### srw_lock_ll_try_acquire_shared
 ```c

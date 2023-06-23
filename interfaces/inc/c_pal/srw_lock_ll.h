@@ -1,7 +1,7 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 
-#ifndef SRW_LOCK_H
-#define SRW_LOCK_H
+#ifndef SRW_LOCK_LL_H
+#define SRW_LOCK_LL_H
 
 #ifdef __cplusplus
 #include <cstdbool>
@@ -9,38 +9,43 @@
 #include <stdbool.h>
 #endif
 
+#ifdef WIN32
+#include "windows.h"
+#endif // WINDOWS
+
 #include "macro_utils/macro_utils.h"
 #include "umock_c/umock_c_prod.h"
 
 #ifdef __cplusplus
 extern "C" {
+#endif // __cplusplus
+
+#ifdef WIN32
+typedef SRWLOCK SRW_LOCK_LL;
 #endif
 
-typedef struct SRW_LOCK_HANDLE_DATA_TAG* SRW_LOCK_HANDLE;
+#define SRW_LOCK_LL_TRY_ACQUIRE_RESULT_VALUES \
+    SRW_LOCK_LL_TRY_ACQUIRE_OK, \
+    SRW_LOCK_LL_TRY_ACQUIRE_COULD_NOT_ACQUIRE, \
+    SRW_LOCK_LL_TRY_ACQUIRE_INVALID_ARGS
 
-#define SRW_LOCK_TRY_ACQUIRE_RESULT_VALUES \
-    SRW_LOCK_TRY_ACQUIRE_OK, \
-    SRW_LOCK_TRY_ACQUIRE_COULD_NOT_ACQUIRE, \
-    SRW_LOCK_TRY_ACQUIRE_INVALID_ARGS
+MU_DEFINE_ENUM(SRW_LOCK_LL_TRY_ACQUIRE_RESULT, SRW_LOCK_LL_TRY_ACQUIRE_RESULT_VALUES)
 
-MU_DEFINE_ENUM(SRW_LOCK_TRY_ACQUIRE_RESULT, SRW_LOCK_TRY_ACQUIRE_RESULT_VALUES)
-
-MOCKABLE_FUNCTION(, SRW_LOCK_HANDLE, srw_lock_create, bool, do_statistics, const char*, lock_name);
+MOCKABLE_FUNCTION(, int, srw_lock_ll_init, SRW_LOCK_LL*, srw_lock_ll);
+MOCKABLE_FUNCTION(, void, srw_lock_ll_deinit, SRW_LOCK_LL*, srw_lock_ll);
 
 /*writer APIs*/
-MOCKABLE_FUNCTION(, void, srw_lock_acquire_exclusive, SRW_LOCK_HANDLE, handle);
-MOCKABLE_FUNCTION(, SRW_LOCK_TRY_ACQUIRE_RESULT, srw_lock_try_acquire_exclusive, SRW_LOCK_HANDLE, handle);
-MOCKABLE_FUNCTION(, void, srw_lock_release_exclusive, SRW_LOCK_HANDLE, handle);
+MOCKABLE_FUNCTION(, void, srw_lock_ll_acquire_exclusive, SRW_LOCK_LL*, srw_lock_ll);
+MOCKABLE_FUNCTION(, SRW_LOCK_LL_TRY_ACQUIRE_RESULT, srw_lock_ll_try_acquire_exclusive, SRW_LOCK_LL*, srw_lock_ll);
+MOCKABLE_FUNCTION(, void, srw_lock_ll_release_exclusive, SRW_LOCK_LL*, srw_lock_ll);
 
 /*reader APIs*/
-MOCKABLE_FUNCTION(, void, srw_lock_acquire_shared, SRW_LOCK_HANDLE, handle);
-MOCKABLE_FUNCTION(, SRW_LOCK_TRY_ACQUIRE_RESULT, srw_lock_try_acquire_shared, SRW_LOCK_HANDLE, handle);
-MOCKABLE_FUNCTION(, void, srw_lock_release_shared, SRW_LOCK_HANDLE, handle);
-
-MOCKABLE_FUNCTION(, void, srw_lock_destroy, SRW_LOCK_HANDLE, handle);
+MOCKABLE_FUNCTION(, void, srw_lock_ll_acquire_shared, SRW_LOCK_LL*, srw_lock_ll);
+MOCKABLE_FUNCTION(, SRW_LOCK_LL_TRY_ACQUIRE_RESULT, srw_lock_ll_try_acquire_shared, SRW_LOCK_LL*, srw_lock_ll);
+MOCKABLE_FUNCTION(, void, srw_lock_ll_release_shared, SRW_LOCK_LL*, srw_lock_ll);
 
 #ifdef __cplusplus
 }
-#endif
+#endif // __cplusplus
 
-#endif
+#endif // SRW_LOCK_LL_H
