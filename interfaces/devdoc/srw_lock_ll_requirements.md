@@ -18,7 +18,7 @@ References:
 
 MU_DEFINE_ENUM(SRW_LOCK_LL_TRY_ACQUIRE_RESULT, SRW_LOCK_LL_TRY_ACQUIRE_RESULT_VALUES)
 
-MOCKABLE_FUNCTION(, int, srw_lock_ll_init, SRW_LOCK_LL*, srw_lock_ll);
+MOCKABLE_FUNCTION_WITH_RETURNS(, int, srw_lock_ll_init, SRW_LOCK_LL*, srw_lock_ll)(0, MU_FAILURE);
 MOCKABLE_FUNCTION(, void, srw_lock_ll_deinit, SRW_LOCK_LL*, srw_lock_ll);
 
 /*writer APIs*/
@@ -36,7 +36,7 @@ Note that the type `SRW_LOCK_LL` is defined individually for each platform.
 
 ### srw_lock_ll_init
 ```c
-MOCKABLE_FUNCTION(, void, srw_lock_ll_init, SRW_LOCK_LL*, srw_lock_ll);
+MOCKABLE_FUNCTION_WITH_RETURNS(, int, srw_lock_ll_init, SRW_LOCK_LL*, srw_lock_ll)(0, MU_FAILURE);
 ```
 
 `srw_lock_ll_init` initializes a slim reader writer lock.

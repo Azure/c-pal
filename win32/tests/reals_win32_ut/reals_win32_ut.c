@@ -5,6 +5,7 @@
 
 #include "c_pal/threadapi.h"
 #include "c_pal/srw_lock.h"
+#include "c_pal/srw_lock_ll.h"
 #include "c_pal/string_utils.h"
 #include "c_pal/timer.h"
 #include "c_pal/interlocked.h"
@@ -27,6 +28,7 @@
 
 #include "real_threadapi.h"
 #include "real_srw_lock.h"
+#include "real_srw_lock_ll.h"
 #include "real_string_utils.h"
 #include "real_timer.h"
 #include "real_interlocked.h"
@@ -49,6 +51,7 @@ TEST_FUNCTION(check_all_c_pal_reals)
     // act
     REGISTER_THREADAPI_GLOBAL_MOCK_HOOK();
     REGISTER_SRW_LOCK_GLOBAL_MOCK_HOOK();
+    REGISTER_SRW_LOCK_LL_GLOBAL_MOCK_HOOK();
     REGISTER_STRING_UTILS_GLOBAL_MOCK_HOOK();
     REGISTER_TIMER_GLOBAL_MOCK_HOOK();
     REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK();

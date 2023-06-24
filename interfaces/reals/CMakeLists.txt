@@ -16,6 +16,8 @@ set(reals_pal_interface_h_files ${reals_pal_interface_h_files}
     real_interlocked_hl_renames.h
     real_srw_lock.h
     real_srw_lock_renames.h
+    real_srw_lock_ll.h
+    real_srw_lock_ll_renames.h
     real_string_utils.h
     real_string_utils_renames.h
     real_timer.h
