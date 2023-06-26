@@ -130,7 +130,7 @@ TEST_SUITE_INITIALIZE(suite_init)
 
     // Turn off logging so it doesn't put unneccesary
     // sleeps in the code.
-    xlogging_set_log_function(NULL);
+    logger_set_config((LOGGER_CONFIG) { .log_sinks = NULL, .log_sink_count = 0 });
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
