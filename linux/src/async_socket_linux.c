@@ -11,6 +11,8 @@
 
 #include "macro_utils/macro_utils.h"
 
+#include "c_logging/log_context.h"
+#include "c_logging/log_context_property_type_ascii_char_ptr.h"
 #include "c_logging/logger.h"
 
 #include "c_pal/completion_port_linux.h"
