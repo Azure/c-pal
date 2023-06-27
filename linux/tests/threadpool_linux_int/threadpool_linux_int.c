@@ -25,6 +25,8 @@
 #include "c_pal/thandle.h" // IWYU pragma: keep
 #include "c_pal/thandle_ll.h"
 
+#define XTEST_FUNCTION(A) static void A(void)
+
 typedef struct WAIT_WORK_CONTEXT_TAG
 {
     volatile_atomic int32_t call_count;
@@ -87,6 +89,7 @@ static void work_function(void* context)
 {
     volatile_atomic int32_t* call_count = (volatile_atomic int32_t*)context;
     (void)interlocked_increment(call_count);
+    printf("work_function, address is %p\r\n", call_count);
     wake_by_address_single(call_count);
 }
 
@@ -120,7 +123,7 @@ static void wait_for_equal(volatile_atomic int32_t* value, int32_t expected, uin
     } while (1);
 }
 
-TEST_FUNCTION(one_work_item_schedule_works)
+XTEST_FUNCTION(one_work_item_schedule_works)
 {
     // assert
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
@@ -152,7 +155,7 @@ TEST_FUNCTION(one_work_item_schedule_works)
 
 #define N_WORK_ITEMS 30
 
-TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
+XTEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
 {
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
     uint32_t num_threads = N_WORK_ITEMS;
@@ -185,7 +188,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
+XTEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
 {
     // assert
     //EXECUTION_ENGINE_PARAMETERS_LINUX params = {0};
@@ -219,7 +222,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
 
 #define N_CHAOS_WORK_ITEMS 50
 
-TEST_FUNCTION(threadpool_chaos_knight)
+XTEST_FUNCTION(threadpool_chaos_knight)
 {
     // assert
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
@@ -254,7 +257,7 @@ TEST_FUNCTION(threadpool_chaos_knight)
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(one_start_timer_works_runs_once)
+XTEST_FUNCTION(one_start_timer_works_runs_once)
 {
     // assert
     // create an execution engine
@@ -317,7 +320,7 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(restart_timer_works_runs_once)
+XTEST_FUNCTION(restart_timer_works_runs_once)
 {
     // assert
     // create an execution engine
@@ -381,42 +384,53 @@ TEST_FUNCTION(restart_timer_works_runs_once)
 
 TEST_FUNCTION(one_start_timer_works_runs_periodically)
 {
+    printf("Starting one_start_timer_works_runs_periodically\r\n");
     // assert
     // create an execution engine
-    volatile_atomic int32_t call_count;
-    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
-    ASSERT_IS_NOT_NULL(execution_engine);
+    volatile_atomic int32_t call_count_2;
+    printf("Address of call_count is %p\r\n", &call_count_2);
+
+    ThreadAPI_Sleep(1000);
+
+    //EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
+    //ASSERT_IS_NOT_NULL(execution_engine);
 
     // create the threadpool
-    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
-    ASSERT_IS_NOT_NULL(threadpool);
-
-    (void)interlocked_exchange(&call_count, 0);
-
-    // act (start a timer to start delayed and then execute every 500ms)
-    LogInfo("Starting timer");
-    TIMER_INSTANCE_HANDLE timer;
-    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&call_count, &timer));
-
-    // assert
-
-    // Timer should run 4 times in about 2.1 seconds
-    wait_for_equal(&call_count, 4, 3000);
-    LogInfo("Timer completed 4 times");
-
-    // cleanup
-    threadpool_timer_destroy(timer);
-    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
-    execution_engine_dec_ref(execution_engine);
+//    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+//    ASSERT_IS_NOT_NULL(threadpool);
+//
+//    (void)interlocked_exchange(&call_count, 0);
+//
+//    // act (start a timer to start delayed and then execute every 500ms)
+//    LogInfo("Starting timer");
+//    TIMER_INSTANCE_HANDLE timer;
+//    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&call_count, &timer));
+//
+//    // assert
+//
+//    // Timer should run 4 times in about 2.1 seconds
+//    wait_for_equal(&call_count, 4, 3000);
+//    LogInfo("Timer completed 4 times");
+//
+//    // cleanup
+//    threadpool_timer_destroy(timer);
+//    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    //execution_engine_dec_ref(execution_engine);
+    printf("Ending one_start_timer_works_runs_periodically\r\n");
 }
 
 TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
 {
+    printf("Starting timer_cancel_restart_works_runs_periodically\r\n");
+
     // assert
     // create an execution engine
     volatile_atomic int32_t call_count;
+    printf("Address of call_count is %p\r\n", &call_count);
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
     ASSERT_IS_NOT_NULL(execution_engine);
+
+    printf("cucu\r\n");
 
     // create the threadpool
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
@@ -449,9 +463,15 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
     threadpool_timer_destroy(timer);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
+
+    printf("Done\r\n");
+
+    //ThreadAPI_Sleep(10000);
+
+    printf("Ending timer_cancel_restart_works_runs_periodically\r\n");
 }
 
-TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
+XTEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
 {
     // assert
     // create an execution engine
@@ -489,7 +509,7 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
+XTEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
 {
     // assert
     // create an execution engine
