@@ -27,6 +27,8 @@
 
 #define XTEST_FUNCTION(A) static void A(void)
 
+static volatile_atomic int32_t g_call_count;
+
 typedef struct WAIT_WORK_CONTEXT_TAG
 {
     volatile_atomic int32_t call_count;
@@ -51,6 +53,7 @@ TEST_SUITE_CLEANUP(suite_cleanup)
 
 TEST_FUNCTION_INITIALIZE(method_init)
 {
+    (void)interlocked_exchange(&g_call_count, 0);
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
@@ -87,10 +90,8 @@ static void threadpool_task_wait_random(void* parameter)
 
 static void work_function(void* context)
 {
-    volatile_atomic int32_t* call_count = (volatile_atomic int32_t*)context;
-    (void)interlocked_increment(call_count);
-    printf("work_function, address is %p\r\n", call_count);
-    wake_by_address_single(call_count);
+    (void)interlocked_increment(&g_call_count);
+    wake_by_address_single(&g_call_count);
 }
 
 static void wait_work_function(void* context)
@@ -123,7 +124,7 @@ static void wait_for_equal(volatile_atomic int32_t* value, int32_t expected, uin
     } while (1);
 }
 
-XTEST_FUNCTION(one_work_item_schedule_works)
+TEST_FUNCTION(one_work_item_schedule_works)
 {
     // assert
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
@@ -155,7 +156,7 @@ XTEST_FUNCTION(one_work_item_schedule_works)
 
 #define N_WORK_ITEMS 30
 
-XTEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
+TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
 {
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
     uint32_t num_threads = N_WORK_ITEMS;
@@ -188,7 +189,7 @@ XTEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
     execution_engine_dec_ref(execution_engine);
 }
 
-XTEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
+TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
 {
     // assert
     //EXECUTION_ENGINE_PARAMETERS_LINUX params = {0};
@@ -222,7 +223,7 @@ XTEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
 
 #define N_CHAOS_WORK_ITEMS 50
 
-XTEST_FUNCTION(threadpool_chaos_knight)
+TEST_FUNCTION(threadpool_chaos_knight)
 {
     // assert
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
@@ -257,11 +258,10 @@ XTEST_FUNCTION(threadpool_chaos_knight)
     execution_engine_dec_ref(execution_engine);
 }
 
-XTEST_FUNCTION(one_start_timer_works_runs_once)
+TEST_FUNCTION(one_start_timer_works_runs_once)
 {
     // assert
     // create an execution engine
-    volatile_atomic int32_t call_count;
     EXECUTION_ENGINE_PARAMETERS_LINUX params;
     params.min_thread_count = 1;
     params.max_thread_count = 16;
@@ -280,19 +280,17 @@ XTEST_FUNCTION(one_start_timer_works_runs_once)
     bool need_to_retry = true;
     do
     {
-        (void)interlocked_exchange(&call_count, 0);
-
         LogInfo("Starting timer");
 
         // act (start a timer to start delayed and then execute once)
         TIMER_INSTANCE_HANDLE timer;
-        ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 2000, 0, work_function, (void*)&call_count, &timer));
+        ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 2000, 0, work_function, NULL, &timer));
 
         // assert
 
         // Timer starts after 2 seconds, wait a bit and it should not yet have run
         ThreadAPI_Sleep(500);
-        if (interlocked_add(&call_count, 0) != 0)
+        if (interlocked_add(&g_call_count, 0) != 0)
         {
             LogWarning("Timer ran after sleeping 500ms, we just got unlucky, try test again");
         }
@@ -301,12 +299,12 @@ XTEST_FUNCTION(one_start_timer_works_runs_once)
             LogInfo("Waiting for timer to execute after short delay of no execution");
 
             // Should eventually run once (wait up to 2.5 seconds, but it should run in 1.5 seconds)
-            wait_for_equal(&call_count, 1, 5000);
+            wait_for_equal(&g_call_count, 1, 5000);
             LogInfo("Timer completed, make sure it doesn't run again");
 
             // And should not run again
             ThreadAPI_Sleep(5000);
-            ASSERT_ARE_EQUAL(uint32_t, 1, interlocked_add(&call_count, 0));
+            ASSERT_ARE_EQUAL(uint32_t, 1, interlocked_add(&g_call_count, 0));
             LogInfo("Done waiting for timer");
 
             need_to_retry = false;
@@ -320,11 +318,10 @@ XTEST_FUNCTION(one_start_timer_works_runs_once)
     execution_engine_dec_ref(execution_engine);
 }
 
-XTEST_FUNCTION(restart_timer_works_runs_once)
+TEST_FUNCTION(restart_timer_works_runs_once)
 {
     // assert
     // create an execution engine
-    volatile_atomic int32_t call_count;
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -339,13 +336,11 @@ XTEST_FUNCTION(restart_timer_works_runs_once)
     bool need_to_retry = true;
     do
     {
-        (void)interlocked_exchange(&call_count, 0);
-
         LogInfo("Starting timer");
 
         // start a timer to start delayed after 4 seconds (which would fail test)
         TIMER_INSTANCE_HANDLE timer;
-        ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 4000, 0, work_function, (void*)&call_count, &timer));
+        ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 4000, 0, work_function, (void*)&g_call_count, &timer));
 
         // act (restart timer to start delayed instead after 2 seconds)
         ASSERT_ARE_EQUAL(int, 0, threadpool_timer_restart(timer, 2000, 0));
@@ -354,7 +349,7 @@ XTEST_FUNCTION(restart_timer_works_runs_once)
 
         // Timer starts after 2 seconds, wait a bit and it should not yet have run
         ThreadAPI_Sleep(500);
-        if (interlocked_add(&call_count, 0) != 0)
+        if (interlocked_add(&g_call_count, 0) != 0)
         {
             LogWarning("Timer ran after sleeping 500ms, we just got unlucky, try test again");
         }
@@ -363,12 +358,12 @@ XTEST_FUNCTION(restart_timer_works_runs_once)
             LogInfo("Waiting for timer to execute after short delay of no execution");
 
             // Should eventually run once (wait up to 2.5 seconds, but it should run in 1.5 seconds)
-            wait_for_equal(&call_count, 1, 2000);
+            wait_for_equal(&g_call_count, 1, 2000);
             LogInfo("Timer completed, make sure it doesn't run again");
 
             // And should not run again
             ThreadAPI_Sleep(5000);
-            ASSERT_ARE_EQUAL(uint32_t, 1, interlocked_add(&call_count, 0));
+            ASSERT_ARE_EQUAL(uint32_t, 1, interlocked_add(&g_call_count, 0));
             LogInfo("Done waiting for timer");
 
             need_to_retry = false;
@@ -384,99 +379,75 @@ XTEST_FUNCTION(restart_timer_works_runs_once)
 
 TEST_FUNCTION(one_start_timer_works_runs_periodically)
 {
-    printf("Starting one_start_timer_works_runs_periodically\r\n");
     // assert
     // create an execution engine
-    volatile_atomic int32_t call_count_2;
-    printf("Address of call_count is %p\r\n", &call_count_2);
-
-    ThreadAPI_Sleep(1000);
-
-    //EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
-    //ASSERT_IS_NOT_NULL(execution_engine);
-
-    // create the threadpool
-//    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
-//    ASSERT_IS_NOT_NULL(threadpool);
-//
-//    (void)interlocked_exchange(&call_count, 0);
-//
-//    // act (start a timer to start delayed and then execute every 500ms)
-//    LogInfo("Starting timer");
-//    TIMER_INSTANCE_HANDLE timer;
-//    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&call_count, &timer));
-//
-//    // assert
-//
-//    // Timer should run 4 times in about 2.1 seconds
-//    wait_for_equal(&call_count, 4, 3000);
-//    LogInfo("Timer completed 4 times");
-//
-//    // cleanup
-//    threadpool_timer_destroy(timer);
-//    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
-    //execution_engine_dec_ref(execution_engine);
-    printf("Ending one_start_timer_works_runs_periodically\r\n");
-}
-
-TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
-{
-    printf("Starting timer_cancel_restart_works_runs_periodically\r\n");
-
-    // assert
-    // create an execution engine
-    volatile_atomic int32_t call_count;
-    printf("Address of call_count is %p\r\n", &call_count);
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
     ASSERT_IS_NOT_NULL(execution_engine);
-
-    printf("cucu\r\n");
 
     // create the threadpool
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
-    (void)interlocked_exchange(&call_count, 0);
+    // act (start a timer to start delayed and then execute every 500ms)
+    LogInfo("Starting timer");
+    TIMER_INSTANCE_HANDLE timer;
+    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&g_call_count, &timer));
+
+    // assert
+
+    // Timer should run 4 times in about 2.1 seconds
+    wait_for_equal(&g_call_count, 4, 3000);
+    LogInfo("Timer completed 4 times");
+
+    // cleanup
+    threadpool_timer_destroy(timer);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
+{
+    // assert
+    // create an execution engine
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    // create the threadpool
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
 
     // start a timer to start delayed and then execute every 500ms
     LogInfo("Starting timer");
     TIMER_INSTANCE_HANDLE timer;
-    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&call_count, &timer));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&g_call_count, &timer));
 
     // Timer should run 4 times in about 2.1 seconds
-    wait_for_equal(&call_count, 4, 3000);
+    wait_for_equal(&g_call_count, 4, 3000);
     LogInfo("Timer completed 4 times");
 
     // act
     LogInfo("Cancel then restart timer");
     threadpool_timer_cancel(timer);
-    (void)interlocked_exchange(&call_count, 0);
+    (void)interlocked_exchange(&g_call_count, 0);
     ASSERT_ARE_EQUAL(int, 0, threadpool_timer_restart(timer, 100, 1000));
 
     // assert
 
     // Timer should run 2 more times in about 2.1 seconds
-    wait_for_equal(&call_count, 2, 3000);
+    wait_for_equal(&g_call_count, 2, 3000);
     LogInfo("Timer completed 2 more times");
 
     // cleanup
     threadpool_timer_destroy(timer);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
-
-    printf("Done\r\n");
-
-    //ThreadAPI_Sleep(10000);
-
-    printf("Ending timer_cancel_restart_works_runs_periodically\r\n");
 }
 
-XTEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
+TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
 {
     // assert
     // create an execution engine
     WAIT_WORK_CONTEXT wait_work_context;
-    volatile_atomic int32_t call_count;
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -509,12 +480,11 @@ XTEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
     execution_engine_dec_ref(execution_engine);
 }
 
-XTEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
+TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
 {
     // assert
     // create an execution engine
     WAIT_WORK_CONTEXT wait_work_context;
-    volatile_atomic int32_t call_count;
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
     ASSERT_IS_NOT_NULL(execution_engine);
 
