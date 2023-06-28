@@ -2,7 +2,7 @@
 
 #include "windows.h"
 
-#include "c_logging/xlogging.h"
+#include "c_logging/logger.h"
 #include "c_pal/gballoc_ll.h"
 #include "c_pal/gballoc_ll_redirect.h"
 

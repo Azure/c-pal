@@ -4,7 +4,7 @@
 #include <stddef.h>                       // for NULL
 #include "macro_utils/macro_utils.h"      // for MU_FAILURE
 
-#include "c_logging/xlogging.h"
+#include "c_logging/logger.h"
 
 #include "c_pal/completion_port_linux.h"
 #include "c_pal/platform.h"

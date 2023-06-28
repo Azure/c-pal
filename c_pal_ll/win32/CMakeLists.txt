@@ -23,7 +23,7 @@ add_library(pal_ll_win32 ${pal_ll_win32_h_files} ${pal_ll_win32_c_files} ${pal_l
 
 set_target_properties(pal_ll_win32 PROPERTIES LINKER_LANGUAGE C)
 
-target_link_libraries(pal_ll_win32 pal_ll_interfaces synchronization rpcrt4 c_logging)
+target_link_libraries(pal_ll_win32 pal_ll_interfaces synchronization rpcrt4 c_logging_v2)
 
 target_include_directories(pal_ll_win32 PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc ${CMAKE_CURRENT_LIST_DIR}/src)
 

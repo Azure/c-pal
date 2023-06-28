@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-#include "c_logging/xlogging.h"
+#include "c_logging/logger.h"
 #include "c_pal/gballoc_ll.h"
 
 #include "jemalloc/jemalloc.h"
@@ -192,15 +192,15 @@ static void jemalloc_print_stats_callback(void* context, const char* text)
     }
     else
     {
-        /* Codes_SRS_GBALLOC_LL_JEMALLOC_01_010: [ Otherwise, jemalloc_print_stats_callback shall print (log) text, breaking it does in chunks of LOG_SIZE_REGULAR / 2. ]*/
+        /* Codes_SRS_GBALLOC_LL_JEMALLOC_01_010: [ Otherwise, jemalloc_print_stats_callback shall print (log) text, breaking it does in chunks of LOG_MAX_MESSAGE_LENGTH / 2. ]*/
         size_t text_length = strlen(text);
         size_t pos = 0;
         while (pos < text_length)
         {
             size_t chars_to_print = text_length - pos;
-            if (chars_to_print > LOG_SIZE_REGULAR / 2)
+            if (chars_to_print > LOG_MAX_MESSAGE_LENGTH / 2)
             {
-                chars_to_print = LOG_SIZE_REGULAR / 2;
+                chars_to_print = LOG_MAX_MESSAGE_LENGTH / 2;
             }
 
             LogInfo("%.*s", (int)chars_to_print, text + pos);

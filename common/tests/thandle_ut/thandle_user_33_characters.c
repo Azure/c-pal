@@ -8,7 +8,7 @@
 #include "c_pal/gballoc_hl.h" // IWYU pragma: keep
 #include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 
-#include "c_logging/xlogging.h"       // for LogError
+#include "c_logging/logger.h"       // for LogError
 
 #include "c_pal/thandle.h"
 

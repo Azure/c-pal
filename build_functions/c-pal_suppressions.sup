@@ -5,6 +5,15 @@
    ...
 }
 {
+   <vfprintf suppression>
+   Helgrind:Race
+   ...
+   fun:__vfprintf_internal
+   ...
+   fun:log_sink_console_log
+   ...
+}
+{
    <incorrect interlocked flagging>
    Helgrind:Race
    fun:interlocked_compare_exchange

@@ -10,7 +10,7 @@
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 #include "umock_c/umock_c_prod.h"
 
-#include "c_logging/xlogging.h"
+#include "c_logging/logger.h"
 
 #include "c_pal/gballoc_hl.h" // IWYU pragma: keep
 #include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep

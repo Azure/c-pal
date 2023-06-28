@@ -11,6 +11,9 @@
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
+#include "c_logging/log_level.h"
+#include "c_logging/logger.h"
+
 #include "c_pal/timer.h"
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/threadapi.h"
@@ -18,7 +21,6 @@
 #include "c_pal/sysinfo.h" // IWYU pragma: keep
 #include "c_pal/sync.h" // IWYU pragma: keep
 #include "c_pal/interlocked_hl.h"
-#include "c_logging/xlogging.h"
 
 #include "c_pal/sm.h"
 
@@ -843,8 +845,8 @@ At least 1 sm_open_begin and at least 1 sm_exec_begin are waited to happen*/
 TEST_FUNCTION(sm_chaos)
 {
     LogInfo("disabling logging for the duration of sm_chaos. Logging takes additional locks that \"might\" help the test pass");
-    LOGGER_LOG toBeRestored = xlogging_get_log_function();
-    xlogging_set_log_function(NULL);
+    LOGGER_CONFIG old_config = logger_get_config();
+    logger_set_config((LOGGER_CONFIG) { .log_sinks = NULL, .log_sink_count = 0 });
 
     OPEN_CLOSE_THREADS* data = malloc(sizeof(OPEN_CLOSE_THREADS));
     ASSERT_IS_NOT_NULL(data);
@@ -907,7 +909,7 @@ TEST_FUNCTION(sm_chaos)
             ((n_begin_open_grants_local==0) || (n_begin_grants_local==0))
             )
         {
-            toBeRestored(AZ_LOG_INFO, __FILE__, FUNC_NAME, __LINE__, 0, "Slept %" PRIu32 " ms, no sign of n_begin_open_grants=%" PRId32 ", n_begin_grants=%" PRId32 "\n", counterSleep * 1000, n_begin_open_grants_local, n_begin_grants_local);
+            LOGGER_LOG_WITH_CONFIG(old_config, LOG_LEVEL_INFO, NULL, "Slept %" PRIu32 " ms, no sign of n_begin_open_grants=%" PRId32 ", n_begin_grants=%" PRId32 "\n", counterSleep * 1000, n_begin_open_grants_local, n_begin_grants_local);
             counterSleep++;
             ThreadAPI_Sleep(1000);
         }
@@ -930,7 +932,7 @@ TEST_FUNCTION(sm_chaos)
 
         /*just in case anything needs to close*/
 
-        toBeRestored(AZ_LOG_INFO, __FILE__, FUNC_NAME, __LINE__, 0, "nthreads=%" PRIu32
+        LOGGER_LOG_WITH_CONFIG(old_config, LOG_LEVEL_INFO, NULL, "nthreads=%" PRIu32
             ", n_begin_open_grants=%" PRIu32 ", n_begin_open_refuses=%" PRIu32
             ", n_begin_close_grants=%" PRIu32 ", n_begin_close_refuses=%" PRIu32
             ", n_begin_barrier_grants=%" PRIu32 ", n_begin_barrier_refuses=%" PRIu32
@@ -946,15 +948,14 @@ TEST_FUNCTION(sm_chaos)
             interlocked_add(&data->n_begin_barrier_refuses, 0),
             interlocked_add(&data->n_begin_grants, 0),
             interlocked_add(&data->n_begin_refuses, 0),
-            interlocked_add(&data->n_faults, 0)
-        );
+            interlocked_add(&data->n_faults, 0));
 
         ASSERT_IS_TRUE(interlocked_add(&data->n_begin_open_grants, 0) >= 1);
     }
     sm_destroy(data->sm);
     free(data);
 
-    xlogging_set_log_function(toBeRestored);
+    logger_set_config(old_config);
 }
 
 /*Same as the chaos test but faults occasionally happen
@@ -962,8 +963,8 @@ Test waits for a fault to be called*/
 TEST_FUNCTION(sm_chaos_with_faults)
 {
     LogInfo("disabling logging for the duration of sm_chaos. Logging takes additional locks that \"might\" help the test pass");
-    LOGGER_LOG toBeRestored = xlogging_get_log_function();
-    xlogging_set_log_function(NULL);
+    LOGGER_CONFIG old_config = logger_get_config();
+    logger_set_config((LOGGER_CONFIG) { .log_sinks = NULL, .log_sink_count = 0 });
 
     OPEN_CLOSE_THREADS* data = malloc(sizeof(OPEN_CLOSE_THREADS));
     ASSERT_IS_NOT_NULL(data);
@@ -1025,7 +1026,7 @@ TEST_FUNCTION(sm_chaos_with_faults)
             ((n_faults_local == 0))
             )
         {
-            toBeRestored(AZ_LOG_INFO, __FILE__, FUNC_NAME, __LINE__, 0, "Slept %" PRIu32 " ms, no sign of n_faults=%" PRId32 "\n", counterSleep * 1000, n_faults_local);
+            LOGGER_LOG_WITH_CONFIG(old_config, LOG_LEVEL_INFO, NULL, "Slept %" PRIu32 " ms, no sign of n_faults=%" PRId32 "\n", counterSleep * 1000, n_faults_local);
             counterSleep++;
             ThreadAPI_Sleep(1000);
         }
@@ -1050,7 +1051,7 @@ TEST_FUNCTION(sm_chaos_with_faults)
 
         /*just in case anything needs to close*/
 
-        toBeRestored(AZ_LOG_INFO, __FILE__, FUNC_NAME, __LINE__, 0, "nthreads=%" PRIu32
+        LOGGER_LOG_WITH_CONFIG(old_config, LOG_LEVEL_INFO, NULL, "nthreads=%" PRIu32
             ", n_begin_open_grants=%" PRIu32 ", n_begin_open_refuses=%" PRIu32
             ", n_begin_close_grants=%" PRIu32 ", n_begin_close_refuses=%" PRIu32
             ", n_begin_barrier_grants=%" PRIu32 ", n_begin_barrier_refuses=%" PRIu32
@@ -1074,15 +1075,15 @@ TEST_FUNCTION(sm_chaos_with_faults)
     sm_destroy(data->sm);
     free(data);
 
-    xlogging_set_log_function(toBeRestored);
+    logger_set_config(old_config);
 }
 #endif
 
 TEST_FUNCTION(sm_does_not_block)
 {
     LogInfo("disabling logging for the duration of sm_does_not_block. Logging takes additional locks that \"might help\" the test pass");
-    LOGGER_LOG toBeRestored = xlogging_get_log_function();
-    xlogging_set_log_function(NULL);
+    LOGGER_CONFIG old_config = logger_get_config();
+    logger_set_config((LOGGER_CONFIG) { .log_sinks = NULL, .log_sink_count = 0 });
 
     ///arrange
     THREADS_COMMON* data = malloc(sizeof(THREADS_COMMON));
@@ -1116,7 +1117,7 @@ TEST_FUNCTION(sm_does_not_block)
             ASSERT_IS_TRUE(sm_open_begin(data->sm) == SM_EXEC_GRANTED);
             sm_open_end(data->sm, true);
 
-            toBeRestored(AZ_LOG_INFO, __FILE__, FUNC_NAME, __LINE__, 0, "Info: nthreads=%" PRIu32 " n_barrier_threads=%" PRIu32 " n_non_barrier_threads=%" PRIu32 "\n", nthreads, n_barrier_threads, n_non_barrier_threads);
+            LOGGER_LOG_WITH_CONFIG(old_config, LOG_LEVEL_INFO, NULL, "Info: nthreads=%" PRIu32 " n_barrier_threads=%" PRIu32 " n_non_barrier_threads=%" PRIu32 "\n", nthreads, n_barrier_threads, n_non_barrier_threads);
 
             /*create them barrier threads*/
             for (uint32_t iBarrier = 0; iBarrier < n_barrier_threads; iBarrier++)
@@ -1151,7 +1152,7 @@ TEST_FUNCTION(sm_does_not_block)
             /*verify the all numbers written by barriers are greater than all previous numbers*/
             verify(data);
 
-            toBeRestored(AZ_LOG_INFO, __FILE__, FUNC_NAME, __LINE__, 0, "Info: took %f ms, non_barrier_grants=%" PRId32 ", non_barrier_refusals=%" PRId64 " barrier_grants=%" PRId32 ", barrier_refusals=%" PRId64 "\n", timer_global_get_elapsed_ms() - data->startTimems,
+            LOGGER_LOG_WITH_CONFIG(old_config, LOG_LEVEL_INFO, NULL, "Info: took %f ms, non_barrier_grants=%" PRId32 ", non_barrier_refusals=%" PRId64 " barrier_grants=%" PRId32 ", barrier_refusals=%" PRId64 "\n", timer_global_get_elapsed_ms() - data->startTimems,
                 interlocked_add(&non_barrier_grants, 0),
                 interlocked_add_64(&non_barrier_refusals, 0),
                 interlocked_add(&barrier_grants, 0),
@@ -1168,7 +1169,7 @@ TEST_FUNCTION(sm_does_not_block)
     sm_destroy(data->sm);
     free(data);
 
-    xlogging_set_log_function(toBeRestored);
+    logger_set_config(old_config);
 }
 
 /*below tests aim to see that calling any API produces GRANT/REFUSED from any state*/

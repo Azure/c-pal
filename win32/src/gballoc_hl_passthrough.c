@@ -4,7 +4,7 @@
 #include <stddef.h>
 
 #include "macro_utils/macro_utils.h"
-#include "c_logging/xlogging.h"
+#include "c_logging/logger.h"
 
 #include "c_pal/lazy_init.h"
 #include "c_pal/gballoc_ll.h"

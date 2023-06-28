@@ -6,7 +6,7 @@
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
 #include "testrunnerswitcher.h"
-#include "c_logging/xlogging.h"
+#include "c_logging/logger.h"
 
 #include "c_pal/uuid.h"
 

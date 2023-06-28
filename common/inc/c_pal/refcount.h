@@ -24,7 +24,7 @@ will interact with deallocated memory / resources resulting in an undefined beha
 
 #include "macro_utils/macro_utils.h"
 
-#include "c_logging/xlogging.h"
+#include "c_logging/logger.h"
 
 // Include the platform-specific file that defines atomic functionality
 #include "c_pal/gballoc_hl.h"
