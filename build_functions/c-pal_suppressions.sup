@@ -7,7 +7,10 @@
 {
    <vfprintf suppression>
    Helgrind:Race
+   ...
    fun:__vfprintf_internal
+   fun:printf
+   fun:log_sink_console_log
    ...
 }
 {
