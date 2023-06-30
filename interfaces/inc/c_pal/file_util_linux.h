@@ -16,7 +16,9 @@ extern "C" {
 #endif
 
 #ifdef WIN32 
-// do nothing
+#include "windows.h"
+#define ebs_create_file CreateFileA
+#define ebs_close_handle CloseHandle
 #else
 #define GENERIC_READ                    0x80000000
 #define GENERIC_WRITE                   0x40000000
@@ -51,8 +53,8 @@ extern "C" {
 typedef void *HANDLE;
 typedef void *LPSECURITY_ATTRIBUTES;
 
-MOCKABLE_FUNCTION(, HANDLE, CreateFileA, const char*, lpFileName, unsigned long, dwDesiredAccess, unsigned long, dwShareMode, LPSECURITY_ATTRIBUTES, lpSecurityAttributes, unsigned long, dwCreationDisposition, unsigned long, dwFlagsAndAttributes, HANDLE, hTemplateFile);
-MOCKABLE_FUNCTION(, bool, CloseHandle, HANDLE, handle_input);
+MOCKABLE_FUNCTION(, HANDLE, ebs_create_file, const char*, lpFileName, unsigned long, dwDesiredAccess, unsigned long, dwShareMode, LPSECURITY_ATTRIBUTES, lpSecurityAttributes, unsigned long, dwCreationDisposition, unsigned long, dwFlagsAndAttributes, HANDLE, hTemplateFile);
+MOCKABLE_FUNCTION(, bool, ebs_close_handle, HANDLE, handle_input);
 
 
 
