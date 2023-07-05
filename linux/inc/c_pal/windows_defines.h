@@ -1,7 +1,7 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 
-#ifndef FILE_UTIL_LINUX_H
-#define FILE_UTIL_LINUX_H
+#ifndef WINDOWS_DEFINES_H
+#define WINDOWS_DEFINES_H
 
 #ifdef __cplusplus
 #include <cstdint>
@@ -14,17 +14,12 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+typedef void *HANDLE;
+typedef void *LPSECURITY_ATTRIBUTES;
 
-#ifdef WIN32 
-#include "windows.h"
-#define ebs_create_file CreateFileA
-#define ebs_close_handle CloseHandle
-#else
 #define GENERIC_READ                    0x80000000
 #define GENERIC_WRITE                   0x40000000
 #define GENERIC_ALL                     0x80000000 | 0x40000000
-#define GENERIC_EXECUTE                 (0x20000000L)
-#define DELETE                          (0x00010000L)
 
 #define FILE_SHARE_READ                 0x00000001
 #define FILE_SHARE_WRITE                0x00000002
@@ -44,24 +39,14 @@ extern "C" {
 #define OPEN_ALWAYS                     4
 #define TRUNCATE_EXISTING               5
 
-#define INVALID_FILE_SIZE               ((DWORD)0xFFFFFFFF)
-#define INVALID_SET_FILE_POINTER        ((DWORD)-1)
-#define INVALID_FILE_ATTRIBUTES         ((DWORD)-1)
+#define INVALID_FILE_SIZE               ((uint32_t)0xFFFFFFFF)
+#define INVALID_SET_FILE_POINTER        ((uint32_t)-1)
+#define INVALID_FILE_ATTRIBUTES         ((uint32_t)-1)
 
-#define INVALID_HANDLE_VALUE            NULL
-
-typedef void *HANDLE;
-typedef void *LPSECURITY_ATTRIBUTES;
-
-MOCKABLE_FUNCTION(, HANDLE, ebs_create_file, const char*, lpFileName, unsigned long, dwDesiredAccess, unsigned long, dwShareMode, LPSECURITY_ATTRIBUTES, lpSecurityAttributes, unsigned long, dwCreationDisposition, unsigned long, dwFlagsAndAttributes, HANDLE, hTemplateFile);
-MOCKABLE_FUNCTION(, bool, ebs_close_handle, HANDLE, handle_input);
-
-
-
-#endif
+#define INVALID_HANDLE_VALUE            ((HANDLE)(int64_t)-1)
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // FILE_UTIL_LINUX_H
+#endif // WINDOWS_DEFINES_H
