@@ -18,6 +18,12 @@ MU_DEFINE_ENUM_STRINGS(CALL_ONCE_RESULT, CALL_ONCE_RESULT_VALUES);
 /*a weak check to ensure that nobody has the idea to change call_once_t type to int8_t (or other type...  to save some memory for example)*/
 static int check_call_once_t_is_the_same_as_volatile_atomic_int32_t_because_we_are_going_to_pass_it_to_wait_on_address_or_wake_by_address_all[sizeof(volatile_atomic int32_t) == sizeof(call_once_t)];
 
+// Function is to avoid Warning -Werror=unused-variable in gcc
+static void unused_var_function(void)
+{
+    (void)check_call_once_t_is_the_same_as_volatile_atomic_int32_t_because_we_are_going_to_pass_it_to_wait_on_address_or_wake_by_address_all;
+}
+
 #define CALL_ONCE_STATE_VALUES \
     CALL_ONCE_STATE_NOT_CALLED = CALL_ONCE_NOT_CALLED, \
     CALL_ONCE_STATE_CALLING, \

@@ -13,6 +13,12 @@
 
 static int is_UUID_T_and_UUID_same_size[sizeof(UUID_T) == sizeof(uuid_t)]; /*just a sanity check*/
 
+// Function is to avoid Warning -Werror=unused-variable in gcc
+static void unused_var_function(void)
+{
+    (void)is_UUID_T_and_UUID_same_size;
+}
+
 int uuid_produce(UUID_T destination)
 {
     int result;

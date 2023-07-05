@@ -7,3 +7,9 @@
 #include "real_execution_engine_linux_renames.h" // IWYU pragma: keep
 
 static int do_nothing = 0; /*to avoid warning C4206: nonstandard extension used: translation unit is empty*/
+
+// Function is to avoid Warning -Werror=unused-variable in gcc
+static void unused_var_function(void)
+{
+    do_nothing = 0;
+}

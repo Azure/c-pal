@@ -48,7 +48,6 @@ set(pal_linux_c_files
     src/async_socket_linux.c
     src/completion_port_linux.c
     src/execution_engine_linux.c
-    src/file_linux.c
     src/pipe_linux.c
     src/platform_linux.c
     src/srw_lock_linux.c
