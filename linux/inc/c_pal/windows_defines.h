@@ -6,11 +6,9 @@
 #ifdef __cplusplus
 #include <cstdint>
 #else
-#include <stdbool.h>
 #include <stdint.h>
 #endif
 
-#include "umock_c/umock_c_prod.h"
 #ifdef __cplusplus
 extern "C" {
 #endif

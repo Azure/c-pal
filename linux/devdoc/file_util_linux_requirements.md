@@ -7,24 +7,24 @@ Linux implementation of the file operation functions.
 ## Exposed API 
 
 ```c
-// Most defines removed for space constraints
 #define INVALID_HANDLE_VALUE            NULL
 
 typedef void *HANDLE;
 typedef void *LPSECURITY_ATTRIBUTES;
 
-MOCKABLE_FUNCTION(, HANDLE, file_util_create_file, const char*, lpFileName, unsigned long, desired_access, unsigned long, share_mode, LPSECURITY_ATTRIBUTES, lp_security_attributes, unsigned long, creation_disposition, unsigned long, flags_and_attributes, HANDLE, hTemplateFile);
+MOCKABLE_FUNCTION(, HANDLE, file_util_create_file, const char*, full_file_name, unsigned long, desired_access, unsigned long, share_mode, LPSECURITY_ATTRIBUTES, security_attributes, unsigned long, creation_disposition, unsigned long, flags_and_attributes, HANDLE, template_file);
 MOCKABLE_FUNCTION(, bool, file_util_close_handle, HANDLE, handle_input);
 ```
 
 ### file_util_create_file
 
 ```c
-MOCKABLE_FUNCTION(, HANDLE, file_util_create_file, const char*, full_file_name, unsigned long, desired_access, unsigned long, share_mode, LPSECURITY_ATTRIBUTES, lp_security_attributes, unsigned long, creation_disposition, unsigned long, flags_and_attributes, HANDLE, h_template_file);
+MOCKABLE_FUNCTION(, HANDLE, file_util_create_file, const char*, full_file_name, unsigned long, desired_access, unsigned long, share_mode, LPSECURITY_ATTRIBUTES, security_attributes, unsigned long, creation_disposition, unsigned long, flags_and_attributes, HANDLE, template_file);
 ```
-//share_mode, lp_security_attributes, flags_and_attributes, and h_template_file parameters are ignored in Linux
 
 `file_util_create_file` implements the creating file function in Linux. Uses the `open` function in C for Linux.
+
+share_mode, security_attributes, flags_and_attributes, and template_file parameters are ignored in Linux
 
 **SRS_FILE_UTIL_LINUX_09_001: [** If the `full_file_name` input is either empty or `NULL`, `file_util_create_file` shall return an `INVALID_HANDLE_VALUE`. **]**
 
