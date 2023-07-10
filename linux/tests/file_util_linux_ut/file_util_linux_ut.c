@@ -152,6 +152,7 @@ static const struct CREATION_DISPOSITION_INPUTS_TAG
         {OPEN_ALWAYS, O_CREAT},
     };
 
+//Tests_SRS_FILE_UTIL_LINUX_09_002: [ file_util_create_file shall allocate memory for the file handle. file_util_create_file will succeed and return a non-NULL value. ]
 //Tests_SRS_FILE_UTIL_LINUX_09_014: [ If creation_disposition is CREATE_ALWAYS or OPEN_ALWAYS, file_util_create_file will call open with O_CREAT and shall either create a new file handle if the specificied pathname exists and return it or return an existing file handle. ]
 //Tests_SRS_FILE_UTIL_LINUX_09_015: [ If creation_disposition is CREATE_NEW, file_util_create_file will call open with O_CREAT|O_EXCL and shall return a new file handle if the file doesn't already exist. ]
 //Tests_SRS_FILE_UTIL_LINUX_09_016: [ If creation_disposition is CREATE_NEW and the file already exists, file_util_create_file will fail and return INVALID_HANDLE_VALUE. ]
@@ -280,6 +281,7 @@ TEST_FUNCTION(file_util_create_file_create_disposition_NEW_desired_access_Succee
 }
 
 //Tests_SRS_FILE_UTIL_LINUX_09_011: [ file_util_close_handle closes a file handle in linux and returns true. ]
+//Tests_SRS_FILE_UTIL_LINUX_09_013: [ If close returns a zero, then file_util_close_handle shall return true. ]
 TEST_FUNCTION(file_util_close_handle_Succeeds)
 {
     HANDLE handle_input;
