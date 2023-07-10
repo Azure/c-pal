@@ -154,6 +154,7 @@ static const struct CREATION_DISPOSITION_INPUTS_TAG
 
 //Tests_SRS_FILE_UTIL_LINUX_09_014: [ If creation_disposition is CREATE_ALWAYS or OPEN_ALWAYS, file_util_create_file will call open with O_CREAT and shall either create a new file handle if the specificied pathname exists and return it or return an existing file handle. ]
 //Tests_SRS_FILE_UTIL_LINUX_09_015: [ If creation_disposition is CREATE_NEW, file_util_create_file will call open with O_CREAT|O_EXCL and shall return a new file handle if the file doesn't already exist. ]
+//Tests_SRS_FILE_UTIL_LINUX_09_016: [ If creation_disposition is CREATE_NEW and the file already exists, file_util_create_file will fail and return INVALID_HANDLE_VALUE. ]
 //Tests_SRS_FILE_UTIL_LINUX_09_017: [ If creation_disposition is TRUNCATE_EXISTING, file_util_create_file will call open with O_TRUNC and shall return a file handle who's size has been truncated to zero bytes. ]
 TEST_FUNCTION(file_util_create_file_creation_disposition_Succeeds)
 {
@@ -301,7 +302,7 @@ TEST_FUNCTION(file_util_close_handle_Succeeds)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-//Tests_SRS_FILE_UTIL_LINUX_09_013: [ If close returns a zero, then file_util_close_handle shall return true. ]
+//Tests_SRS_FILE_UTIL_LINUX_09_012: [ If close returns a non-zero integer, file_util_close_handle returns false. ]
 TEST_FUNCTION(file_util_close_handle_FAILS)
 {
     HANDLE handle_input;

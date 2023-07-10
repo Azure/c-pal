@@ -75,6 +75,7 @@ HANDLE file_util_create_file(const char* full_file_name, uint32_t access, uint32
             }
             else if (creation_disposition == CREATE_NEW)
             {
+                //Codes_SRS_FILE_UTIL_LINUX_09_016: [ If creation_disposition is CREATE_NEW and the file already exists, file_util_create_file will fail and return INVALID_HANDLE_VALUE. ]
                 //Codes_SRS_FILE_UTIL_LINUX_09_015: [ If creation_disposition is CREATE_NEW, file_util_create_file will call open with O_CREAT|O_EXCL and shall return a new file handle if the file doesn't already exist. ]
                 result_creation_disposition = O_CREAT|O_EXCL;
             }
