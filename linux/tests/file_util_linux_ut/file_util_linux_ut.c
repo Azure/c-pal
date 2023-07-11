@@ -79,8 +79,8 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
     umock_c_negative_tests_deinit();
 }
 
-// Tests_SRS_FILE_UTIL_LINUX_09_001: [ If the full_file_name input is either empty or NULL, file_util_create_file shall return an INVALID_HANDLE_VALUE. ]
-TEST_FUNCTION(file_util_create_file_full_file_name_NULL_Fail)
+/*Tests_SRS_FILE_UTIL_LINUX_09_001: [ If the full_file_name input is either empty or NULL, file_util_open_file shall return an INVALID_HANDLE_VALUE. ]*/
+TEST_FUNCTION(file_util_open_file_full_file_name_NULL_Fail)
 {
     ///arrange
     HANDLE result;
@@ -90,33 +90,33 @@ TEST_FUNCTION(file_util_create_file_full_file_name_NULL_Fail)
     uint32_t share_mode = FILE_SHARE_READ;
     uint32_t creation_disposition = 1;
     uint32_t flags_and_attributes = 128;
-    result = file_util_create_file(NULL, desired_access, share_mode, NULL,creation_disposition, flags_and_attributes ,NULL);
+    result = file_util_open_file(NULL, desired_access, share_mode, NULL,creation_disposition, flags_and_attributes ,NULL);
 
     ///assert
     ASSERT_ARE_EQUAL(uint64_t, result, INVALID_HANDLE_VALUE);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-// Tests_SRS_FILE_UTIL_LINUX_09_003: [ If memory allocation for result fails, file_util_create_file shall return an INVALID_HANDLE_VALUE. 
-TEST_FUNCTION(file_util_create_file_malloc_Fail)
+/*Tests_SRS_FILE_UTIL_LINUX_09_008: [ If there are any failures, file_util_open_file shall fail and return INVALID_HANDLE_VALUE. ]*/
+TEST_FUNCTION(file_util_open_file_malloc_Fail)
 {
     HANDLE result;
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG))
-        .SetReturn(INVALID_HANDLE_VALUE);
+        .SetReturn(NULL);
 
     uint32_t desired_access = GENERIC_READ;
     uint32_t share_mode = FILE_SHARE_READ;
     uint32_t creation_disposition = 1;
     uint32_t flags_and_attributes = 128;
-    result = file_util_create_file(G_FILE_NAME, desired_access, share_mode, NULL,creation_disposition, flags_and_attributes ,NULL);
+    result = file_util_open_file(G_FILE_NAME, desired_access, share_mode, NULL,creation_disposition, flags_and_attributes ,NULL);
 
     ///assert
     ASSERT_ARE_EQUAL(uint64_t, result, INVALID_HANDLE_VALUE);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-//Tests_SRS_FILE_UTIL_LINUX_09_008: [ If there are any failures, file_util_create_file shall fail and return INVALID_HANDLE_VALUE. ]
-TEST_FUNCTION(file_util_create_file_open_Fail)
+/*Tests_SRS_FILE_UTIL_LINUX_09_008: [ If there are any failures, file_util_open_file shall fail and return INVALID_HANDLE_VALUE. ]*/
+TEST_FUNCTION(file_util_open_file_open_Fail)
 {
     ///arrange
     HANDLE result;
@@ -131,7 +131,7 @@ TEST_FUNCTION(file_util_create_file_open_Fail)
     uint32_t share_mode = FILE_SHARE_READ;
     uint32_t creation_disposition = CREATE_ALWAYS;
     uint32_t flags_and_attributes = 128;
-    result = file_util_create_file(G_FILE_NAME, desired_access, share_mode, NULL,creation_disposition, flags_and_attributes ,NULL);
+    result = file_util_open_file(G_FILE_NAME, desired_access, share_mode, NULL,creation_disposition, flags_and_attributes ,NULL);
 
 
     ///assert
@@ -152,12 +152,13 @@ static const struct CREATION_DISPOSITION_INPUTS_TAG
         {OPEN_ALWAYS, O_CREAT},
     };
 
-//Tests_SRS_FILE_UTIL_LINUX_09_002: [ file_util_create_file shall allocate memory for the file handle. file_util_create_file will succeed and return a non-NULL value. ]
-//Tests_SRS_FILE_UTIL_LINUX_09_014: [ If creation_disposition is CREATE_ALWAYS or OPEN_ALWAYS, file_util_create_file will call open with O_CREAT and shall either create a new file handle if the specificied pathname exists and return it or return an existing file handle. ]
-//Tests_SRS_FILE_UTIL_LINUX_09_015: [ If creation_disposition is CREATE_NEW, file_util_create_file will call open with O_CREAT|O_EXCL and shall return a new file handle if the file doesn't already exist. ]
-//Tests_SRS_FILE_UTIL_LINUX_09_016: [ If creation_disposition is CREATE_NEW and the file already exists, file_util_create_file will fail and return INVALID_HANDLE_VALUE. ]
-//Tests_SRS_FILE_UTIL_LINUX_09_017: [ If creation_disposition is TRUNCATE_EXISTING, file_util_create_file will call open with O_TRUNC and shall return a file handle who's size has been truncated to zero bytes. ]
-TEST_FUNCTION(file_util_create_file_creation_disposition_Succeeds)
+/*Tests_SRS_FILE_UTIL_LINUX_09_020: [ file_util_open_file shall succeed and return a non-NULL value. ]*/
+/*Tests_SRS_FILE_UTIL_LINUX_09_002: [ file_util_open_file shall allocate memory for the file handle. ]*/
+/*Tests_SRS_FILE_UTIL_LINUX_09_014: [ If creation_disposition is CREATE_ALWAYS or OPEN_ALWAYS, file_util_open_file shall call open with O_CREAT and shall either create a new file handle if the specificied pathname exists and return it or return an existing file handle. ]*/
+/*Tests_SRS_FILE_UTIL_LINUX_09_015: [ If creation_disposition is CREATE_NEW, file_util_open_file shall call open with O_CREAT|O_EXCL and shall return a new file handle if the file doesn't already exist. ]*/
+/*Tests_SRS_FILE_UTIL_LINUX_09_016: [ If creation_disposition is CREATE_NEW and the file already exists, file_util_open_file shall fail and return INVALID_HANDLE_VALUE. ]*/
+/*Tests_SRS_FILE_UTIL_LINUX_09_017: [ If creation_disposition is TRUNCATE_EXISTING, file_util_open_file shall call open with O_TRUNC and shall return a file handle who's size has been truncated to zero bytes. ]*/
+TEST_FUNCTION(file_util_open_file_creation_disposition_Succeeds)
 {
     size_t i;
     for(i = 0; i < sizeof(TEST_VEC_CREATION_DISPOSITION_INPUTS) / sizeof(TEST_VEC_CREATION_DISPOSITION_INPUTS[0]); i++)
@@ -173,18 +174,19 @@ TEST_FUNCTION(file_util_create_file_creation_disposition_Succeeds)
         uint32_t share_mode = FILE_SHARE_READ;
         uint32_t creation_disposition = TEST_VEC_CREATION_DISPOSITION_INPUTS[i].creation_disposition;
         uint32_t flags_and_attributes = 128;
-        result = file_util_create_file(G_FILE_NAME, desired_access, share_mode, NULL,creation_disposition, flags_and_attributes ,NULL);
+        result = file_util_open_file(G_FILE_NAME, desired_access, share_mode, NULL,creation_disposition, flags_and_attributes ,NULL);
 
         ///assert
         ASSERT_IS_NOT_NULL(result);
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
-        (void)file_util_close_handle(result);
+        (void)file_util_close_file(result);
         umock_c_reset_all_calls();
     }
 }
 
-TEST_FUNCTION(file_util_create_file_desired_access_ALL_creation_disposition_Succeeds)
+/*Tests_SRS_FILE_UTIL_LINUX_09_020: [ file_util_open_file shall succeed and return a non-NULL value. ]*/
+TEST_FUNCTION(file_util_open_file_desired_access_ALL_creation_disposition_Succeeds)
 {
     size_t i;
     for(i = 0; i < sizeof(TEST_VEC_CREATION_DISPOSITION_INPUTS) / sizeof(TEST_VEC_CREATION_DISPOSITION_INPUTS[0]); i++)
@@ -200,13 +202,13 @@ TEST_FUNCTION(file_util_create_file_desired_access_ALL_creation_disposition_Succ
         uint32_t share_mode = FILE_SHARE_READ;
         uint32_t creation_disposition = TEST_VEC_CREATION_DISPOSITION_INPUTS[i].creation_disposition;
         uint32_t flags_and_attributes = 128;
-        result = file_util_create_file(G_FILE_NAME, desired_access, share_mode, NULL,creation_disposition, flags_and_attributes ,NULL);
+        result = file_util_open_file(G_FILE_NAME, desired_access, share_mode, NULL,creation_disposition, flags_and_attributes ,NULL);
 
         ///assert
         ASSERT_IS_NOT_NULL(result);
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
-        (void)file_util_close_handle(result);
+        (void)file_util_close_file(result);
         umock_c_reset_all_calls();
     }
 }
@@ -223,10 +225,11 @@ static const struct DESIRED_ACCESS_INPUTS
         {GENERIC_READ&GENERIC_WRITE, O_RDWR},
     };
 
-//Tests_SRS_FILE_UTIL_LINUX_09_004: [ If desired_access is GENERIC_READ, file_util_create_file will call open with O_RDONLY and shall return a file handle for read only. ]
-//Tests_SRS_FILE_UTIL_LINUX_09_005: [ If desired_access is GENERIC_WRITE, file_util_create_file will call open with O_WRONLY and shall return a file handle for write only. ]
-//Tests_SRS_FILE_UTIL_LINUX_09_006: [ If desired_access is GENERIC_ALL or GENERIC_READ&GENERIC_WRITE, file_util_create_file will call open with O_RDWR and shall return a file handle for read and write. ]
-TEST_FUNCTION(file_util_create_file_desired_access_Succeeds)
+/*Tests_SRS_FILE_UTIL_LINUX_09_020: [ file_util_open_file shall succeed and return a non-NULL value. ]*/
+/*Tests_SRS_FILE_UTIL_LINUX_09_004: [ If desired_access is GENERIC_READ, file_util_open_file shall call open with O_RDONLY and shall return a file handle for read only. ]*/
+/*Tests_SRS_FILE_UTIL_LINUX_09_005: [ If desired_access is GENERIC_WRITE, file_util_open_file shall call open with O_WRONLY and shall return a file handle for write only. ]*/
+/*Tests_SRS_FILE_UTIL_LINUX_09_006: [ If desired_access is GENERIC_ALL or GENERIC_READ&GENERIC_WRITE, file_util_open_file shall call open with O_RDWR and shall return a file handle for read and write. ]*/
+TEST_FUNCTION(file_util_open_file_desired_access_Succeeds)
 {
     size_t i;
     for(i = 0; i < sizeof(DESIRED_ACCESS_INPUTS) / sizeof(DESIRED_ACCESS_INPUTS[0]); i++)
@@ -242,18 +245,19 @@ TEST_FUNCTION(file_util_create_file_desired_access_Succeeds)
         uint32_t share_mode = FILE_SHARE_READ;
         uint32_t creation_disposition = OPEN_ALWAYS;
         uint32_t flags_and_attributes = 128;
-        result = file_util_create_file(G_FILE_NAME, desired_access, share_mode, NULL,creation_disposition, flags_and_attributes ,NULL);
+        result = file_util_open_file(G_FILE_NAME, desired_access, share_mode, NULL,creation_disposition, flags_and_attributes ,NULL);
 
         ///assert
         ASSERT_IS_NOT_NULL(result);
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
-        (void)file_util_close_handle(result);
+        (void)file_util_close_file(result);
         umock_c_reset_all_calls();
     }
 }
 
-TEST_FUNCTION(file_util_create_file_create_disposition_NEW_desired_access_Succeeds)
+/*Tests_SRS_FILE_UTIL_LINUX_09_020: [ file_util_open_file shall succeed and return a non-NULL value. ]*/
+TEST_FUNCTION(file_util_open_file_create_disposition_NEW_desired_access_Succeeds)
 {
     size_t i;
     for(i = 0; i < sizeof(DESIRED_ACCESS_INPUTS) / sizeof(DESIRED_ACCESS_INPUTS[0]); i++)
@@ -269,27 +273,28 @@ TEST_FUNCTION(file_util_create_file_create_disposition_NEW_desired_access_Succee
         uint32_t share_mode = FILE_SHARE_READ;
         uint32_t creation_disposition = CREATE_NEW;
         uint32_t flags_and_attributes = 128;
-        result = file_util_create_file(G_FILE_NAME, desired_access, share_mode, NULL,creation_disposition, flags_and_attributes ,NULL);
+        result = file_util_open_file(G_FILE_NAME, desired_access, share_mode, NULL,creation_disposition, flags_and_attributes ,NULL);
 
         ///assert
         ASSERT_IS_NOT_NULL(result);
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
-        (void)file_util_close_handle(result);
+        (void)file_util_close_file(result);
         umock_c_reset_all_calls();
     }
 }
 
-//Tests_SRS_FILE_UTIL_LINUX_09_011: [ file_util_close_handle closes a file handle in linux and returns true. ]
-//Tests_SRS_FILE_UTIL_LINUX_09_013: [ If close returns a zero, then file_util_close_handle shall return true. ]
-TEST_FUNCTION(file_util_close_handle_Succeeds)
+/*Tests_SRS_FILE_UTIL_LINUX_09_011: [ file_util_close_file shall close the given file handle. ]*/
+/*Tests_SRS_FILE_UTIL_LINUX_09_018: [ file_util_close_file shall succeed and return true. ]*/
+/*Tests_SRS_FILE_UTIL_LINUX_09_019: [ file_util_close_file shall call close on the given handle_input. ]*/
+TEST_FUNCTION(file_util_close_file_Succeeds)
 {
     HANDLE handle_input;
     uint32_t desired_access = GENERIC_READ;
     uint32_t share_mode = FILE_SHARE_READ;
     uint32_t creation_disposition = CREATE_ALWAYS;
     uint32_t flags_and_attributes = 128;
-    handle_input = file_util_create_file(G_FILE_NAME, desired_access, share_mode, NULL,creation_disposition, flags_and_attributes ,NULL);
+    handle_input = file_util_open_file(G_FILE_NAME, desired_access, share_mode, NULL,creation_disposition, flags_and_attributes ,NULL);
     umock_c_reset_all_calls();
 
     bool result;
@@ -297,22 +302,23 @@ TEST_FUNCTION(file_util_close_handle_Succeeds)
     STRICT_EXPECTED_CALL(mocked_close(IGNORED_ARG));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
-    result = file_util_close_handle(handle_input);
+    result = file_util_close_file(handle_input);
     
     //assert
     ASSERT_IS_TRUE(result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-//Tests_SRS_FILE_UTIL_LINUX_09_012: [ If close returns a non-zero integer, file_util_close_handle returns false. ]
-TEST_FUNCTION(file_util_close_handle_FAILS)
+/*Tests_SRS_FILE_UTIL_LINUX_09_019: [ file_util_close_file shall call close on the given handle_input. ]*/
+/*Tests_SRS_FILE_UTIL_LINUX_09_009: [ file_util_close_file shall fail and return false. ]*/
+TEST_FUNCTION(file_util_close_file_FAILS)
 {
     HANDLE handle_input;
     uint32_t desired_access = GENERIC_READ;
     uint32_t share_mode = FILE_SHARE_READ;
     uint32_t creation_disposition = CREATE_ALWAYS;
     uint32_t flags_and_attributes = 128;
-    handle_input = file_util_create_file(G_FILE_NAME, desired_access, share_mode, NULL,creation_disposition, flags_and_attributes ,NULL);
+    handle_input = file_util_open_file(G_FILE_NAME, desired_access, share_mode, NULL,creation_disposition, flags_and_attributes ,NULL);
     umock_c_reset_all_calls();
 
     bool result;
@@ -321,22 +327,23 @@ TEST_FUNCTION(file_util_close_handle_FAILS)
         .SetReturn(1);
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
-    result = file_util_close_handle(handle_input);
+    result = file_util_close_file(handle_input);
     
     //assert
     ASSERT_IS_FALSE(result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-//Tests_SRS_FILE_UTIL_LINUX_09_009: [ If handle_input is NULL, file_util_close_handle returns false. ]
-TEST_FUNCTION(file_util_close_handle_input_NULL)
+/*Tests_SRS_FILE_UTIL_LINUX_09_009: [ file_util_close_file shall fail and return false. ]*/
+/*Tests_SRS_FILE_UTIL_LINUX_09_019: [ file_util_close_file shall call close on the given handle_input. ]*/
+TEST_FUNCTION(file_util_close_file_input_NULL)
 {
     ///arrange
     bool result;
     HANDLE handle_input = INVALID_HANDLE_VALUE;
 
     ///act
-    result = file_util_close_handle(handle_input);
+    result = file_util_close_file(handle_input);
 
     ///assert
     ASSERT_IS_FALSE(result);
