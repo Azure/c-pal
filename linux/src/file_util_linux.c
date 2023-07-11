@@ -1,6 +1,5 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 
-#include <string.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -63,7 +62,7 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
                 /*Codes_SRS_FILE_UTIL_LINUX_09_005: [ If desired_access is GENERIC_WRITE, file_util_open_file shall call open with O_WRONLY and shall return a file handle for write only. ]*/
                 user_access = O_WRONLY;
             } 
-            else if (access == GENERIC_ALL || access == GENERIC_READ&GENERIC_WRITE)
+            else if (access == GENERIC_ALL || access == (GENERIC_READ&GENERIC_WRITE))
             {
                 /*Codes_SRS_FILE_UTIL_LINUX_09_006: [ If desired_access is GENERIC_ALL or GENERIC_READ&GENERIC_WRITE, file_util_open_file shall call open with O_RDWR and shall return a file handle for read and write. ]*/
                 user_access = O_RDWR;
