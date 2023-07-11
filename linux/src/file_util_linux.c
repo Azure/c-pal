@@ -6,10 +6,11 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <stdbool.h>
- #include <unistd.h>
+#include <unistd.h>
+#include "macro_utils/macro_utils.h"
 
 #include "c_pal/gballoc_hl.h" // IWYU pragma: keep
-#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 
 #include "c_logging/logger.h"
 
