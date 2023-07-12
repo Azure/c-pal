@@ -226,6 +226,7 @@ static const struct DESIRED_ACCESS_INPUTS
     };
 
 /*Tests_SRS_FILE_UTIL_LINUX_09_020: [ file_util_open_file shall succeed and return a non-NULL value. ]*/
+/*Tests_SRS_FILE_UTIL_LINUX_09_002: [ file_util_open_file shall allocate memory for the file handle. ]*/
 /*Tests_SRS_FILE_UTIL_LINUX_09_004: [ If desired_access is GENERIC_READ, file_util_open_file shall call open with O_RDONLY and shall return a file handle for read only. ]*/
 /*Tests_SRS_FILE_UTIL_LINUX_09_005: [ If desired_access is GENERIC_WRITE, file_util_open_file shall call open with O_WRONLY and shall return a file handle for write only. ]*/
 /*Tests_SRS_FILE_UTIL_LINUX_09_006: [ If desired_access is GENERIC_ALL or GENERIC_READ&GENERIC_WRITE, file_util_open_file shall call open with O_RDWR and shall return a file handle for read and write. ]*/
@@ -257,6 +258,7 @@ TEST_FUNCTION(file_util_open_file_desired_access_Succeeds)
 }
 
 /*Tests_SRS_FILE_UTIL_LINUX_09_020: [ file_util_open_file shall succeed and return a non-NULL value. ]*/
+/*Tests_SRS_FILE_UTIL_LINUX_09_002: [ file_util_open_file shall allocate memory for the file handle. ]*/
 TEST_FUNCTION(file_util_open_file_create_disposition_NEW_desired_access_Succeeds)
 {
     size_t i;
@@ -284,7 +286,6 @@ TEST_FUNCTION(file_util_open_file_create_disposition_NEW_desired_access_Succeeds
     }
 }
 
-/*Tests_SRS_FILE_UTIL_LINUX_09_011: [ file_util_close_file shall close the given file handle. ]*/
 /*Tests_SRS_FILE_UTIL_LINUX_09_018: [ file_util_close_file shall succeed and return true. ]*/
 /*Tests_SRS_FILE_UTIL_LINUX_09_019: [ file_util_close_file shall call close on the given handle_input. ]*/
 TEST_FUNCTION(file_util_close_file_Succeeds)
@@ -310,7 +311,7 @@ TEST_FUNCTION(file_util_close_file_Succeeds)
 }
 
 /*Tests_SRS_FILE_UTIL_LINUX_09_019: [ file_util_close_file shall call close on the given handle_input. ]*/
-/*Tests_SRS_FILE_UTIL_LINUX_09_009: [ file_util_close_file shall fail and return false. ]*/
+/*Tests_SRS_FILE_UTIL_LINUX_09_009: [ If there are any failures, `file_util_close_file` shall fail and return false. ]*/
 TEST_FUNCTION(file_util_close_file_FAILS)
 {
     HANDLE handle_input;
@@ -334,13 +335,12 @@ TEST_FUNCTION(file_util_close_file_FAILS)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_FILE_UTIL_LINUX_09_009: [ file_util_close_file shall fail and return false. ]*/
-/*Tests_SRS_FILE_UTIL_LINUX_09_019: [ file_util_close_file shall call close on the given handle_input. ]*/
+/*Tests_SRS_FILE_UTIL_LINUX_09_021: [ If handle_input is NULL, file_util_close_file shall fail and return false. ]*/
 TEST_FUNCTION(file_util_close_file_input_NULL)
 {
     ///arrange
     bool result;
-    HANDLE handle_input = INVALID_HANDLE_VALUE;
+    HANDLE handle_input = NULL;
 
     ///act
     result = file_util_close_file(handle_input);

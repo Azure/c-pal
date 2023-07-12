@@ -56,9 +56,9 @@ MOCKABLE_FUNCTION(, bool, file_util_close_file, HANDLE, handle_input);
 
 `file_util_close_file` implements the close handle function in Linux. Uses the `close` function in C for Linux.
 
-**SRS_FILE_UTIL_LINUX_09_009: [** `file_util_close_file` shall fail and return false.  **]**
+**SRS_FILE_UTIL_LINUX_09_009: [** If there are any failures, `file_util_close_file` shall fail and return false. **]**
 
-**SRS_FILE_UTIL_LINUX_09_011: [** `file_util_close_file` shall close the given file handle.  **]**
+**SRS_FILE_UTIL_LINUX_09_021: [** If `handle_input` is `NULL`, `file_util_close_file` shall fail and return false.  **]**
 
 **SRS_FILE_UTIL_LINUX_09_018: [** `file_util_close_file` shall succeed and return true. **]**
 

@@ -23,7 +23,6 @@ typedef struct CREATE_FILE_LINUX_TAG
 
 } CREATE_FILE_LINUX;
 
-/*Codes_SRS_FILE_UTIL_LINUX_09_002: [ file_util_open_file shall allocate memory for the file handle. ]*/
 HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t share_mode, LPSECURITY_ATTRIBUTES security_attributes, 
                     uint32_t creation_disposition, uint32_t flags_and_attributes, HANDLE template_file)
 {
@@ -32,18 +31,20 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
     CREATE_FILE_LINUX* result;
     if((full_file_name == NULL) || (full_file_name[0] == '\0'))
     {
-        /*Codes_SRS_FILE_UTIL_LINUX_09_001: [ If the full_file_name input is either empty or NULL, file_util_open_file shall return an INVALID_HANDLE_VALUE. ]*/
+        /*Codes_SRS_FILE_UTIL_LINUX_09_001: [ If the full_file_name input is either empty or NULL, file_util_open_file shall fail and return an INVALID_HANDLE_VALUE. ]*/
         LogError("Invalid arguments to file_util_open_file: full_file_name = %s, uint32_t access = %p, uint32_t share_mode = %p, LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %p, uint32_t flags_and_attributes = %p, HANDLE template_file = %p",
                     full_file_name, access, share_mode, security_attributes, creation_disposition, flags_and_attributes, template_file);
         result = INVALID_HANDLE_VALUE;
     } 
     else 
     {
+        /*Codes_SRS_FILE_UTIL_LINUX_09_002: [ file_util_open_file shall allocate memory for the file handle. ]*/
         result = malloc(sizeof(CREATE_FILE_LINUX));
         if(result == NULL)
         {
-            result = INVALID_HANDLE_VALUE;
+            /*Codes_SRS_FILE_UTIL_LINUX_09_008: [ If there are any failures, file_util_open_file shall fail and return INVALID_HANDLE_VALUE. ]*/
             LogError("Failure in malloc");
+            result = INVALID_HANDLE_VALUE;
             
         }
         else 
@@ -86,6 +87,8 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
             }
 
             int flags = user_access|result_creation_disposition;
+
+            /*Codes_SRS_FILE_UTIL_LINUX_09_020: [ file_util_open_file shall succeed and return a non-NULL value. ]*/
             result->h_file = open(full_file_name, flags);
 
             if(result->h_file == -1)
@@ -98,17 +101,16 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
             }
         }
     }
-    /*Codes_SRS_FILE_UTIL_LINUX_09_020: [ file_util_open_file shall succeed and return a non-NULL value. ]*/
     return result;
 }
 
-/*Codes_SRS_FILE_UTIL_LINUX_09_011: [ file_util_close_file shall close the given file handle. ]*/
 bool file_util_close_file(HANDLE handle_input)
 {
     bool result;
 
-    if(handle_input == INVALID_HANDLE_VALUE)
+    if(handle_input == NULL)
     {   
+        /*Codes_SRS_FILE_UTIL_LINUX_09_021: [ If handle_input is NULL, file_util_close_file shall fail and return false. ]*/
         result = false;
         LogError("Invalid argument to file_util_close_file. Handle input was an INVALID_HANDLE_VALUE");
     }
@@ -119,17 +121,17 @@ bool file_util_close_file(HANDLE handle_input)
         /*Codes_SRS_FILE_UTIL_LINUX_09_019: [ file_util_close_file shall call close on the given handle_input. ]*/
         if(close(cfl->h_file) != 0)
         {
+            /*Codes_SRS_FILE_UTIL_LINUX_09_009: [ If there are any failures, `file_util_close_file` shall fail and return false. ]*/
             result = false;
             LogError("Failure in closing file");
         }
         else 
         {
+            /*Codes_SRS_FILE_UTIL_LINUX_09_018: [ file_util_close_file shall succeed and return true. ]*/
             result = true;
         }
         free(cfl);
     }
 
-    /*Codes_SRS_FILE_UTIL_LINUX_09_009: [ file_util_close_file shall fail and return false. ]*/
-    /*Codes_SRS_FILE_UTIL_LINUX_09_018: [ file_util_close_file shall succeed and return true. ]*/
     return result;
 }
