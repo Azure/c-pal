@@ -294,4 +294,4 @@ jobs:
       arguments: '$(Build.Repository.LocalPath)'
       workingDirectory: '$(Build.Repository.LocalPath)'
 
-  - template : ../templates/dump_drive_usage.yml
+  - template: ../templates/dump_drive_usage.yml
