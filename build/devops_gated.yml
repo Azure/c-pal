@@ -13,6 +13,9 @@ jobs:
     - visualstudio
     - vstest
 
+  workspace:
+    clean: all
+
   steps:
   - task: BatchScript@1
     displayName: 'Git submodule update'
@@ -290,3 +293,5 @@ jobs:
       filePath: './build/linux/build_linux_iwyu.sh'
       arguments: '$(Build.Repository.LocalPath)'
       workingDirectory: '$(Build.Repository.LocalPath)'
+
+  - template : ../templates/dump_drive_usage.yml
