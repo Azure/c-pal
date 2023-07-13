@@ -9,14 +9,14 @@ Linux implementation of SetLastError and GetLastError from Windows
 ```c
 uint64_t last_error_code;
 
-MOCKABLEFUNCTION(void, error_handling_set_last_error, uint32_t, err_code);
-MOCKABLEFUNCTION(uint32_t, error_handling_get_last_error);
+MOCKABLE_FUNCTION(, void, error_handling_set_last_error, uint32_t, err_code);
+MOCKABLE_FUNCTION(, uint32_t, error_handling_get_last_error);
 ```
 
 ### set_last_error
 
 ```c
-MOCKABLEFUNCTION(void, error_handling_set_last_error, uint32_t, err_code);
+MOCKABLE_FUNCTION(, void, error_handling_set_last_error, uint32_t, err_code);
 ```
 
 error_handling_set_last_error is a PAL wrapper for the SetLastError function in Windows. 
@@ -25,7 +25,7 @@ error_handling_set_last_error is a PAL wrapper for the SetLastError function in 
 ### get_last_error
 
 ```c
-MOCKABLEFUNCTION(uint32_t, error_handling_get_last_error);
+MOCKABLE_FUNCTION(, uint32_t, error_handling_get_last_error);
 ```
 
 error_handling_get_last_error is a PAL wrapper for the GetLastError function in Windows
