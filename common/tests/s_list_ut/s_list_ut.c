@@ -456,7 +456,6 @@ TEST_FUNCTION(s_list_remove_with_multiple_entries_in_list_remove_head_succeeds)
 TEST_FUNCTION(s_list_remove_with_multiple_entries_in_list_remove_middle_succeeds)
 {
     //arrange
-    static SIMPLE_ITEM simp1 = { 1, { NULL } };
     static SIMPLE_ITEM simp2 = { 2, { NULL } };
     static SIMPLE_ITEM simp3 = { 3, { NULL } };
     static SIMPLE_ITEM simp4 = { 4, { NULL } };
