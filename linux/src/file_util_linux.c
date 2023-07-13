@@ -82,7 +82,7 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
             }
             else if (creation_disposition == TRUNCATE_EXISTING)
             {
-                /*Codes_SRS_FILE_UTIL_LINUX_09_017: [ If creation_disposition is TRUNCATE_EXISTING, file_util_open_file shall call open with O_TRUNC and shall return a file handle who's size has been truncated to zero bytes. ]*/
+                /*Codes_SRS_FILE_UTIL_LINUX_09_017: [ If creation_disposition is TRUNCATE_EXISTING, file_util_open_file shall call open with O_TRUNC and shall return a file handle whose size has been truncated to zero bytes. ]*/
                 result_creation_disposition = O_TRUNC;
             }
 

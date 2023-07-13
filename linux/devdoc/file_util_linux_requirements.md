@@ -42,7 +42,7 @@ share_mode, security_attributes, flags_and_attributes, and template_file paramet
 
 **SRS_FILE_UTIL_LINUX_09_016: [** If `creation_disposition` is `CREATE_NEW` and the file already exists, `file_util_open_file` shall fail and return `INVALID_HANDLE_VALUE`.  **]**
 
-**SRS_FILE_UTIL_LINUX_09_017: [** If `creation_disposition` is `TRUNCATE_EXISTING`, `file_util_open_file` shall call `open` with `O_TRUNC` and shall return a file handle who's size has been truncated to zero bytes.  **]**
+**SRS_FILE_UTIL_LINUX_09_017: [** If `creation_disposition` is `TRUNCATE_EXISTING`, `file_util_open_file` shall call `open` with `O_TRUNC` and shall return a file handle whose size has been truncated to zero bytes.  **]**
 
 **SRS_FILE_UTIL_LINUX_09_008: [** If there are any failures, `file_util_open_file` shall fail and return `INVALID_HANDLE_VALUE`.  **]**
 
