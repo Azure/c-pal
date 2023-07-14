@@ -4,7 +4,6 @@
 #include <inttypes.h>
 
 #include "c_pal/gballoc_hl.h" // IWYU pragma: keep
-#include "c_pal/gballoc_hl_redirect.h"
 
 #include "c_logging/logger.h"
 
@@ -13,14 +12,14 @@
 
 #include "c_pal/error_handling.h"
 
-uint32_t last_error_code;
+static atomic_uint64_t last_error_code;
 
-void error_handling_set_last_error(uint32_t err_code)
+void error_handling_set_last_error(atomic_uint64_t err_code)
 {
 
 }
 
-uint32_t error_handling_get_last_error()
+atomic_uint64_t error_handling_get_last_error(void)
 {
 
 }

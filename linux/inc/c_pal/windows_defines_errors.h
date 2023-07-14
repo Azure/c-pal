@@ -29526,28 +29526,6 @@ FORCEINLINE _Translates_Win32_to_HRESULT_(x) HRESULT HRESULT_FROM_WIN32(unsigned
 
 #define HRESULT_FROM_NT(x)      ((HRESULT) ((x) | FACILITY_NT_BIT))
 
-
-// ****** OBSOLETE functions
-
-// HRESULT functions
-// As noted above, these functions are obsolete and should not be used.
-
-
-// Extract the SCODE from a HRESULT
-
-#define GetScode(hr) ((SCODE) (hr))
-
-// Convert an SCODE into an HRESULT.
-
-#define ResultFromScode(sc) ((HRESULT) (sc))
-
-
-// PropagateResult is a noop
-#define PropagateResult(hrPrevious, scBase) ((HRESULT) scBase)
-
-
-// ****** End of OBSOLETE functions.
-
 #define E_NOT_SET                HRESULT_FROM_WIN32(ERROR_NOT_FOUND)
 #define E_NOT_VALID_STATE        HRESULT_FROM_WIN32(ERROR_INVALID_STATE)
 #define E_NOT_SUFFICIENT_BUFFER  HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER)
