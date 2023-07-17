@@ -7,14 +7,14 @@ Linux implentaton of GetLastError and SetLastError
 ## Exposed API
 
 ```c
-MOCKABLE_FUNCTION(, void, error_handling_set_last_error, atomic_uint64_t, err_code);
-MOCKABLE_FUNCTION(, atomic_uint64_t, error_handling_get_last_error);
+MOCKABLE_FUNCTION(, void, error_handling_set_last_error,  volatile_atomic int64_t, err_code);
+MOCKABLE_FUNCTION(, uint64_t, error_handling_get_last_error);
 ```
 
 ### set_last_error
 
 ```c
-MOCKABLE_FUNCTION(, void, error_handling_set_last_error, atomic_uint64_t, err_code);
+MOCKABLE_FUNCTION(, void, error_handling_set_last_error,  volatile_atomic int64_t, err_code);
 ```
 `error_handling_set_last_error` implements the PAL wrapper for the SetLastError function from Windows.
 
@@ -25,7 +25,7 @@ MOCKABLE_FUNCTION(, void, error_handling_set_last_error, atomic_uint64_t, err_co
 ### get_last_error
 
 ```c
-MOCKABLE_FUNCTION(, atomic_uint64_t, error_handling_get_last_error);
+MOCKABLE_FUNCTION(, uint64_t, error_handling_get_last_error);
 ```
 `error_handling_get_last_error` implements the PAL wrapper for the GetLastError function from Windows.
 

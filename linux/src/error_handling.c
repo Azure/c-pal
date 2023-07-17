@@ -7,19 +7,18 @@
 
 #include "c_logging/logger.h"
 
-#include "c_pal/windows_defines.h"
 #include "c_pal/windows_defines_errors.h"
 
 #include "c_pal/error_handling.h"
 
-static atomic_uint64_t last_error_code;
+static volatile_atomic int64_t last_error_code;
 
-void error_handling_set_last_error(atomic_uint64_t err_code)
+void error_handling_set_last_error(void)
 {
 
 }
 
-atomic_uint64_t error_handling_get_last_error(void)
+uint64_t error_handling_get_last_error(void)
 {
 
 }

@@ -19,8 +19,8 @@ extern "C" {
 #include "windows.h"
 #else
 
-MOCKABLE_FUNCTION(, void, error_handling_set_last_error, atomic_uint64_t, err_code);
-MOCKABLE_FUNCTION(, atomic_uint64_t, error_handling_get_last_error);
+MOCKABLE_FUNCTION(, void, error_handling_set_last_error, volatile_atomic int64_t, err_code);
+MOCKABLE_FUNCTION(, uint64_t, error_handling_get_last_error);
 
 #ifdef __cplusplus
 }
