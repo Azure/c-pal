@@ -40,6 +40,7 @@ set(pal_linux_h_files
     inc/c_pal/completion_port_linux.h
     inc/c_pal/execution_engine_linux.h
     inc/c_pal/platform_linux.h
+    inc/c_pal/windows_defines.h
 )
 
 set(pal_linux_c_files
@@ -48,6 +49,8 @@ set(pal_linux_c_files
     src/async_socket_linux.c
     src/completion_port_linux.c
     src/execution_engine_linux.c
+    src/file_linux.c
+    src/file_util_linux.c
     src/pipe_linux.c
     src/platform_linux.c
     src/srw_lock_linux.c
