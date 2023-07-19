@@ -45,11 +45,9 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
             /*Codes_SRS_FILE_UTIL_LINUX_09_008: [ If there are any failures, file_util_open_file shall fail and return INVALID_HANDLE_VALUE. ]*/
             LogError("Failure in malloc");
             result = INVALID_HANDLE_VALUE;
-            
         }
         else 
         {
-            bool succeeded;
             int user_access;
             int result_creation_disposition;
 
