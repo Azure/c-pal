@@ -4,17 +4,18 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <inttypes.h>
-#include <string.h>
- #include <unistd.h>
+#include <string.h> // IWYU pragma: keep
+#include <unistd.h> // IWYU pragma: keep
 #include <fcntl.h>
+#include <stdbool.h>
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_stdint.h"
-#include "umock_c/umocktypes_bool.h"
-#include "umock_c/umocktypes.h"
+#include "umock_c/umocktypes_bool.h" // IWYU pragma: keep
+#include "umock_c/umocktypes.h" // IWYU pragma: keep
 #include "umock_c/umock_c_negative_tests.h"
 
 #include "real_gballoc_ll.h"
