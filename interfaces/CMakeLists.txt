@@ -2,6 +2,7 @@
 
 set(pal_interfaces_h_files
     inc/c_pal/arithmetic.h
+    inc/c_pal/error_handling.h
     inc/c_pal/execution_engine.h
     inc/c_pal/async_socket.h
     inc/c_pal/file_util.h
