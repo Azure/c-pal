@@ -292,7 +292,6 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
         POS_HANDLE p, clone_of_p;
         p = Pos_Create(2);
         clone_of_p = Pos_Clone(p);
-        (void)clone_of_p;
         umock_c_reset_all_calls();
 
         STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
@@ -303,6 +302,7 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
         //cleanup
+        Pos_Destroy(clone_of_p);
         Pos_Destroy(p);
     }
 
