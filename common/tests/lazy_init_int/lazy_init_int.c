@@ -1,10 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-
 #include <inttypes.h>
 #include <stdlib.h>
-
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
@@ -21,7 +19,6 @@
 #include "c_pal/gballoc_hl.h" // IWYU pragma: keep
 #include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 
-
 TEST_DEFINE_ENUM_TYPE(LAZY_INIT_RESULT, LAZY_INIT_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES);
@@ -29,7 +26,6 @@ TEST_DEFINE_ENUM_TYPE(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES);
 static int32_t nThreadsForChaos;
 
 static call_once_t lazy_chaos = LAZY_INIT_NOT_DONE;
-static volatile_atomic int32_t n_spawned_chaos = 0;
 static volatile_atomic int32_t data_chaos = 0;
 
 static int do_init(void* params)

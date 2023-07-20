@@ -110,7 +110,6 @@ static void on_timer_callback(sigval_t timer_data)
 
 static void internal_close(THREADPOOL* threadpool)
 {
-    bool should_wait_for_transition = false;
     /* Codes_SRS_THREADPOOL_LINUX_07_026: [ Otherwise, threadpool_close shall call sm_close_begin. ]*/
     if(sm_close_begin(threadpool->sm) != SM_EXEC_GRANTED)
     {
@@ -561,7 +560,6 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
             sm_exec_end(threadpool_ptr->sm);
         }
     }
-all_ok:
     return result;
 }
 

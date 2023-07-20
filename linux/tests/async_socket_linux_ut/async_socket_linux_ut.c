@@ -1636,7 +1636,6 @@ TEST_FUNCTION(event_complete_func_context_NULL_fail)
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
     uint32_t payload_count = sizeof(payload_buffers) / sizeof(payload_buffers[0]);
-    uint32_t payload_size = sizeof(payload_bytes) / sizeof(payload_bytes[0]);
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(async_socket, payload_buffers, payload_count, test_on_receive_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
@@ -1702,7 +1701,6 @@ TEST_FUNCTION(event_complete_func_recv_returns_EWOULDBLOCK)
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
     uint32_t payload_count = sizeof(payload_buffers) / sizeof(payload_buffers[0]);
-    uint32_t payload_size = sizeof(payload_bytes) / sizeof(payload_bytes[0]);
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(async_socket, payload_buffers, payload_count, test_on_receive_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
@@ -1736,7 +1734,6 @@ TEST_FUNCTION(event_complete_func_recv_returns_ECONNRESET)
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
     uint32_t payload_count = sizeof(payload_buffers) / sizeof(payload_buffers[0]);
-    uint32_t payload_size = sizeof(payload_bytes) / sizeof(payload_bytes[0]);
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(async_socket, payload_buffers, payload_count, test_on_receive_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
@@ -1770,7 +1767,6 @@ TEST_FUNCTION(event_complete_callback_recv_returns_any_random_error_no)
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
     uint32_t payload_count = sizeof(payload_buffers) / sizeof(payload_buffers[0]);
-    uint32_t payload_size = sizeof(payload_bytes) / sizeof(payload_bytes[0]);
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(async_socket, payload_buffers, payload_count, test_on_receive_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
@@ -1804,7 +1800,6 @@ TEST_FUNCTION(event_complete_func_recv_returns_0_bytes_success)
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
     uint32_t payload_count = sizeof(payload_buffers) / sizeof(payload_buffers[0]);
-    uint32_t payload_size = sizeof(payload_bytes) / sizeof(payload_bytes[0]);
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(async_socket, payload_buffers, payload_count, test_on_receive_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
@@ -1839,7 +1834,6 @@ TEST_FUNCTION(event_complete_func_recv_EPOLLRDHUP_and_abandons_the_connection)
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
     uint32_t payload_count = sizeof(payload_buffers) / sizeof(payload_buffers[0]);
-    uint32_t payload_size = sizeof(payload_bytes) / sizeof(payload_bytes[0]);
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(async_socket, payload_buffers, payload_count, test_on_receive_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
@@ -1870,8 +1864,6 @@ TEST_FUNCTION(event_complete_func_send_EPOLLRDHUP_and_abandons_the_connection)
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
-    uint32_t payload_count = sizeof(payload_buffers) / sizeof(payload_buffers[0]);
-    uint32_t payload_size = sizeof(payload_bytes) / sizeof(payload_bytes[0]);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
@@ -1913,7 +1905,6 @@ TEST_FUNCTION(event_complete_func_recv_ABANDONED_and_abandons_the_connection)
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
     uint32_t payload_count = sizeof(payload_buffers) / sizeof(payload_buffers[0]);
-    uint32_t payload_size = sizeof(payload_bytes) / sizeof(payload_bytes[0]);
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(async_socket, payload_buffers, payload_count, test_on_receive_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
@@ -1945,8 +1936,6 @@ TEST_FUNCTION(event_complete_func_send_ABANDONED_and_abandons_the_connection)
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
-    uint32_t payload_count = sizeof(payload_buffers) / sizeof(payload_buffers[0]);
-    uint32_t payload_size = sizeof(payload_bytes) / sizeof(payload_bytes[0]);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
@@ -1987,8 +1976,6 @@ TEST_FUNCTION(event_complete_func_send_EPOLLOUT_success)
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
-    uint32_t payload_count = sizeof(payload_buffers) / sizeof(payload_buffers[0]);
-    uint32_t payload_size = sizeof(payload_bytes) / sizeof(payload_bytes[0]);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
@@ -2029,8 +2016,6 @@ TEST_FUNCTION(event_complete_func_send_EPOLLOUT_abandoned)
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
-    uint32_t payload_count = sizeof(payload_buffers) / sizeof(payload_buffers[0]);
-    uint32_t payload_size = sizeof(payload_bytes) / sizeof(payload_bytes[0]);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
@@ -2072,8 +2057,6 @@ TEST_FUNCTION(event_complete_func_send_EPOLLOUT_error)
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
-    uint32_t payload_count = sizeof(payload_buffers) / sizeof(payload_buffers[0]);
-    uint32_t payload_size = sizeof(payload_bytes) / sizeof(payload_bytes[0]);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
@@ -2115,7 +2098,6 @@ TEST_FUNCTION(event_complete_func_EPOLLOUT_multiple_sends_success)
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
-    uint32_t payload_count = sizeof(payload_buffers) / sizeof(payload_buffers[0]);
     uint32_t payload_size = sizeof(payload_bytes) / sizeof(payload_bytes[0]);
     umock_c_reset_all_calls();
 
@@ -2161,7 +2143,6 @@ TEST_FUNCTION(event_complete_func_recv_ERROR_and_error_the_connection)
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
     uint32_t payload_count = sizeof(payload_buffers) / sizeof(payload_buffers[0]);
-    uint32_t payload_size = sizeof(payload_bytes) / sizeof(payload_bytes[0]);
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(async_socket, payload_buffers, payload_count, test_on_receive_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
@@ -2191,8 +2172,6 @@ TEST_FUNCTION(event_complete_func_send_ERROR_and_error_the_connection)
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
-    uint32_t payload_count = sizeof(payload_buffers) / sizeof(payload_buffers[0]);
-    uint32_t payload_size = sizeof(payload_bytes) / sizeof(payload_bytes[0]);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));

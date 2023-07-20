@@ -45,11 +45,9 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
             /*Codes_SRS_FILE_UTIL_LINUX_09_008: [ If there are any failures, file_util_open_file shall fail and return INVALID_HANDLE_VALUE. ]*/
             LogError("Failure in malloc");
             result = INVALID_HANDLE_VALUE;
-            
         }
         else 
         {
-            bool succeeded;
             int user_access;
             int result_creation_disposition;
 
@@ -68,6 +66,10 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
                 /*Codes_SRS_FILE_UTIL_LINUX_09_006: [ If desired_access is GENERIC_ALL or GENERIC_READ&GENERIC_WRITE, file_util_open_file shall call open with O_RDWR and shall return a file handle for read and write. ]*/
                 user_access = O_RDWR;
             }
+            else
+            {
+                user_access = 0;
+            }
             
             if (creation_disposition == CREATE_ALWAYS || creation_disposition == OPEN_ALWAYS)
             {
@@ -85,12 +87,15 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
                 /*Codes_SRS_FILE_UTIL_LINUX_09_017: [ If creation_disposition is TRUNCATE_EXISTING, file_util_open_file shall call open with O_TRUNC and shall return a file handle whose size has been truncated to zero bytes. ]*/
                 result_creation_disposition = O_TRUNC;
             }
+            else
+            {
+                result_creation_disposition = 0;
+            }
 
             int flags = user_access|result_creation_disposition;
 
             /*Codes_SRS_FILE_UTIL_LINUX_09_020: [ file_util_open_file shall succeed and return a non-NULL value. ]*/
             result->h_file = open(full_file_name, flags);
-
             if(result->h_file == -1)
             {
                 /*Codes_SRS_FILE_UTIL_LINUX_09_008: [ If there are any failures, file_util_open_file shall fail and return INVALID_HANDLE_VALUE. ]*/

@@ -25,7 +25,6 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 
 static FILE* test_file_handle = (FILE*)0x1001;
 
-
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
@@ -150,7 +149,6 @@ TEST_FUNCTION(pipe_pclose_succeeds_returns_0_with_negative_exit_code)
     // arrange
     int exit_code;
 
-    int return_value_mock = -42;
     STRICT_EXPECTED_CALL(mock_pclose(test_file_handle))
         .SetReturn(((unsigned int)(-42)) << 8);
 
