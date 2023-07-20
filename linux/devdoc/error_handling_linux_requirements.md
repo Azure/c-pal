@@ -18,7 +18,7 @@ MOCKABLE_FUNCTION(, void, error_handling_linux_set_last_error, volatile_atomic i
 ```
 `error_handling_linux_set_last_error` implements the PAL wrapper for the SetLastError function from Windows.
 
-**SRS_ERROR_HANDLING_LINUX09_002: [** `error_handling_linux_set_last_error` shall assign a non-`NULL` value to `last_error_code`. **]**
+**SRS_ERROR_HANDLING_LINUX09_002: [** `error_handling_linux_set_last_error` shall assign the value to `last_error_code`. **]**
 
 **SRS_ERROR_HANDLING_LINUX09_003: [** `error_handling_linux_set_last_error` shall call `interlocked_exchange_32` with `err_code` and `last_error_code`. **]**
 

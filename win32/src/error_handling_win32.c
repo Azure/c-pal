@@ -21,9 +21,5 @@ void error_handling_linux_set_last_error(uint32_t err_code)
 /*Codes_SRS_ERROR_HANDLING_LINUX09_005: [ On success, error_handling_linux_get_last_error shall return the value last set through set_last_error or zero ]*/
 uint32_t error_handling_linux_get_last_error(void)
 {
-
-    uint32_t return_val;
-    return_val = GetLastError();
-
-    return return_val;
+    return GetLastError();
 }

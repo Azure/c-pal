@@ -1,7 +1,7 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 
-#ifndef error_handling_H
-#define error_handling_H
+#ifndef ERROR_HANDLING_H
+#define ERROR_HANDLING_H
 
 #ifdef __cplusplus
 #include <cstdint>

@@ -68,10 +68,10 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
 }
 
 /*Tests_SRS_ERROR_HANDLING_LINUX09_002: [ error_handling_linux_set_last_error shall assign a non-NULL value to last_error_code. ]*/
+/*Tests_SRS_ERROR_HANDLING_LINUX09_003: [ error_handling_linux_set_last_error shall call interlocked_exchange_32 with err_code and last_error_code. ]*/
 TEST_FUNCTION(set_last_error_code_SUCCESS)
 {
     ///arrange
-    /*Tests_SRS_ERROR_HANDLING_LINUX09_003: [ error_handling_linux_set_last_error shall call interlocked_exchange_32 with err_code and last_error_code. ]*/
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, ERROR_INVALID_ACCESS));
 
     ///act
@@ -82,13 +82,13 @@ TEST_FUNCTION(set_last_error_code_SUCCESS)
 } 
 
 /*Tests_SRS_ERROR_HANDLING_LINUX09_005: [ On success, error_handling_linux_get_last_error shall return the value last set through set_last_error or zero ]*/
+/*Tests_SRS_ERROR_HANDLING_LINUX09_006: [ error_handling_linux_get_last_error shall call interlocked_add with last_error_code and zero. ]*/
 TEST_FUNCTION(get_last_error_SUCCEEDS)
 {
     ///arrange
     error_handling_linux_set_last_error(ERROR_LOG_DEDICATED);
     umock_c_reset_all_calls();
 
-    /*Tests_SRS_ERROR_HANDLING_LINUX09_006: [ error_handling_linux_get_last_error shall call interlocked_add with last_error_code and zero. ]*/
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
     
     ///act
