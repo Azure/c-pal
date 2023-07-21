@@ -23,6 +23,24 @@ typedef struct CREATE_FILE_LINUX_TAG
 
 } CREATE_FILE_LINUX;
 
+typedef uint8_t BYTE;
+typedef uint32_t DWORD;
+typedef int32_t LONG;
+typedef int64_t LONGLONG;
+
+typedef union LARGE_INTEGER_TAG
+{
+  struct {
+    DWORD LowPart;
+    LONG  HighPart;
+  };
+  struct {
+    DWORD LowPart;
+    LONG  HighPart;
+  } u;
+  LONGLONG QuadPart;
+} LARGE_INTEGER, *PLARGE_INTEGER
+
 HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t share_mode, LPSECURITY_ATTRIBUTES security_attributes, 
                     uint32_t creation_disposition, uint32_t flags_and_attributes, HANDLE template_file)
 {
