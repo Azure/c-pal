@@ -141,7 +141,6 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
             {
                 ASYNC_SOCKET_RECEIVE_RESULT receive_result;
                 uint32_t index = 0;
-                ssize_t total_sent = 0;
                 ssize_t total_recv_size = 0;
 
                 do

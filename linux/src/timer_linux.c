@@ -30,7 +30,6 @@ TIMER_HANDLE timer_create_new(void)
     }
     else
     {
-        struct timespec tp;
         /* Codes_SRS_TIMER_01_001: [ timer_create_new shall create a new timer and on success return a non-NULL handle to it. ]*/
         /* Codes_SRS_TIMER_LINUX_01_002: [ timer_create_new shall call clock_gettime with CLOCK_MONOTONIC to obtain the initial timer value. ]*/
         if (clock_gettime(CLOCK_MONOTONIC, &result->start_time) != 0)

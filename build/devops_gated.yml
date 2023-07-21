@@ -13,6 +13,9 @@ jobs:
     - visualstudio
     - vstest
 
+  workspace:
+    clean: all
+
   steps:
   - task: BatchScript@1
     displayName: 'Git submodule update'
@@ -67,6 +70,8 @@ jobs:
       filename: ctest
       arguments: '-C "Debug" -V --output-on-failure'
       workingFolder: 'build_x64'
+
+  - template: templates/dump_drive_usage.yml
 
 - job: windowsx64relwithdebinfo
   displayName: 'Build Windows x64 RelWithDebInfo'
@@ -132,6 +137,8 @@ jobs:
       filename: ctest
       arguments: '-C "RelWithDebInfo" -V --output-on-failure'
       workingFolder: 'build_x64'
+
+  - template: templates/dump_drive_usage.yml
 
 - job: linuxubuntu
   displayName: 'Build Linux Ubuntu'
@@ -215,6 +222,8 @@ jobs:
       arguments: '-i $(Build.SourcesDirectory) -buildcheck -e $(Build.SourcesDirectory)\deps'
       modifyEnvironment: false
       workingFolder: '$(Build.SourcesDirectory)'
+  
+  - template: templates/dump_drive_usage.yml
 
 # Will be re-enabled at a later time
 #- job: includecheck
@@ -290,3 +299,4 @@ jobs:
       filePath: './build/linux/build_linux_iwyu.sh'
       arguments: '$(Build.Repository.LocalPath)'
       workingDirectory: '$(Build.Repository.LocalPath)'
+

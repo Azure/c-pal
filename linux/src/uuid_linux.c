@@ -11,7 +11,7 @@
 
 #include "c_pal/uuid.h"
 
-static int is_UUID_T_and_UUID_same_size[sizeof(UUID_T) == sizeof(uuid_t)]; /*just a sanity check*/
+static int MU_UNUSED_VAR is_UUID_T_and_UUID_same_size[sizeof(UUID_T) == sizeof(uuid_t)]; /*just a sanity check*/
 
 int uuid_produce(UUID_T destination)
 {

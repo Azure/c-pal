@@ -37,6 +37,7 @@ set(pal_win32_h_files
 set(pal_win32_c_files
     ${pal_common_c_files}
     src/arithmetic_win32.c
+    src/error_handling_win32.c
     src/execution_engine_win32.c
     src/async_socket_win32.c
     src/threadpool_win32.c

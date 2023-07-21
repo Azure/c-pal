@@ -292,6 +292,7 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
         POS_HANDLE p, clone_of_p;
         p = Pos_Create(2);
         clone_of_p = Pos_Clone(p);
+        (void)clone_of_p;
         umock_c_reset_all_calls();
 
         STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
