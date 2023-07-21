@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
- #include <fcntl.h>
- #include <unistd.h>
+ #include <fcntl.h> // IWYU pragma: keep
+ #include <unistd.h> // IWYU pragma: keep
 
 #define open        mocked_open
 #define close       mocked_close

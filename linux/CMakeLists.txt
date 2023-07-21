@@ -48,6 +48,7 @@ set(pal_linux_c_files
     src/arithmetic_linux.c
     src/async_socket_linux.c
     src/completion_port_linux.c
+    src/error_handling_linux.c
     src/execution_engine_linux.c
     src/file_linux.c
     src/file_util_linux.c

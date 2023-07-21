@@ -16,7 +16,7 @@ extern "C" {
 // Define the severity codes
 //
 
-
+typedef long HRESULT;
 //
 // MessageId: ERROR_SUCCESS
 //
@@ -29508,14 +29508,12 @@ extern "C" {
 
 #if !defined(_HRESULT_DEFINED) && !defined(__midl)
 #define _HRESULT_DEFINED
-typedef _Return_type_success_(return >= 0) long HRESULT;
 #endif
 
 #ifndef __midl
 #if defined(__cplusplus) && _MSC_VER >= 1900 && !defined(SORTPP_PASS)
 constexpr
 #endif
-FORCEINLINE _Translates_Win32_to_HRESULT_(x) HRESULT HRESULT_FROM_WIN32(unsigned long x) { return (HRESULT)(x) <= 0 ? (HRESULT)(x) : (HRESULT) (((x) & 0x0000FFFF) | (FACILITY_WIN32 << 16) | 0x80000000);}
 #else
 #define HRESULT_FROM_WIN32(x) __HRESULT_FROM_WIN32(x)
 #endif
