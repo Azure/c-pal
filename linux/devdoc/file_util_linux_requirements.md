@@ -74,21 +74,23 @@ MOCKABLE_FUNCTION(, bool, file_util_close_file, HANDLE, handle_input);
 MOCKABLE_FUNCTION(, bool, file_util_get_file_size, PLARGE_INTEGER*, file_size, HANDLE, handle_input);
 ```
 
-`file_util_get_file_size_ex` implements the GetFileSizeEx function in Linux.
+`file_util_get_file_size_ex` implements the `GetFileSizeEx` function in Linux.
 
 If the file handle does not have the `GENERIC_WRITE` or `GENERIC_READ` access, `file_util_get_file_size_ex` shall fail and return false.
 
 If there are any failures, `file_util_get_file_size_ex` shall fail and return false.
 
-`file_util_get_file_size_ex` shall succeed and return true.
-
 `file_util_get_size_ex` shall call `stat` on `handle_input->full_file_name` and shall return the non-zero file size.
+
+`file_util_get_file_size_ex` shall succeed and return true.
 
 ### file_util_set_file_pointer_ex
 
 ```c
 MOCKABLE_FUNCTION(, bool, file_util_set_file_pointer_ex, HANDLE, handle_input, LARGE_INTEGER, distance_to_move, PLARGE_INTEGER, new_file_pointer, uint32_t, move_method);
 ```
+
+`file_util_set_file_pointer_ex` implements the `SetFilePointerEx` function in Linux. Uses the `fopen` and `fseek` in C for Linux.
 
 If there are any failures, `file_util_set_file_pointer_ex` shall fail and return false.
 
@@ -105,6 +107,8 @@ If the file handle does not have the `GENERIC_WRITE` or `GENERIC_READ` access, `
 ```c
 MOCKABLE_FUNCTION(, bool, file_util_set_end_of_file, HANDLE, handle_input);
 ```
+
+`file_util_set_end_of_file` implements the `SetEndOfFile` function in Linux. Uses the `fopen`, `ftell`, and `truncate` functions in C for Linux.
 
 If there are any failures, `file_util_set_end_of_file` shall fail and return false.
 
@@ -123,6 +127,7 @@ If `handle_input` does not have the `GENERIC_WRITE` access, `file_util_set_end_o
 ```c
 MOCKABLE_FUNCTION(, bool, file_util_write_file_ex, HANDLE, handle_input, LPCVOID, buffer, uint32_t, number_of_bytes_to_write);
 ```
+`file_util_write_file_ex` implements the `WriteFileEx` function in Linux. Uses the `write` function in C for Linux.
 
 If there are any failures `file_util_write_file_ex` shall fail and return false;
 

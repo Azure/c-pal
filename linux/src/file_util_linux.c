@@ -23,7 +23,7 @@ typedef struct CREATE_FILE_LINUX_TAG
 
 } CREATE_FILE_LINUX;
 
-HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t share_mode, LPSECURITY_ATTRIBUTES security_attributes, 
+HANDLE file_util_open_file(const char* full_file_name, uint32_t desired_access, uint32_t share_mode, LPSECURITY_ATTRIBUTES security_attributes, 
                     uint32_t creation_disposition, uint32_t flags_and_attributes, HANDLE template_file)
 {
     (void)flags_and_attributes;
@@ -32,8 +32,8 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
     if((full_file_name == NULL) || (full_file_name[0] == '\0'))
     {
         /*Codes_SRS_FILE_UTIL_LINUX_09_001: [ If the full_file_name input is either empty or NULL, file_util_open_file shall fail and return an INVALID_HANDLE_VALUE. ]*/
-        LogError("Invalid arguments to file_util_open_file: full_file_name = %s, uint32_t access = %p, uint32_t share_mode = %p, LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %p, uint32_t flags_and_attributes = %p, HANDLE template_file = %p",
-                    full_file_name, access, share_mode, security_attributes, creation_disposition, flags_and_attributes, template_file);
+        LogError("Invalid arguments to file_util_open_file: full_file_name = %s, uint32_t desired_access = %p, uint32_t share_mode = %p, LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %p, uint32_t flags_and_attributes = %p, HANDLE template_file = %p",
+                    full_file_name, desired_access, share_mode, security_attributes, creation_disposition, flags_and_attributes, template_file);
         result = INVALID_HANDLE_VALUE;
     } 
     else 
@@ -51,17 +51,17 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
             int user_access;
             int result_creation_disposition;
 
-            if (access == GENERIC_READ)
+            if (desired_access == GENERIC_READ)
             {
                 /*Codes_SRS_FILE_UTIL_LINUX_09_004: [ If desired_access is GENERIC_READ, file_util_open_file shall call open with O_RDONLY and shall return a file handle for read only. ]*/
                 user_access = O_RDONLY;
             } 
-            else if (access == GENERIC_WRITE)
+            else if (desired_access == GENERIC_WRITE)
             {
                 /*Codes_SRS_FILE_UTIL_LINUX_09_005: [ If desired_access is GENERIC_WRITE, file_util_open_file shall call open with O_WRONLY and shall return a file handle for write only. ]*/
                 user_access = O_WRONLY;
             } 
-            else if (access == GENERIC_ALL || access == (GENERIC_READ&GENERIC_WRITE))
+            else if (desired_access == GENERIC_ALL || desired_access == (GENERIC_READ&GENERIC_WRITE))
             {
                 /*Codes_SRS_FILE_UTIL_LINUX_09_006: [ If desired_access is GENERIC_ALL or GENERIC_READ&GENERIC_WRITE, file_util_open_file shall call open with O_RDWR and shall return a file handle for read and write. ]*/
                 user_access = O_RDWR;
@@ -99,8 +99,8 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
             if(result->h_file == -1)
             {
                 /*Codes_SRS_FILE_UTIL_LINUX_09_008: [ If there are any failures, file_util_open_file shall fail and return INVALID_HANDLE_VALUE. ]*/
-                LogError("Failure in creating a file, full_file_name = %s, uint32_t access = %p, uint32_t share_mode = %p, LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %p, uint32_t flags_and_attributes = %p, HANDLE template_file = %p",
-                    full_file_name, access, share_mode, security_attributes, creation_disposition, flags_and_attributes, template_file);
+                LogError("Failure in creating a file, full_file_name = %s, uint32_t desired_access = %p, uint32_t share_mode = %p, LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %p, uint32_t flags_and_attributes = %p, HANDLE template_file = %p",
+                    full_file_name, desired_access, share_mode, security_attributes, creation_disposition, flags_and_attributes, template_file);
                 free(result);
                 result = INVALID_HANDLE_VALUE;
             }
