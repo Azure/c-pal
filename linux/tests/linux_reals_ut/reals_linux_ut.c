@@ -4,7 +4,10 @@
 #include "testrunnerswitcher.h"
 
 #include "c_pal/arithmetic.h" // IWYU pragma: keep
+<<<<<<< HEAD
 #include "c_pal/srw_lock.h" // IWYU pragma: keep
+=======
+>>>>>>> origin/master
 #include "c_pal/string_utils.h" // IWYU pragma: keep
 #include "c_pal/threadpool.h" // IWYU pragma: keep
 #include "c_pal/uuid.h" // IWYU pragma: keep
