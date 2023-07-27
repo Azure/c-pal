@@ -12,4 +12,5 @@
 #define threadpool_timer_cancel         real_threadpool_timer_cancel
 #define threadpool_timer_destroy        real_threadpool_timer_destroy
 
-#define THREADPOOL_WIN32_STATE          real_THREADPOOL_WIN32_STATE
+#define TASK_RESULT                     real_TASK_RESULT
+#define THREADPOOL_STATE                real_THREADPOOL_STATE
