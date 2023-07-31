@@ -40,7 +40,6 @@ set(pal_linux_h_files
     inc/c_pal/completion_port_linux.h
     inc/c_pal/execution_engine_linux.h
     inc/c_pal/platform_linux.h
-    inc/c_pal/windows_defines.h
 )
 
 set(pal_linux_c_files

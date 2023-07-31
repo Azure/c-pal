@@ -14,20 +14,32 @@
 #include "c_logging/logger.h"
 
 #include "c_pal/windows_defines.h"
-
+#include "c_pal/threadpool.h"
+#include "c_pal/thandle_ll.h"
+#include "c_pal/thandle.h"
 #include "c_pal/file_util.h"
+#include "c_pal/execution_engine.h"
 
 typedef struct CREATE_FILE_LINUX_TAG
 {
     int h_file;
+    THANDLE(THREADPOOL) threadpool;
 
 } CREATE_FILE_LINUX;
+
+typedef struct WRITE_FILE_LINUX_TAG
+{
+    CREATE_FILE_LINUX* handle_input;
+    LPCVOID buffer;
+    uint32_t number_of_bytes_to_write;
+    LPOVERLAPPED overlapped;
+    LPOVERLAPPED_COMPLETION_ROUTINE completion_routine;
+
+} WRITE_FILE_LINUX;
 
 HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t share_mode, LPSECURITY_ATTRIBUTES security_attributes, 
                     uint32_t creation_disposition, uint32_t flags_and_attributes, HANDLE template_file)
 {
-    (void)flags_and_attributes;
-    
     CREATE_FILE_LINUX* result;
     if((full_file_name == NULL) || (full_file_name[0] == '\0'))
     {
@@ -104,6 +116,20 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
                 free(result);
                 result = INVALID_HANDLE_VALUE;
             }
+
+            if(flags_and_attributes == FILE_FLAG_OVERLAPPED)
+            {
+                THANDLE(THREADPOOL) threadpool;
+                THANDLE_INITIALIZE(THREADPOOL)(&result->threadpool, threadpool);
+
+                if(result->threadpool == NULL)
+                {
+                    LogError("Failure in creating threadpool, full_file_name = %s, uint32_t access = %p, uint32_t share_mode = %p, LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %p, uint32_t flags_and_attributes = %p, HANDLE template_file = %p",
+                        full_file_name, access, share_mode, security_attributes, creation_disposition, flags_and_attributes, template_file);
+                    free(result);
+                    result = INVALID_HANDLE_VALUE;
+                }
+            }
         }
     }
     return result;
@@ -139,4 +165,55 @@ bool file_util_close_file(HANDLE handle_input)
     }
 
     return result;
+}
+
+static void file_util_work_function(void* context)
+{
+
+    WRITE_FILE_LINUX* tp_input;
+    tp_input = malloc(sizeof(WRITE_FILE_LINUX));
+    tp_input = (WRITE_FILE_LINUX*)context;
+
+    if(tp_input == NULL)
+    {
+        LogError("Failure in malloc");
+    }
+
+    ssize_t write_success;
+    write_success = write(tp_input->handle_input->h_file, tp_input->buffer, tp_input->number_of_bytes_to_write);
+
+    if(write_success == -1)
+    {
+        LogError("failed to write to file");
+    }
+}
+
+bool file_util_write_file(HANDLE handle_in, LPCVOID buffer, uint32_t number_of_bytes_to_write, 
+                    LPOVERLAPPED overlapped, LPOVERLAPPED_COMPLETION_ROUTINE completion_routine)
+{
+    CREATE_FILE_LINUX* handle_input;
+    //handle_input = malloc(sizeof(CREATE_FILE_LINUX));
+    handle_input = (CREATE_FILE_LINUX*)handle_in;
+
+    WRITE_FILE_LINUX* tp_input = malloc(sizeof(WRITE_FILE_LINUX));
+    tp_input->handle_input = handle_input;
+    tp_input->buffer = buffer;
+    tp_input->number_of_bytes_to_write = number_of_bytes_to_write;
+    tp_input->overlapped = overlapped;
+    tp_input->completion_routine = completion_routine;
+
+    threadpool_schedule_work(handle_input->threadpool, file_util_work_function, tp_input);
+    return true;
+}
+
+bool file_util_delete_file(LPCSTR full_file_name)
+{
+    int success = unlink(full_file_name);
+    if(success == -1)
+    {
+        return false;
+    } else
+    {
+        return true;
+    }
 }
