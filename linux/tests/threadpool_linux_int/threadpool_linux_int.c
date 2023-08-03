@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "c_logging/logger.h"
 
@@ -20,6 +21,7 @@
 #include "c_pal/threadapi.h"
 #include "c_pal/interlocked.h"
 #include "c_pal/sync.h"
+#include "c_pal/interlocked_hl.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_linux.h"
 #include "c_pal/thandle.h" // IWYU pragma: keep
@@ -32,6 +34,14 @@ typedef struct WAIT_WORK_CONTEXT_TAG
     volatile_atomic int32_t call_count;
     volatile_atomic int32_t wait_event;
 } WAIT_WORK_CONTEXT;
+
+typedef struct WRAP_DATA_TAG
+{
+    volatile_atomic int32_t* counter;
+    char mem[10];
+} WRAP_DATA;
+
+TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
@@ -84,6 +94,17 @@ static void threadpool_task_wait_random(void* parameter)
 
     (void)interlocked_increment(thread_counter);
     wake_by_address_single(thread_counter);
+}
+
+
+static void threadpool_long_task(void* context)
+{
+    WRAP_DATA* data = context;
+    ASSERT_ARE_EQUAL(int, 0, strcmp(data->mem, "READY"));
+    strcpy(data->mem, "DONE");
+    (void)interlocked_increment(data->counter);
+    wake_by_address_single(data->counter);
+    free(data);
 }
 
 static void work_function(void* context)
@@ -249,6 +270,37 @@ TEST_FUNCTION(threadpool_chaos_knight)
         wait_on_address(&thread_counter, 1, UINT32_MAX);
     } while (thread_counter != num_threads);
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
+
+    // cleanup
+    threadpool_close(threadpool);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+#define WRAP_TEST_WORK_ITEMS 10000
+
+TEST_FUNCTION(threadpool_force_wrap_around)
+{
+    // assert
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
+
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
+
+    volatile_atomic int32_t counter;
+    interlocked_exchange(&counter, 0);
+
+    for (uint32_t index = 0; index < WRAP_TEST_WORK_ITEMS; index++)
+    {
+        WRAP_DATA* data = malloc(sizeof(WRAP_DATA));
+        data->counter = &counter;
+        strcpy(data->mem, "READY");
+        ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_long_task, data));
+    }
+
+    // assert
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&counter, WRAP_TEST_WORK_ITEMS, UINT32_MAX));
 
     // cleanup
     threadpool_close(threadpool);

@@ -176,7 +176,7 @@ static int threadpool_work_func(void* param)
 
                         /* Codes_SRS_THREADPOOL_LINUX_07_078: [ threadpool_work_func shall increment the current consume index by calling interlocked_increment_64. ]*/
                         /* Codes_SRS_THREADPOOL_LINUX_07_079: [ threadpool_work_func shall get the next waiting task consume index from incremented consume index modulo current task array size. ]*/
-                        current_index = interlocked_increment_64(&threadpool->consume_idx) - 1 % existing_count;
+                        current_index = (interlocked_increment_64(&threadpool->consume_idx) - 1) % existing_count;
                         /* Codes_SRS_THREADPOOL_LINUX_07_080: [ If consume index has task state TASK_WAITING, threadpool_work_func shall set the task state to TASK_WORKING. ]*/
                         TASK_RESULT curr_task_result = interlocked_compare_exchange(&threadpool->task_array[current_index].task_state, TASK_WORKING, TASK_WAITING);
                         if (TASK_WAITING == curr_task_result)
@@ -518,7 +518,7 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
                 int32_t existing_count = interlocked_add(&threadpool_ptr->task_array_size, 0);
 
                 /* Codes_SRS_THREADPOOL_LINUX_07_034: [ threadpool_schedule_work shall increment the insert_pos. ]*/
-                int64_t insert_pos = interlocked_increment_64(&threadpool_ptr->insert_idx) - 1 % existing_count;
+                int64_t insert_pos = (interlocked_increment_64(&threadpool_ptr->insert_idx) - 1) % existing_count;
 
                 /* Codes_SRS_THREADPOOL_LINUX_07_035: [ If task state is TASK_NOT_USED, threadpool_schedule_work shall set the current task state to TASK_INITIALIZING. ]*/
                 int32_t task_state = interlocked_compare_exchange(&threadpool_ptr->task_array[insert_pos].task_state, TASK_INITIALIZING, TASK_NOT_USED);
