@@ -24,6 +24,9 @@
 #include "c_pal/gballoc_hl_redirect.h"
 
 #include "umock_c/umock_c_prod.h"
+#include "c_pal/threadpool.h"
+#include "c_pal/thandle_ll.h"
+#include "c_pal/error_handling.h"
 #undef ENABLE_MOCKS
 
 #include "real_gballoc_hl.h"

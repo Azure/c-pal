@@ -1,6 +1,7 @@
 #Copyright (C) Microsoft Corporation. All rights reserved.
 
 if(${run_int_tests})
+    build_test_folder(file_util_int)
     build_test_folder(pipe_int)
     build_test_folder(timer_int)
     build_test_folder(srw_lock_int)
