@@ -24,6 +24,8 @@ typedef void *HANDLE;
 typedef void *LPSECURITY_ATTRIBUTES;
 typedef void *LPOVERLAPPED_COMPLETION_ROUTINE;
 typedef void *LPCVOID;
+typedef void *LPVOID;
+typedef void *LPDWORD;
 typedef void *PVOID;
 typedef void *CALLBACK;
 typedef const char* LPCSTR;
@@ -36,6 +38,25 @@ typedef void *ULONG;
 typedef void *PTP_CLEANUP_GROUP;
 typedef void *PTP_POOL;
 typedef void *PTP_WIN32_IO_CALLBACK;
+typedef void *UCHAR;
+typedef int FILE_INFO_BY_HANDLE_CLASS;
+typedef unsigned short WCHAR;
+
+typedef uint8_t BYTE;
+typedef uint32_t DWORD;
+typedef int32_t LONG;
+typedef int64_t LONGLONG;
+
+typedef struct _FILE_RENAME_INFO {
+  union {
+    bool ReplaceIfExists;
+    DWORD   Flags;
+  } DUMMYUNIONNAME;
+  bool ReplaceIfExists;
+  HANDLE  RootDirectory;
+  DWORD   FileNameLength;
+  WCHAR   FileName[1];
+} FILE_RENAME_INFO, *PFILE_RENAME_INFO;
 
 typedef struct _OVERLAPPED {
   uint32_t* Internal;
@@ -59,6 +80,17 @@ typedef void (*PTP_WIN32_IO_CALLBACK_FUNC)(
     PTP_IO                Io
 );
 
+typedef union LARGE_INTEGER_TAG {
+  struct {
+    DWORD LowPart;
+    LONG  HighPart;
+  };
+  struct {
+    DWORD LowPart;
+    LONG  HighPart;
+  } u;
+  LONGLONG QuadPart;
+} LARGE_INTEGER, *PLARGE_INTEGER;
 
 #define GENERIC_READ                    (0x80000000)
 #define GENERIC_WRITE                   (0x40000000)
@@ -76,6 +108,9 @@ typedef void (*PTP_WIN32_IO_CALLBACK_FUNC)(
 #define FILE_FLAG_DELETE_ON_CLOSE       (0x04000000)
 #define FILE_FLAG_OPEN_NO_RECALL        (0x00100000)
 
+#define FILE_SKIP_COMPLETION_PORT_ON_SUCCESS  (0x1)
+#define FILE_SKIP_SET_EVENT_ON_HANDLE         (0x2)
+
 #define CREATE_NEW                      1
 #define CREATE_ALWAYS                   2
 #define OPEN_EXISTING                   3
@@ -87,6 +122,8 @@ typedef void (*PTP_WIN32_IO_CALLBACK_FUNC)(
 #define INVALID_FILE_ATTRIBUTES         ((uint32_t)-1)
 
 #define INVALID_HANDLE_VALUE            ((HANDLE)(int64_t)-1)
+
+#define FileRenameInfo                  3
 
 #endif //WIN32
 

@@ -139,3 +139,33 @@ PTP_IO file_util_create_threadpool_io(HANDLE handle_input, PTP_WIN32_IO_CALLBACK
         return new_file->ptpio;
     }
 }
+
+bool file_util_set_file_completion_modes(HANDLE handle_in, UCHAR flags)
+{
+    return SetFileCompletionNotificationModes(handle_in, flags);
+}
+
+HANDLE file_util_create_event(LPSECURITY_ATTRIBUTES lpEventAttributes, bool bManualReset, bool bInitialState, LPCSTR lpName)
+{
+    return CreateEvent(lpEventAttributes, bManualReset, bInitialState, lpName);
+}
+
+bool file_util_query_performance_counter(LARGE_INTEGER* performance_count)
+{
+    return QueryPerformanceCounter(performance_count);
+}
+
+void file_util_cancel_threadpool_io(PTP_IO pio)
+{
+    CancelThreadpoolIo(pio);
+}
+
+bool file_util_read_file(HANDLE handle_in, LPVOID buffer, DWORD number_of_bytes_to_read, LPDWORD number_of_bytes_read, LPOVERLAPPED overlapped)
+{
+    return ReadFile(handle_in, buffer, number_of_bytes_to_read, number_of_bytes_read, overlapped);
+}
+
+bool file_util_set_file_information_by_handle(HANDLE handle_in, FILE_INFO_BY_HANDLE_CLASS file_info_class, LPVOID file_info, DWORD buffer_size)
+{
+    return SetFileInformationByHandle(handle_in, file_info_class, file_info, buffer_size);
+}

@@ -25,9 +25,11 @@
 typedef struct CREATE_FILE_LINUX_TAG
 {
     int h_file;
+    const char* full_file_name;
     PTP_IO ptp_io;
     PTP_WIN32_IO_CALLBACK_FUNC callback_func;
     PVOID pv;
+    UCHAR flags;
     THANDLE(THREADPOOL) threadpool;
 
 } CREATE_FILE_LINUX;
@@ -140,6 +142,7 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
 
                 /*Codes_SRS_FILE_UTIL_LINUX_09_020: [ file_util_open_file shall succeed and return a non-NULL value. ]*/
                 result->h_file = open(full_file_name, flags);
+                result->full_file_name = full_file_name;
                 if(result->h_file == -1)
                 {
                     /*Codes_SRS_FILE_UTIL_LINUX_09_008: [ If there are any failures, file_util_open_file shall fail and return INVALID_HANDLE_VALUE. ]*/
@@ -304,5 +307,76 @@ PTP_IO file_util_create_threadpool_io(HANDLE handle_in, PTP_WIN32_IO_CALLBACK pf
         handle_input->callback_func = pfnio;
         handle_input->pv = pv;
         return handle_input;
+    }
+}
+
+bool file_util_set_file_completion_notifcation_modes(HANDLE handle_input, UCHAR flags)
+{
+    CREATE_FILE_LINUX* file_handle = (CREATE_FILE_LINUX*)handle_input;
+    file_handle->flags = flags;
+
+    return true;
+}
+
+HANDLE file_util_create_event(LPSECURITY_ATTRIBUTES lpEventAttributes, bool bManualReset, bool bInitialState, LPCSTR lpName)
+{
+    return NULL;
+}
+
+bool file_util_query_performance_counter(LARGE_INTEGER* performance_count)
+{
+    return true;
+}
+
+void file_util_cancel_threadpool_io(PTP_IO pio)
+{
+    (void)pio;
+}
+
+bool file_util_read_file(HANDLE handle_in, LPVOID buffer, DWORD number_of_bytes_to_read, LPDWORD number_of_bytes_read, LPOVERLAPPED overlapped)
+{
+    if(handle_in == INVALID_HANDLE_VALUE || buffer == NULL || number_of_bytes_to_read == 0)
+    {
+        LogError("Invalid inputs to file_util_read_file: HANDLE handle_in = %p, LPVOID buffer = %p, LPDWORD number_of_bytes_read = %p",
+                    handle_in, buffer, number_of_bytes_read);
+        return false;
+    }
+    else
+    {
+        CREATE_FILE_LINUX* handle_input = (CREATE_FILE_LINUX*)handle_in;
+
+        int success = read(handle_input->h_file, buffer, number_of_bytes_to_read);
+        if(success == -1)
+        {
+            LogError("Failure in reading file");
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+}
+
+bool file_util_set_file_information_by_handle(HANDLE handle_in, FILE_INFO_BY_HANDLE_CLASS file_info_class, LPVOID file_info, DWORD buffer_size)
+{
+    CREATE_FILE_LINUX* handle_input = (CREATE_FILE_LINUX*)handle_in;
+    if(file_info_class == FileRenameInfo)
+    {
+        FILE_RENAME_INFO* rename_info = (FILE_RENAME_INFO*)file_info;
+        int success = rename(handle_input->full_file_name, (const char*)rename_info->FileName);
+        if(success == 0)
+        {
+            return true;
+        }
+        else
+        {
+            LogError("Failure in renaming file");
+            return false;
+        }
+    }
+    else
+    {
+        return true;
     }
 }

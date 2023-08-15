@@ -29,6 +29,12 @@ MOCKABLE_FUNCTION(, bool, file_util_write_file, HANDLE, handle_input, LPCVOID, b
 MOCKABLE_FUNCTION(, bool, file_util_delete_file, LPCSTR, full_file_name);
 MOCKABLE_FUNCTION(, PTP_IO, file_util_create_threadpool_io, HANDLE, handle_input, PTP_WIN32_IO_CALLBACK, pfnio, PVOID, pv);
 MOCKABLE_FUNCTION(, PTP_CLEANUP_GROUP, file_util_create_threadpool_cleanup_group);
+MOCKABLE_FUNCTION(, bool, file_util_set_file_completion_notifcation_modes, HANDLE, handle_input, UCHAR, flags);
+MOCKABLE_FUNCTION(, HANDLE, file_util_create_event, LPSECURITY_ATTRIBUTES, lpEventAttributes, bool, bManualReset, bool, bInitialState, LPCSTR, lpName);
+MOCKABLE_FUNCTION(, bool, file_util_query_performance_counter, LARGE_INTEGER*, performance_count);
+MOCKABLE_FUNCTION(, void, file_util_cancel_threadpool_io, PTP_IO, pio);
+MOCKABLE_FUNCTION(, bool, file_util_read_file, HANDLE, handle_in, LPVOID, buffer, DWORD, number_of_bytes_to_read, LPDWORD, number_of_bytes_read, LPOVERLAPPED, overlapped);
+MOCKABLE_FUNCTION(, bool, file_util_set_file_information_by_handle, HANDLE, handle_in, FILE_INFO_BY_HANDLE_CLASS, file_info_class, LPVOID, file_info, DWORD, buffer_size);
 
 #ifdef __cplusplus
 }
