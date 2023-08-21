@@ -6,6 +6,7 @@
 #include <inttypes.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include "macro_utils/macro_utils.h"
 
 #include "c_pal/gballoc_hl.h" // IWYU pragma: keep
@@ -31,7 +32,7 @@ typedef struct CREATE_FILE_LINUX_TAG
     PVOID pv;
     UCHAR flags;
     THANDLE(THREADPOOL) threadpool;
-
+    int file_pointer_pos;
 } CREATE_FILE_LINUX;
 
 typedef struct WRITE_FILE_LINUX_TAG
@@ -374,6 +375,110 @@ bool file_util_set_file_information_by_handle(HANDLE handle_in, FILE_INFO_BY_HAN
             LogError("Failure in renaming file");
             return false;
         }
+    }
+    else
+    {
+        return true;
+    }
+}
+
+void file_util_close_threadpool_cleanup_group(PTP_CLEANUP_GROUP ptpcg)
+{
+    (void)ptpcg;
+}
+
+void file_util_destroy_threadpool_environment(PTP_CALLBACK_ENVIRON pcbe)
+{
+    (void)pcbe;
+}
+
+void file_util_close_threadpool_io(PTP_IO pio)
+{
+    (void)pio;
+}
+
+bool file_util_get_file_size_ex(HANDLE hfile, PLARGE_INTEGER file_size)
+{
+    CREATE_FILE_LINUX* handle_input = (CREATE_FILE_LINUX*)hfile;
+    struct stat st;
+    stat(handle_input->full_file_name, &st);
+    file_size->QuadPart = st.st_size;
+    if(&file_size->QuadPart == NULL)
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
+bool file_util_set_file_pointer_ex(HANDLE hFile, LARGE_INTEGER distance_to_move, PLARGE_INTEGER new_file_pointer, DWORD move_method)
+{
+    //CREATE_FILE_LINUX* handle_input = (CREATE_FILE_LINUX*)hFile;
+    //char* mode = "r";
+    // FILE* temp_file = fopen(handle_input->full_file_name, mode);
+    FILE* temp_file = (FILE*)hFile;
+    int whence;
+    if(move_method == FILE_BEGIN)
+    {
+        whence = SEEK_SET;
+    }
+    else if (move_method == FILE_CURRENT)
+    {
+        whence = SEEK_CUR;
+    }
+    else if (move_method == FILE_END)
+    {
+        whence = SEEK_END;
+    }
+    long move = distance_to_move.QuadPart;
+    int success = fseek(temp_file, move, whence);
+    //fclose(temp_file);
+    if(success == -1)
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
+bool file_util_set_end_of_file(HANDLE hfile)
+{
+    //CREATE_FILE_LINUX* handle_input = (CREATE_FILE_LINUX*)hfile;
+    FILE* temp_file = (FILE*)hfile;
+    int file_pointer_pos = ftell(temp_file);
+    if(file_pointer_pos == -1)
+    {
+        LogError("Unable to find file pointer position");
+        return false;
+    }
+    else
+    {
+        CREATE_FILE_LINUX* handle_input = (CREATE_FILE_LINUX*)temp_file;
+        int success = truncate(handle_input->full_file_name, file_pointer_pos);
+        if(success == -1)
+        {
+            LogError("Unable to set end of file");
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+}
+
+bool file_util_set_file_valid_data(HANDLE hfile, LONGLONG valid_data_length)
+{
+    CREATE_FILE_LINUX* handle_input = (CREATE_FILE_LINUX*)hfile;
+    int success = truncate(handle_input->full_file_name, valid_data_length);
+    if(success == -1)
+    {
+        LogError("Unable to set end of file");
+        return false;
     }
     else
     {

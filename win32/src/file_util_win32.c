@@ -77,46 +77,20 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
 
 bool file_util_close_file(HANDLE handle_input)
 {
-    if(handle_input == NULL)
-    {
-        LogError("Invalid arguement to file_util_close_handle: Hanle input was an INVALID_HANDLE_VALUE");
-        return false;
-    }
-    else
-    {
-        FILE_WIN* new_file = (FILE_WIN*)handle_input;
-        return CloseHandle(new_file->file_handle);
-    }
+    FILE_WIN* new_file = (FILE_WIN*)handle_input;
+    return CloseHandle(new_file->file_handle);
 }
 
 bool file_util_write_file(HANDLE handle_input, LPCVOID buffer, uint32_t number_of_bytes_to_write, LPOVERLAPPED overlapped)
 {
-    if(handle_input == NULL || buffer == NULL || number_of_bytes_to_write == 0)
-    {
-        LogError("Invalid inputs to file_util_write_file: HANDLE handle_in = %p, LPCVOID buffer = %p, uint32_t number_of_bytes_to_write = %p",
-                    handle_input, buffer, number_of_bytes_to_write);
-        return false;
-    }
-    else
-    {
-        FILE_WIN* new_file = (FILE_WIN*)handle_input;
-        return WriteFile(new_file->file_handle, buffer, number_of_bytes_to_write, NULL, overlapped);
-    }
-
+    FILE_WIN* new_file = (FILE_WIN*)handle_input;
+    return WriteFile(new_file->file_handle, buffer, number_of_bytes_to_write, NULL, overlapped);
 
 }
 
 bool file_util_delete_file(LPCSTR full_file_name)
 {
-    if(full_file_name == NULL || full_file_name[0] == '\0'){
-        LogError("Invalid file name/path: LPCSTR full_fil_name = %s",
-            full_file_name);
-        return false;
-    }
-    else
-    {
-        return DeleteFileA(full_file_name);
-    }
+    return DeleteFileA(full_file_name);
 }
 
 PTP_IO file_util_create_threadpool_io(HANDLE handle_input, PTP_WIN32_IO_CALLBACK callback_function, PVOID pv)
@@ -168,4 +142,39 @@ bool file_util_read_file(HANDLE handle_in, LPVOID buffer, DWORD number_of_bytes_
 bool file_util_set_file_information_by_handle(HANDLE handle_in, FILE_INFO_BY_HANDLE_CLASS file_info_class, LPVOID file_info, DWORD buffer_size)
 {
     return SetFileInformationByHandle(handle_in, file_info_class, file_info, buffer_size);
+}
+
+void file_util_close_threadpool_cleanup_group(PTP_CLEANUP_GROUP ptpcg)
+{
+    CloseThreadpoolCleanupGroup(ptpcg);
+}
+
+void file_util_destroy_threadpool_environment(PTP_CALLBACK_ENVIRON pcbe)
+{
+    DestroyThreadpoolEnvironment(pcbe);
+}
+
+void file_util_close_threadpool_io(PTP_IO pio)
+{
+    CloseThreadpoolIo(pio);
+}
+
+bool file_util_get_file_size_ex(HANDLE hfile, PLARGE_INTEGER file_size)
+{
+    return GetFileSizeEx(hfile, file_size);
+}
+
+bool file_util_set_file_pointer_ex(HANDLE hFile, LARGE_INTEGER distance_to_move, PLARGE_INTEGER new_file_pointer, DWORD move_method)
+{
+    return SetFilePointerEx(hFile, distance_to_move, new_file_pointer, move_method);
+}
+
+bool file_util_set_end_of_file(HANDLE hfile)
+{
+    return SetEndOfFile(hfile);
+}
+
+bool file_util_set_file_valid_data(HANDLE hfile, LONGLONG valid_data_length)
+{
+    return SetFileValidData(hfile, valid_data_length);
 }

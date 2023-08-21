@@ -125,6 +125,10 @@ typedef union LARGE_INTEGER_TAG {
 
 #define FileRenameInfo                  3
 
+#define FILE_BEGIN                      0
+#define FILE_CURRENT                    1
+#define FILE_END                        2
+
 #endif //WIN32
 
 #ifdef __cplusplus
