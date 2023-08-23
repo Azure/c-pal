@@ -5,7 +5,7 @@
 
 #include "c_pal/gballoc_hl.h" // IWYU pragma: keep
 
-#include "c_logging/logger.h"
+#include "c_logging/xlogging.h"
 #include "c_pal/interlocked.h"
 
 #include "c_pal/file_util.h"
@@ -20,6 +20,7 @@ typedef struct FILE_WIN_TAG
     PTP_IO ptpio;
 
 } FILE_WIN;
+
 
 // void file_util_initialize_threadpool_environment(PTP_CALLBACK_ENVIRON pcbe)
 // {
@@ -52,7 +53,7 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
     FILE_WIN* new_file;
     if(full_file_name == NULL || full_file_name[0] == '\0')
     {
-        LogError("Invalid arguments to file_util_open_file: full_file_name = %s, uint32_t access = %p, uint32_t share_mode = %p, LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %p, uint32_t flags_and_attributes = %p, HANDLE template_file = %p",
+        LogError("Invalid arguments to file_util_open_file: full_file_name = %s, uint32_t access = %u, uint32_t share_mode = %u, LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %u, uint32_t flags_and_attributes = %u, HANDLE template_file = %p",
                     full_file_name, access, share_mode, security_attributes, creation_disposition, flags_and_attributes, template_file);
         new_file = INVALID_HANDLE_VALUE;
         return new_file;
@@ -114,7 +115,12 @@ PTP_IO file_util_create_threadpool_io(HANDLE handle_input, PTP_WIN32_IO_CALLBACK
     }
 }
 
-bool file_util_set_file_completion_modes(HANDLE handle_in, UCHAR flags)
+PTP_CLEANUP_GROUP file_util_create_threadpool_cleanup_group()
+{
+    return CreateThreadpoolCleanupGroup();
+}
+
+bool file_util_set_file_completion_notification_modes(HANDLE handle_in, UCHAR flags)
 {
     return SetFileCompletionNotificationModes(handle_in, flags);
 }

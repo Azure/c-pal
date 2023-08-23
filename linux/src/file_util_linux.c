@@ -12,7 +12,7 @@
 #include "c_pal/gballoc_hl.h" // IWYU pragma: keep
 #include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 
-#include "c_logging/logger.h"
+#include "c_logging/xlogging.h"
 
 #include "c_pal/windows_defines.h"
 #include "c_pal/threadpool.h"
@@ -21,7 +21,7 @@
 #include "c_pal/file_util.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/interlocked_hl.h"
-#include "c_pal/error_handling.h"
+#include "c_pal/error_handling_linux.h"
 
 typedef struct CREATE_FILE_LINUX_TAG
 {
@@ -54,7 +54,7 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
     if((full_file_name == NULL) || (full_file_name[0] == '\0'))
     {
         /*Codes_SRS_FILE_UTIL_LINUX_09_001: [ If the full_file_name input is either empty or NULL, file_util_open_file shall fail and return an INVALID_HANDLE_VALUE. ]*/
-        LogError("Invalid arguments to file_util_open_file: full_file_name = %s, uint32_t access = %p, uint32_t share_mode = %p, LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %p, uint32_t flags_and_attributes = %p, HANDLE template_file = %p",
+        LogError("Invalid arguments to file_util_open_file: full_file_name = %s, uint32_t access = %u, uint32_t share_mode = %u, LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %u, uint32_t flags_and_attributes = %u, HANDLE template_file = %p",
                     full_file_name, access, share_mode, security_attributes, creation_disposition, flags_and_attributes, template_file);
         result = INVALID_HANDLE_VALUE;
     } 
@@ -78,7 +78,7 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
 
             if(threadpool == NULL)
             {
-                LogError("Failure in creating threadpool, full_file_name = %s, uint32_t access = %p, uint32_t share_mode = %p, LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %p, uint32_t flags_and_attributes = %p, HANDLE template_file = %p",
+                LogError("Failure in creating threadpool, full_file_name = %s, uint32_t access = %u, uint32_t share_mode = %u, LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %u, uint32_t flags_and_attributes = %u, HANDLE template_file = %p",
                     full_file_name, access, share_mode, security_attributes, creation_disposition, flags_and_attributes, template_file);
                 result = INVALID_HANDLE_VALUE;
                 threadpool_success = false;
@@ -147,7 +147,7 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
                 if(result->h_file == -1)
                 {
                     /*Codes_SRS_FILE_UTIL_LINUX_09_008: [ If there are any failures, file_util_open_file shall fail and return INVALID_HANDLE_VALUE. ]*/
-                    LogError("Failure in creating a file, full_file_name = %s, uint32_t access = %p, uint32_t share_mode = %p, LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %p, uint32_t flags_and_attributes = %p, HANDLE template_file = %p",
+                    LogError("Failure in creating a file, full_file_name = %s, uint32_t access = %u, uint32_t share_mode = %u, LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %u, uint32_t flags_and_attributes = %u, HANDLE template_file = %p",
                         full_file_name, access, share_mode, security_attributes, creation_disposition, flags_and_attributes, template_file);
                     free(result);
                     result = INVALID_HANDLE_VALUE;
@@ -189,6 +189,11 @@ bool file_util_close_file(HANDLE handle_input)
     }
 
     return result;
+}
+
+PTP_CLEANUP_GROUP file_util_create_threadpool_cleanup_group()
+{
+    return NULL;
 }
 
 static void file_util_work_function(void* context)
@@ -233,7 +238,7 @@ bool file_util_write_file(HANDLE handle_in, LPCVOID buffer, uint32_t number_of_b
     bool success_write;
     if(handle_in == NULL || buffer == NULL || number_of_bytes_to_write == 0)
     {
-        LogError("Invalid inputs to file_util_write_file: HANDLE handle_in = %p, LPCVOID buffer = %p, uint32_t number_of_bytes_to_write = %p",
+        LogError("Invalid inputs to file_util_write_file: HANDLE handle_in = %p, LPCVOID buffer = %p, uint32_t number_of_bytes_to_write = %u",
                     handle_in, buffer, number_of_bytes_to_write);
         success_write = false;
     }
