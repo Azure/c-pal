@@ -23,7 +23,7 @@ extern "C" {
 typedef void *HANDLE;
 typedef void *LPSECURITY_ATTRIBUTES;
 typedef void *LPOVERLAPPED_COMPLETION_ROUTINE;
-typedef void *LPCVOID;
+typedef const char* LPCVOID;
 typedef void *LPVOID;
 typedef void *LPDWORD;
 typedef void *PVOID;
@@ -33,19 +33,24 @@ typedef void *PTP_CALLBACK_ENVIRON;
 typedef void *PTP_IO;
 typedef void *PTP_CALLBACK_INSTANCE;
 typedef void *CALLBACK;
-typedef void *ULONG_PTR;
-typedef void *ULONG;
+typedef long unsigned int ULONG_PTR;
+typedef unsigned int ULONG;
 typedef void *PTP_CLEANUP_GROUP;
 typedef void *PTP_POOL;
 typedef void *PTP_WIN32_IO_CALLBACK;
-typedef void *UCHAR;
+typedef int UCHAR;
 typedef int FILE_INFO_BY_HANDLE_CLASS;
 typedef unsigned short WCHAR;
+typedef void *TP_CALLBACK_ENVIRON;
 
 typedef uint8_t BYTE;
 typedef uint32_t DWORD;
 typedef int32_t LONG;
 typedef int64_t LONGLONG;
+
+// typedef struct TP_CALLBACK_ENVIRON_TAG {
+
+// } TP_CALLBACK_ENVIRON;
 
 typedef struct _FILE_RENAME_INFO {
   union {
@@ -58,17 +63,25 @@ typedef struct _FILE_RENAME_INFO {
   WCHAR   FileName[1];
 } FILE_RENAME_INFO, *PFILE_RENAME_INFO;
 
+// typedef struct _OVERLAPPED {
+//   uint32_t* Internal;
+//   uint32_t* InternalHigh;
+//   union {
+//     struct {
+//       uint32_t Offset;
+//       uint32_t OffsetHigh;
+//     } DUMMYSTRUCTNAME;
+//     PVOID Pointer;
+//   } DUMMYUNIONNAME;
+//   HANDLE    hEvent;
+// } OVERLAPPED, *LPOVERLAPPED;
+
 typedef struct _OVERLAPPED {
-  uint32_t* Internal;
-  uint32_t* InternalHigh;
-  union {
-    struct {
-      uint32_t Offset;
-      uint32_t OffsetHigh;
-    } DUMMYSTRUCTNAME;
-    PVOID Pointer;
-  } DUMMYUNIONNAME;
-  HANDLE    hEvent;
+   DWORD  Internal;     // [out] Error code
+   DWORD  InternalHigh; // [out] Number of bytes transferred
+   DWORD  Offset;       // [in]  Low  32-bit file offset
+   DWORD  OffsetHigh;   // [in]  High 32-bit file offset
+   HANDLE hEvent;       // [in]  Event handle or data
 } OVERLAPPED, *LPOVERLAPPED;
 
 typedef void (*PTP_WIN32_IO_CALLBACK_FUNC)(
@@ -129,6 +142,9 @@ typedef union LARGE_INTEGER_TAG {
 #define FILE_CURRENT                    1
 #define FILE_END                        2
 
+#define MAX_PATH                      FILENAME_MAX
+#define FALSE                         false
+#define TRUE                          true
 #endif //WIN32
 
 #ifdef __cplusplus
@@ -136,3 +152,4 @@ typedef union LARGE_INTEGER_TAG {
 #endif
 
 #endif // WINDOWS_DEFINES_H
+
