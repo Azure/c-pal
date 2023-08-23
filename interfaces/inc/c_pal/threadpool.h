@@ -9,6 +9,12 @@
 #include <stdint.h>
 #endif
 
+#ifdef WIN32
+#include "windows.h"
+#else
+#include "c_pal/windows_defines.h"
+#endif
+
 #include "macro_utils/macro_utils.h"
 
 #include "c_pal/execution_engine.h"
@@ -41,6 +47,8 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_restart, TIMER_INSTANCE_HANDLE, timer,
 MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, TIMER_INSTANCE_HANDLE, timer);
 
 MOCKABLE_FUNCTION(, void, threadpool_timer_destroy, TIMER_INSTANCE_HANDLE, timer);
+
+MOCKABLE_FUNCTION(, PTP_IO, threadpool_create_io, HANDLE, handle_input, PTP_WIN32_IO_CALLBACK, callback_function, void*, pv);
 
 #ifdef __cplusplus
 }

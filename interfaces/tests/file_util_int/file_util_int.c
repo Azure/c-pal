@@ -91,8 +91,8 @@ TEST_FUNCTION(create_and_write_file)
     uint32_t share_mode = FILE_SHARE_READ;
     uint32_t creation_disposition = CREATE_ALWAYS;
     uint32_t flags_and_attributes = FILE_FLAG_OVERLAPPED;
-
-    file_handle = file_util_open_file(full_file_name, desired_access, share_mode, NULL, creation_disposition, flags_and_attributes, NULL);
+    THANDLE(THREADPOOL) tp_in = threadpool_create(NULL);
+    file_handle = file_util_open_file(full_file_name, desired_access, share_mode, NULL, creation_disposition, flags_and_attributes, NULL, tp_in);
     ASSERT_ARE_NOT_EQUAL(uint64_t, file_handle, INVALID_HANDLE_VALUE);
 
     volatile_atomic int32_t write_wait;

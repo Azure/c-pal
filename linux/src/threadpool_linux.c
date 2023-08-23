@@ -32,6 +32,7 @@
 #include "c_pal/sm.h"
 #include "c_pal/thandle.h" // IWYU pragma: keep
 #include "c_pal/thandle_ll.h"
+#include "c_pal/windows_defines.h"
 
 #include "c_pal/threadpool.h"
 
@@ -719,4 +720,12 @@ void threadpool_timer_destroy(TIMER_INSTANCE_HANDLE timer)
         /* Codes_SRS_THREADPOOL_LINUX_07_072: [ threadpool_timer_destroy shall free all resources in timer. ]*/
         free(timer);
     }
+}
+
+PTP_IO threadpool_create_io(HANDLE handle_input, void* callback_function, void* pv)
+{
+    (void)handle_input;
+    (void)callback_function;
+    (void)pv;
+    return NULL;
 }

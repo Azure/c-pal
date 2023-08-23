@@ -5,7 +5,8 @@
 
 #include "c_pal/gballoc_hl.h" // IWYU pragma: keep
 
-#include "c_logging/xlogging.h"
+//#include "c_logging/xlogging.h"
+#include "c_logging/logger.h"
 #include "c_pal/interlocked.h"
 
 #include "c_pal/file_util.h"
@@ -48,7 +49,7 @@ static VOID NTAPI onCloseThreadpoolCleanupGroupMember(
 }
 
 HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t share_mode, LPSECURITY_ATTRIBUTES security_attributes, 
-                    uint32_t creation_disposition, uint32_t flags_and_attributes, HANDLE template_file)
+                    uint32_t creation_disposition, uint32_t flags_and_attributes, HANDLE template_file, THANDLE(THREADPOOL) threadpool)
 {
     FILE_WIN* new_file;
     if(full_file_name == NULL || full_file_name[0] == '\0')
@@ -69,7 +70,8 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
         else
         {
             new_file->file_handle = CreateFileA(full_file_name, access, share_mode, security_attributes, creation_disposition, flags_and_attributes, template_file);
-            new_file->ptpp = CreateThreadpool(NULL);
+            //new_file->ptpp = CreateThreadpool(NULL);
+            THANDLE_INITIALIZE(THREADPOOL)(&new_file->threadpool, threadpool);
             new_file->ptpcg = CreateThreadpoolCleanupGroup();
         }
         return new_file;
@@ -79,6 +81,7 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
 bool file_util_close_file(HANDLE handle_input)
 {
     FILE_WIN* new_file = (FILE_WIN*)handle_input;
+    THANDLE_ASSIGN(THREADPOOL)(&new_file->threadpool, NULL);
     return CloseHandle(new_file->file_handle);
 }
 
@@ -104,14 +107,16 @@ PTP_IO file_util_create_threadpool_io(HANDLE handle_input, PTP_WIN32_IO_CALLBACK
     }
     else
     {
-        FILE_WIN* new_file = (FILE_WIN*)handle_input;
+        // FILE_WIN* new_file = (FILE_WIN*)handle_input;
     
-        InitializeThreadpoolEnvironment(&new_file->cbe);
-        SetThreadpoolCallbackPool(&new_file->cbe, new_file->ptpp);
-        SetThreadpoolCallbackCleanupGroup(&new_file->cbe, new_file->ptpcg, onCloseThreadpoolCleanupGroupMember);
-        new_file->ptpio = CreateThreadpoolIo(new_file->file_handle, callback_function, pv, &new_file->cbe);
-        StartThreadpoolIo(new_file->ptpio);
-        return new_file->ptpio;
+        // InitializeThreadpoolEnvironment(&new_file->cbe);
+        // SetThreadpoolCallbackPool(&new_file->cbe, new_file->ptpp);
+        // SetThreadpoolCallbackCleanupGroup(&new_file->cbe, new_file->ptpcg, onCloseThreadpoolCleanupGroupMember);
+        // new_file->ptpio = CreateThreadpoolIo(new_file->file_handle, callback_function, pv, &new_file->cbe);
+        // StartThreadpoolIo(new_file->ptpio);
+        // return new_file->ptpio;
+
+        return threadpool_create_io(handle_input, callback_function, pv);
     }
 }
 

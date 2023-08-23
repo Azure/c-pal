@@ -46,12 +46,44 @@ typedef struct THREADPOOL_TAG
     volatile LONG pending_api_calls;
 } THREADPOOL;
 
+typedef struct FILE_WIN_TAG
+{
+    HANDLE file_handle;
+    TP_CALLBACK_ENVIRON cbe;
+    PTP_POOL ptpp;
+    THANDLE(THREADPOOL) threadpool;
+    PTP_CLEANUP_GROUP ptpcg;
+    PTP_IO ptpio;
+
+} FILE_WIN;
+
 THANDLE_TYPE_DEFINE(THREADPOOL);
 
 static VOID NTAPI on_io_cancelled(PVOID ObjectContext, PVOID CleanupContext)
 {
     (void)ObjectContext;
     (void)CleanupContext;
+}
+
+static VOID NTAPI onCloseThreadpoolCleanupGroupMember(
+    _Inout_opt_ PVOID ObjectContext, /*what was passed @  CreateThreadpoolIo*/
+    _Inout_opt_ PVOID CleanupContext /*what was passed @  CloseThreadpoolCleanupGroupMembers*/
+)
+{
+    (void)ObjectContext;
+    (void)CleanupContext;
+}
+
+PTP_IO threadpool_create_io(HANDLE handle_input, PTP_WIN32_IO_CALLBACK callback_function, void* pv)
+{
+    FILE_WIN* new_file = (FILE_WIN*)handle_input;
+
+    InitializeThreadpoolEnvironment(&new_file->cbe);
+    SetThreadpoolCallbackPool(&new_file->cbe, new_file->ptpp);
+    SetThreadpoolCallbackCleanupGroup(&new_file->cbe, new_file->ptpcg, onCloseThreadpoolCleanupGroupMember);
+    new_file->ptpio = CreateThreadpoolIo(new_file->file_handle, callback_function, pv, &new_file->cbe);
+    StartThreadpoolIo(new_file->ptpio);
+    return new_file->ptpio;
 }
 
 static VOID CALLBACK on_work_callback(PTP_CALLBACK_INSTANCE instance, PVOID context, PTP_WORK work)
