@@ -26,7 +26,7 @@ typedef struct EXECUTION_ENGINE_PARAMETERS_TAG
 
 typedef struct EXECUTION_ENGINE_TAG* EXECUTION_ENGINE_HANDLE;
 
-MOCKABLE_FUNCTION(, EXECUTION_ENGINE_HANDLE, execution_engine_create, void*, execution_engine_parameters);
+MOCKABLE_FUNCTION(, EXECUTION_ENGINE_HANDLE, execution_engine_create, const EXECUTION_ENGINE_PARAMETERS*, execution_engine_parameters);
 MOCKABLE_FUNCTION(, void, execution_engine_dec_ref, EXECUTION_ENGINE_HANDLE, execution_engine);
 MOCKABLE_FUNCTION(, void, execution_engine_inc_ref, EXECUTION_ENGINE_HANDLE, execution_engine);
 

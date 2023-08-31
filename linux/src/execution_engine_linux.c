@@ -17,7 +17,7 @@ typedef struct EXECUTION_ENGINE_TAG
 
 DEFINE_REFCOUNT_TYPE(EXECUTION_ENGINE);
 
-EXECUTION_ENGINE_HANDLE execution_engine_create(void* execution_engine_parameters)
+EXECUTION_ENGINE_HANDLE execution_engine_create(const EXECUTION_ENGINE_PARAMETERS* execution_engine_parameters)
 {
     EXECUTION_ENGINE_HANDLE result;
 
@@ -40,10 +40,8 @@ EXECUTION_ENGINE_HANDLE execution_engine_create(void* execution_engine_parameter
         {
             /* Codes_SRS_EXECUTION_ENGINE_LINUX_07_003: [ execution_engine_create shall set the minimum number of threads to the min_thread_count field of execution_engine_parameters. ]*/
             /* Codes_SRS_EXECUTION_ENGINE_LINUX_07_004: [ execution_engine_create shall set the maximum number of threads to the max_thread_count field of execution_engine_parameters. ]*/
-            EXECUTION_ENGINE_PARAMETERS* parameters_linux = (EXECUTION_ENGINE_PARAMETERS*)execution_engine_parameters;
-
-            result->params.min_thread_count = parameters_linux->min_thread_count;
-            result->params.max_thread_count = parameters_linux->max_thread_count;
+            result->params.min_thread_count = execution_engine_parameters->min_thread_count;
+            result->params.max_thread_count = execution_engine_parameters->max_thread_count;
         }
 
         if ((result->params.max_thread_count != 0) &&
