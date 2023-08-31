@@ -7,6 +7,7 @@
 #include <cstdint>
 #else
 #include <stdint.h>
+#include <stdbool.h>
 #endif
 
 #ifdef __cplusplus
@@ -42,6 +43,7 @@ typedef int UCHAR;
 typedef int FILE_INFO_BY_HANDLE_CLASS;
 typedef unsigned short WCHAR;
 typedef void *TP_CALLBACK_ENVIRON;
+typedef void* GUID;
 
 typedef uint8_t BYTE;
 typedef uint32_t DWORD;
@@ -145,6 +147,9 @@ typedef union LARGE_INTEGER_TAG {
 #define MAX_PATH                      FILENAME_MAX
 #define FALSE                         false
 #define TRUE                          true
+#define INFINITE            0xFFFFFFFF
+#define STATUS_WAIT_0                           ((DWORD   )0x00000000L)
+#define WAIT_OBJECT_0       ((STATUS_WAIT_0 ) + 0 )
 #endif //WIN32
 
 #ifdef __cplusplus
@@ -152,4 +157,3 @@ typedef union LARGE_INTEGER_TAG {
 #endif
 
 #endif // WINDOWS_DEFINES_H
-
