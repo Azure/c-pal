@@ -5,8 +5,7 @@
 
 #include "c_pal/gballoc_hl.h" // IWYU pragma: keep
 
-//#include "c_logging/xlogging.h"
-#include "c_logging/logger.h"
+#include "c_logging/xlogging.h"
 #include "c_pal/interlocked.h"
 
 #include "c_pal/file_util.h"
@@ -49,7 +48,7 @@ static VOID NTAPI onCloseThreadpoolCleanupGroupMember(
 }
 
 HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t share_mode, LPSECURITY_ATTRIBUTES security_attributes, 
-                    uint32_t creation_disposition, uint32_t flags_and_attributes, HANDLE template_file, THANDLE(THREADPOOL) threadpool)
+                    uint32_t creation_disposition, uint32_t flags_and_attributes, HANDLE template_file)
 {
     FILE_WIN* new_file;
     if(full_file_name == NULL || full_file_name[0] == '\0')
@@ -70,8 +69,13 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
         else
         {
             new_file->file_handle = CreateFileA(full_file_name, access, share_mode, security_attributes, creation_disposition, flags_and_attributes, template_file);
-            //new_file->ptpp = CreateThreadpool(NULL);
-            THANDLE_INITIALIZE(THREADPOOL)(&new_file->threadpool, threadpool);
+            if (new_file->file_handle == INVALID_HANDLE_VALUE)
+            {
+                DWORD last_error = GetLastError();
+                (void)last_error;
+                LogError("unable to create file handle");
+            }
+            new_file->ptpp = CreateThreadpool(NULL);
             new_file->ptpcg = CreateThreadpoolCleanupGroup();
         }
         return new_file;
@@ -81,8 +85,9 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
 bool file_util_close_file(HANDLE handle_input)
 {
     FILE_WIN* new_file = (FILE_WIN*)handle_input;
-    THANDLE_ASSIGN(THREADPOOL)(&new_file->threadpool, NULL);
-    return CloseHandle(new_file->file_handle);
+    bool success = CloseHandle(new_file->file_handle);
+    free(new_file);
+    return success;
 }
 
 bool file_util_write_file(HANDLE handle_input, LPCVOID buffer, uint32_t number_of_bytes_to_write, LPOVERLAPPED overlapped)
@@ -107,16 +112,14 @@ PTP_IO file_util_create_threadpool_io(HANDLE handle_input, PTP_WIN32_IO_CALLBACK
     }
     else
     {
-        // FILE_WIN* new_file = (FILE_WIN*)handle_input;
+        FILE_WIN* new_file = (FILE_WIN*)handle_input;
     
-        // InitializeThreadpoolEnvironment(&new_file->cbe);
-        // SetThreadpoolCallbackPool(&new_file->cbe, new_file->ptpp);
-        // SetThreadpoolCallbackCleanupGroup(&new_file->cbe, new_file->ptpcg, onCloseThreadpoolCleanupGroupMember);
-        // new_file->ptpio = CreateThreadpoolIo(new_file->file_handle, callback_function, pv, &new_file->cbe);
-        // StartThreadpoolIo(new_file->ptpio);
-        // return new_file->ptpio;
-
-        return threadpool_create_io(handle_input, callback_function, pv);
+        InitializeThreadpoolEnvironment(&new_file->cbe);
+        SetThreadpoolCallbackPool(&new_file->cbe, new_file->ptpp);
+        SetThreadpoolCallbackCleanupGroup(&new_file->cbe, new_file->ptpcg, onCloseThreadpoolCleanupGroupMember);
+        new_file->ptpio = CreateThreadpoolIo(new_file->file_handle, callback_function, pv, &new_file->cbe);
+        StartThreadpoolIo(new_file->ptpio);
+        return new_file->ptpio;
     }
 }
 
@@ -127,7 +130,8 @@ PTP_CLEANUP_GROUP file_util_create_threadpool_cleanup_group()
 
 bool file_util_set_file_completion_notification_modes(HANDLE handle_in, UCHAR flags)
 {
-    return SetFileCompletionNotificationModes(handle_in, flags);
+    FILE_WIN* new_file = (FILE_WIN*)handle_in;
+    return SetFileCompletionNotificationModes(new_file->file_handle, flags);
 }
 
 HANDLE file_util_create_event(LPSECURITY_ATTRIBUTES lpEventAttributes, bool bManualReset, bool bInitialState, LPCSTR lpName)
@@ -147,7 +151,8 @@ void file_util_cancel_threadpool_io(PTP_IO pio)
 
 bool file_util_read_file(HANDLE handle_in, LPVOID buffer, DWORD number_of_bytes_to_read, LPDWORD number_of_bytes_read, LPOVERLAPPED overlapped)
 {
-    return ReadFile(handle_in, buffer, number_of_bytes_to_read, number_of_bytes_read, overlapped);
+    FILE_WIN* new_file = (FILE_WIN*)handle_in;
+    return ReadFile(new_file->file_handle, buffer, number_of_bytes_to_read, number_of_bytes_read, overlapped);
 }
 
 bool file_util_set_file_information_by_handle(HANDLE handle_in, FILE_INFO_BY_HANDLE_CLASS file_info_class, LPVOID file_info, DWORD buffer_size)
@@ -172,20 +177,24 @@ void file_util_close_threadpool_io(PTP_IO pio)
 
 bool file_util_get_file_size_ex(HANDLE hfile, PLARGE_INTEGER file_size)
 {
-    return GetFileSizeEx(hfile, file_size);
+    FILE_WIN* new_file = (FILE_WIN*)hfile;
+    return GetFileSizeEx(new_file->file_handle, file_size);
 }
 
 bool file_util_set_file_pointer_ex(HANDLE hFile, LARGE_INTEGER distance_to_move, PLARGE_INTEGER new_file_pointer, DWORD move_method)
 {
-    return SetFilePointerEx(hFile, distance_to_move, new_file_pointer, move_method);
+    FILE_WIN* new_file = (FILE_WIN*)hFile;
+    return SetFilePointerEx(new_file->file_handle, distance_to_move, new_file_pointer, move_method);
 }
 
 bool file_util_set_end_of_file(HANDLE hfile)
 {
-    return SetEndOfFile(hfile);
+    FILE_WIN* new_file = (FILE_WIN*)hfile;
+    return SetEndOfFile(new_file->file_handle);
 }
 
 bool file_util_set_file_valid_data(HANDLE hfile, LONGLONG valid_data_length)
 {
-    return SetFileValidData(hfile, valid_data_length);
+    FILE_WIN* new_file = (FILE_WIN*)hfile;
+    return SetFileValidData(new_file->file_handle, valid_data_length);
 }
