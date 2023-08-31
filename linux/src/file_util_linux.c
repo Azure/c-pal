@@ -6,14 +6,15 @@
 #include <inttypes.h>
 #include <stdbool.h>
 #include <unistd.h>
+ #include <errno.h>
 #include <sys/stat.h>
+#include <assert.h>
 #include "macro_utils/macro_utils.h"
 
 #include "c_pal/gballoc_hl.h" // IWYU pragma: keep
 #include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 
-//#include "c_logging/xlogging.h"
-#include "c_logging/logger.h"
+#include "c_logging/xlogging.h"
 
 #include "c_pal/windows_defines.h"
 #include "c_pal/threadpool.h"
@@ -22,7 +23,7 @@
 #include "c_pal/file_util.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/interlocked_hl.h"
-#include "c_pal/error_handling_linux.h"
+#include "c_pal/error_handling.h"
 
 typedef struct CREATE_FILE_LINUX_TAG
 {
@@ -45,18 +46,18 @@ typedef struct WRITE_FILE_LINUX_TAG
     LPOVERLAPPED_COMPLETION_ROUTINE completion_routine;
     PTP_WIN32_IO_CALLBACK_FUNC callback_func;
     PVOID pv;
-
+    bool write_success;
 } WRITE_FILE_LINUX;
 
-HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t share_mode, LPSECURITY_ATTRIBUTES security_attributes, 
-                    uint32_t creation_disposition, uint32_t flags_and_attributes, HANDLE template_file, THANDLE(THREADPOOL) threadpool)
+HANDLE file_util_open_file(const char* full_file_name, uint32_t d_access, uint32_t share_mode, LPSECURITY_ATTRIBUTES security_attributes, 
+                    uint32_t creation_disposition, uint32_t flags_and_attributes, HANDLE template_file)
 {
     CREATE_FILE_LINUX* result;
     if((full_file_name == NULL) || (full_file_name[0] == '\0'))
     {
         /*Codes_SRS_FILE_UTIL_LINUX_09_001: [ If the full_file_name input is either empty or NULL, file_util_open_file shall fail and return an INVALID_HANDLE_VALUE. ]*/
-        LogError("Invalid arguments to file_util_open_file: full_file_name = %s, uint32_t access = %u, uint32_t share_mode = %u, LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %u, uint32_t flags_and_attributes = %u, HANDLE template_file = %p",
-                    full_file_name, access, share_mode, security_attributes, creation_disposition, flags_and_attributes, template_file);
+        LogError("Invalid arguments to file_util_open_file: full_file_name = %s, uint32_t d_access = %u, uint32_t share_mode = %u, LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %u, uint32_t flags_and_attributes = %u, HANDLE template_file = %p",
+                    full_file_name, d_access, share_mode, security_attributes, creation_disposition, flags_and_attributes, template_file);
         result = INVALID_HANDLE_VALUE;
     } 
     else 
@@ -71,84 +72,96 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
         }
         else
         {
-
-            if(flags_and_attributes & FILE_FLAG_OVERLAPPED)
+            if(access(full_file_name, F_OK) == 0)
             {
-                //EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
-                //THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
-                if(threadpool == NULL)
-                {
-                    LogError("Failure in threadpool, full_file_name = %s, uint32_t access = %u, uint32_t share_mode = %u, LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %u, uint32_t flags_and_attributes = %u, HANDLE template_file = %p",
-                        full_file_name, access, share_mode, security_attributes, creation_disposition, flags_and_attributes, template_file);
-                    result = INVALID_HANDLE_VALUE;
-                    threadpool_success = false;
-                }
-                else
-                {
-                    //threadpool_open(threadpool);
-                    THANDLE_INITIALIZE(THREADPOOL)(&result->threadpool, threadpool);
-                }
+                LogError("File already exists");
+                error_handling_linux_set_last_error(ERROR_FILE_EXISTS);
             }
-            /*Codes_SRS_FILE_UTIL_LINUX_09_002: [ file_util_open_file shall allocate memory for the file handle. ]*/
-            if(threadpool_success == true)
+            else
             {
-                    int user_access;
-                    int result_creation_disposition;
+                if(flags_and_attributes & FILE_FLAG_OVERLAPPED)
+                {
+                    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
+                    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
 
-                    if (access == GENERIC_READ)
+                    if(threadpool == NULL)
                     {
-                        /*Codes_SRS_FILE_UTIL_LINUX_09_004: [ If desired_access is GENERIC_READ, file_util_open_file shall call open with O_RDONLY and shall return a file handle for read only. ]*/
-                        user_access = O_RDONLY;
-                    } 
-                    else if (access == GENERIC_WRITE)
-                    {
-                        /*Codes_SRS_FILE_UTIL_LINUX_09_005: [ If desired_access is GENERIC_WRITE, file_util_open_file shall call open with O_WRONLY and shall return a file handle for write only. ]*/
-                        user_access = O_WRONLY;
-                    } 
-                    else if (access == GENERIC_ALL || access == (GENERIC_READ&GENERIC_WRITE))
-                    {
-                        /*Codes_SRS_FILE_UTIL_LINUX_09_006: [ If desired_access is GENERIC_ALL or GENERIC_READ&GENERIC_WRITE, file_util_open_file shall call open with O_RDWR and shall return a file handle for read and write. ]*/
-                        user_access = O_RDWR;
-                    }
-                    else
-                    {
-                        user_access = 0;
-                    }
-                
-                    if (creation_disposition == CREATE_ALWAYS || creation_disposition == OPEN_ALWAYS)
-                    {
-                        /*Codes_SRS_FILE_UTIL_LINUX_09_014: [ If creation_disposition is CREATE_ALWAYS or OPEN_ALWAYS, file_util_open_file shall call open with O_CREAT and shall either create a new file handle if the specificied pathname exists and return it or return an existing file handle. ]*/
-                        result_creation_disposition = O_CREAT;
-                    }
-                    else if (creation_disposition == CREATE_NEW)
-                    {
-                        /*Codes_SRS_FILE_UTIL_LINUX_09_016: [ If creation_disposition is CREATE_NEW and the file already exists, file_util_open_file shall fail and return INVALID_HANDLE_VALUE. ]*/
-                        /*Codes_SRS_FILE_UTIL_LINUX_09_015: [ If creation_disposition is CREATE_NEW, file_util_open_file shall call open with O_CREAT|O_EXCL and shall return a new file handle if the file doesn't already exist. ]*/
-                        result_creation_disposition = O_CREAT|O_EXCL;
-                    }
-                    else if (creation_disposition == TRUNCATE_EXISTING)
-                    {
-                        /*Codes_SRS_FILE_UTIL_LINUX_09_017: [ If creation_disposition is TRUNCATE_EXISTING, file_util_open_file shall call open with O_TRUNC and shall return a file handle whose size has been truncated to zero bytes. ]*/
-                        result_creation_disposition = O_TRUNC;
-                    }
-                    else
-                    {
-                        result_creation_disposition = 0;
-                    }
-
-                    int flags = user_access|result_creation_disposition;
-
-                    /*Codes_SRS_FILE_UTIL_LINUX_09_020: [ file_util_open_file shall succeed and return a non-NULL value. ]*/
-                    result->h_file = open(full_file_name, flags);
-                    result->full_file_name = full_file_name;
-                    if(result->h_file == -1)
-                    {
-                        /*Codes_SRS_FILE_UTIL_LINUX_09_008: [ If there are any failures, file_util_open_file shall fail and return INVALID_HANDLE_VALUE. ]*/
-                        LogError("Failure in creating a file, full_file_name = %s, uint32_t access = %u, uint32_t share_mode = %u, LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %u, uint32_t flags_and_attributes = %u, HANDLE template_file = %p",
-                            full_file_name, access, share_mode, security_attributes, creation_disposition, flags_and_attributes, template_file);
-                        free(result);
+                        LogError("Failure in creating threadpool, full_file_name = %s, uint32_t d_access = %u, uint32_t share_mode = %u, LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %u, uint32_t flags_and_attributes = %u, HANDLE template_file = %p",
+                            full_file_name, d_access, share_mode, security_attributes, creation_disposition, flags_and_attributes, template_file);
                         result = INVALID_HANDLE_VALUE;
+                        threadpool_success = false;
                     }
+                    else
+                    {
+                        threadpool_open(threadpool);
+                        if(threadpool != NULL)
+                        {
+                            THANDLE_INITIALIZE(THREADPOOL)(&result->threadpool, threadpool);
+                        }
+                    }
+                }
+                /*Codes_SRS_FILE_UTIL_LINUX_09_002: [ file_util_open_file shall allocate memory for the file handle. ]*/
+                if(threadpool_success == true)
+                {
+                        int user_access;
+                        int result_creation_disposition;
+
+                        if (d_access == GENERIC_READ)
+                        {
+                            /*Codes_SRS_FILE_UTIL_LINUX_09_004: [ If desired_access is GENERIC_READ, file_util_open_file shall call open with O_RDONLY and shall return a file handle for read only. ]*/
+                            user_access = O_RDONLY;
+                        } 
+                        else if (d_access == GENERIC_WRITE)
+                        {
+                            /*Codes_SRS_FILE_UTIL_LINUX_09_005: [ If desired_access is GENERIC_WRITE, file_util_open_file shall call open with O_WRONLY and shall return a file handle for write only. ]*/
+                            user_access = O_WRONLY;
+                        } 
+                        else if (d_access == GENERIC_ALL || d_access == (GENERIC_READ&GENERIC_WRITE))
+                        {
+                            /*Codes_SRS_FILE_UTIL_LINUX_09_006: [ If desired_access is GENERIC_ALL or GENERIC_READ&GENERIC_WRITE, file_util_open_file shall call open with O_RDWR and shall return a file handle for read and write. ]*/
+                            user_access = O_RDWR;
+                        }
+                        else
+                        {
+                            user_access = 0;
+                        }
+                    
+                        if (creation_disposition == CREATE_ALWAYS || creation_disposition == OPEN_ALWAYS || creation_disposition == OPEN_EXISTING)
+                        {
+                            /*Codes_SRS_FILE_UTIL_LINUX_09_014: [ If creation_disposition is CREATE_ALWAYS or OPEN_ALWAYS, file_util_open_file shall call open with O_CREAT and shall either create a new file handle if the specificied pathname exists and return it or return an existing file handle. ]*/
+                            result_creation_disposition = O_CREAT;
+                        }
+                        else if (creation_disposition == CREATE_NEW)
+                        {
+                            /*Codes_SRS_FILE_UTIL_LINUX_09_016: [ If creation_disposition is CREATE_NEW and the file already exists, file_util_open_file shall fail and return INVALID_HANDLE_VALUE. ]*/
+                            /*Codes_SRS_FILE_UTIL_LINUX_09_015: [ If creation_disposition is CREATE_NEW, file_util_open_file shall call open with O_CREAT|O_EXCL and shall return a new file handle if the file doesn't already exist. ]*/
+                            result_creation_disposition = O_CREAT|O_EXCL;
+                        }
+                        else if (creation_disposition == TRUNCATE_EXISTING)
+                        {
+                            /*Codes_SRS_FILE_UTIL_LINUX_09_017: [ If creation_disposition is TRUNCATE_EXISTING, file_util_open_file shall call open with O_TRUNC and shall return a file handle whose size has been truncated to zero bytes. ]*/
+                            result_creation_disposition = O_TRUNC;
+                        }
+                        else
+                        {
+                            result_creation_disposition = 0;
+                        }
+
+                        int flags = user_access|result_creation_disposition;
+
+                        /*Codes_SRS_FILE_UTIL_LINUX_09_020: [ file_util_open_file shall succeed and return a non-NULL value. ]*/
+                        result->h_file = open(full_file_name, flags);
+                        result->full_file_name = full_file_name;
+                        if(result->h_file == -1)
+                        {
+                            /*Codes_SRS_FILE_UTIL_LINUX_09_008: [ If there are any failures, file_util_open_file shall fail and return INVALID_HANDLE_VALUE. ]*/
+                            LogError("Failure in creating a file, full_file_name = %s, uint32_t access = %u, uint32_t share_mode = %u, LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %u, uint32_t flags_and_attributes = %u, HANDLE template_file = %p",
+                                full_file_name, d_access, share_mode, security_attributes, creation_disposition, flags_and_attributes, template_file);
+                            LogError("strerror: %s\n", strerror (errno));
+                            free(result);
+                            result = INVALID_HANDLE_VALUE;
+                        }
+                }
             }
         }
         
@@ -182,7 +195,6 @@ bool file_util_close_file(HANDLE handle_input)
             /*Codes_SRS_FILE_UTIL_LINUX_09_018: [ file_util_close_file shall succeed and return true. ]*/
             result = true;
         }
-        THANDLE_ASSIGN(THREADPOOL)(&cfl->threadpool, NULL);
         free(cfl);
     }
 
@@ -192,6 +204,44 @@ bool file_util_close_file(HANDLE handle_input)
 PTP_CLEANUP_GROUP file_util_create_threadpool_cleanup_group()
 {
     return NULL;
+}
+
+bool file_util_work_function_return(void* context)
+{
+    if(context == NULL)
+    {
+        LogError("Invalid inputs to file_util_work_function");
+    }
+    else
+    {
+        WRITE_FILE_LINUX* tp_input = (WRITE_FILE_LINUX*)context;
+        uint64_t Io_Result = NO_ERROR;
+        if(tp_input == NULL)
+        {
+            LogError("Failure in malloc");
+        }
+        else
+        {
+            ssize_t write_success;
+
+            write_success = write(tp_input->handle_input->h_file, tp_input->buffer, tp_input->number_of_bytes_to_write);
+
+            if(write_success == -1)
+            {
+                LogError("Failed to write to file");
+                error_handling_linux_set_last_error(ERROR_WRITE_FAULT);
+                Io_Result = error_handling_linux_get_last_error();
+                return false;
+            }
+            else
+            {
+                tp_input->callback_func(NULL, tp_input->pv, tp_input->overlapped, Io_Result, tp_input->number_of_bytes_to_write, NULL);
+                return true;
+            }
+        }
+        free(tp_input);
+    }
+
 }
 
 static void file_util_work_function(void* context)
@@ -219,13 +269,19 @@ static void file_util_work_function(void* context)
                 LogError("Failed to write to file");
                 error_handling_linux_set_last_error(ERROR_WRITE_FAULT);
                 Io_Result = error_handling_linux_get_last_error();
+                tp_input->write_success = false;
+                assert(write_success != -1);
+                //free(tp_input);
+                //return false;
             }
             else
             {
                 tp_input->callback_func(NULL, tp_input->pv, tp_input->overlapped, Io_Result, tp_input->number_of_bytes_to_write, NULL);
-                free(tp_input);
+                tp_input->write_success = true;
+                //return true;
             }
         }
+        //free(tp_input);
     }
 
 }
@@ -258,17 +314,26 @@ bool file_util_write_file(HANDLE handle_in, LPCVOID buffer, uint32_t number_of_b
             tp_input->overlapped = overlapped;
             tp_input->callback_func = handle_input->callback_func;
             tp_input->pv = handle_input->pv;
+            //tp_input->write_success = false;
             if(overlapped == NULL)
             {
-                file_util_work_function(tp_input);
-                success_write = true;
+                success_write = file_util_work_function_return(tp_input);
             }
             else
             {
-                threadpool_schedule_work(handle_input->threadpool, file_util_work_function, tp_input);
-                success_write = true;
+                int tp_success = threadpool_schedule_work(handle_input->threadpool, file_util_work_function, tp_input);
+                //success_write = tp_input->write_success;
+                if(tp_success == 0)
+                {
+                    success_write = true;
+                }
+                else
+                {
+                    success_write = false;
+                }
             }
         }
+        free(tp_input);
     }
     return success_write;
 }
@@ -314,7 +379,7 @@ PTP_IO file_util_create_threadpool_io(HANDLE handle_in, PTP_WIN32_IO_CALLBACK pf
     }
 }
 
-bool file_util_set_file_completion_notifcation_modes(HANDLE handle_input, UCHAR flags)
+bool file_util_set_file_completion_notification_modes(HANDLE handle_input, UCHAR flags)
 {
     CREATE_FILE_LINUX* file_handle = (CREATE_FILE_LINUX*)handle_input;
     file_handle->flags = flags;
@@ -324,7 +389,15 @@ bool file_util_set_file_completion_notifcation_modes(HANDLE handle_input, UCHAR 
 
 HANDLE file_util_create_event(LPSECURITY_ATTRIBUTES lpEventAttributes, bool bManualReset, bool bInitialState, LPCSTR lpName)
 {
-    return NULL;
+    (void)lpEventAttributes;
+    (void)bManualReset;
+    (void)bInitialState;
+    const char* full_file_name = "";
+    uint32_t desired_access = GENERIC_ALL;
+    uint32_t share_mode = FILE_SHARE_READ;
+    uint32_t creation_disposition = CREATE_ALWAYS;
+    uint32_t flags_and_attributes = FILE_FLAG_OVERLAPPED;
+    return file_util_open_file(full_file_name, desired_access, share_mode, NULL, creation_disposition, flags_and_attributes, NULL);
 }
 
 bool file_util_query_performance_counter(LARGE_INTEGER* performance_count)
@@ -418,10 +491,10 @@ bool file_util_get_file_size_ex(HANDLE hfile, PLARGE_INTEGER file_size)
 
 bool file_util_set_file_pointer_ex(HANDLE hFile, LARGE_INTEGER distance_to_move, PLARGE_INTEGER new_file_pointer, DWORD move_method)
 {
-    //CREATE_FILE_LINUX* handle_input = (CREATE_FILE_LINUX*)hFile;
-    //char* mode = "r";
-    // FILE* temp_file = fopen(handle_input->full_file_name, mode);
-    FILE* temp_file = (FILE*)hFile;
+    CREATE_FILE_LINUX* handle_input = (CREATE_FILE_LINUX*)hFile;
+    char* mode = "w+";
+     FILE* temp_file = fdopen(handle_input->h_file, mode);
+    //FILE* temp_file = (FILE*)hFile;
     int whence;
     if(move_method == FILE_BEGIN)
     {
@@ -450,8 +523,9 @@ bool file_util_set_file_pointer_ex(HANDLE hFile, LARGE_INTEGER distance_to_move,
 
 bool file_util_set_end_of_file(HANDLE hfile)
 {
-    //CREATE_FILE_LINUX* handle_input = (CREATE_FILE_LINUX*)hfile;
-    FILE* temp_file = (FILE*)hfile;
+    CREATE_FILE_LINUX* handle_input = (CREATE_FILE_LINUX*)hfile;
+    char* mode = "w+";
+    FILE* temp_file = fdopen(handle_input->h_file, mode);
     int file_pointer_pos = ftell(temp_file);
     if(file_pointer_pos == -1)
     {
@@ -460,11 +534,13 @@ bool file_util_set_end_of_file(HANDLE hfile)
     }
     else
     {
-        CREATE_FILE_LINUX* handle_input = (CREATE_FILE_LINUX*)temp_file;
+        //CREATE_FILE_LINUX* handle_input = (CREATE_FILE_LINUX*)temp_file;
         int success = truncate(handle_input->full_file_name, file_pointer_pos);
         if(success == -1)
         {
             LogError("Unable to set end of file");
+            //strerror(errno)
+            LogError("strerror: %s\n", strerror (errno));
             return false;
         }
         else
