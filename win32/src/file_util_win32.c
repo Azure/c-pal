@@ -76,6 +76,9 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
                 LogError("unable to create file handle");
             }
             new_file->ptpp = CreateThreadpool(NULL);
+            //EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
+            //THANDLE(THREADPOOL) temp = threadpool_create(execution_engine);
+            //THANDLE_INITIALIZE_MOVE(THREADPOOL)(&new_file->threadpool, &temp);
             new_file->ptpcg = CreateThreadpoolCleanupGroup();
         }
         return new_file;
