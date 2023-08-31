@@ -16,10 +16,10 @@ typedef struct EXECUTION_ENGINE_TAG
 
 DEFINE_REFCOUNT_TYPE(EXECUTION_ENGINE);
 
-EXECUTION_ENGINE_HANDLE execution_engine_create(void* execution_engine_parameters)
+EXECUTION_ENGINE_HANDLE execution_engine_create(const EXECUTION_ENGINE_PARAMETERS* execution_engine_parameters)
 {
     EXECUTION_ENGINE_HANDLE result;
-    EXECUTION_ENGINE_PARAMETERS_WIN32 parameters_to_use;
+    EXECUTION_ENGINE_PARAMETERS parameters_to_use;
 
     if (execution_engine_parameters == NULL)
     {
@@ -30,10 +30,8 @@ EXECUTION_ENGINE_HANDLE execution_engine_create(void* execution_engine_parameter
     else
     {
         /* Codes_SRS_EXECUTION_ENGINE_WIN32_01_002: [ execution_engine_parameters shall be interpreted as EXECUTION_ENGINE_PARAMETERS_WIN32. ]*/
-        EXECUTION_ENGINE_PARAMETERS_WIN32* execution_engine_parameters_win32 = (EXECUTION_ENGINE_PARAMETERS_WIN32*)execution_engine_parameters;
-
-        parameters_to_use.min_thread_count = execution_engine_parameters_win32->min_thread_count;
-        parameters_to_use.max_thread_count = execution_engine_parameters_win32->max_thread_count;
+        parameters_to_use.min_thread_count = execution_engine_parameters->min_thread_count;
+        parameters_to_use.max_thread_count = execution_engine_parameters->max_thread_count;
     }
 
     PTP_POOL ptp_pool;
@@ -72,8 +70,6 @@ EXECUTION_ENGINE_HANDLE execution_engine_create(void* execution_engine_parameter
                     /* Codes_SRS_EXECUTION_ENGINE_WIN32_01_005: [ execution_engine_create shall set the maximum number of threads to the max_thread_count field of execution_engine_parameters. ]*/
                     SetThreadpoolThreadMaximum(ptp_pool, parameters_to_use.max_thread_count);
                 }
-
-
 
                 /* Codes_SRS_EXECUTION_ENGINE_WIN32_01_001: [ execution_engine_create shall allocate a new execution engine and on success shall return a non-NULL handle. ]*/
                 result = REFCOUNT_TYPE_CREATE(EXECUTION_ENGINE);

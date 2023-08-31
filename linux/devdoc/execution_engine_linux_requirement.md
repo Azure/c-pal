@@ -14,11 +14,11 @@
 `execution_engine_linux` implements the `execution_engine` API and additionally exposes the following API:
 
 ```c
-    typedef struct EXECUTION_ENGINE_PARAMETERS_LINUX_TAG
+    typedef struct EXECUTION_ENGINE_PARAMETERS_TAG
     {
         uint32_t min_thread_count;
         uint32_t max_thread_count;
-    } EXECUTION_ENGINE_PARAMETERS_LINUX;
+    } EXECUTION_ENGINE_PARAMETERS;
 
 #define DEFAULT_MIN_THREAD_COUNT 4
 #define DEFAULT_MAX_THREAD_COUNT 0 // no max thread count
@@ -26,7 +26,7 @@
 MOCKABLE_FUNCTION(, EXECUTION_ENGINE_HANDLE, execution_engine_create, void*, execution_engine_parameters);
 MOCKABLE_FUNCTION(, void, execution_engine_dec_ref, EXECUTION_ENGINE_HANDLE, execution_engine);
 MOCKABLE_FUNCTION(, void, execution_engine_inc_ref, EXECUTION_ENGINE_HANDLE, execution_engine);
-MOCKABLE_FUNCTION(, const EXECUTION_ENGINE_PARAMETERS_LINUX*, execution_engine_linux_get_parameters, EXECUTION_ENGINE_HANDLE, execution_engine);
+MOCKABLE_FUNCTION(, const EXECUTION_ENGINE_PARAMETERS*, execution_engine_linux_get_parameters, EXECUTION_ENGINE_HANDLE, execution_engine);
 ```
 
 ### execution_engine_create
@@ -79,10 +79,10 @@ MOCKABLE_FUNCTION(, void, execution_engine_inc_ref, EXECUTION_ENGINE_HANDLE, exe
 ### execution_engine_linux_get_parameters
 
 ```c
-MOCKABLE_FUNCTION(, const EXECUTION_ENGINE_PARAMETERS_LINUX*, execution_engine_linux_get_parameters, EXECUTION_ENGINE_HANDLE, execution_engine);
+MOCKABLE_FUNCTION(, const EXECUTION_ENGINE_PARAMETERS*, execution_engine_linux_get_parameters, EXECUTION_ENGINE_HANDLE, execution_engine);
 ```
 
-`execution_engine_linux_get_parameters` returns the `EXECUTION_ENGINE_PARAMETERS_LINUX` handle.
+`execution_engine_linux_get_parameters` returns the `EXECUTION_ENGINE_PARAMETERS` handle.
 
 **SRS_EXECUTION_ENGINE_LINUX_07_012: [** If `execution_engine` is `NULL`, `execution_engine_linux_get_parameters` shall fail and return `NULL`. **]**
 

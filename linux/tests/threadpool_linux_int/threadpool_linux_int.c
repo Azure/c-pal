@@ -23,7 +23,6 @@
 #include "c_pal/sync.h"
 #include "c_pal/interlocked_hl.h"
 #include "c_pal/execution_engine.h"
-#include "c_pal/execution_engine_linux.h"
 #include "c_pal/thandle.h" // IWYU pragma: keep
 #include "c_pal/thandle_ll.h"
 
@@ -211,7 +210,6 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
 TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
 {
     // assert
-    //EXECUTION_ENGINE_PARAMETERS_LINUX params = {0};
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
     uint32_t num_threads = N_WORK_ITEMS;
     volatile_atomic int32_t thread_counter = 0;
@@ -312,7 +310,7 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
 {
     // assert
     // create an execution engine
-    EXECUTION_ENGINE_PARAMETERS_LINUX params;
+    EXECUTION_ENGINE_PARAMETERS params;
     params.min_thread_count = 1;
     params.max_thread_count = 16;
 

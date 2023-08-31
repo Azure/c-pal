@@ -113,7 +113,7 @@ TEST_FUNCTION(execution_engine_create_with_NULL_arguments_uses_Defaults)
 }
 
 /* Tests_SRS_EXECUTION_ENGINE_WIN32_01_001: [ execution_engine_create shall allocate a new execution engine and on success shall return a non-NULL handle. ]*/
-/* Tests_SRS_EXECUTION_ENGINE_WIN32_01_002: [ execution_engine_parameters shall be interpreted as EXECUTION_ENGINE_PARAMETERS_WIN32. ]*/
+/* Tests_SRS_EXECUTION_ENGINE_WIN32_01_002: [ execution_engine_parameters shall be interpreted as EXECUTION_ENGINE_PARAMETERS. ]*/
 /* Tests_SRS_EXECUTION_ENGINE_WIN32_01_003: [ execution_engine_create shall call CreateThreadpool to create the Win32 threadpool. ]*/
 /* Tests_SRS_EXECUTION_ENGINE_WIN32_01_004: [ execution_engine_create shall set the minimum number of threads to the min_thread_count field of execution_engine_parameters. ]*/
 /* Tests_SRS_EXECUTION_ENGINE_WIN32_01_012: [ If max_thread_count is 0, execution_engine_create shall not set the maximum thread count. ]*/
@@ -121,7 +121,7 @@ TEST_FUNCTION(execution_engine_create_succeeds)
 {
     // arrange
     EXECUTION_ENGINE_HANDLE execution_engine;
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_params_win32 = { 1, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_params_win32 = { 1, 0 };
     PTP_POOL ptp_pool;
 
     STRICT_EXPECTED_CALL(mocked_CreateThreadpool(NULL))
@@ -146,7 +146,7 @@ TEST_FUNCTION(execution_engine_create_with_max_thread_count_succeeds)
 {
     // arrange
     EXECUTION_ENGINE_HANDLE execution_engine;
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_params_win32 = { 2, 42 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_params_win32 = { 2, 42 };
     PTP_POOL ptp_pool;
 
     STRICT_EXPECTED_CALL(mocked_CreateThreadpool(NULL))
@@ -173,7 +173,7 @@ TEST_FUNCTION(execution_engine_create_with_max_thread_count_less_than_min_thread
 {
     // arrange
     EXECUTION_ENGINE_HANDLE execution_engine;
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_params_win32 = { 2, 1 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_params_win32 = { 2, 1 };
 
     // act
     execution_engine = execution_engine_create(&execution_engine_params_win32);
@@ -188,7 +188,7 @@ TEST_FUNCTION(when_underlying_calls_fail_execution_engine_create_fails)
 {
     // arrange
     EXECUTION_ENGINE_HANDLE execution_engine;
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_params_win32 = { 2, 42 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_params_win32 = { 2, 42 };
     size_t i;
 
     STRICT_EXPECTED_CALL(mocked_CreateThreadpool(NULL))
@@ -267,7 +267,7 @@ TEST_FUNCTION(execution_engine_dec_ref_frees_resources)
 {
     // arrange
     EXECUTION_ENGINE_HANDLE execution_engine;
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_params_win32 = { 1, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_params_win32 = { 1, 0 };
     PTP_POOL ptp_pool;
 
     STRICT_EXPECTED_CALL(mocked_CreateThreadpool(NULL))
@@ -290,7 +290,7 @@ TEST_FUNCTION(execution_engine_dec_ref_decrements_ref_count)
 {
     // arrange
     EXECUTION_ENGINE_HANDLE execution_engine;
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_params_win32 = { 1, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_params_win32 = { 1, 0 };
     PTP_POOL ptp_pool;
 
     STRICT_EXPECTED_CALL(mocked_CreateThreadpool(NULL))
@@ -331,7 +331,7 @@ TEST_FUNCTION(execution_engine_win32_get_threadpool_returns_the_underlying_PTP_P
 {
     // arrange
     EXECUTION_ENGINE_HANDLE execution_engine;
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_params_win32 = { 1, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_params_win32 = { 1, 0 };
     PTP_POOL ptp_pool;
     PTP_POOL result;
 

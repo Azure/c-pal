@@ -34,7 +34,7 @@
 #define MIN_THREAD_COUNT 5
 #define MAX_THREAD_COUNT 10
 
-EXECUTION_ENGINE_PARAMETERS_LINUX test_execution_engine_parameter = {MIN_THREAD_COUNT, MAX_THREAD_COUNT};
+EXECUTION_ENGINE_PARAMETERS test_execution_engine_parameter = {MIN_THREAD_COUNT, MAX_THREAD_COUNT};
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
@@ -93,7 +93,7 @@ TEST_FUNCTION(execution_engine_create_with_NULL_execution_engine_succeeds)
     execution_engine = execution_engine_create(NULL);
 
     // assert
-    const EXECUTION_ENGINE_PARAMETERS_LINUX* result = execution_engine_linux_get_parameters(execution_engine);
+    const EXECUTION_ENGINE_PARAMETERS* result = execution_engine_linux_get_parameters(execution_engine);
     ASSERT_ARE_EQUAL(uint32_t, DEFAULT_MIN_THREAD_COUNT, result->min_thread_count);
     ASSERT_ARE_EQUAL(uint32_t, DEFAULT_MAX_THREAD_COUNT, result->max_thread_count);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -118,7 +118,7 @@ TEST_FUNCTION(execution_engine_create_succeeds)
     execution_engine = execution_engine_create(&test_execution_engine_parameter);
 
     // assert
-    const EXECUTION_ENGINE_PARAMETERS_LINUX* result = execution_engine_linux_get_parameters(execution_engine);
+    const EXECUTION_ENGINE_PARAMETERS* result = execution_engine_linux_get_parameters(execution_engine);
     ASSERT_ARE_EQUAL(uint32_t, MIN_THREAD_COUNT, result->min_thread_count);
     ASSERT_ARE_EQUAL(uint32_t, MAX_THREAD_COUNT, result->max_thread_count);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -134,7 +134,7 @@ TEST_FUNCTION(execution_engine_create_fails_when_max_thread_count_nonzero_and_le
 {
     // arrange
     EXECUTION_ENGINE_HANDLE execution_engine;
-    EXECUTION_ENGINE_PARAMETERS_LINUX test_execution_engine_parameter = {5, 3};
+    EXECUTION_ENGINE_PARAMETERS test_execution_engine_parameter = {5, 3};
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
@@ -153,7 +153,7 @@ TEST_FUNCTION(execution_engine_create_fails_when_allocation_fails)
 {
     // arrange
     EXECUTION_ENGINE_HANDLE execution_engine;
-    EXECUTION_ENGINE_PARAMETERS_LINUX test_execution_engine_parameter = {5, 3};
+    EXECUTION_ENGINE_PARAMETERS test_execution_engine_parameter = {5, 3};
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG)).SetReturn(NULL);
 
@@ -253,13 +253,13 @@ TEST_FUNCTION(execution_engine_inc_ref_succeeds)
     execution_engine_dec_ref(execution_engine);
 }
 
-/* execution_engine_linux_get_parameters */
+/* execution_engine_get_parameters */
 
-/* Tests_SRS_EXECUTION_ENGINE_LINUX_07_012: [ If execution_engine is NULL, execution_engine_linux_get_parameters shall fail and return NULL. ]*/
-TEST_FUNCTION(execution_engine_linux_get_parameters_with_NULL_execution_engine_fails)
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_07_012: [ If execution_engine is NULL, execution_engine_get_parameters shall fail and return NULL. ]*/
+TEST_FUNCTION(execution_engine_get_parameters_with_NULL_execution_engine_fails)
 {
     // arrange
-    const EXECUTION_ENGINE_PARAMETERS_LINUX* result;
+    const EXECUTION_ENGINE_PARAMETERS* result;
 
     // act
     result = execution_engine_linux_get_parameters(NULL);
@@ -269,11 +269,11 @@ TEST_FUNCTION(execution_engine_linux_get_parameters_with_NULL_execution_engine_f
     ASSERT_IS_NULL(result);
 }
 
-/* Tests_SRS_EXECUTION_ENGINE_LINUX_07_013: [ Otherwise, execution_engine_linux_get_parameters shall return the parameters in EXECUTION_ENGINE. ]*/
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_07_013: [ Otherwise, execution_engine_get_parameters shall return the parameters in EXECUTION_ENGINE. ]*/
 TEST_FUNCTION(execution_engine_linux_get_parameters_succeeds)
 {
     // arrange
-    const EXECUTION_ENGINE_PARAMETERS_LINUX* result;
+    const EXECUTION_ENGINE_PARAMETERS* result;
     EXECUTION_ENGINE_HANDLE execution_engine;
     execution_engine = execution_engine_create(&test_execution_engine_parameter);
     umock_c_reset_all_calls();
