@@ -22,7 +22,7 @@
 extern "C" {
 #endif
 
-    const EXECUTION_ENGINE_PARAMETERS_LINUX* real_execution_engine_linux_get_parameters(EXECUTION_ENGINE_HANDLE execution_engine);
+    const EXECUTION_ENGINE_PARAMETERS* real_execution_engine_linux_get_parameters(EXECUTION_ENGINE_HANDLE execution_engine);
 
 #ifdef __cplusplus
 }

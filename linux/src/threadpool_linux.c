@@ -332,7 +332,7 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
             else
             {
                 /* Codes_SRS_THREADPOOL_LINUX_07_004: [ threadpool_create shall get the min_thread_count and max_thread_count thread parameters from the execution_engine. ]*/
-                const EXECUTION_ENGINE_PARAMETERS_LINUX* param = execution_engine_linux_get_parameters(execution_engine);
+                const EXECUTION_ENGINE_PARAMETERS* param = execution_engine_linux_get_parameters(execution_engine);
 
                 result->min_thread_count = param->min_thread_count;
                 result->max_thread_count = param->max_thread_count;

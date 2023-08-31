@@ -14,11 +14,11 @@
 `execution_engine_win32` implements the `execution_engine` API and additionally exposes the following API:
 
 ```c
-    typedef struct EXECUTION_ENGINE_PARAMETERS_WIN32_TAG
+    typedef struct EXECUTION_ENGINE_PARAMETERS_TAG
     {
         uint32_t min_thread_count;
         uint32_t max_thread_count;
-    } EXECUTION_ENGINE_PARAMETERS_WIN32;
+    } EXECUTION_ENGINE_PARAMETERS;
 
 #define DEFAULT_MIN_THREAD_COUNT 4
 #define DEFAULT_MAX_THREAD_COUNT 0 // no max thread count
@@ -41,7 +41,7 @@ MOCKABLE_FUNCTION(, EXECUTION_ENGINE_HANDLE, execution_engine_create, void*, exe
 
 **SRS_EXECUTION_ENGINE_WIN32_01_011: [** If `execution_engine_parameters` is NULL, `execution_engine_create` shall use the defaults `DEFAULT_MIN_THREAD_COUNT` and `DEFAULT_MAX_THREAD_COUNT` as parameters. **]**
 
-**SRS_EXECUTION_ENGINE_WIN32_01_002: [** `execution_engine_parameters` shall be interpreted as `EXECUTION_ENGINE_PARAMETERS_WIN32`. **]**
+**SRS_EXECUTION_ENGINE_WIN32_01_002: [** `execution_engine_parameters` shall be interpreted as `EXECUTION_ENGINE_PARAMETERS`. **]**
 
 **SRS_EXECUTION_ENGINE_WIN32_01_003: [** `execution_engine_create` shall call `CreateThreadpool` to create the Win32 threadpool. **]**
 

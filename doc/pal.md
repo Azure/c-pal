@@ -37,11 +37,11 @@ When an execution engine is created is receives a `void*` argument which contain
 For example for Windows it is desired to specify the min and max number of threads for the PTP_POOL being created. Thus for Windows a platform specific argument structure is used:
 
 ```c
-    typedef struct EXECUTION_ENGINE_PARAMETERS_WIN32_TAG
+    typedef struct EXECUTION_ENGINE_PARAMETERS_TAG
     {
         uint32_t min_thread_count;
         uint32_t max_thread_count;
-    } EXECUTION_ENGINE_PARAMETERS_WIN32;
+    } EXECUTION_ENGINE_PARAMETERS;
 ```
 
 ### Threadpool API

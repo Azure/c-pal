@@ -7,13 +7,12 @@
 
 #include "c_logging/logger.h"
 
-#include "c_pal/execution_engine_linux.h"
 #include "c_pal/refcount.h"
 #include "c_pal/execution_engine.h"
 
 typedef struct EXECUTION_ENGINE_TAG
 {
-    EXECUTION_ENGINE_PARAMETERS_LINUX params;
+    EXECUTION_ENGINE_PARAMETERS params;
 }EXECUTION_ENGINE;
 
 DEFINE_REFCOUNT_TYPE(EXECUTION_ENGINE);
@@ -41,7 +40,7 @@ EXECUTION_ENGINE_HANDLE execution_engine_create(void* execution_engine_parameter
         {
             /* Codes_SRS_EXECUTION_ENGINE_LINUX_07_003: [ execution_engine_create shall set the minimum number of threads to the min_thread_count field of execution_engine_parameters. ]*/
             /* Codes_SRS_EXECUTION_ENGINE_LINUX_07_004: [ execution_engine_create shall set the maximum number of threads to the max_thread_count field of execution_engine_parameters. ]*/
-            EXECUTION_ENGINE_PARAMETERS_LINUX* parameters_linux = (EXECUTION_ENGINE_PARAMETERS_LINUX*)execution_engine_parameters;
+            EXECUTION_ENGINE_PARAMETERS* parameters_linux = (EXECUTION_ENGINE_PARAMETERS*)execution_engine_parameters;
 
             result->params.min_thread_count = parameters_linux->min_thread_count;
             result->params.max_thread_count = parameters_linux->max_thread_count;
@@ -51,7 +50,7 @@ EXECUTION_ENGINE_HANDLE execution_engine_create(void* execution_engine_parameter
             (result->params.max_thread_count < result->params.min_thread_count))
         {
             /* Codes_SRS_EXECUTION_ENGINE_LINUX_07_005: [ If max_thread_count is non-zero and less than min_thread_count, execution_engine_create shall fail and return NULL. ]*/
-            LogError("Invalid arguments: execution_engine_parameters_win32->min_thread_count=%" PRIu32 ", execution_engine_parameters_win32->max_thread_count=%" PRIu32,
+            LogError("Invalid arguments: execution_engine_parameters->min_thread_count=%" PRIu32 ", execution_engine_parameters->max_thread_count=%" PRIu32,
                 result->params.min_thread_count, result->params.max_thread_count);
         }
         else
@@ -100,9 +99,9 @@ void execution_engine_inc_ref(EXECUTION_ENGINE_HANDLE execution_engine)
     }
 }
 
-const EXECUTION_ENGINE_PARAMETERS_LINUX* execution_engine_linux_get_parameters(EXECUTION_ENGINE_HANDLE execution_engine)
+const EXECUTION_ENGINE_PARAMETERS* execution_engine_linux_get_parameters(EXECUTION_ENGINE_HANDLE execution_engine)
 {
-    EXECUTION_ENGINE_PARAMETERS_LINUX* result;
+    EXECUTION_ENGINE_PARAMETERS* result;
 
     if (execution_engine == NULL)
     {

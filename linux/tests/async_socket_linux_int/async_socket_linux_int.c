@@ -16,7 +16,6 @@
 
 #include "c_pal/async_socket.h"
 #include "c_pal/execution_engine.h"
-#include "c_pal/execution_engine_linux.h"
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/interlocked.h"
 #include "c_pal/sync.h"
@@ -210,7 +209,7 @@ TEST_FUNCTION(connect_no_send_succeeds)
 {
     // assert
     // create an execution engine
-    EXECUTION_ENGINE_PARAMETERS_LINUX execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -251,7 +250,7 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
 {
     // assert
     // create an execution engine
-    EXECUTION_ENGINE_PARAMETERS_LINUX execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -309,7 +308,7 @@ TEST_FUNCTION(receive_and_send_2_buffers_succeeds)
 {
     // assert
     // create an execution engine
-    EXECUTION_ENGINE_PARAMETERS_LINUX execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -372,7 +371,7 @@ TEST_FUNCTION(when_server_socket_is_closed_receive_errors_on_client_side)
 {
     // assert
     // create an execution engine
-    EXECUTION_ENGINE_PARAMETERS_LINUX execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -417,7 +416,7 @@ TEST_FUNCTION(multiple_sends_and_receives_succeeds)
 {
     // assert
     // create an execution engine
-    EXECUTION_ENGINE_PARAMETERS_LINUX execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -483,7 +482,7 @@ TEST_FUNCTION(multiple_sends_and_receives_succeeds)
 TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _sockets_items))
 {
     // create an execution engine
-    EXECUTION_ENGINE_PARAMETERS_LINUX execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 

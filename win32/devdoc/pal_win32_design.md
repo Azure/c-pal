@@ -12,11 +12,11 @@ When the execution object is create the PTP_POOL is created and the min/max numb
 The min/max number of threads are given to create as a pointer to the below structure:
 
 ```c
-    typedef struct EXECUTION_ENGINE_PARAMETERS_WIN32_TAG
+    typedef struct EXECUTION_ENGINE_PARAMETERS_TAG
     {
         uint32_t min_thread_count;
         uint32_t max_thread_count;
-    } EXECUTION_ENGINE_PARAMETERS_WIN32;
+    } EXECUTION_ENGINE_PARAMETERS;
 ```
 
 ### Threadpool API
