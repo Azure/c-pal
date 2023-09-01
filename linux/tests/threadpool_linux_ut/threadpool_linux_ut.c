@@ -52,7 +52,7 @@ struct itimerspec;
 struct sigevent;
 struct timespec;
 
-static EXECUTION_ENGINE_PARAMETERS_LINUX execution_engine = {MIN_THREAD_COUNT, MAX_THREAD_COUNT};
+static EXECUTION_ENGINE_PARAMETERS execution_engine = {MIN_THREAD_COUNT, MAX_THREAD_COUNT};
 static SRW_LOCK_HANDLE test_srw_lock = (SRW_LOCK_HANDLE)0x4242;
 static EXECUTION_ENGINE_HANDLE test_execution_engine = (EXECUTION_ENGINE_HANDLE)0x4243;
 static THREAD_HANDLE test_thread_handle = (THREAD_HANDLE)0x4200;

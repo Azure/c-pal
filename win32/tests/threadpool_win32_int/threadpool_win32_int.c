@@ -151,7 +151,7 @@ TEST_FUNCTION(one_work_item_schedule_works)
     // assert
     // create an execution engine
     volatile LONG call_count;
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -183,7 +183,7 @@ TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work)
     // arrange
     // create an execution engine
     volatile LONG call_count;
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -220,7 +220,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_works))
     // create an execution engine
     volatile LONG call_count;
     size_t i;
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -255,7 +255,7 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
     // assert
     // create an execution engine
     volatile LONG call_count;
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -319,7 +319,7 @@ TEST_FUNCTION(restart_timer_works_runs_once)
     // assert
     // create an execution engine
     volatile LONG call_count;
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -386,7 +386,7 @@ TEST_FUNCTION(one_start_timer_works_runs_periodically)
     // assert
     // create an execution engine
     volatile LONG call_count;
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -422,7 +422,7 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
     // assert
     // create an execution engine
     volatile LONG call_count;
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -468,7 +468,7 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
     // assert
     // create an execution engine
     WAIT_WORK_CONTEXT wait_work_context;
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -513,7 +513,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
     // assert
     // create an execution engine
     WAIT_WORK_CONTEXT wait_work_context;
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -561,7 +561,7 @@ TEST_FUNCTION(MU_C3(starting_, N_TIMERS, _timer_start_runs_once))
     // assert
     // create an execution engine
     volatile uint32_t call_count;
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -604,7 +604,7 @@ TEST_FUNCTION(MU_C3(starting_, N_TIMERS, _start_timers_work_and_run_periodically
     // assert
     // create an execution engine
     volatile LONG call_count;
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -651,7 +651,7 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items)
     // assert
     // create an execution engine
     WAIT_WORK_CONTEXT wait_work_context;
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 1, 1 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 1, 1 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -694,7 +694,7 @@ TEST_FUNCTION(close_while_closing_still_executes_the_items)
     // create an execution engine
     WAIT_WORK_CONTEXT wait_work_context;
     // force one thread
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 1, 1 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 1, 1 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -743,7 +743,7 @@ TEST_FUNCTION(open_while_closing_fails)
     // create an execution engine
     WAIT_WORK_CONTEXT wait_work_context;
     // force one thread
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 1, 1 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 1, 1 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -988,7 +988,7 @@ static DWORD WINAPI chaos_thread_with_timers_func(LPVOID lpThreadParameter)
 TEST_FUNCTION(chaos_knight_test)
 {
     // start a number of threads and each of them will do a random action on the threadpool
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     HANDLE thread_handles[CHAOS_THREAD_COUNT];
     size_t i;
@@ -1044,7 +1044,7 @@ TEST_FUNCTION(chaos_knight_test)
 TEST_FUNCTION(chaos_knight_test_with_timers)
 {
     // start a number of threads and each of them will do a random action on the threadpool
-    EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     HANDLE thread_handles[CHAOS_THREAD_COUNT];
     size_t i;
