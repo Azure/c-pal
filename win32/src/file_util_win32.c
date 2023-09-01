@@ -5,7 +5,7 @@
 
 #include "c_pal/gballoc_hl.h" // IWYU pragma: keep
 
-#include "c_logging/xlogging.h"
+#include "c_logging/logger.h"
 #include "c_pal/interlocked.h"
 
 #include "c_pal/file_util.h"
