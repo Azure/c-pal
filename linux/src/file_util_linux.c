@@ -14,7 +14,7 @@
 #include "c_pal/gballoc_hl.h" // IWYU pragma: keep
 #include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 
-#include "c_logging/xlogging.h"
+#include "c_logging/logger.h"
 
 #include "c_pal/windows_defines.h"
 #include "c_pal/threadpool.h"
@@ -211,6 +211,7 @@ bool file_util_work_function_return(void* context)
     if(context == NULL)
     {
         LogError("Invalid inputs to file_util_work_function");
+        return false;
     }
     else
     {
@@ -219,6 +220,7 @@ bool file_util_work_function_return(void* context)
         if(tp_input == NULL)
         {
             LogError("Failure in malloc");
+            return false;
         }
         else
         {
