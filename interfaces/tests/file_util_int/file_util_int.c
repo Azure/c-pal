@@ -32,7 +32,6 @@
 
 #include "c_pal/execution_engine.h"
 
-/* static const char* G_FILE_NAME = "test_file"; */
 TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
@@ -69,9 +68,6 @@ static void callback_file_write(PTP_CALLBACK_INSTANCE Instance, PVOID Context, P
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_SetAndWake(write_wait, 1));
 }
 
-// #define BUFF_SIZE 1024
-// char* str_input[BUFF_SIZE] = { 0 };
-
 /*Tests_SRS_FILE_UTIL_LINUX_09_001: [ If the full_file_name input is either empty or NULL, file_util_open_file shall return an INVALID_HANDLE_VALUE. ]*/
 TEST_FUNCTION(create_and_write_file)
 {
@@ -79,36 +75,27 @@ TEST_FUNCTION(create_and_write_file)
     HANDLE file_handle;
 
 #ifdef WIN32
-    //EXECUTION_ENGINE_PARAMETERS_WIN32 execution_engine_parameters = { 4, 0 };
     const char* full_file_name = "C:\\devsecond\\sampletext.txt";
 
 #else
-    //EXECUTION_ENGINE_PARAMETERS_LINUX execution_engine_parameters = { 4, 0 };
-    const char* full_file_name = "/mnt/c/devsecond/sampletext.txt";
+    const char* full_file_name = "/mnt/c/devsecond/sampletext2.txt";
 
 #endif
     uint32_t desired_access = GENERIC_ALL;
     uint32_t share_mode = FILE_SHARE_READ;
     uint32_t creation_disposition = CREATE_ALWAYS;
     uint32_t flags_and_attributes = FILE_FLAG_OVERLAPPED;
-    //THANDLE(THREADPOOL) tp_in = threadpool_create(NULL);
     file_handle = file_util_open_file(full_file_name, desired_access, share_mode, NULL, creation_disposition, flags_and_attributes, NULL);
     ASSERT_ARE_NOT_EQUAL(uint64_t, file_handle, INVALID_HANDLE_VALUE);
 
     volatile_atomic int32_t write_wait;
     interlocked_exchange(&write_wait, 0);
-    // memset(str_input, 'b', BUFF_SIZE);
-    char* str_input = "helloooooo worrrllllddd :))))";
+    char* str_input = "hello world";
     OVERLAPPED overlapped = { 0 };
-    //overlapped.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-
-    //void (*callback_func_ptr)() = callback_file_write;
 
     file_util_create_threadpool_io(file_handle, callback_file_write, (void*)&write_wait);
 
     file_util_write_file(file_handle, str_input, (uint32_t)strlen(str_input), &overlapped);
-
-    //ASSERT_IS_TRUE(success_write);
 
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&write_wait, 1, UINT32_MAX));
 
@@ -117,8 +104,6 @@ TEST_FUNCTION(create_and_write_file)
 
     bool success_delete = file_util_delete_file(full_file_name);
     ASSERT_IS_TRUE(success_delete);
-
-//#endif
 
 }
 

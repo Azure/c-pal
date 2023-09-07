@@ -40,8 +40,9 @@ typedef struct CREATE_FILE_LINUX_TAG
 typedef struct WRITE_FILE_LINUX_TAG
 {
     CREATE_FILE_LINUX* handle_input;
+    int h_file;
     LPCVOID buffer;
-    uint32_t number_of_bytes_to_write;
+    int number_of_bytes_to_write;
     LPOVERLAPPED overlapped;
     LPOVERLAPPED_COMPLETION_ROUTINE completion_routine;
     PTP_WIN32_IO_CALLBACK_FUNC callback_func;
@@ -157,7 +158,7 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t d_access, uint32
                             /*Codes_SRS_FILE_UTIL_LINUX_09_008: [ If there are any failures, file_util_open_file shall fail and return INVALID_HANDLE_VALUE. ]*/
                             LogError("Failure in creating a file, full_file_name = %s, uint32_t access = %u, uint32_t share_mode = %u, LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %u, uint32_t flags_and_attributes = %u, HANDLE template_file = %p",
                                 full_file_name, d_access, share_mode, security_attributes, creation_disposition, flags_and_attributes, template_file);
-                            LogError("strerror: %s\n", strerror (errno));
+                            LogError("Create file error: %s\n", strerror (errno));
                             free(result);
                             result = INVALID_HANDLE_VALUE;
                         }
@@ -226,11 +227,11 @@ bool file_util_work_function_return(void* context)
         {
             ssize_t write_success;
 
-            write_success = write(tp_input->handle_input->h_file, tp_input->buffer, tp_input->number_of_bytes_to_write);
-
+            write_success = write(tp_input->h_file, tp_input->buffer, tp_input->number_of_bytes_to_write);
             if(write_success == -1)
             {
                 LogError("Failed to write to file");
+                LogError("Error %s", strerror(errno));
                 error_handling_linux_set_last_error(ERROR_WRITE_FAULT);
                 Io_Result = error_handling_linux_get_last_error();
                 return false;
@@ -255,6 +256,7 @@ static void file_util_work_function(void* context)
     else
     {
         WRITE_FILE_LINUX* tp_input = (WRITE_FILE_LINUX*)context;
+
         uint64_t Io_Result = NO_ERROR;
         if(tp_input == NULL)
         {
@@ -262,28 +264,24 @@ static void file_util_work_function(void* context)
         }
         else
         {
-            ssize_t write_success;
-
-            write_success = write(tp_input->handle_input->h_file, tp_input->buffer, tp_input->number_of_bytes_to_write);
+            int write_success;
+            write_success = write(tp_input->h_file, tp_input->buffer, tp_input->number_of_bytes_to_write);
 
             if(write_success == -1)
             {
-                LogError("Failed to write to file");
+                LogError("Failed to write to file:  %s", strerror(errno));
                 error_handling_linux_set_last_error(ERROR_WRITE_FAULT);
                 Io_Result = error_handling_linux_get_last_error();
                 tp_input->write_success = false;
                 assert(write_success != -1);
-                //free(tp_input);
-                //return false;
             }
             else
             {
                 tp_input->callback_func(NULL, tp_input->pv, tp_input->overlapped, Io_Result, tp_input->number_of_bytes_to_write, NULL);
                 tp_input->write_success = true;
-                //return true;
             }
         }
-        //free(tp_input);
+        free(tp_input);
     }
 
 }
@@ -310,13 +308,14 @@ bool file_util_write_file(HANDLE handle_in, LPCVOID buffer, uint32_t number_of_b
         }
         else
         {
-            tp_input->handle_input = handle_input;
+            tp_input->handle_input = (CREATE_FILE_LINUX*)handle_input;
+            tp_input->h_file = handle_input->h_file;
             tp_input->buffer = buffer;
             tp_input->number_of_bytes_to_write = number_of_bytes_to_write;
             tp_input->overlapped = overlapped;
             tp_input->callback_func = handle_input->callback_func;
             tp_input->pv = handle_input->pv;
-            //tp_input->write_success = false;
+
             if(overlapped == NULL)
             {
                 success_write = file_util_work_function_return(tp_input);
@@ -324,7 +323,7 @@ bool file_util_write_file(HANDLE handle_in, LPCVOID buffer, uint32_t number_of_b
             else
             {
                 int tp_success = threadpool_schedule_work(handle_input->threadpool, file_util_work_function, tp_input);
-                //success_write = tp_input->write_success;
+
                 if(tp_success == 0)
                 {
                     success_write = true;
@@ -335,7 +334,6 @@ bool file_util_write_file(HANDLE handle_in, LPCVOID buffer, uint32_t number_of_b
                 }
             }
         }
-        free(tp_input);
     }
     return success_write;
 }
@@ -496,7 +494,7 @@ bool file_util_set_file_pointer_ex(HANDLE hFile, LARGE_INTEGER distance_to_move,
     CREATE_FILE_LINUX* handle_input = (CREATE_FILE_LINUX*)hFile;
     char* mode = "w+";
      FILE* temp_file = fdopen(handle_input->h_file, mode);
-    //FILE* temp_file = (FILE*)hFile;
+
     int whence;
     if(move_method == FILE_BEGIN)
     {
@@ -512,7 +510,7 @@ bool file_util_set_file_pointer_ex(HANDLE hFile, LARGE_INTEGER distance_to_move,
     }
     long move = distance_to_move.QuadPart;
     int success = fseek(temp_file, move, whence);
-    //fclose(temp_file);
+
     if(success == -1)
     {
         return false;
