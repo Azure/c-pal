@@ -21,7 +21,9 @@ extern "C" {
 #endif // __cplusplus
 
 #ifdef WIN32
-typedef SRWLOCK SRW_LOCK_LL;
+    typedef SRWLOCK SRW_LOCK_LL;
+#else
+    typedef pthread_rwlock_t SRW_LOCK_LL;
 #endif
 
 #define SRW_LOCK_LL_TRY_ACQUIRE_RESULT_VALUES \
