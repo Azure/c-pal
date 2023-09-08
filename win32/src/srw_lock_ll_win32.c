@@ -1,5 +1,7 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 
+#include <windows.h>
+
 #include "macro_utils/macro_utils.h"
 
 #include "c_logging/logger.h"
