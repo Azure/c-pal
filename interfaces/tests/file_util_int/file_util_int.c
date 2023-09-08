@@ -24,7 +24,7 @@
 #include "c_pal/thandle.h"
 #include "c_pal/threadpool.h"
 #include "c_pal/interlocked_hl.h"
-#include "c_pal/error_handling_linux.h"
+#include "c_pal/error_handling.h"
 
 #ifdef WIN32
 #include "c_pal/execution_engine_win32.h"

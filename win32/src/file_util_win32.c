@@ -21,23 +21,6 @@ typedef struct FILE_WIN_TAG
 
 } FILE_WIN;
 
-
-// void file_util_initialize_threadpool_environment(PTP_CALLBACK_ENVIRON pcbe)
-// {
-
-//     InitializeThreadpoolEnvironment(pcbe);
-// }
-
-// void file_util_set_threadpool_callback_pool(PTP_CALLBACK_ENVIRON pcbe, PTP_POOL ptpp)
-// {
-//     SetThreadpoolCallbackPool(pcbe, ptpp);
-// }
-
-// PTP_CLEANUP_GROUP file_util_create_threadpool_cleanup_group()
-// {
-//     return CreateThreadpoolCleanupGroup();
-// }
-
 static VOID NTAPI onCloseThreadpoolCleanupGroupMember(
     _Inout_opt_ PVOID ObjectContext, /*what was passed @  CreateThreadpoolIo*/
     _Inout_opt_ PVOID CleanupContext /*what was passed @  CloseThreadpoolCleanupGroupMembers*/
@@ -76,9 +59,6 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
                 LogError("unable to create file handle");
             }
             new_file->ptpp = CreateThreadpool(NULL);
-            //EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
-            //THANDLE(THREADPOOL) temp = threadpool_create(execution_engine);
-            //THANDLE_INITIALIZE_MOVE(THREADPOOL)(&new_file->threadpool, &temp);
             new_file->ptpcg = CreateThreadpoolCleanupGroup();
         }
         return new_file;
