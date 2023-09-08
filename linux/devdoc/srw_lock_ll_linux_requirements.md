@@ -48,7 +48,7 @@ MOCKABLE_FUNCTION(, void, srw_lock_ll_init, SRW_LOCK_LL*, srw_lock_ll);
 
 **SRS_SRW_LOCK_LL_11_022: [** If `pthread_rwlock_init` returns a non-zero value, `srw_lock_ll_init` shall fail and return a non-zero value. **]**
 
-**SRS_SRW_LOCK_LL_11_003: [** otherwise, `srw_lock_ll_init` shall succeed and return 0. **]**
+**SRS_SRW_LOCK_LL_11_003: [** Otherwise, `srw_lock_ll_init` shall succeed and return 0. **]**
 
 ### srw_lock_ll_deinit
 ```c

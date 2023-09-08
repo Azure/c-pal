@@ -78,7 +78,7 @@ TEST_FUNCTION(srw_lock_ll_init_with_NULL_srw_lock_ll_fails)
 }
 
 // Tests_SRS_SRW_LOCK_LL_11_002: [ Otherwise, srw_lock_ll_init shall call InitializeSRWLock. ]
-// Tests_SRS_SRW_LOCK_LL_11_003: [ otherwise, srw_lock_ll_init shall succeed and return 0. ]
+// Tests_SRS_SRW_LOCK_LL_11_003: [ Otherwise, srw_lock_ll_init shall succeed and return 0. ]
 TEST_FUNCTION(srw_lock_ll_init_succeeds)
 {
     ///arrange

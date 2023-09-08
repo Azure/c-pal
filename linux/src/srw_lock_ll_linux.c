@@ -31,7 +31,7 @@ int srw_lock_ll_init(SRW_LOCK_LL* srw_lock_ll)
         }
         else
         {
-            // Codes_SRS_SRW_LOCK_LL_11_003: [ otherwise, srw_lock_ll_init shall succeed and return 0. ]
+            // Codes_SRS_SRW_LOCK_LL_11_003: [ Otherwise, srw_lock_ll_init shall succeed and return 0. ]
             result = 0;
         }
     }
