@@ -238,6 +238,20 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
     WakeByAddressSingle((PVOID)&async_socket->state);
 }
 
+ASYNC_SOCKET_HANDLE async_socket_create_with_transport(EXECUTION_ENGINE_HANDLE execution_engine, SOCKET_HANDLE socket_handle, ON_ASYNC_SOCKET_SEND on_send, void* on_send_context, ON_ASYNC_SOCKET_RECV on_recv, void* on_recv_context)
+{
+    (void)execution_engine;
+    (void)socket_handle;
+    (void)on_send;
+    (void)on_send_context;
+    (void)on_recv;
+    (void)on_recv_context;
+
+    // On Windows we just fail the API call because we don't support this yet.
+    LogError("async_socket_create_with_transport is not supported on Windows");
+    return NULL;
+}
+
 ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine, SOCKET_HANDLE socket_handle)
 {
     ASYNC_SOCKET_HANDLE result;
@@ -810,4 +824,16 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
 
 all_ok:
     return result;
+}
+
+int async_socket_notify_io(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE io_type, ON_ASYNC_SOCKET_NOTIFY_IO_COMPLETE on_io_complete, void* on_io_complete_context)
+{
+    // On Windows we just fail the API call because we don't support this yet.
+    (void)async_socket;
+    (void)io_type;
+    (void)on_io_complete;
+    (void)on_io_complete_context;
+
+    LogError("async_socket_notify_io is not supported on Windows");
+    return MU_FAILURE;
 }
