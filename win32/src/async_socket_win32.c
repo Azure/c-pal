@@ -251,7 +251,7 @@ ASYNC_SOCKET_HANDLE async_socket_create_with_transport(EXECUTION_ENGINE_HANDLE e
     (void)on_recv;
     (void)on_recv_context;
 
-    // On Windows we just fail the API call because we don't support this yet.
+    /* Codes_SRS_ASYNC_SOCKET_WIN32_04_001: [ async_socket_create_with_transport shall fail by returning NULL. ]*/
     LogError("async_socket_create_with_transport is not supported on Windows");
     return NULL;
 }
@@ -830,6 +830,7 @@ all_ok:
     return result;
 }
 
+/* Codes_SRS_ASYNC_SOCKET_WIN32_04_002: [ async_socket_notify_io_async shall fail by returning a non-zero value. ]*/
 int async_socket_notify_io_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE io_type, ON_ASYNC_SOCKET_NOTIFY_IO_COMPLETE on_io_complete, void* on_io_complete_context)
 {
     // On Windows we just fail the API call because we don't support this yet.

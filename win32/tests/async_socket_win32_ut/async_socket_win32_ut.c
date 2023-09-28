@@ -225,6 +225,19 @@ TEST_FUNCTION(async_socket_create_succeeds)
     async_socket_destroy(async_socket);
 }
 
+/* Tests_SRS_ASYNC_SOCKET_WIN32_04_001: [ async_socket_create_with_transport shall fail by returning NULL. ]*/
+TEST_FUNCTION(async_socket_create_with_transport_fails)
+{
+	// arrange
+	ASYNC_SOCKET_HANDLE async_socket;
+
+	// act
+	async_socket = async_socket_create_with_transport(test_execution_engine, test_socket, NULL, NULL, NULL, NULL);
+
+	// assert
+	ASSERT_IS_NULL(async_socket);
+}
+
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_003: [ If any error occurs, async_socket_create shall fail and return NULL. ]*/
 TEST_FUNCTION(when_underlying_calls_fails_async_socket_create_also_fails)
 {
@@ -2381,6 +2394,27 @@ TEST_FUNCTION(on_io_complete_with_ERROR_NETNAME_DELETED_indicates_the_receive_as
 TEST_FUNCTION(on_io_complete_with_ERROR_CONNECTION_ABORTED_indicates_the_receive_as_complete_with_ABANDONED)
 {
     on_io_complete_with_error_indicates_the_receive_as_complete_with_ABANDONED(ERROR_CONNECTION_ABORTED);
+}
+
+/* async_socket_notify_io_async */
+
+/* Tests_SRS_ASYNC_SOCKET_WIN32_04_002: [ async_socket_notify_io_async shall fail by returning a non-zero value. ]*/
+TEST_FUNCTION(async_socket_notify_io_async_fails)
+{
+    // arrange
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    umock_c_reset_all_calls();
+
+    // act
+    int result = async_socket_notify_io_async(async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE_IN, NULL, NULL);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+
+    // cleanup
+    async_socket_destroy(async_socket);
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
