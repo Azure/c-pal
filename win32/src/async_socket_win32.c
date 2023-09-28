@@ -830,7 +830,7 @@ all_ok:
     return result;
 }
 
-int async_socket_notify_io(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE io_type, ON_ASYNC_SOCKET_NOTIFY_IO_COMPLETE on_io_complete, void* on_io_complete_context)
+int async_socket_notify_io_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE io_type, ON_ASYNC_SOCKET_NOTIFY_IO_COMPLETE on_io_complete, void* on_io_complete_context)
 {
     // On Windows we just fail the API call because we don't support this yet.
     (void)async_socket;
@@ -838,6 +838,6 @@ int async_socket_notify_io(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_NOTIFY
     (void)on_io_complete;
     (void)on_io_complete_context;
 
-    LogError("async_socket_notify_io is not supported on Windows");
+    LogError("async_socket_notify_io_async is not supported on Windows");
     return MU_FAILURE;
 }
