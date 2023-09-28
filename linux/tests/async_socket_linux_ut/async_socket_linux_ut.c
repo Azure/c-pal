@@ -41,7 +41,11 @@
 static SOCKET_HANDLE test_socket = (SOCKET_HANDLE)0x4242;
 static EXECUTION_ENGINE_HANDLE test_execution_engine = (EXECUTION_ENGINE_HANDLE)0x4243;
 static void* test_callback_ctx = (void*)0x4244;
+static void* test_send_ctx = (void*)0x4245;
+static void* test_recv_ctx = (void*)0x4246;
 static COMPLETION_PORT_HANDLE test_completion_port = (COMPLETION_PORT_HANDLE)0x4245;
+static ON_ASYNC_SOCKET_SEND on_send_callback = NULL;
+static ON_ASYNC_SOCKET_RECV on_recv_callback = NULL;
 
 static ON_COMPLETION_PORT_EVENT_COMPLETE g_event_callback;
 static void* g_event_callback_ctx;
@@ -84,6 +88,22 @@ MOCK_FUNCTION_END(n)
 MOCK_FUNCTION_WITH_CODE(, ssize_t, mocked_recv, int, fd, void*, buf, size_t, n, int, flags)
 MOCK_FUNCTION_END(n)
 
+MOCK_FUNCTION_WITH_CODE(, int, mocked_on_send, void*, context, ASYNC_SOCKET_HANDLE, async_socket, const void*, buf, size_t, n)
+    ASSERT_IS_NOT_NULL(context);
+    ASSERT_ARE_EQUAL(void_ptr, test_send_ctx, context);
+    ASSERT_IS_NOT_NULL(async_socket);
+    ASSERT_IS_NOT_NULL(buf);
+    ASSERT_IS_TRUE(n > 0);
+MOCK_FUNCTION_END(n)
+
+MOCK_FUNCTION_WITH_CODE(, int, mocked_on_recv, void*, context, ASYNC_SOCKET_HANDLE, async_socket, void*, buf, size_t, n)
+    ASSERT_IS_NOT_NULL(context);
+    ASSERT_ARE_EQUAL(void_ptr, test_recv_ctx, context);
+    ASSERT_IS_NOT_NULL(async_socket);
+    ASSERT_IS_NOT_NULL(buf);
+    ASSERT_IS_TRUE(n > 0);
+MOCK_FUNCTION_END(n)
+
 MOCK_FUNCTION_WITH_CODE(, void, test_on_open_complete, void*, context, ASYNC_SOCKET_OPEN_RESULT, open_result)
 MOCK_FUNCTION_END()
 MOCK_FUNCTION_WITH_CODE(, void, test_on_send_complete, void*, context, ASYNC_SOCKET_SEND_RESULT, send_result)
@@ -101,7 +121,7 @@ static void mock_internal_close_setup(void)
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 }
 
-static void mock_async_socket_create_setup(void)
+static void mock_async_socket_create_with_transport_setup(void)
 {
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(platform_get_completion_port());
@@ -164,6 +184,9 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_TYPE(ASYNC_SOCKET_OPEN_RESULT, ASYNC_SOCKET_OPEN_RESULT);
     REGISTER_TYPE(ASYNC_SOCKET_SEND_RESULT, ASYNC_SOCKET_SEND_RESULT);
     REGISTER_TYPE(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_RESULT);
+
+    on_send_callback = get_async_socket_send_callback();
+    on_recv_callback = get_async_socket_recv_callback();
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
@@ -186,48 +209,13 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 
 // async_socket_create
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_002: [ execution_engine shall be allowed to be NULL. ]
-TEST_FUNCTION(async_socket_create_with_NULL_execution_engine_success)
-{
-    // arrange
-    ASYNC_SOCKET_HANDLE async_socket;
-
-    mock_async_socket_create_setup();
-
-    // act
-    async_socket = async_socket_create(NULL, test_socket);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_IS_NOT_NULL(async_socket);
-
-    // cleanup
-    async_socket_destroy(async_socket);
-}
-
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_create shall fail and return NULL. ]
-TEST_FUNCTION(async_socket_create_with_INVALID_SOCKET_fails)
-{
-    // arrange
-    ASYNC_SOCKET_HANDLE async_socket;
-
-    // act
-    async_socket = async_socket_create(test_execution_engine, INVALID_SOCKET);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_IS_NULL(async_socket);
-}
-
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_001: [ async_socket_create shall allocate a new async socket and on success shall return a non-NULL handle. ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_005: [ async_socket_create shall retreive an COMPLETION_PORT_HANDLE object by calling platform_get_completion_port. ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_101: [ async_socket_create shall increment the reference count of the COMPLETION_PORT_HANDLE object by calling completion_port_inc_ref. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_04_001: [ async_socket_create shall delegate to async_socket_create_with_transport passing in callbacks for on_send and on_recv that implement socket read and write by calling send and recv respectively from system socket API. ]
 TEST_FUNCTION(async_socket_create_succeeds)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket;
 
-    mock_async_socket_create_setup();
+    mock_async_socket_create_with_transport_setup();
 
     // act
     async_socket = async_socket_create(test_execution_engine, test_socket);
@@ -240,13 +228,96 @@ TEST_FUNCTION(async_socket_create_succeeds)
     async_socket_destroy(async_socket);
 }
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_006: [ If any error occurs, async_socket_create shall fail and return NULL. ]
-TEST_FUNCTION(async_socket_create_fails)
+// async_socket_create_with_transport
+
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_002: [ execution_engine shall be allowed to be NULL. ]
+TEST_FUNCTION(async_socket_create_with_transport_with_NULL_execution_engine_success)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket;
 
-    mock_async_socket_create_setup();
+    mock_async_socket_create_with_transport_setup();
+
+    // act
+    async_socket = async_socket_create_with_transport(NULL, test_socket, mocked_on_send, test_send_ctx, mocked_on_recv, test_recv_ctx);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NOT_NULL(async_socket);
+
+    // cleanup
+    async_socket_destroy(async_socket);
+}
+
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_create_with_transport shall fail and return NULL. ]
+TEST_FUNCTION(async_socket_create_with_transport_with_INVALID_SOCKET_fails)
+{
+    // arrange
+    ASYNC_SOCKET_HANDLE async_socket;
+
+    // act
+    async_socket = async_socket_create_with_transport(test_execution_engine, INVALID_SOCKET, mocked_on_send, test_send_ctx, mocked_on_recv, test_recv_ctx);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NULL(async_socket);
+}
+
+// Tests_SRS_ASYNC_SOCKET_LINUX_04_002: [ If on_send is NULL , async_socket_create_with_transport shall fail and return NULL. ]
+TEST_FUNCTION(async_socket_create_with_transport_with_NULL_on_send_fails)
+{
+    // arrange
+    ASYNC_SOCKET_HANDLE async_socket;
+
+    // act
+    async_socket = async_socket_create_with_transport(test_execution_engine, test_socket, NULL, NULL, mocked_on_recv, test_recv_ctx);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NULL(async_socket);
+}
+
+// Tests_SRS_ASYNC_SOCKET_LINUX_04_003: [ If on_recv is NULL , async_socket_create_with_transport shall fail and return NULL. ]
+TEST_FUNCTION(async_socket_create_with_transport_with_NULL_on_recv_fails)
+{
+    // arrange
+    ASYNC_SOCKET_HANDLE async_socket;
+
+    // act
+    async_socket = async_socket_create_with_transport(test_execution_engine, test_socket, mocked_on_send, test_send_ctx, NULL, NULL);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NULL(async_socket);
+}
+
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_001: [ async_socket_create_with_transport shall allocate a new async socket and on success shall return a non-NULL handle. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_005: [ async_socket_create_with_transport shall retrieve an COMPLETION_PORT_HANDLE object by calling platform_get_completion_port. ]
+TEST_FUNCTION(async_socket_create_with_transport_succeeds)
+{
+    // arrange
+    ASYNC_SOCKET_HANDLE async_socket;
+
+    mock_async_socket_create_with_transport_setup();
+
+    // act
+    async_socket = async_socket_create_with_transport(test_execution_engine, test_socket, mocked_on_send, test_send_ctx, mocked_on_recv, test_recv_ctx);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NOT_NULL(async_socket);
+
+    // cleanup
+    async_socket_destroy(async_socket);
+}
+
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_006: [ If any error occurs, async_socket_create_with_transport shall fail and return NULL. ]
+TEST_FUNCTION(async_socket_create_with_transport_fails)
+{
+    // arrange
+    ASYNC_SOCKET_HANDLE async_socket;
+
+    mock_async_socket_create_with_transport_setup();
 
     umock_c_negative_tests_snapshot();
 
@@ -258,7 +329,7 @@ TEST_FUNCTION(async_socket_create_fails)
             umock_c_negative_tests_fail_call(index);
 
             // act
-            async_socket = async_socket_create(test_execution_engine, test_socket);
+            async_socket = async_socket_create_with_transport(test_execution_engine, test_socket, mocked_on_send, test_send_ctx, mocked_on_recv, test_recv_ctx);
 
             // assert
             ASSERT_IS_NULL(async_socket, "On failed call %zu", index);
@@ -908,7 +979,22 @@ TEST_FUNCTION(async_socket_send_async_after_close_fails)
     async_socket_destroy(async_socket);
 }
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_052: [ async_socket_send_async shall attempt to send the data by calling send with the MSG_NOSIGNAL flag to ensure SIGPIPE is not generated on errors. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_04_005: [ If async_socket is NULL on_socket_send shall fail by returning -1. ]
+TEST_FUNCTION(on_socket_send_fails_with_NULL_async_socket_handle)
+{
+    // arrange
+
+    // act
+    uint8_t buf[1] = { 0x42 };
+    int result = on_send_callback(NULL, NULL, buf, sizeof(buf));
+
+    // assert
+    ASSERT_ARE_EQUAL(int, -1, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+// Tests_SRS_ASYNC_SOCKET_LINUX_04_004: [ async_socket_send_async shall call the on_send callback to send the buffer. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_052: [ on_socket_send shall attempt to send the data by calling send with the MSG_NOSIGNAL flag to ensure SIGPIPE is not generated on errors. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_053: [ async_socket_send_async shall continue to send the data until the payload length has been sent. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_062: [ On success, async_socket_send_async shall return ASYNC_SOCKET_SEND_SYNC_OK. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_061: [ If the send is successful, async_socket_send_async shall call the on_send_complete with on_send_complete_context and ASYNC_SOCKET_SEND_SYNC_OK. ]
@@ -946,7 +1032,8 @@ TEST_FUNCTION(async_socket_send_async_succeeds)
     async_socket_destroy(async_socket);
 }
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_052: [ async_socket_send_async shall attempt to send the data by calling send with the MSG_NOSIGNAL flag to ensure SIGPIPE is not generated on errors. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_04_004: [ async_socket_send_async shall call the on_send callback to send the buffer. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_052: [ on_socket_send shall attempt to send the data by calling send with the MSG_NOSIGNAL flag to ensure SIGPIPE is not generated on errors. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_053: [ async_socket_send_async shall continue to send the data until the payload length has been sent. ]
 TEST_FUNCTION(async_socket_send_async_multiple_sends_succeeds)
 {
@@ -983,7 +1070,8 @@ TEST_FUNCTION(async_socket_send_async_multiple_sends_succeeds)
     async_socket_destroy(async_socket);
 }
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_052: [ async_socket_send_async shall attempt to send the data by calling send with the MSG_NOSIGNAL flag to ensure SIGPIPE is not generated on errors. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_04_004: [ async_socket_send_async shall call the on_send callback to send the buffer. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_052: [ on_socket_send shall attempt to send the data by calling send with the MSG_NOSIGNAL flag to ensure SIGPIPE is not generated on errors. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_053: [ async_socket_send_async shall continue to send the data until the payload length has been sent. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_057: [ The context shall then be added to the epoll system by calling epoll_ctl with EPOLL_CTL_MOD and `event_complete_callback` as the callback. ]
 TEST_FUNCTION(async_socket_send_async_multiple_sends_WOULDBLOCK_succeeds)
@@ -1651,8 +1739,23 @@ TEST_FUNCTION(event_complete_func_context_NULL_fail)
     free(g_event_callback_ctx);
 }
 
+// Tests_SRS_ASYNC_SOCKET_LINUX_04_006: [ If async_socket is NULL on_socket_recv shall fail by returning -1. ]
+TEST_FUNCTION(on_socket_recv_fails_with_NULL_async_socket_handle)
+{
+    // arrange
+
+    // act
+    uint8_t buf[1] = { 0x42 };
+    int result = on_recv_callback(NULL, NULL, buf, sizeof(buf));
+
+    // assert
+    ASSERT_ARE_EQUAL(int, -1, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_082: [ If COMPLETION_PORT_EPOLL_ACTION is COMPLETION_PORT_EPOLL_EPOLLIN, event_complete_callback shall do the following: ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_083: [ event_complete_callback shall call recv with the recv_buffer buffer and length and do the following: ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_083: [ event_complete_callback shall call the on_recv callback with the recv_buffer buffer and length and do the following: ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_04_007: [ on_socket_recv shall attempt to receive data by calling the system recv socket API. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_088: [ If the recv size < 0, then: ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_092: [ If the recv size > 0, if we have another buffer to fill then we will attempt another read, otherwise we shall call on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_OK ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_093: [ event_complete_callback shall then free the io_context memory. ]

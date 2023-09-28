@@ -97,18 +97,20 @@ static int on_socket_send(void* context, ASYNC_SOCKET_HANDLE async_socket, const
 
     if (async_socket == NULL)
     {
+        // Codes_SRS_ASYNC_SOCKET_LINUX_04_005: [ If async_socket is NULL on_socket_send shall fail by returning -1. ]
         LogCritical("Invalid argument on_send void* context, ASYNC_SOCKET_HANDLE async_socket, const void* buf, size_t len");
         result = -1;
     }
     else
     {
+        // Codes_SRS_ASYNC_SOCKET_LINUX_11_052: [ on_socket_send shall attempt to send the data by calling send with the MSG_NOSIGNAL flag to ensure SIGPIPE is not generated on errors. ]
         result = send(async_socket->socket_handle, buf, len, MSG_NOSIGNAL);
     }
 
     return result;
 }
 
-int on_socket_recv(void* context, ASYNC_SOCKET_HANDLE async_socket, void* buf, size_t len)
+static int on_socket_recv(void* context, ASYNC_SOCKET_HANDLE async_socket, void* buf, size_t len)
 {
     int result;
 
@@ -116,16 +118,32 @@ int on_socket_recv(void* context, ASYNC_SOCKET_HANDLE async_socket, void* buf, s
 
     if (async_socket == NULL)
     {
+        // Codes_SRS_ASYNC_SOCKET_LINUX_04_006: [ If async_socket is NULL on_socket_recv shall fail by returning -1. ]
         LogCritical("Invalid argument on_recv void* context, ASYNC_SOCKET_HANDLE async_socket, const void* buf, size_t len");
         result = -1;
     }
     else
     {
+        // Codes_SRS_ASYNC_SOCKET_LINUX_04_007: [ on_socket_recv shall attempt to receive data by calling the system recv socket API. ]
         result = recv(async_socket->socket_handle, buf, len, 0);
     }
 
     return result;
 }
+
+#ifdef TEST_SUITE_NAME_FROM_CMAKE
+
+ON_ASYNC_SOCKET_SEND get_async_socket_send_callback()
+{
+    return on_socket_send;
+}
+
+ON_ASYNC_SOCKET_RECV get_async_socket_recv_callback()
+{
+    return on_socket_recv;
+}
+
+#endif
 
 static int send_data(ASYNC_SOCKET* async_socket, const ASYNC_SOCKET_BUFFER* buff_data, ssize_t* total_data_sent, int* error_no)
 {
@@ -134,7 +152,7 @@ static int send_data(ASYNC_SOCKET* async_socket, const ASYNC_SOCKET_BUFFER* buff
     ssize_t data_sent = 0;
     do
     {
-        // Codes_SRS_ASYNC_SOCKET_LINUX_11_052: [ async_socket_send_async shall attempt to send the data by calling send with the MSG_NOSIGNAL flag to ensure SIGPIPE is not generated on errors. ]
+        // Codes_SRS_ASYNC_SOCKET_LINUX_04_004: [ async_socket_send_async shall call the on_send callback to send the buffer. ]
         ssize_t send_size = async_socket->on_send(async_socket->on_send_context, async_socket, buff_data->buffer+data_sent, buff_data->length-data_sent);
         if (send_size < 0)
         {
@@ -204,7 +222,7 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
 
                     do
                     {
-                        // Codes_SRS_ASYNC_SOCKET_LINUX_11_083: [ event_complete_callback shall call recv with the recv_buffer buffer and length and do the following: ]
+                        // Codes_SRS_ASYNC_SOCKET_LINUX_11_083: [ event_complete_callback shall call the on_recv callback with the recv_buffer buffer and length and do the following: ]
                         ssize_t recv_size = io_context->async_socket->on_recv(io_context->async_socket->on_recv_context, io_context->async_socket, io_context->data.recv_ctx.recv_buffers[index].buffer, io_context->data.recv_ctx.recv_buffers[index].length);
                         // Codes_SRS_ASYNC_SOCKET_LINUX_11_088: [ If the recv size < 0, then: ]
                         if (recv_size < 0)
@@ -358,6 +376,7 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
 
 ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine, SOCKET_HANDLE socket_handle)
 {
+    // Codes_SRS_ASYNC_SOCKET_LINUX_04_001: [ async_socket_create shall delegate to async_socket_create_with_transport passing in callbacks for on_send and on_recv that implement socket read and write by calling send and recv respectively from system socket API. ]
     return async_socket_create_with_transport(execution_engine, socket_handle, on_socket_send, NULL, on_socket_recv, NULL);
 }
 
@@ -366,14 +385,16 @@ ASYNC_SOCKET_HANDLE async_socket_create_with_transport(EXECUTION_ENGINE_HANDLE e
     ASYNC_SOCKET_HANDLE result;
     // Codes_SRS_ASYNC_SOCKET_LINUX_11_002: [ execution_engine shall be allowed to be NULL. ]
 
-    // Codes_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_create shall fail and return NULL. ]
-    if (socket_handle == INVALID_SOCKET)
+    // Codes_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_create_with_transport shall fail and return NULL. ]
+    // Codes_SRS_ASYNC_SOCKET_LINUX_04_002: [ If on_send is NULL , async_socket_create_with_transport shall fail and return NULL. ]
+    // Codes_SRS_ASYNC_SOCKET_LINUX_04_003: [ If on_recv is NULL , async_socket_create_with_transport shall fail and return NULL. ]
+    if (socket_handle == INVALID_SOCKET || on_send == NULL || on_recv == NULL)
     {
-        LogError("EXECUTION_ENGINE_HANDLE execution_engine:%p, SOCKET_HANDLE socket_handle:%" PRI_SOCKET "", execution_engine, socket_handle);
+        LogError("EXECUTION_ENGINE_HANDLE execution_engine:%p, SOCKET_HANDLE socket_handle:%" PRI_SOCKET ", ON_ASYNC_SOCKET_SEND on_send: %p, void* on_send_context: %p, ON_ASYNC_SOCKET_RECV on_recv: %p, void* on_recv_context: %p", execution_engine, socket_handle, on_send, on_send_context, on_recv, on_recv_context);
     }
     else
     {
-        // Codes_SRS_ASYNC_SOCKET_LINUX_11_001: [ async_socket_create shall allocate a new async socket and on success shall return a non-NULL handle. ]
+        // Codes_SRS_ASYNC_SOCKET_LINUX_11_001: [ async_socket_create_with_transport shall allocate a new async socket and on success shall return a non-NULL handle. ]
         result = malloc(sizeof(ASYNC_SOCKET));
         if (result == NULL)
         {
@@ -381,7 +402,7 @@ ASYNC_SOCKET_HANDLE async_socket_create_with_transport(EXECUTION_ENGINE_HANDLE e
         }
         else
         {
-            // Codes_SRS_ASYNC_SOCKET_LINUX_11_005: [ async_socket_create shall retreive an COMPLETION_PORT_HANDLE object by calling platform_get_completion_port. ]
+            // Codes_SRS_ASYNC_SOCKET_LINUX_11_005: [ async_socket_create_with_transport shall retrieve an COMPLETION_PORT_HANDLE object by calling platform_get_completion_port. ]
             if ((result->completion_port = platform_get_completion_port()) == NULL)
             {
                 LogError("failure platform_get_completion_port");
@@ -402,7 +423,7 @@ ASYNC_SOCKET_HANDLE async_socket_create_with_transport(EXECUTION_ENGINE_HANDLE e
             free(result);
         }
     }
-    // Codes_SRS_ASYNC_SOCKET_LINUX_11_006: [ If any error occurs, async_socket_create shall fail and return NULL. ]
+    // Codes_SRS_ASYNC_SOCKET_LINUX_11_006: [ If any error occurs, async_socket_create_with_transport shall fail and return NULL. ]
     result = NULL;
 
 all_ok:
