@@ -2632,6 +2632,7 @@ TEST_FUNCTION(async_socket_notify_io_async_fails_when_state_is_not_OPEN)
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_04_020: [ If any error occurs, async_socket_notify_io_async shall fail and return a non-zero value. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_04_017: [ Otherwise async_socket_notify_io_async shall create a context for the notify where the on_notify_io_complete and on_notify_io_complete_context shall be stored. ]
 TEST_FUNCTION(async_socket_notify_io_async_fails_when_alloc_context_fails)
 {
     // arrange
@@ -2663,6 +2664,7 @@ TEST_FUNCTION(async_socket_notify_io_async_fails_when_alloc_context_fails)
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_04_018: [ Then the context shall then be added to the completion port system by calling completion_port_add with EPOLLIN if io_type is ASYNC_SOCKET_NOTIFY_IO_TYPE_IN and EPOLLOUT otherwise and event_complete_callback as the callback. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_04_019: [ On success, async_socket_notify_io_async shall return 0. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_04_017: [ Otherwise async_socket_notify_io_async shall create a context for the notify where the on_notify_io_complete and on_notify_io_complete_context shall be stored. ]
 TEST_FUNCTION(async_socket_notify_io_async_succeeds_for_IN)
 {
     // arrange
@@ -2687,6 +2689,7 @@ TEST_FUNCTION(async_socket_notify_io_async_succeeds_for_IN)
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_04_018: [ Then the context shall then be added to the completion port system by calling completion_port_add with EPOLLIN if io_type is ASYNC_SOCKET_NOTIFY_IO_TYPE_IN and EPOLLOUT otherwise and event_complete_callback as the callback. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_04_019: [ On success, async_socket_notify_io_async shall return 0. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_04_017: [ Otherwise async_socket_notify_io_async shall create a context for the notify where the on_notify_io_complete and on_notify_io_complete_context shall be stored. ]
 TEST_FUNCTION(async_socket_notify_io_async_succeeds_for_OUT)
 {
     // arrange
