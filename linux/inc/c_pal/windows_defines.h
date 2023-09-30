@@ -14,6 +14,11 @@ extern "C" {
 #endif
 typedef void *HANDLE;
 typedef void *LPSECURITY_ATTRIBUTES;
+typedef void *LPCVOID;
+typedef void *LARGE_INTEGER;
+typedef void *PLARGE_INTEGER;
+
+
 
 #define GENERIC_READ                    (0x80000000)
 #define GENERIC_WRITE                   (0x40000000)
