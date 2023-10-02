@@ -15,8 +15,6 @@ the path, but it should not be neccessary because we are querying the local syst
 derived from `GetCurrentProcessId`.  Validaton of the path name is handled by the first call to `PdhCollectQueryData` during creation, which also primes 
 the query as it requires two samples to generate a formatted value.
 
-TODO: Task 25199224: Move "single_performance_counter" to c_pal
-
 ## Exposed API
 
 ```c
