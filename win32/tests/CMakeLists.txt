@@ -13,6 +13,7 @@ if(${run_unittests})
     build_test_folder(reals_win32_ut)
     build_test_folder(sysinfo_win32_ut)
     build_test_folder(file_win32_ut)
+    build_test_folder(single_performance_counter_win32_ut)
     build_test_folder(string_utils_win32_ut)
     build_test_folder(uuid_win32_ut)
 
