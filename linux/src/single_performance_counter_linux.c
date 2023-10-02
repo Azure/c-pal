@@ -3,7 +3,7 @@
 #include "macro_utils/macro_utils.h"
 #include "c_logging/logger.h"
 
-#include "single_performance_counter.h"
+#include "c_pal/single_performance_counter.h"
 
 // Stubbed functions for Linux
 typedef struct SINGLE_PERFORMANCE_COUNTER_TAG
