@@ -1,9 +1,10 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 
-#include "macro_utils/macro_utils.h"
-#include "c_logging/logger.h"
+#include <stddef.h>
 
+#include "c_logging/logger.h"
 #include "c_pal/single_performance_counter.h"
+#include "umock_c/umock_c_prod.h"
 
 // Stubbed functions for Linux
 typedef struct SINGLE_PERFORMANCE_COUNTER_TAG
