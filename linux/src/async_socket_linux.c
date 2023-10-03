@@ -97,7 +97,6 @@ static int on_socket_send(void* context, ASYNC_SOCKET_HANDLE async_socket, const
 
     if (async_socket == NULL)
     {
-        // Codes_SRS_ASYNC_SOCKET_LINUX_04_005: [ If async_socket is NULL on_socket_send shall fail by returning -1. ]
         LogCritical("Invalid argument on_send void* context, ASYNC_SOCKET_HANDLE async_socket, const void* buf, size_t len");
         result = -1;
     }
@@ -118,7 +117,6 @@ static int on_socket_recv(void* context, ASYNC_SOCKET_HANDLE async_socket, void*
 
     if (async_socket == NULL)
     {
-        // Codes_SRS_ASYNC_SOCKET_LINUX_04_006: [ If async_socket is NULL on_socket_recv shall fail by returning -1. ]
         LogCritical("Invalid argument on_recv void* context, ASYNC_SOCKET_HANDLE async_socket, const void* buf, size_t len");
         result = -1;
     }

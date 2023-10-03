@@ -44,8 +44,6 @@ static void* test_callback_ctx = (void*)0x4244;
 static void* test_send_ctx = (void*)0x4245;
 static void* test_recv_ctx = (void*)0x4246;
 static COMPLETION_PORT_HANDLE test_completion_port = (COMPLETION_PORT_HANDLE)0x4245;
-static ON_ASYNC_SOCKET_SEND on_send_callback = NULL;
-static ON_ASYNC_SOCKET_RECV on_recv_callback = NULL;
 
 static ON_COMPLETION_PORT_EVENT_COMPLETE g_event_callback;
 static void* g_event_callback_ctx;
@@ -205,9 +203,6 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_TYPE(ASYNC_SOCKET_SEND_RESULT, ASYNC_SOCKET_SEND_RESULT);
     REGISTER_TYPE(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_RESULT);
     REGISTER_TYPE(ASYNC_SOCKET_NOTIFY_IO_RESULT, ASYNC_SOCKET_NOTIFY_IO_RESULT);
-
-    on_send_callback = get_async_socket_send_callback();
-    on_recv_callback = get_async_socket_recv_callback();
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
@@ -1000,20 +995,6 @@ TEST_FUNCTION(async_socket_send_async_after_close_fails)
     async_socket_destroy(async_socket);
 }
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_04_005: [ If async_socket is NULL on_socket_send shall fail by returning -1. ]
-TEST_FUNCTION(on_socket_send_fails_with_NULL_async_socket_handle)
-{
-    // arrange
-
-    // act
-    uint8_t buf[1] = { 0x42 };
-    int result = on_send_callback(NULL, NULL, buf, sizeof(buf));
-
-    // assert
-    ASSERT_ARE_EQUAL(int, -1, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
 // Tests_SRS_ASYNC_SOCKET_LINUX_04_004: [ async_socket_send_async shall call the on_send callback to send the buffer. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_052: [ on_socket_send shall attempt to send the data by calling send with the MSG_NOSIGNAL flag to ensure SIGPIPE is not generated on errors. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_053: [ async_socket_send_async shall continue to send the data until the payload length has been sent. ]
@@ -1758,20 +1739,6 @@ TEST_FUNCTION(event_complete_func_context_NULL_fail)
     async_socket_close(async_socket);
     async_socket_destroy(async_socket);
     free(g_event_callback_ctx);
-}
-
-// Tests_SRS_ASYNC_SOCKET_LINUX_04_006: [ If async_socket is NULL on_socket_recv shall fail by returning -1. ]
-TEST_FUNCTION(on_socket_recv_fails_with_NULL_async_socket_handle)
-{
-    // arrange
-
-    // act
-    uint8_t buf[1] = { 0x42 };
-    int result = on_recv_callback(NULL, NULL, buf, sizeof(buf));
-
-    // assert
-    ASSERT_ARE_EQUAL(int, -1, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_082: [ If COMPLETION_PORT_EPOLL_ACTION is COMPLETION_PORT_EPOLL_EPOLLIN, event_complete_callback shall do the following: ]

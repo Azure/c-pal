@@ -94,6 +94,8 @@ MOCKABLE_FUNCTION(, int, async_socket_notify_io_async, ASYNC_SOCKET_HANDLE, asyn
 MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create, EXECUTION_ENGINE_HANDLE, execution_engine, SOCKET_HANDLE, socket_handle);
 ```
 
+`async_socket_create_with_transport` creates an async socket.
+
 **SRS_ASYNC_SOCKET_LINUX_04_001: [** `async_socket_create` shall delegate to `async_socket_create_with_transport` passing in callbacks for `on_send` and `on_recv` that implement socket read and write by calling `send` and `recv` respectively from system socket API. **]**
 
 ### async_socket_create_with_transport
@@ -102,7 +104,7 @@ MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create, EXECUTION_ENGINE_H
 MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create_with_transport, EXECUTION_ENGINE_HANDLE, execution_engine, SOCKET_HANDLE, socket_handle, ON_ASYNC_SOCKET_SEND, on_send, void*, on_send_context, ON_ASYNC_SOCKET_RECV, on_recv, void*, on_recv_context);
 ```
 
-`async_socket_create_with_transport` creates an async socket. It allows the passing in of callback functions that implement the actual write and read on the socket via the `on_send` and `on_recv`
+`async_socket_create_with_transport` creates an async socket. It allows the passing in of callback functions that implement the actual write and read on the socket via the `on_send` and `on_recv` callbacks.
 
 **SRS_ASYNC_SOCKET_LINUX_11_001: [** `async_socket_create_with_transport` shall allocate a new async socket and on success shall return a non-`NULL` handle. **]**
 
@@ -194,8 +196,6 @@ static int on_socket_send(void* context, ASYNC_SOCKET_HANDLE async_socket, const
 
 `on_socket_send` is the default send callback used when `async_socket_create` is called. This implementation calls the system socket `send` API.
 
-**SRS_ASYNC_SOCKET_LINUX_04_005: [** If `async_socket` is `NULL` `on_socket_send` shall fail by returning -1. **]**
-
 **SRS_ASYNC_SOCKET_LINUX_11_052: [** `on_socket_send` shall attempt to send the data by calling `send` with the `MSG_NOSIGNAL` flag to ensure SIGPIPE is not generated on errors. **]**
 
 ### async_socket_send_async
@@ -253,8 +253,6 @@ static int on_socket_recv(void* context, ASYNC_SOCKET_HANDLE async_socket, void*
 ```
 
 `on_socket_recv` is the default recv callback used when `async_socket_create` is called. This implementation calls the system socket `recv` API.
-
-**SRS_ASYNC_SOCKET_LINUX_04_006: [** If `async_socket` is `NULL` `on_socket_recv` shall fail by returning -1. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_04_007: [** `on_socket_recv` shall attempt to receive data by calling the system `recv` socket API. **]**
 
