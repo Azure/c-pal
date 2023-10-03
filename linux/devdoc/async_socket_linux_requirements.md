@@ -21,7 +21,7 @@ An `async_socket` owns the underlying platform specific socket passed on create.
 `async_socket_linux` implements the `async_socket` API:
 
 ```c
-typedef struct ASYNC_SOCKET* ASYNC_SOCKET_HANDLE;
+typedef struct ASYNC_SOCKET_TAG* ASYNC_SOCKET_HANDLE;
 
 #define ASYNC_SOCKET_OPEN_RESULT_VALUES \
     ASYNC_SOCKET_OPEN_OK, \
@@ -32,7 +32,7 @@ MU_DEFINE_ENUM(ASYNC_SOCKET_OPEN_RESULT, ASYNC_SOCKET_OPEN_RESULT_VALUES)
 #define ASYNC_SOCKET_SEND_SYNC_RESULT_VALUES \
     ASYNC_SOCKET_SEND_SYNC_OK, \
     ASYNC_SOCKET_SEND_SYNC_ERROR, \
-    ASYNC_SOCKET_SEND_SYNC_ABANDONED
+    ASYNC_SOCKET_SEND_SYNC_NOT_OPEN
 
 MU_DEFINE_ENUM(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_RESULT_VALUES)
 
@@ -50,9 +50,26 @@ MU_DEFINE_ENUM(ASYNC_SOCKET_SEND_RESULT, ASYNC_SOCKET_SEND_RESULT_VALUES)
 
 MU_DEFINE_ENUM(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_RESULT_VALUES)
 
+#define ASYNC_SOCKET_NOTIFY_IO_TYPE_VALUES \
+    ASYNC_SOCKET_NOTIFY_IO_TYPE_IN, \
+    ASYNC_SOCKET_NOTIFY_IO_TYPE_OUT
+
+MU_DEFINE_ENUM(ASYNC_SOCKET_NOTIFY_IO_TYPE, ASYNC_SOCKET_NOTIFY_IO_TYPE_VALUES)
+
+#define ASYNC_SOCKET_NOTIFY_IO_RESULT_VALUES \
+    ASYNC_SOCKET_NOTIFY_IO_RESULT_IN, \
+    ASYNC_SOCKET_NOTIFY_IO_RESULT_OUT, \
+    ASYNC_SOCKET_NOTIFY_IO_RESULT_ABANDONED, \
+    ASYNC_SOCKET_NOTIFY_IO_RESULT_ERROR
+
+MU_DEFINE_ENUM(ASYNC_SOCKET_NOTIFY_IO_RESULT, ASYNC_SOCKET_NOTIFY_IO_RESULT_VALUES)
+
 typedef void (*ON_ASYNC_SOCKET_OPEN_COMPLETE)(void* context, ASYNC_SOCKET_OPEN_RESULT open_result);
 typedef void (*ON_ASYNC_SOCKET_SEND_COMPLETE)(void* context, ASYNC_SOCKET_SEND_RESULT send_result);
 typedef void (*ON_ASYNC_SOCKET_RECEIVE_COMPLETE)(void* context, ASYNC_SOCKET_RECEIVE_RESULT receive_result, uint32_t bytes_received);
+typedef void (*ON_ASYNC_SOCKET_NOTIFY_IO_COMPLETE)(void* context, ASYNC_SOCKET_NOTIFY_IO_RESULT notify_io_result);
+typedef int (*ON_ASYNC_SOCKET_SEND)(void* context, ASYNC_SOCKET_HANDLE async_socket, const void* buf, size_t len);
+typedef int (*ON_ASYNC_SOCKET_RECV)(void* context, ASYNC_SOCKET_HANDLE async_socket, void* buf, size_t len);
 
 typedef struct ASYNC_SOCKET_BUFFER_TAG
 {
@@ -61,12 +78,14 @@ typedef struct ASYNC_SOCKET_BUFFER_TAG
 } ASYNC_SOCKET_BUFFER;
 
 MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create, EXECUTION_ENGINE_HANDLE, execution_engine, SOCKET_HANDLE, socket_handle);
+MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create_with_transport, EXECUTION_ENGINE_HANDLE, execution_engine, SOCKET_HANDLE, socket_handle, ON_ASYNC_SOCKET_SEND, on_send, void*, on_send_context, ON_ASYNC_SOCKET_RECV, on_recv, void*, on_recv_context);
 MOCKABLE_FUNCTION(, void, async_socket_destroy, ASYNC_SOCKET_HANDLE, async_socket);
 
 MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_socket, ON_ASYNC_SOCKET_OPEN_COMPLETE, on_open_complete, void*, on_open_complete_context);
 MOCKABLE_FUNCTION(, void, async_socket_close, ASYNC_SOCKET_HANDLE, async_socket);
-MOCKABLE_FUNCTION(, ASYNC_SOCKET_SEND_SYNC_RESULT, async_socket_send_async, ASYNC_SOCKET_HANDLE, async_socket, const ASYNC_SOCKET_BUFFER*, buffers, uint32_t, buffer_count, ON_ASYNC_SOCKET_SEND_COMPLETE, on_send_complete, void*, on_send_complete_context);
-MOCKABLE_FUNCTION(, int, async_socket_receive_async, ASYNC_SOCKET_HANDLE, async_socket, ASYNC_SOCKET_BUFFER*, buffers, uint32_t, buffer_count, ON_ASYNC_SOCKET_RECEIVE_COMPLETE, on_receive_complete, void*, on_receive_complete_context);
+MOCKABLE_FUNCTION(, ASYNC_SOCKET_SEND_SYNC_RESULT, async_socket_send_async, ASYNC_SOCKET_HANDLE, async_socket, const ASYNC_SOCKET_BUFFER*, payload, uint32_t, buffer_count, ON_ASYNC_SOCKET_SEND_COMPLETE, on_send_complete, void*, on_send_complete_context);
+MOCKABLE_FUNCTION(, int, async_socket_receive_async, ASYNC_SOCKET_HANDLE, async_socket, ASYNC_SOCKET_BUFFER*, payload, uint32_t, buffer_count, ON_ASYNC_SOCKET_RECEIVE_COMPLETE, on_receive_complete, void*, on_receive_complete_context);
+MOCKABLE_FUNCTION(, int, async_socket_notify_io_async, ASYNC_SOCKET_HANDLE, async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE, io_type, ON_ASYNC_SOCKET_NOTIFY_IO_COMPLETE, on_notify_io_complete, void*, on_notify_io_complete_context);
 ```
 
 ### async_socket_create
@@ -75,17 +94,31 @@ MOCKABLE_FUNCTION(, int, async_socket_receive_async, ASYNC_SOCKET_HANDLE, async_
 MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create, EXECUTION_ENGINE_HANDLE, execution_engine, SOCKET_HANDLE, socket_handle);
 ```
 
-`async_socket_create` creates an async socket.
+`async_socket_create_with_transport` creates an async socket.
 
-**SRS_ASYNC_SOCKET_LINUX_11_001: [** `async_socket_create` shall allocate a new async socket and on success shall return a non-`NULL` handle. **]**
+**SRS_ASYNC_SOCKET_LINUX_04_001: [** `async_socket_create` shall delegate to `async_socket_create_with_transport` passing in callbacks for `on_send` and `on_recv` that implement socket read and write by calling `send` and `recv` respectively from system socket API. **]**
+
+### async_socket_create_with_transport
+
+```c
+MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create_with_transport, EXECUTION_ENGINE_HANDLE, execution_engine, SOCKET_HANDLE, socket_handle, ON_ASYNC_SOCKET_SEND, on_send, void*, on_send_context, ON_ASYNC_SOCKET_RECV, on_recv, void*, on_recv_context);
+```
+
+`async_socket_create_with_transport` creates an async socket. It allows the passing in of callback functions that implement the actual write and read on the socket via the `on_send` and `on_recv` callbacks.
+
+**SRS_ASYNC_SOCKET_LINUX_11_001: [** `async_socket_create_with_transport` shall allocate a new async socket and on success shall return a non-`NULL` handle. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_002: [** `execution_engine` shall be allowed to be `NULL`. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_003: [** If `socket_handle` is `INVALID_SOCKET`, `async_socket_create` shall fail and return `NULL`. **]**
+**SRS_ASYNC_SOCKET_LINUX_11_003: [** If `socket_handle` is `INVALID_SOCKET`, `async_socket_create_with_transport` shall fail and return `NULL`. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_005: [** `async_socket_create` shall retrieve an `COMPLETION_PORT_HANDLE` object by calling `platform_get_completion_port`. **]**
+**SRS_ASYNC_SOCKET_LINUX_04_002: [** If `on_send` is `NULL` , `async_socket_create_with_transport` shall fail and return `NULL`. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_006: [** If any error occurs, `async_socket_create` shall fail and return `NULL`. **]**
+**SRS_ASYNC_SOCKET_LINUX_04_003: [** If `on_recv` is `NULL` , `async_socket_create_with_transport` shall fail and return `NULL`. **]**
+
+**SRS_ASYNC_SOCKET_LINUX_11_005: [** `async_socket_create_with_transport` shall retrieve an `COMPLETION_PORT_HANDLE` object by calling `platform_get_completion_port`. **]**
+
+**SRS_ASYNC_SOCKET_LINUX_11_006: [** If any error occurs, `async_socket_create_with_transport` shall fail and return `NULL`. **]**
 
 ### async_socket_destroy
 
@@ -155,6 +188,16 @@ MOCKABLE_FUNCTION(, void, async_socket_close, ASYNC_SOCKET_HANDLE, async_socket)
 
 **SRS_ASYNC_SOCKET_LINUX_11_042: [** If `async_socket` is not OPEN, `async_socket_close` shall return. **]**
 
+### on_socket_send
+
+```c
+static int on_socket_send(void* context, ASYNC_SOCKET_HANDLE async_socket, const void* buf, size_t len)
+```
+
+`on_socket_send` is the default send callback used when `async_socket_create` is called. This implementation calls the system socket `send` API.
+
+**SRS_ASYNC_SOCKET_LINUX_11_052: [** `on_socket_send` shall attempt to send the data by calling `send` with the `MSG_NOSIGNAL` flag to ensure SIGPIPE is not generated on errors. **]**
+
 ### async_socket_send_async
 
 ```c
@@ -181,7 +224,7 @@ MOCKABLE_FUNCTION(, ASYNC_SOCKET_SEND_SYNC_RESULT, async_socket_send_async, ASYN
 
 **SRS_ASYNC_SOCKET_LINUX_11_051: [** If `async_socket` is not OPEN, `async_socket_send_async` shall fail and return `ASYNC_SOCKET_SEND_SYNC_ABANDONED`. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_052: [** `async_socket_send_async` shall attempt to send the data by calling `send` with the `MSG_NOSIGNAL` flag to ensure SIGPIPE is not generated on errors. **]**
+**SRS_ASYNC_SOCKET_LINUX_04_004: [** `async_socket_send_async` shall call the `on_send` callback to send the buffer. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_053: [** `async_socket_send_async` shall continue to send the data until the payload length has been sent. **]**
 
@@ -202,6 +245,16 @@ MOCKABLE_FUNCTION(, ASYNC_SOCKET_SEND_SYNC_RESULT, async_socket_send_async, ASYN
 **SRS_ASYNC_SOCKET_LINUX_11_062: [** On success, `async_socket_send_async` shall return `ASYNC_SOCKET_SEND_SYNC_OK`. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_063: [** If any error occurs, `async_socket_send_async` shall fail and return `ASYNC_SOCKET_SEND_SYNC_ERROR`. **]**
+
+### on_socket_recv
+
+```c
+static int on_socket_recv(void* context, ASYNC_SOCKET_HANDLE async_socket, void* buf, size_t len)
+```
+
+`on_socket_recv` is the default recv callback used when `async_socket_create` is called. This implementation calls the system socket `recv` API.
+
+**SRS_ASYNC_SOCKET_LINUX_04_007: [** `on_socket_recv` shall attempt to receive data by calling the system `recv` socket API. **]**
 
 ### async_socket_receive_async
 
@@ -251,13 +304,17 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
 
 **SRS_ASYNC_SOCKET_LINUX_11_080: [** If `COMPLETION_PORT_EPOLL_ACTION` is `COMPLETION_PORT_EPOLL_EPOLLRDHUP` or `COMPLETION_PORT_EPOLL_ABANDONED`, `event_complete_callback` shall do the following: **]**
 
-- **SRS_ASYNC_SOCKET_LINUX_11_081: [** `event_complete_callback` shall call either the send or recv complete callback with an `ABANDONED` flag. **]**
+- **SRS_ASYNC_SOCKET_LINUX_11_081: [** `event_complete_callback` shall call either the send or recv complete callback with an `ABANDONED` flag when the IO type is either `ASYNC_SOCKET_IO_TYPE_SEND` or `ASYNC_SOCKET_IO_TYPE_RECEIVE` respectively. **]**
+
+- **SRS_ASYNC_SOCKET_LINUX_04_008: [** `event_complete_callback` shall call the notify complete callback with an `ABANDONED` flag when the IO type is `ASYNC_SOCKET_IO_TYPE_NOTIFY`. **]**
 
 - **SRS_ASYNC_SOCKET_LINUX_11_084: [** Then `event_complete_callback` shall free the `context` memory. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_082: [** If `COMPLETION_PORT_EPOLL_ACTION` is `COMPLETION_PORT_EPOLL_EPOLLIN`, `event_complete_callback` shall do the following: **]**
 
-- **SRS_ASYNC_SOCKET_LINUX_11_083: [** `event_complete_callback` shall call `recv` with the `recv_buffer` buffer and length and do the following: **]**
+- **SRS_ASYNC_SOCKET_LINUX_04_009: [** If the IO type is `ASYNC_SOCKET_IO_TYPE_NOTIFY` then `event_complete_callback` shall call the notify complete callback with an `IN` flag. **]**
+
+- **SRS_ASYNC_SOCKET_LINUX_11_083: [** Otherwise `event_complete_callback` shall call the `on_recv` callback with the `recv_buffer` buffer and length and do the following: **]**
 
   - **SRS_ASYNC_SOCKET_LINUX_11_088: [** If the recv size < 0, then: **]**
 
@@ -275,6 +332,8 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
 
 **SRS_ASYNC_SOCKET_LINUX_11_094: [** If the events value contains `COMPLETION_PORT_EPOLL_EPOLLOUT`, `event_complete_callback` shall the following: **]**
 
+- **SRS_ASYNC_SOCKET_LINUX_04_010: [** If the IO type is `ASYNC_SOCKET_IO_TYPE_NOTIFY` then `event_complete_callback` shall call the notify complete callback with an `OUT` flag. **]**
+
 - **SRS_ASYNC_SOCKET_LINUX_11_096: [** `event_complete_callback` shall call `send` on the data in the `ASYNC_SOCKET_SEND_CONTEXT` buffer. **]**
 
 - **SRS_ASYNC_SOCKET_LINUX_11_097: [** If send returns value is < 0 `event_complete_callback` shall do the following: **]**
@@ -289,6 +348,34 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
 
 **SRS_ASYNC_SOCKET_LINUX_11_085: [** If the events value contains `COMPLETION_PORT_EPOLL_ERROR`, `event_complete_callback` shall the following: **]**
 
-- **SRS_ASYNC_SOCKET_LINUX_11_086: [** `event_complete_callback` shall call either the send or recv complete callback with an `ERROR` flag. **]**
+- **SRS_ASYNC_SOCKET_LINUX_04_011: [** If the IO type is `ASYNC_SOCKET_IO_TYPE_NOTIFY` then `event_complete_callback` shall call the notify complete callback with an `ERROR` flag. **]**
+
+- **SRS_ASYNC_SOCKET_LINUX_11_086: [** Otherwise `event_complete_callback` shall call either the send or recv complete callback with an `ERROR` flag. **]**
 
 - **SRS_ASYNC_SOCKET_LINUX_11_087: [** Then `event_complete_callback` shall and free the `io_context` memory. **]**
+
+### async_socket_notify_io_async
+
+```c
+MOCKABLE_FUNCTION(, int, async_socket_notify_io_async, ASYNC_SOCKET_HANDLE, async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE, io_type, ON_ASYNC_SOCKET_NOTIFY_IO_COMPLETE, on_notify_io_complete, void*, on_notify_io_complete_context);
+```
+
+`async_socket_notify_io_async` uses the underlying completion port mechanism to register the supplied callback (`on_notify_io_complete`) to be invoked when the IO of type signified by `io_type` occurs on the socket.
+
+**SRS_ASYNC_SOCKET_LINUX_04_012: [** If `async_socket` is `NULL`, `async_socket_notify_io_async` shall fail and return a non-zero value. **]**
+
+**SRS_ASYNC_SOCKET_LINUX_04_013: [** If `on_notify_io_complete` is `NULL`, `async_socket_notify_io_async` shall fail and return a non-zero value. **]**
+
+**SRS_ASYNC_SOCKET_LINUX_04_014: [** If `io_type` has an invalid value, then `async_socket_notify_io_async` shall fail and return a non-zero value. **]**
+
+**SRS_ASYNC_SOCKET_LINUX_04_015: [** If the async socket's current state is not `ASYNC_SOCKET_LINUX_STATE_OPEN` then `async_socket_notify_io_async` shall fail and return a non-zero value. **]**
+
+**SRS_ASYNC_SOCKET_LINUX_04_016: [** `on_notify_io_complete_context` is allowed to be `NULL`. **]**
+
+**SRS_ASYNC_SOCKET_LINUX_04_017: [** Otherwise `async_socket_notify_io_async` shall create a context for the notify where the `on_notify_io_complete` and `on_notify_io_complete_context` shall be stored. **]**
+
+**SRS_ASYNC_SOCKET_LINUX_04_018: [** Then the context shall then be added to the completion port system by calling `completion_port_add` with `EPOLLIN` if `io_type` is `ASYNC_SOCKET_NOTIFY_IO_TYPE_IN` and `EPOLLOUT` otherwise and `event_complete_callback` as the callback. **]**
+
+**SRS_ASYNC_SOCKET_LINUX_04_019: [** On success, `async_socket_notify_io_async` shall return `0`. **]**
+
+**SRS_ASYNC_SOCKET_LINUX_04_020: [** If any error occurs, `async_socket_notify_io_async` shall fail and return a non-zero value. **]**
