@@ -26,8 +26,6 @@ typedef struct CREATE_FILE_LINUX_TAG
 HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t share_mode, LPSECURITY_ATTRIBUTES security_attributes, 
                     uint32_t creation_disposition, uint32_t flags_and_attributes, HANDLE template_file)
 {
-    (void)flags_and_attributes;
-    
     CREATE_FILE_LINUX* result;
     if((full_file_name == NULL) || (full_file_name[0] == '\0'))
     {
