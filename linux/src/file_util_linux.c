@@ -32,7 +32,7 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
     if((full_file_name == NULL) || (full_file_name[0] == '\0'))
     {
         /*Codes_SRS_FILE_UTIL_LINUX_09_001: [ If the full_file_name input is either empty or NULL, file_util_open_file shall fail and return an INVALID_HANDLE_VALUE. ]*/
-        LogError("Invalid arguments to file_util_open_file: full_file_name = %s, uint32_t access = %" PRIu32 ", uint32_t share_mode = %" PRIu32 ", LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %p, uint32_t flags_and_attributes = %p, HANDLE template_file = %p",
+        LogError("Invalid arguments to file_util_open_file: full_file_name = %s, uint32_t access = %" PRIu32 ", uint32_t share_mode = %" PRIu32 ", LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %" PRIu32 ", uint32_t flags_and_attributes = %" PRIu32 ", HANDLE template_file = %p",
                     full_file_name, access, share_mode, security_attributes, creation_disposition, flags_and_attributes, template_file);
         result = INVALID_HANDLE_VALUE;
     } 
@@ -99,7 +99,7 @@ HANDLE file_util_open_file(const char* full_file_name, uint32_t access, uint32_t
             if(result->h_file == -1)
             {
                 /*Codes_SRS_FILE_UTIL_LINUX_09_008: [ If there are any failures, file_util_open_file shall fail and return INVALID_HANDLE_VALUE. ]*/
-                LogError("Failure in creating a file, full_file_name = %s, uint32_t access = %" PRIu32 ", uint32_t share_mode = %" PRIu32 ", LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %p, uint32_t flags_and_attributes = %p, HANDLE template_file = %p",
+                LogError("Failure in creating a file, full_file_name = %s, uint32_t access = %" PRIu32 ", uint32_t share_mode = %" PRIu32 ", LPSECURITY_ATTRIBUTES security_attributes = %p, uint32_t creation_disposition = %" PRIu32 ", uint32_t flags_and_attributes = %" PRIu32 ", HANDLE template_file = %p",
                     full_file_name, access, share_mode, security_attributes, creation_disposition, flags_and_attributes, template_file);
                 free(result);
                 result = INVALID_HANDLE_VALUE;
