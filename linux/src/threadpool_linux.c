@@ -111,11 +111,7 @@ static void on_timer_callback(sigval_t timer_data)
 static void internal_close(THREADPOOL* threadpool)
 {
     /* Codes_SRS_THREADPOOL_LINUX_07_026: [ Otherwise, threadpool_close shall call sm_close_begin. ]*/
-    if(sm_close_begin(threadpool->sm) != SM_EXEC_GRANTED)
-    {
-        LogError("sm_close_begin failed.");
-    }
-    else
+    if(sm_close_begin(threadpool->sm) == SM_EXEC_GRANTED)
     {
         /* Codes_SRS_THREADPOOL_LINUX_07_089: [ threadpool_close shall signal all threads threadpool is closing by calling InterlockedHL_SetAndWakeAll. ]*/
         (void)InterlockedHL_SetAndWakeAll(&threadpool->state, 1);
