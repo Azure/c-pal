@@ -10,3 +10,7 @@
 #define async_socket_notify_io_async          real_async_socket_notify_io_async
 
 #define ASYNC_SOCKET_SEND_SYNC_RESULT         real_ASYNC_SOCKET_SEND_SYNC_RESULT
+#define ASYNC_SOCKET_NOTIFY_IO_TYPE           real_ASYNC_SOCKET_NOTIFY_IO_TYPE
+#define ASYNC_SOCKET_NOTIFY_IO_RESULT         real_ASYNC_SOCKET_NOTIFY_IO_RESULT
+#define ASYNC_SOCKET_SEND_RESULT              real_ASYNC_SOCKET_SEND_RESULT
+#define ASYNC_SOCKET_OPEN_RESULT              real_ASYNC_SOCKET_OPEN_RESULT
