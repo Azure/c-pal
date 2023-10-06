@@ -37,7 +37,7 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
-    ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL));
+    ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
 
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error), "umock_c_init");
 

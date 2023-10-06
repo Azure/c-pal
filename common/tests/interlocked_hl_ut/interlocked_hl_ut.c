@@ -2,7 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include <string.h>
-#include <stdlib.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
