@@ -9,17 +9,6 @@
 
 #include "macro_utils/macro_utils.h"
 
-#include "real_gballoc_ll.h"
-static void* my_malloc(size_t size)
-{
-    return real_gballoc_ll_malloc(size);
-}
-
-static void my_free(void* s)
-{
-    real_gballoc_ll_free(s);
-}
-
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes.h"
@@ -54,7 +43,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 
 static void my_timer_destroy(TIMER_HANDLE timer)
 {
-    my_free(timer);
+    real_gballoc_hl_free(timer);
 }
 
 static SRW_LOCK_HANDLE TEST_srw_lock_create(bool do_statistics, const char* lock_name)
@@ -65,7 +54,7 @@ static SRW_LOCK_HANDLE TEST_srw_lock_create(bool do_statistics, const char* lock
     {
         STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
         STRICT_EXPECTED_CALL(timer_create_new())
-            .SetReturn((TIMER_HANDLE)my_malloc(2));
+            .SetReturn((TIMER_HANDLE)real_gballoc_hl_malloc(2));
     }
     STRICT_EXPECTED_CALL(mocked_InitializeSRWLock(IGNORED_ARG));
     result = srw_lock_create(do_statistics, lock_name);
@@ -113,8 +102,8 @@ TEST_SUITE_INITIALIZE(suite_init)
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error), "umock_c_init");
     ASSERT_ARE_EQUAL(int, 0, umocktypes_windows_register_types(), "umocktypes_windows_register_types");
 
-    REGISTER_GLOBAL_MOCK_HOOK(malloc, my_malloc);
-    REGISTER_GLOBAL_MOCK_HOOK(free, my_free);
+    REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
+
     REGISTER_GLOBAL_MOCK_HOOK(timer_destroy, my_timer_destroy);
 
     REGISTER_GLOBAL_MOCK_RETURNS(mocked_TryAcquireSRWLockExclusive, TRUE, FALSE);
@@ -122,7 +111,7 @@ TEST_SUITE_INITIALIZE(suite_init)
 
     REGISTER_UMOCK_ALIAS_TYPE(TIMER_HANDLE, void*);
     REGISTER_UMOCK_ALIAS_TYPE(PSRWLOCK, void*);
-    
+
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
@@ -154,7 +143,7 @@ TEST_FUNCTION(srw_lock_create_succeeds)
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(timer_create_new())
-        .SetReturn((TIMER_HANDLE)my_malloc(2));
+        .SetReturn((TIMER_HANDLE)real_gballoc_hl_malloc(2));
     STRICT_EXPECTED_CALL(mocked_InitializeSRWLock(IGNORED_ARG));
 
     ///act
@@ -457,7 +446,7 @@ TEST_FUNCTION(srw_lock_release_exclusive_succeeds)
     ///arrange
     SRW_LOCK_HANDLE bsdlLock = TEST_srw_lock_create(true, "test_lock");
     TEST_srw_lock_acquire_exclusive(bsdlLock, 1);
-    
+
 
     STRICT_EXPECTED_CALL(mocked_ReleaseSRWLockExclusive(IGNORED_ARG));
 
@@ -489,7 +478,7 @@ TEST_FUNCTION(srw_lock_destroy_free_used_resources)
 {
     ///arrange
     SRW_LOCK_HANDLE bsdlLock = TEST_srw_lock_create(true, "test_lock");
-    
+
     STRICT_EXPECTED_CALL(timer_destroy(IGNORED_ARG));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
