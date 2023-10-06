@@ -40,6 +40,8 @@ typedef struct WRAP_DATA_TAG
     char mem[10];
 } WRAP_DATA;
 
+#define TEST_TIMEOUT_VALUE      60000   // 60 seconds
+
 TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
@@ -192,13 +194,14 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
         ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_60_millisec, (void*)&thread_counter));
     }
 
+    LogInfo("Scheduled threads waiting for threads to complete");
+
     // assert
     do
     {
-        wait_on_address(&thread_counter, 1, UINT32_MAX);
+        wait_on_address(&thread_counter, 1, TEST_TIMEOUT_VALUE);
     } while (thread_counter != num_threads);
 
-    //ThreadAPI_Sleep(120*1000);
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
