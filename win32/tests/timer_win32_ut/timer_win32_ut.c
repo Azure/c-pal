@@ -3,18 +3,7 @@
 
 #include <stdlib.h>
 
-
 #include "macro_utils/macro_utils.h"
-
-static void* my_gballoc_malloc(size_t size)
-{
-    return malloc(size);
-}
-
-static void my_gballoc_free(void* s)
-{
-    free(s);
-}
 
 #include "testrunnerswitcher.h"
 #include "windows.h"
@@ -26,8 +15,8 @@ static void my_gballoc_free(void* s)
 #include "umock_c/umocktypes_bool.h"
 
 #define ENABLE_MOCKS
-#include "c_pal/gballoc_ll.h"
-#include "c_pal/gballoc_ll_redirect.h"
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"
 
 
     MOCKABLE_FUNCTION(, BOOLEAN, mocked_QueryPerformanceCounter, LARGE_INTEGER*, lpPerformanceCount)
@@ -36,7 +25,7 @@ static void my_gballoc_free(void* s)
 
 #undef ENABLE_MOCKS
 
-#include "real_gballoc_ll.h"
+#include "real_gballoc_hl.h"
 
 #include "c_pal/timer.h"
 
@@ -53,7 +42,7 @@ TEST_SUITE_INITIALIZE(suite_init)
 {
     int result;
 
-    ASSERT_ARE_EQUAL(int, 0, real_gballoc_ll_init(NULL));
+    ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
 
     result = umock_c_init(on_umock_c_error);
     ASSERT_ARE_EQUAL(int, 0, result, "umock_c_init");
@@ -67,8 +56,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     result = umocktypes_bool_register_types();
     ASSERT_ARE_EQUAL(int, 0, result, "umocktypes_bool_register_types failed");
 
-    REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_malloc, my_gballoc_malloc);
-    REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_free, my_gballoc_free);
+    REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
@@ -76,7 +64,7 @@ TEST_SUITE_CLEANUP(suite_cleanup)
     umock_c_deinit();
     umock_c_negative_tests_deinit();
 
-    real_gballoc_ll_deinit();
+    real_gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(init)
@@ -183,7 +171,7 @@ TEST_FUNCTION(timer_get_elapsed_success)
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_QueryPerformanceCounter(IGNORED_ARG))
         .CopyOutArgumentBuffer_lpPerformanceCount(&stop_time, sizeof(stop_time));
-    
+
     //act
     double elapsed_time = timer_get_elapsed(timer);
 
@@ -257,7 +245,7 @@ TEST_FUNCTION(g_timer_get_elapsed_in_ms_succeeds)
     ///arrange
     LARGE_INTEGER pretendFreq;
     pretendFreq.QuadPart = 1000;
-    
+
     STRICT_EXPECTED_CALL(mocked_QueryPerformanceFrequency(IGNORED_ARG))
         .CopyOutArgumentBuffer_lpFrequency(&pretendFreq, sizeof(pretendFreq));
 

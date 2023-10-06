@@ -8,16 +8,6 @@
 
 #include "testrunnerswitcher.h"
 
-static void* my_gballoc_malloc(size_t size)
-{
-    return malloc(size);
-}
-
-static void my_gballoc_free(void* ptr)
-{
-    free(ptr);
-}
-
 #define ENABLE_MOCKS
 #include "umock_c/umock_c.h"
 #include "c_pal/gballoc_hl.h"
@@ -508,7 +498,7 @@ TEST_FUNCTION(THANDLE_GET_T_with_t_not_NULL_returns_original_pointer) /*direct t
 /*returns a pointer to an array of 2 THANDLE(LL)*/
 static void builds_out_arg(THANDLE(LL)** x)
 {
-    *x = my_gballoc_malloc(sizeof(THANDLE(LL)) * 2);
+    *x = real_gballoc_hl_malloc(sizeof(THANDLE(LL)) * 2);
     ASSERT_IS_NOT_NULL(*x);
 }
 
@@ -531,7 +521,7 @@ TEST_FUNCTION(THANDLE_T_can_build_an_array)
     THANDLE_ASSIGN(LL)(&arr[0], NULL);
     THANDLE_ASSIGN(LL)(&arr[1], NULL);
 
-    my_gballoc_free((void*)arr);
+    real_gballoc_hl_free((void*)arr);
 }
 
 /*Tests_SRS_THANDLE_02_053: [ If source is NULL then THANDLE_CREATE_FROM_CONTENT_FLEX_WITH_MALLOC_FUNCTIONS shall fail and return NULL. ]*/
@@ -655,7 +645,7 @@ TEST_FUNCTION(THANDLE_CREATE_FROM_CONTENT_FLEX_calls_get_sizeof)
 {
     ///arrange
     int n = 4; /*number of elements in the flexible array*/
-    A_FLEX* source = my_gballoc_malloc(sizeof(A_FLEX) + n * sizeof(int));
+    A_FLEX* source = real_gballoc_hl_malloc(sizeof(A_FLEX) + n * sizeof(int));
     ASSERT_IS_NOT_NULL(source);
 
     source->n = 4;
@@ -678,7 +668,7 @@ TEST_FUNCTION(THANDLE_CREATE_FROM_CONTENT_FLEX_calls_get_sizeof)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
-    my_gballoc_free(source);
+    real_gballoc_hl_free(source);
     THANDLE_ASSIGN(A_FLEX)(&copy, NULL);
 }
 
@@ -688,7 +678,7 @@ TEST_FUNCTION(THANDLE_CREATE_FROM_CONTENT_FLEX_calls_get_sizeof_2)
 {
     ///arrange
     int n = 4; /*number of elements in the flexible array*/
-    A_S_FLEX* source = my_gballoc_malloc(sizeof(A_S_FLEX) + n * sizeof(int));
+    A_S_FLEX* source = real_gballoc_hl_malloc(sizeof(A_S_FLEX) + n * sizeof(int));
     ASSERT_IS_NOT_NULL(source);
 
     source->s = "abc";
@@ -716,7 +706,7 @@ TEST_FUNCTION(THANDLE_CREATE_FROM_CONTENT_FLEX_calls_get_sizeof_2)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
-    my_gballoc_free(source);
+    real_gballoc_hl_free(source);
     THANDLE_ASSIGN(A_S_FLEX)(&copy, NULL);
 }
 
