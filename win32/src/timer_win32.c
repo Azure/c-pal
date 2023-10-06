@@ -3,8 +3,8 @@
 #include "windows.h"
 
 #include "c_logging/logger.h"
-#include "c_pal/gballoc_ll.h"
-#include "c_pal/gballoc_ll_redirect.h"
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"
 
 #include "c_pal/timer.h"
 

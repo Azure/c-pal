@@ -6,24 +6,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-
-#include "real_gballoc_ll.h"
-
-static void* my_malloc(size_t size)
-{
-    return real_gballoc_ll_malloc(size);
-}
-
-static void* my_malloc_flex(size_t base, size_t nmemb, size_t size)
-{
-    return real_gballoc_ll_malloc_flex(base, nmemb, size);
-}
-
-static void my_free(void* ptr)
-{
-    real_gballoc_ll_free(ptr);
-}
-
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 #include "testrunnerswitcher.h"
 
@@ -55,11 +37,11 @@ typedef struct TEST_STRUCT_TAG
 } TEST_STRUCT;
 
 MOCK_FUNCTION_WITH_CODE(, void*, test_malloc, size_t, size)
-MOCK_FUNCTION_END(my_malloc(size))
+MOCK_FUNCTION_END(real_gballoc_hl_malloc(size))
 MOCK_FUNCTION_WITH_CODE(, void*, test_malloc_flex, size_t, base, size_t, nmemb, size_t, size)
-MOCK_FUNCTION_END(my_malloc_flex(base, nmemb, size))
+MOCK_FUNCTION_END(real_gballoc_hl_malloc_flex(base, nmemb, size))
 MOCK_FUNCTION_WITH_CODE(, void, test_free, void*, ptr)
-    my_free(ptr);
+    real_gballoc_hl_free(ptr);
 MOCK_FUNCTION_END()
 
 /* Tests_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func, malloc_flex and free_func for memory allocation and free. ]*/
@@ -75,12 +57,9 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
         REGISTER_UMOCK_ALIAS_TYPE(POS_HANDLE, void*);
 
-        REGISTER_GLOBAL_MOCK_HOOK(malloc, my_malloc);
-        REGISTER_GLOBAL_MOCK_HOOK(malloc_flex, my_malloc_flex);
-        REGISTER_GLOBAL_MOCK_HOOK(free, my_free);
-
         ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types());
 
+        REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
         REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK();
     }
 

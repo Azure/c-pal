@@ -9,16 +9,6 @@
 
 #include <winsock2.h>
 
-static void* my_gballoc_malloc(size_t size)
-{
-    return malloc(size);
-}
-
-static void my_gballoc_free(void* ptr)
-{
-    free(ptr);
-}
-
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_charptr.h"

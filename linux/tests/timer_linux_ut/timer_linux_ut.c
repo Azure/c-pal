@@ -5,23 +5,13 @@
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
-static void* my_gballoc_malloc(size_t size)
-{
-    return malloc(size);
-}
-
-static void my_gballoc_free(void* s)
-{
-    free(s);
-}
-
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
 #include "umock_c/umock_c_negative_tests.h"
 
 #define ENABLE_MOCKS
-#include "c_pal/gballoc_ll.h"
-#include "c_pal/gballoc_ll_redirect.h" // IWYU pragma: keep
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 
 
     MOCKABLE_FUNCTION(, int, mocked_clock_gettime, clockid_t, clockid, struct timespec*, tp)
@@ -29,7 +19,7 @@ static void my_gballoc_free(void* s)
 
 #undef ENABLE_MOCKS
 
-#include "real_gballoc_ll.h"
+#include "real_gballoc_hl.h"
 
 #include "c_pal/timer.h"
 
@@ -47,12 +37,11 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
-    ASSERT_ARE_EQUAL(int, 0, real_gballoc_ll_init(NULL));
+    ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
 
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error), "umock_c_init");
 
-    REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_malloc, my_gballoc_malloc);
-    REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_free, my_gballoc_free);
+    REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
 
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(malloc, NULL);
     REGISTER_GLOBAL_MOCK_RETURNS(mocked_clock_gettime, 0, -1);
@@ -65,7 +54,7 @@ TEST_SUITE_CLEANUP(suite_cleanup)
     umock_c_deinit();
     umock_c_negative_tests_deinit();
 
-    real_gballoc_ll_deinit();
+    real_gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(function_init)

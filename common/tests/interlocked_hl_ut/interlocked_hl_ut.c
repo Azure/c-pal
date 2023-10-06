@@ -2,22 +2,11 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include <string.h>
-#include <stdlib.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "umock_c/umocktypes.h"  
-
-static void* my_gballoc_malloc(size_t size)
-{
-    return malloc(size);
-}
-
-static void my_gballoc_free(void* s)
-{
-    free(s);
-}
+#include "umock_c/umocktypes.h"
 
 #include "testrunnerswitcher.h"
 
@@ -32,6 +21,7 @@ static void my_gballoc_free(void* s)
 
 #include "real_interlocked.h"
 #include "real_sync.h"
+#include "real_gballoc_hl.h"
 #include "c_pal/interlocked_hl.h"
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
@@ -161,7 +151,7 @@ TEST_FUNCTION(InterlockedHL_Add64WithCeiling_when_underflow_it_fails)
         { INT64_MIN,            INT64_MIN}
     }, *cloneOfInputValues;
 
-    cloneOfInputValues = my_gballoc_malloc(sizeof(inputValues));
+    cloneOfInputValues = real_gballoc_hl_malloc(sizeof(inputValues));
     ASSERT_IS_NOT_NULL(cloneOfInputValues);
     (void)memcpy(cloneOfInputValues, inputValues, sizeof(inputValues));
 
@@ -182,7 +172,7 @@ TEST_FUNCTION(InterlockedHL_Add64WithCeiling_when_underflow_it_fails)
     }
 
     ///cleanup
-    my_gballoc_free(cloneOfInputValues);
+    real_gballoc_hl_free(cloneOfInputValues);
 }
 
 /*Tests_SRS_INTERLOCKED_HL_02_003: [ If Addend + Value would overflow then InterlockedHL_Add64WithCeiling shall fail and return INTERLOCKED_HL_ERROR. ]*/
@@ -199,7 +189,7 @@ TEST_FUNCTION(InterlockedHL_Add64WithCeiling_when_overflow_it_fails)
         { INT64_MAX,            INT64_MAX }
     }, *cloneOfInputValues;
 
-    cloneOfInputValues = my_gballoc_malloc(sizeof(inputValues));
+    cloneOfInputValues = real_gballoc_hl_malloc(sizeof(inputValues));
     ASSERT_IS_NOT_NULL(cloneOfInputValues);
     (void)memcpy(cloneOfInputValues, inputValues, sizeof(inputValues));
 
@@ -219,7 +209,7 @@ TEST_FUNCTION(InterlockedHL_Add64WithCeiling_when_overflow_it_fails)
     }
 
     ///cleanup
-    my_gballoc_free(cloneOfInputValues);
+    real_gballoc_hl_free(cloneOfInputValues);
 }
 
 /*Tests_SRS_INTERLOCKED_HL_02_004: [ If Addend + Value would be greater than Ceiling then InterlockedHL_Add64WithCeiling shall fail and return INTERLOCKED_HL_ERROR. ]*/
@@ -240,7 +230,7 @@ TEST_FUNCTION(InterlockedHL_Add64WithCeiling_when_over_the_ceiling_it_fails)
         { 2,                    INT64_MIN + 1,          INT64_MIN },
     }, *cloneOfInputValues;
 
-    cloneOfInputValues = my_gballoc_malloc(sizeof(inputValues));
+    cloneOfInputValues = real_gballoc_hl_malloc(sizeof(inputValues));
     ASSERT_IS_NOT_NULL(cloneOfInputValues);
     (void)memcpy(cloneOfInputValues, inputValues, sizeof(inputValues));
 
@@ -260,7 +250,7 @@ TEST_FUNCTION(InterlockedHL_Add64WithCeiling_when_over_the_ceiling_it_fails)
     }
 
     ///cleanup
-    my_gballoc_free(cloneOfInputValues);
+    real_gballoc_hl_free(cloneOfInputValues);
 }
 
 /*Tests_SRS_INTERLOCKED_HL_02_005: [ Otherwise, InterlockedHL_Add64WithCeiling shall atomically write in Addend the sum of Addend and Value, succeed and return INTERLOCKED_HL_OK. ]*/
@@ -281,7 +271,7 @@ TEST_FUNCTION(InterlockedHL_Add64WithCeiling_succeeds)
         { 1,                    INT64_MIN + 1,          INT64_MIN },
     }, *cloneOfInputValues;
 
-    cloneOfInputValues = my_gballoc_malloc(sizeof(inputValues));
+    cloneOfInputValues = real_gballoc_hl_malloc(sizeof(inputValues));
     ASSERT_IS_NOT_NULL(cloneOfInputValues);
     (void)memcpy(cloneOfInputValues, inputValues, sizeof(inputValues));
 
@@ -303,7 +293,7 @@ TEST_FUNCTION(InterlockedHL_Add64WithCeiling_succeeds)
     }
 
     ///cleanup
-    my_gballoc_free(cloneOfInputValues);
+    real_gballoc_hl_free(cloneOfInputValues);
 }
 
 /* InterlockedHL_WaitForValue */
