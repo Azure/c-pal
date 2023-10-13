@@ -49,10 +49,8 @@ MU_DEFINE_ENUM(TASK_RESULT, TASK_RESULT_VALUES);
 MU_DEFINE_ENUM_STRINGS(TASK_RESULT, TASK_RESULT_VALUES)
 
 #define THREADPOOL_STATE_VALUES \
-    THREADPOOL_STATE_NOT_OPEN,  \
-    THREADPOOL_STATE_OPENING,   \
-    THREADPOOL_STATE_OPEN,      \
-    THREADPOOL_STATE_CLOSING
+    THREADPOOL_STATE_STARTED,  \
+    THREADPOOL_STATE_STOPPED
 
 MU_DEFINE_ENUM(THREADPOOL_STATE, THREADPOOL_STATE_VALUES)
 MU_DEFINE_ENUM_STRINGS(THREADPOOL_STATE, THREADPOOL_STATE_VALUES)
@@ -114,7 +112,7 @@ static void internal_close(THREADPOOL* threadpool)
     if(sm_close_begin(threadpool->sm) == SM_EXEC_GRANTED)
     {
         /* Codes_SRS_THREADPOOL_LINUX_07_089: [ threadpool_close shall signal all threads threadpool is closing by calling InterlockedHL_SetAndWakeAll. ]*/
-        (void)InterlockedHL_SetAndWakeAll(&threadpool->state, 1);
+        (void)InterlockedHL_SetAndWakeAll(&threadpool->state, THREADPOOL_STATE_STOPPED);
         for (int32_t index = 0; index < threadpool->used_thread_count; index++)
         {
             int dont_care;
@@ -199,7 +197,7 @@ static int threadpool_work_func(void* param)
                 }
             }
         /* Codes_SRS_THREADPOOL_LINUX_07_085: [ threadpool_work_func shall loop until threadpool_close or threadpool_destroy is called. ]*/
-        } while (interlocked_add(&threadpool->state, 0) != 1);
+        } while (interlocked_add(&threadpool->state, 0) != THREADPOOL_STATE_STOPPED);
     }
     return 0;
 }
@@ -379,7 +377,7 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                             }
                             else
                             {
-                                (void)interlocked_exchange(&result->state, 0);
+                                (void)interlocked_exchange(&result->state, THREADPOOL_STATE_STARTED);
                                 (void)interlocked_exchange(&result->task_count, 0);
 
                                 /* Codes_SRS_THREADPOOL_LINUX_07_010: [ insert_idx and consume_idx for the task array shall be initialized to 0. ]*/
@@ -429,6 +427,17 @@ int threadpool_open(THANDLE(THREADPOOL) threadpool)
         }
         else
         {
+            // Codes_SRS_THREADPOOL_LINUX_11_001: [ threadpool_open shall initialize internal threapool data items ]
+            for (int32_t index = 0; index < threadpool_ptr->task_array_size; index++)
+            {
+                threadpool_ptr->task_array[index].work_function = NULL;
+                threadpool_ptr->task_array[index].work_function_ctx = NULL;
+                (void)interlocked_exchange(&threadpool_ptr->task_array[index].task_state, TASK_NOT_USED);
+            }
+            (void)interlocked_exchange(&threadpool_ptr->state, THREADPOOL_STATE_STARTED);
+            (void)interlocked_exchange_64(&threadpool_ptr->insert_idx, 0);
+            (void)interlocked_exchange_64(&threadpool_ptr->consume_idx, 0);
+
             int32_t index;
             for (index = 0; index < threadpool_ptr->used_thread_count; index++)
             {
