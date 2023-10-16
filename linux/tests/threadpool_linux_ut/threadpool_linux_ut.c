@@ -47,7 +47,6 @@
 #define MIN_THREAD_COUNT 5
 #define MAX_THREAD_COUNT 10
 #define MAX_TIMER_INSTANCE_COUNT 64
-#define TEST_THREADPOOL_STATE_STOPPED   2
 
 struct itimerspec;
 struct sigevent;
@@ -125,7 +124,7 @@ static void threadpool_create_succeed_expectations(void)
     }
     STRICT_EXPECTED_CALL(srw_lock_create(false, IGNORED_ARG)).SetReturn(test_srw_lock);
     STRICT_EXPECTED_CALL(mocked_sem_init(IGNORED_ARG, 0, 0));
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(interlocked_exchange_64(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(interlocked_exchange_64(IGNORED_ARG, 0));
@@ -385,7 +384,7 @@ TEST_FUNCTION(threadpool_destroy_performs_an_implicit_close)
 
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
     STRICT_EXPECTED_CALL(sm_close_begin(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(InterlockedHL_SetAndWakeAll(IGNORED_ARG, TEST_THREADPOOL_STATE_STOPPED));
+    STRICT_EXPECTED_CALL(InterlockedHL_SetAndWakeAll(IGNORED_ARG, 1));
     for(size_t i = 0; i < MIN_THREAD_COUNT; i++)
     {
         STRICT_EXPECTED_CALL(ThreadAPI_Join(IGNORED_ARG, IGNORED_ARG));
@@ -433,11 +432,12 @@ TEST_FUNCTION(threadpool_open_succeeds)
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(sm_open_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
     for (int32_t i = 0; i < DEFAULT_TASK_ARRAY_SIZE; i++)
     {
         STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
     }
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_exchange_64(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(interlocked_exchange_64(IGNORED_ARG, 0));
 
@@ -488,7 +488,7 @@ TEST_FUNCTION(threadpool_work_func_succeeds_when_clock_gettime_fails)
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_REALTIME, IGNORED_ARG)).SetReturn(-1);
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0)).SetReturn(TEST_THREADPOOL_STATE_STOPPED);
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0)).SetReturn(1);
 
     //act
     g_saved_worker_thread_func(g_saved_worker_thread_func_context);
@@ -511,7 +511,7 @@ TEST_FUNCTION(threadpool_work_func_succeeds_when_sem_timedwait_fails)
 
     STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_REALTIME, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_sem_timedwait(IGNORED_ARG, IGNORED_ARG)).SetReturn(1);
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0)).SetReturn(TEST_THREADPOOL_STATE_STOPPED);
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0)).SetReturn(1);
 
     //act
     g_saved_worker_thread_func(g_saved_worker_thread_func_context);
@@ -553,7 +553,7 @@ TEST_FUNCTION(threadpool_work_func_succeeds)
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
     STRICT_EXPECTED_CALL(test_work_function(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0)).SetReturn(TEST_THREADPOOL_STATE_STOPPED);
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0)).SetReturn(1);
 
     //act
     g_saved_worker_thread_func(g_saved_worker_thread_func_context);
@@ -577,11 +577,12 @@ TEST_FUNCTION(threadpool_open_fails_when_threadAPI_create_fails)
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(sm_open_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
     for (int32_t i = 0; i < DEFAULT_TASK_ARRAY_SIZE; i++)
     {
         STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
     }
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(interlocked_exchange_64(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(interlocked_exchange_64(IGNORED_ARG, 0));
 
