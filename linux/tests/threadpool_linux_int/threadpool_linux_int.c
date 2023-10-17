@@ -569,4 +569,53 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
     execution_engine_dec_ref(execution_engine);
 }
 
+TEST_FUNCTION(schedule_after_close_works)
+{
+    // assert
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
+    volatile_atomic int32_t thread_counter = 0;
+
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
+
+    // Create 1 thread pool
+    LogInfo("Scheduling work item");
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter));
+
+    // assert
+    LogInfo("Waiting for task to complete");
+    do
+    {
+        (void)wait_on_address(&thread_counter, 1, UINT32_MAX);
+    } while (thread_counter != 1);
+
+    ASSERT_ARE_EQUAL(int32_t, thread_counter, 1, "Thread counter has timed out");
+    threadpool_close(threadpool);
+
+    (void)interlocked_exchange(&thread_counter, 0);
+
+    // Reopen the threadpool
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
+
+    // Create 1 thread pool
+    LogInfo("Scheduling work item");
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter));
+
+    // assert
+    LogInfo("Waiting for task to complete");
+    do
+    {
+        (void)wait_on_address(&thread_counter, 1, UINT32_MAX);
+    } while (thread_counter != 1);
+
+    ASSERT_ARE_EQUAL(int32_t, thread_counter, 1, "Thread counter has timed out");
+
+    // cleanup
+    threadpool_close(threadpool);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

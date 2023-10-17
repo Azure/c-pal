@@ -420,6 +420,7 @@ TEST_FUNCTION(threadpool_open_with_NULL_threadpool_fails)
 }
 
 /* Tests_SRS_THREADPOOL_LINUX_07_018: [ threadpool_open shall call sm_open_begin. ]*/
+// Tests_SRS_THREADPOOL_LINUX_11_001: [ threadpool_open shall initialize internal threapool data items ]
 /* Tests_SRS_THREADPOOL_LINUX_07_020: [ threadpool_open shall create number of min_thread_count threads for threadpool using ThreadAPI_Create. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_023: [ Otherwise, threadpool_open shall shall call sm_open_end with true for success. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_024: [ threadpool_open shall succeed, indicate open success to the user by calling the on_open_complete callback with THREADPOOL_OPEN_OK and return zero. ]*/
@@ -431,6 +432,15 @@ TEST_FUNCTION(threadpool_open_succeeds)
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(sm_open_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    for (int32_t i = 0; i < DEFAULT_TASK_ARRAY_SIZE; i++)
+    {
+        STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
+    }
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange_64(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_exchange_64(IGNORED_ARG, 0));
+
     for(size_t i = 0; i < MIN_THREAD_COUNT; i++)
     {
         STRICT_EXPECTED_CALL(ThreadAPI_Create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
@@ -567,6 +577,15 @@ TEST_FUNCTION(threadpool_open_fails_when_threadAPI_create_fails)
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(sm_open_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    for (int32_t i = 0; i < DEFAULT_TASK_ARRAY_SIZE; i++)
+    {
+        STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
+    }
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_exchange_64(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_exchange_64(IGNORED_ARG, 0));
+
     STRICT_EXPECTED_CALL(ThreadAPI_Create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(ThreadAPI_Create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .SetReturn(THREADAPI_ERROR);

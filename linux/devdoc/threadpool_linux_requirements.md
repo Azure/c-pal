@@ -130,6 +130,8 @@ MOCKABLE_FUNCTION(, int, threadpool_open, THANDLE(THREADPOOL), threadpool);
 
 **SRS_THREADPOOL_LINUX_07_019: [** If `sm_open_begin` indicates the open cannot be performed, `threadpool_open` shall fail and return a non-zero value. **]**
 
+**SRS_THREADPOOL_LINUX_11_001: [** `threadpool_open` shall initialize internal threapool data items **]**
+
 **SRS_THREADPOOL_LINUX_07_020: [** `threadpool_open` shall create number of `min_thread_count` threads for `threadpool` using `ThreadAPI_Create`. **]**
 
 **SRS_THREADPOOL_LINUX_07_021: [** If any error occurs, `threadpool_open` shall fail and return a non-zero value. **]**
