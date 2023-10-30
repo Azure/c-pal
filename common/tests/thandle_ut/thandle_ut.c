@@ -206,10 +206,10 @@ TEST_FUNCTION(thandle_user_create_fails_when_thandle_malloc_fails)
     ///cleanup
 }
 
-/* THANDLE_MALLOC_WITH_EXTRA_SIZE */
+/* THANDLE_MALLOC_FLEX */
 
-/*Tests_SRS_THANDLE_02_050: [ THANDLE_MALLOC_WITH_EXTRA_SIZE_WITH_MALLOC_FUNCTIONS shall allocate memory. ]*/
-/*Tests_SRS_THANDLE_02_051: [ THANDLE_MALLOC_WITH_EXTRA_SIZE_WITH_MALLOC_FUNCTIONS shall initialize the reference count to 1, store dispose and free_function succeed and return a non-NULL T*. ]*/
+/*Tests_SRS_THANDLE_02_050: [ THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS shall allocate memory. ]*/
+/*Tests_SRS_THANDLE_02_051: [ THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS shall initialize the reference count to 1, store dispose and free_function succeed and return a non-NULL T*. ]*/
 TEST_FUNCTION(thandle_flex_user_create_succeeds)
 {
     ///arrange
@@ -227,12 +227,12 @@ TEST_FUNCTION(thandle_flex_user_create_succeeds)
     THANDLE_ASSIGN(LL_FLEX)(&ll, NULL);
 }
 
-/*Tests_SRS_THANDLE_02_052: [ If allocating memory fails then THANDLE_MALLOC_WITH_EXTRA_SIZE_WITH_MALLOC_FUNCTIONS shall fail and return NULL. ]*/
+/*Tests_SRS_THANDLE_02_052: [ If allocating memory fails then THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS shall fail and return NULL. ]*/
 TEST_FUNCTION(thandle_flex_user_create_fails_when_thandle_malloc_fails)
 {
     ///arrange
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .SetReturn(NULL); /*this is THANDLE_MALLOC_WITH_EXTRA_SIZE*/
+        .SetReturn(NULL); /*this is THANDLE_MALLOC_FLEX*/
 
     ///act
     THANDLE(LL_FLEX) ll = ll_flex_create(TEST_A, TEST_S, 10);
@@ -473,7 +473,7 @@ TEST_FUNCTION(THANDLE_GET_T_with_t_NULL_returns_NULL)
     ///cleanup
 }
 
-/*Tests_SRS_THANDLE_02_024: [ THANDLE_GET_T(T) shall return the same pointer as THANDLE_MALLOC/THANDLE_MALLOC_WITH_EXTRA_SIZE returned at the handle creation time. ]*/
+/*Tests_SRS_THANDLE_02_024: [ THANDLE_GET_T(T) shall return the same pointer as THANDLE_MALLOC/THANDLE_MALLOC_FLEX returned at the handle creation time. ]*/
 TEST_FUNCTION(THANDLE_GET_T_with_t_not_NULL_returns_original_pointer) /*direct testing is not really possible (GET_T is static) but shall be inferred by the actions of _increment_a and _get_a*/
 {
     ///arrange

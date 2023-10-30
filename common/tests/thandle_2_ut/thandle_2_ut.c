@@ -251,7 +251,7 @@ TEST_FUNCTION(T_OFF_uses_malloc_when_no_function_is_specified_1)
     THANDLE_ASSIGN(T_OFF_DUMMY)(&dummy, NULL);
 }
 
-/*Tests_SRS_THANDLE_02_049: [ If no function can be found to allocate/free memory then THANDLE_MALLOC_WITH_EXTRA_SIZE_WITH_MALLOC_FUNCTIONS shall use malloc_flex and free. ]*/
+/*Tests_SRS_THANDLE_02_049: [ If no function can be found to allocate/free memory then THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS shall use malloc_flex and free. ]*/
 TEST_FUNCTION(T_OFF_uses_malloc_flex_when_no_function_is_specified_2)
 {
     ///arrange
