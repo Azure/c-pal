@@ -139,13 +139,13 @@ TEST_FUNCTION(T_ON_create_calls_var_malloc_unappy_path)
 }
 
 /*Tests_SRS_THANDLE_02_047: [ If malloc_flex_function from THANDLE_LL_TYPE_DEFINE_WITH_MALLOC_FUNCTIONS is not NULL then THANDLE_LL_TYPE_DEFINE_WITH_MALLOC_FUNCTIONS's malloc_flex_function and free_function shall be used to allocate/free memory. ]*/
-TEST_FUNCTION(T_ON_create_with_extra_size_calls_type_malloc)
+TEST_FUNCTION(T_ON_create_flex_calls_type_malloc)
 {
     ///arrange
     STRICT_EXPECTED_CALL(type_malloc_flex(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
 
     ///act
-    THANDLE(T_ON_DUMMY) dummy = T_ON_create_with_extra_size(5, "a");
+    THANDLE(T_ON_DUMMY) dummy = T_ON_create_flex(5, "a");
 
     ///assert
     ASSERT_IS_NOT_NULL(dummy);
@@ -159,13 +159,13 @@ TEST_FUNCTION(T_ON_create_with_extra_size_calls_type_malloc)
 }
 
 /*Tests_SRS_THANDLE_02_046: [ If malloc_flex_function is not NULL then malloc_flex_function and free_function shall be used to allocate memory. ]*/
-TEST_FUNCTION(T_ON_create_with_extra_size_with_malloc_functions_calls_var_malloc)
+TEST_FUNCTION(T_ON_create_flex_with_malloc_functions_calls_var_malloc)
 {
     ///arrange
     STRICT_EXPECTED_CALL(var_malloc_flex(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
 
     ///act
-    THANDLE(T_ON_DUMMY) dummy = T_ON_create_with_extra_size_with_malloc_functions(6, "ab");
+    THANDLE(T_ON_DUMMY) dummy = T_ON_create_flex_with_malloc_functions(6, "ab");
 
     ///assert
     ASSERT_IS_NOT_NULL(dummy);
@@ -184,7 +184,7 @@ TEST_FUNCTION(T_ON_create_from_content_flex_calls_type_malloc)
 {
     ///arrange
     STRICT_EXPECTED_CALL(type_malloc_flex(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
-    THANDLE(T_ON_DUMMY) origin = T_ON_create_with_extra_size(7, "abc");
+    THANDLE(T_ON_DUMMY) origin = T_ON_create_flex(7, "abc");
     ASSERT_IS_NOT_NULL(origin);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
@@ -211,7 +211,7 @@ TEST_FUNCTION(T_ON_create_from_content_flex_with_malloc_functions_calls_var_mall
 {
     ///arrange
     STRICT_EXPECTED_CALL(type_malloc_flex(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
-    THANDLE(T_ON_DUMMY) origin = T_ON_create_with_extra_size(7, "abc");
+    THANDLE(T_ON_DUMMY) origin = T_ON_create_flex(7, "abc");
     ASSERT_IS_NOT_NULL(origin);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
@@ -260,7 +260,7 @@ TEST_FUNCTION(T_OFF_uses_malloc_flex_when_no_function_is_specified_2)
 
 
     //act
-    THANDLE(T_OFF_DUMMY) dummy = T_OFF_create_with_extra_size(9, "abcde");
+    THANDLE(T_OFF_DUMMY) dummy = T_OFF_create_flex(9, "abcde");
 
     ///assert
     ASSERT_IS_NOT_NULL(dummy);

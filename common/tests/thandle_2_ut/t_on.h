@@ -26,8 +26,8 @@ T_ON will use THANDLE_LL_TYPE_DEFINE (will not use THANDLE_TYPE_DEFINE_WITH_MALL
 
     MOCKABLE_FUNCTION(, THANDLE(T_ON_DUMMY), T_ON_create, int, x);
     MOCKABLE_FUNCTION(, THANDLE(T_ON_DUMMY), T_ON_create_with_malloc_functions, int, x);
-    MOCKABLE_FUNCTION(, THANDLE(T_ON_DUMMY), T_ON_create_with_extra_size, int, x, const char*, s);
-    MOCKABLE_FUNCTION(, THANDLE(T_ON_DUMMY), T_ON_create_with_extra_size_with_malloc_functions, int, x, const char*, s);
+    MOCKABLE_FUNCTION(, THANDLE(T_ON_DUMMY), T_ON_create_flex, int, x, const char*, s);
+    MOCKABLE_FUNCTION(, THANDLE(T_ON_DUMMY), T_ON_create_flex_with_malloc_functions, int, x, const char*, s);
     MOCKABLE_FUNCTION(, THANDLE(T_ON_DUMMY), T_ON_create_from_content_flex, const T_ON_DUMMY*, origin);
     MOCKABLE_FUNCTION(, THANDLE(T_ON_DUMMY), T_ON_create_from_content_flex_with_malloc_functions, const T_ON_DUMMY*, origin);
 

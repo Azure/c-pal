@@ -145,7 +145,7 @@ static T* THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS(C)(void(*dispose)(T*), size_
 static T* THANDLE_MALLOC_FLEX(T)(void(*dispose)(T*), size_t, nmemb, size_t, size)
 ```
 
-`THANDLE_MALLOC_FLEX` return a pointer to `T`. `dispose` is a function that the `THANDLE` calls when the reference count reaches 0 in order to free the resources allocated by the user in `T`. `dispose` can be `NULL` in which case there are no user resources to be de-allocated. `T` is a type that has a flexible array. `extra_size` is the size in bytes of the flexible array.
+`THANDLE_MALLOC_FLEX` return a pointer to `T`. `dispose` is a function that the `THANDLE` calls when the reference count reaches 0 in order to free the resources allocated by the user in `T`. `dispose` can be `NULL` in which case there are no user resources to be de-allocated. `T` is a type that has a flexible array. `nmemb` and `size` determine the size in bytes of the flexible array.
 
 ### THANDLE_FREE(T)
 

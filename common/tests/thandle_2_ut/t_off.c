@@ -40,7 +40,7 @@ THANDLE(T_OFF_DUMMY) T_OFF_create_with_malloc_functions(int x)
 }
 
 /*uses global*/
-THANDLE(T_OFF_DUMMY) T_OFF_create_with_extra_size(int x, const char* s)
+THANDLE(T_OFF_DUMMY) T_OFF_create_flex(int x, const char* s)
 {
     T_OFF_DUMMY* d = THANDLE_MALLOC_FLEX(T_OFF_DUMMY)(NULL, strlen(s)+1, 1); /*uses global malloc functions*/
     if (d != NULL)
@@ -53,7 +53,7 @@ THANDLE(T_OFF_DUMMY) T_OFF_create_with_extra_size(int x, const char* s)
 }
 
 /*uses instance*/
-THANDLE(T_OFF_DUMMY) T_OFF_create_with_extra_size_with_malloc_functions(int x, const char* s)
+THANDLE(T_OFF_DUMMY) T_OFF_create_flex_with_malloc_functions(int x, const char* s)
 {
     T_OFF_DUMMY* d = THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS(T_OFF_DUMMY)(NULL, strlen(s) + 1, 1, var_malloc_flex, var_free);
     if (d != NULL)

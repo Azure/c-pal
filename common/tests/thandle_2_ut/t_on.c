@@ -40,7 +40,7 @@ THANDLE(T_ON_DUMMY) T_ON_create_with_malloc_functions(int x)
 }
 
 /*uses type defined functions*/
-THANDLE(T_ON_DUMMY) T_ON_create_with_extra_size(int x, const char* s)
+THANDLE(T_ON_DUMMY) T_ON_create_flex(int x, const char* s)
 {
     T_ON_DUMMY* d = THANDLE_MALLOC_FLEX(T_ON_DUMMY)(NULL, strlen(s) + 1, 1);
     if (d != NULL)
@@ -53,7 +53,7 @@ THANDLE(T_ON_DUMMY) T_ON_create_with_extra_size(int x, const char* s)
 }
 
 /*uses instance*/
-THANDLE(T_ON_DUMMY) T_ON_create_with_extra_size_with_malloc_functions(int x, const char* s)
+THANDLE(T_ON_DUMMY) T_ON_create_flex_with_malloc_functions(int x, const char* s)
 {
     T_ON_DUMMY* d = THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS(T_ON_DUMMY)(NULL, strlen(s) + 1, 1, var_malloc_flex, var_free);
     if (d != NULL)

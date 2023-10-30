@@ -217,8 +217,8 @@ static T* THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS(C)(void(*dispose)(T*), size_
         free_function_used = free;                                                                                                                                  \
     }                                                                                                                                                               \
                                                                                                                                                                     \
-    /*Codes_SRS_THANDLE_02_050: [ THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS shall allocate memory. ]*/                                                   \
-    THANDLE_WRAPPER_TYPE_NAME(T)* handle_impl = malloc_flex_function_used(sizeof(THANDLE_WRAPPER_TYPE_NAME(T)), nmemb, size);                                     \
+    /*Codes_SRS_THANDLE_02_050: [ THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS shall allocate memory for the THANDLE and an additional (nmemb * size) bytes. ]*/       \
+    THANDLE_WRAPPER_TYPE_NAME(T)* handle_impl = malloc_flex_function_used(sizeof(THANDLE_WRAPPER_TYPE_NAME(T)), nmemb, size);                                       \
     if (handle_impl == NULL)                                                                                                                                        \
     {                                                                                                                                                               \
         /*Codes_SRS_THANDLE_02_052: [ If allocating memory fails then THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS shall fail and return NULL. ]*/          \
