@@ -89,7 +89,7 @@ MOCKABLE_FUNCTION(, void, THANDLE_ASSIGN(T), THANDLE(T) *, t1, THANDLE(T), t2 );
 #define THANDLE_TYPE_DEFINE(T)
 ```
 
-`THANDLE_TYPE_DEFINE` introduces the implementation for the functions in `THANDLE_TYPE_DECLARE` (`THANDLE_ASSIGN`, `THANDLE_INITIALIZE`, `THANDLE_GET_T`) and three new memory management functions `THANDLE_MALLOC(T)`, `THANDLE_MALLOC_WITH_EXTRA_SIZE(T)` and `THANDLE_FREE(T)`.
+`THANDLE_TYPE_DEFINE` introduces the implementation for the functions in `THANDLE_TYPE_DECLARE` (`THANDLE_ASSIGN`, `THANDLE_INITIALIZE`, `THANDLE_GET_T`) and three new memory management functions `THANDLE_MALLOC(T)`, `THANDLE_MALLOC_FLEX(T)` and `THANDLE_FREE(T)`.
 
 ### THANDLE_MALLOC_WITH_MALLOC_FUNCTIONS(C)
 
@@ -119,33 +119,33 @@ static T* THANDLE_MALLOC(T)(void(*dispose)(T*))
 
 `THANDLE_MALLOC` behaves as `THANDLE_MALLOC_WITH_MALLOC_FUNCTIONS` when called with `malloc_function` `NULL` and with `free_function` `NULL`.
 
-### THANDLE_MALLOC_WITH_EXTRA_SIZE_WITH_MALLOC_FUNCTIONS(C)
+### THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS(C)
 
 ```c
-static T* THANDLE_MALLOC_WITH_EXTRA_SIZE_WITH_MALLOC_FUNCTIONS(C)(void(*dispose)(T*), size_t extra_size, THANDLE_LL_MALLOC_FLEX_FUNCTION_POINTER_T malloc_flex_function, THANDLE_LL_FREE_FUNCTION_POINTER_T free_function)
+static T* THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS(C)(void(*dispose)(T*), size_t, nmemb, size_t, size, THANDLE_LL_MALLOC_FLEX_FUNCTION_POINTER_T malloc_flex_function, THANDLE_LL_FREE_FUNCTION_POINTER_T free_function)
 ```
 
-`THANDLE_MALLOC_WITH_EXTRA_SIZE_WITH_MALLOC_FUNCTIONS` returns a `T*` pointer that has `extra_size` bytes allocated. This is useful for example when allocating a character string in a flexible array structure.
+`THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS` returns a `T*` pointer that has (`nmemb` * `size`) bytes allocated. This is useful for example when allocating a character string in a flexible array structure.
 
 **SRS_THANDLE_02_046: [** If `malloc_flex_function` is not `NULL` then `malloc_flex_function` and `free_function` shall be used to allocate memory. **]**
 
 **SRS_THANDLE_02_047: [** If `malloc_flex_function` from `THANDLE_LL_TYPE_DEFINE_WITH_MALLOC_FUNCTIONS` is not `NULL` then `THANDLE_LL_TYPE_DEFINE_WITH_MALLOC_FUNCTIONS`'s `malloc_flex_function` and `free_function` shall be used to allocate/free memory. **]**
 
-**SRS_THANDLE_02_049: [** If no function can be found to allocate/free memory then `THANDLE_MALLOC_WITH_EXTRA_SIZE_WITH_MALLOC_FUNCTIONS` shall use `malloc_flex` and `free`. **]**
+**SRS_THANDLE_02_049: [** If no function can be found to allocate/free memory then `THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS` shall use `malloc_flex` and `free`. **]**
 
-**SRS_THANDLE_02_050: [** `THANDLE_MALLOC_WITH_EXTRA_SIZE_WITH_MALLOC_FUNCTIONS` shall allocate memory. **]**
+**SRS_THANDLE_02_050: [** `THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS` shall allocate memory for the `THANDLE` and an additional (`nmemb` * `size`) bytes. **]**
 
-**SRS_THANDLE_02_051: [** `THANDLE_MALLOC_WITH_EXTRA_SIZE_WITH_MALLOC_FUNCTIONS` shall  initialize the reference count to 1, store `dispose` and `free_function` succeed and return a non-`NULL` `T*`. **]**
+**SRS_THANDLE_02_051: [** `THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS` shall  initialize the reference count to 1, store `dispose` and `free_function` succeed and return a non-`NULL` `T*`. **]**
 
-**SRS_THANDLE_02_052: [** If allocating memory fails then `THANDLE_MALLOC_WITH_EXTRA_SIZE_WITH_MALLOC_FUNCTIONS` shall fail and return `NULL`. **]**
+**SRS_THANDLE_02_052: [** If allocating memory fails then `THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS` shall fail and return `NULL`. **]**
 
-### THANDLE_MALLOC_WITH_EXTRA_SIZE
+### THANDLE_MALLOC_FLEX
 
 ```c
-static T* THANDLE_MALLOC_WITH_EXTRA_SIZE(T)(void(*dispose)(T*), size_t extra_size)
+static T* THANDLE_MALLOC_FLEX(T)(void(*dispose)(T*), size_t, nmemb, size_t, size)
 ```
 
-`THANDLE_MALLOC_WITH_EXTRA_SIZE` return a pointer to `T`. `dispose` is a function that the `THANDLE` calls when the reference count reaches 0 in order to free the resources allocated by the user in `T`. `dispose` can be `NULL` in which case there are no user resources to be de-allocated. `T` is a type that has a flexible array. `extra_size` is the size in bytes of the flexible array.
+`THANDLE_MALLOC_FLEX` return a pointer to `T`. `dispose` is a function that the `THANDLE` calls when the reference count reaches 0 in order to free the resources allocated by the user in `T`. `dispose` can be `NULL` in which case there are no user resources to be de-allocated. `T` is a type that has a flexible array. `nmemb` and `size` determine the size in bytes of the flexible array.
 
 ### THANDLE_FREE(T)
 
@@ -153,7 +153,7 @@ static T* THANDLE_MALLOC_WITH_EXTRA_SIZE(T)(void(*dispose)(T*), size_t extra_siz
     THANDLE_FREE(T)(T* t)
 ```
 
-`THANDLE_FREE` frees the allocated memory by `THANDLE_MALLOC` or `THANDLE_MALLOC_WITH_EXTRA_SIZE`. It is called when reference count reaches 0 after `dispose`, or it can be called from the user code to free the memory.
+`THANDLE_FREE` frees the allocated memory by `THANDLE_MALLOC` or `THANDLE_MALLOC_FLEX`. It is called when reference count reaches 0 after `dispose`, or it can be called from the user code to free the memory.
 
 **SRS_THANDLE_02_016: [** If `t` is `NULL` then `THANDLE_FREE` shall return. **]**
 
@@ -169,7 +169,7 @@ Given a previously constructed `THANDLE(T)`, `THANDLE_GET_T(T)` returns a pointe
 
 **SRS_THANDLE_02_023: [** If `t` is `NULL` then `THANDLE_GET_T(T)` shall return `NULL`. **]**
 
-**SRS_THANDLE_02_024: [** `THANDLE_GET_T(T)` shall return the same pointer as `THANDLE_MALLOC`/`THANDLE_MALLOC_WITH_EXTRA_SIZE` returned at the handle creation time. **]**
+**SRS_THANDLE_02_024: [** `THANDLE_GET_T(T)` shall return the same pointer as `THANDLE_MALLOC`/`THANDLE_MALLOC_FLEX` returned at the handle creation time. **]**
 
 ### THANDLE_CREATE_FROM_CONTENT_FLEX_WITH_MALLOC_FUNCTIONS(C)
 
