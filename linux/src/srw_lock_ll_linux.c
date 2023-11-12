@@ -9,6 +9,8 @@
 
 #include "c_pal/srw_lock_ll.h"
 
+MU_DEFINE_ENUM_STRINGS(SRW_LOCK_LL_TRY_ACQUIRE_RESULT, SRW_LOCK_LL_TRY_ACQUIRE_RESULT_VALUES)
+
 int srw_lock_ll_init(SRW_LOCK_LL* srw_lock_ll)
 {
     int result;
