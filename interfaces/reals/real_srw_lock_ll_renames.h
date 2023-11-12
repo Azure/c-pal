@@ -9,3 +9,5 @@
 #define srw_lock_ll_acquire_shared real_srw_lock_ll_acquire_shared
 #define srw_lock_ll_try_acquire_shared real_srw_lock_ll_try_acquire_shared
 #define srw_lock_ll_release_shared real_srw_lock_ll_release_shared
+
+#define SRW_LOCK_LL_TRY_ACQUIRE_RESULT real_SRW_LOCK_LL_TRY_ACQUIRE_RESULT
