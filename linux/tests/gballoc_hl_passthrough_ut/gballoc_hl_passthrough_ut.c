@@ -436,8 +436,6 @@ TEST_FUNCTION(gballoc_hl_size_performs_lazy_init_and_returns_the_result_of_gball
     gballoc_ll_deinit();
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-
     ///act
     size_t size = gballoc_hl_size(ptr);
 
@@ -453,12 +451,11 @@ TEST_FUNCTION(gballoc_hl_size_performs_lazy_init_and_returns_the_result_of_gball
 TEST_FUNCTION(when_lazy_init_fails_gballoc_hl_size_fails)
 {
     ///arrange
-    TEST_gballoc_hl_init();
-    void* ptr = gballoc_hl_malloc(3);
+    ASSERT_ARE_EQUAL(int, 0, gballoc_ll_init(NULL));
+    void* ptr = gballoc_ll_malloc(3);
     ASSERT_IS_NOT_NULL(ptr);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(gballoc_ll_size(IGNORED_ARG));
 
     ///act
@@ -470,7 +467,7 @@ TEST_FUNCTION(when_lazy_init_fails_gballoc_hl_size_fails)
 
     ///clean
     gballoc_hl_free(ptr);
-    TEST_gballoc_hl_deinit();
+    gballoc_ll_deinit();
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
