@@ -11,6 +11,7 @@
 #define gballoc_hl_realloc_2                     real_gballoc_hl_realloc_2
 #define gballoc_hl_realloc_flex                  real_gballoc_hl_realloc_flex
 #define gballoc_hl_free                          real_gballoc_hl_free
+#define gballoc_hl_size                          real_gballoc_hl_size
 #define gballoc_hl_reset_counters                real_gballoc_hl_reset_counters
 #define gballoc_hl_get_malloc_latency_buckets    real_gballoc_hl_get_malloc_latency_buckets
 #define gballoc_hl_get_realloc_latency_buckets   real_gballoc_hl_get_realloc_latency_buckets

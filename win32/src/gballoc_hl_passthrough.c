@@ -143,7 +143,6 @@ void gballoc_hl_free(void* ptr)
     gballoc_ll_free(ptr);
 }
 
-
 void* gballoc_hl_calloc(size_t nmemb, size_t size)
 {
     void* result;
@@ -320,4 +319,23 @@ void gballoc_hl_print_stats()
 {
     /* Codes_SRS_GBALLOC_HL_PASSTHROUGH_01_001: [ gballoc_hl_print_stats shall call into gballoc_ll_print_stats to print the memory allocator statistics. ]*/
     gballoc_ll_print_stats();
+}
+
+size_t gballoc_hl_size(void* ptr)
+{
+    size_t result;
+
+    if (interlocked_add(&g_lazy, 0) == LAZY_INIT_NOT_DONE)
+    {
+        /* Codes_SRS_GBALLOC_HL_PASSTHROUGH_01_002: [ If the module was not initialized, gballoc_hl_size shall return 0. ]*/
+        LogError("Not initialized");
+        result = 0;
+    }
+    else
+    {
+        /* Codes_SRS_GBALLOC_HL_PASSTHROUGH_01_003: [ Otherwise, gballoc_hl_size shall call gballoc_ll_size with ptr as argument and return the result of gballoc_ll_size. ]*/
+        result = gballoc_ll_size(ptr);
+    }
+
+    return result;
 }

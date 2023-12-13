@@ -50,6 +50,8 @@ extern "C" {
     MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc_flex, void*, ptr, size_t, base, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void, gballoc_hl_free, void*, ptr);
 
+    MOCKABLE_FUNCTION(, size_t, gballoc_hl_size, void*, ptr);
+
     MOCKABLE_FUNCTION(, void, gballoc_hl_reset_counters);
 
     MOCKABLE_FUNCTION(, int, gballoc_hl_get_malloc_latency_buckets, GBALLOC_LATENCY_BUCKETS*, latency_buckets_out);
