@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>              // for memset, memcmp
-
+#include <malloc.h>
 
 static void* stdlib_malloc(size_t size)
 {
@@ -25,6 +25,11 @@ static void* stdlib_realloc(void* p, size_t size)
 static void stdlib_free(void* ptr)
 {
     free(ptr);
+}
+
+static size_t stdlib_size(void* ptr)
+{
+    return malloc_usable_size(ptr);
 }
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
@@ -55,6 +60,7 @@ TEST_SUITE_INITIALIZE(init_suite)
     REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_realloc, stdlib_realloc);
     REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_calloc, stdlib_calloc);
     REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_free, stdlib_free);
+    REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_size, stdlib_size);
 }
 
 TEST_SUITE_CLEANUP(TestClassCleanup)
@@ -421,6 +427,52 @@ TEST_FUNCTION(gballoc_hl_get_free_latency_buckets_zeroes)
     ASSERT_ARE_EQUAL(int, 0, memcmp(&actual, &expected, sizeof(actual)));
 
     ///clean
+    gballoc_hl_deinit();
+}
+
+/* gballoc_hl_size */
+
+/* Tests_SRS_GBALLOC_HL_PASSTHROUGH_01_002: [ If the module was not initialized, gballoc_hl_size shall return 0. ]*/
+TEST_FUNCTION(when_module_is_not_initialized_gballoc_hl_size_fails_and_returns_0)
+{
+    ///arrange
+    ASSERT_ARE_EQUAL(int, 0, gballoc_ll_init(NULL));
+    void* ptr = gballoc_ll_malloc(3);
+    ASSERT_IS_NOT_NULL(ptr);
+    gballoc_ll_deinit();
+    umock_c_reset_all_calls();
+
+    ///act
+    size_t size = gballoc_hl_size(ptr);
+
+    ///assert
+    ASSERT_ARE_EQUAL(size_t, 0, size);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_ll_free(ptr);
+}
+
+/* Tests_SRS_GBALLOC_HL_PASSTHROUGH_01_003: [ Otherwise, gballoc_hl_size shall call gballoc_ll_size with ptr as argument and return the result of gballoc_ll_size. ]*/
+TEST_FUNCTION(gballoc_hl_size_calls_the_underlying_gballoc_ll_size)
+{
+    ///arrange
+    ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
+    void* ptr = gballoc_hl_malloc(3);
+    ASSERT_IS_NOT_NULL(ptr);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(gballoc_ll_size(IGNORED_ARG));
+
+    ///act
+    size_t size = gballoc_hl_size(ptr);
+
+    ///assert
+    ASSERT_ARE_EQUAL(size_t, malloc_usable_size(ptr), size);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_hl_free(ptr);
     gballoc_hl_deinit();
 }
 

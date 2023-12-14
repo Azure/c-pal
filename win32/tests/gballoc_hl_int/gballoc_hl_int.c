@@ -236,4 +236,20 @@ TEST_FUNCTION(gballoc_hl_calloc_works)
     gballoc_hl_free(ptr);
 }
 
+TEST_FUNCTION(gballoc_hl_size_returns_the_size_of_the_allocated_block)
+{
+    ///arrange
+    unsigned char* ptr = gballoc_hl_malloc(1);
+    ASSERT_IS_NOT_NULL(ptr);
+
+    ///act 
+    size_t size = gballoc_hl_size(ptr);
+
+    ///assert - doesn't crash
+    ASSERT_ARE_EQUAL(size_t, 1, size);
+
+    ///clean
+    gballoc_hl_free(ptr);
+}
+
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

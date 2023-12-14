@@ -239,12 +239,36 @@ TEST_FUNCTION(gballoc_free_when_not_initialized_returns)
 
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
 
-
     // act
     gballoc_hl_free(ptr);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/* gballoc_hl_size */
+
+/* Tests_SRS_GBALLOC_HL_METRICS_01_074: [ If the module was not initialized, gballoc_hl_size shall return 0. ]*/
+TEST_FUNCTION(gballoc_hl_size_when_not_initialized_returns_0)
+{
+    // arrange
+    void* ptr;
+    size_t size;
+    STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
+    (void)gballoc_hl_init(NULL, NULL);
+    ptr = gballoc_hl_calloc(3, 4);
+    gballoc_hl_free(ptr);
+    gballoc_hl_deinit();
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+
+    // act
+    size = gballoc_hl_size(ptr);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(size_t, 0, size);
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

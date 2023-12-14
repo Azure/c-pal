@@ -43,6 +43,7 @@ gballoc_hl_passthrough is a module that delegates all call of its APIs to the on
     MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc_2, void*, ptr, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc_flex, void*, ptr, size_t, base, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void, gballoc_hl_free, void*, ptr);
+    MOCKABLE_FUNCTION(, size_t, gballoc_hl_size, void*, ptr);
 
     MOCKABLE_FUNCTION(, void, gballoc_hl_reset_counters);
 
@@ -147,6 +148,18 @@ MOCKABLE_FUNCTION(, void, gballoc_hl_free, void*, ptr);
 `gballoc_hl_free` calls `gballoc_ll_free(ptr)`.
 
 **SRS_GBALLOC_HL_PASSTHROUGH_02_006: [** `gballoc_hl_free` shall call `gballoc_ll_free(ptr)`. **]**
+
+### gballoc_hl_size
+
+```c
+MOCKABLE_FUNCTION(, size_t, gballoc_hl_size, void*, ptr);
+```
+
+`gballoc_hl_size` gets the size of the allocated block at `ptr`.
+
+**SRS_GBALLOC_HL_PASSTHROUGH_01_002: [**  If the module was not initialized, `gballoc_hl_size` shall return 0. **]**
+
+**SRS_GBALLOC_HL_PASSTHROUGH_01_003: [** Otherwise, `gballoc_hl_size` shall call `gballoc_ll_size` with `ptr` as argument and return the result of `gballoc_ll_size`. **]**
 
 ### gballoc_hl_calloc
 ```c

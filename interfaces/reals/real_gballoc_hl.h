@@ -25,6 +25,7 @@
         gballoc_hl_realloc_2                     ,\
         gballoc_hl_realloc_flex                  ,\
         gballoc_hl_free                          ,\
+        gballoc_hl_size                          ,\
         gballoc_hl_reset_counters                ,\
         gballoc_hl_get_malloc_latency_buckets    ,\
         gballoc_hl_get_realloc_latency_buckets   ,\
@@ -50,6 +51,7 @@ extern "C" {
     void* real_gballoc_hl_realloc_2(void* ptr, size_t nmemb, size_t size);
     void* real_gballoc_hl_realloc_flex(void* ptr, size_t base, size_t nmemb, size_t size);
     void real_gballoc_hl_free(void* ptr);
+    size_t real_gballoc_hl_size(void* ptr);
 
     void real_gballoc_hl_reset_counters(void);
 
