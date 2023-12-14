@@ -27,6 +27,11 @@ static void stdlib_free(void* ptr)
     free(ptr);
 }
 
+static void stdlib_size(void* ptr)
+{
+    malloc_usable_size(ptr);
+}
+
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 #include "testrunnerswitcher.h"
 
@@ -55,6 +60,7 @@ TEST_SUITE_INITIALIZE(init_suite)
     REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_realloc, stdlib_realloc);
     REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_calloc, stdlib_calloc);
     REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_free, stdlib_free);
+    REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_size, stdlib_size);
 }
 
 TEST_SUITE_CLEANUP(TestClassCleanup)
