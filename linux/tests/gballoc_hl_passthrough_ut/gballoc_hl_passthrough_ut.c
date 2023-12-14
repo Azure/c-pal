@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>              // for memset, memcmp
-
+#include <malloc.h>
 
 static void* stdlib_malloc(size_t size)
 {
