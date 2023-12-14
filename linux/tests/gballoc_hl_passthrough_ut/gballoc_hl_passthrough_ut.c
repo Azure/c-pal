@@ -27,9 +27,9 @@ static void stdlib_free(void* ptr)
     free(ptr);
 }
 
-static void stdlib_size(void* ptr)
+static size_t stdlib_size(void* ptr)
 {
-    malloc_usable_size(ptr);
+    return malloc_usable_size(ptr);
 }
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
