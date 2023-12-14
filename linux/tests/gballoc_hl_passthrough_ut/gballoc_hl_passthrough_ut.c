@@ -468,7 +468,7 @@ TEST_FUNCTION(gballoc_hl_size_calls_the_underlying_gballoc_ll_size)
     size_t size = gballoc_hl_size(ptr);
 
     ///assert
-    ASSERT_ARE_EQUAL(size_t, 3, size);
+    ASSERT_ARE_EQUAL(size_t, malloc_usable_size(ptr), size);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
