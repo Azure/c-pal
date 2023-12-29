@@ -30,12 +30,14 @@ MU_DEFINE_ENUM(SM_RESULT, SM_RESULT_VALUES);
 
 typedef void(*ON_SM_CLOSING_COMPLETE_CALLBACK)(void* context);
 typedef void(*ON_SM_CLOSING_WHILE_OPENING_CALLBACK)(void* context);
+typedef void(*ON_ERROR_CALLBACK)(void* context, bool is_opening);
 
 MOCKABLE_FUNCTION(, SM_HANDLE, sm_create, const char*, name);
 MOCKABLE_FUNCTION(, void, sm_destroy, SM_HANDLE, sm);
 
 MOCKABLE_FUNCTION(, SM_RESULT, sm_open_begin, SM_HANDLE, sm);
 MOCKABLE_FUNCTION(, void, sm_open_end, SM_HANDLE, sm, bool, success);
+MOCKABLE_FUNCTION(, SM_RESULT, sm_on_open_complete, SM_HANDLE, sm);
 
 MOCKABLE_FUNCTION(, SM_RESULT, sm_close_begin, SM_HANDLE, sm);
 MOCKABLE_FUNCTION(, SM_RESULT, sm_close_begin_with_cb, SM_HANDLE, sm, ON_SM_CLOSING_COMPLETE_CALLBACK, callback, void*, callback_context, ON_SM_CLOSING_WHILE_OPENING_CALLBACK, close_while_opening_callback, void*, close_while_opening_context);
@@ -48,6 +50,7 @@ MOCKABLE_FUNCTION(, SM_RESULT, sm_barrier_begin, SM_HANDLE, sm);
 MOCKABLE_FUNCTION(, void, sm_barrier_end, SM_HANDLE, sm);
 
 MOCKABLE_FUNCTION(, void, sm_fault, SM_HANDLE, sm);
+MOCKABLE_FUNCTION(, void, sm_on_error, SM_HANDLE, sm, ON_ERROR_CALLBACK, on_error_callback, void*, on_error_ctx);
 
 #ifdef __cplusplus
 }

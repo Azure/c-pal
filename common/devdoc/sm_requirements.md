@@ -99,12 +99,14 @@ MU_DEFINE_ENUM(SM_RESULT, SM_RESULT_VALUES);
 
 typedef void(*ON_SM_CLOSING_COMPLETE_CALLBACK)(void* context);
 typedef void(*ON_SM_CLOSING_WHILE_OPENING_CALLBACK)(void* context);
+typedef void(*ON_ERROR_CALLBACK)(void* context, bool is_opening);
 
 MOCKABLE_FUNCTION(, SM_HANDLE, sm_create, const char*, name);
 MOCKABLE_FUNCTION(, void, sm_destroy, SM_HANDLE, sm);
 
 MOCKABLE_FUNCTION(, SM_RESULT, sm_open_begin, SM_HANDLE, sm);
 MOCKABLE_FUNCTION(, void, sm_open_end, SM_HANDLE, sm, bool, success);
+MOCKABLE_FUNCTION(, SM_RESULT, sm_on_open_complete, SM_HANDLE, sm);
 
 MOCKABLE_FUNCTION(, SM_RESULT, sm_close_begin, SM_HANDLE, sm);
 MOCKABLE_FUNCTION(, SM_RESULT, sm_close_begin_with_cb, SM_HANDLE, sm, ON_SM_CLOSING_COMPLETE_CALLBACK, callback, void*, callback_context, ON_SM_CLOSING_WHILE_OPENING_CALLBACK, close_while_opening_callback, void*, close_while_opening_context);
@@ -117,6 +119,7 @@ MOCKABLE_FUNCTION(, SM_RESULT, sm_barrier_begin, SM_HANDLE, sm);
 MOCKABLE_FUNCTION(, void, sm_barrier_end, SM_HANDLE, sm);
 
 MOCKABLE_FUNCTION(, void, sm_fault, SM_HANDLE, sm);
+MOCKABLE_FUNCTION(, void, sm_on_error, SM_HANDLE, sm, ON_ERROR_CALLBACK, on_error_callback, void*, on_error_ctx);
 ```
 
 ### sm_create
@@ -182,6 +185,20 @@ MOCKABLE_FUNCTION(, void, sm_open_end, SM_HANDLE, sm, bool, success);
 **SRS_SM_02_074: [** If `success` is `true` then `sm_open_end` shall switch the state to `SM_OPENED`. **]**
 
 **SRS_SM_02_075: [** If `success` is `false` then `sm_open_end` shall switch the state to `SM_CREATED`. **]**
+
+### sm_on_open_complete
+
+```c
+MOCKABLE_FUNCTION(, SM_RESULT, sm_on_open_complete, SM_HANDLE, sm);
+```
+
+`sm_on_open_complete` informs the user's that calling on_open_complete is allowed.
+
+If `sm` is `NULL` then `sm_on_open_complete` shall fail and return `SM_ERROR`.
+
+If the state is not `SM_OPENING` then `sm_on_open_complete` shall return `SM_EXEC_REFUSED`
+
+otherwise `sm_on_open_complete` shall return `SM_EXEC_GRANTED`.
 
 ### sm_close_begin_internal
 
@@ -367,3 +384,19 @@ MOCKABLE_FUNCTION(, void, sm_fault, SM_HANDLE, sm);
 **SRS_SM_42_004: [** If `sm` is `NULL` then `sm_fault` shall return. **]**
 
 **SRS_SM_42_007: [** `sm_fault` shall set `SM_FAULTED_BIT` to 1. **]**
+
+### sm_on_error
+
+```c
+MOCKABLE_FUNCTION(, void, sm_on_error, SM_HANDLE, sm, ON_ERROR_CALLBACK, on_error_callback, void*, on_error_ctx);
+```
+
+`sm_on_error` informs the user's that the call to sm_on_error is done in the opening state.
+
+If `sm` is `NULL` then `sm_on_error` shall return.
+
+If `on_error_callback` is `NULL` then `sm_on_error` shall return.
+
+`sm_on_error` shall set `SM_FAULTED_BIT` to 1.
+
+`sm_on_error` shall call the `on_error_callback`
