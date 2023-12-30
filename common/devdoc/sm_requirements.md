@@ -182,6 +182,8 @@ MOCKABLE_FUNCTION(, void, sm_open_end, SM_HANDLE, sm, bool, success);
 
 **SRS_SM_02_041: [** If state is not `SM_OPENING` then `sm_open_end` shall return. **]**
 
+If `SM_FAULTED_BIT` is 1 then `sm_open_end` shall return.
+
 **SRS_SM_02_074: [** If `success` is `true` then `sm_open_end` shall switch the state to `SM_OPENED`. **]**
 
 **SRS_SM_02_075: [** If `success` is `false` then `sm_open_end` shall switch the state to `SM_CREATED`. **]**
@@ -192,7 +194,7 @@ MOCKABLE_FUNCTION(, void, sm_open_end, SM_HANDLE, sm, bool, success);
 MOCKABLE_FUNCTION(, SM_RESULT, sm_on_open_complete, SM_HANDLE, sm);
 ```
 
-`sm_on_open_complete` informs the user's that calling on_open_complete is allowed.
+`sm_on_open_complete` informs the user that calling on_open_complete is allowed.
 
 If `sm` is `NULL` then `sm_on_open_complete` shall fail and return `SM_ERROR`.
 
@@ -391,12 +393,16 @@ MOCKABLE_FUNCTION(, void, sm_fault, SM_HANDLE, sm);
 MOCKABLE_FUNCTION(, void, sm_on_error, SM_HANDLE, sm, ON_ERROR_CALLBACK, on_error_callback, void*, on_error_ctx);
 ```
 
-`sm_on_error` informs the user's that the call to sm_on_error is done in the opening state.
+`sm_on_error` informs the user that the call to sm_on_error is done in the opening state.
 
 If `sm` is `NULL` then `sm_on_error` shall return.
 
 If `on_error_callback` is `NULL` then `sm_on_error` shall return.
 
+`sm_on_error` shall increment the non_barrier_call_count.
+
 `sm_on_error` shall set `SM_FAULTED_BIT` to 1.
 
-`sm_on_error` shall call the `on_error_callback`
+`sm_on_error` shall call the `on_error_callback` with whether it is in the opening state.
+
+`sm_on_error` shall decrement the non_barrier_call_count.
