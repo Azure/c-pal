@@ -399,6 +399,12 @@ If `sm` is `NULL` then `sm_on_error` shall return.
 
 If `on_error_callback` is `NULL` then `sm_on_error` shall return.
 
+If `state` is not `SM_OPENED` and not `SM_OPENING` then `sm_on_error` shall return
+
+If `SM_CLOSE_BIT` is 1 then `sm_on_error` shall return.
+
+If `SM_FAULTED_BIT` is 1 then `sm_on_error` shall return
+
 `sm_on_error` shall increment the non_barrier_call_count.
 
 `sm_on_error` shall set `SM_FAULTED_BIT` to 1.
