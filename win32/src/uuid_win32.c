@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#include <stdbool.h>
+
 #include "rpc.h"
 
 #include "macro_utils/macro_utils.h"
@@ -125,6 +127,48 @@ int GUID_from_uuid(GUID* destination, const UUID_T source)
             (source[7]);
         (void)memcpy(destination->Data4, source + 8, 8);
         result = 0;
+    }
+    return result;
+}
+
+bool is_uuid_nil(const UUID_T uuid_value)
+{
+    bool result;
+    // Codes_SRS_UUID_WIN32_11_001: [ if uuid_value is NULL then is_uuid_nil shall fail and return false. ]
+    if (uuid_value == NULL)
+    {
+        LogError("invalid argument UUID_T uuid_value=%p", uuid_value);
+        result = false;
+    }
+    else
+    {
+        if (
+            uuid_value[0] == 0 &&
+            uuid_value[1] == 0 &&
+            uuid_value[2] == 0 &&
+            uuid_value[3] == 0 &&
+            uuid_value[4] == 0 &&
+            uuid_value[5] == 0 &&
+            uuid_value[6] == 0 &&
+            uuid_value[7] == 0 &&
+            uuid_value[8] == 0 &&
+            uuid_value[9] == 0 &&
+            uuid_value[10] == 0 &&
+            uuid_value[11] == 0 &&
+            uuid_value[12] == 0 &&
+            uuid_value[13] == 0 &&
+            uuid_value[14] == 0 &&
+            uuid_value[15] == 0
+            )
+        {
+            // Codes_SRS_UUID_WIN32_11_002: [ If all the values of is_uuid_nil are 0 then is_uuid_nil shall return true. ]
+            result = true;
+        }
+        else
+        {
+            // Codes_SRS_UUID_WIN32_11_003: [ If any the values of is_uuid_nil are not 0 then is_uuid_nil shall return false. ]
+            result = false;
+        }
     }
     return result;
 }

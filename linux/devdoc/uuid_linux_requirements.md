@@ -1,6 +1,7 @@
 # uuid requirements
 
 ## Overview
+
 The uuid module generates unique IDs.
 
 ## References
@@ -8,10 +9,12 @@ The uuid module generates unique IDs.
 [RFC 4122](https://datatracker.ietf.org/doc/html/rfc4122)
 
 ## Exposed API
+
 ```C
 
 typedef unsigned char UUID_T[16]; /*introduces UUID_T as "array of 16 bytes"*/
 MOCKABLE_FUNCTION(, int, uuid_produce, UUID_T, destination);
+MOCKABLE_FUNCTION(, bool, is_uuid_nil, const UUID_T, uuid_value);
 
 /* These 2 strings can be conveniently used directly in printf-like statements
   Notice that PRI_UUID has to be used like any other print format specifier, meaning it
@@ -28,10 +31,10 @@ MOCKABLE_FUNCTION(, int, uuid_produce, UUID_T, destination);
     ((uuid) == NULL) ? 0 : (uuid)[4], ((uuid) == NULL) ? 0 : (uuid)[5], ((uuid) == NULL) ? 0 : (uuid)[6], ((uuid) == NULL) ? 0 : (uuid)[7], \
     ((uuid) == NULL) ? 0 : (uuid)[8], ((uuid) == NULL) ? 0 : (uuid)[9], ((uuid) == NULL) ? 0 : (uuid)[10], ((uuid) == NULL) ? 0 : (uuid)[11], \
     ((uuid) == NULL) ? 0 : (uuid)[12], ((uuid) == NULL) ? 0 : (uuid)[13], ((uuid) == NULL) ? 0 : (uuid)[14], ((uuid) == NULL) ? 0 : (uuid)[15] \
-
-
 ```
-###  uuid_produce
+
+### uuid_produce
+
 ```C
 MOCKABLE_FUNCTION(, int, uuid_produce, UUID_T, destination);
 ```
@@ -43,3 +46,17 @@ MOCKABLE_FUNCTION(, int, uuid_produce, UUID_T, destination);
 **SRS_UUID_LINUX_02_002: [** `uuid_produce` shall call `uuid_generate` to generate a `UUID`. **]**
 
 **SRS_UUID_LINUX_02_004: [** `uuid_produce` shall succeed and return 0. **]**
+
+### is_uuid_nil
+
+```C
+MOCKABLE_FUNCTION(, bool, is_uuid_nil, const UUID_T, uuid_value);
+```
+
+`is_uuid_nil` determined if the specified uuid `uuid_value` is `NULL`.
+
+**SRS_UUID_LINUX_11_001: [** if `uuid_value` is `NULL` then `is_uuid_nil` shall fail and return `false`. **]**
+
+**SRS_UUID_LINUX_11_002: [** If all the values of `is_uuid_nil` are `0` then `is_uuid_nil` shall return `true`. **]**
+
+**SRS_UUID_LINUX_11_003: [** If any the values of `is_uuid_nil` are not `0` then `is_uuid_nil` shall return `false`. **]**

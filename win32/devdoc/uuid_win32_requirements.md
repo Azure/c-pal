@@ -12,6 +12,7 @@ The uuid module generates unique IDs.
 ```c
 typedef unsigned char UUID_T[16]; /*introduces UUID_T as "array of 16 bytes"*/
     MOCKABLE_FUNCTION(, int, uuid_produce, UUID_T, destination);
+    MOCKABLE_FUNCTION(, bool, is_uuid_nil, const UUID_T, uuid_value);
 
 #ifdef WIN32 /*some functions only exists in Windows realm*/
     MOCKABLE_FUNCTION(, int, uuid_from_GUID, UUID_T, destination, const GUID*, source);
@@ -76,3 +77,17 @@ MOCKABLE_FUNCTION(, int, uuid_from_GUID, UUID_T, destination, const GUID*, sourc
 **SRS_UUID_WIN32_02_010: [** If `source` is `NULL` then `GUID_from_uuid` shall fail and return a non-zero value. **]**
 
 **SRS_UUID_WIN32_02_011: [** `GUID_from_uuid` shall convert `UUID_T` to `GUID`, succeed and return 0. **]**
+
+### is_uuid_nil
+
+```C
+MOCKABLE_FUNCTION(, bool, is_uuid_nil, const UUID_T, uuid_value);
+```
+
+`is_uuid_nil` determined if the specified uuid `uuid_value` is `NULL`.
+
+**SRS_UUID_WIN32_11_001: [** if `uuid_value` is `NULL` then `is_uuid_nil` shall fail and return `false`. **]**
+
+**SRS_UUID_WIN32_11_002: [** If all the values of `is_uuid_nil` are `0` then `is_uuid_nil` shall return `true`. **]**
+
+**SRS_UUID_WIN32_11_003: [** If any the values of `is_uuid_nil` are not `0` then `is_uuid_nil` shall return `false`. **]**

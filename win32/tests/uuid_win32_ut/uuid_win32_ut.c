@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "rpc.h"
 
@@ -137,7 +138,6 @@ TEST_FUNCTION(uuid_produce_succeeds_1) /*when it returns default RPC_S_OK*/
 
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
-
 
 /*Tests_SRS_UUID_WIN32_02_002: [ uuid_produce shall call UuidCreate to generate a UUID. ]*/
 /*Tests_SRS_UUID_WIN32_02_003: [ uuid_produce shall copy the generated UUID's bytes in destination. ]*/
@@ -318,7 +318,58 @@ TEST_FUNCTION(GUID_from_uuid_succeeds)
     ASSERT_IS_TRUE(TEST_DATA_3 == destination.Data3);
     ASSERT_IS_TRUE(0 == memcmp(source+8, destination.Data4, 8));
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
 
+// is_uuid_nil
+
+// Tests_SRS_UUID_WIN32_11_001: [ if uuid_value is NULL then is_uuid_nil shall fail and return false. ]
+TEST_FUNCTION(is_uuid_nil_uuid_is_NULL)
+{
+    ///arrange
+
+    ///act
+    bool result = is_uuid_nil(NULL);
+
+    ///assert
+    ASSERT_IS_FALSE(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+// Tests_SRS_UUID_WIN32_11_002: [ If all the values of is_uuid_nil are 0 then is_uuid_nil shall return true. ]
+TEST_FUNCTION(is_uuid_nil_on_valid_uuid)
+{
+    ///arrange
+    UUID_T valid_uuid = {
+        ((TEST_DATA_1 >> 24) & 0xFF),
+        ((TEST_DATA_1 >> 16) & 0xFF),
+        ((TEST_DATA_1 >> 8) & 0xFF),
+        ((TEST_DATA_1) & 0xFF),
+        ((TEST_DATA_2 >> 8) & 0xFF),
+        ((TEST_DATA_2) & 0xFF),
+        ((TEST_DATA_3 >> 8) & 0xFF),
+        ((TEST_DATA_3) & 0xFF),
+        TEST_DATA_4_0, TEST_DATA_4_1, TEST_DATA_4_2, TEST_DATA_4_3, TEST_DATA_4_4, TEST_DATA_4_5, TEST_DATA_4_6, TEST_DATA_4_7 };
+
+    ///act
+    bool result = is_uuid_nil(valid_uuid);
+
+    ///assert
+    ASSERT_IS_FALSE(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+// Tests_SRS_UUID_WIN32_11_003: [ If any the values of is_uuid_nil are not 0 then is_uuid_nil shall return false. ]
+TEST_FUNCTION(is_uuid_nil_on_nil_uuid)
+{
+    ///arrange
+    UUID_T valid_uuid = { 0 };
+
+    ///act
+    bool result = is_uuid_nil(valid_uuid);
+
+    ///assert
+    ASSERT_IS_TRUE(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
