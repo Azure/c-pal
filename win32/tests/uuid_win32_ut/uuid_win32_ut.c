@@ -372,4 +372,21 @@ TEST_FUNCTION(is_uuid_nil_on_nil_uuid)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
+TEST_FUNCTION(is_uuid_nil_on_individual_valid_uuid)
+{
+    ///arrange
+    for (size_t index = 0; index < 16; index++)
+    {
+        UUID_T valid_uuid = { 0 };
+
+        valid_uuid[index] = 0x2;
+
+        ///act
+        bool result = is_uuid_nil(valid_uuid);
+
+        ///assert
+        ASSERT_IS_FALSE(result);
+    }
+}
+
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
