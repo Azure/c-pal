@@ -86,7 +86,7 @@ MOCKABLE_FUNCTION(, bool, is_uuid_nil, const UUID_T, uuid_value);
 
 `is_uuid_nil` determined if the specified uuid `uuid_value` is `NULL`.
 
-**SRS_UUID_WIN32_11_001: [** if `uuid_value` is `NULL` then `is_uuid_nil` shall fail and return `false`. **]**
+**SRS_UUID_WIN32_11_001: [** if `uuid_value` is `NULL` then `is_uuid_nil` shall fail and return `true`. **]**
 
 **SRS_UUID_WIN32_11_002: [** If all the values of `is_uuid_nil` are `0` then `is_uuid_nil` shall return `true`. **]**
 

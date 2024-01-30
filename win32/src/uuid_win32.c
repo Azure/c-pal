@@ -134,11 +134,11 @@ int GUID_from_uuid(GUID* destination, const UUID_T source)
 bool is_uuid_nil(const UUID_T uuid_value)
 {
     bool result;
-    // Codes_SRS_UUID_WIN32_11_001: [ if uuid_value is NULL then is_uuid_nil shall fail and return false. ]
+    // Codes_SRS_UUID_WIN32_11_001: [ if uuid_value is NULL then is_uuid_nil shall fail and return true. ]
     if (uuid_value == NULL)
     {
         LogError("invalid argument UUID_T uuid_value=%p", uuid_value);
-        result = false;
+        result = true;
     }
     else
     {

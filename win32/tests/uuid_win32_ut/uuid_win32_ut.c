@@ -322,7 +322,7 @@ TEST_FUNCTION(GUID_from_uuid_succeeds)
 
 // is_uuid_nil
 
-// Tests_SRS_UUID_WIN32_11_001: [ if uuid_value is NULL then is_uuid_nil shall fail and return false. ]
+// Tests_SRS_UUID_WIN32_11_001: [ if uuid_value is NULL then is_uuid_nil shall fail and return true. ]
 TEST_FUNCTION(is_uuid_nil_uuid_is_NULL)
 {
     ///arrange
@@ -331,7 +331,7 @@ TEST_FUNCTION(is_uuid_nil_uuid_is_NULL)
     bool result = is_uuid_nil(NULL);
 
     ///assert
-    ASSERT_IS_FALSE(result);
+    ASSERT_IS_TRUE(result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
