@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include <uuid/uuid.h>
 
@@ -119,7 +120,6 @@ static int umock_copy_uuid_t(uuid_t* destination, const uuid_t* source)
 
 static void umock_free_uuid_t(uuid_t* value)
 {
-    
 }
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
@@ -131,7 +131,6 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_UMOCK_VALUE_TYPE(uuid_t);
 
     REGISTER_GLOBAL_MOCK_HOOK(mocked_uuid_generate, hook_uuid_generate);
-
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
@@ -195,8 +194,50 @@ TEST_FUNCTION(uuid_produce_succeeds)
     ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_13, u[13]);
     ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_14, u[14]);
     ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_15, u[15]);
-    
 }
 
+// is_uuid_nil
+
+// Tests_SRS_UUID_LINUX_11_001: [ if uuid_value is NULL then is_uuid_nil shall fail and return true. ]
+TEST_FUNCTION(is_uuid_nil_uuid_is_NULL)
+{
+    ///arrange
+
+    ///act
+    bool result = is_uuid_nil(NULL);
+
+    ///assert
+    ASSERT_IS_TRUE(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+// Tests_SRS_UUID_LINUX_11_002: [ If all the values of is_uuid_nil are 0 then is_uuid_nil shall return true. ]
+TEST_FUNCTION(is_uuid_nil_on_valid_uuid)
+{
+    ///arrange
+    UUID_T valid_uuid;
+    hook_uuid_generate(valid_uuid);
+
+    ///act
+    bool result = is_uuid_nil(valid_uuid);
+
+    ///assert
+    ASSERT_IS_FALSE(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+// Tests_SRS_UUID_LINUX_11_003: [ If any the values of is_uuid_nil are not 0 then is_uuid_nil shall return false. ]
+TEST_FUNCTION(is_uuid_nil_on_nil_uuid)
+{
+    ///arrange
+    UUID_T valid_uuid = { 0 };
+
+    ///act
+    bool result = is_uuid_nil(valid_uuid);
+
+    ///assert
+    ASSERT_IS_TRUE(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

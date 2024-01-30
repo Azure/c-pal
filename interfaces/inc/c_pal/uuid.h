@@ -5,12 +5,14 @@
 #define UUID_H
 
 #include <inttypes.h>
+#include <stdbool.h>
 
 #ifdef WIN32 
 #include "windows.h"
 #endif
 
-typedef unsigned char UUID_T[16]; /*introduces UUID_T as "array of 16 bytes"*/
+#define UUID_T_LENGTH       16
+typedef unsigned char UUID_T[UUID_T_LENGTH]; /*introduces UUID_T as "array of 16 bytes"*/
 
 #include "macro_utils/macro_utils.h"
 #include "umock_c/umock_c_prod.h"
@@ -19,6 +21,7 @@ extern "C" {
 #endif
 
     MOCKABLE_FUNCTION(, int, uuid_produce, UUID_T, destination);
+    MOCKABLE_FUNCTION(, bool, is_uuid_nil, const UUID_T, uuid_value);
 
 #ifdef WIN32 /*some functions, format specifiers only exists in Windows realm*/
     MOCKABLE_FUNCTION(, int, uuid_from_GUID, UUID_T, destination, const GUID*, source);
