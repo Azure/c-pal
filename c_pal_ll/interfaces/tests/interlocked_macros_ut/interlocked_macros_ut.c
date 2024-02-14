@@ -35,6 +35,8 @@ TEST_FUNCTION_CLEANUP(d)
     MY_ENUM_VALUE_3
 MU_DEFINE_ENUM(MY_ENUM, MY_ENUM_VALUES);
 
+TEST_DEFINE_ENUM_TYPE(MY_ENUM, MY_ENUM_VALUES);
+
 typedef struct TEST_STRUCT_TAG
 {
     INTERLOCKED_DEFINE_VOLATILE_STATE_ENUM(MY_ENUM, state);
@@ -56,6 +58,8 @@ TEST_FUNCTION(INTERLOCKED_DEFINE_VOLATILE_STATE_ENUM_works_with_some_enum)
     size_t size_of_enum = sizeof(MY_ENUM);
     size_t expected_size = max(size_of_int32_t, size_of_enum);
     ASSERT_ARE_EQUAL(size_t, expected_size, sizeof(test_struct));
+    ASSERT_ARE_EQUAL(uint32_t, MY_ENUM_VALUE_2, interlocked_add(&test_struct.state, 0));
+    ASSERT_ARE_EQUAL(MY_ENUM, MY_ENUM_VALUE_2, test_struct.state_enum);
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
