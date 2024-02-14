@@ -9,7 +9,6 @@
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
 #include "c_pal/interlocked.h"
-#include "c_pal/interlocked_macros.h"
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
