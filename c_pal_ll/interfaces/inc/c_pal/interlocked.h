@@ -14,6 +14,8 @@
 
 #include "umock_c/umock_c_prod.h"
 
+#include "interlocked_macros.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

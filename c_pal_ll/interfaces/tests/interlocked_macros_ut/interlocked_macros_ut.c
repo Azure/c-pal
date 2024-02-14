@@ -42,6 +42,10 @@ typedef struct TEST_STRUCT_TAG
     INTERLOCKED_DEFINE_VOLATILE_STATE_ENUM(MY_ENUM, state);
 } TEST_STRUCT;
 
+// Union by itself (outside of a struct) is also possible
+// We will use this to validate that we generate something with sizeof(uint32_t)
+INTERLOCKED_DEFINE_VOLATILE_STATE_ENUM(MY_ENUM, state) MY_UNION;
+
 // Mostly a case of "if it compiles..."
 /*Tests_SRS_INTERLOCKED_MACROS_42_001: [ INTERLOCKED_DEFINE_VOLATILE_STATE_ENUM shall generate a union with two fields: a volatile_atomic int32_t and a variable of the type enum_type. ]*/
 TEST_FUNCTION(INTERLOCKED_DEFINE_VOLATILE_STATE_ENUM_works_with_some_enum)
@@ -54,11 +58,8 @@ TEST_FUNCTION(INTERLOCKED_DEFINE_VOLATILE_STATE_ENUM_works_with_some_enum)
     (void)interlocked_exchange(&test_struct.state, MY_ENUM_VALUE_2);
 
     ///assert
-    size_t size_of_int32_t = sizeof(int32_t);
-    size_t size_of_enum = sizeof(MY_ENUM);
-    size_t expected_size = (size_of_int32_t > size_of_enum ? size_of_int32_t : size_of_enum);
-    ASSERT_ARE_EQUAL(size_t, expected_size, sizeof(test_struct));
-    ASSERT_ARE_EQUAL(uint32_t, MY_ENUM_VALUE_2, interlocked_add(&test_struct.state, 0));
+    ASSERT_ARE_EQUAL(size_t, sizeof(int32_t), sizeof(MY_UNION));
+    ASSERT_ARE_EQUAL(int32_t, MY_ENUM_VALUE_2, interlocked_add(&test_struct.state, 0));
     ASSERT_ARE_EQUAL(MY_ENUM, MY_ENUM_VALUE_2, test_struct.state_enum);
 }
 

@@ -36,4 +36,6 @@ This generates a field like :
 This is useful for fields which need to be volatile for interlocked operations but are actually an enum (such as a state variable).
 The `variable_name_enum` field can be viewed in the debugger to see the value as an enum.
 
+Note that the enum type must be of the same size as `int32_t`.
+
 **SRS_INTERLOCKED_MACROS_42_001: [** `INTERLOCKED_DEFINE_VOLATILE_STATE_ENUM` shall generate a union with two fields: a `volatile_atomic` `int32_t` and a variable of the type `enum_type`. **]**
