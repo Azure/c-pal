@@ -16,6 +16,7 @@
 #include "c_pal/interlocked.h" // IWYU pragma: keep
 #include "c_pal/interlocked_hl.h" // IWYU pragma: keep
 #include "c_pal/thandle.h"
+#include "c_pal/thandle_ll.h"
 
 struct MOCKED_STRUCT_TAG; // IWYU pragma: private
 typedef struct MOCKED_STRUCT_TAG MOCKED_STRUCT; // IWYU pragma: private
