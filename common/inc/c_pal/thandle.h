@@ -15,7 +15,7 @@
 #include "c_pal/interlocked.h"
 
 #include "c_pal/containing_record.h"
-#include "c_pal/thandle_ll.h"
+#include "c_pal/thandle_ll.h" // IWYU pragma: export
 
 /*given a previous type T, this introduces a wrapper type that contains T (and other fields) and defines the functions of that type T*/
 #define THANDLE_TYPE_DEFINE(T) \

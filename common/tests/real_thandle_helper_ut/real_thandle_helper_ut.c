@@ -31,7 +31,7 @@ THANDLE_TYPE_DECLARE(MOCKED_STRUCT);
 
 #include "real_thandle_helper.h"
 
-#include "real_interlocked_renames.h"
+#include "real_interlocked_renames.h" // IWYU pragma: keep
 
 typedef struct MOCKED_STRUCT_TAG
 {
@@ -42,7 +42,7 @@ REAL_THANDLE_DECLARE(MOCKED_STRUCT);
 
 REAL_THANDLE_DEFINE(MOCKED_STRUCT);
 
-#include "real_interlocked_undo_rename.h"
+#include "real_interlocked_undo_rename.h" // IWYU pragma: keep
 
 static struct G_TAG /*g comes from "global*/
 {
