@@ -49,6 +49,7 @@ set(reals_win32_h_files
     ../../common/reals/real_sm_renames.h
     ../../common/reals/real_interlocked_hl.h
     ../../common/reals/real_interlocked_hl_renames.h
+    ../../common/reals/real_thandle_helper.h
 )
 
 add_library(win32_reals ${reals_win32_c_files} ${reals_win32_h_files})

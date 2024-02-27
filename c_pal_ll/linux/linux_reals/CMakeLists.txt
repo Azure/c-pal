@@ -9,6 +9,7 @@ set(linux_ll_reals_c_files
 
 set(linux_ll_reals_h_files
     real_interlocked_renames.h
+    real_interlocked_undo_rename.h
     real_interlocked.h
 )
 
