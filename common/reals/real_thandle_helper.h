@@ -6,6 +6,7 @@
 #include "macro_utils/macro_utils.h"
 
 #include "c_pal/thandle.h"
+#include "c_pal/thandle_ll.h"
 
 #include "c_pal/gballoc_hl.h"
 #include "real_gballoc_hl.h"

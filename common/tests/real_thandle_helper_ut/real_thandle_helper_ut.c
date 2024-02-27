@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
@@ -11,12 +12,13 @@
 
 #define ENABLE_MOCKS
 #include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
-#include "c_pal/interlocked.h"
-#include "c_pal/interlocked_hl.h"
+#include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
+#include "c_pal/interlocked.h" // IWYU pragma: keep
+#include "c_pal/interlocked_hl.h" // IWYU pragma: keep
 #include "c_pal/thandle.h"
 
-typedef struct MOCKED_STRUCT_TAG MOCKED_STRUCT;
+struct MOCKED_STRUCT_TAG; // IWYU pragma: private
+typedef struct MOCKED_STRUCT_TAG MOCKED_STRUCT; // IWYU pragma: private
 THANDLE_TYPE_DECLARE(MOCKED_STRUCT);
 
 #undef ENABLE_MOCKS
@@ -24,8 +26,8 @@ THANDLE_TYPE_DECLARE(MOCKED_STRUCT);
 #include "umock_c/umock_c_prod.h"
 
 #include "real_gballoc_hl.h"
-#include "real_interlocked.h"
-#include "real_interlocked_hl.h"
+#include "real_interlocked.h" // IWYU pragma: keep
+#include "real_interlocked_hl.h" // IWYU pragma: keep
 
 #include "real_thandle_helper.h"
 
@@ -74,7 +76,6 @@ TEST_SUITE_INITIALIZE(TestClassInitialize)
     THANDLE(MOCKED_STRUCT) temp = THANDLE_MALLOC(REAL_MOCKED_STRUCT)(dispose_MOCKED_STRUCT_do_nothing);
     ASSERT_IS_NOT_NULL(temp);
     THANDLE_MOVE(REAL_MOCKED_STRUCT)(&g.test_mocked_struct, &temp);
-    // REGISTER_GLOBAL_MOCK_HOOK(THANDLE_INITIALIZE(MOCKED_STRUCT), THANDLE_INITIALIZE(REAL_MOCKED_STRUCT));
 }
 
 TEST_SUITE_CLEANUP(TestClassCleanup)
