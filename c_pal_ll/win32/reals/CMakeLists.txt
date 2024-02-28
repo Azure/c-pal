@@ -9,8 +9,6 @@ set(reals_win32_ll_c_files
 
 set(reals_win32_ll_h_files
     real_interlocked.h
-    real_interlocked_renames.h
-    real_interlocked_undo_rename.h
 )
 
 add_library(win32_ll_reals ${reals_win32_ll_c_files} ${reals_win32_ll_h_files})

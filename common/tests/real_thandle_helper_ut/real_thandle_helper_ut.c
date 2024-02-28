@@ -7,7 +7,7 @@
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
 #include "umock_c/umock_c.h"
-
+#include "umock_c/umocktypes_stdint.h"
 #include "testrunnerswitcher.h"
 
 #define ENABLE_MOCKS
@@ -25,6 +25,7 @@ THANDLE_TYPE_DECLARE(MOCKED_STRUCT);
 #undef ENABLE_MOCKS
 
 #include "umock_c/umock_c_prod.h"
+
 
 #include "real_gballoc_hl.h"
 #include "real_interlocked.h" // IWYU pragma: keep
@@ -50,6 +51,22 @@ static struct G_TAG /*g comes from "global*/
     THANDLE(MOCKED_STRUCT) test_mocked_struct;
 } g;
 
+MOCKABLE_FUNCTION_WITH_CODE(, void, a_function_with_mockable_calls)
+{
+    volatile_atomic int32_t an_interlocked_variable;
+    THANDLE(MOCKED_STRUCT) a_thandle_variable = NULL;
+    (void)interlocked_exchange(&an_interlocked_variable, 0);
+    THANDLE_INITIALIZE(MOCKED_STRUCT)(&a_thandle_variable, g.test_mocked_struct);
+    ASSERT_IS_NOT_NULL(a_thandle_variable);
+    int32_t result = interlocked_add(&an_interlocked_variable, 2);
+    // verify we are using real interlocked_add.
+    ASSERT_ARE_EQUAL(int32_t, 2, result);
+    THANDLE_ASSIGN(MOCKED_STRUCT)(&a_thandle_variable, NULL);
+    result = interlocked_increment(&an_interlocked_variable);
+    ASSERT_ARE_EQUAL(int32_t, 3, result);
+}
+MOCKABLE_FUNCTION_WITH_CODE_END(a_function_with_mockable_calls);
+
 static void dispose_MOCKED_STRUCT_do_nothing(REAL_MOCKED_STRUCT* nothing)
 {
     (void)nothing;
@@ -68,8 +85,11 @@ TEST_SUITE_INITIALIZE(TestClassInitialize)
 {
     ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
 
-    umock_c_init(on_umock_c_error);
+    ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error), "umock_c_init");
+    ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types(), "umocktypes_charptr_register_types");
+
     REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
+    REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK();
     REGISTER_REAL_THANDLE_MOCK_HOOK(MOCKED_STRUCT);
 
     REGISTER_UMOCK_ALIAS_TYPE(THANDLE(MOCKED_STRUCT), void*);
@@ -106,6 +126,24 @@ TEST_FUNCTION(thandle_test_helper_can_register_for_a_real_thandle)
     ASSERT_IS_NOT_NULL(upcounted_MOCKED_STRUCT);
     // ablution
     THANDLE_ASSIGN(MOCKED_STRUCT)(&upcounted_MOCKED_STRUCT, NULL);
+}
+
+TEST_FUNCTION(function_call_is_mocked_correctly)
+{
+    // arrange
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(THANDLE_INITIALIZE(MOCKED_STRUCT)(IGNORED_ARG, g.test_mocked_struct));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 2));
+    STRICT_EXPECTED_CALL(THANDLE_ASSIGN(MOCKED_STRUCT)(IGNORED_ARG, NULL));
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
+
+    // act
+    a_function_with_mockable_calls();
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // ablution
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
