@@ -18,6 +18,7 @@
 #include "c_pal/thandle.h"
 #include "c_pal/thandle_ll.h"
 
+// The incomplete type we want to mock
 struct MOCKED_STRUCT_TAG; // IWYU pragma: private
 typedef struct MOCKED_STRUCT_TAG MOCKED_STRUCT; // IWYU pragma: private
 THANDLE_TYPE_DECLARE(MOCKED_STRUCT);

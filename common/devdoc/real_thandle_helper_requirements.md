@@ -34,8 +34,13 @@ See example in `common\tests\real_thandle_helper_ut\real_thandle_helper_ut.c`
 
 #include "real_thandle_helper.h"
 ```
+3. Include `real_interlocked_renames.h` to temporarily revert from mocked interlocked functions to the real implementation. This avoids having to set interlocked function expectations for `THANDLE` calls in the tests.
 
-3. Define a mocked type to use in the tests, then call `REAL_THANDLE_DECLARE` and `REAL_THANDLE_TYPE_DEFINE` to define the THANDLE functions for the mocked type.
+```c
+#include "real_interlocked_renames.h" // IWYU pragma: keep
+```
+
+4. Define a mocked type to use in the tests, then call `REAL_THANDLE_DECLARE` and `REAL_THANDLE_TYPE_DEFINE` to define the THANDLE functions for the mocked type.
 
 ```c
 typedef struct MOCKED_STRUCT_TAG
@@ -48,13 +53,19 @@ REAL_THANDLE_DECLARE(MOCKED_STRUCT);
 REAL_THANDLE_DEFINE(MOCKED_STRUCT);
 ```
 
-4. In The test suite initialization, call `REGISTER_REAL_THANDLE_MOCK_HOOK` to register the mocked type.
+5. Include `real_interlocked_undo_rename.h` to revert back to referencing mocked interlocked functions.
+
+```c
+#include "real_interlocked_undo_rename.h" // IWYU pragma: keep
+```
+
+6. In the test suite initialization, call `REGISTER_REAL_THANDLE_MOCK_HOOK` to hook the new real implementation to the mocked `THANDLE(TYPE)`.
 
 ```c
     REGISTER_REAL_THANDLE_MOCK_HOOK(MOCKED_STRUCT);
 ```
 
-Now, calls in the code to `THANDLE` functions will be redirected to the mocked type.
+Now, calls in the code under test to `THANDLE(MOCKED_STRUCT)` functions will be hooked up to the reals of the defined `THANDLE(REAL_MOCKED_STRUCT)`.
 
 ## Exposed API
 
@@ -70,7 +81,7 @@ Now, calls in the code to `THANDLE` functions will be redirected to the mocked t
 #define REAL_THANDLE_DECLARE(TYPE)
 ```
 
-Declares a new `REAL_TYPE` incomplete type for the structure `TYPE` and the THANDLE functions for it.
+Declares a new `REAL_TYPE` incomplete type for the structure `TYPE` and the `THANDLE` functions for it.
 
 ### REAL_THANDLE_DEFINE(TYPE)
 
@@ -86,4 +97,4 @@ Defines the `THANDLE` functions for the `REAL_TYPE` of the structure `TYPE` usin
 #define REGISTER_REAL_THANDLE_MOCK_HOOK(TYPE)
 ```
 
-Registers the mocked hooks from `TYPE` to `to be used in the tests.
+Hooks all the mocked `THANDLE(TYPE)` functions to the `THANDLE(REAL_TYPE)` real functions for the tests.
