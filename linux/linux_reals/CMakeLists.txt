@@ -39,6 +39,7 @@ set(linux_reals_h_files
     ../../common/reals/real_sm_renames.h
     ../../common/reals/real_interlocked_hl.h
     ../../common/reals/real_interlocked_hl_renames.h
+    ../../common/reals/real_thandle_helper.h
     ../../interfaces/reals/real_timer.h
     ../../interfaces/reals/real_timer_renames.h
 )
