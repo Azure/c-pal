@@ -25,7 +25,7 @@
 extern "C" {
 #endif
 
-    EXECUTION_ENGINE_HANDLE real_execution_engine_create(void* execution_engine_parameters);
+    EXECUTION_ENGINE_HANDLE real_execution_engine_create(const EXECUTION_ENGINE_PARAMETERS* execution_engine_parameters);
     void real_execution_engine_dec_ref(EXECUTION_ENGINE_HANDLE execution_engine);
     void real_execution_engine_inc_ref(EXECUTION_ENGINE_HANDLE execution_engine);
 
