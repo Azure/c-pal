@@ -14,6 +14,8 @@
 #include "c_logging/log_context.h"
 #include "c_logging/log_context_property_type_ascii_char_ptr.h"
 #include "c_logging/logger.h"
+#include "c_logging/log_errno.h"
+#include "c_logging/log_level.h"
 
 #include "c_pal/completion_port_linux.h"
 #include "c_pal/execution_engine.h"
@@ -23,7 +25,10 @@
 #include "c_pal/platform_linux.h"
 #include "c_pal/sync.h"
 #include "c_pal/socket_handle.h"
+
+#ifdef ENABLE_SOCKET_LOGGING
 #include "c_pal/timer.h"
+#endif
 
 #include "c_pal/async_socket.h"
 
