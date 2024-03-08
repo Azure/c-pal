@@ -16,6 +16,16 @@ An `async_socket` owns the underlying platform specific socket passed on create.
 
 `async_socket_linux` shall not create any threads, but use the completion port linux object for its threading.  The API shall be thread-safe with the exception of `async_socket_destroy` which should be only called from one thread.
 
+## Custom Transport
+
+The `async_socket` may be created with a custom transport handler for send and receive functions.
+
+This requires callbacks of type `ON_ASYNC_SOCKET_SEND` and `ON_ASYNC_SOCKET_RECV`.
+
+`ON_ASYNC_SOCKET_SEND` must behave like the `send` function from the libc socket API. It must return the number of bytes sent or `-1` to indicate an error. In case of an error, it must set `errno` with the error code.
+
+`ON_ASYNC_SOCKET_RECV` must behave like the `recv` function from the libc socket API. It must return the number of bytes received or `-1` to indicate an error. In case of an error, it must set `errno` with the error code.
+
 ## Exposed API
 
 `async_socket_linux` implements the `async_socket` API:
