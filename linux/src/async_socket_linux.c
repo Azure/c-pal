@@ -271,7 +271,7 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
                         else
                         {
                             if (recv_size > UINT32_MAX ||
-                                UINT32_MAX - recv_size > total_recv_size)
+                                UINT32_MAX - total_recv_size < recv_size)
                             {
                                 // Handle unlikely overflow
                                 LogError("Overflow in computing receive size (total_recv_size=%" PRIu32 " + recv_size=%zi > UINT32_MAX=%" PRIu32 ")",
