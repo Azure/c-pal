@@ -6,7 +6,7 @@
 
 ## Design
 
-`async_socket_win32` is using the WSA Windows functions with a PTP_POOL in order to perform asynchronous socket send and receives.
+`async_socket_win32` is using the WSA Windows functions with a `PTP_POOL` in order to perform asynchronous socket send and receives.
 `async_socket_win32` creates its own threadpool environment.
 
 The `async_socket_win32` takes ownership of the provided `SOCKET_HANDLE` and is responsible for closing it. For that reason, it is not possible to re-open the `async_socket` after closing it. This is due to the fact that the socket is created by some external event, such as accepting an incoming connection and closing the underlying socket is not reversible.
