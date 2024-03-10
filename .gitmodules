@@ -19,3 +19,6 @@
 [submodule "deps/c-testrunnerswitcher"]
 	path = deps/c-testrunnerswitcher
 	url = https://github.com/Azure/c-testrunnerswitcher
+[submodule "deps/vcpkg"]
+	path = deps/vcpkg
+	url = https://github.com/microsoft/vcpkg.git
