@@ -72,6 +72,34 @@ set(run_traceability OFF)
 set(run_perf_tests OFF)
 set(run_reals_check OFF)
 
+if ((WIN32) AND (${GBALLOC_LL_TYPE} STREQUAL "JEMALLOC"))
+    if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/vcpkg/scripts/buildsystems/vcpkg.cmake)
+        set(VCPKG_OVERLAY_TRIPLETS "${CMAKE_CURRENT_LIST_DIR}/triplets")
+        if(${fsanitize})
+            set(VCPKG_TARGET_TRIPLET "x64-windows-static-cpal-asan")
+        else()
+            set(VCPKG_TARGET_TRIPLET "x64-windows-static-cpal")
+        endif()
+
+        include(deps/vcpkg/scripts/buildsystems/vcpkg.cmake)
+    endif()
+
+    if ((WIN32) AND (${GBALLOC_LL_TYPE} STREQUAL "JEMALLOC"))
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules (JEMALLOC jemalloc)
+
+        pkg_search_module(JEMALLOC REQUIRED jemalloc)
+        include_directories(${JEMALLOC_INCLUDE_DIRS})
+
+        #this wraps the jemalloc library in a target so it can be used in the rest of the build easily
+        add_library(jemalloc INTERFACE)
+        target_link_libraries(jemalloc INTERFACE ${pkgcfg_lib_JEMALLOC_jemalloc_s})
+        target_include_directories(jemalloc INTERFACE ${JEMALLOC_INCLUDE_DIRS})
+
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /DJEMALLOC_NO_PRIVATE_NAMESPACE /D_REENTRANT /DJEMALLOC_EXPORT= /D_LIB")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DJEMALLOC_NO_PRIVATE_NAMESPACE /D_REENTRANT /DJEMALLOC_EXPORT= /D_LIB")
+    endif()
+endif()
 
 if ((NOT TARGET c_build_tools) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/c-build-tools/CMakeLists.txt))
     add_subdirectory(deps/c-build-tools)

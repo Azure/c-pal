@@ -71,10 +71,10 @@ if(${GBALLOC_LL_TYPE} STREQUAL "MIMALLOC")
 endif()
 
 if(${GBALLOC_LL_TYPE} STREQUAL "JEMALLOC")
-    target_link_libraries(pal_win32 ${pkgcfg_lib_JEMALLOC_jemalloc_s})
+    target_link_libraries(pal_win32 jemalloc)
 endif()
 
-target_include_directories(pal_win32 PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc ${CMAKE_CURRENT_LIST_DIR}/src ${JEMALLOC_INCLUDE_DIRS})
+target_include_directories(pal_win32 PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc ${CMAKE_CURRENT_LIST_DIR}/src)
 
 
 add_subdirectory(reals)
