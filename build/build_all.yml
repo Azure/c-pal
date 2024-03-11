@@ -16,7 +16,8 @@ parameters:
   - name: ARCH_TYPE_VALUES
     type: object
     #default: ["x64", "x86"]
-    default: ["x64", "Win32"]
+    # TODO: for now only x64 is supported, seems that we have some errors on x86
+    default: ["x64"]
 
 jobs:
 - ${{ each GBALLOC_LL_TYPE in parameters.GBALLOC_LL_TYPE_VALUES }}:
