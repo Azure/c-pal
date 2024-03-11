@@ -33,7 +33,7 @@ parameters:
             FSANITIZE_TYPE: ${{ FSANITIZE_TYPE }}
             ARCH_TYPE: ${{ ARCH_TYPE }}
 
-        -- template: /gated_jobs/build_and_run_tests.yml
+        - template: /gated_jobs/build_and_run_tests.yml
           parameters:
             # BUILD_SUFFIX is the concatenation of all the parameters. It exists for every single template. Because all jobs/etc in a pipeline need to have different names. So a job name will end with ${{ parameters.BUILDSUFFIX }}
             BUILD_SUFFIX: _${{ GBALLOC_LL_TYPE }}_FSANITIZE_${{ FSANITIZE_TYPE }}_${{ ARCH_TYPE }}
