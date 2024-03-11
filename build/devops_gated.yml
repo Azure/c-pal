@@ -8,143 +8,51 @@ resources:
     name: azure/c-build-tools
     endpoint: github.com_azure
     ref: refs/heads/master
-jobs:
-- job: windowsx64debug
-  displayName: 'Build Windows x64 Debug'
-  pool:
-    name: Azure-MessagingStore-WinBuildPoolVS2022
-    demands:
-    - Cmd
-    - msbuild
-    - visualstudio
-    - vstest
 
-  workspace:
-    clean: all
+parameters:
+  # GBALLOC_LL_TYPE_VALUES contains values from GBALLOC_LL_TYPE_VALUES of c-pal's CMakeLists.txt.
+  # not all values listed in the CMakeLists need to be listed here - only those for which a completely separate build is done
+  # GBALLOC_LL_TYPE_VALUES is an array of strings
+  - name: GBALLOC_LL_TYPE_VALUES
+    type: object
+    default: ["PASSTHROUGH", "JEMALLOC"]
 
-  steps:
-  - task: BatchScript@1
-    displayName: 'Git submodule update'
-    inputs:
-      filename: 'C:\Program Files\Git\bin\git.exe'
-      arguments: 'submodule update --init --force'
+  # FSANITIZE_TYPE_VALUES are the same as cmakelists "fsanitize" option used to pass (or not) /fsanitize=address to the compiler.
+  - name: FSANITIZE_TYPE_VALUES
+    type: object
+    default: ["ON", "OFF"]
 
-  - task: BatchScript@1
-    displayName: 'Git submodule clean'
-    inputs:
-      filename: 'C:\Program Files\Git\bin\git.exe'
-      arguments: 'submodule foreach --recursive "git clean -xdff"'
+  # ARCH_TYPE_VALUES exists merely for example for future extension capabilities
+  # it provides the "walked path" of how to extend the pipeline with a completely different orthogonal parameter that can take an array of string of values
+  - name: ARCH_TYPE_VALUES
+    type: object
+    #default: ["x64", "x86"]
+    default: ["x64", "Win32"]
 
-  - task: BatchScript@1
-    displayName: 'Git clean'
-    inputs:
-      filename: 'C:\Program Files\Git\bin\git.exe'
-      arguments: 'clean -xdff'
+- ${{ each GBALLOC_LL_TYPE in parameters.GBALLOC_LL_TYPE_VALUES }}:
+  - ${{ each FSANITIZE_TYPE in parameters.FSANITIZE_TYPE_VALUES }}:
+    - ${{ each ARCH_TYPE in parameters.ARCH_TYPE_VALUES }}:
+      # - ${{ if not( and( eq( GBALLOC_LL_TYPE , 'MIMALLOC' ), eq(FSANITIZE_TYPE, 'ON'))) }}: <==this fails to compile, reasons "2 parameters passed to if". The below line is equivalent.
+      # there is no point in running mimalloc and fsanitize, so that combination is excluded from the whole build.
+      - ${{ if or( ne( GBALLOC_LL_TYPE , 'JEMALLOC' ), ne(FSANITIZE_TYPE, 'ON')) }}:
+        - template: /gated_jobs/build_and_run_tests.yml
+          parameters:
+            # BUILD_SUFFIX is the concatenation of all the parameters. It exists for every single template. Because all jobs/etc in a pipeline need to have different names. So a job name will end with ${{ parameters.BUILDSUFFIX }}
+            BUILD_SUFFIX: _${{ GBALLOC_LL_TYPE }}_FSANITIZE_${{ FSANITIZE_TYPE }}_${{ ARCH_TYPE }}
+            # passing the other parameters, each separated for easy consumption. The invoked template MUST have all these parameters listed.
+            GBALLOC_LL_TYPE: ${{ GBALLOC_LL_TYPE }}
+            FSANITIZE_TYPE: ${{ FSANITIZE_TYPE }}
+            ARCH_TYPE: ${{ ARCH_TYPE }}
 
-  - task: BatchScript@1
-    displayName: 'Setup VS Vars'
-    inputs:
-      filename: '"c:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"'
-      modifyEnvironment: true
-
-  - task: CMake@1
-    displayName: 'CMake .. -Drun_reals_check:bool=ON -Drun_unittests:bool=ON -Drun_int_tests:bool=ON -Duse_cppunittest:bool=ON -Duse_vld:bool=ON -G "Visual Studio 17 2022" -A x64'
-    inputs:
-      workingDirectory: 'build_x64'
-      cmakeArgs: '.. -Drun_reals_check:bool=ON -Drun_unittests:bool=ON -Drun_int_tests:bool=ON -Duse_cppunittest:bool=ON -Duse_vld:bool=ON -G "Visual Studio 17 2022" -A x64'
-
-  - task: VSBuild@1
-    displayName: 'Build solution build_x64\*.sln'
-    inputs:
-      solution: 'build_x64\*.sln'
-      msbuildArgs: '/t:restore /t:build'
-      configuration: Debug
-      maximumCpuCount: true
-
-  - task: VSTest@2
-    displayName: 'VsTest - testAssemblies'
-    inputs:
-      testAssemblyVer2: |
-          **\*_ut_*.dll
-          **\*_int_*.dll
-          **\*_perf_*.dll
-      runTestsInIsolation: true
-
-  - task: CmdLine@1
-    displayName: 'Run ctest'
-    inputs:
-      filename: ctest
-      arguments: '-C "Debug" -V --output-on-failure'
-      workingFolder: 'build_x64'
-
-  - template: templates/dump_drive_usage.yml
-
-- job: windowsx64relwithdebinfo
-  displayName: 'Build Windows x64 RelWithDebInfo'
-  pool:
-    name: Azure-MessagingStore-WinBuildPoolVS2022
-    demands:
-    - Cmd
-    - msbuild
-    - visualstudio
-    - vstest
-
-  steps:
-  - task: BatchScript@1
-    displayName: 'Git submodule update'
-    inputs:
-      filename: 'C:\Program Files\Git\bin\git.exe'
-      arguments: 'submodule update --init --force'
-
-  - task: BatchScript@1
-    displayName: 'Git submodule clean'
-    inputs:
-      filename: 'C:\Program Files\Git\bin\git.exe'
-      arguments: 'submodule foreach --recursive "git clean -xdff"'
-
-  - task: BatchScript@1
-    displayName: 'Git clean'
-    inputs:
-      filename: 'C:\Program Files\Git\bin\git.exe'
-      arguments: 'clean -xdff'
-
-  - task: BatchScript@1
-    displayName: 'Setup VS Vars'
-    inputs:
-      filename: '"c:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"'
-      modifyEnvironment: true
-
-  - task: CMake@1
-    displayName: 'CMake .. -Drun_reals_check:bool=ON -Drun_unittests:bool=ON -Drun_int_tests:bool=ON -Duse_cppunittest:bool=ON -G "Visual Studio 17 2022" -A x64'
-    inputs:
-      workingDirectory: 'build_x64'
-      cmakeArgs: '.. -Drun_reals_check:bool=ON -Drun_unittests:bool=ON -Drun_int_tests:bool=ON -Duse_cppunittest:bool=ON -G "Visual Studio 17 2022" -A x64'
-
-  - task: VSBuild@1
-    displayName: 'Build solution build_x64\*.sln'
-    inputs:
-      solution: 'build_x64\*.sln'
-      msbuildArgs: '/t:restore /t:build'
-      configuration: RelWithDebInfo
-      maximumCpuCount: true
-
-  - task: VSTest@2
-    displayName: 'VsTest - testAssemblies'
-    inputs:
-      testAssemblyVer2: |
-          **\*_ut_*.dll
-          **\*_int_*.dll
-          **\*_perf_*.dll
-      runTestsInIsolation: true
-
-  - task: CmdLine@1
-    displayName: 'Run ctest'
-    inputs:
-      filename: ctest
-      arguments: '-C "RelWithDebInfo" -V --output-on-failure'
-      workingFolder: 'build_x64'
-
-  - template: templates/dump_drive_usage.yml
+        -- template: /gated_jobs/build_and_run_tests.yml
+          parameters:
+            # BUILD_SUFFIX is the concatenation of all the parameters. It exists for every single template. Because all jobs/etc in a pipeline need to have different names. So a job name will end with ${{ parameters.BUILDSUFFIX }}
+            BUILD_SUFFIX: _${{ GBALLOC_LL_TYPE }}_FSANITIZE_${{ FSANITIZE_TYPE }}_${{ ARCH_TYPE }}
+            # passing the other parameters, each separated for easy consumption. The invoked template MUST have all these parameters listed.
+            GBALLOC_LL_TYPE: ${{ GBALLOC_LL_TYPE }}
+            configuration: "RelWithDebInfo"
+            FSANITIZE_TYPE: ${{ FSANITIZE_TYPE }}
+            ARCH_TYPE: ${{ ARCH_TYPE }}
 
 - template: /pipeline_templates/codeql3000_default.yml@c_build_tools
 
