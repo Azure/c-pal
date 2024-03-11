@@ -31,7 +31,7 @@ jobs:
             BUILD_SUFFIX: _Debug_${{ GBALLOC_LL_TYPE }}_FSANITIZE_${{ FSANITIZE_TYPE }}_${{ ARCH_TYPE }}
             # passing the other parameters, each separated for easy consumption. The invoked template MUST have all these parameters listed.
             GBALLOC_LL_TYPE: ${{ GBALLOC_LL_TYPE }}
-            configuration: "Debug"
+            build_configuration: "Debug"
             FSANITIZE_TYPE: ${{ FSANITIZE_TYPE }}
             ARCH_TYPE: ${{ ARCH_TYPE }}
 
@@ -41,6 +41,6 @@ jobs:
             BUILD_SUFFIX: _RelWithDebInfo_${{ GBALLOC_LL_TYPE }}_FSANITIZE_${{ FSANITIZE_TYPE }}_${{ ARCH_TYPE }}
             # passing the other parameters, each separated for easy consumption. The invoked template MUST have all these parameters listed.
             GBALLOC_LL_TYPE: ${{ GBALLOC_LL_TYPE }}
-            configuration: "RelWithDebInfo"
+            build_configuration: "RelWithDebInfo"
             FSANITIZE_TYPE: ${{ FSANITIZE_TYPE }}
             ARCH_TYPE: ${{ ARCH_TYPE }}
