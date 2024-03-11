@@ -18,6 +18,7 @@ parameters:
     #default: ["x64", "x86"]
     default: ["x64", "Win32"]
 
+jobs:
 - ${{ each GBALLOC_LL_TYPE in parameters.GBALLOC_LL_TYPE_VALUES }}:
   - ${{ each FSANITIZE_TYPE in parameters.FSANITIZE_TYPE_VALUES }}:
     - ${{ each ARCH_TYPE in parameters.ARCH_TYPE_VALUES }}:
