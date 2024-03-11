@@ -9,6 +9,7 @@ resources:
     endpoint: github.com_azure
     ref: refs/heads/master
 
+jobs:
 - template: /build_all.yml
 
 - template: /pipeline_templates/codeql3000_default.yml@c_build_tools
