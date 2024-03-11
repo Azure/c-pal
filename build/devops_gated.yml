@@ -7,7 +7,7 @@ resources:
     type: github
     name: azure/c-build-tools
     endpoint: github.com_azure
-    ref: refs/heads/master
+    ref: refs/heads/add_build_type_to_default_codeql
 
 jobs:
 - template: build_all.yml

@@ -15,7 +15,7 @@ CORES=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 rm -r -f $build_folder
 mkdir -p $build_folder
 pushd $build_folder
-CC="clang" CXX="clang++" cmake $build_root -GNinja -DCMAKE_C_INCLUDE_WHAT_YOU_USE:UNINITIALIZED="include-what-you-use;-Xiwyu;--mapping_file=$build_root/deps/c-build-tools/iwyu/rules.imp;" -DCMAKE_CXX_INCLUDE_WHAT_YOU_USE:UNINITIALIZED="include-what-you-use;-Xiwyu;--mapping_file=$build_root/deps/c-build-tools/iwyu/rules.imp;" -Drun_unittests:bool=ON -Drun_int_tests:bool=ON
+CC="clang" CXX="clang++" cmake $build_root -GNinja -DCMAKE_C_INCLUDE_WHAT_YOU_USE:UNINITIALIZED="include-what-you-use;-Xiwyu;--mapping_file=$build_root/deps/c-build-tools/iwyu/rules.imp;" -DCMAKE_CXX_INCLUDE_WHAT_YOU_USE:UNINITIALIZED="include-what-you-use;-Xiwyu;--mapping_file=$build_root/deps/c-build-tools/iwyu/rules.imp;" -Drun_unittests:bool=ON -Drun_int_tests:bool=ON -DCMAKE_BUILD_TYPE=Debug
 cmake --build . > >(tee $build_folder"/build.log") 2> >(tee $build_folder"/builderror.log" >&2)
 
 if grep 'Warning:' $build_folder"/builderror.log"; then
