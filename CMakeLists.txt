@@ -28,6 +28,12 @@ option(use_cppunittest "set use_cppunittest to ON to build CppUnitTest tests on 
 option(run_traceability "run traceability tool (default is ON)" ON)
 option(run_reals_check "set run_reals_check to ON to run reals check (default is OFF)." OFF)
 
+if((NOT "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo") AND (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Debug"))
+    message(FATAL_ERROR "CMAKE_BUILD_TYPE must be specified and be precisely one of Debug or RelWithDebInfo")
+endif()
+
+set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}" CACHE STRING "" FORCE)
+
 # enabling this option can help with debugging latency issues for the networking
 option(enable_socket_logging "enable logging of each packet send/receive (default is OFF)" OFF)
 
