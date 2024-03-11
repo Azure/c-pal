@@ -25,7 +25,7 @@ jobs:
       # - ${{ if not( and( eq( GBALLOC_LL_TYPE , 'MIMALLOC' ), eq(FSANITIZE_TYPE, 'ON'))) }}: <==this fails to compile, reasons "2 parameters passed to if". The below line is equivalent.
       # there is no point in running mimalloc and fsanitize, so that combination is excluded from the whole build.
       - ${{ if or( ne( GBALLOC_LL_TYPE , 'JEMALLOC' ), ne(FSANITIZE_TYPE, 'ON')) }}:
-        - template: /gated_jobs/build_and_run_tests.yml
+        - template: gated_jobs/build_and_run_tests.yml
           parameters:
             # BUILD_SUFFIX is the concatenation of all the parameters. It exists for every single template. Because all jobs/etc in a pipeline need to have different names. So a job name will end with ${{ parameters.BUILDSUFFIX }}
             BUILD_SUFFIX: _${{ GBALLOC_LL_TYPE }}_FSANITIZE_${{ FSANITIZE_TYPE }}_${{ ARCH_TYPE }}
@@ -34,7 +34,7 @@ jobs:
             FSANITIZE_TYPE: ${{ FSANITIZE_TYPE }}
             ARCH_TYPE: ${{ ARCH_TYPE }}
 
-        - template: /gated_jobs/build_and_run_tests.yml
+        - template: gated_jobs/build_and_run_tests.yml
           parameters:
             # BUILD_SUFFIX is the concatenation of all the parameters. It exists for every single template. Because all jobs/etc in a pipeline need to have different names. So a job name will end with ${{ parameters.BUILDSUFFIX }}
             BUILD_SUFFIX: _${{ GBALLOC_LL_TYPE }}_FSANITIZE_${{ FSANITIZE_TYPE }}_${{ ARCH_TYPE }}
