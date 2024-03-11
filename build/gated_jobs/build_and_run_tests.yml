@@ -16,7 +16,7 @@ parameters:
     default: "x64"
 
 jobs:
-- job: build_and_run_tests_${{ parameters.build_configuration }}_${{ GBALLOC_LL_TYPE }}_FSANITIZE_${{ FSANITIZE_TYPE }}_${{ ARCH_TYPE }}
+- job: build_and_run_tests_${{ parameters.build_configuration }}_${{ parameters.BUILD_SUFFIX }}
   displayName: 'Build and run tests, build_configuration: ${{ parameters.build_configuration }}, ${{ parameters.GBALLOC_LL_TYPE}}, ARCH_TYPE=${{ parameters.ARCH_TYPE }}, FDANITIZE_TYPE: ${{ parameters.FSANITIZE_TYPE}}'
 
   variables:
