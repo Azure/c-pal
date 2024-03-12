@@ -4,9 +4,6 @@
 [submodule "deps/mimalloc"]
 	path = deps/mimalloc
 	url = https://github.com/microsoft/mimalloc
-[submodule "deps/jemalloc"]
-	path = deps/jemalloc
-	url = https://github.com/jemalloc/jemalloc.git
 [submodule "deps/c-build-tools"]
 	path = deps/c-build-tools
 	url = https://github.com/Azure/c-build-tools
@@ -22,3 +19,6 @@
 [submodule "deps/c-testrunnerswitcher"]
 	path = deps/c-testrunnerswitcher
 	url = https://github.com/Azure/c-testrunnerswitcher
+[submodule "deps/vcpkg"]
+	path = deps/vcpkg
+	url = https://github.com/microsoft/vcpkg.git

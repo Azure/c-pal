@@ -871,7 +871,7 @@ TEST_FUNCTION(gballoc_hl_print_stats_calls_gballoc_ll_print_stats)
 /* gballoc_hl_size */
 
 /* Tests_SRS_GBALLOC_HL_PASSTHROUGH_01_002: [ If the module was not initialized, gballoc_hl_size shall return 0. ]*/
-TEST_FUNCTION(gballoc_hl_size_performs_lazy_init_and_returns_the_result_of_gballoc_hl_size)
+TEST_FUNCTION(when_module_is_not_initialized_gballoc_hl_size_returns_0)
 {
     ///arrange
     ASSERT_ARE_EQUAL(int, 0, gballoc_ll_init(NULL));
@@ -894,22 +894,24 @@ TEST_FUNCTION(gballoc_hl_size_performs_lazy_init_and_returns_the_result_of_gball
 }
 
 /* Tests_SRS_GBALLOC_HL_PASSTHROUGH_01_003: [ Otherwise, gballoc_hl_size shall call gballoc_ll_size with ptr as argument and return the result of gballoc_ll_size. ]*/
-TEST_FUNCTION(when_lazy_init_fails_gballoc_hl_size_fails)
+TEST_FUNCTION(gballoc_hl_size_returns_the_result_of_the_underlying_ll_size)
 {
     ///arrange
+    size_t returned_size;
     TEST_gballoc_hl_init();
     void* ptr = gballoc_hl_malloc(3);
     ASSERT_IS_NOT_NULL(ptr);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(gballoc_ll_size(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(gballoc_ll_size(IGNORED_ARG))
+        .CaptureReturn(&returned_size);
 
     ///act
     size_t size = gballoc_hl_size(ptr);
 
     ///assert
-    ASSERT_ARE_EQUAL(size_t, 3, size);
+    ASSERT_ARE_EQUAL(size_t, returned_size, size);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
