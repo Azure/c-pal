@@ -34,6 +34,9 @@ endif()
 
 set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}" CACHE STRING "" FORCE)
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG $ENV{BUILD_BINARIESDIRECTORY}/Debug)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO $ENV{BUILD_BINARIESDIRECTORY}/RelWithDebInfo)
+
 # enabling this option can help with debugging latency issues for the networking
 option(enable_socket_logging "enable logging of each packet send/receive (default is OFF)" OFF)
 

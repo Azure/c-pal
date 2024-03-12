@@ -80,14 +80,23 @@ jobs:
       configuration: ${{ parameters.build_configuration }}
       maximumCpuCount: true
 
-  - task: VSTest@2
-    displayName: 'VsTest - testAssemblies'
-    inputs:
-      testAssemblyVer2: |
-          **\*_ut_*.dll
-          **\*_int_*.dll
-          **\*_perf_*.dll
-      runTestsInIsolation: true
+  # in the gate address sanitizer has problems running which are not reproducible locally, so skipping Address Sanitizer for vstest (note: ctest is perfectly fine with Address Sanitizer)
+  # here's example:
+  #   vstest.console will output 
+  # Starting test execution, please wait...
+  #A total of 257 test files matched the specified pattern.
+  ##[error]The active test run was aborted. Reason: Test host process crashed : AddressSanitizer: CHECK failed: asan_thread.cpp:273 "((tid())) == ((0))" (0x1, 0x0) (tid=11016)
+  # [continues, with none of our code on any stack]
+  - ${{ if eq(parameters.FSANITIZE_TYPE, 'OFF') }}:
+    - task: VSTest@2
+      displayName: '[blockstorage] VsTest - testAssemblies'
+      inputs:
+        testAssemblyVer2: |
+          $(Build.BinariesDirectory)\${{ parameters.test_configuration }}\**\*_ut_*.dll
+        runInParallel: true
+        runTestsInIsolation: true
+        codeCoverageEnabled: false
+        otherConsoleOptions: '-- RunConfiguration.ExecutionThreadApartmentState=MTA'
 
   - task: CmdLine@1
     displayName: 'Run ctest'
