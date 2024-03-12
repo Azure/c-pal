@@ -93,6 +93,8 @@ jobs:
       inputs:
         testAssemblyVer2: |
           $(Build.BinariesDirectory)\${{ parameters.build_configuration }}\**\*_ut_*.dll
+          $(Build.BinariesDirectory)\${{ parameters.build_configuration }}\**\*_int_*.dll
+          $(Build.BinariesDirectory)\${{ parameters.build_configuration }}\**\*_perf_*.dll
         runInParallel: true
         runTestsInIsolation: true
         codeCoverageEnabled: false
