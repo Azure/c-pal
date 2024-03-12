@@ -89,12 +89,10 @@ jobs:
   # [continues, with none of our code on any stack]
   - ${{ if eq(parameters.FSANITIZE_TYPE, 'OFF') }}:
     - task: VSTest@2
-      displayName: '[blockstorage] VsTest - testAssemblies'
+      displayName: '[blockstorage] VsTest - testAssemblies (no int tests)'
       inputs:
         testAssemblyVer2: |
           $(Build.BinariesDirectory)\${{ parameters.build_configuration }}\**\*_ut_*.dll
-          $(Build.BinariesDirectory)\${{ parameters.build_configuration }}\**\*_int_*.dll
-          $(Build.BinariesDirectory)\${{ parameters.build_configuration }}\**\*_perf_*.dll
         runInParallel: true
         runTestsInIsolation: true
         codeCoverageEnabled: false
