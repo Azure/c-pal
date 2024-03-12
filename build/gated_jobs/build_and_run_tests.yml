@@ -92,7 +92,7 @@ jobs:
       displayName: '[blockstorage] VsTest - testAssemblies'
       inputs:
         testAssemblyVer2: |
-          $(Build.BinariesDirectory)\${{ parameters.test_configuration }}\**\*_ut_*.dll
+          $(Build.BinariesDirectory)\${{ parameters.build_configuration }}\**\*_ut_*.dll
         runInParallel: true
         runTestsInIsolation: true
         codeCoverageEnabled: false
