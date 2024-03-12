@@ -4,7 +4,8 @@ parameters:
   # GBALLOC_LL_TYPE_VALUES is an array of strings
   - name: GBALLOC_LL_TYPE_VALUES
     type: object
-    default: ["PASSTHROUGH", "JEMALLOC"]
+    #default: ["PASSTHROUGH", "JEMALLOC"]
+    default: ["JEMALLOC"]
 
   # FSANITIZE_TYPE_VALUES are the same as cmakelists "fsanitize" option used to pass (or not) /fsanitize=address to the compiler.
   - name: FSANITIZE_TYPE_VALUES
