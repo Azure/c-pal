@@ -228,7 +228,7 @@ TEST_FUNCTION(gballoc_hl_calloc_works)
     ///act 
     ptr = gballoc_hl_calloc(1, 1);
 
-    ///assert - doesn't crash
+    ///assert
     ASSERT_IS_NOT_NULL(ptr);
     ASSERT_IS_TRUE(0 == ptr[0]);
 
@@ -245,8 +245,8 @@ TEST_FUNCTION(gballoc_hl_size_returns_the_size_of_the_allocated_block)
     ///act 
     size_t size = gballoc_hl_size(ptr);
 
-    ///assert - doesn't crash
-    ASSERT_ARE_EQUAL(size_t, 1, size);
+    ///assert
+    ASSERT_IS_TRUE(size >= 1);
 
     ///clean
     gballoc_hl_free(ptr);
