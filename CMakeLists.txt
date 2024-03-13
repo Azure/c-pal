@@ -97,7 +97,7 @@ endif()
 
 if ((WIN32) AND ("${GBALLOC_LL_TYPE}" STREQUAL "JEMALLOC"))
     # Bring in vcpkg
-    use_vcpkg()
+    use_vcpkg(${CMAKE_CURRENT_LIST_DIR}/deps/vcpkg)
 
     find_package(PkgConfig REQUIRED)
     pkg_check_modules (JEMALLOC jemalloc)
