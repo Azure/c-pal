@@ -10,7 +10,7 @@ resources:
     ref: refs/heads/master
 
 jobs:
-- template: build_all.yml
+- template: /pipeline_templates/build_all_flavors.yml@c_build_tools
 
 - template: /pipeline_templates/codeql3000_default.yml@c_build_tools
 
