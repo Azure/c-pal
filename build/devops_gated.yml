@@ -11,6 +11,8 @@ resources:
 
 jobs:
 - template: /pipeline_templates/build_all_flavors.yml@c_build_tools
+  parameters:
+    ARCH_TYPE_VALUES: ["x64", "x86"]
 
 - template: /pipeline_templates/codeql3000_default.yml@c_build_tools
 
