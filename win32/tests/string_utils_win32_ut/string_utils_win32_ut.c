@@ -196,7 +196,7 @@ TEST_FUNCTION(FILETIME_to_string_UTC_with_when_vsnprintf_fails_it_fails_0_5)
 
     umock_c_negative_tests_snapshot();
 
-    for (int i = 0; i < umock_c_negative_tests_call_count(); i++)
+    for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
     {
         if (umock_c_negative_tests_can_call_fail(i))
         {
@@ -283,7 +283,7 @@ TEST_FUNCTION(vsprintf_char_unhappy_paths)
 
     umock_c_negative_tests_snapshot();
 
-    for (int i = 0; i < umock_c_negative_tests_call_count(); i++)
+    for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
     {
         if (umock_c_negative_tests_can_call_fail(i))
         {
