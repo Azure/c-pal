@@ -39,7 +39,7 @@ extern "C" {
     #define ASSIGN_INTERNAL_STRUCT_PTRS(...) \
         MU_FOR_EACH_1(ASSIGN_INTERNAL_STRUCT_PTR, __VA_ARGS__)
 
-    //Codes_MALLOC_MULTI_FLEX_24_005: [ MALLOC_MULTI_FLEX shall expand type to the name of the malloc function in the format of: MALLOC_MULTI_FLEX_type. ]\
+    //Codes_MALLOC_MULTI_FLEX_24_005: [ MALLOC_MULTI_FLEX shall expand type to the name of the malloc function in the format of: MALLOC_MULTI_FLEX_type. ]
     #define MALLOC_MULTI_FLEX(type) \
         MU_C2(malloc_multi_flex, type) \
 
