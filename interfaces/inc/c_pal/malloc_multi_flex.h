@@ -21,6 +21,7 @@ extern "C" {
         {\
             return NULL;\
         }\
+        size_tracker += MU_C2(arg, _count) * MU_C2(arg, _size);
 
     #define ARGS_OVERFLOW_CHECK(...) \
         size_t size_tracker = sizeofmain;\
@@ -49,7 +50,7 @@ extern "C" {
             //Codes_SRS_MALLOC_MULTI_FLEX_24_001: [ If the total amount of memory required to allocate the type along with its members exceeds SIZE_MAX then DEFINE_MALLOC_MULTI_FLEX shall fail and return NULL. ]\
             ARGS_OVERFLOW_CHECK(__VA_ARGS__)\
             //Codes_SRS_MALLOC_MULTI_FLEX_24_002: [ DEFINE_MALLOC_MULTI_FLEX shall call malloc to allocate memory for the struct and its members. ]\
-            type* parent_struct_pointer = malloc(parent_struct_size + size_tracker);\
+            type* parent_struct_pointer = malloc(size_tracker);\
             void* pointer_iterator = (char*)parent_struct_pointer + parent_struct_size; \
             //Codes_SRS_MALLOC_MULTI_FLEX_24_003: [ DEFINE_MALLOC_MULTI_FLEX shall assign address pointers to all the member arrays. ]\
             ASSIGN_INTERNAL_STRUCT_PTRS(__VA_ARGS__)\
