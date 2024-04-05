@@ -24,7 +24,7 @@ extern "C" {
         size_tracker += MU_C2(arg, _count) * MU_C2(arg, _size);
 
     #define ARGS_OVERFLOW_CHECK(...) \
-        size_t size_tracker = sizeofmain;\
+        size_t size_tracker = parent_struct_size;\
         MU_FOR_EACH_1(ARG_OVERFLOW_CHECK, __VA_ARGS__)
 
     #define ARG_LIST_VALUE_ARG(arg) \
