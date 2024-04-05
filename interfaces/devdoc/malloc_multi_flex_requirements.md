@@ -72,13 +72,13 @@ static void* malloc_multi_flex_PARENT_STRUCT(size_t parent_struct_size, uint32_t
 
     // start allocating
     TEST_STRUCT* parent_struct_pointer = gballoc_hl_malloc(size_tracker);
-    void* base_size = (char*)parent_struct_pointer + parent_struct_size;
-    parent_struct_pointer->array_1 = base_size; 
-    base_size = (char*)base_size + array_1_count * array_1_size;
-    parent_struct_pointer->array_2 = base_size;
-    base_size = (char*)base_size + array_2_count * array_2_size;
-    parent_struct_pointer->array_3 = base_size;
-    base_size = (char*)base_size + array_3_count * array_3_size; 
+    void* pointer_iterator = (char*)parent_struct_pointer + parent_struct_size;
+    parent_struct_pointer->array_1 = pointer_iterator; 
+    pointer_iterator = (char*)pointer_iterator + array_1_count * array_1_size;
+    parent_struct_pointer->array_2 = pointer_iterator;
+    pointer_iterator = (char*)pointer_iterator + array_2_count * array_2_size;
+    parent_struct_pointer->array_3 = pointer_iterator;
+    pointer_iterator = (char*)pointer_iterator + array_3_count * array_3_size; 
     return parent_struct_pointer;
 }
 ```
