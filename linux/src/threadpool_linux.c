@@ -608,7 +608,7 @@ int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_
             timer_instance->work_function = work_function;
             /* Codes_SRS_THREADPOOL_LINUX_07_057: [ work_function_ctx shall be allowed to be NULL. ]*/
             timer_instance->work_function_ctx = work_function_ctx;
-
+            (void)interlocked_exchange(&timer_instance->work_guard, OK_TO_WORK);
             struct sigevent sigev = {0};
             timer_t time_id = 0;
 
@@ -746,7 +746,7 @@ void threadpool_timer_destroy(TIMER_INSTANCE_HANDLE timer)
         {
             // Do Nothing
         }
-        ThreadAPI_Sleep(20);
+        ThreadAPI_Sleep(10);
         /* Codes_SRS_THREADPOOL_LINUX_07_072: [ threadpool_timer_destroy shall free all resources in timer. ]*/
         free(timer);
     }

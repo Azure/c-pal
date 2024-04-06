@@ -1022,6 +1022,7 @@ TEST_FUNCTION(threadpool_timer_start_succeeds)
     TIMER_INSTANCE_HANDLE timer_instance;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, 0, IGNORED_ARG, NULL));
 
@@ -1051,6 +1052,7 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_context_succeeds)
     TIMER_INSTANCE_HANDLE timer_instance;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, 0, IGNORED_ARG, NULL));
 
@@ -1079,6 +1081,7 @@ TEST_FUNCTION(threadpool_timer_start_delete_timer_when_timer_set_time_functions_
     TIMER_INSTANCE_HANDLE timer_instance;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, 0, IGNORED_ARG, NULL)).SetReturn(-1);
     STRICT_EXPECTED_CALL(mocked_timer_delete(IGNORED_ARG));
@@ -1103,6 +1106,7 @@ TEST_FUNCTION(threadpool_timer_start_fails_when_underlying_functions_fail)
     TIMER_INSTANCE_HANDLE timer_instance;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG)).CallCannotFail();
     STRICT_EXPECTED_CALL(mocked_timer_create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, 0, IGNORED_ARG, NULL));
 
@@ -1245,7 +1249,11 @@ TEST_FUNCTION(threadpool_timer_destroy_succeeds)
     TIMER_INSTANCE_HANDLE timer_instance;
     test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &timer_instance);
 
+    STRICT_EXPECTED_CALL(InterlockedHL_WaitForNotValue(IGNORED_ARG, IGNORED_ARG, UINT32_MAX));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG,IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_delete(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(ThreadAPI_Sleep(IGNORED_ARG));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
     // act
