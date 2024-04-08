@@ -43,6 +43,21 @@ graph TD
     B--> C(gaps occured)-->E(memmove)-->F(resize done)
 
 ```
+### Threadpool timer
+
+The threadpool timer currently uses the POSIX timer implementation with the timer events generating a new thread (`SIGEV_THREAD`) when an event triggers.
+When the event is triggered, it needs the timer instance to stay allocated until it is completed, so there is a guard to prevent the timer from being deleted while the timer is executing its work function.
+
+```mermaid
+---
+title: Event Triggered State
+---
+stateDiagram-v2
+    [*] --> OK_TO_WORK: threadpool_timer_start
+    OK_TO_WORK --> TIMER_WORKING : on_timer_callback
+    TIMER_WORKING --> OK_TO_WORK : on_timer_callback complete
+    OK_TO_WORK --> TIMER_DELETING : threadpool_timer_destroy 
+```
 
 ## Exposed API
 
@@ -68,6 +83,13 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_restart, TIMER_INSTANCE_HANDLE, timer,
 MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, TIMER_INSTANCE_HANDLE, timer);
 
 MOCKABLE_FUNCTION(, void, threadpool_timer_destroy, TIMER_INSTANCE_HANDLE, timer);
+```
+
+## Static functions
+
+```c
+static void on_timer_callback(sigval_t timer_data);
+static int threadpool_work_func(void* param);
 ```
 
 ### threadpool_create
@@ -234,6 +256,8 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool
 
 **SRS_THREADPOOL_LINUX_07_058: [** `threadpool_timer_start` shall allocate a context for the timer being started and store `work_function` and `work_function_ctx` in it. **]**
 
+**SRS_THREADPOOL_LINUX_45_011: [** `threadpool_timer_start` shall call `interlocked_exchange` to set the `timer_work_guard` to `OK_TO_WORK`. **]**
+
 **SRS_THREADPOOL_LINUX_07_059: [** `threadpool_timer_start` shall call `timer_create` and `timer_settime` to schedule execution. **]**
 
 **SRS_THREADPOOL_LINUX_07_060: [** If any error occurs, `threadpool_timer_start` shall fail and return a non-zero value. **]**
@@ -283,9 +307,38 @@ MOCKABLE_FUNCTION(, void, threadpool_timer_destroy, TIMER_INSTANCE_HANDLE, timer
 
 **SRS_THREADPOOL_LINUX_07_070: [** If `timer` is `NULL`, `threadpool_timer_destroy` shall fail and return. **]**
 
+**SRS_THREADPOOL_LINUX_45_007: [** Until `timer_work_guard` can be set to `TIMER_DELETING`. **]**
+
+- **SRS_THREADPOOL_LINUX_45_008: [** `threadpool_timer_destroy` shall call `InterlockedHL_WaitForNotValue` to wait until `timer_work_guard` is not `TIMER_WORKING`. **]**
+
+- **SRS_THREADPOOL_LINUX_45_009: [** `threadpool_timer_destroy` shall call `interlocked_add` to add 0 to `timer_work_guard` to get current value of `timer_work_guard`. **]**
+
+- **SRS_THREADPOOL_LINUX_45_010: [** `threadpool_timer_destroy` shall call `interlocked_compare_exchange` on `timer_work_guard` with the current value of `timer_work_guard` as the comparison and `TIMER_DELETING` as the exchange. **]**
+
 **SRS_THREADPOOL_LINUX_07_071: [** `threadpool_timer_cancel` shall call `timer_delete` to destroy the ongoing timers. **]**
 
 **SRS_THREADPOOL_LINUX_07_072: [** `threadpool_timer_destroy` shall free all resources in `timer`. **]**
+
+### static void on_timer_callback(sigval_t timer_data);
+
+```C
+static void on_timer_callback(sigval_t timer_data);
+```
+
+`on_timer_callback` executes on a new thread when the POSIX timer is triggered.
+
+**SRS_THREADPOOL_LINUX_45_002: [** `on_timer_callback` shall set the timer instance to `timer_data.sival_ptr`. **]**
+
+**SRS_THREADPOOL_LINUX_45_001: [** If timer instance is NULL, then `on_timer_callback` shall return. **]**
+
+**SRS_THREADPOOL_LINUX_45_003: [** `on_timer_callback` shall call `interlocked_compare_exchange` with the `timer_work_guard` of this timer instance with `OK_TO_WORK` as the comparison, and `TIMER_WORKING` as the exchange. **]**
+
+**SRS_THREADPOOL_LINUX_45_004: [** If `timer_work_guard` is successfully set to `TIMER_WORKING`, then `on_timer_callback` shall call the timer's `work_function` with `work_function_ctx`. **]**
+
+**SRS_THREADPOOL_LINUX_45_005: [** `on_timer_callback` shall call `interlocked_compare_exchange` with the `timer_work_guard` of this timer instance with `TIMER_WORKING` as the comparison, and `OK_TO_WORK` as the exchange. **]**
+
+**SRS_THREADPOOL_LINUX_45_006: [** If `timer_work_guard` is successfully set to `OK_TO_WORK`, then then `on_timer_callback` shall call `wake_by_address_single` on `timer_work_guard`. **]**
+
 
 ### threadpool_work_func
 
