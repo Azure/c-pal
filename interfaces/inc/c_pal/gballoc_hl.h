@@ -11,8 +11,6 @@
 #include <stdint.h>
 #endif
 
-#include "malloc_multi_flex.h"
-
 #include "umock_c/umock_c_prod.h"
 #ifdef __cplusplus
 extern "C" {
