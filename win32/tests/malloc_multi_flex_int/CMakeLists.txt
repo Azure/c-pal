@@ -8,11 +8,9 @@ set(${theseTestsName}_test_files
 )
 
 set(${theseTestsName}_c_files
-    test_module.c
 )
 
 set(${theseTestsName}_h_files
-    test_module.h
 )
 
 build_test_artifacts(${theseTestsName} "tests/c_pal/common" ADDITIONAL_LIBS pal_interfaces) 

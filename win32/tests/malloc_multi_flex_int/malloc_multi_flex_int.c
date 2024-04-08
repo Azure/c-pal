@@ -103,7 +103,7 @@ TEST_FUNCTION(test_malloc_multi_flex_allocates_memory_and_assigns_address_ptr_fo
     //arrange
 
     //act
-    PARENT_STRUCT* test_struct_handle = malloc_multi_flex_PARENT_STRUCT(sizeof(PARENT_STRUCT), 10, 20, 30);
+    PARENT_STRUCT* test_struct_handle = MALLOC_MULTI_FLEX(PARENT_STRUCT)(sizeof(PARENT_STRUCT), 10, 20, 30);
     assign_struct(test_struct_handle);
 
     //assert
@@ -125,7 +125,7 @@ TEST_FUNCTION(test_malloc_multi_flex_works_for_struct_with_no_array_members)
     //arrange
 
     //act
-    INNER_STRUCT* test_struct_handle = malloc_multi_flex_INNER_STRUCT(sizeof(INNER_STRUCT));
+    INNER_STRUCT* test_struct_handle = MALLOC_MULTI_FLEX(INNER_STRUCT)(sizeof(INNER_STRUCT));
     test_struct_handle->inner_int_1 = 3;
     test_struct_handle->inner_int_2 = 6;
 
