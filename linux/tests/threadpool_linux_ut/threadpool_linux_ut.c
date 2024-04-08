@@ -1285,6 +1285,7 @@ TEST_FUNCTION(threadpool_timer_destroy_succeeds)
 /* Tests_SRS_THREADPOOL_LINUX_45_003: [ on_timer_callback shall call interlocked_compare_exchange with the timer_work_guard of this timer instance with OK_TO_WORK as the comparison, and TIMER_WORKING as the exchange. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_45_004: [ If timer_work_guard is successfully set to TIMER_WORKING, then on_timer_callback shall call the timer's work_function with work_function_ctx. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_45_005: [ on_timer_callback shall call interlocked_compare_exchange with the timer_work_guard of this timer instance with TIMER_WORKING as the comparison, and OK_TO_WORK as the exchange. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_45_006: [ If timer_work_guard is successfully set to OK_TO_WORK, then then on_timer_callback shall call wake_by_address_single on timer_work_guard. ]*/
 TEST_FUNCTION(on_timer_callback_calls_work_function)
 {
     // arrange
@@ -1304,7 +1305,7 @@ TEST_FUNCTION(on_timer_callback_calls_work_function)
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(test_work_function((void*)0x4243));
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 
     sigval_t timer_data = {0};
     timer_data.sival_ptr = timer_instance;
