@@ -44,41 +44,41 @@ Lets say the user wants to allocate memory for `PARENT_STRUCT` which has three a
 The caller first needs to specify the struct and member details using `DEFINE_MALLOC_MULTI_FLEX` macro in `.c` file to create a custom `malloc_multi_flex_<type>` function as defined below -
 
 ```c
-DEFINE_MALLOC_MULTI_FLEX(PARENT_STRUCT, array_1, array_2, array_3)
+DEFINE_MALLOC_MULTI_FLEX(PARENT_STRUCT, uint32_t, array_1, uint64_t, array_2, INNER_STRUCT, array_3)
 ```
 
 which will get expanded as following -
 
 ```c
-static void* malloc_multi_flex_PARENT_STRUCT(size_t parent_struct_size, uint32_t array_1_count, uint32_t array_1_size, uint32_t array_2_count, uint32_t array_2_size, uint32_t array_3_count, uint32_t array_3_size) 
+static void* malloc_multi_flex_PARENT_STRUCT(size_t parent_struct_size, uint32_t array_1_count, uint32_t array_2_count, uint32_t array_3_count) 
 {
     // perform overflow checks while calculating total size to be allocated
     size_t size_tracker = parent_struct_size; 
-    if ((array_1_size != 0 && SIZE_MAX / array_1_size < array_1_count) || (SIZE_MAX - size_tracker < array_1_count * array_1_size)) 
+    if ((sizeof(uint32_t) != 0 && SIZE_MAX / sizeof(uint32_t) < array_1_count) || (SIZE_MAX - size_tracker < array_1_count * sizeof(uint32_t))) 
     {
         return NULL;
     } 
-    size_tracker += array_1_count * array_1_size;
-    if ((array_2_size != 0 && SIZE_MAX / array_2_size < array_2_count) || (SIZE_MAX - size_tracker < array_2_count * array_2_size)) 
+    size_tracker += array_1_count * sizeof(uint32_t);
+    if ((sizeof(uint64_t) != 0 && SIZE_MAX / sizeof(uint64_t) < array_2_count) || (SIZE_MAX - size_tracker < array_2_count * sizeof(uint64_t))) 
     {
         return NULL;
     } 
-    size_tracker += array_2_count * array_2_size;
-    if ((array_3_size != 0 && SIZE_MAX / array_3_size < array_3_count) || (SIZE_MAX - size_tracker < array_3_count * array_3_size)) 
+    size_tracker += array_2_count * sizeof(uint64_t);
+    if ((sizeof(INNER_STRUCT) != 0 && SIZE_MAX / sizeof(INNER_STRUCT) < array_3_count) || (SIZE_MAX - size_tracker < array_3_count * sizeof(INNER_STRUCT))) 
     {
         return NULL;
     } 
-    size_tracker += array_3_count * array_3_size;
+    size_tracker += array_3_count * sizeof(INNER_STRUCT);
 
     // start allocating
     TEST_STRUCT* parent_struct_pointer = gballoc_hl_malloc(size_tracker);
     void* pointer_iterator = (char*)parent_struct_pointer + parent_struct_size;
     parent_struct_pointer->array_1 = pointer_iterator; 
-    pointer_iterator = (char*)pointer_iterator + array_1_count * array_1_size;
+    pointer_iterator = (char*)pointer_iterator + array_1_count * sizeof(uint32_t);
     parent_struct_pointer->array_2 = pointer_iterator;
-    pointer_iterator = (char*)pointer_iterator + array_2_count * array_2_size;
+    pointer_iterator = (char*)pointer_iterator + array_2_count * sizeof(uint64_t);
     parent_struct_pointer->array_3 = pointer_iterator;
-    pointer_iterator = (char*)pointer_iterator + array_3_count * array_3_size; 
+    pointer_iterator = (char*)pointer_iterator + array_3_count * sizeof(INNER_STRUCT); 
     return parent_struct_pointer;
 }
 ```
@@ -90,7 +90,7 @@ Now, the user can simply allocate memory for the structure using this statement 
 uint32_t array_1_count = 10;
 uint32_t array_2_count = 20;
 uint32_t array_3_count = 30;
-PARENT_STRUCT* parent_struct_handle = MALLOC_MULTI_FLEX(PARENT_STRUCT)(sizeof(PARENT_STRUCT), array_1_count, sizeof(uint32_t), array_2_count, sizeof(uint64_t), array_3_count, sizeof(INNER_STRUCT));
+PARENT_STRUCT* parent_struct_handle = MALLOC_MULTI_FLEX(PARENT_STRUCT)(sizeof(PARENT_STRUCT), array_1_count, array_2_count, array_3_count);
 // assign and use member arrays
 ...
 ```
