@@ -5,7 +5,6 @@
 #include <stdbool.h>
 #include <semaphore.h>
 #include <time.h>
-#include <bits/types/__sigval_t.h>         // for __sigval_t
 #include <bits/types/sigevent_t.h>         // for sigevent, sigev_notify_fun...
 #include <bits/types/sigval_t.h>           // for sigval_t
 #include <bits/types/timer_t.h>
@@ -52,7 +51,6 @@
 #define MAX_TIMER_INSTANCE_COUNT 64
 
 struct itimerspec;
-struct sigevent;
 struct timespec;
 
 static EXECUTION_ENGINE_PARAMETERS execution_engine = {MIN_THREAD_COUNT, MAX_THREAD_COUNT};
