@@ -39,6 +39,7 @@ typedef struct PARENT_STRUCT_TAG
 
 DEFINE_MALLOC_MULTI_FLEX(PARENT_STRUCT, uint32_t, array_1, uint64_t, array_2, INNER_STRUCT, array_3)
 
+
 TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
 {
 }
