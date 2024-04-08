@@ -41,7 +41,7 @@ extern "C" {
     #define MALLOC_MULTI_FLEX_ASSIGN_INTERNAL_STRUCT_PTRS(...) \
         MU_FOR_EACH_2(MALLOC_MULTI_FLEX_ASSIGN_INTERNAL_STRUCT_PTR, __VA_ARGS__)
 
-    /*Codes_MALLOC_MULTI_FLEX_24_005: [ MALLOC_MULTI_FLEX shall expand type to the name of the malloc function in the format of: MALLOC_MULTI_FLEX_type. ]*/
+    /* Codes_MALLOC_MULTI_FLEX_24_005: [ MALLOC_MULTI_FLEX shall expand type to the name of the malloc function in the format of: MALLOC_MULTI_FLEX_type. ]*/
     #define MALLOC_MULTI_FLEX(type) \
         MU_C2(malloc_multi_flex_, type) \
 
@@ -58,6 +58,7 @@ extern "C" {
                 return NULL;\
             }\
             uintptr_t pointer_iterator = (uintptr_t)parent_struct_pointer + parent_struct_size; \
+            (void)pointer_iterator;\
             /* Codes_SRS_MALLOC_MULTI_FLEX_24_003: [ DEFINE_MALLOC_MULTI_FLEX shall assign address pointers to all the member arrays. ]*/ \
             MALLOC_MULTI_FLEX_ASSIGN_INTERNAL_STRUCT_PTRS(__VA_ARGS__)\
             /* Codes_SRS_MALLOC_MULTI_FLEX_24_004: [ DEFINE_MALLOC_MULTI_FLEX shall succeed and return the address returned by malloc. ]*/ \

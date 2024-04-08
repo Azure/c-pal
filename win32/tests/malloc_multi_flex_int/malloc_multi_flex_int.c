@@ -39,7 +39,6 @@ typedef struct PARENT_STRUCT_TAG
 
 DEFINE_MALLOC_MULTI_FLEX(PARENT_STRUCT, uint32_t, array_1, uint64_t, array_2, INNER_STRUCT, array_3)
 
-
 TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
 {
 }
@@ -94,13 +93,48 @@ static void assert_struct(PARENT_STRUCT* test_struct_handle)
     }
 }
 
-TEST_FUNCTION(test_malloc_multi_flex)
+/* Tests_SRS_MALLOC_MULTI_FLEX_24_001: [ If the total amount of memory required to allocate the type along with its members exceeds SIZE_MAX then DEFINE_MALLOC_MULTI_FLEX shall fail and return NULL. ]*/
+/* Tests_SRS_MALLOC_MULTI_FLEX_24_002: [ DEFINE_MALLOC_MULTI_FLEX shall call malloc to allocate memory for the struct and its members. ]*/
+/* Tests_SRS_MALLOC_MULTI_FLEX_24_003: [ DEFINE_MALLOC_MULTI_FLEX shall assign address pointers to all the member arrays. ]*/
+/* Tests_SRS_MALLOC_MULTI_FLEX_24_004: [ DEFINE_MALLOC_MULTI_FLEX shall succeed and return the address returned by malloc. ]*/
+/* Tests_MALLOC_MULTI_FLEX_24_005: [ MALLOC_MULTI_FLEX shall expand type to the name of the malloc function in the format of: MALLOC_MULTI_FLEX_type. ]*/
+TEST_FUNCTION(test_malloc_multi_flex_allocates_memory_and_assigns_address_ptr_for_parent_and_member_arrays)
 {
-    PARENT_STRUCT* test_struct_handle = malloc_multi_flex_PARENT_STRUCT(sizeof(PARENT_STRUCT), 10, 20, 30);
+    //arrange
 
+    //act
+    PARENT_STRUCT* test_struct_handle = malloc_multi_flex_PARENT_STRUCT(sizeof(PARENT_STRUCT), 10, 20, 30);
     assign_struct(test_struct_handle);
 
+    //assert
     assert_struct(test_struct_handle);
+
+    //cleanup
+    free(test_struct_handle);
+}
+
+DEFINE_MALLOC_MULTI_FLEX(INNER_STRUCT)
+
+/* Tests_SRS_MALLOC_MULTI_FLEX_24_001: [ If the total amount of memory required to allocate the type along with its members exceeds SIZE_MAX then DEFINE_MALLOC_MULTI_FLEX shall fail and return NULL. ]*/
+/* Tests_SRS_MALLOC_MULTI_FLEX_24_002: [ DEFINE_MALLOC_MULTI_FLEX shall call malloc to allocate memory for the struct and its members. ]*/
+/* Tests_SRS_MALLOC_MULTI_FLEX_24_003: [ DEFINE_MALLOC_MULTI_FLEX shall assign address pointers to all the member arrays. ]*/
+/* Tests_SRS_MALLOC_MULTI_FLEX_24_004: [ DEFINE_MALLOC_MULTI_FLEX shall succeed and return the address returned by malloc. ]*/
+/* Tests_MALLOC_MULTI_FLEX_24_005: [ MALLOC_MULTI_FLEX shall expand type to the name of the malloc function in the format of: MALLOC_MULTI_FLEX_type. ]*/
+TEST_FUNCTION(test_malloc_multi_flex_works_for_struct_with_no_array_members)
+{
+    //arrange
+
+    //act
+    INNER_STRUCT* test_struct_handle = malloc_multi_flex_INNER_STRUCT(sizeof(INNER_STRUCT));
+    test_struct_handle->inner_int_1 = 3;
+    test_struct_handle->inner_int_2 = 6;
+
+    //assert
+    ASSERT_ARE_EQUAL(int, 3, test_struct_handle->inner_int_1);
+    ASSERT_ARE_EQUAL(int, 6, test_struct_handle->inner_int_2);
+
+    //cleanup
+    free(test_struct_handle);
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
