@@ -317,6 +317,8 @@ MOCKABLE_FUNCTION(, void, threadpool_timer_destroy, TIMER_INSTANCE_HANDLE, timer
 
 **SRS_THREADPOOL_LINUX_07_071: [** `threadpool_timer_cancel` shall call `timer_delete` to destroy the ongoing timers. **]**
 
+**SRS_THREADPOOL_LINUX_45_012: [** `threadpool_timer_cancel` shall call `ThreadAPI_Sleep` to allow timer resources to clean up. **]**
+
 **SRS_THREADPOOL_LINUX_07_072: [** `threadpool_timer_destroy` shall free all resources in `timer`. **]**
 
 ### static void on_timer_callback(sigval_t timer_data);

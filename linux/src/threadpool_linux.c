@@ -757,6 +757,7 @@ void threadpool_timer_destroy(TIMER_INSTANCE_HANDLE timer)
         {
             // Do Nothing
         }
+        /* Codes_SRS_THREADPOOL_LINUX_45_012: [ threadpool_timer_cancel shall call ThreadAPI_Sleep to allow timer resources to clean up. ]*/
         ThreadAPI_Sleep(10);
         /* Codes_SRS_THREADPOOL_LINUX_07_072: [ threadpool_timer_destroy shall free all resources in timer. ]*/
         free(timer);

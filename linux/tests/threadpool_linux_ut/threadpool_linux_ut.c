@@ -1251,6 +1251,7 @@ TEST_FUNCTION(threadpool_timer_destroy_with_NULL_timer_fails)
 
 /* Tests_SRS_THREADPOOL_LINUX_07_071: [ threadpool_timer_cancel shall call timer_delete to destroy the ongoing timers. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_072: [ threadpool_timer_destroy shall free all resources in timer. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_45_012: [ threadpool_timer_cancel shall call ThreadAPI_Sleep to allow timer resources to clean up. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_45_007: [ Until timer_work_guard can be set to TIMER_DELETING. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_45_008: [ threadpool_timer_destroy shall call InterlockedHL_WaitForNotValue to wait until timer_work_guard is not TIMER_WORKING. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_45_009: [ threadpool_timer_destroy shall call interlocked_add to add 0 to timer_work_guard to get current value of timer_work_guard. ]*/
