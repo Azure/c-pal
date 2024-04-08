@@ -47,43 +47,7 @@ The caller first needs to specify the struct and member details using `DEFINE_MA
 DEFINE_MALLOC_MULTI_FLEX(PARENT_STRUCT, uint32_t, array_1, uint64_t, array_2, INNER_STRUCT, array_3)
 ```
 
-which will get expanded as following -
-
-```c
-static void* malloc_multi_flex_PARENT_STRUCT(size_t parent_struct_size, uint32_t array_1_count, uint32_t array_2_count, uint32_t array_3_count) 
-{
-    // perform overflow checks while calculating total size to be allocated
-    size_t size_tracker = parent_struct_size; 
-    if ((sizeof(uint32_t) != 0 && SIZE_MAX / sizeof(uint32_t) < array_1_count) || (SIZE_MAX - size_tracker < array_1_count * sizeof(uint32_t))) 
-    {
-        return NULL;
-    } 
-    size_tracker += array_1_count * sizeof(uint32_t);
-    if ((sizeof(uint64_t) != 0 && SIZE_MAX / sizeof(uint64_t) < array_2_count) || (SIZE_MAX - size_tracker < array_2_count * sizeof(uint64_t))) 
-    {
-        return NULL;
-    } 
-    size_tracker += array_2_count * sizeof(uint64_t);
-    if ((sizeof(INNER_STRUCT) != 0 && SIZE_MAX / sizeof(INNER_STRUCT) < array_3_count) || (SIZE_MAX - size_tracker < array_3_count * sizeof(INNER_STRUCT))) 
-    {
-        return NULL;
-    } 
-    size_tracker += array_3_count * sizeof(INNER_STRUCT);
-
-    // start allocating
-    TEST_STRUCT* parent_struct_pointer = gballoc_hl_malloc(size_tracker);
-    void* pointer_iterator = (char*)parent_struct_pointer + parent_struct_size;
-    parent_struct_pointer->array_1 = pointer_iterator; 
-    pointer_iterator = (char*)pointer_iterator + array_1_count * sizeof(uint32_t);
-    parent_struct_pointer->array_2 = pointer_iterator;
-    pointer_iterator = (char*)pointer_iterator + array_2_count * sizeof(uint64_t);
-    parent_struct_pointer->array_3 = pointer_iterator;
-    pointer_iterator = (char*)pointer_iterator + array_3_count * sizeof(INNER_STRUCT); 
-    return parent_struct_pointer;
-}
-```
-
-Now, the user can simply allocate memory for the structure using this statement -
+Then, the user can simply allocate memory for the structure using this statement -
 
 ```c
 ...
@@ -104,7 +68,7 @@ Note: the order of members specified in the `DEFINE_MALLOC_MULTI_FLEX` should ma
     ...
 ```
 
-`DEFINE_MALLOC_MULTI_FLEX` allows defining the memory allocation function for the `type` provided.
+`DEFINE_MALLOC_MULTI_FLEX` defines the memory allocation function for the `type` provided.
 
 **SRS_MALLOC_MULTI_FLEX_24_001: [** If the total amount of memory required to allocate the `type` along with its members exceeds `SIZE_MAX` then `DEFINE_MALLOC_MULTI_FLEX` shall fail and return `NULL`. **]**
 
