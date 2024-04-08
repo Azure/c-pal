@@ -757,6 +757,9 @@ void threadpool_timer_destroy(TIMER_INSTANCE_HANDLE timer)
         {
             // Do Nothing
         }
+        // Even though timer_delete does cancel any events, there is a small window where an event was triggered just before and a thread is being created.
+        // So the callback can still execute after the timer_delete call. A small wait here keeps the timer instance alive long enough for
+        // the callback to use it if we hit this window.
         /* Codes_SRS_THREADPOOL_LINUX_45_012: [ threadpool_timer_cancel shall call ThreadAPI_Sleep to allow timer resources to clean up. ]*/
         ThreadAPI_Sleep(10);
         /* Codes_SRS_THREADPOOL_LINUX_07_072: [ threadpool_timer_destroy shall free all resources in timer. ]*/

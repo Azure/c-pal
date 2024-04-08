@@ -59,6 +59,9 @@ stateDiagram-v2
     OK_TO_WORK --> TIMER_DELETING : threadpool_timer_destroy 
 ```
 
+Even with this guard in place, during `threadpool_timer_delete` there is a small window where an event was triggered just before and a thread is being created. 
+The guard prevents any work from happening, but the event callback can still be called after the `timer_delete` call. A small wait before the free keeps the timer instance alive long enough for the callback to use it if we hit this window.
+
 ## Exposed API
 
 ```C
@@ -331,7 +334,7 @@ static void on_timer_callback(sigval_t timer_data);
 
 **SRS_THREADPOOL_LINUX_45_002: [** `on_timer_callback` shall set the timer instance to `timer_data.sival_ptr`. **]**
 
-**SRS_THREADPOOL_LINUX_45_001: [** If timer instance is NULL, then `on_timer_callback` shall return. **]**
+**SRS_THREADPOOL_LINUX_45_001: [** If timer instance is `NULL`, then `on_timer_callback` shall return. **]**
 
 **SRS_THREADPOOL_LINUX_45_003: [** `on_timer_callback` shall call `interlocked_compare_exchange` with the `timer_work_guard` of this timer instance with `OK_TO_WORK` as the comparison, and `TIMER_WORKING` as the exchange. **]**
 
@@ -340,7 +343,6 @@ static void on_timer_callback(sigval_t timer_data);
 **SRS_THREADPOOL_LINUX_45_005: [** `on_timer_callback` shall call `interlocked_compare_exchange` with the `timer_work_guard` of this timer instance with `TIMER_WORKING` as the comparison, and `OK_TO_WORK` as the exchange. **]**
 
 **SRS_THREADPOOL_LINUX_45_006: [** If `timer_work_guard` is successfully set to `OK_TO_WORK`, then then `on_timer_callback` shall call `wake_by_address_single` on `timer_work_guard`. **]**
-
 
 ### threadpool_work_func
 
