@@ -30,6 +30,7 @@
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_linux.h"
 #include "c_pal/sm.h"
+#include "c_pal/sync.h"
 #include "c_pal/thandle.h" // IWYU pragma: keep
 #include "c_pal/thandle_ll.h"
 
@@ -48,12 +49,19 @@
 MU_DEFINE_ENUM(TASK_RESULT, TASK_RESULT_VALUES);
 MU_DEFINE_ENUM_STRINGS(TASK_RESULT, TASK_RESULT_VALUES)
 
+typedef enum TIMER_GUARD_TAG
+{
+    OK_TO_WORK,
+    TIMER_WORKING,
+    TIMER_DELETING,
+} TIMER_GUARD;
 
 typedef struct TIMER_INSTANCE_TAG
 {
     THREADPOOL_WORK_FUNCTION work_function;
     void* work_function_ctx;
     timer_t time_id;
+    INTERLOCKED_DEFINE_VOLATILE_STATE_ENUM(TIMER_GUARD, timer_work_guard);
 } TIMER_INSTANCE;
 
 typedef struct THREADPOOL_TASK_TAG
@@ -89,6 +97,8 @@ THANDLE_TYPE_DEFINE(THREADPOOL);
 
 static void on_timer_callback(sigval_t timer_data)
 {
+    /* Codes_SRS_THREADPOOL_LINUX_45_002: [ on_timer_callback shall set the timer instance to timer_data.sival_ptr. ]*/
+    /* Codes_SRS_THREADPOOL_LINUX_45_001: [ If timer instance is NULL, then on_timer_callback shall return. ]*/
     TIMER_INSTANCE* timer_instance = timer_data.sival_ptr;
     if (timer_instance == NULL)
     {
@@ -96,7 +106,18 @@ static void on_timer_callback(sigval_t timer_data)
     }
     else
     {
-        timer_instance->work_function(timer_instance->work_function_ctx);
+        /* Codes_SRS_THREADPOOL_LINUX_45_003: [ on_timer_callback shall call interlocked_compare_exchange with the timer_work_guard of this timer instance with OK_TO_WORK as the comparison, and TIMER_WORKING as the exchange. ]*/
+        if (interlocked_compare_exchange(&timer_instance->timer_work_guard, TIMER_WORKING, OK_TO_WORK) == OK_TO_WORK)
+        {
+            /* Codes_SRS_THREADPOOL_LINUX_45_004: [ If timer_work_guard is successfully set to TIMER_WORKING, then on_timer_callback shall call the timer's work_function with work_function_ctx. ]*/
+            timer_instance->work_function(timer_instance->work_function_ctx);
+            /* Codes_SRS_THREADPOOL_LINUX_45_005: [ on_timer_callback shall call interlocked_compare_exchange with the timer_work_guard of this timer instance with TIMER_WORKING as the comparison, and OK_TO_WORK as the exchange. ]*/
+            if (interlocked_compare_exchange(&timer_instance->timer_work_guard, OK_TO_WORK, TIMER_WORKING) == TIMER_WORKING)
+            {
+                /* Codes_SRS_THREADPOOL_LINUX_45_006: [ If timer_work_guard is successfully set to OK_TO_WORK, then then on_timer_callback shall call wake_by_address_single on timer_work_guard. ]*/
+                wake_by_address_single(&timer_instance->timer_work_guard);
+            }
+        }
     }
 }
 
@@ -593,7 +614,8 @@ int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_
             timer_instance->work_function = work_function;
             /* Codes_SRS_THREADPOOL_LINUX_07_057: [ work_function_ctx shall be allowed to be NULL. ]*/
             timer_instance->work_function_ctx = work_function_ctx;
-
+            /* Codes_SRS_THREADPOOL_LINUX_45_011: [ threadpool_timer_start shall call interlocked_exchange to set the timer_work_guard to OK_TO_WORK. ]*/
+            (void)interlocked_exchange(&timer_instance->timer_work_guard, OK_TO_WORK);
             struct sigevent sigev = {0};
             timer_t time_id = 0;
 
@@ -707,6 +729,25 @@ void threadpool_timer_destroy(TIMER_INSTANCE_HANDLE timer)
     }
     else
     {
+        while (true)
+        {
+            /* Codes_SRS_THREADPOOL_LINUX_45_008: [ threadpool_timer_destroy shall call InterlockedHL_WaitForNotValue to wait until timer_work_guard is not TIMER_WORKING. ]*/
+            INTERLOCKED_HL_RESULT guard_result = InterlockedHL_WaitForNotValue(&timer->timer_work_guard, TIMER_WORKING, UINT32_MAX);
+            if (guard_result == INTERLOCKED_HL_OK)
+            {
+                /* Codes_SRS_THREADPOOL_LINUX_45_009: [ threadpool_timer_destroy shall call interlocked_add to add 0 to timer_work_guard to get current value of timer_work_guard. ]*/
+                TIMER_GUARD guard_value = interlocked_add(&timer->timer_work_guard, 0);
+                if (guard_value != TIMER_WORKING)
+                {
+                    /* Codes_SRS_THREADPOOL_LINUX_45_010: [ threadpool_timer_destroy shall call interlocked_compare_exchange on timer_work_guard with the current value of timer_work_guard as the comparison and TIMER_DELETING as the exchange. ]*/
+                    if (interlocked_compare_exchange(&timer->timer_work_guard, TIMER_DELETING, guard_value) == guard_value)
+                    {
+                        /* Codes_SRS_THREADPOOL_LINUX_45_007: [ Until timer_work_guard can be set to TIMER_DELETING. ]*/
+                        break;
+                    }
+                }
+            }
+        }
         /* Codes_SRS_THREADPOOL_LINUX_07_071: [ threadpool_timer_cancel shall call timer_delete to destroy the ongoing timers. ]*/
         if (timer_delete(timer->time_id) != 0)
         {
@@ -716,6 +757,11 @@ void threadpool_timer_destroy(TIMER_INSTANCE_HANDLE timer)
         {
             // Do Nothing
         }
+        // Even though timer_delete does cancel any events, there is a small window where an event was triggered just before and a thread is being created.
+        // So the callback can still execute after the timer_delete call. A small wait here keeps the timer instance alive long enough for
+        // the callback to use it if we hit this window.
+        /* Codes_SRS_THREADPOOL_LINUX_45_012: [ threadpool_timer_cancel shall call ThreadAPI_Sleep to allow timer resources to clean up. ]*/
+        ThreadAPI_Sleep(10);
         /* Codes_SRS_THREADPOOL_LINUX_07_072: [ threadpool_timer_destroy shall free all resources in timer. ]*/
         free(timer);
     }
