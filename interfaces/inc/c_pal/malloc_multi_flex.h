@@ -6,9 +6,11 @@
 #ifdef __cplusplus
 #include <cstddef>
 #include <cstdint>
+#include <cstdalign>
 #else
 #include <stddef.h>
 #include <stdint.h>
+#include <stdalign.h>
 #endif
 
 #include "umock_c/umock_c_prod.h"
@@ -16,14 +18,12 @@
 extern "C" {
 #endif
 
-    #define alignof _Alignof
-
     #define MALLOC_MULTI_FLEX_ARG_OVERFLOW_CHECK(arg1, arg2) \
         if ((sizeof(arg1) != 0 && SIZE_MAX / sizeof(arg1) < MU_C2(arg2, _count)) || (SIZE_MAX - size_required < MU_C2(arg2, _count) * sizeof(arg1)) || (SIZE_MAX - (size_required + MU_C2(arg2, _count) * sizeof(arg1)) < alignof(arg1)))\
         {\
             return NULL;\
         }\
-        size_required += MU_C2(arg2, _count) * sizeof(arg1) + alignof(arg1);
+        size_required += MU_C2(arg2, _count) * sizeof(arg1) + alignof(arg1) - 1;
 
     #define MALLOC_MULTI_FLEX_ARGS_OVERFLOW_CHECK(...) \
         MU_FOR_EACH_2(MALLOC_MULTI_FLEX_ARG_OVERFLOW_CHECK, __VA_ARGS__)
