@@ -49,12 +49,13 @@
 MU_DEFINE_ENUM(TASK_RESULT, TASK_RESULT_VALUES);
 MU_DEFINE_ENUM_STRINGS(TASK_RESULT, TASK_RESULT_VALUES)
 
-typedef enum TIMER_GUARD_TAG
-{
-    OK_TO_WORK,
-    TIMER_WORKING,
-    TIMER_DELETING,
-} TIMER_GUARD;
+#define TIMER_GUARD_VALUES \
+    OK_TO_WORK,            \
+    TIMER_WORKING,         \
+    TIMER_DELETING
+
+MU_DEFINE_ENUM(TIMER_GUARD, TIMER_GUARD_VALUES);
+MU_DEFINE_ENUM_STRINGS(TIMER_GUARD, TIMER_GUARD_VALUES);
 
 typedef struct TIMER_INSTANCE_TAG
 {
@@ -759,9 +760,14 @@ void threadpool_timer_destroy(TIMER_INSTANCE_HANDLE timer)
         }
         // Even though timer_delete does cancel any events, there is a small window where an event was triggered just before and a thread is being created.
         // So the callback can still execute after the timer_delete call. A small wait here keeps the timer instance alive long enough for
-        // the callback to use it if we hit this window.
+        // the callback to use it if we hit this window. 
         /* Codes_SRS_THREADPOOL_LINUX_45_012: [ threadpool_timer_cancel shall call ThreadAPI_Sleep to allow timer resources to clean up. ]*/
         ThreadAPI_Sleep(10);
+        // This doesn't fix the problem, this won't 100% guarantee the thread will be executed before we free the timer data. There are a couple of
+        // options to fix the problem, but the way that fits this threadpool model best would be to keep a pool of timers in the threadpool,
+        // and manage each state as in-use or not. That way the timer data allocation is not dependent on threadpool_timer_start/destroy.
+        // To reproduce this problem, create a large number of threads that delete the timer at the same time it is due to expire and remove the pause
+        // above.
         /* Codes_SRS_THREADPOOL_LINUX_07_072: [ threadpool_timer_destroy shall free all resources in timer. ]*/
         free(timer);
     }
