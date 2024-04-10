@@ -35,6 +35,7 @@ extern "C" {
     #define MALLOC_MULTI_FLEX_ARGS_VALIDATION(array_fields) \
             MU_C2A(MALLOC_MULTI_FLEX_ARG_VALIDATION_, array_fields)
 
+    //overflow check
     #define MALLOC_MULTI_FLEX_ARG_OVERFLOW_CHECK(arg1, arg2) \
         if ((sizeof(arg1) != 0 && SIZE_MAX / sizeof(arg1) < MU_C2(arg2, _count)) || (SIZE_MAX - size_required < MU_C2(arg2, _count) * sizeof(arg1)) || (SIZE_MAX - (size_required + MU_C2(arg2, _count) * sizeof(arg1)) < alignof(arg1)))\
         {\
@@ -80,9 +81,6 @@ extern "C" {
     #define MALLOC_MULTI_FLEX(type) \
         MU_C2(malloc_multi_flex_, type) \
 
-    #define FIELD(type, name) type, name
-    #define ARRAY_FIED(type, name) type*, name
-
     #define MALLOC_MULTI_FLEX_DEFINE_FIELD_MEMBER(arg1, arg2) \
             arg1 arg2;
 
@@ -116,6 +114,7 @@ extern "C" {
             type* parent_struct_pointer = malloc(size_required);\
             if (parent_struct_pointer == NULL)\
             {\
+                LogError("malloc(size_required = %zu) failed", size_required);\
                 return NULL;\
             }\
             uintptr_t pointer_iterator = (uintptr_t)parent_struct_pointer + parent_struct_size; \
