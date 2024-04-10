@@ -44,7 +44,7 @@ typedef struct INNER_STURCT_TAG
 
 DECLARE_MALLOC_MULTI_FLEX(PARENT_STRUCT, 
     FIELDS(uint64_t, int_1, uint32_t, int_2, uint32_t, int_3),
-    ARRAY_FIEDS(uint32_t, array_1, uint64_t, array_2, INNER_STRUCT, array_3))
+    ARRAY_FIELDS(uint32_t, array_1, uint64_t, array_2, INNER_STRUCT, array_3))
 
 
 

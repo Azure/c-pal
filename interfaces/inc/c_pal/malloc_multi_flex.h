@@ -39,8 +39,11 @@ extern "C" {
 #define MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUE(arg1, arg2) \
         , uint32_t, MU_C2(arg2, _count)
 
-#define MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUES(...) \
+#define MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUE_ARRAY_FIELDS(...) \
         MU_FOR_EACH_2(MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUE, __VA_ARGS__)
+
+#define MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUES(array_fields) \
+        MU_C2A(MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUE_, array_fields)
 
     #define MALLOC_MULTI_FLEX_ASSIGN_INTERNAL_STRUCT_PTR(arg1, arg2) \
         parent_struct_pointer->arg2 = (arg1*)(pointer_iterator + alignof(arg1) - ((uintptr_t)pointer_iterator % alignof(arg1)));\
@@ -56,21 +59,28 @@ extern "C" {
     #define FIELD(type, name) type, name
     #define ARRAY_FIED(type, name) type*, name
 
-    #define MALLOC_MULTI_FLEX_DEFINE_MEMBER(arg1, arg2) \
+    #define MALLOC_MULTI_FLEX_DEFINE_FIELD_MEMBER(arg1, arg2) \
             arg1 arg2;
 
     #define MALLOC_MULTI_FLEX_DEFINE_MEMBERS_FIELDS(...) \
-            MU_FOR_EACH_2(MALLOC_MULTI_FLEX_DEFINE_MEMBER, __VA_ARGS__)
+            MU_FOR_EACH_2(MALLOC_MULTI_FLEX_DEFINE_FIELD_MEMBER, __VA_ARGS__)
+
+    #define MALLOC_MULTI_FLEX_DEFINE_ARRAY_FIELD_MEMBER(arg1, arg2) \
+                arg1* arg2;
+
+    #define MALLOC_MULTI_FLEX_DEFINE_MEMBERS_ARRAY_FIELDS(...) \
+                MU_FOR_EACH_2(MALLOC_MULTI_FLEX_DEFINE_ARRAY_FIELD_MEMBER, __VA_ARGS__)
 
     #define GENERATE_MULTI_MALLOC_STRUCT(fields) \
             MU_C2A(MALLOC_MULTI_FLEX_DEFINE_MEMBERS_, fields) \
 
-    #define DECLARE_MALLOC_MULTI_FLEX(type, fields, ...)\
+    #define DECLARE_MALLOC_MULTI_FLEX(type, fields, array_fields)\
         typedef struct MU_C2(type, _TAG) \
         { \
             GENERATE_MULTI_MALLOC_STRUCT(fields)\
+            GENERATE_MULTI_MALLOC_STRUCT(array_fields)\
         } type; \
-        //MOCKABLE_FUNCTION(, void*, MALLOC_MULTI_FLEX(type), size_t, parent_struct_size MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUES(__VA_ARGS__)); \
+        MOCKABLE_FUNCTION(, void*, MALLOC_MULTI_FLEX(type), size_t, parent_struct_size MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUES(array_fields)); \
 
     #define DEFINE_MALLOC_MULTI_FLEX(type, ...)\
         void* MALLOC_MULTI_FLEX(type)(size_t parent_struct_size MALLOC_MULTI_FLEX_DEFINE_ARG_LIST_VALUES(__VA_ARGS__)) \
