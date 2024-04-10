@@ -49,7 +49,7 @@ extern "C" {
         MU_C2A(MALLOC_MULTI_FLEX_ARG_OVERFLOW_CHECK_, array_fields)
 
     #define MALLOC_MULTI_FLEX_DEFINE_ARG_LIST_VALUE(arg1, arg2) \
-        , uint32_t MU_C2(arg2, _count)
+        , size_t MU_C2(arg2, _count)
 
     #define MALLOC_MULTI_FLEX_DEFINE_ARG_LIST_VALUE_ARRAY_FIELDS(...) \
         MU_FOR_EACH_2(MALLOC_MULTI_FLEX_DEFINE_ARG_LIST_VALUE, __VA_ARGS__)
@@ -58,7 +58,7 @@ extern "C" {
             MU_C2A(MALLOC_MULTI_FLEX_DEFINE_ARG_LIST_VALUE_, array_fields)
 
     #define MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUE(arg1, arg2) \
-            , uint32_t, MU_C2(arg2, _count)
+            , size_t, MU_C2(arg2, _count)
 
     #define MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUE_ARRAY_FIELDS(...) \
             MU_FOR_EACH_2(MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUE, __VA_ARGS__)
