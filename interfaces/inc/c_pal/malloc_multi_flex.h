@@ -65,10 +65,7 @@ extern "C" {
     #define MALLOC_MULTI_FLEX_ASSIGN_INTERNAL_STRUCT_PTRS(array_fields) \
             MU_C2A(MALLOC_MULTI_FLEX_ASSIGN_INTERNAL_STRUCT_PTR_, array_fields)
 
-    /* Codes_MALLOC_MULTI_FLEX_24_005: [ MALLOC_MULTI_FLEX shall expand type to the name of the malloc function in the format of: MALLOC_MULTI_FLEX_type. ]*/
-    #define MALLOC_MULTI_FLEX(type) \
-        MU_C2(malloc_multi_flex_, type) \
-
+    // field expansion for struct
     #define MALLOC_MULTI_FLEX_DEFINE_FIELD_MEMBER(arg1, arg2) \
             arg1 arg2;
 
@@ -81,9 +78,14 @@ extern "C" {
     #define MALLOC_MULTI_FLEX_DEFINE_MEMBERS_ARRAY_FIELDS(...) \
                 MU_FOR_EACH_2(MALLOC_MULTI_FLEX_DEFINE_ARRAY_FIELD_MEMBER, __VA_ARGS__)
 
-    #define GENERATE_MULTI_MALLOC_STRUCT(fields) \
-            MU_C2A(MALLOC_MULTI_FLEX_DEFINE_MEMBERS_, fields) \
+    #define GENERATE_MULTI_MALLOC_STRUCT(arg) \
+            MU_C2A(MALLOC_MULTI_FLEX_DEFINE_MEMBERS_, arg) \
 
+    /* Codes_MALLOC_MULTI_FLEX_24_005: [ MALLOC_MULTI_FLEX shall expand type to the name of the malloc function in the format of: MALLOC_MULTI_FLEX_type. ]*/
+    #define MALLOC_MULTI_FLEX(type) \
+        MU_C2(malloc_multi_flex_, type) \
+
+    // malloc function declaration along with structure definition
     #define DECLARE_MALLOC_MULTI_FLEX(type, fields, array_fields)\
         typedef struct MU_C2(type, _TAG) \
         { \
@@ -92,6 +94,7 @@ extern "C" {
         } type; \
         MOCKABLE_FUNCTION(, void*, MALLOC_MULTI_FLEX(type), size_t, parent_struct_size MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUES(array_fields)); \
 
+    // malloc function definition
     #define DEFINE_MALLOC_MULTI_FLEX(type, fields, array_fields)\
         void* MALLOC_MULTI_FLEX(type)(size_t parent_struct_size MALLOC_MULTI_FLEX_DEFINE_ARG_LIST_VALUES(array_fields)) \
         {\
@@ -102,10 +105,10 @@ extern "C" {
             type* parent_struct_pointer = malloc(size_required);\
             if (parent_struct_pointer == NULL)\
             {\
+                LogError("malloc(size_required = %zu) failed", size_required);\
                 return NULL;\
             }\
             uintptr_t pointer_iterator = (uintptr_t)parent_struct_pointer + parent_struct_size; \
-            (void)pointer_iterator;\
             /* Codes_SRS_MALLOC_MULTI_FLEX_24_003: [ DEFINE_MALLOC_MULTI_FLEX shall assign address pointers to all the member arrays. ]*/ \
             MALLOC_MULTI_FLEX_ASSIGN_INTERNAL_STRUCT_PTRS(array_fields)\
             /* Codes_SRS_MALLOC_MULTI_FLEX_24_004: [ DEFINE_MALLOC_MULTI_FLEX shall succeed and return the address returned by malloc. ]*/ \

@@ -43,20 +43,9 @@ DEFINE_MALLOC_MULTI_FLEX(PARENT_STRUCT,
 sizeof check sizeof(array1[0])
 */
 
-// name mismatch
-/*
-compile time
-*/
-
-// name mismath but valid ex occurs twice
-/*
-
-*/
-
 /*
 zero array size should be allowed
 */
-
 
 TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
 {
@@ -70,29 +59,6 @@ static void set_all_bits_to_one(PARENT_STRUCT* test_struct_handle)
 {
     size_t bytes_to_set =  (array1_size * sizeof(uint32_t)) + alignof(uint32_t) - 1 + (array2_size * sizeof(uint64_t)) + alignof(uint64_t) - 1 + (array3_size * sizeof(INNER_STRUCT)) + alignof(INNER_STRUCT) - 1;
     memset(test_struct_handle+ sizeof(PARENT_STRUCT), 0xFF, bytes_to_set);
-}
-
-static void print_struct(PARENT_STRUCT* test_struct_handle)
-{
-    for (int i = 0; i < array1_size; i++)
-    {
-        LogInfo("test_struct_handle->array_1[i = %d] = % "PRIu32"", i, test_struct_handle->array_1[i]);
-    }
-
-    LogInfo("\n\n");
-
-    for (int i = 0; i < array2_size; i++)
-    {
-        LogInfo("test_struct_handle->array_2[i = %d] = %"PRIu64"", i, test_struct_handle->array_2[i]);
-    }
-
-    LogInfo("\n\n single_int1 = %"PRIu64", singleint2 = %" PRIu32 ", singleint3 = %"PRIu32"\n\n", test_struct_handle->int_1, test_struct_handle->int_2, test_struct_handle->int_3);
-
-    for (int i = 0; i < array3_size; i++)
-    {
-        LogInfo("test_struct_handle->inner_struct_array[i = %d].inner_single_int = %"PRIu32"", i, test_struct_handle->array_3[i].inner_int_1);
-        LogInfo("test_struct_handle->inner_struct_array[i = %d].inner_single_int2 = %"PRIu64"", i, test_struct_handle->array_3[i].inner_int_2);
-    }
 }
 
 static void assign_struct(PARENT_STRUCT* test_struct_handle)
@@ -151,7 +117,7 @@ TEST_FUNCTION(test_malloc_multi_flex_allocates_memory_and_assigns_address_ptr_fo
     //arrange
 
     //act
-    PARENT_STRUCT* test_struct_handle = MALLOC_MULTI_FLEX(PARENT_STRUCT)(sizeof(PARENT_STRUCT), 10, 20, 30);
+    PARENT_STRUCT* test_struct_handle = MALLOC_MULTI_FLEX(PARENT_STRUCT)(sizeof(PARENT_STRUCT), array1_size, array2_size, array2_size);
     set_all_bits_to_one(test_struct_handle);
     assign_struct(test_struct_handle);
 
