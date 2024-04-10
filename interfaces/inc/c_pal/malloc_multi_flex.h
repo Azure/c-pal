@@ -13,6 +13,8 @@
 #include <stdalign.h>
 #endif
 
+#include "macro_utils/macro_utils.h"
+
 #include "umock_c/umock_c_prod.h"
 #ifdef __cplusplus
 extern "C" {
@@ -28,11 +30,17 @@ extern "C" {
     #define MALLOC_MULTI_FLEX_ARGS_OVERFLOW_CHECK(...) \
         MU_FOR_EACH_2(MALLOC_MULTI_FLEX_ARG_OVERFLOW_CHECK, __VA_ARGS__)
 
-    #define MALLOC_MULTI_FLEX_ARG_LIST_VALUE(arg1, arg2) \
+    #define MALLOC_MULTI_FLEX_DEFINE_ARG_LIST_VALUE(arg1, arg2) \
         , uint32_t MU_C2(arg2, _count)
 
-    #define MALLOC_MULTI_FLEX_ARG_LIST_VALUES(...) \
-        MU_FOR_EACH_2(MALLOC_MULTI_FLEX_ARG_LIST_VALUE, __VA_ARGS__)
+    #define MALLOC_MULTI_FLEX_DEFINE_ARG_LIST_VALUES(...) \
+        MU_FOR_EACH_2(MALLOC_MULTI_FLEX_DEFINE_ARG_LIST_VALUE, __VA_ARGS__)
+
+#define MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUE(arg1, arg2) \
+        , uint32_t, MU_C2(arg2, _count)
+
+#define MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUES(...) \
+        MU_FOR_EACH_2(MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUE, __VA_ARGS__)
 
     #define MALLOC_MULTI_FLEX_ASSIGN_INTERNAL_STRUCT_PTR(arg1, arg2) \
         parent_struct_pointer->arg2 = (arg1*)(pointer_iterator + alignof(arg1) - ((uintptr_t)pointer_iterator % alignof(arg1)));\
@@ -45,8 +53,27 @@ extern "C" {
     #define MALLOC_MULTI_FLEX(type) \
         MU_C2(malloc_multi_flex_, type) \
 
+    #define FIELD(type, name) type, name
+    #define ARRAY_FIED(type, name) type*, name
+
+    #define MALLOC_MULTI_FLEX_DEFINE_MEMBER(arg1, arg2) \
+            arg1 arg2;
+
+    #define MALLOC_MULTI_FLEX_DEFINE_MEMBERS_FIELDS(...) \
+            MU_FOR_EACH_2(MALLOC_MULTI_FLEX_DEFINE_MEMBER, __VA_ARGS__)
+
+    #define GENERATE_MULTI_MALLOC_STRUCT(fields) \
+            MU_C2A(MALLOC_MULTI_FLEX_DEFINE_MEMBERS_, fields) \
+
+    #define DECLARE_MALLOC_MULTI_FLEX(type, fields, ...)\
+        typedef struct MU_C2(type, _TAG) \
+        { \
+            GENERATE_MULTI_MALLOC_STRUCT(fields)\
+        } type; \
+        //MOCKABLE_FUNCTION(, void*, MALLOC_MULTI_FLEX(type), size_t, parent_struct_size MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUES(__VA_ARGS__)); \
+
     #define DEFINE_MALLOC_MULTI_FLEX(type, ...)\
-        static void* MALLOC_MULTI_FLEX(type)(size_t parent_struct_size MALLOC_MULTI_FLEX_ARG_LIST_VALUES(__VA_ARGS__))   \
+        void* MALLOC_MULTI_FLEX(type)(size_t parent_struct_size MALLOC_MULTI_FLEX_DEFINE_ARG_LIST_VALUES(__VA_ARGS__)) \
         {\
             size_t size_required = parent_struct_size;\
             /* Codes_SRS_MALLOC_MULTI_FLEX_24_001: [ If the total amount of memory required to allocate the type along with its members exceeds SIZE_MAX then DEFINE_MALLOC_MULTI_FLEX shall fail and return NULL. ]*/ \
@@ -55,6 +82,7 @@ extern "C" {
             type* parent_struct_pointer = malloc(size_required);\
             if (parent_struct_pointer == NULL)\
             {\
+                LogError("malloc(%zu) failed", size_required);\
                 return NULL;\
             }\
             uintptr_t pointer_iterator = (uintptr_t)parent_struct_pointer + parent_struct_size; \
