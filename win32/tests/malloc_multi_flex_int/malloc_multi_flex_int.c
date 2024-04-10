@@ -20,6 +20,14 @@ TEST_SUITE_CLEANUP(TestClassCleanup)
 {
 }
 
+TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
+{
+}
+
+TEST_FUNCTION_CLEANUP(TestMethodCleanup)
+{
+}
+
 static int array1_size = 10;
 static int array2_size = 20;
 static int array3_size = 30;
@@ -30,7 +38,7 @@ typedef struct INNER_STURCT_TAG
     uint64_t inner_int_2;
 }INNER_STRUCT;
 
-DECLARE_MALLOC_MULTI_FLEX(PARENT_STRUCT, 
+DECLARE_MALLOC_MULTI_FLEX(PARENT_STRUCT,
     FIELDS(uint64_t, int_1, uint32_t, int_2, uint32_t, int_3),
     ARRAY_FIELDS(uint32_t, array_1, uint64_t, array_2, INNER_STRUCT, array_3))
 
@@ -38,15 +46,7 @@ DEFINE_MALLOC_MULTI_FLEX(PARENT_STRUCT,
     FIELDS(uint64_t, int_1, uint32_t, int_2, uint32_t, int_3),
     ARRAY_FIELDS(uint32_t, array_1, uint64_t, array_2, INNER_STRUCT, array_3))
 
-TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
-{
-}
-
-TEST_FUNCTION_CLEANUP(TestMethodCleanup)
-{
-}
-
-static void set_all_bits_to_one(PARENT_STRUCT* test_struct_handle)
+static void set_all_bits(PARENT_STRUCT* test_struct_handle)
 {
     size_t bytes_to_set =  (array1_size * sizeof(uint32_t)) + alignof(uint32_t) - 1 + (array2_size * sizeof(uint64_t)) + alignof(uint64_t) - 1 + (array3_size * sizeof(INNER_STRUCT)) + alignof(INNER_STRUCT) - 1;
     memset(test_struct_handle+ sizeof(PARENT_STRUCT), 0xFF, bytes_to_set);
@@ -108,8 +108,8 @@ TEST_FUNCTION(test_malloc_multi_flex_allocates_memory_and_assigns_address_ptr_fo
     //arrange
 
     //act
-    PARENT_STRUCT* test_struct_handle = MALLOC_MULTI_FLEX(PARENT_STRUCT)(sizeof(PARENT_STRUCT), 10, 20, 30);
-    set_all_bits_to_one(test_struct_handle);
+    PARENT_STRUCT* test_struct_handle = MALLOC_MULTI_FLEX(PARENT_STRUCT)(sizeof(PARENT_STRUCT), array1_size, array2_size, array3_size);
+    set_all_bits(test_struct_handle);
     assign_struct(test_struct_handle);
 
     //assert
