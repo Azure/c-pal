@@ -20,6 +20,7 @@
 extern "C" {
 #endif
 
+    //overflow check macro
     #define MALLOC_MULTI_FLEX_ARG_OVERFLOW_CHECK(arg1, arg2) \
         if ((sizeof(arg1) != 0 && SIZE_MAX / sizeof(arg1) < MU_C2(arg2, _count)) || (SIZE_MAX - size_required < MU_C2(arg2, _count) * sizeof(arg1)) || (SIZE_MAX - (size_required + MU_C2(arg2, _count) * sizeof(arg1)) < alignof(arg1)))\
         {\
@@ -30,27 +31,30 @@ extern "C" {
     #define MALLOC_MULTI_FLEX_ARG_OVERFLOW_CHECK_ARRAY_FIELDS(...) \
         MU_FOR_EACH_2(MALLOC_MULTI_FLEX_ARG_OVERFLOW_CHECK, __VA_ARGS__)
 
-#define MALLOC_MULTI_FLEX_ARGS_OVERFLOW_CHECK(array_fields) \
+    #define MALLOC_MULTI_FLEX_ARGS_OVERFLOW_CHECK(array_fields) \
         MU_C2A(MALLOC_MULTI_FLEX_ARG_OVERFLOW_CHECK_, array_fields)
 
+    // parameter list for function implementation
     #define MALLOC_MULTI_FLEX_DEFINE_ARG_LIST_VALUE(arg1, arg2) \
         , uint32_t MU_C2(arg2, _count)
 
     #define MALLOC_MULTI_FLEX_DEFINE_ARG_LIST_VALUE_ARRAY_FIELDS(...) \
         MU_FOR_EACH_2(MALLOC_MULTI_FLEX_DEFINE_ARG_LIST_VALUE, __VA_ARGS__)
 
-#define MALLOC_MULTI_FLEX_DEFINE_ARG_LIST_VALUES(array_fields) \
-        MU_C2A(MALLOC_MULTI_FLEX_DEFINE_ARG_LIST_VALUE_, array_fields)
+    #define MALLOC_MULTI_FLEX_DEFINE_ARG_LIST_VALUES(array_fields) \
+            MU_C2A(MALLOC_MULTI_FLEX_DEFINE_ARG_LIST_VALUE_, array_fields)
 
-#define MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUE(arg1, arg2) \
-        , uint32_t, MU_C2(arg2, _count)
+    // parameter list for function declaration
+    #define MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUE(arg1, arg2) \
+            , uint32_t, MU_C2(arg2, _count)
 
-#define MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUE_ARRAY_FIELDS(...) \
-        MU_FOR_EACH_2(MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUE, __VA_ARGS__)
+    #define MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUE_ARRAY_FIELDS(...) \
+            MU_FOR_EACH_2(MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUE, __VA_ARGS__)
 
-#define MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUES(array_fields) \
-        MU_C2A(MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUE_, array_fields)
+    #define MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUES(array_fields) \
+            MU_C2A(MALLOC_MULTI_FLEX_DECLARE_ARG_LIST_VALUE_, array_fields)
 
+    // address assignment to array fields
     #define MALLOC_MULTI_FLEX_ASSIGN_INTERNAL_STRUCT_PTR(arg1, arg2) \
         parent_struct_pointer->arg2 = (arg1*)(pointer_iterator + alignof(arg1) - ((uintptr_t)pointer_iterator % alignof(arg1)));\
         pointer_iterator = (uintptr_t)pointer_iterator + MU_C2(arg2, _count) * sizeof(arg1);
@@ -58,15 +62,12 @@ extern "C" {
     #define MALLOC_MULTI_FLEX_ASSIGN_INTERNAL_STRUCT_PTR_ARRAY_FIELDS(...) \
         MU_FOR_EACH_2(MALLOC_MULTI_FLEX_ASSIGN_INTERNAL_STRUCT_PTR, __VA_ARGS__)
 
-#define MALLOC_MULTI_FLEX_ASSIGN_INTERNAL_STRUCT_PTRS(array_fields) \
-        MU_C2A(MALLOC_MULTI_FLEX_ASSIGN_INTERNAL_STRUCT_PTR_, array_fields)
+    #define MALLOC_MULTI_FLEX_ASSIGN_INTERNAL_STRUCT_PTRS(array_fields) \
+            MU_C2A(MALLOC_MULTI_FLEX_ASSIGN_INTERNAL_STRUCT_PTR_, array_fields)
 
     /* Codes_MALLOC_MULTI_FLEX_24_005: [ MALLOC_MULTI_FLEX shall expand type to the name of the malloc function in the format of: MALLOC_MULTI_FLEX_type. ]*/
     #define MALLOC_MULTI_FLEX(type) \
         MU_C2(malloc_multi_flex_, type) \
-
-    #define FIELD(type, name) type, name
-    #define ARRAY_FIED(type, name) type*, name
 
     #define MALLOC_MULTI_FLEX_DEFINE_FIELD_MEMBER(arg1, arg2) \
             arg1 arg2;
