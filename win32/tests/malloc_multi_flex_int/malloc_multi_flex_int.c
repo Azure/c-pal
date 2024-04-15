@@ -46,7 +46,7 @@ DEFINE_MALLOC_MULTI_FLEX(PARENT_STRUCT,
     FIELDS(uint64_t, int_1, uint32_t, int_2, uint32_t, int_3),
     ARRAY_FIELDS(uint32_t, array_1, uint64_t, array_2, INNER_STRUCT, array_3))
 
-    static void set_all_bits(PARENT_STRUCT* test_struct_handle)
+static void set_all_bits(PARENT_STRUCT* test_struct_handle)
 {
     size_t bytes_to_set = (array1_size * sizeof(uint32_t)) + alignof(uint32_t) - 1 + (array2_size * sizeof(uint64_t)) + alignof(uint64_t) - 1 + (array3_size * sizeof(INNER_STRUCT)) + alignof(INNER_STRUCT) - 1;
     memset(test_struct_handle + sizeof(PARENT_STRUCT), 0xFF, bytes_to_set);

@@ -39,6 +39,7 @@ extern "C" {
     #define MALLOC_MULTI_FLEX_ARG_OVERFLOW_CHECK(arg1, arg2) \
         if ((sizeof(arg1) != 0 && SIZE_MAX / sizeof(arg1) < MU_C2(arg2, _count)) || (SIZE_MAX - size_required < MU_C2(arg2, _count) * sizeof(arg1)) || (SIZE_MAX - (size_required + MU_C2(arg2, _count) * sizeof(arg1)) < alignof(arg1)))\
         {\
+            LogError("Size required to allocate memory for struct exceeds %" PRIu64 "", SIZE_MAX);\
             return NULL;\
         }\
         size_required += MU_C2(arg2, _count) * sizeof(arg1) + alignof(arg1) - 1;
