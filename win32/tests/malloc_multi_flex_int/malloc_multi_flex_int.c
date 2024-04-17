@@ -38,11 +38,11 @@ typedef struct INNER_STURCT_TAG
     uint64_t inner_int_2;
 }INNER_STRUCT;
 
-DECLARE_MALLOC_MULTI_FLEX(PARENT_STRUCT,
+DECLARE_MALLOC_MULTI_FLEX_STRUCT(PARENT_STRUCT,
     FIELDS(uint64_t, int_1, uint32_t, int_2, uint32_t, int_3),
     ARRAY_FIELDS(uint32_t, array_1, uint64_t, array_2, INNER_STRUCT, array_3))
 
-DEFINE_MALLOC_MULTI_FLEX(PARENT_STRUCT,
+DEFINE_MALLOC_MULTI_FLEX_STRUCT(PARENT_STRUCT,
     FIELDS(uint64_t, int_1, uint32_t, int_2, uint32_t, int_3),
     ARRAY_FIELDS(uint32_t, array_1, uint64_t, array_2, INNER_STRUCT, array_3))
 
@@ -98,22 +98,93 @@ static void assert_struct(PARENT_STRUCT* test_struct_handle)
     }
 }
 
-/* Tests_SRS_MALLOC_MULTI_FLEX_24_001: [ If the total amount of memory required to allocate the type along with its members exceeds SIZE_MAX then DEFINE_MALLOC_MULTI_FLEX shall fail and return NULL. ]*/
-/* Tests_SRS_MALLOC_MULTI_FLEX_24_002: [ DEFINE_MALLOC_MULTI_FLEX shall call malloc to allocate memory for the struct and its members. ]*/
-/* Tests_SRS_MALLOC_MULTI_FLEX_24_003: [ DEFINE_MALLOC_MULTI_FLEX shall assign address pointers to all the member arrays. ]*/
-/* Tests_SRS_MALLOC_MULTI_FLEX_24_004: [ DEFINE_MALLOC_MULTI_FLEX shall succeed and return the address returned by malloc. ]*/
-/* Tests_MALLOC_MULTI_FLEX_24_005: [ MALLOC_MULTI_FLEX shall expand type to the name of the malloc function in the format of: MALLOC_MULTI_FLEX_type. ]*/
-TEST_FUNCTION(test_malloc_multi_flex_allocates_memory_and_assigns_address_ptr_for_parent_and_member_arrays)
+TEST_FUNCTION(test_malloc_multi_flex_allocates_memory_and_assigns_address_ptr_for_parent_and_member_arrays_of_different_types)
 {
     //arrange
 
     //act
-    PARENT_STRUCT* test_struct_handle = MALLOC_MULTI_FLEX(PARENT_STRUCT)(sizeof(PARENT_STRUCT), array1_size, array2_size, array3_size);
+    PARENT_STRUCT* test_struct_handle = MALLOC_MULTI_FLEX_STRUCT(PARENT_STRUCT)(sizeof(PARENT_STRUCT), array1_size, array2_size, array3_size);
     set_all_bits(test_struct_handle);
     assign_struct(test_struct_handle);
 
     //assert
     assert_struct(test_struct_handle);
+
+    //cleanup
+    free(test_struct_handle);
+}
+
+DECLARE_MALLOC_MULTI_FLEX_STRUCT(PARENT_STRUCT2,
+    FIELDS(uint32_t, int_1, uint32_t, int_2),
+    ARRAY_FIELDS(uint32_t, array_1, uint32_t, array_2))
+
+DEFINE_MALLOC_MULTI_FLEX_STRUCT(PARENT_STRUCT2,
+    FIELDS(uint32_t, int_1, uint32_t, int_2),
+    ARRAY_FIELDS(uint32_t, array_1, uint32_t, array_2))
+
+TEST_FUNCTION(test_malloc_multi_flex_allocates_memory_and_assigns_address_ptr_for_parent_and_member_arrays_of_same_types)
+{
+    //arrange
+
+    //act
+    PARENT_STRUCT2* test_struct_handle = MALLOC_MULTI_FLEX_STRUCT(PARENT_STRUCT2)(sizeof(PARENT_STRUCT2), array1_size, array2_size);
+    size_t bytes_to_set = (array1_size * sizeof(uint32_t)) + alignof(uint32_t) - 1 + (array2_size * sizeof(uint32_t)) + alignof(uint32_t) - 1;
+    memset(test_struct_handle + sizeof(PARENT_STRUCT2), 0xFF, bytes_to_set);
+    test_struct_handle->int_1 = 3;
+    test_struct_handle->int_2 = 6;
+    for (int i = 0; i < array1_size; i++)
+    {
+        test_struct_handle->array_1[i] = i;
+    }
+    for (int i = 0; i < array2_size; i++)
+    {
+        test_struct_handle->array_2[i] = i + 100;
+    }
+
+    //assert
+    for (int i = 0; i < array1_size; i++)
+    {
+        ASSERT_ARE_EQUAL(int, i, test_struct_handle->array_1[i]);
+    }
+
+    for (int i = 0; i < array2_size; i++)
+    {
+        ASSERT_ARE_EQUAL(int, i + 100, test_struct_handle->array_2[i]);
+    }
+
+    ASSERT_ARE_EQUAL(int, 3, test_struct_handle->int_1);
+    ASSERT_ARE_EQUAL(int, 6, test_struct_handle->int_2);
+
+    //cleanup
+    free(test_struct_handle);
+}
+
+DECLARE_MALLOC_MULTI_FLEX_STRUCT(PARENT_STRUCT3,
+    FIELDS(),
+    ARRAY_FIELDS(uint32_t, array_1))
+
+DEFINE_MALLOC_MULTI_FLEX_STRUCT(PARENT_STRUCT3,
+    FIELDS(),
+    ARRAY_FIELDS(uint32_t, array_1))
+
+TEST_FUNCTION(test_malloc_multi_flex_allocates_memory_and_assigns_address_ptr_for_parent_and_single_member_array)
+{
+    //arrange
+
+    //act
+    PARENT_STRUCT3* test_struct_handle = MALLOC_MULTI_FLEX_STRUCT(PARENT_STRUCT3)(sizeof(PARENT_STRUCT3), array1_size);
+    size_t bytes_to_set = (array1_size * sizeof(uint32_t)) + alignof(uint32_t) - 1;
+    memset(test_struct_handle + sizeof(PARENT_STRUCT3), 0xFF, bytes_to_set);
+    for (int i = 0; i < array1_size; i++)
+    {
+        test_struct_handle->array_1[i] = i;
+    }
+
+    //assert
+    for (int i = 0; i < array1_size; i++)
+    {
+        ASSERT_ARE_EQUAL(int, i, test_struct_handle->array_1[i]);
+    }
 
     //cleanup
     free(test_struct_handle);

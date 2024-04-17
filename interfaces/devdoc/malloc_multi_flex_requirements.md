@@ -1,19 +1,19 @@
-# `MALLOC_MULTI_FLEX` requirements
+# `MALLOC_MULTI_FLEX_STRUCT` requirements
 
 ## Overview
 
-`MALLOC_MULTI_FLEX` is a set of macros that allow allocating memory for a structure containing multiple variable sized array members using a single malloc.
+`MALLOC_MULTI_FLEX_STRUCT` is a set of macros that allow allocating memory for a structure containing multiple variable sized array members using a single malloc.
 
 ## Exposed API
 
 ```c
-#define DECLARE_MALLOC_MULTI_FLEX(type, fields, array_fields)
+#define DECLARE_MALLOC_MULTI_FLEX_STRUCT(type, fields, array_fields)
     ...
     
-#define DEFINE_MALLOC_MULTI_FLEX(type, fields, array_fields)
+#define DEFINE_MALLOC_MULTI_FLEX_STRUCT(type, fields, array_fields)
     ...
 
-#define MALLOC_MULTI_FLEX(type)
+#define MALLOC_MULTI_FLEX_STRUCT(type)
     ...
 ```
 
@@ -37,15 +37,15 @@ typedef struct INNER_STURCT_TAG
 }INNER_STRUCT;
 ```
 
-The caller first needs to specify the struct name, member types and names using `DECLARE_MALLOC_MULTI_FLEX` macro to define the struct and declare the malloc function:
+The caller first needs to specify the struct name, member types and names using `DECLARE_MALLOC_MULTI_FLEX_STRUCT` macro to define the struct and declare the malloc function:
 
 ```c
-DECLARE_MALLOC_MULTI_FLEX(PARENT_STRUCT,
+DECLARE_MALLOC_MULTI_FLEX_STRUCT(PARENT_STRUCT,
     FIELDS(uint64_t, int_1, uint32_t, int_2, uint32_t, int_3),
     ARRAY_FIELDS(uint32_t, array_1, uint64_t, array_2, INNER_STRUCT, array_3))
 ```
 
-`DECLARE_MALLOC_MULTI_FLEX` will define the struct as follows
+`DECLARE_MALLOC_MULTI_FLEX_STRUCT` will define the struct as follows:
 
 ```c
 typedef struct PARENT_STRUCT_TAG
@@ -59,10 +59,10 @@ typedef struct PARENT_STRUCT_TAG
 }PARENT_STRUCT;
 ```
 
-Then, the user should use `DEFINE_MALLOC_MULTI_FLEX` macro to define the custom `malloc_multi_flex_<type>` function -
+Then, the user should use `DEFINE_MALLOC_MULTI_FLEX_STRUCT` macro to define the custom `malloc_multi_flex_<type>` function -
 
 ```c
-DEFINE_MALLOC_MULTI_FLEX(PARENT_STRUCT,
+DEFINE_MALLOC_MULTI_FLEX_STRUCT(PARENT_STRUCT,
     FIELDS(uint64_t, int_1, uint32_t, int_2, uint32_t, int_3),
     ARRAY_FIELDS(uint32_t, array_1, uint64_t, array_2, INNER_STRUCT, array_3))
 ```
@@ -74,38 +74,38 @@ Now, the user can simply allocate memory for the structure using this statement 
 uint32_t array_1_count = 10;
 uint32_t array_2_count = 20;
 uint32_t array_3_count = 30;
-PARENT_STRUCT* parent_struct_handle = MALLOC_MULTI_FLEX(PARENT_STRUCT)(sizeof(PARENT_STRUCT), array_1_count, array_2_count, array_3_count);
+PARENT_STRUCT* parent_struct_handle = MALLOC_MULTI_FLEX_STRUCT(PARENT_STRUCT)(sizeof(PARENT_STRUCT), array_1_count, array_2_count, array_3_count);
 // assign and use member arrays
 ...
 ```
 
-Note: the order of members specified in the `ARRAY_FIELDS` should be in sync with the array members count provided to `MALLOC_MULTI_FLEX(type) macro`.
+Note: the order of members specified in the `ARRAY_FIELDS` should be in sync with the array members count provided to `MALLOC_MULTI_FLEX_STRUCT(type) macro`.
 
-### DECLARE_MALLOC_MULTI_FLEX
+### DECLARE_MALLOC_MULTI_FLEX_STRUCT
 
 ```c
-#define DECLARE_MALLOC_MULTI_FLEX(type, fields, array_fields)
+#define DECLARE_MALLOC_MULTI_FLEX_STRUCT(type, fields, array_fields)
     ...
 ```
 
-`DECLARE_MALLOC_MULTI_FLEX` defines the structure and declares the memory allocation function for the `type` provided.
+`DECLARE_MALLOC_MULTI_FLEX_STRUCT` defines the structure and declares the memory allocation function for the `type` provided.
 
-### DEFINE_MALLOC_MULTI_FLEX
+### DEFINE_MALLOC_MULTI_FLEX_STRUCT
 
 ```c
-#define DEFINE_MALLOC_MULTI_FLEX(type, fields, array_fields)
+#define DEFINE_MALLOC_MULTI_FLEX_STRUCT(type, fields, array_fields)
     ...
 ```
 
-`DEFINE_MALLOC_MULTI_FLEX` defines the memory allocation function for the `type` provided.
+`DEFINE_MALLOC_MULTI_FLEX_STRUCT` defines the memory allocation function for the `type` provided.
 
-**SRS_MALLOC_MULTI_FLEX_24_001: [** If the total amount of memory required to allocate the `type` along with its members exceeds `SIZE_MAX` then `DEFINE_MALLOC_MULTI_FLEX` shall fail and return `NULL`. **]**
+**SRS_MALLOC_MULTI_FLEX_STRUCT_24_001: [** If the total amount of memory required to allocate the `type` along with its members exceeds `SIZE_MAX` then `DEFINE_MALLOC_MULTI_FLEX_STRUCT` shall fail and return `NULL`. **]**
 
-**SRS_MALLOC_MULTI_FLEX_24_002: [** `DEFINE_MALLOC_MULTI_FLEX` shall call `malloc` to allocate memory for the struct and its members. **]**
+**SRS_MALLOC_MULTI_FLEX_STRUCT_24_002: [** `DEFINE_MALLOC_MULTI_FLEX_STRUCT` shall call `malloc` to allocate memory for the struct and its members. **]**
 
-**SRS_MALLOC_MULTI_FLEX_24_003: [** `DEFINE_MALLOC_MULTI_FLEX` shall assign address pointers to all the member arrays. **]**
+**SRS_MALLOC_MULTI_FLEX_STRUCT_24_003: [** `DEFINE_MALLOC_MULTI_FLEX_STRUCT` shall assign address pointers to all the member arrays. **]**
 
-**SRS_MALLOC_MULTI_FLEX_24_004: [** `DEFINE_MALLOC_MULTI_FLEX` shall succeed and return the address returned by `malloc` function. **]**
+**SRS_MALLOC_MULTI_FLEX_STRUCT_24_004: [** `DEFINE_MALLOC_MULTI_FLEX_STRUCT` shall succeed and return the address returned by `malloc` function. **]**
 
 ### FIELDS
 
@@ -114,7 +114,7 @@ Note: the order of members specified in the `ARRAY_FIELDS` should be in sync wit
     ...
 ```
 
-`FIELDS` macro shall be used with `DECLARE_MALLOC_MULTI_FLEX` or `DEFINE_MALLOC_MULTI_FLEX` to specify the types and names of the non-array members of the struct.
+`FIELDS` macro shall be used with `DECLARE_MALLOC_MULTI_FLEX_STRUCT` or `DEFINE_MALLOC_MULTI_FLEX_STRUCT` to specify the types and names of the non-array members of the struct.
 
 ### ARRAY_FIELDS
 
@@ -123,13 +123,13 @@ Note: the order of members specified in the `ARRAY_FIELDS` should be in sync wit
     ...
 ```
 
-`ARRAY_FIELDS` macro shall be used with `DECLARE_MALLOC_MULTI_FLEX` or `DEFINE_MALLOC_MULTI_FLEX` to specify the types and names of the array members of the struct.
+`ARRAY_FIELDS` macro shall be used with `DECLARE_MALLOC_MULTI_FLEX_STRUCT` or `DEFINE_MALLOC_MULTI_FLEX_STRUCT` to specify the types and names of the array members of the struct.
 
-### MALLOC_MULTI_FLEX
+### MALLOC_MULTI_FLEX_STRUCT
 
 ```c
-#define MALLOC_MULTI_FLEX(type) \
+#define MALLOC_MULTI_FLEX_STRUCT(type) \
     ...
 ```
 
-**SRS_MALLOC_MULTI_FLEX_24_005: [** `MALLOC_MULTI_FLEX` shall expand `type` to the name of the malloc function in the format of: `MALLOC_MULTI_FLEX_type`. **]**
+**SRS_MALLOC_MULTI_FLEX_STRUCT_24_005: [** `MALLOC_MULTI_FLEX_STRUCT` shall expand `type` to the name of the malloc function in the format of: `MALLOC_MULTI_FLEX_STRUCT_type`. **]**
