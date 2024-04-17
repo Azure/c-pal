@@ -2,6 +2,8 @@
 
 
 #include <stdlib.h>
+#include <stdint.h>
+#include <stddef.h>
 #include <inttypes.h>
 
 #include "windows.h"

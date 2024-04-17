@@ -24,8 +24,8 @@ Lets say the user wants to allocate memory for a structure with name: `PARENT_ST
 - array_2 of type `uint64_t`
 - array_3 of type `INNER_STRUCT`
 - int_1 of type uint64_t
-- int_2 of type uin32_t
-- int_4 of type uint32_t
+- int_2 of type uint32_t
+- int_3 of type uint32_t
 
 where inner struct is another struct with its own members
 
