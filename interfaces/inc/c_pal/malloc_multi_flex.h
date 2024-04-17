@@ -29,6 +29,7 @@ extern "C" {
     #define MALLOC_MULTI_FLEX_STRUCT_ARG_OVERFLOW_CHECK(arg1, arg2) \
         if ((sizeof(arg1) != 0 && SIZE_MAX / sizeof(arg1) < MU_C2(arg2, _count)) || (SIZE_MAX - size_required < MU_C2(arg2, _count) * sizeof(arg1)) || (SIZE_MAX - (size_required + MU_C2(arg2, _count) * sizeof(arg1)) < alignof(arg1)))\
         {\
+            LogError("Size required to allocate memory for struct exceeds %" PRIu64 "", SIZE_MAX);\
             return NULL;\
         }\
         size_required += MU_C2(arg2, _count) * sizeof(arg1) + alignof(arg1) - 1;
@@ -67,7 +68,7 @@ extern "C" {
     #define MALLOC_MULTI_FLEX_STRUCT_ASSIGN_INTERNAL_STRUCT_PTRS(array_fields) \
             MU_C2A(MALLOC_MULTI_FLEX_STRUCT_ASSIGN_INTERNAL_STRUCT_PTR_, array_fields)
 
-    /* Codes_MALLOC_MULTI_FLEX_STRUCT_24_005: [ MALLOC_MULTI_FLEX_STRUCT shall expand type to the name of the malloc function in the format of: MALLOC_MULTI_FLEX_STRUCT_type. ]*/
+    /* Codes_SRS_MALLOC_MULTI_FLEX_STRUCT_24_005: [ MALLOC_MULTI_FLEX_STRUCT shall expand type to the name of the malloc function in the format of: MALLOC_MULTI_FLEX_STRUCT_type. ]*/
     #define MALLOC_MULTI_FLEX_STRUCT(type) \
         MU_C2(malloc_multi_flex_, type) \
 
@@ -104,6 +105,8 @@ extern "C" {
             type* parent_struct_pointer = malloc(size_required);\
             if (parent_struct_pointer == NULL)\
             {\
+                /* Codes_SRS_MALLOC_MULTI_FLEX_STRUCT_24_006: [ If malloc fails, DEFINE_MALLOC_MULTI_FLEX_STRUCT shall fail and return NULL. ]*/ \
+                LogError("malloc(size_required = %zu) failed", size_required);\
                 return NULL;\
             }\
             uintptr_t pointer_iterator = (uintptr_t)parent_struct_pointer + parent_struct_size; \

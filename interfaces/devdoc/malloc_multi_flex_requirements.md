@@ -103,6 +103,8 @@ Note: the order of members specified in the `ARRAY_FIELDS` should be in sync wit
 
 **SRS_MALLOC_MULTI_FLEX_STRUCT_24_002: [** `DEFINE_MALLOC_MULTI_FLEX_STRUCT` shall call `malloc` to allocate memory for the struct and its members. **]**
 
+**SRS_MALLOC_MULTI_FLEX_STRUCT_24_006: [** If `malloc` fails, `DEFINE_MALLOC_MULTI_FLEX_STRUCT` shall fail and return `NULL`. **]**
+
 **SRS_MALLOC_MULTI_FLEX_STRUCT_24_003: [** `DEFINE_MALLOC_MULTI_FLEX_STRUCT` shall assign address pointers to all the member arrays. **]**
 
 **SRS_MALLOC_MULTI_FLEX_STRUCT_24_004: [** `DEFINE_MALLOC_MULTI_FLEX_STRUCT` shall succeed and return the address returned by `malloc` function. **]**

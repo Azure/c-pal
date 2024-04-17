@@ -101,4 +101,20 @@ TEST_FUNCTION(malloc_multi_flex_succeeds)
     free(parent_struct);
 }
 
+/* Tests_SRS_MALLOC_MULTI_FLEX_STRUCT_24_006: [ If malloc fails, DEFINE_MALLOC_MULTI_FLEX_STRUCT shall fail and return NULL. ]*/
+TEST_FUNCTION(malloc_multi_flex_fails_when_malloc_fails)
+{
+    // arrange
+    size_t total_size = sizeof(PARENT_STRUCT) + 10 * sizeof(uint32_t) + 20 * sizeof(uint64_t) + 30 * (sizeof(INNER_STRUCT)) + alignof(uint32_t) - 1 + alignof(INNER_STRUCT) - 1 + alignof(uint64_t) - 1;
+    STRICT_EXPECTED_CALL(malloc(total_size))
+        .SetReturn(NULL);
+
+    // act
+    PARENT_STRUCT* parent_struct = create_parent_struct();
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NULL(parent_struct);
+}
+
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
