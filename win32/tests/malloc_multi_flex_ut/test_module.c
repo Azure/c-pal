@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+#include <stdint.h>
+
 #include "test_module.h"
 
 #include "../../../interfaces/inc/c_pal/malloc_multi_flex.h"

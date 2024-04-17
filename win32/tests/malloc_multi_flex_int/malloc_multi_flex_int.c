@@ -118,7 +118,7 @@ DEFINE_MALLOC_MULTI_FLEX_STRUCT(PARENT_STRUCT2,
     FIELDS(uint32_t, int_1, uint32_t, int_2),
     ARRAY_FIELDS(uint32_t, array_1, uint32_t, array_2))
 
-TEST_FUNCTION(test_malloc_multi_flex_allocates_memory_and_assigns_address_ptr_for_parent_and_member_arrays_of_same_types)
+TEST_FUNCTION(test_malloc_multi_flex_allocates_memory_and_assigns_address_ptr_for_parent_and_member_arrays_of_same_type)
 {
     //arrange
 
