@@ -25,7 +25,6 @@ DECLARE_MALLOC_MULTI_FLEX_STRUCT(PARENT_STRUCT,
     FIELDS(uint64_t, int_1, uint32_t, int_2, uint32_t, int_3),
     ARRAY_FIELDS(uint32_t, array_1, uint64_t, array_2, INNER_STRUCT, array_3))
 
-MOCKABLE_FUNCTION(, PARENT_STRUCT*, create_parent_struct,);
-MOCKABLE_FUNCTION(, INVALID_STRUCT*, create_invalid_struct,);
+MOCKABLE_FUNCTION(, PARENT_STRUCT*, create_parent_struct, uint64_t, array_1_size, uint64_t, array_2_size, uint64_t, array_3_size);
 
 #endif // TEST_MODULE_H

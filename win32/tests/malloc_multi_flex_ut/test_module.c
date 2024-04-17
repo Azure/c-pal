@@ -8,11 +8,8 @@ DEFINE_MALLOC_MULTI_FLEX_STRUCT(PARENT_STRUCT,
     FIELDS(uint64_t, int_1, uint32_t, int_2, uint32_t, int_3),
     ARRAY_FIELDS(uint32_t, array_1, uint64_t, array_2, INNER_STRUCT, array_3))
 
-PARENT_STRUCT* create_parent_struct()
+PARENT_STRUCT* create_parent_struct(uint64_t array1_size, uint64_t array2_size, uint64_t array3_size)
 {
-    uint32_t array1_size = 10;
-    uint32_t array2_size = 20;
-    uint32_t array3_size = 30;
     PARENT_STRUCT* parent_struct = MALLOC_MULTI_FLEX_STRUCT(PARENT_STRUCT)(sizeof(PARENT_STRUCT), array1_size, array2_size, array3_size);
     if (parent_struct != NULL)
     {

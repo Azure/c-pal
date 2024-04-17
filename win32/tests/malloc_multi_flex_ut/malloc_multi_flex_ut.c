@@ -60,7 +60,6 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
     umock_c_negative_tests_deinit();
 }
 
-/* Tests_SRS_MALLOC_MULTI_FLEX_STRUCT_24_001: [ If the total amount of memory required to allocate the type along with its members exceeds SIZE_MAX then DEFINE_MALLOC_MULTI_FLEX_STRUCT shall fail and return NULL. ]*/
 /* Tests_SRS_MALLOC_MULTI_FLEX_STRUCT_24_002: [ DEFINE_MALLOC_MULTI_FLEX_STRUCT shall call malloc to allocate memory for the struct and its members. ]*/
 /* Tests_SRS_MALLOC_MULTI_FLEX_STRUCT_24_003: [ DEFINE_MALLOC_MULTI_FLEX_STRUCT shall assign address pointers to all the member arrays. ]*/
 /* Tests_SRS_MALLOC_MULTI_FLEX_STRUCT_24_004: [ DEFINE_MALLOC_MULTI_FLEX_STRUCT shall succeed and return the address returned by malloc. ]*/
@@ -72,7 +71,7 @@ TEST_FUNCTION(malloc_multi_flex_succeeds)
     STRICT_EXPECTED_CALL(malloc(total_size));
 
     // act
-    PARENT_STRUCT* parent_struct = create_parent_struct();
+    PARENT_STRUCT* parent_struct = create_parent_struct(10, 20, 30);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -110,7 +109,20 @@ TEST_FUNCTION(malloc_multi_flex_fails_when_malloc_fails)
         .SetReturn(NULL);
 
     // act
-    PARENT_STRUCT* parent_struct = create_parent_struct();
+    PARENT_STRUCT* parent_struct = create_parent_struct(10, 20, 30);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NULL(parent_struct);
+}
+
+/* Tests_SRS_MALLOC_MULTI_FLEX_STRUCT_24_001: [ If the total amount of memory required to allocate the type along with its members exceeds SIZE_MAX then DEFINE_MALLOC_MULTI_FLEX_STRUCT shall fail and return NULL. ]*/
+TEST_FUNCTION(malloc_multi_flex_fails_when_size_exceeds_SIZE_MAX)
+{
+    // arrange
+
+    // act
+    PARENT_STRUCT* parent_struct = create_parent_struct(UINT64_MAX, 20, 30);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
