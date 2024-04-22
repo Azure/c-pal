@@ -4,6 +4,7 @@
 if(${run_unittests})
     build_test_folder(execution_engine_win32_ut)
     build_test_folder(async_socket_win32_ut)
+    build_test_folder(malloc_multi_flex_ut)
     build_test_folder(threadpool_win32_ut)
     build_test_folder(pipe_win32_ut)
     build_test_folder(platform_win32_ut)
@@ -37,6 +38,7 @@ endif()
 
 if(${run_int_tests})
     build_test_folder(async_socket_win32_int)
+    build_test_folder(malloc_multi_flex_int)
     build_test_folder(threadpool_win32_int)
     build_test_folder(string_utils_int)
 

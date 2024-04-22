@@ -19,6 +19,7 @@ set(pal_interfaces_h_files
     inc/c_pal/gballoc_ll_redirects.h
     inc/c_pal/gballoc_hl.h
     inc/c_pal/gballoc_hl_redirects.h
+    inc/c_pal/malloc_multi_flex.h
 )
 
 FILE(GLOB pal_interfaces_md_files "devdoc/*.md")
