@@ -14,3 +14,4 @@
 
 #define TASK_RESULT                     real_TASK_RESULT
 #define THREADPOOL_STATE                real_THREADPOOL_STATE
+#define TIMER_GUARD                     real_TIMER_GUARD
