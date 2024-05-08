@@ -11,7 +11,7 @@
 
 #include "umock_c/umock_c.h"
 #define ENABLE_MOCKS
-#include "c_pal/gballoc_hl.h" 
+#include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h" /*THANDLE needs malloc/malloc_flex/free to exist*/
 #include "malloc_mocks.h"
 #undef ENABLE_MOCKS
@@ -236,7 +236,7 @@ TEST_FUNCTION(T_ON_create_from_content_flex_with_malloc_functions_calls_var_mall
 TEST_FUNCTION(T_OFF_uses_malloc_when_no_function_is_specified_1)
 {
     ///arrange
-    
+
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
 
     //act
