@@ -4,6 +4,8 @@
 #ifndef EXAMPLE_INCOMPLETE_TYPE_H
 #define EXAMPLE_INCOMPLETE_TYPE_H
 
+#include "macro_utils/macro_utils.h"
+
 #include "c_pal/thandle_ptr.h"
 
 /*EXAMPLE_INCOMPLETE is an incomplete type (opaque)*/
