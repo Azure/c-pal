@@ -3,6 +3,8 @@
 
 #include <stdlib.h>
 
+#include "macro_utils/macro_utils.h"
+
 #include "c_pal/gballoc_hl.h"               // IWYU pragma: keep
 #include "c_pal/gballoc_hl_redirect.h"      // IWYU pragma: keep
 
