@@ -15,6 +15,9 @@
 
 #include "c_pal/thandle_ptr.h"
 
+#include "example.h"
+#include "example_incomplete_type.h"
+
 typedef struct A_S_TAG
 {
     int a;
@@ -58,7 +61,7 @@ TEST_FUNCTION_CLEANUP(cleans)
 3. verify that the pointer in the THANDLE is the same as the original pointer
 4. THANDLE_ASSIGN(PTR, NULL) so that memory is freed (the THANDLE memory and the original "destroy"
 */
-TEST_FUNCTION(thandle_int_works)
+TEST_FUNCTION(thandle_int_works_with_both_declare_and_define_in_this_file)
 {
     ///arrange
     LogInfo("1. allocate on the heap some structure that needs a special \"destroy\" function.");
@@ -80,6 +83,43 @@ TEST_FUNCTION(thandle_int_works)
     ///cleanup
     LogInfo("4. THANDLE_ASSIGN(PTR, NULL) so that memory is freed (the THANDLE memory and the original \"destroy\"");
     THANDLE_ASSIGN(PTR(A_S_PTR))(&one, NULL);
+}
+
+TEST_FUNCTION(thandle_int_works_with_both_declare_and_define_in_different_files)
+{
+    ///arrange
+    EXAMPLE_COMPLETE_PTR p = malloc(sizeof(EXAMPLE_COMPLETE));
+    ASSERT_IS_NOT_NULL(p);
+    p->example_complete= 2;
+
+    ///act
+    THANDLE(PTR(EXAMPLE_COMPLETE_PTR)) example_complete = THANDLE_PTR_CREATE_WITH_MOVE(EXAMPLE_COMPLETE_PTR)(p, dispose_example_complete);
+
+    ///assert
+    ASSERT_IS_NOT_NULL(example_complete);
+    ASSERT_ARE_EQUAL(void_ptr, p, example_complete->pointer);
+    ASSERT_ARE_EQUAL(int, 2, example_complete->pointer->example_complete);
+
+    ///cleanup
+    THANDLE_ASSIGN(PTR(EXAMPLE_COMPLETE_PTR))(&example_complete, NULL);
+
+}
+
+TEST_FUNCTION(thandle_int_works_with_incomplete_types)
+{
+    ///arrange
+    EXAMPLE_INCOMPLETE_PTR p = create_example_incomplete();
+    ASSERT_IS_NOT_NULL(p);
+
+    ///act
+    THANDLE(PTR(EXAMPLE_INCOMPLETE_PTR)) example_incomplete = THANDLE_PTR_CREATE_WITH_MOVE(EXAMPLE_INCOMPLETE_PTR)(p, dispose_example_incomplete);
+
+    ///assert
+    ASSERT_IS_NOT_NULL(example_incomplete);
+    ASSERT_ARE_EQUAL(void_ptr, p, example_incomplete->pointer);
+
+    ///cleanup
+    THANDLE_ASSIGN(PTR(EXAMPLE_INCOMPLETE_PTR))(&example_incomplete, NULL);
 
 }
 
