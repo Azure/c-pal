@@ -19,6 +19,7 @@ if(${run_unittests})
     build_test_folder(s_list_ut)
     build_test_folder(thandle_2_ut)
     build_test_folder(thandle_ut)
+    build_test_folder(thandle_ptr_ut)
 endif()
 
 if(${run_int_tests})
