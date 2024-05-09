@@ -13,7 +13,7 @@
 #include "c_pal/thandle.h"
 #include "c_pal/string_utils.h"
 
-#include "thandle_ptr_user.h"
+#include "c_pal/thandle_ptr.h"
 
 typedef struct A_S_TAG
 {
@@ -29,14 +29,8 @@ static void dispose(A_S_PTR a_s)
     free(a_s);
 }
 
-/*QWQWQW*/
-#if 1
 THANDLE_PTR_DECLARE(A_S_PTR);
-/*WEWEWE*/
 THANDLE_PTR_DEFINE(A_S_PTR);
-/*ERERER*/
-#else
-#endif
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
@@ -58,30 +52,34 @@ TEST_FUNCTION_CLEANUP(cleans)
 {
 }
 
-
-
+/*the test will
+1. allocate on the heap some structure that needs a special "destroy" function
+2. move the pointer to the structure into a THANDLE(PTR())
+3. verify that the pointer in the THANDLE is the same as the original pointer
+4. THANDLE_ASSIGN(PTR, NULL) so that memory is freed (the THANDLE memory and the original "destroy"
+*/
 TEST_FUNCTION(thandle_int_works)
 {
     ///arrange
+    LogInfo("1. allocate on the heap some structure that needs a special \"destroy\" function.");
     A_S_PTR a_s = malloc(sizeof(A_S));
     ASSERT_IS_NOT_NULL(a_s);
     a_s->a = 42;
     a_s->s = sprintf_char("3333333333333333333333_here_some_string_3333333333333333333333");
     ASSERT_IS_NOT_NULL(a_s->s);
 
-
-    THANDLE_PTR_FREE_FUNC_TYPE_NAME(A_S_PTR) z = NULL;
-    *(volatile int*)&(int) { 1 } ? (void)0 : z(a_s);
-
     ///act
-    THANDLE(PTR_STRUCT_TYPE_NAME(A_S_PTR)) one = create(a_s, dispose);
+    LogInfo("2. move the pointer to the structure into a THANDLE(PTR())");
+    THANDLE(PTR(A_S_PTR)) one = THANDLE_PTR_CREATE_WITH_MOVE(A_S_PTR)(a_s, dispose);
 
     ///assert
+    LogInfo("3. verify that the pointer in the THANDLE is the same as the original pointer");
     ASSERT_IS_NOT_NULL(one);
     ASSERT_ARE_EQUAL(void_ptr, a_s, one->pointer);
 
     ///cleanup
-    THANDLE_ASSIGN(PTR_STRUCT_TYPE_NAME(A_S_PTR))(&one, NULL);
+    LogInfo("4. THANDLE_ASSIGN(PTR, NULL) so that memory is freed (the THANDLE memory and the original \"destroy\"");
+    THANDLE_ASSIGN(PTR(A_S_PTR))(&one, NULL);
 
 }
 
