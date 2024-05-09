@@ -2,17 +2,20 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include <stdlib.h>
-#include <string.h>
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
+#include "c_logging/logger.h"
+
 #include "testrunnerswitcher.h"
 
-#include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/gballoc_hl.h"               // IWYU pragma: keep
+#include "c_pal/gballoc_hl_redirect.h"      // IWYU pragma: keep
 #include "c_pal/thandle.h"
 #include "c_pal/string_utils.h"
 
+#include "c_pal/thandle_ll.h"
+#include "c_pal/thandle.h"                  // IWYU pragma: keep
 #include "c_pal/thandle_ptr.h"
 
 #include "example.h"

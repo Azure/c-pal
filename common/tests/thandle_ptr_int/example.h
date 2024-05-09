@@ -4,6 +4,8 @@
 #ifndef EXAMPLE_H
 #define EXAMPLE_H
 
+#include "macro_utils/macro_utils.h"
+
 #include "c_pal/thandle_ptr.h"
 
 /*this is a complete type*/
