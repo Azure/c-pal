@@ -67,7 +67,7 @@ TEST_FUNCTION_CLEANUP(cleans)
 
 static void just_call_free(UNDER_TEST_PTR p)
 {
-    real_gballoc_hl_free(p);
+    free(p);
 }
 
 /*Tests_SRS_THANDLE_PTR_02_001: [ THANDLE_PTR_CREATE_WITH_MOVE(T) shall return what THANDLE_CREATE_FROM_CONTENT(PTR(T))(THANDLE_PTR_DISPOSE(T)) returns. ]*/
@@ -121,7 +121,7 @@ TEST_FUNCTION(THANDLE_PTR_DISPOSE_call_dispose)
     UNDER_TEST_PTR p = real_gballoc_hl_malloc(sizeof(UNDER_TEST));
     ASSERT_IS_NOT_NULL(p);
 
-    THANDLE(PTR(UNDER_TEST_PTR)) t = THANDLE_PTR_CREATE_WITH_MOVE(UNDER_TEST_PTR)(p, free);
+    THANDLE(PTR(UNDER_TEST_PTR)) t = THANDLE_PTR_CREATE_WITH_MOVE(UNDER_TEST_PTR)(p, just_call_free);
     ASSERT_IS_NOT_NULL(t);
 
     umock_c_reset_all_calls();

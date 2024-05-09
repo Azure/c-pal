@@ -68,7 +68,7 @@ TEST_FUNCTION(thandle_int_works_with_both_declare_and_define_in_this_file)
     A_S_PTR a_s = malloc(sizeof(A_S));
     ASSERT_IS_NOT_NULL(a_s);
     a_s->a = 42;
-    a_s->s = sprintf_char("3333333333333333333333_here_some_string_3333333333333333333333");
+    a_s->s = sprintf_char("%s", "3333333333333333333333_here_some_string_3333333333333333333333");
     ASSERT_IS_NOT_NULL(a_s->s);
 
     ///act
