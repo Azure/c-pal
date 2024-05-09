@@ -2,11 +2,12 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include <stdlib.h>
-#include <string.h>
 
-#include "macro_utils/macro_utils.h" // IWYU pragma: keep
+#include "macro_utils/macro_utils.h"    // IWYU pragma: keep
 
 #include "testrunnerswitcher.h"
+
+#include "c_pal/thandle_ll.h"           // for THANDLE, THANDLE_ASSIGN
 
 #define ENABLE_MOCKS
 #include "umock_c/umock_c.h"
