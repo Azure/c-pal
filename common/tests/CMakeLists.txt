@@ -19,6 +19,7 @@ if(${run_unittests})
     build_test_folder(s_list_ut)
     build_test_folder(thandle_2_ut)
     build_test_folder(thandle_ut)
+    build_test_folder(thandle_ptr_ut)
 endif()
 
 if(${run_int_tests})
@@ -27,6 +28,7 @@ if(${run_int_tests})
     build_test_folder(interlocked_hl_int)
     build_test_folder(lazy_init_int)
     build_test_folder(sm_int)
+    build_test_folder(thandle_ptr_int)
 endif()
 
 
