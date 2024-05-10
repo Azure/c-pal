@@ -10,6 +10,8 @@ set(pal_common_h_files
     ../common/inc/c_pal/sm.h
     ../common/inc/c_pal/thandle_ll.h
     ../common/inc/c_pal/thandle.h
+    ../common/inc/c_pal/thandle_ptr.h
+    ../common/inc/c_pal/thandle_logging_context.h
 )
 
 set(pal_common_c_files
@@ -19,6 +21,7 @@ set(pal_common_c_files
     ../common/src/ps_util.c
     ../common/src/s_list.c
     ../common/src/sm.c
+    ../common/src/thandle_logging_context.c
 )
 
 #determining which one of the GBALLOC_LL implementations to use. By convention the file is called "gballoc_ll_" followed by "type".

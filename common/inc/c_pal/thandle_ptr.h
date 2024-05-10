@@ -37,12 +37,14 @@ typedef struct PTR_STRUCT_TAG_TYPE_NAME(T)                                      
 /*this introduces a new *name* for a function that calls the dispose as passed to THANDLE_PTR_CREATE_WITH_MOVE*/
 #define THANDLE_PTR_DISPOSE(T) MU_C2(THANDLE_PTR_DISPOSE_, T)
 
+#include "umock_c/umock_c_prod.h"
+
 /*this introduces the declaration of a function that returns a THANDLE(PTR(T))*/
 #define THANDLE_PTR_DECLARE(T) \
-    THANDLE_PTR_FREE_FUNC_TYPE(T);                                                                              \
-    PTR_STRUCT_TYPE_TYPEDEF(T);                                                                                 \
-    THANDLE_TYPE_DECLARE(PTR(T));                                                                               \
-    THANDLE(PTR(T)) THANDLE_PTR_CREATE_WITH_MOVE(T)(T pointer, THANDLE_PTR_FREE_FUNC_TYPE_NAME(T) dispose );    \
+    THANDLE_PTR_FREE_FUNC_TYPE(T);                                                                                                      \
+    PTR_STRUCT_TYPE_TYPEDEF(T);                                                                                                         \
+    THANDLE_TYPE_DECLARE(PTR(T));                                                                                                       \
+    MOCKABLE_FUNCTION(,THANDLE(PTR(T)), THANDLE_PTR_CREATE_WITH_MOVE(T), T, pointer, THANDLE_PTR_FREE_FUNC_TYPE_NAME(T), dispose );     \
 
 /*this introduces the definition of the function declared above*/
 #define THANDLE_PTR_DEFINE(T)                                                                                                                                           \
