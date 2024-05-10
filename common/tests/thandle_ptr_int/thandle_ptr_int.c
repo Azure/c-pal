@@ -140,7 +140,7 @@ TEST_FUNCTION(thandle_int_works_with_both_declare_and_define_in_this_file_for_co
     ASSERT_ARE_EQUAL(void_ptr, a_s, one->pointer);
 
     ///assert
-    LogInfo("3.1 verify that the pointer has the same qualifiers as the original pointer (in this case fields not const)");
+    LogInfo("3.1 verify that the pointer has the same qualifiers as the original pointer (in this case fields are const)");
     /*one->pointer->a = 3;*/ /*error C2166: l-value specifies const object*/
     /*one->pointer->s[0] = 'a';*/ /*error C2166: l-value specifies const object*/
 
