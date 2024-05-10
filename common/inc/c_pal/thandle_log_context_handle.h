@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#ifndef THANDLE_LOGGING_CONTEXT_H
-#define THANDLE_LOGGING_CONTEXT_H
+#ifndef THANDLE_LOG_CONTEXT_HANDLE_H
+#define THANDLE_LOG_CONTEXT_HANDLE_H
 
 #include "macro_utils/macro_utils.h"
 
@@ -14,4 +14,4 @@
 
 THANDLE_PTR_DECLARE(LOG_CONTEXT_HANDLE);
 
-#endif /*THANDLE_LOGGING_CONTEXT_H*/
+#endif /*THANDLE_LOG_CONTEXT_HANDLE_H*/

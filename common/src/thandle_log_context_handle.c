@@ -12,6 +12,6 @@
 #include "c_pal/thandle.h"
 #include "c_pal/thandle_ptr.h"
 
-#include "c_pal/thandle_logging_context.h"
+#include "c_pal/thandle_log_context_handle.h"
 
 THANDLE_PTR_DEFINE(LOG_CONTEXT_HANDLE);
