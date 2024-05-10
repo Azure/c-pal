@@ -38,6 +38,24 @@ static void dispose(A_S_PTR a_s)
 THANDLE_PTR_DECLARE(A_S_PTR);
 THANDLE_PTR_DEFINE(A_S_PTR);
 
+
+typedef struct A_S_CONST_TAG
+{
+    const int a;
+    const char* s;
+}A_S_CONST;
+
+typedef A_S_CONST* A_S_CONST_PTR;
+
+static void dispose_const(A_S_CONST_PTR a_s)
+{
+    free((void*)a_s->s);
+    free(a_s);
+}
+
+THANDLE_PTR_DECLARE(A_S_CONST_PTR);
+THANDLE_PTR_DEFINE(A_S_CONST_PTR);
+
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(it_does_something)
@@ -62,6 +80,7 @@ TEST_FUNCTION_CLEANUP(cleans)
 1. allocate on the heap some structure that needs a special "destroy" function
 2. move the pointer to the structure into a THANDLE(PTR())
 3. verify that the pointer in the THANDLE is the same as the original pointer
+3.1 verify that the pointer has the same qualifiers as the original pointer (in this case fields are not const)
 4. THANDLE_ASSIGN(PTR, NULL) so that memory is freed (the THANDLE memory and the original "destroy"
 */
 TEST_FUNCTION(thandle_int_works_with_both_declare_and_define_in_this_file)
@@ -83,9 +102,55 @@ TEST_FUNCTION(thandle_int_works_with_both_declare_and_define_in_this_file)
     ASSERT_IS_NOT_NULL(one);
     ASSERT_ARE_EQUAL(void_ptr, a_s, one->pointer);
 
+    ///assert
+    LogInfo("3.1 verify that the pointer has the same qualifiers as the original pointer (in this case fields are not const)");
+    one->pointer->a = 3;
+    one->pointer->s[0] = 'a';
+
     ///cleanup
     LogInfo("4. THANDLE_ASSIGN(PTR, NULL) so that memory is freed (the THANDLE memory and the original \"destroy\"");
     THANDLE_ASSIGN(PTR(A_S_PTR))(&one, NULL);
+}
+
+/*the test will
+1. allocate on the heap some structure that needs a special "destroy" function
+2. move the pointer to the structure into a THANDLE(PTR())
+3. verify that the pointer in the THANDLE is the same as the original pointer
+3.1 verify that the pointer has the same qualifiers as the original pointer (in this case fields are const)
+4. THANDLE_ASSIGN(PTR, NULL) so that memory is freed (the THANDLE memory and the original "destroy"
+*/
+TEST_FUNCTION(thandle_int_works_with_both_declare_and_define_in_this_file_for_const)
+{
+    ///arrange
+    LogInfo("1. allocate on the heap some structure that needs a special \"destroy\" function.");
+    A_S_CONST_PTR a_s = malloc(sizeof(A_S_CONST));
+    ASSERT_IS_NOT_NULL(a_s);
+    /*cast the const away... just for a tiny momnet*/
+    *(int*)& a_s->a = 42;
+    *(char**)&a_s->s = sprintf_char("%s", "3333333333333333333333_here_some_string_3333333333333333333333");
+    ASSERT_IS_NOT_NULL(a_s->s);
+
+    ///act
+    LogInfo("2. move the pointer to the structure into a THANDLE(PTR())");
+    THANDLE(PTR(A_S_CONST_PTR)) one = THANDLE_PTR_CREATE_WITH_MOVE(A_S_CONST_PTR)(a_s, dispose_const);
+
+    ///assert
+    LogInfo("3. verify that the pointer in the THANDLE is the same as the original pointer");
+    ASSERT_IS_NOT_NULL(one);
+    ASSERT_ARE_EQUAL(void_ptr, a_s, one->pointer);
+
+    ///assert
+    LogInfo("3.1 verify that the pointer has the same qualifiers as the original pointer (in this case fields not const)");
+    /*one->pointer->a = 3;*/ /*error C2166: l-value specifies const object*/
+    /*one->pointer->s[0] = 'a';*/ /*error C2166: l-value specifies const object*/
+
+    /*ENTER C GENERICS - with a shout out to "compatible types..." Note: it seems that "const int" and "int" are "compatible", however, int* and const int* are not.*/
+    ASSERT_ARE_EQUAL(int, 1, _Generic(&one->pointer->a, const int *: 1, int*: 2, default : 0));
+    ASSERT_ARE_EQUAL(int, 1, _Generic(&(one->pointer->s), const char** : 1, default: 0));
+
+    ///cleanup
+    LogInfo("4. THANDLE_ASSIGN(PTR, NULL) so that memory is freed (the THANDLE memory and the original \"destroy\"");
+    THANDLE_ASSIGN(PTR(A_S_CONST_PTR))(&one, NULL);
 }
 
 TEST_FUNCTION(thandle_int_works_with_both_declare_and_define_in_different_files)
