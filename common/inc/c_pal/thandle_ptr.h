@@ -34,6 +34,13 @@ typedef struct PTR_STRUCT_TAG_TYPE_NAME(T)                                      
 /*this introduces one new *name* for a function which is used to capture a T ptr and move it under the THANDLE(PTR(T))*/
 #define THANDLE_PTR_CREATE_WITH_MOVE(T) MU_C2(THANDLE_PTR_CREATE_WITH_MOVE_, T)
 
+/*this introduces one new *name* for the function type of THANDLE_PTR_CREATE_WITH_MOVE*/
+#define THANDLE_PTR_CREATE_WITH_MOVE_FUNCTION_TYPE(T) MU_C2(THANDLE_PTR_CREATE_WITH_MOVE_TYPE_, T)
+
+/*this introduces one new *type* for the function type of THANDLE_PTR_CREATE_WITH_MOVE*/
+#define THANDLE_PTR_CREATE_WITH_MOVE_TYPE(T) typedef THANDLE(PTR(T))(*THANDLE_PTR_CREATE_WITH_MOVE_FUNCTION_TYPE(T))(T pointer, THANDLE_PTR_FREE_FUNC_TYPE_NAME(T) dispose);
+
+
 /*this introduces a new *name* for a function that calls the dispose as passed to THANDLE_PTR_CREATE_WITH_MOVE*/
 #define THANDLE_PTR_DISPOSE(T) MU_C2(THANDLE_PTR_DISPOSE_, T)
 
@@ -44,6 +51,7 @@ typedef struct PTR_STRUCT_TAG_TYPE_NAME(T)                                      
     THANDLE_PTR_FREE_FUNC_TYPE(T);                                                                                                      \
     PTR_STRUCT_TYPE_TYPEDEF(T);                                                                                                         \
     THANDLE_TYPE_DECLARE(PTR(T));                                                                                                       \
+    THANDLE_PTR_CREATE_WITH_MOVE_TYPE(T);                                                                                               \
     MOCKABLE_FUNCTION(,THANDLE(PTR(T)), THANDLE_PTR_CREATE_WITH_MOVE(T), T, pointer, THANDLE_PTR_FREE_FUNC_TYPE_NAME(T), dispose );     \
 
 /*this introduces the definition of the function declared above*/

@@ -67,22 +67,7 @@ TEST_FUNCTION(check_all_c_pal_reals)
     REGISTER_ARITHMETIC_GLOBAL_MOCK_HOOK();
     REGISTER_UUID_GLOBAL_MOCK_HOOK();
     REGISTER_EXECUTION_ENGINE_GLOBAL_MOCK_HOOK();
-
-#if 1
-    /*QWQWQW*/
     REGISTER_THANDLE_LOG_CONTEXT_HANDLE_GLOBAL_MOCK_HOOK();
-    /*WEWEWE*/
-#else
-    (PTR_STRUCT_LOG_CONTEXT_HANDLE_MOVE == PTR_STRUCT_real_LOG_CONTEXT_HANDLE_MOVE) ? (void)0 : (void)1;
-    (PTR_STRUCT_LOG_CONTEXT_HANDLE_INITIALIZE == PTR_STRUCT_real_LOG_CONTEXT_HANDLE_INITIALIZE) ? (void)0 : (void)1;
-    (PTR_STRUCT_LOG_CONTEXT_HANDLE_INITIALIZE_MOVE == PTR_STRUCT_real_LOG_CONTEXT_HANDLE_INITIALIZE_MOVE) ? (void)0
-                                                                                                          : (void)1;
-    (PTR_STRUCT_LOG_CONTEXT_HANDLE_ASSIGN == PTR_STRUCT_real_LOG_CONTEXT_HANDLE_ASSIGN) ? (void)0 : (void)1;
-    (THANDLE_PTR_CREATE_WITH_MOVE_LOG_CONTEXT_HANDLE == THANDLE_PTR_CREATE_WITH_MOVE_real_LOG_CONTEXT_HANDLE) ? (void)0
-                                                                                                              : (void)1;
-    ;
-
-#endif
 
     // assert
     // no explicit assert, if it builds it works

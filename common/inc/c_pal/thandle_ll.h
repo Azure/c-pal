@@ -113,19 +113,43 @@ typedef struct THANDLE_LL_TYPE_STRUCT_TYPE_TAG(T)                               
 /*given a previous type T, THANDLE_ASSIGN introduces a new name for a function that does T1=T2 (with inc/dec refs)*/
 #define THANDLE_ASSIGN(T) MU_C2(T,_ASSIGN)
 
+/*given a previous type T, THANDLE_ASSIGN_FUNCTION_TYPE introduces the name of the type of the function that does THANDLE_ASSIGN*/
+#define THANDLE_ASSIGN_FUNCTION_TYPE(T) MU_C2(THANDLE_ASSIGN_TYPE_, T)
+
+/*given a previous type T, THANDLE_ASSIGN_FUNCTION_TYPE_DECLARE(T) introduces the type of the function that does THANDLE_ASSIGN*/
+#define THANDLE_ASSIGN_FUNCTION_TYPE_DECLARE(T) typedef void (* THANDLE_ASSIGN_FUNCTION_TYPE(T))(THANDLE(T) * t1, THANDLE(T) t2);
+
 /*given a previous type T, THANDLE_INITIALIZE introduces a new name for a function that does T1=T2 (with inc ref, and considers T1 as uninitialized memory)*/
 #define THANDLE_INITIALIZE(T) MU_C2(T,_INITIALIZE)
 
-/*given a previous type T (and its THANDLE(T)), THANDLE_GET_T introduces a new name for a function that returns the T* from under the THANDLE(T)*/
-#define THANDLE_GET_T(T) MU_C2(T,_GET_T)
+/*given a previous type T, THANDLE_INITIALIZE_FUNCTION_TYPE introduces the name of the type of the function that does THANDLE_INITIALIZE*/
+#define THANDLE_INITIALIZE_FUNCTION_TYPE(T) MU_C2(THANDLE_INITIALIZE_TYPE_, T)
+
+/*given a previous type T, THANDLE_INITIALIZE_FUNCTION_TYPE_DECLARE(T) introduces the type of the function that does THANDLE_INITIALIZE*/
+#define THANDLE_INITIALIZE_FUNCTION_TYPE_DECLARE(T) typedef void (* THANDLE_INITIALIZE_FUNCTION_TYPE(T))(THANDLE(T) * t1, THANDLE(T) t2);
 
 /*given a previous type T (and its THANDLE(T)), THANDLE_MOVE introduces a new name for a function that moves a handle to another handle. Move does not increment the ref count, and NULLs the source*/
 #define THANDLE_MOVE(T) MU_C2(T,_MOVE)
+
+/*given a previous type T, THANDLE_MOVE_FUNCTION_TYPE introduces the name of the type of the function that does THANDLE_MOVE*/
+#define THANDLE_MOVE_FUNCTION_TYPE(T) MU_C2(THANDLE_MOVE_TYPE_, T)
+
+/*given a previous type T, THANDLE_MOVE_FUNCTION_TYPE_DECLARE(T) introduces the type of the function that does THANDLE_MOVE*/
+#define THANDLE_MOVE_FUNCTION_TYPE_DECLARE(T) typedef void (* THANDLE_MOVE_FUNCTION_TYPE(T))(THANDLE(T) * t1, THANDLE(T) *t2);
 
 /*given a previous type T (and its THANDLE(T)), THANDLE_INITIALIZE_MOVE introduces a new name for a function that moves a handle to another handle.
 INITIALIZE_MOVE does not increment the ref count, and NULLs the source.
 INITIALIZE_MOVE assumes that destination is not initialized and thus it does not decrement the destination ref count */
 #define THANDLE_INITIALIZE_MOVE(T) MU_C2(T,_INITIALIZE_MOVE)
+
+/*given a previous type T, THANDLE_INITIALIZE_MOVE_FUNCTION_TYPE introduces the name of the type of the function that does THANDLE_INITIALIZE_MOVE*/
+#define THANDLE_INITIALIZE_MOVE_FUNCTION_TYPE(T) MU_C2(THANDLE_INITIALIZE_MOVE_TYPE_, T)
+
+/*given a previous type T, THANDLE_INITIALIZE_MOVE_FUNCTION_TYPE_DECLARE(T) introduces the type of the function that does THANDLE_INITIALIZE_MOVE*/
+#define THANDLE_INITIALIZE_MOVE_FUNCTION_TYPE_DECLARE(T) typedef void (* THANDLE_INITIALIZE_MOVE_FUNCTION_TYPE(T))(THANDLE(T) * t1, THANDLE(T) *t2);
+
+/*given a previous type T (and its THANDLE(T)), THANDLE_GET_T introduces a new name for a function that returns the T* from under the THANDLE(T)*/
+#define THANDLE_GET_T(T) MU_C2(T,_GET_T)
 
 /*THANDLE_MALLOC_WITH_MALLOC_FUNCTIONS returns a new T* using malloc_function (if not NULL) or THANDLE_LL_TYPE_STRUCT_VAR.malloc (if not NULL) or malloc*/
 #define THANDLE_LL_MALLOC_WITH_MALLOC_FUNCTIONS_MACRO(C, T) \
@@ -579,6 +603,10 @@ void THANDLE_INITIALIZE_MOVE(C)(THANDLE(T) * t1, THANDLE(T) * t2)               
 /*introduces an incomplete type based on a MU_DEFINE_STRUCT(T...) previously defined;*/                               \
 #define THANDLE_LL_TYPE_DECLARE(C,T)                                                                                  \
     THANDLE_MACRO(T);                                                                                                 \
+    THANDLE_ASSIGN_FUNCTION_TYPE_DECLARE(T);                                                                          \
+    THANDLE_INITIALIZE_FUNCTION_TYPE_DECLARE(T);                                                                      \
+    THANDLE_MOVE_FUNCTION_TYPE_DECLARE(T);                                                                            \
+    THANDLE_INITIALIZE_MOVE_FUNCTION_TYPE_DECLARE(T);                                                                 \
     MOCKABLE_FUNCTION(, void, THANDLE_ASSIGN(C), THANDLE(T) *, t1, THANDLE(T), t2 );                                  \
     MOCKABLE_FUNCTION(, void, THANDLE_INITIALIZE(C), THANDLE(T) *, t1, THANDLE(T), t2 );                              \
     MOCKABLE_FUNCTION(, void, THANDLE_MOVE(C), THANDLE(T) *, t1, THANDLE(T)*, t2 );                                   \
