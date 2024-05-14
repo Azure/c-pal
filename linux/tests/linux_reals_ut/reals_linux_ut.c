@@ -9,6 +9,7 @@
 #include "c_pal/threadpool.h" // IWYU pragma: keep
 #include "c_pal/uuid.h" // IWYU pragma: keep
 #include "c_pal/execution_engine.h" // IWYU pragma: keep
+#include "c_pal/interlocked.h" // IWYU pragma: keep
 #include "c_pal/thandle_log_context_handle.h" // IWYU pragma: keep
 
 #define REGISTER_GLOBAL_MOCK_HOOK(original, real) \
@@ -22,6 +23,7 @@
 #include "real_threadpool.h"
 #include "real_uuid.h"
 #include "real_execution_engine.h"
+#include "real_interlocked.h"
 #include "real_thandle_log_context_handle.h"
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
