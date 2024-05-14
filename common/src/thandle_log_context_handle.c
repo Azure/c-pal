@@ -7,6 +7,7 @@
 
 #include "c_pal/gballoc_hl.h"  // IWYU pragma: keep
 #include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
+#include "c_pal/interlocked.h" // IWYU pragma: keep
 
 #include "c_pal/thandle_ll.h" // IWYU pragma: keep
 #include "c_pal/thandle.h" // IWYU pragma: keep
