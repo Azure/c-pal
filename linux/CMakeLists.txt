@@ -66,6 +66,7 @@ set(pal_linux_c_files
     src/threadpool_linux.c
     src/timer_linux.c
     src/uuid_linux.c
+    src/interlocked_linux.c
     src/${gballoc_ll_c}
     src/${gballoc_hl_c}
 )
