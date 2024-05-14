@@ -12,6 +12,16 @@
 #include "c_pal/thandle.h"
 #include "c_pal/thandle_ptr.h"
 
-THANDLE_PTR_DECLARE(LOG_CONTEXT_HANDLE);
+#include "umock_c/umock_c_prod.h"
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+    THANDLE_PTR_DECLARE(LOG_CONTEXT_HANDLE);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*THANDLE_LOG_CONTEXT_HANDLE_H*/
