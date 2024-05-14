@@ -1,8 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#include <stddef.h>
+
 #include "c_logging/log_context.h"
 
+#include "c_pal/thandle_ll.h"
 #include "c_pal/thandle_ptr.h"
 #include "c_pal/thandle_log_context_handle.h"
 
