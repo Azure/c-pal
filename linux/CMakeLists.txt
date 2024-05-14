@@ -66,7 +66,6 @@ set(pal_linux_c_files
     src/threadpool_linux.c
     src/timer_linux.c
     src/uuid_linux.c
-    src/interlocked_linux.c
     src/${gballoc_ll_c}
     src/${gballoc_hl_c}
 )
@@ -80,7 +79,7 @@ include_directories(../common/inc)
 include_directories(../c_pal_ll/interfaces/inc)
 
 add_library(pal_linux ${pal_linux_h_files} ${pal_linux_c_files} ${pal_linux_md_files} ${pal_common_md_files})
-target_link_libraries(pal_linux pal_interfaces rt uuid pthread)
+target_link_libraries(pal_linux pal_ll_linux pal_interfaces rt uuid pthread)
 target_include_directories(pal_linux PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc)
 
 # make an install target so we can produce a Linux native client package.
