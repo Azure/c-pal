@@ -40,7 +40,7 @@ endif()
 set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}" CACHE STRING "" FORCE)
 
 if (NOT DEFINED ENV{BUILD_BINARIESDIRECTORY})
-    MESSAGE(FATAL_ERROR "cannot find BUILD_BINARIESDIRECTORY env variable which is absolutely needed. It can point to any folder where the binaries will pe placed. Here's an example: BUILD_BINARIESDIRECTORY=d:\\BUILD_BINARIESDIRECTORY")
+    MESSAGE(FATAL_ERROR "cannot find BUILD_BINARIESDIRECTORY env variable which is absolutely needed. It can point to any folder where the binaries will pe placed. Here's an example: \nWindows:\nset BUILD_BINARIESDIRECTORY=d:\\BUILD_BINARIESDIRECTORY\nWSL:\nexport BUILD_BINARIESDIRECTORY=/mnt/d/r/BUILD_BINARIESDIRECTORY/linux")
 endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG $ENV{BUILD_BINARIESDIRECTORY}/Debug)

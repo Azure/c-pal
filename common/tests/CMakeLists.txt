@@ -20,6 +20,7 @@ if(${run_unittests})
     build_test_folder(thandle_2_ut)
     build_test_folder(thandle_ut)
     build_test_folder(thandle_ptr_ut)
+    build_test_folder(real_thandle_log_context_handle_ut)
 endif()
 
 if(${run_int_tests})
