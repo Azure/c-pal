@@ -5,11 +5,11 @@
 
 #include "c_logging/log_context.h"
 
-#include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/gballoc_hl.h"  // IWYU pragma: keep
+#include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 
-#include "c_pal/thandle_ll.h"
-#include "c_pal/thandle.h"
+#include "c_pal/thandle_ll.h" // IWYU pragma: keep
+#include "c_pal/thandle.h" // IWYU pragma: keep
 #include "c_pal/thandle_ptr.h"
 
 #include "c_pal/thandle_log_context_handle.h"
