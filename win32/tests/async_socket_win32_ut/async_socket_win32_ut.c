@@ -268,7 +268,6 @@ TEST_FUNCTION(async_socket_destroy_with_NULL_returns)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_42_007: [ If the socket was not OPEN then async_socket_destroy shall call closesocket on the underlying socket. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_42_005: [ async_socket_destroy shall decrement the reference count on the execution engine. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_005: [ async_socket_destroy shall free all resources associated with async_socket. ]*/
 TEST_FUNCTION(async_socket_destroy_frees_resources)

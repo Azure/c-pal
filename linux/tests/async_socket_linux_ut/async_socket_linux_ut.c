@@ -416,7 +416,7 @@ TEST_FUNCTION(async_socket_open_async_with_NULL_async_socket_fails)
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
 }
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_create_with_transport shall fail and return NULL. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_open_async shall fail and return NULL. ]
 TEST_FUNCTION(async_socket_create_with_transport_with_INVALID_SOCKET_fails)
 {
     // arrange

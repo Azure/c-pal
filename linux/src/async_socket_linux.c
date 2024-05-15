@@ -502,8 +502,8 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, SOCKET_HANDLE sock
         async_socket == NULL ||
         // Codes_SRS_ASYNC_SOCKET_LINUX_11_025: [ If on_open_complete is NULL, async_socket_open_async shall fail and return a non-zero value. ]
         on_open_complete == NULL ||
-        // Codes_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_create_with_transport shall fail and return a non-zero value. ]
-        (SOCKET)socket_handle == INVALID_SOCKET
+        // Codes_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_open_async shall fail and return a non-zero value. ]
+        socket_handle == INVALID_SOCKET
        )
     {
         LogError("ASYNC_SOCKET_HANDLE async_socket=%p, ON_ASYNC_SOCKET_OPEN_COMPLETE on_open_complete=%p, void* on_open_complete_context=%p",
@@ -531,7 +531,7 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, SOCKET_HANDLE sock
             }
             else
             {
-                result->socket_handle = socket_handle;
+                async_socket->socket_handle = socket_handle;
 
                 // Codes_SRS_ASYNC_SOCKET_LINUX_11_031: [ async_socket_open_async shall add the socket to the epoll system by calling epoll_ctl with EPOLL_CTL_ADD. ]
                 // Codes_SRS_ASYNC_SOCKET_LINUX_11_032: [ async_socket_open_async shall set the state to OPEN. ]
