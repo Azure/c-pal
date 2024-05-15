@@ -257,7 +257,7 @@ TEST_FUNCTION(async_socket_create_with_transport_with_NULL_execution_engine_succ
     mock_async_socket_create_with_transport_setup();
 
     // act
-    async_socket = async_socket_create_with_transport(NULL, test_socket, mocked_on_send, test_send_ctx, mocked_on_recv, test_recv_ctx);
+    async_socket = async_socket_create_with_transport(NULL, mocked_on_send, test_send_ctx, mocked_on_recv, test_recv_ctx);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -274,7 +274,7 @@ TEST_FUNCTION(async_socket_create_with_transport_with_NULL_on_send_fails)
     ASYNC_SOCKET_HANDLE async_socket;
 
     // act
-    async_socket = async_socket_create_with_transport(test_execution_engine, test_socket, NULL, NULL, mocked_on_recv, test_recv_ctx);
+    async_socket = async_socket_create_with_transport(test_execution_engine, NULL, NULL, mocked_on_recv, test_recv_ctx);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -288,7 +288,7 @@ TEST_FUNCTION(async_socket_create_with_transport_with_NULL_on_recv_fails)
     ASYNC_SOCKET_HANDLE async_socket;
 
     // act
-    async_socket = async_socket_create_with_transport(test_execution_engine, test_socket, mocked_on_send, test_send_ctx, NULL, NULL);
+    async_socket = async_socket_create_with_transport(test_execution_engine, mocked_on_send, test_send_ctx, NULL, NULL);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -305,7 +305,7 @@ TEST_FUNCTION(async_socket_create_with_transport_succeeds)
     mock_async_socket_create_with_transport_setup();
 
     // act
-    async_socket = async_socket_create_with_transport(test_execution_engine, test_socket, mocked_on_send, test_send_ctx, mocked_on_recv, test_recv_ctx);
+    async_socket = async_socket_create_with_transport(test_execution_engine, mocked_on_send, test_send_ctx, mocked_on_recv, test_recv_ctx);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -333,7 +333,7 @@ TEST_FUNCTION(async_socket_create_with_transport_fails)
             umock_c_negative_tests_fail_call(index);
 
             // act
-            async_socket = async_socket_create_with_transport(test_execution_engine, test_socket, mocked_on_send, test_send_ctx, mocked_on_recv, test_recv_ctx);
+            async_socket = async_socket_create_with_transport(test_execution_engine, mocked_on_send, test_send_ctx, mocked_on_recv, test_recv_ctx);
 
             // assert
             ASSERT_IS_NULL(async_socket, "On failed call %zu", index);
@@ -409,7 +409,7 @@ TEST_FUNCTION(async_socket_open_async_with_NULL_async_socket_fails)
     int result;
 
     // act
-    result = async_socket_open_async(NULL, test_on_open_complete, test_callback_ctx);
+    result = async_socket_open_async(NULL, test_socket, test_on_open_complete, test_callback_ctx);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -417,7 +417,7 @@ TEST_FUNCTION(async_socket_open_async_with_NULL_async_socket_fails)
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_open_async shall fail and return NULL. ]
-TEST_FUNCTION(async_socket_create_with_transport_with_INVALID_SOCKET_fails)
+TEST_FUNCTION(async_socket_open_async_with_INVALID_SOCKET_fails)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
@@ -425,7 +425,7 @@ TEST_FUNCTION(async_socket_create_with_transport_with_INVALID_SOCKET_fails)
     umock_c_reset_all_calls();
 
     // act
-    result = async_socket_open_async(async_socket, test_socket, NULL, test_callback_ctx);
+    int result = async_socket_open_async(async_socket, INVALID_SOCKET, test_on_open_complete, test_callback_ctx);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -446,7 +446,7 @@ TEST_FUNCTION(async_socket_open_async_with_NULL_on_open_complete_fails)
     umock_c_reset_all_calls();
 
     // act
-    result = async_socket_open_async(async_socket, test_socket, test_socket,test_on_open_complete, test_callback_ctx);
+    result = async_socket_open_async(async_socket, test_socket, NULL, test_callback_ctx);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -473,7 +473,7 @@ TEST_FUNCTION(async_socket_open_async_succeeds)
     STRICT_EXPECTED_CALL(test_on_open_complete(test_callback_ctx, ASYNC_SOCKET_OPEN_OK));
 
     // act
-    int result = async_socket_open_async(async_socket, test_socket, test_socket, test_on_open_complete, test_callback_ctx);
+    int result = async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -498,7 +498,7 @@ TEST_FUNCTION(async_socket_open_async_succeeds_with_NULL_context)
     STRICT_EXPECTED_CALL(test_on_open_complete(NULL, ASYNC_SOCKET_OPEN_OK));
 
     // act
-    result = async_socket_open_async(async_socket, test_socket, test_socket, test_on_open_complete, NULL);
+    result = async_socket_open_async(async_socket, test_socket, test_on_open_complete, NULL);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -534,7 +534,7 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_open_async_fails)
             umock_c_negative_tests_fail_call(index);
 
             // act
-            result = async_socket_open_async(async_socket, test_socket, test_socket, test_on_open_complete, test_callback_ctx);
+            result = async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx);
 
             // assert
             ASSERT_ARE_NOT_EQUAL(int, 0, result, "On failed call %zu", index);
