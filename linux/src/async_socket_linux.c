@@ -522,27 +522,18 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, SOCKET_HANDLE sock
         }
         else
         {
-            // Codes_SRS_ASYNC_SOCKET_LINUX_11_030: [ If async_socket has already closed the underlying socket handle then async_socket_open_async shall fail and return a non-zero value. ]
-            if (async_socket->socket_handle == INVALID_SOCKET)
-            {
-                // Codes_SRS_ASYNC_SOCKET_LINUX_11_034: [ If any error occurs, async_socket_open_async shall fail and return a non-zero value. ]
-                LogError("Open called after socket was closed");
-                result = MU_FAILURE;
-            }
-            else
-            {
-                async_socket->socket_handle = socket_handle;
+            async_socket->socket_handle = socket_handle;
 
-                // Codes_SRS_ASYNC_SOCKET_LINUX_11_031: [ async_socket_open_async shall add the socket to the epoll system by calling epoll_ctl with EPOLL_CTL_ADD. ]
-                // Codes_SRS_ASYNC_SOCKET_LINUX_11_032: [ async_socket_open_async shall set the state to OPEN. ]
-                (void)interlocked_exchange(&async_socket->state, ASYNC_SOCKET_LINUX_STATE_OPEN);
-                // Codes_SRS_ASYNC_SOCKET_LINUX_11_033: [ On success async_socket_open_async shall call on_open_complete_context with ASYNC_SOCKET_OPEN_OK. ]
-                on_open_complete(on_open_complete_context, ASYNC_SOCKET_OPEN_OK);
+            // Codes_SRS_ASYNC_SOCKET_LINUX_11_031: [ async_socket_open_async shall add the socket to the epoll system by calling epoll_ctl with EPOLL_CTL_ADD. ]
+            // Codes_SRS_ASYNC_SOCKET_LINUX_11_032: [ async_socket_open_async shall set the state to OPEN. ]
+            (void)interlocked_exchange(&async_socket->state, ASYNC_SOCKET_LINUX_STATE_OPEN);
+            // Codes_SRS_ASYNC_SOCKET_LINUX_11_033: [ On success async_socket_open_async shall call on_open_complete_context with ASYNC_SOCKET_OPEN_OK. ]
+            on_open_complete(on_open_complete_context, ASYNC_SOCKET_OPEN_OK);
 
-                // Codes_SRS_ASYNC_SOCKET_LINUX_11_028: [ On success, async_socket_open_async shall return 0. ]
-                result = 0;
-                goto all_ok;
-            }
+            // Codes_SRS_ASYNC_SOCKET_LINUX_11_028: [ On success, async_socket_open_async shall return 0. ]
+            result = 0;
+            goto all_ok;
+
             (void)interlocked_exchange(&async_socket->state, ASYNC_SOCKET_LINUX_STATE_CLOSED);
         }
     }

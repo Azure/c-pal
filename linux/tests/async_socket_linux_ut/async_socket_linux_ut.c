@@ -568,31 +568,6 @@ TEST_FUNCTION(async_socket_open_async_after_async_socket_open_async_fails)
     async_socket_destroy(async_socket);
 }
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_030: [ If async_socket has already closed the underlying socket handle then async_socket_open_async shall fail and return a non-zero value. ]
-TEST_FUNCTION(async_socket_open_async_after_close_fails)
-{
-    // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
-    ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
-    async_socket_close(async_socket);
-    int result;
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
-
-    // act
-    result = async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
-
-    // cleanup
-    async_socket_destroy(async_socket);
-}
-
 // async_socket_close
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_035: [ If async_socket is NULL, async_socket_close shall return. ]
