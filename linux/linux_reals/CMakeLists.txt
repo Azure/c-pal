@@ -17,6 +17,8 @@ set(linux_reals_c_files
     ../../common/reals/real_ps_util.c
     ../../common/reals/real_sm.c
     ../../common/reals/real_interlocked_hl.c
+    ../../common/reals/real_thandle_log_context_handle.c
+    
 )
 
 set(linux_reals_h_files

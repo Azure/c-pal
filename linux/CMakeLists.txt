@@ -11,6 +11,8 @@ set(pal_common_h_files
     ../common/inc/c_pal/sm.h
     ../common/inc/c_pal/thandle_ll.h
     ../common/inc/c_pal/thandle.h
+    ../common/inc/c_pal/thandle_ptr.h
+    ../common/inc/c_pal/thandle_log_context_handle.h
 )
 
 set(pal_common_c_files
@@ -20,6 +22,7 @@ set(pal_common_c_files
     ../common/src/ps_util.c
     ../common/src/s_list.c
     ../common/src/sm.c
+    ../common/src/thandle_log_context_handle.c
 )
 
 if(${run_helgrind})
@@ -76,7 +79,7 @@ include_directories(../common/inc)
 include_directories(../c_pal_ll/interfaces/inc)
 
 add_library(pal_linux ${pal_linux_h_files} ${pal_linux_c_files} ${pal_linux_md_files} ${pal_common_md_files})
-target_link_libraries(pal_linux pal_interfaces rt uuid pthread)
+target_link_libraries(pal_linux pal_ll_linux pal_interfaces rt uuid pthread)
 target_include_directories(pal_linux PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc)
 
 # make an install target so we can produce a Linux native client package.

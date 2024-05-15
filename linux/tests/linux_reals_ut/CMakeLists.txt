@@ -7,4 +7,4 @@ set(${theseTestsName}_test_files
     ${theseTestsName}.c
 )
 
-build_test_artifacts(${theseTestsName} "tests/c_pal/linux" ADDITIONAL_LIBS pal_linux linux_reals)
+build_test_artifacts(${theseTestsName} "tests/c_pal/linux" ADDITIONAL_LIBS c_pal linux_reals)
