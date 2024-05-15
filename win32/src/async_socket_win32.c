@@ -95,104 +95,104 @@ static VOID WINAPI on_io_complete(PTP_CALLBACK_INSTANCE instance, PVOID context,
         ASYNC_SOCKET_IO_CONTEXT* io_context = (ASYNC_SOCKET_IO_CONTEXT*)(((unsigned char*)overlapped) - offsetof(ASYNC_SOCKET_IO_CONTEXT, overlapped));
         switch (io_context->io_type)
         {
-        default:
-            LogError("Unknown IO type: %" PRI_MU_ENUM "", MU_ENUM_VALUE(ASYNC_SOCKET_IO_TYPE, io_context->io_type));
-            break;
+            default:
+                LogError("Unknown IO type: %" PRI_MU_ENUM "", MU_ENUM_VALUE(ASYNC_SOCKET_IO_TYPE, io_context->io_type));
+                break;
 
-        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_065: [ If the context of the IO indicates that a send has completed: ]*/
-        case ASYNC_SOCKET_IO_TYPE_SEND:
-        {
-            ASYNC_SOCKET_SEND_RESULT send_result;
-
-            if (io_result == NO_ERROR)
+                /* Codes_SRS_ASYNC_SOCKET_WIN32_01_065: [ If the context of the IO indicates that a send has completed: ]*/
+            case ASYNC_SOCKET_IO_TYPE_SEND:
             {
-                uint32_t bytes_sent = (uint32_t)number_of_bytes_transferred;
+                ASYNC_SOCKET_SEND_RESULT send_result;
+
+                if (io_result == NO_ERROR)
+                {
+                    uint32_t bytes_sent = (uint32_t)number_of_bytes_transferred;
 
 #ifdef ENABLE_SOCKET_LOGGING
-                LogVerbose("Asynchronous send of %" PRIu32 " bytes completed at %lf", bytes_sent, timer_global_get_elapsed_us());
+                    LogVerbose("Asynchronous send of %" PRIu32 " bytes completed at %lf", bytes_sent, timer_global_get_elapsed_us());
 #endif
 
-                if (bytes_sent != io_context->total_buffer_bytes)
-                {
-                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_102: [ If io_result is NO_ERROR, but the number of bytes send is different than the sum of all buffer sizes passed to async_socket_send_async, the on_send_complete callback passed to async_socket_send_async shall be called with on_send_complete_context as context and ASYNC_SOCKET_SEND_ERROR. ]*/
-                    send_result = ASYNC_SOCKET_SEND_ERROR;
-                }
-                else
-                {
-                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_066: [ If io_result is NO_ERROR, the on_send_complete callback passed to async_socket_send_async shall be called with on_send_complete_context as argument and ASYNC_SOCKET_SEND_OK. ]*/
-                    send_result = ASYNC_SOCKET_SEND_OK;
-                }
-            }
-            else
-            {
-                /* Codes_SRS_ASYNC_SOCKET_WIN32_01_067: [ If io_result is not NO_ERROR, the on_send_complete callback passed to async_socket_send_async shall be called with on_send_complete_context as argument and ASYNC_SOCKET_SEND_ERROR. ]*/
-                LogError("Send IO completed with error %lu", io_result);
-                send_result = ASYNC_SOCKET_SEND_ERROR;
-            }
-
-            io_context->io.send.on_send_complete(io_context->io.send.on_send_complete_context, send_result);
-
-            break;
-        }
-        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_071: [ If the context of the IO indicates that a receive has completed: ]*/
-        case ASYNC_SOCKET_IO_TYPE_RECEIVE:
-        {
-            ASYNC_SOCKET_RECEIVE_RESULT receive_result;
-            uint32_t bytes_received;
-
-            switch (io_result)
-            {
-                default:
-                {
-                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_070: [ If io_result is not NO_ERROR, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_ERROR as result and 0 for bytes_received. ]*/
-                    LogError("Receive IO completed with error %lu", io_result);
-                    receive_result = ASYNC_SOCKET_RECEIVE_ERROR;
-                    bytes_received = 0;
-                    break;
-                }
-                case ERROR_NETNAME_DELETED:
-                case ERROR_CONNECTION_ABORTED:
-                {
-                    /* Codes_SRS_ASYNC_SOCKET_WIN32_42_001: [ If io_result is ERROR_NETNAME_DELETED or ERROR_CONNECTION_ABORTED, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_ABANDONED as result and 0 for bytes_received. ]*/
-                    LogError("Receive IO completed with error %lu (socket seems to be closed)", io_result);
-                    receive_result = ASYNC_SOCKET_RECEIVE_ABANDONED;
-                    bytes_received = 0;
-                    break;
-                }
-                case NO_ERROR:
-                {
-                    bytes_received = (uint32_t)number_of_bytes_transferred;
-
-#ifdef ENABLE_SOCKET_LOGGING
-                    LogVerbose("Asynchronous receive of %" PRIu32 " bytes completed at %lf", bytes_received, timer_global_get_elapsed_us());
-#endif
-
-                    if (bytes_received > io_context->total_buffer_bytes)
+                    if (bytes_sent != io_context->total_buffer_bytes)
                     {
-                        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_095: [If io_result is NO_ERROR, but the number of bytes received is greater than the sum of all buffer sizes passed to async_socket_receive_async, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_ERROR as result and number_of_bytes_transferred for bytes_received. ]*/
-                        LogError("Invalid number of bytes received: %" PRIu32 " expected max: %" PRIu32,
-                            bytes_received, io_context->total_buffer_bytes);
-                        receive_result = ASYNC_SOCKET_RECEIVE_ERROR;
-                    }
-                    else if (bytes_received == 0)
-                    {
-                        /* Codes_SRS_ASYNC_SOCKET_WIN32_42_003: [ If io_result is NO_ERROR, but the number of bytes received is 0, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_ABANDONED as result and 0 for bytes_received. ]*/
-                        LogError("Socket received 0 bytes, assuming socket is closed");
-                        receive_result = ASYNC_SOCKET_RECEIVE_ABANDONED;
+                        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_102: [ If io_result is NO_ERROR, but the number of bytes send is different than the sum of all buffer sizes passed to async_socket_send_async, the on_send_complete callback passed to async_socket_send_async shall be called with on_send_complete_context as context and ASYNC_SOCKET_SEND_ERROR. ]*/
+                        send_result = ASYNC_SOCKET_SEND_ERROR;
                     }
                     else
                     {
-                        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_069: [ If io_result is NO_ERROR, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_OK as result and number_of_bytes_transferred as bytes_received. ]*/
-                        receive_result = ASYNC_SOCKET_RECEIVE_OK;
+                        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_066: [ If io_result is NO_ERROR, the on_send_complete callback passed to async_socket_send_async shall be called with on_send_complete_context as argument and ASYNC_SOCKET_SEND_OK. ]*/
+                        send_result = ASYNC_SOCKET_SEND_OK;
                     }
-                    break;
                 }
+                else
+                {
+                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_067: [ If io_result is not NO_ERROR, the on_send_complete callback passed to async_socket_send_async shall be called with on_send_complete_context as argument and ASYNC_SOCKET_SEND_ERROR. ]*/
+                    LogError("Send IO completed with error %lu", io_result);
+                    send_result = ASYNC_SOCKET_SEND_ERROR;
+                }
+
+                io_context->io.send.on_send_complete(io_context->io.send.on_send_complete_context, send_result);
+
+                break;
             }
+            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_071: [ If the context of the IO indicates that a receive has completed: ]*/
+            case ASYNC_SOCKET_IO_TYPE_RECEIVE:
+            {
+                ASYNC_SOCKET_RECEIVE_RESULT receive_result;
+                uint32_t bytes_received;
 
-            io_context->io.receive.on_receive_complete(io_context->io.receive.on_receive_complete_context, receive_result, bytes_received);
+                switch (io_result)
+                {
+                    default:
+                    {
+                        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_070: [ If io_result is not NO_ERROR, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_ERROR as result and 0 for bytes_received. ]*/
+                        LogError("Receive IO completed with error %lu", io_result);
+                        receive_result = ASYNC_SOCKET_RECEIVE_ERROR;
+                        bytes_received = 0;
+                        break;
+                    }
+                    case ERROR_NETNAME_DELETED:
+                    case ERROR_CONNECTION_ABORTED:
+                    {
+                        /* Codes_SRS_ASYNC_SOCKET_WIN32_42_001: [ If io_result is ERROR_NETNAME_DELETED or ERROR_CONNECTION_ABORTED, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_ABANDONED as result and 0 for bytes_received. ]*/
+                        LogError("Receive IO completed with error %lu (socket seems to be closed)", io_result);
+                        receive_result = ASYNC_SOCKET_RECEIVE_ABANDONED;
+                        bytes_received = 0;
+                        break;
+                    }
+                    case NO_ERROR:
+                    {
+                        bytes_received = (uint32_t)number_of_bytes_transferred;
 
-            break;
-        }
+#ifdef ENABLE_SOCKET_LOGGING
+                        LogVerbose("Asynchronous receive of %" PRIu32 " bytes completed at %lf", bytes_received, timer_global_get_elapsed_us());
+#endif
+
+                        if (bytes_received > io_context->total_buffer_bytes)
+                        {
+                            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_095: [If io_result is NO_ERROR, but the number of bytes received is greater than the sum of all buffer sizes passed to async_socket_receive_async, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_ERROR as result and number_of_bytes_transferred for bytes_received. ]*/
+                            LogError("Invalid number of bytes received: %" PRIu32 " expected max: %" PRIu32,
+                                bytes_received, io_context->total_buffer_bytes);
+                            receive_result = ASYNC_SOCKET_RECEIVE_ERROR;
+                        }
+                        else if (bytes_received == 0)
+                        {
+                            /* Codes_SRS_ASYNC_SOCKET_WIN32_42_003: [ If io_result is NO_ERROR, but the number of bytes received is 0, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_ABANDONED as result and 0 for bytes_received. ]*/
+                            LogError("Socket received 0 bytes, assuming socket is closed");
+                            receive_result = ASYNC_SOCKET_RECEIVE_ABANDONED;
+                        }
+                        else
+                        {
+                            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_069: [ If io_result is NO_ERROR, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_OK as result and number_of_bytes_transferred as bytes_received. ]*/
+                            receive_result = ASYNC_SOCKET_RECEIVE_OK;
+                        }
+                        break;
+                    }
+                }
+
+                io_context->io.receive.on_receive_complete(io_context->io.receive.on_receive_complete_context, receive_result, bytes_received);
+
+                break;
+            }
         }
 
         /* Codes_SRS_ASYNC_SOCKET_WIN32_01_068: [ on_io_complete shall close the event handle created in async_socket_send_async/async_socket_receive_async. ]*/
@@ -224,6 +224,7 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
     // but before the call to WaitForThreadpoolIoCallbacks
 
     LogInfo("async socket is closing, closesocket(%p);", async_socket->socket_handle);
+
     /* Codes_SRS_ASYNC_SOCKET_WIN32_42_006: [ async_socket_close shall call closesocket on the underlying socket. ]*/
     (void)closesocket((SOCKET)async_socket->socket_handle);
     async_socket->socket_handle = (SOCKET_HANDLE)INVALID_SOCKET;
@@ -242,10 +243,9 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
     WakeByAddressSingle((PVOID)&async_socket->state);
 }
 
-ASYNC_SOCKET_HANDLE async_socket_create_with_transport(EXECUTION_ENGINE_HANDLE execution_engine, SOCKET_HANDLE socket_handle, ON_ASYNC_SOCKET_SEND on_send, void* on_send_context, ON_ASYNC_SOCKET_RECV on_recv, void* on_recv_context)
+ASYNC_SOCKET_HANDLE async_socket_create_with_transport(EXECUTION_ENGINE_HANDLE execution_engine, ON_ASYNC_SOCKET_SEND on_send, void* on_send_context, ON_ASYNC_SOCKET_RECV on_recv, void* on_recv_context)
 {
     (void)execution_engine;
-    (void)socket_handle;
     (void)on_send;
     (void)on_send_context;
     (void)on_recv;
@@ -256,19 +256,16 @@ ASYNC_SOCKET_HANDLE async_socket_create_with_transport(EXECUTION_ENGINE_HANDLE e
     return NULL;
 }
 
-ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine, SOCKET_HANDLE socket_handle)
+ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine)
 {
     ASYNC_SOCKET_HANDLE result;
-    SOCKET win32_socket = (SOCKET)socket_handle;
 
     if (
         /* Codes_SRS_ASYNC_SOCKET_WIN32_01_002: [ If execution_engine is NULL, async_socket_create shall fail and return NULL. ]*/
-        (execution_engine == NULL) ||
-        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_034: [ If socket_handle is INVALID_SOCKET, async_socket_create shall fail and return NULL. ]*/
-        (win32_socket == INVALID_SOCKET))
+        (execution_engine == NULL)
+       )
     {
-        LogError("EXECUTION_ENGINE_HANDLE execution_engine=%p, SOCKET_HANDLE socket_handle=%p",
-            execution_engine, (void*)win32_socket);
+        LogError("EXECUTION_ENGINE_HANDLE execution_engine=%p", execution_engine);
     }
     else
     {
@@ -287,7 +284,6 @@ ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine
 
             /* Codes_SRS_ASYNC_SOCKET_WIN32_01_035: [ async_socket_create shall obtain the PTP_POOL from the execution engine passed to async_socket_create by calling execution_engine_win32_get_threadpool. ]*/
             result->pool = execution_engine_win32_get_threadpool(execution_engine);
-            result->socket_handle = socket_handle;
 
             (void)InterlockedExchange(&result->pending_api_calls, 0);
             (void)InterlockedExchange(&result->state, (LONG)ASYNC_SOCKET_WIN32_STATE_CLOSED);
@@ -324,18 +320,11 @@ void async_socket_destroy(ASYNC_SOCKET_HANDLE async_socket)
             }
             else if (current_state == (LONG)ASYNC_SOCKET_WIN32_STATE_CLOSED)
             {
-                if ((SOCKET)async_socket->socket_handle != INVALID_SOCKET)
-                {
-                    LogInfo("async socket destroy, closesocket(%p);", async_socket->socket_handle);
-                    /* Codes_SRS_ASYNC_SOCKET_WIN32_42_007: [ If the socket was not OPEN then async_socket_destroy shall call closesocket on the underlying socket. ]*/
-                    (void)closesocket((SOCKET)async_socket->socket_handle);
-                }
                 break;
             }
 
             (void)WaitOnAddress(&async_socket->state, &current_state, sizeof(current_state), INFINITE);
-        }
-        while (1);
+        } while (1);
 
         /* Codes_SRS_ASYNC_SOCKET_WIN32_42_005: [ async_socket_destroy shall decrement the reference count on the execution engine. ]*/
         execution_engine_dec_ref(async_socket->execution_engine);
@@ -345,7 +334,7 @@ void async_socket_destroy(ASYNC_SOCKET_HANDLE async_socket)
     }
 }
 
-int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, ON_ASYNC_SOCKET_OPEN_COMPLETE on_open_complete, void* on_open_complete_context)
+int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, SOCKET_HANDLE socket_handle, ON_ASYNC_SOCKET_OPEN_COMPLETE on_open_complete, void* on_open_complete_context)
 {
     int result;
 
@@ -355,7 +344,10 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, ON_ASYNC_SOCKET_OP
         /* Codes_SRS_ASYNC_SOCKET_WIN32_01_007: [ If async_socket is NULL, async_socket_open_async shall fail and return a non-zero value. ]*/
         (async_socket == NULL) ||
         /* Codes_SRS_ASYNC_SOCKET_WIN32_01_008: [ If on_open_complete is NULL, async_socket_open_async shall fail and return a non-zero value. ]*/
-        (on_open_complete == NULL))
+        (on_open_complete == NULL) ||
+        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_034: [ If socket_handle is INVALID_SOCKET, async_socket_create shall fail and return NULL. ]*/
+        (SOCKET)socket_handle == INVALID_SOCKET
+        )
     {
         /* Codes_SRS_ASYNC_SOCKET_WIN32_01_039: [ If any error occurs, async_socket_open_async shall fail and return a non-zero value. ]*/
         LogError("ASYNC_SOCKET_HANDLE async_socket=%p, ON_ASYNC_SOCKET_OPEN_COMPLETE on_open_complete=%p, void* on_open_complete_context=%p",
@@ -374,45 +366,41 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, ON_ASYNC_SOCKET_OP
         }
         else
         {
-            if ((SOCKET)async_socket->socket_handle == INVALID_SOCKET)
+            async_socket->socket_handle = socket_handle;
+
+            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_016: [ Otherwise async_socket_open_async shall initialize a thread pool environment by calling InitializeThreadpoolEnvironment. ]*/
+            InitializeThreadpoolEnvironment(&async_socket->tp_environment);
+
+            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_036: [ async_socket_open_async shall set the thread pool for the environment to the pool obtained from the execution engine by calling SetThreadpoolCallbackPool. ]*/
+            SetThreadpoolCallbackPool(&async_socket->tp_environment, async_socket->pool);
+
+            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_058: [ async_socket_open_async shall create a threadpool IO by calling CreateThreadpoolIo and passing socket_handle, the callback environment to it and on_io_complete as callback. ]*/
+            async_socket->tp_io = CreateThreadpoolIo(async_socket->socket_handle, on_io_complete, NULL, &async_socket->tp_environment);
+            if (async_socket->tp_io == NULL)
             {
-                /* Codes_SRS_ASYNC_SOCKET_WIN32_42_008: [ If async_socket has already closed the underlying socket handle then async_socket_open_async shall fail and return a non-zero value. ]*/
-                LogError("Open called after socket was closed");
+                /* Codes_SRS_ASYNC_SOCKET_WIN32_01_039: [ If any error occurs, async_socket_open_async shall fail and return a non-zero value. ]*/
+                LogLastError("CreateThreadpoolIo failed");
                 result = MU_FAILURE;
             }
             else
             {
-                /* Codes_SRS_ASYNC_SOCKET_WIN32_01_016: [ Otherwise async_socket_open_async shall initialize a thread pool environment by calling InitializeThreadpoolEnvironment. ]*/
-                InitializeThreadpoolEnvironment(&async_socket->tp_environment);
+                /* Codes_SRS_ASYNC_SOCKET_WIN32_01_094: [ async_socket_open_async shall set the state to OPEN. ]*/
+                (void)InterlockedExchange(&async_socket->state, (LONG)ASYNC_SOCKET_WIN32_STATE_OPEN);
+                WakeByAddressSingle((PVOID)&async_socket->state);
 
-                /* Codes_SRS_ASYNC_SOCKET_WIN32_01_036: [ async_socket_open_async shall set the thread pool for the environment to the pool obtained from the execution engine by calling SetThreadpoolCallbackPool. ]*/
-                SetThreadpoolCallbackPool(&async_socket->tp_environment, async_socket->pool);
+                /* Codes_SRS_ASYNC_SOCKET_WIN32_01_017: [ On success async_socket_open_async shall call on_open_complete_context with ASYNC_SOCKET_OPEN_OK. ]*/
+                on_open_complete(on_open_complete_context, ASYNC_SOCKET_OPEN_OK);
 
-                /* Codes_SRS_ASYNC_SOCKET_WIN32_01_058: [ async_socket_open_async shall create a threadpool IO by calling CreateThreadpoolIo and passing socket_handle, the callback environment to it and on_io_complete as callback. ]*/
-                async_socket->tp_io = CreateThreadpoolIo(async_socket->socket_handle, on_io_complete, NULL, &async_socket->tp_environment);
-                if (async_socket->tp_io == NULL)
-                {
-                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_039: [ If any error occurs, async_socket_open_async shall fail and return a non-zero value. ]*/
-                    LogLastError("CreateThreadpoolIo failed");
-                    result = MU_FAILURE;
-                }
-                else
-                {
-                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_094: [ async_socket_open_async shall set the state to OPEN. ]*/
-                    (void)InterlockedExchange(&async_socket->state, (LONG)ASYNC_SOCKET_WIN32_STATE_OPEN);
-                    WakeByAddressSingle((PVOID)&async_socket->state);
+                /* Codes_SRS_ASYNC_SOCKET_WIN32_01_014: [ On success, async_socket_open_async shall return 0. ]*/
+                result = 0;
 
-                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_017: [ On success async_socket_open_async shall call on_open_complete_context with ASYNC_SOCKET_OPEN_OK. ]*/
-                    on_open_complete(on_open_complete_context, ASYNC_SOCKET_OPEN_OK);
-
-                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_014: [ On success, async_socket_open_async shall return 0. ]*/
-                    result = 0;
-
-                    goto all_ok;
-                }
-
-                DestroyThreadpoolEnvironment(&async_socket->tp_environment);
+                goto all_ok;
             }
+
+            async_socket->socket_handle = (SOCKET_HANDLE)INVALID_SOCKET;
+
+            DestroyThreadpoolEnvironment(&async_socket->tp_environment);
+
             (void)InterlockedExchange(&async_socket->state, (LONG)ASYNC_SOCKET_WIN32_STATE_CLOSED);
             WakeByAddressSingle((PVOID)&async_socket->state);
         }
@@ -433,7 +421,7 @@ void async_socket_close(ASYNC_SOCKET_HANDLE async_socket)
     {
         /* Codes_SRS_ASYNC_SOCKET_WIN32_01_019: [ Otherwise, async_socket_close shall switch the state to CLOSING. ]*/
         ASYNC_SOCKET_WIN32_STATE current_state;
-        if ( (current_state = InterlockedCompareExchange(&async_socket->state, (LONG)ASYNC_SOCKET_WIN32_STATE_CLOSING, (LONG)ASYNC_SOCKET_WIN32_STATE_OPEN)) != (LONG)ASYNC_SOCKET_WIN32_STATE_OPEN)
+        if ((current_state = InterlockedCompareExchange(&async_socket->state, (LONG)ASYNC_SOCKET_WIN32_STATE_CLOSING, (LONG)ASYNC_SOCKET_WIN32_STATE_OPEN)) != (LONG)ASYNC_SOCKET_WIN32_STATE_OPEN)
         {
             /* Codes_SRS_ASYNC_SOCKET_WIN32_01_022: [ If async_socket is not OPEN, async_socket_close shall return. ]*/
             LogWarning("Not open, current_state=%" PRI_MU_ENUM "", MU_ENUM_VALUE(ASYNC_SOCKET_WIN32_STATE, current_state));

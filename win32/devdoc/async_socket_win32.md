@@ -96,7 +96,7 @@ MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create_with_transport, EXE
 ### async_socket_create
 
 ```c
-MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create, EXECUTION_ENGINE_HANDLE, execution_engine, SOCKET_HANDLE, socket_handle);
+MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create, EXECUTION_ENGINE_HANDLE, execution_engine);
 ```
 
 `async_socket_create` creates an async socket.
@@ -104,8 +104,6 @@ MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create, EXECUTION_ENGINE_H
 **SRS_ASYNC_SOCKET_WIN32_01_001: [** `async_socket_create` shall allocate a new async socket and on success shall return a non-NULL handle. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_002: [** If `execution_engine` is NULL, `async_socket_create` shall fail and return NULL. **]**
-
-**SRS_ASYNC_SOCKET_WIN32_01_034: [** If `socket_handle` is `INVALID_SOCKET`, `async_socket_create` shall fail and return NULL. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_42_004: [** `async_socket_create` shall increment the reference count on `execution_engine`. **]**
 
@@ -136,12 +134,14 @@ MOCKABLE_FUNCTION(, void, async_socket_destroy, ASYNC_SOCKET_HANDLE, async_socke
 ### async_socket_open_async
 
 ```c
-MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_socket, ON_ASYNC_SOCKET_OPEN_COMPLETE, on_open_complete, void*, on_open_complete_context);
+MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_socket, SOCKET_HANDLE, socket_handle, ON_ASYNC_SOCKET_OPEN_COMPLETE, on_open_complete, void*, on_open_complete_context);
 ```
 
 `async_socket_open_async` opens the async socket.
 
 **SRS_ASYNC_SOCKET_WIN32_01_007: [** If `async_socket` is NULL, `async_socket_open_async` shall fail and return a non-zero value. **]**
+
+**SRS_ASYNC_SOCKET_WIN32_01_034: [** If `socket_handle` is `INVALID_SOCKET`, `async_socket_open_async` shall fail and return NULL. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_008: [** If `on_open_complete` is NULL, `async_socket_open_async` shall fail and return a non-zero value. **]**
 
@@ -152,8 +152,6 @@ MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_soc
 **SRS_ASYNC_SOCKET_WIN32_01_014: [** On success, `async_socket_open_async` shall return 0. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_015: [** If `async_socket` is already OPEN or OPENING, `async_socket_open_async` shall fail and return a non-zero value. **]**
-
-**SRS_ASYNC_SOCKET_WIN32_42_008: [** If `async_socket` has already closed the underlying socket handle then `async_socket_open_async` shall fail and return a non-zero value. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_016: [** Otherwise `async_socket_open_async` shall initialize a thread pool environment by calling `InitializeThreadpoolEnvironment`. **]**
 

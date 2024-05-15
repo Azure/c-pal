@@ -120,8 +120,6 @@ MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create_with_transport, EXE
 
 **SRS_ASYNC_SOCKET_LINUX_11_002: [** `execution_engine` shall be allowed to be `NULL`. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_003: [** If `socket_handle` is `INVALID_SOCKET`, `async_socket_create_with_transport` shall fail and return `NULL`. **]**
-
 **SRS_ASYNC_SOCKET_LINUX_04_002: [** If `on_send` is `NULL` , `async_socket_create_with_transport` shall fail and return `NULL`. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_04_003: [** If `on_recv` is `NULL` , `async_socket_create_with_transport` shall fail and return `NULL`. **]**
@@ -161,6 +159,8 @@ MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_soc
 **SRS_ASYNC_SOCKET_LINUX_11_025: [** If `on_open_complete` is `NULL`, `async_socket_open_async` shall fail and return a non-zero value. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_026: [** `on_open_complete_context` shall be allowed to be `NULL`. **]**
+
+**SRS_ASYNC_SOCKET_LINUX_11_003: [** If `socket_handle` is `INVALID_SOCKET`, `async_socket_open_async` shall fail and return non-zero value. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_027: [** Otherwise, `async_socket_open_async` shall switch the state to `OPENING`. **]**
 

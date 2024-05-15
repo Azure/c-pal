@@ -236,7 +236,7 @@ TEST_FUNCTION(async_socket_create_succeeds)
     mock_async_socket_create_with_transport_setup();
 
     // act
-    async_socket = async_socket_create(test_execution_engine, test_socket);
+    async_socket = async_socket_create(test_execution_engine);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -265,20 +265,6 @@ TEST_FUNCTION(async_socket_create_with_transport_with_NULL_execution_engine_succ
 
     // cleanup
     async_socket_destroy(async_socket);
-}
-
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_create_with_transport shall fail and return NULL. ]
-TEST_FUNCTION(async_socket_create_with_transport_with_INVALID_SOCKET_fails)
-{
-    // arrange
-    ASYNC_SOCKET_HANDLE async_socket;
-
-    // act
-    async_socket = async_socket_create_with_transport(test_execution_engine, INVALID_SOCKET, mocked_on_send, test_send_ctx, mocked_on_recv, test_recv_ctx);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_IS_NULL(async_socket);
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_04_002: [ If on_send is NULL , async_socket_create_with_transport shall fail and return NULL. ]
@@ -375,7 +361,7 @@ TEST_FUNCTION(async_socket_destroy_with_NULL_returns)
 TEST_FUNCTION(async_socket_destroy_frees_resources)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
     umock_c_reset_all_calls();
 
@@ -396,9 +382,9 @@ TEST_FUNCTION(async_socket_destroy_frees_resources)
 TEST_FUNCTION(async_socket_destroy_closes_first_if_open)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
     // close first
@@ -430,18 +416,37 @@ TEST_FUNCTION(async_socket_open_async_with_NULL_async_socket_fails)
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
 }
 
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_create_with_transport shall fail and return NULL. ]
+TEST_FUNCTION(async_socket_create_with_transport_with_INVALID_SOCKET_fails)
+{
+    // arrange
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    ASSERT_IS_NOT_NULL(async_socket);
+    umock_c_reset_all_calls();
+
+    // act
+    result = async_socket_open_async(async_socket, test_socket, NULL, test_callback_ctx);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+
+    // cleanup
+    async_socket_destroy(async_socket);
+}
+
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_025: [ If on_open_complete is NULL, async_socket_open_async shall fail and return a non-zero value. ]
 TEST_FUNCTION(async_socket_open_async_with_NULL_on_open_complete_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
 
     int result;
     umock_c_reset_all_calls();
 
     // act
-    result = async_socket_open_async(async_socket, NULL, test_callback_ctx);
+    result = async_socket_open_async(async_socket, test_socket, test_socket,test_on_open_complete, test_callback_ctx);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -459,7 +464,7 @@ TEST_FUNCTION(async_socket_open_async_with_NULL_on_open_complete_fails)
 TEST_FUNCTION(async_socket_open_async_succeeds)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
     umock_c_reset_all_calls();
 
@@ -468,7 +473,7 @@ TEST_FUNCTION(async_socket_open_async_succeeds)
     STRICT_EXPECTED_CALL(test_on_open_complete(test_callback_ctx, ASYNC_SOCKET_OPEN_OK));
 
     // act
-    int result = async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx);
+    int result = async_socket_open_async(async_socket, test_socket, test_socket, test_on_open_complete, test_callback_ctx);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -483,7 +488,7 @@ TEST_FUNCTION(async_socket_open_async_succeeds)
 TEST_FUNCTION(async_socket_open_async_succeeds_with_NULL_context)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
     int result;
     umock_c_reset_all_calls();
@@ -493,7 +498,7 @@ TEST_FUNCTION(async_socket_open_async_succeeds_with_NULL_context)
     STRICT_EXPECTED_CALL(test_on_open_complete(NULL, ASYNC_SOCKET_OPEN_OK));
 
     // act
-    result = async_socket_open_async(async_socket, test_on_open_complete, NULL);
+    result = async_socket_open_async(async_socket, test_socket, test_socket, test_on_open_complete, NULL);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -508,7 +513,7 @@ TEST_FUNCTION(async_socket_open_async_succeeds_with_NULL_context)
 TEST_FUNCTION(when_underlying_calls_fail_async_socket_open_async_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
     int result;
     umock_c_reset_all_calls();
@@ -529,7 +534,7 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_open_async_fails)
             umock_c_negative_tests_fail_call(index);
 
             // act
-            result = async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx);
+            result = async_socket_open_async(async_socket, test_socket, test_socket, test_on_open_complete, test_callback_ctx);
 
             // assert
             ASSERT_ARE_NOT_EQUAL(int, 0, result, "On failed call %zu", index);
@@ -544,16 +549,16 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_open_async_fails)
 TEST_FUNCTION(async_socket_open_async_after_async_socket_open_async_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     int result;
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
 
     // act
-    result = async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx);
+    result = async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -567,9 +572,9 @@ TEST_FUNCTION(async_socket_open_async_after_async_socket_open_async_fails)
 TEST_FUNCTION(async_socket_open_async_after_close_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     async_socket_close(async_socket);
     int result;
     umock_c_reset_all_calls();
@@ -578,7 +583,7 @@ TEST_FUNCTION(async_socket_open_async_after_close_fails)
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
 
     // act
-    result = async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx);
+    result = async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -609,9 +614,9 @@ TEST_FUNCTION(async_socket_close_with_NULL_returns)
 TEST_FUNCTION(async_socket_close_reverses_the_actions_from_open)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
@@ -631,7 +636,7 @@ TEST_FUNCTION(async_socket_close_reverses_the_actions_from_open)
 TEST_FUNCTION(async_socket_close_when_not_open_returns)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
     umock_c_reset_all_calls();
 
@@ -651,9 +656,9 @@ TEST_FUNCTION(async_socket_close_when_not_open_returns)
 TEST_FUNCTION(async_socket_close_after_close_returns)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     async_socket_close(async_socket);
     umock_c_reset_all_calls();
 
@@ -673,9 +678,9 @@ TEST_FUNCTION(async_socket_close_after_close_returns)
 TEST_FUNCTION(async_socket_close_after_open_and_recv)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
@@ -726,9 +731,9 @@ TEST_FUNCTION(async_socket_send_async_with_NULL_async_socket_fails)
 TEST_FUNCTION(async_socket_send_async_with_NULL_payload_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     umock_c_reset_all_calls();
 
@@ -748,9 +753,9 @@ TEST_FUNCTION(async_socket_send_async_with_NULL_payload_fails)
 TEST_FUNCTION(async_socket_send_async_with_0_payload_count_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -774,9 +779,9 @@ TEST_FUNCTION(async_socket_send_async_with_0_payload_count_fails)
 TEST_FUNCTION(async_socket_send_async_with_first_out_of_2_buffers_having_buffer_NULL_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
 
     uint8_t payload_bytes[] = { 0x42 };
@@ -803,9 +808,9 @@ TEST_FUNCTION(async_socket_send_async_with_first_out_of_2_buffers_having_buffer_
 TEST_FUNCTION(async_socket_send_async_with_second_out_of_2_buffers_having_buffer_NULL_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
 
     uint8_t payload_bytes[] = { 0x42 };
@@ -832,9 +837,9 @@ TEST_FUNCTION(async_socket_send_async_with_second_out_of_2_buffers_having_buffer
 TEST_FUNCTION(async_socket_send_async_with_first_out_of_2_buffers_having_length_0_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[2];
@@ -860,9 +865,9 @@ TEST_FUNCTION(async_socket_send_async_with_first_out_of_2_buffers_having_length_
 TEST_FUNCTION(async_socket_send_async_with_second_out_of_2_buffers_having_length_0_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[2];
@@ -888,9 +893,9 @@ TEST_FUNCTION(async_socket_send_async_with_second_out_of_2_buffers_having_length
 TEST_FUNCTION(async_socket_send_async_with_UINT32_MAX_buffers_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[2];
@@ -917,9 +922,9 @@ TEST_FUNCTION(async_socket_send_async_with_UINT32_MAX_buffers_fails)
 TEST_FUNCTION(async_socket_send_async_with_on_send_complete_NULL_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -942,7 +947,7 @@ TEST_FUNCTION(async_socket_send_async_with_on_send_complete_NULL_fails)
 TEST_FUNCTION(async_socket_send_async_when_not_open_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
@@ -971,14 +976,14 @@ TEST_FUNCTION(async_socket_send_async_when_not_open_fails)
 TEST_FUNCTION(async_socket_send_async_after_close_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     async_socket_close(async_socket);
     umock_c_reset_all_calls();
 
@@ -1007,9 +1012,9 @@ TEST_FUNCTION(async_socket_send_async_after_close_fails)
 TEST_FUNCTION(async_socket_send_async_succeeds)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1043,9 +1048,9 @@ TEST_FUNCTION(async_socket_send_async_succeeds)
 TEST_FUNCTION(async_socket_send_async_multiple_sends_succeeds)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x50 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1082,9 +1087,9 @@ TEST_FUNCTION(async_socket_send_async_multiple_sends_succeeds)
 TEST_FUNCTION(async_socket_send_async_multiple_sends_WOULDBLOCK_succeeds)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x50 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1123,9 +1128,9 @@ TEST_FUNCTION(async_socket_send_async_multiple_sends_WOULDBLOCK_succeeds)
 TEST_FUNCTION(async_socket_send_async_with_NULL_on_send_complete_context_succeeds)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1157,9 +1162,9 @@ TEST_FUNCTION(async_socket_send_async_with_NULL_on_send_complete_context_succeed
 TEST_FUNCTION(when_underlying_calls_fail_async_socket_send_async_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1193,9 +1198,9 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_send_async_fails)
 TEST_FUNCTION(when_errno_for_send_returns_EWOULDBLOCK_it_uses_completion_port_treated_as_successfull)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
 
     uint8_t payload_bytes[] = { 0x42 };
@@ -1231,9 +1236,9 @@ TEST_FUNCTION(when_errno_for_send_returns_EWOULDBLOCK_it_uses_completion_port_tr
 TEST_FUNCTION(when_errno_for_send_returns_ECONNRESET_async_socket_send_async_returns_ABANDONED)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1265,9 +1270,9 @@ TEST_FUNCTION(when_errno_for_send_returns_ECONNRESET_async_socket_send_async_ret
 TEST_FUNCTION(when_errno_for_send_returns_error_async_socket_send_async_returns_ERROR)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1299,9 +1304,9 @@ TEST_FUNCTION(when_errno_for_send_returns_error_async_socket_send_async_returns_
 TEST_FUNCTION(async_socket_send_async_with_sum_of_buffer_lengths_exceeding_UINT32_MAX_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
@@ -1347,9 +1352,9 @@ TEST_FUNCTION(async_socket_receive_async_with_NULL_async_socket_fails)
 TEST_FUNCTION(async_socket_receive_async_with_NULL_payload_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
     // act
@@ -1367,9 +1372,9 @@ TEST_FUNCTION(async_socket_receive_async_with_NULL_payload_fails)
 TEST_FUNCTION(async_socket_receive_async_with_0_payload_count_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     uint8_t payload_bytes[1];
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
@@ -1391,9 +1396,9 @@ TEST_FUNCTION(async_socket_receive_async_with_0_payload_count_fails)
 TEST_FUNCTION(async_socket_receive_async_with_first_out_of_2_buffers_having_buffer_NULL_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes_1[1];
     uint8_t payload_bytes_2[1];
@@ -1419,9 +1424,9 @@ TEST_FUNCTION(async_socket_receive_async_with_first_out_of_2_buffers_having_buff
 TEST_FUNCTION(async_socket_receive_async_with_second_out_of_2_buffers_having_buffer_NULL_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes_1[1];
     uint8_t payload_bytes_2[1];
@@ -1447,9 +1452,9 @@ TEST_FUNCTION(async_socket_receive_async_with_second_out_of_2_buffers_having_buf
 TEST_FUNCTION(async_socket_receive_async_with_first_out_of_2_buffers_having_length_0_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes_1[1];
     uint8_t payload_bytes_2[1];
@@ -1475,9 +1480,9 @@ TEST_FUNCTION(async_socket_receive_async_with_first_out_of_2_buffers_having_leng
 TEST_FUNCTION(async_socket_receive_async_with_second_out_of_2_buffers_having_length_0_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes_1[1];
     uint8_t payload_bytes_2[1];
@@ -1503,9 +1508,9 @@ TEST_FUNCTION(async_socket_receive_async_with_second_out_of_2_buffers_having_len
 TEST_FUNCTION(async_socket_receive_async_with_sum_of_buffer_lengths_exceeding_UINT32_MAX_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[2];
@@ -1530,9 +1535,9 @@ TEST_FUNCTION(async_socket_receive_async_with_sum_of_buffer_lengths_exceeding_UI
 TEST_FUNCTION(async_socket_receive_async_with_on_recv_complete_NULL_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1555,7 +1560,7 @@ TEST_FUNCTION(async_socket_receive_async_with_on_recv_complete_NULL_fails)
 TEST_FUNCTION(async_socket_receive_async_when_not_open_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
 
     uint8_t payload_bytes[] = { 0x42 };
@@ -1585,9 +1590,9 @@ TEST_FUNCTION(async_socket_receive_async_when_not_open_fails)
 TEST_FUNCTION(async_socket_receive_async_after_close_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     (void)async_socket_close(async_socket);
 
     uint8_t payload_bytes[] = { 0x42 };
@@ -1619,9 +1624,9 @@ TEST_FUNCTION(async_socket_receive_async_after_close_fails)
 TEST_FUNCTION(async_socket_receive_async_succeeds)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1647,9 +1652,9 @@ TEST_FUNCTION(async_socket_receive_async_succeeds)
 TEST_FUNCTION(async_socket_receive_async_with_NULL_on_recv_complete_context_succeeds)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1675,9 +1680,9 @@ TEST_FUNCTION(async_socket_receive_async_with_NULL_on_recv_complete_context_succ
 TEST_FUNCTION(when_underlying_calls_fail_async_socket_receive_async_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1715,9 +1720,9 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_receive_async_fails)
 TEST_FUNCTION(event_complete_func_context_NULL_fail)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42, 0x43 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1748,9 +1753,9 @@ TEST_FUNCTION(event_complete_func_context_NULL_fail)
 TEST_FUNCTION(event_complete_func_EPOLLIN_action)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42, 0x43 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1781,9 +1786,9 @@ TEST_FUNCTION(event_complete_func_EPOLLIN_action)
 TEST_FUNCTION(event_complete_func_recv_returns_EWOULDBLOCK)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42, 0x43 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1814,9 +1819,9 @@ TEST_FUNCTION(event_complete_func_recv_returns_EWOULDBLOCK)
 TEST_FUNCTION(event_complete_func_recv_returns_ECONNRESET)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42, 0x43 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1847,9 +1852,9 @@ TEST_FUNCTION(event_complete_func_recv_returns_ECONNRESET)
 TEST_FUNCTION(event_complete_callback_recv_returns_any_random_error_no)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42, 0x43 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1880,9 +1885,9 @@ TEST_FUNCTION(event_complete_callback_recv_returns_any_random_error_no)
 TEST_FUNCTION(event_complete_func_recv_returns_0_bytes_success)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42, 0x43 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1912,9 +1917,9 @@ TEST_FUNCTION(event_complete_func_recv_returns_0_bytes_success)
 TEST_FUNCTION(event_complete_func_notify_for_io_type_IN_EPOLLRDHUP_and_abandons_the_connection)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     ASSERT_ARE_EQUAL(int, 0, async_socket_notify_io_async(async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE_IN, test_on_notify_complete, test_callback_ctx));
 
@@ -1938,9 +1943,9 @@ TEST_FUNCTION(event_complete_func_notify_for_io_type_IN_EPOLLRDHUP_and_abandons_
 TEST_FUNCTION(event_complete_func_notify_for_io_type_IN_ABANDONED_and_abandons_the_connection)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     ASSERT_ARE_EQUAL(int, 0, async_socket_notify_io_async(async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE_IN, test_on_notify_complete, test_callback_ctx));
 
@@ -1964,9 +1969,9 @@ TEST_FUNCTION(event_complete_func_notify_for_io_type_IN_ABANDONED_and_abandons_t
 TEST_FUNCTION(event_complete_func_notify_for_io_type_OUT_EPOLLRDHUP_and_abandons_the_connection)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     ASSERT_ARE_EQUAL(int, 0, async_socket_notify_io_async(async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE_OUT, test_on_notify_complete, test_callback_ctx));
 
@@ -1990,9 +1995,9 @@ TEST_FUNCTION(event_complete_func_notify_for_io_type_OUT_EPOLLRDHUP_and_abandons
 TEST_FUNCTION(event_complete_func_notify_for_io_type_OUT_ABANDONED_and_abandons_the_connection)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     ASSERT_ARE_EQUAL(int, 0, async_socket_notify_io_async(async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE_OUT, test_on_notify_complete, test_callback_ctx));
 
@@ -2016,9 +2021,9 @@ TEST_FUNCTION(event_complete_func_notify_for_io_type_OUT_ABANDONED_and_abandons_
 TEST_FUNCTION(event_complete_func_notify_EPOLLIN_calls_callback_with_IN_flag)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     ASSERT_ARE_EQUAL(int, 0, async_socket_notify_io_async(async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE_IN, test_on_notify_complete, test_callback_ctx));
 
@@ -2042,9 +2047,9 @@ TEST_FUNCTION(event_complete_func_notify_EPOLLIN_calls_callback_with_IN_flag)
 TEST_FUNCTION(event_complete_func_notify_EPOLLOUT_calls_callback_with_OUT_flag)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     ASSERT_ARE_EQUAL(int, 0, async_socket_notify_io_async(async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE_OUT, test_on_notify_complete, test_callback_ctx));
 
@@ -2068,9 +2073,9 @@ TEST_FUNCTION(event_complete_func_notify_EPOLLOUT_calls_callback_with_OUT_flag)
 TEST_FUNCTION(event_complete_func_notify_for_io_type_IN_ERROR_calls_callback_with_ERROR_flag)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     ASSERT_ARE_EQUAL(int, 0, async_socket_notify_io_async(async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE_IN, test_on_notify_complete, test_callback_ctx));
 
@@ -2094,9 +2099,9 @@ TEST_FUNCTION(event_complete_func_notify_for_io_type_IN_ERROR_calls_callback_wit
 TEST_FUNCTION(event_complete_func_notify_for_io_type_OUT_ERROR_calls_callback_with_ERROR_flag)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     ASSERT_ARE_EQUAL(int, 0, async_socket_notify_io_async(async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE_OUT, test_on_notify_complete, test_callback_ctx));
 
@@ -2122,9 +2127,9 @@ TEST_FUNCTION(event_complete_func_notify_for_io_type_OUT_ERROR_calls_callback_wi
 TEST_FUNCTION(event_complete_func_recv_EPOLLRDHUP_and_abandons_the_connection)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42, 0x43 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -2153,9 +2158,9 @@ TEST_FUNCTION(event_complete_func_recv_EPOLLRDHUP_and_abandons_the_connection)
 TEST_FUNCTION(event_complete_func_send_EPOLLRDHUP_and_abandons_the_connection)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42, 0x43 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -2193,9 +2198,9 @@ TEST_FUNCTION(event_complete_func_send_EPOLLRDHUP_and_abandons_the_connection)
 TEST_FUNCTION(event_complete_func_recv_ABANDONED_and_abandons_the_connection)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42, 0x43 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -2225,9 +2230,9 @@ TEST_FUNCTION(event_complete_func_recv_ABANDONED_and_abandons_the_connection)
 TEST_FUNCTION(event_complete_func_send_ABANDONED_and_abandons_the_connection)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42, 0x43 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -2265,9 +2270,9 @@ TEST_FUNCTION(event_complete_func_send_ABANDONED_and_abandons_the_connection)
 TEST_FUNCTION(event_complete_func_send_EPOLLOUT_success)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42, 0x43 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -2305,9 +2310,9 @@ TEST_FUNCTION(event_complete_func_send_EPOLLOUT_success)
 TEST_FUNCTION(event_complete_func_send_EPOLLOUT_abandoned)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42, 0x43 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -2346,9 +2351,9 @@ TEST_FUNCTION(event_complete_func_send_EPOLLOUT_abandoned)
 TEST_FUNCTION(event_complete_func_send_EPOLLOUT_error)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42, 0x43 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -2387,9 +2392,9 @@ TEST_FUNCTION(event_complete_func_send_EPOLLOUT_error)
 TEST_FUNCTION(event_complete_func_EPOLLOUT_multiple_sends_success)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42, 0x43, 0x44, 0x45 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -2431,9 +2436,9 @@ TEST_FUNCTION(event_complete_func_EPOLLOUT_multiple_sends_success)
 TEST_FUNCTION(event_complete_func_recv_ERROR_and_error_the_connection)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42, 0x43 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -2461,9 +2466,9 @@ TEST_FUNCTION(event_complete_func_recv_ERROR_and_error_the_connection)
 TEST_FUNCTION(event_complete_func_send_ERROR_and_error_the_connection)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
     uint8_t payload_bytes[] = { 0x42, 0x43 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -2515,9 +2520,9 @@ TEST_FUNCTION(async_socket_notify_io_async_with_NULL_async_socket_fails)
 TEST_FUNCTION(async_socket_notify_io_async_with_NULL_on_notify_io_complete)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
     // act
@@ -2535,9 +2540,9 @@ TEST_FUNCTION(async_socket_notify_io_async_with_NULL_on_notify_io_complete)
 TEST_FUNCTION(async_socket_notify_io_async_with_invalid_io_type)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
     // act
@@ -2555,9 +2560,9 @@ TEST_FUNCTION(async_socket_notify_io_async_with_invalid_io_type)
 TEST_FUNCTION(async_socket_notify_io_async_with_NULL_on_notify_io_complete_context_succeeds)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
     setup_async_socket_notify_io_async_mocks(ASYNC_SOCKET_NOTIFY_IO_TYPE_IN);
@@ -2578,7 +2583,7 @@ TEST_FUNCTION(async_socket_notify_io_async_with_NULL_on_notify_io_complete_conte
 TEST_FUNCTION(async_socket_notify_io_async_fails_when_state_is_not_OPEN)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
     umock_c_reset_all_calls();
 
@@ -2603,9 +2608,9 @@ TEST_FUNCTION(async_socket_notify_io_async_fails_when_state_is_not_OPEN)
 TEST_FUNCTION(async_socket_notify_io_async_fails_when_alloc_context_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
@@ -2632,9 +2637,9 @@ TEST_FUNCTION(async_socket_notify_io_async_fails_when_alloc_context_fails)
 TEST_FUNCTION(async_socket_notify_io_async_succeeds_for_IN)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
     setup_async_socket_notify_io_async_mocks(ASYNC_SOCKET_NOTIFY_IO_TYPE_IN);
@@ -2657,9 +2662,9 @@ TEST_FUNCTION(async_socket_notify_io_async_succeeds_for_IN)
 TEST_FUNCTION(async_socket_notify_io_async_succeeds_for_OUT)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
     setup_async_socket_notify_io_async_mocks(ASYNC_SOCKET_NOTIFY_IO_TYPE_OUT);
@@ -2680,9 +2685,9 @@ TEST_FUNCTION(async_socket_notify_io_async_succeeds_for_OUT)
 TEST_FUNCTION(async_socket_notify_io_async_fails_when_completion_port_add_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_on_open_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
