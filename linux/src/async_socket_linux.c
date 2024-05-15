@@ -517,6 +517,7 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, SOCKET_HANDLE sock
         // Codes_SRS_ASYNC_SOCKET_LINUX_11_029: [ If async_socket is already OPEN or OPENING, async_socket_open_async shall fail and return a non-zero value. ]
         if (current_state != ASYNC_SOCKET_LINUX_STATE_CLOSED)
         {
+            // Codes_SRS_ASYNC_SOCKET_LINUX_11_034: [ If any error occurs, async_socket_open_async shall fail and return a non-zero value. ]
             LogError("Open called in state %" PRI_MU_ENUM "", MU_ENUM_VALUE(ASYNC_SOCKET_LINUX_STATE, current_state));
             result = MU_FAILURE;
         }

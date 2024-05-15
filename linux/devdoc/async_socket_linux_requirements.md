@@ -168,8 +168,6 @@ MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_soc
 
 **SRS_ASYNC_SOCKET_LINUX_11_029: [** If `async_socket` is already OPEN or OPENING, `async_socket_open_async` shall fail and return a non-zero value. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_030: [** If `async_socket` has already closed the underlying socket handle then `async_socket_open_async` shall fail and return a non-zero value. **]**
-
 **SRS_ASYNC_SOCKET_LINUX_11_031: [** `async_socket_open_async` shall add the socket to the epoll system by calling `epoll_ctl` with `EPOLL_CTL_ADD`. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_032: [** `async_socket_open_async` shall set the state to OPEN. **]**
