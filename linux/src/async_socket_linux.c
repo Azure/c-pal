@@ -210,7 +210,7 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
                     // Codes_SRS_ASYNC_SOCKET_LINUX_04_008: [ event_complete_callback shall call the notify complete callback with an ABANDONED flag when the IO type is ASYNC_SOCKET_IO_TYPE_NOTIFY. ]
                     io_context->on_notify_io_complete(io_context->callback_context, ASYNC_SOCKET_NOTIFY_IO_RESULT_ABANDONED);
                 }
-                
+
                 // Codes_SRS_ASYNC_SOCKET_LINUX_11_084: [ Then event_complete_callback shall free the context memory. ]
                 free(io_context);
                 break;
@@ -404,23 +404,24 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
     wake_by_address_single(&async_socket->state);
 }
 
-ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine, SOCKET_HANDLE socket_handle)
+ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine)
 {
     // Codes_SRS_ASYNC_SOCKET_LINUX_04_001: [ async_socket_create shall delegate to async_socket_create_with_transport passing in callbacks for on_send and on_recv that implement socket read and write by calling send and recv respectively from system socket API. ]
-    return async_socket_create_with_transport(execution_engine, socket_handle, on_socket_send, NULL, on_socket_recv, NULL);
+    return async_socket_create_with_transport(execution_engine, on_socket_send, NULL, on_socket_recv, NULL);
 }
 
-ASYNC_SOCKET_HANDLE async_socket_create_with_transport(EXECUTION_ENGINE_HANDLE execution_engine, SOCKET_HANDLE socket_handle, ON_ASYNC_SOCKET_SEND on_send, void* on_send_context, ON_ASYNC_SOCKET_RECV on_recv, void* on_recv_context)
+ASYNC_SOCKET_HANDLE async_socket_create_with_transport(EXECUTION_ENGINE_HANDLE execution_engine, ON_ASYNC_SOCKET_SEND on_send, void* on_send_context, ON_ASYNC_SOCKET_RECV on_recv, void* on_recv_context)
 {
     ASYNC_SOCKET_HANDLE result;
     // Codes_SRS_ASYNC_SOCKET_LINUX_11_002: [ execution_engine shall be allowed to be NULL. ]
 
-    // Codes_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_create_with_transport shall fail and return NULL. ]
     // Codes_SRS_ASYNC_SOCKET_LINUX_04_002: [ If on_send is NULL , async_socket_create_with_transport shall fail and return NULL. ]
     // Codes_SRS_ASYNC_SOCKET_LINUX_04_003: [ If on_recv is NULL , async_socket_create_with_transport shall fail and return NULL. ]
-    if (socket_handle == INVALID_SOCKET || on_send == NULL || on_recv == NULL)
+    if (
+        on_send == NULL ||
+        on_recv == NULL)
     {
-        LogError("EXECUTION_ENGINE_HANDLE execution_engine:%p, SOCKET_HANDLE socket_handle:%" PRI_SOCKET ", ON_ASYNC_SOCKET_SEND on_send: %p, void* on_send_context: %p, ON_ASYNC_SOCKET_RECV on_recv: %p, void* on_recv_context: %p", execution_engine, socket_handle, on_send, on_send_context, on_recv, on_recv_context);
+        LogError("EXECUTION_ENGINE_HANDLE execution_engine:%p, ON_ASYNC_SOCKET_SEND on_send: %p, void* on_send_context: %p, ON_ASYNC_SOCKET_RECV on_recv: %p, void* on_recv_context: %p", execution_engine, on_send, on_send_context, on_recv, on_recv_context);
     }
     else
     {
@@ -439,7 +440,6 @@ ASYNC_SOCKET_HANDLE async_socket_create_with_transport(EXECUTION_ENGINE_HANDLE e
             }
             else
             {
-                result->socket_handle = socket_handle;
                 result->on_send = on_send;
                 result->on_send_context = on_send_context;
                 result->on_recv = on_recv;
@@ -493,7 +493,7 @@ void async_socket_destroy(ASYNC_SOCKET_HANDLE async_socket)
     }
 }
 
-int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, ON_ASYNC_SOCKET_OPEN_COMPLETE on_open_complete, void* on_open_complete_context)
+int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, SOCKET_HANDLE socket_handle, ON_ASYNC_SOCKET_OPEN_COMPLETE on_open_complete, void* on_open_complete_context)
 {
     int result;
     // Codes_SRS_ASYNC_SOCKET_LINUX_11_026: [ on_open_complete_context shall be allowed to be NULL. ]
@@ -501,7 +501,10 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, ON_ASYNC_SOCKET_OP
         // Codes_SRS_ASYNC_SOCKET_LINUX_11_024: [ If async_socket is NULL, async_socket_open_async shall fail and return a non-zero value. ]
         async_socket == NULL ||
         // Codes_SRS_ASYNC_SOCKET_LINUX_11_025: [ If on_open_complete is NULL, async_socket_open_async shall fail and return a non-zero value. ]
-        on_open_complete == NULL)
+        on_open_complete == NULL ||
+        // Codes_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_open_async shall fail and return a non-zero value. ]
+        socket_handle == INVALID_SOCKET
+       )
     {
         LogError("ASYNC_SOCKET_HANDLE async_socket=%p, ON_ASYNC_SOCKET_OPEN_COMPLETE on_open_complete=%p, void* on_open_complete_context=%p",
             async_socket, on_open_complete, on_open_complete_context);
@@ -514,30 +517,24 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, ON_ASYNC_SOCKET_OP
         // Codes_SRS_ASYNC_SOCKET_LINUX_11_029: [ If async_socket is already OPEN or OPENING, async_socket_open_async shall fail and return a non-zero value. ]
         if (current_state != ASYNC_SOCKET_LINUX_STATE_CLOSED)
         {
+            // Codes_SRS_ASYNC_SOCKET_LINUX_11_034: [ If any error occurs, async_socket_open_async shall fail and return a non-zero value. ]
             LogError("Open called in state %" PRI_MU_ENUM "", MU_ENUM_VALUE(ASYNC_SOCKET_LINUX_STATE, current_state));
             result = MU_FAILURE;
         }
         else
         {
-            // Codes_SRS_ASYNC_SOCKET_LINUX_11_030: [ If async_socket has already closed the underlying socket handle then async_socket_open_async shall fail and return a non-zero value. ]
-            if (async_socket->socket_handle == INVALID_SOCKET)
-            {
-                // Codes_SRS_ASYNC_SOCKET_LINUX_11_034: [ If any error occurs, async_socket_open_async shall fail and return a non-zero value. ]
-                LogError("Open called after socket was closed");
-                result = MU_FAILURE;
-            }
-            else
-            {
-                // Codes_SRS_ASYNC_SOCKET_LINUX_11_031: [ async_socket_open_async shall add the socket to the epoll system by calling epoll_ctl with EPOLL_CTL_ADD. ]
-                // Codes_SRS_ASYNC_SOCKET_LINUX_11_032: [ async_socket_open_async shall set the state to OPEN. ]
-                (void)interlocked_exchange(&async_socket->state, ASYNC_SOCKET_LINUX_STATE_OPEN);
-                // Codes_SRS_ASYNC_SOCKET_LINUX_11_033: [ On success async_socket_open_async shall call on_open_complete_context with ASYNC_SOCKET_OPEN_OK. ]
-                on_open_complete(on_open_complete_context, ASYNC_SOCKET_OPEN_OK);
+            async_socket->socket_handle = socket_handle;
 
-                // Codes_SRS_ASYNC_SOCKET_LINUX_11_028: [ On success, async_socket_open_async shall return 0. ]
-                result = 0;
-                goto all_ok;
-            }
+            // Codes_SRS_ASYNC_SOCKET_LINUX_11_031: [ async_socket_open_async shall add the socket to the epoll system by calling epoll_ctl with EPOLL_CTL_ADD. ]
+            // Codes_SRS_ASYNC_SOCKET_LINUX_11_032: [ async_socket_open_async shall set the state to OPEN. ]
+            (void)interlocked_exchange(&async_socket->state, ASYNC_SOCKET_LINUX_STATE_OPEN);
+            // Codes_SRS_ASYNC_SOCKET_LINUX_11_033: [ On success async_socket_open_async shall call on_open_complete_context with ASYNC_SOCKET_OPEN_OK. ]
+            on_open_complete(on_open_complete_context, ASYNC_SOCKET_OPEN_OK);
+
+            // Codes_SRS_ASYNC_SOCKET_LINUX_11_028: [ On success, async_socket_open_async shall return 0. ]
+            result = 0;
+            goto all_ok;
+
             (void)interlocked_exchange(&async_socket->state, ASYNC_SOCKET_LINUX_STATE_CLOSED);
         }
     }

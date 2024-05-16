@@ -181,7 +181,7 @@ TEST_FUNCTION(async_socket_create_with_NULL_execution_engine_fails)
     ASYNC_SOCKET_HANDLE async_socket;
 
     // act
-    async_socket = async_socket_create(NULL, test_socket);
+    async_socket = async_socket_create(NULL);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -189,18 +189,7 @@ TEST_FUNCTION(async_socket_create_with_NULL_execution_engine_fails)
 }
 
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_034: [ If socket_handle is INVALID_SOCKET, async_socket_create shall fail and return NULL. ]*/
-TEST_FUNCTION(async_socket_create_with_INVALID_SOCKET_fails)
-{
-    // arrange
-    ASYNC_SOCKET_HANDLE async_socket;
 
-    // act
-    async_socket = async_socket_create(test_execution_engine, (SOCKET_HANDLE)INVALID_SOCKET);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_IS_NULL(async_socket);
-}
 
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_001: [ async_socket_create shall allocate a new async socket and on success shall return a non-NULL handle. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_42_004: [ async_socket_create shall increment the reference count on execution_engine. ]*/
@@ -215,7 +204,7 @@ TEST_FUNCTION(async_socket_create_succeeds)
     STRICT_EXPECTED_CALL(execution_engine_win32_get_threadpool(test_execution_engine));
 
     // act
-    async_socket = async_socket_create(test_execution_engine, test_socket);
+    async_socket = async_socket_create(test_execution_engine);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -232,7 +221,7 @@ TEST_FUNCTION(async_socket_create_with_transport_fails)
 	ASYNC_SOCKET_HANDLE async_socket;
 
 	// act
-	async_socket = async_socket_create_with_transport(test_execution_engine, test_socket, NULL, NULL, NULL, NULL);
+	async_socket = async_socket_create_with_transport(test_execution_engine, NULL, NULL, NULL, NULL);
 
 	// assert
 	ASSERT_IS_NULL(async_socket);
@@ -257,7 +246,7 @@ TEST_FUNCTION(when_underlying_calls_fails_async_socket_create_also_fails)
             umock_c_negative_tests_fail_call(i);
 
             // act
-            async_socket = async_socket_create(NULL, test_socket);
+            async_socket = async_socket_create(NULL);
 
             // assert
             ASSERT_IS_NULL(async_socket, "On failed call %zu", i);
@@ -279,16 +268,14 @@ TEST_FUNCTION(async_socket_destroy_with_NULL_returns)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_42_007: [ If the socket was not OPEN then async_socket_destroy shall call closesocket on the underlying socket. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_42_005: [ async_socket_destroy shall decrement the reference count on the execution engine. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_005: [ async_socket_destroy shall free all resources associated with async_socket. ]*/
 TEST_FUNCTION(async_socket_destroy_frees_resources)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(mocked_closesocket((SOCKET)test_socket));
     STRICT_EXPECTED_CALL(execution_engine_dec_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
@@ -305,7 +292,7 @@ TEST_FUNCTION(async_socket_destroy_frees_resources)
 TEST_FUNCTION(async_socket_destroy_closes_first_if_open)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     PTP_CALLBACK_ENVIRON cbe;
     PTP_IO test_ptp_io;
     umock_c_reset_all_calls();
@@ -314,7 +301,7 @@ TEST_FUNCTION(async_socket_destroy_closes_first_if_open)
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242));
     umock_c_reset_all_calls();
 
     // close first
@@ -342,23 +329,41 @@ TEST_FUNCTION(async_socket_open_async_with_NULL_async_socket_fails)
     int result;
 
     // act
-    result = async_socket_open_async(NULL, test_on_open_complete, (void*)0x4242);
+    result = async_socket_open_async(NULL, test_socket, test_on_open_complete, (void*)0x4242);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_008: [ If on_open_complete is NULL, async_socket_open_async shall fail and return a non-zero value. ]*/
-TEST_FUNCTION(async_socket_open_async_with_NULL_on_open_complete_fails)
+TEST_FUNCTION(async_socket_open_async_with_INVALID_SOCKET_socket_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     int result;
     umock_c_reset_all_calls();
 
     // act
-    result = async_socket_open_async(async_socket, NULL, (void*)0x4242);
+    result = async_socket_open_async(async_socket, (SOCKET_HANDLE)INVALID_SOCKET, test_on_open_complete, (void*)0x4242);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+
+    // cleanup
+    async_socket_destroy(async_socket);
+}
+
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_008: [ If on_open_complete is NULL, async_socket_open_async shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(async_socket_open_async_with_NULL_on_open_complete_fails)
+{
+    // arrange
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    int result;
+    umock_c_reset_all_calls();
+
+    // act
+    result = async_socket_open_async(async_socket, test_socket, NULL, (void*)0x4242);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -377,7 +382,7 @@ TEST_FUNCTION(async_socket_open_async_with_NULL_on_open_complete_fails)
 TEST_FUNCTION(async_socket_open_async_succeeds)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     int result;
     PTP_CALLBACK_ENVIRON cbe;
     umock_c_reset_all_calls();
@@ -391,7 +396,7 @@ TEST_FUNCTION(async_socket_open_async_succeeds)
     STRICT_EXPECTED_CALL(test_on_open_complete((void*)0x4242, ASYNC_SOCKET_OPEN_OK));
 
     // act
-    result = async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    result = async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -405,7 +410,7 @@ TEST_FUNCTION(async_socket_open_async_succeeds)
 TEST_FUNCTION(async_socket_open_async_succeeds_with_NULL_context)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     int result;
     PTP_CALLBACK_ENVIRON cbe;
     umock_c_reset_all_calls();
@@ -419,7 +424,7 @@ TEST_FUNCTION(async_socket_open_async_succeeds_with_NULL_context)
     STRICT_EXPECTED_CALL(test_on_open_complete(NULL, ASYNC_SOCKET_OPEN_OK));
 
     // act
-    result = async_socket_open_async(async_socket, test_on_open_complete, NULL);
+    result = async_socket_open_async(async_socket, test_socket, test_on_open_complete, NULL);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -433,7 +438,7 @@ TEST_FUNCTION(async_socket_open_async_succeeds_with_NULL_context)
 TEST_FUNCTION(when_underlying_calls_fail_async_socket_open_async_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     int result;
     size_t i;
     PTP_CALLBACK_ENVIRON cbe;
@@ -457,7 +462,7 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_open_async_fails)
             umock_c_negative_tests_fail_call(i);
 
             // act
-            result = async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+            result = async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
 
             // assert
             ASSERT_ARE_NOT_EQUAL(int, 0, result, "On failed call %zu", i);
@@ -472,34 +477,13 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_open_async_fails)
 TEST_FUNCTION(async_socket_open_async_after_async_socket_open_async_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     int result;
     umock_c_reset_all_calls();
 
     // act
-    result = async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
-
-    // cleanup
-    async_socket_destroy(async_socket);
-}
-
-/* Tests_SRS_ASYNC_SOCKET_WIN32_42_008: [ If async_socket has already closed the underlying socket handle then async_socket_open_async shall fail and return a non-zero value. ]*/
-TEST_FUNCTION(async_socket_open_async_after_close_fails)
-{
-    // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
-    async_socket_close(async_socket);
-    int result;
-    umock_c_reset_all_calls();
-
-    // act
-    result = async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    result = async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -533,7 +517,7 @@ TEST_FUNCTION(async_socket_close_with_NULL_returns)
 TEST_FUNCTION(async_socket_close_reverses_the_actions_from_open)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     PTP_CALLBACK_ENVIRON cbe;
     PTP_IO test_ptp_io;
 
@@ -543,7 +527,7 @@ TEST_FUNCTION(async_socket_close_reverses_the_actions_from_open)
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(mocked_closesocket((SOCKET)test_socket));
@@ -565,7 +549,7 @@ TEST_FUNCTION(async_socket_close_reverses_the_actions_from_open)
 TEST_FUNCTION(async_socket_close_when_not_open_returns)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     umock_c_reset_all_calls();
 
     // act
@@ -582,8 +566,8 @@ TEST_FUNCTION(async_socket_close_when_not_open_returns)
 TEST_FUNCTION(async_socket_close_after_close_returns)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     async_socket_close(async_socket);
     umock_c_reset_all_calls();
 
@@ -621,8 +605,8 @@ TEST_FUNCTION(async_socket_send_async_with_NULL_async_socket_fails)
 TEST_FUNCTION(async_socket_send_async_with_NULL_payload_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     umock_c_reset_all_calls();
 
@@ -641,8 +625,8 @@ TEST_FUNCTION(async_socket_send_async_with_NULL_payload_fails)
 TEST_FUNCTION(async_socket_send_async_with_0_payload_count_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -665,8 +649,8 @@ TEST_FUNCTION(async_socket_send_async_with_0_payload_count_fails)
 TEST_FUNCTION(async_socket_send_async_with_first_out_of_2_buffers_having_buffer_NULL_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[2];
@@ -691,8 +675,8 @@ TEST_FUNCTION(async_socket_send_async_with_first_out_of_2_buffers_having_buffer_
 TEST_FUNCTION(async_socket_send_async_with_second_out_of_2_buffers_having_buffer_NULL_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[2];
@@ -717,8 +701,8 @@ TEST_FUNCTION(async_socket_send_async_with_second_out_of_2_buffers_having_buffer
 TEST_FUNCTION(async_socket_send_async_with_first_out_of_2_buffers_having_length_0_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[2];
@@ -743,8 +727,8 @@ TEST_FUNCTION(async_socket_send_async_with_first_out_of_2_buffers_having_length_
 TEST_FUNCTION(async_socket_send_async_with_second_out_of_2_buffers_having_length_0_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[2];
@@ -769,8 +753,8 @@ TEST_FUNCTION(async_socket_send_async_with_second_out_of_2_buffers_having_length
 TEST_FUNCTION(async_socket_send_async_with_UINT32_MAX_buffers_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[2];
@@ -796,8 +780,8 @@ TEST_FUNCTION(async_socket_send_async_with_UINT32_MAX_buffers_fails)
 TEST_FUNCTION(async_socket_send_async_with_on_send_complete_NULL_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -820,7 +804,7 @@ TEST_FUNCTION(async_socket_send_async_with_on_send_complete_NULL_fails)
 TEST_FUNCTION(async_socket_send_async_when_not_open_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -843,13 +827,13 @@ TEST_FUNCTION(async_socket_send_async_when_not_open_fails)
 TEST_FUNCTION(async_socket_send_async_after_close_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     (void)async_socket_close(async_socket);
     umock_c_reset_all_calls();
 
@@ -874,7 +858,7 @@ TEST_FUNCTION(async_socket_send_async_after_close_fails)
 TEST_FUNCTION(async_socket_send_async_succeeds)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -891,7 +875,7 @@ TEST_FUNCTION(async_socket_send_async_succeeds)
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
@@ -916,7 +900,7 @@ TEST_FUNCTION(async_socket_send_async_succeeds)
 TEST_FUNCTION(async_socket_send_async_with_NULL_on_send_complete_context_succeeds)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -933,7 +917,7 @@ TEST_FUNCTION(async_socket_send_async_with_NULL_on_send_complete_context_succeed
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
@@ -959,7 +943,7 @@ TEST_FUNCTION(async_socket_send_async_with_NULL_on_send_complete_context_succeed
 TEST_FUNCTION(when_underlying_calls_fail_async_socket_send_async_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -972,7 +956,7 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_send_async_fails)
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
@@ -1009,7 +993,7 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_send_async_fails)
 TEST_FUNCTION(when_get_last_error_for_send_returns_WSA_IO_PENDING_it_is_treated_as_successfull)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1027,7 +1011,7 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_WSA_IO_PENDING_it_is_treated_
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
@@ -1055,7 +1039,7 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_WSA_IO_PENDING_it_is_treated_
 TEST_FUNCTION(when_get_last_error_for_send_returns_an_error_then_async_socket_send_async_cancels_the_IO)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1074,7 +1058,7 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_an_error_then_async_socket_se
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
@@ -1106,7 +1090,7 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_an_error_then_async_socket_se
 TEST_FUNCTION(when_get_last_error_for_send_returns_WSAGetLastError_then_async_socket_send_async_cancels_the_IO_and_returns_ABANDONED)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1125,7 +1109,7 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_WSAGetLastError_then_async_so
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
@@ -1157,7 +1141,7 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_WSAGetLastError_then_async_so
 TEST_FUNCTION(when_WSASend_returns_an_error_different_than_SOCKET_ERROR_async_socket_send_async_cancels_the_IO)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1175,7 +1159,7 @@ TEST_FUNCTION(when_WSASend_returns_an_error_different_than_SOCKET_ERROR_async_so
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
@@ -1205,8 +1189,8 @@ TEST_FUNCTION(when_WSASend_returns_an_error_different_than_SOCKET_ERROR_async_so
 TEST_FUNCTION(async_socket_send_async_with_sum_of_buffer_lengths_exceeding_UINT32_MAX_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[2];
@@ -1251,8 +1235,8 @@ TEST_FUNCTION(async_socket_receive_async_with_NULL_async_socket_fails)
 TEST_FUNCTION(async_socket_receive_async_with_NULL_payload_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     int result;
     umock_c_reset_all_calls();
 
@@ -1271,8 +1255,8 @@ TEST_FUNCTION(async_socket_receive_async_with_NULL_payload_fails)
 TEST_FUNCTION(async_socket_receive_async_with_0_payload_count_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     int result;
     uint8_t payload_bytes[1];
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1295,8 +1279,8 @@ TEST_FUNCTION(async_socket_receive_async_with_0_payload_count_fails)
 TEST_FUNCTION(async_socket_receive_async_with_first_out_of_2_buffers_having_buffer_NULL_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     int result;
     uint8_t payload_bytes_1[1];
     uint8_t payload_bytes_2[1];
@@ -1322,8 +1306,8 @@ TEST_FUNCTION(async_socket_receive_async_with_first_out_of_2_buffers_having_buff
 TEST_FUNCTION(async_socket_receive_async_with_second_out_of_2_buffers_having_buffer_NULL_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     int result;
     uint8_t payload_bytes_1[1];
     uint8_t payload_bytes_2[1];
@@ -1349,8 +1333,8 @@ TEST_FUNCTION(async_socket_receive_async_with_second_out_of_2_buffers_having_buf
 TEST_FUNCTION(async_socket_receive_async_with_first_out_of_2_buffers_having_length_0_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     int result;
     uint8_t payload_bytes_1[1];
     uint8_t payload_bytes_2[1];
@@ -1376,8 +1360,8 @@ TEST_FUNCTION(async_socket_receive_async_with_first_out_of_2_buffers_having_leng
 TEST_FUNCTION(async_socket_receive_async_with_second_out_of_2_buffers_having_length_0_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     int result;
     uint8_t payload_bytes_1[1];
     uint8_t payload_bytes_2[1];
@@ -1403,8 +1387,8 @@ TEST_FUNCTION(async_socket_receive_async_with_second_out_of_2_buffers_having_len
 TEST_FUNCTION(async_socket_receive_async_with_sum_of_buffer_lengths_exceeding_UINT32_MAX_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     int result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[2];
@@ -1429,8 +1413,8 @@ TEST_FUNCTION(async_socket_receive_async_with_sum_of_buffer_lengths_exceeding_UI
 TEST_FUNCTION(async_socket_receive_async_with_on_send_complete_NULL_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     int result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1453,7 +1437,7 @@ TEST_FUNCTION(async_socket_receive_async_with_on_send_complete_NULL_fails)
 TEST_FUNCTION(async_socket_receive_async_when_not_open_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     int result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1477,14 +1461,14 @@ TEST_FUNCTION(async_socket_receive_async_when_not_open_fails)
 TEST_FUNCTION(async_socket_receive_async_after_close_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     int result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
 
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     (void)async_socket_close(async_socket);
     umock_c_reset_all_calls();
 
@@ -1509,7 +1493,7 @@ TEST_FUNCTION(async_socket_receive_async_after_close_fails)
 TEST_FUNCTION(async_socket_receive_async_succeeds)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     int result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1527,7 +1511,7 @@ TEST_FUNCTION(async_socket_receive_async_succeeds)
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
@@ -1552,7 +1536,7 @@ TEST_FUNCTION(async_socket_receive_async_succeeds)
 TEST_FUNCTION(async_socket_receive_async_with_NULL_on_send_complete_context_succeeds)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     int result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1570,7 +1554,7 @@ TEST_FUNCTION(async_socket_receive_async_with_NULL_on_send_complete_context_succ
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
@@ -1597,7 +1581,7 @@ TEST_FUNCTION(async_socket_receive_async_with_NULL_on_send_complete_context_succ
 TEST_FUNCTION(when_underlying_calls_fail_async_socket_receive_async_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     int result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1610,7 +1594,7 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_receive_async_fails)
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
@@ -1647,7 +1631,7 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_receive_async_fails)
 TEST_FUNCTION(when_get_last_error_for_receive_returns_WSA_IO_PENDING_it_is_treated_as_successfull)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     int result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1665,7 +1649,7 @@ TEST_FUNCTION(when_get_last_error_for_receive_returns_WSA_IO_PENDING_it_is_treat
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
@@ -1694,7 +1678,7 @@ TEST_FUNCTION(when_get_last_error_for_receive_returns_WSA_IO_PENDING_it_is_treat
 TEST_FUNCTION(when_WSARecv_returns_an_error_different_than_SOCKET_ERROR_async_socket_receive_async_cancels_the_IO)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     int result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1713,7 +1697,7 @@ TEST_FUNCTION(when_WSARecv_returns_an_error_different_than_SOCKET_ERROR_async_so
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
@@ -1744,7 +1728,7 @@ TEST_FUNCTION(when_WSARecv_returns_an_error_different_than_SOCKET_ERROR_async_so
 TEST_FUNCTION(when_get_last_error_for_receive_returns_an_error_then_async_socket_receive_async_cancels_the_IO)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     int result;
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
@@ -1763,7 +1747,7 @@ TEST_FUNCTION(when_get_last_error_for_receive_returns_an_error_then_async_socket
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
@@ -1798,7 +1782,7 @@ TEST_FUNCTION(when_get_last_error_for_receive_returns_an_error_then_async_socket
 TEST_FUNCTION(on_io_complete_with_NULL_overlapped_for_send_returns)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     PTP_IO test_ptp_io;
@@ -1814,7 +1798,7 @@ TEST_FUNCTION(on_io_complete_with_NULL_overlapped_for_send_returns)
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
@@ -1844,7 +1828,7 @@ TEST_FUNCTION(on_io_complete_with_NULL_overlapped_for_send_returns)
 TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_send_as_complete_with_OK)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     PTP_IO test_ptp_io;
@@ -1860,7 +1844,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_send_as_complete_with_O
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
@@ -1896,7 +1880,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_send_as_complete_with_O
 TEST_FUNCTION(on_io_complete_with_error_indicates_the_send_as_complete_with_ERROR)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     uint8_t payload_bytes[] = { 0x42 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     PTP_IO test_ptp_io;
@@ -1912,7 +1896,7 @@ TEST_FUNCTION(on_io_complete_with_error_indicates_the_send_as_complete_with_ERRO
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
@@ -1944,7 +1928,7 @@ TEST_FUNCTION(on_io_complete_with_error_indicates_the_send_as_complete_with_ERRO
 TEST_FUNCTION(on_io_complete_with_NO_ERROR_and_number_of_bytes_sent_less_than_expected_indicates_error)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     uint8_t payload_bytes[3] = { 0x42, 0x43, 0x44 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     PTP_IO test_ptp_io;
@@ -1960,7 +1944,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_and_number_of_bytes_sent_less_than_ex
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
@@ -1992,7 +1976,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_and_number_of_bytes_sent_less_than_ex
 TEST_FUNCTION(on_io_complete_with_NO_ERROR_and_number_of_bytes_sent_more_than_expected_indicates_error)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     uint8_t payload_bytes[3] = { 0x42, 0x43, 0x44 };
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     PTP_IO test_ptp_io;
@@ -2008,7 +1992,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_and_number_of_bytes_sent_more_than_ex
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG,1, sizeof(WSABUF)));
@@ -2040,7 +2024,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_and_number_of_bytes_sent_more_than_ex
 TEST_FUNCTION(on_io_complete_with_NULL_overlapped_for_receive_returns)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     uint8_t payload_bytes[1];
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     PTP_IO test_ptp_io;
@@ -2056,7 +2040,7 @@ TEST_FUNCTION(on_io_complete_with_NULL_overlapped_for_receive_returns)
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG,1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
@@ -2085,7 +2069,7 @@ TEST_FUNCTION(on_io_complete_with_NULL_overlapped_for_receive_returns)
 TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_with_OK)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     uint8_t payload_bytes[1];
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     PTP_IO test_ptp_io;
@@ -2101,7 +2085,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_wit
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
@@ -2137,7 +2121,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_wit
 TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_with_OK_with_2_bytes_received)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     uint8_t payload_bytes[2];
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     PTP_IO test_ptp_io;
@@ -2153,7 +2137,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_wit
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG,1,sizeof(WSABUF)));
@@ -2185,7 +2169,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_wit
 TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_with_OK_with_2_bytes_received_when_buffers_had_only_1_byte)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     uint8_t payload_bytes[1];
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     PTP_IO test_ptp_io;
@@ -2201,7 +2185,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_wit
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG,1,sizeof(WSABUF)));
@@ -2237,7 +2221,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_wit
 TEST_FUNCTION(on_io_complete_with_error_indicates_the_receive_as_complete_with_ERROR)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     uint8_t payload_bytes[1];
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     PTP_IO test_ptp_io;
@@ -2253,7 +2237,7 @@ TEST_FUNCTION(on_io_complete_with_error_indicates_the_receive_as_complete_with_E
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
@@ -2285,7 +2269,7 @@ TEST_FUNCTION(on_io_complete_with_error_indicates_the_receive_as_complete_with_E
 TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_with_ABANDONED_with_0_bytes_received)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     uint8_t payload_bytes[1];
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     PTP_IO test_ptp_io;
@@ -2301,7 +2285,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_wit
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
@@ -2332,7 +2316,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_wit
 static void on_io_complete_with_error_indicates_the_receive_as_complete_with_ABANDONED(ULONG error_code)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     uint8_t payload_bytes[1];
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     PTP_IO test_ptp_io;
@@ -2348,7 +2332,7 @@ static void on_io_complete_with_error_indicates_the_receive_as_complete_with_ABA
         .CaptureReturn(&test_ptp_io)
         .CaptureArgumentValue_pv(&test_ptp_io_context)
         .CaptureArgumentValue_pfnio(&test_on_io_complete);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242));
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
@@ -2402,8 +2386,8 @@ TEST_FUNCTION(on_io_complete_with_ERROR_CONNECTION_ABORTED_indicates_the_receive
 TEST_FUNCTION(async_socket_notify_io_async_fails)
 {
     // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine, test_socket);
-    (void)async_socket_open_async(async_socket, test_on_open_complete, (void*)0x4242);
+    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
+    (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
 
     // act
