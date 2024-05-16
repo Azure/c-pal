@@ -114,7 +114,6 @@ static void threadpool_dispose(THREADPOOL* threadpool)
         if (current_state == THREADPOOL_WIN32_STATE_OPEN)
         {
             /* Codes_SRS_THREADPOOL_WIN32_01_007: [ threadpool_destroy shall perform an implicit close if threadpool is OPEN. ]*/
-            internal_close(threadpool);
             break;
         }
         else if (current_state == THREADPOOL_WIN32_STATE_CLOSED)
@@ -124,6 +123,15 @@ static void threadpool_dispose(THREADPOOL* threadpool)
 
         (void)WaitOnAddress(&threadpool->state, &current_state, sizeof(current_state), INFINITE);
     } while (1);
+
+    /* Codes_SRS_THREADPOOL_WIN32_01_030: [ threadpool_close shall wait for any executing callbacks by calling CloseThreadpoolCleanupGroupMembers, passing FALSE as fCancelPendingCallbacks. ]*/
+    CloseThreadpoolCleanupGroupMembers(threadpool->tp_cleanup_group, FALSE, NULL);
+
+    /* Codes_SRS_THREADPOOL_WIN32_01_032: [ threadpool_close shall close the threadpool cleanup group by calling CloseThreadpoolCleanupGroup. ]*/
+    CloseThreadpoolCleanupGroup(threadpool->tp_cleanup_group);
+
+    /* Codes_SRS_THREADPOOL_WIN32_01_033: [ threadpool_close shall destroy the thread pool environment created in threadpool_open. ]*/
+    DestroyThreadpoolEnvironment(&threadpool->tp_environment);
 
     /* Codes_SRS_THREADPOOL_WIN32_42_028: [ threadpool_dispose shall decrement the reference count on the execution_engine. ]*/
     execution_engine_dec_ref(threadpool->execution_engine);
@@ -161,81 +169,34 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                 execution_engine_inc_ref(execution_engine);
                 result->execution_engine = execution_engine;
 
-                (void)InterlockedExchange(&result->pending_api_calls, 0);
-                (void)InterlockedExchange(&result->state, THREADPOOL_WIN32_STATE_CLOSED);
+                /* Codes_SRS_THREADPOOL_WIN32_01_026: [ threadpool_open shall initialize a thread pool environment by calling InitializeThreadpoolEnvironment. ]*/
+                InitializeThreadpoolEnvironment(&result->tp_environment);
 
-                goto all_ok;
+                /* Codes_SRS_THREADPOOL_WIN32_01_027: [ threadpool_open shall set the thread pool for the environment to the pool obtained from the execution engine by calling SetThreadpoolCallbackPool. ]*/
+                SetThreadpoolCallbackPool(&result->tp_environment, result->pool);
+
+                /* Codes_SRS_THREADPOOL_WIN32_01_028: [ threadpool_open shall create a threadpool cleanup group by calling CreateThreadpoolCleanupGroup. ]*/
+                result->tp_cleanup_group = CreateThreadpoolCleanupGroup();
+                if (result->tp_cleanup_group == NULL)
+                {
+                    /* Codes_SRS_THREADPOOL_WIN32_01_040: [ If any error occurrs, threadpool_open shall fail and return a non-zero value. ]*/
+                    LogLastError("CreateThreadpoolCleanupGroup failed");
+                }
+                else
+                {
+                    /* Codes_SRS_THREADPOOL_WIN32_01_029: [ threadpool_open shall associate the cleanup group with the just created environment by calling SetThreadpoolCallbackCleanupGroup. ]*/
+                    SetThreadpoolCallbackCleanupGroup(&result->tp_environment, result->tp_cleanup_group, on_io_cancelled);
+
+                    (void)InterlockedExchange(&result->pending_api_calls, 0);
+                    (void)InterlockedExchange(&result->state, THREADPOOL_WIN32_STATE_CLOSED);
+
+                    goto all_ok;
+                }
             }
             THANDLE_FREE(THREADPOOL)(result);
             result = NULL;
         }
     }
-all_ok:
-    return result;
-}
-
-int threadpool_open(THANDLE(THREADPOOL) threadpool)
-{
-    int result;
-
-    if (
-        /* Codes_SRS_THREADPOOL_WIN32_01_008: [ If threadpool is NULL, threadpool_open shall fail and return a non-zero value. ]*/
-        threadpool == NULL
-    )
-    {
-        LogError("THREADPOOL_HANDLE threadpool=%p", threadpool);
-        result = MU_FAILURE;
-    }
-    else
-    {
-        THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
-
-        /* Codes_SRS_THREADPOOL_WIN32_01_011: [ Otherwise, threadpool_open shall switch the state to OPENING. ]*/
-        LONG current_state = InterlockedCompareExchange(&threadpool_ptr->state, THREADPOOL_WIN32_STATE_OPENING, THREADPOOL_WIN32_STATE_CLOSED);
-        if (current_state != THREADPOOL_WIN32_STATE_CLOSED)
-        {
-            /* Codes_SRS_THREADPOOL_WIN32_01_013: [ If threadpool is already OPEN or OPENING, threadpool_open shall fail and return a non-zero value. ]*/
-            LogError("Open called in state %" PRI_MU_ENUM "", MU_ENUM_VALUE(THREADPOOL_WIN32_STATE, current_state));
-            result = MU_FAILURE;
-        }
-        else
-        {
-            /* Codes_SRS_THREADPOOL_WIN32_01_026: [ threadpool_open shall initialize a thread pool environment by calling InitializeThreadpoolEnvironment. ]*/
-            InitializeThreadpoolEnvironment(&threadpool_ptr->tp_environment);
-
-            /* Codes_SRS_THREADPOOL_WIN32_01_027: [ threadpool_open shall set the thread pool for the environment to the pool obtained from the execution engine by calling SetThreadpoolCallbackPool. ]*/
-            SetThreadpoolCallbackPool(&threadpool_ptr->tp_environment, threadpool->pool);
-
-            /* Codes_SRS_THREADPOOL_WIN32_01_028: [ threadpool_open shall create a threadpool cleanup group by calling CreateThreadpoolCleanupGroup. ]*/
-            threadpool_ptr->tp_cleanup_group = CreateThreadpoolCleanupGroup();
-            if (threadpool_ptr->tp_cleanup_group == NULL)
-            {
-                /* Codes_SRS_THREADPOOL_WIN32_01_040: [ If any error occurrs, threadpool_open shall fail and return a non-zero value. ]*/
-                LogLastError("CreateThreadpoolCleanupGroup failed");
-                result = MU_FAILURE;
-            }
-            else
-            {
-                /* Codes_SRS_THREADPOOL_WIN32_01_029: [ threadpool_open shall associate the cleanup group with the just created environment by calling SetThreadpoolCallbackCleanupGroup. ]*/
-                SetThreadpoolCallbackCleanupGroup(&threadpool_ptr->tp_environment, threadpool_ptr->tp_cleanup_group, on_io_cancelled);
-
-                /* Codes_SRS_THREADPOOL_WIN32_01_015: [ threadpool_open shall set the state to OPEN. ]*/
-                (void)InterlockedExchange(&threadpool_ptr->state, THREADPOOL_WIN32_STATE_OPEN);
-                WakeByAddressSingle((PVOID)&threadpool_ptr->state);
-
-                /* Codes_SRS_THREADPOOL_WIN32_01_012: [ On success, threadpool_open shall return 0. ]*/
-                result = 0;
-
-                goto all_ok;
-            }
-
-            DestroyThreadpoolEnvironment(&threadpool_ptr->tp_environment);
-
-            (void)InterlockedExchange(&threadpool_ptr->state, THREADPOOL_WIN32_STATE_CLOSED);
-            WakeByAddressSingle((PVOID)&threadpool_ptr->state);
-        }
-    }
-
 all_ok:
     return result;
 }

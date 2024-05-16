@@ -50,6 +50,14 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HAN
 
 **SRS_THREADPOOL_WIN32_01_025: [** `threadpool_create` shall obtain the PTP_POOL from the execution engine by calling `execution_engine_win32_get_threadpool`. **]**
 
+**SRS_THREADPOOL_WIN32_01_026: [** `threadpool_open` shall initialize a thread pool environment by calling `InitializeThreadpoolEnvironment`. **]**
+
+**SRS_THREADPOOL_WIN32_01_027: [** `threadpool_open` shall set the thread pool for the environment to the pool obtained from the execution engine by calling `SetThreadpoolCallbackPool`. **]**
+
+**SRS_THREADPOOL_WIN32_01_028: [** `threadpool_open` shall create a threadpool cleanup group by calling `CreateThreadpoolCleanupGroup`. **]**
+
+**SRS_THREADPOOL_WIN32_01_029: [** `threadpool_open` shall associate the cleanup group with the just created environment by calling `SetThreadpoolCallbackCleanupGroup`. **]**
+
 **SRS_THREADPOOL_WIN32_01_003: [** If any error occurs, `threadpool_create` shall fail and return `NULL`. **]**
 
 ### threadpool_dispose
@@ -64,57 +72,13 @@ static void threadpool_dispose(THREADPOOL* threadpool)
 
 **SRS_THREADPOOL_WIN32_01_006: [** While `threadpool` is OPENING or CLOSING, `threadpool_dispose` shall wait for the open to complete either successfully or with error. **]**
 
-**SRS_THREADPOOL_WIN32_01_007: [** `threadpool_dispose` shall perform an implicit close if `threadpool` is OPEN. **]**
-
-**SRS_THREADPOOL_WIN32_42_028: [** `threadpool_dispose` shall decrement the reference count on the `execution_engine`. **]**
-
-### threadpool_open
-
-```c
-MOCKABLE_FUNCTION(, int, threadpool_open, THANDLE(THREADPOOL), threadpool);
-```
-
-`threadpool_open` opens the threadpool object so that subsequent calls to `threadpool_schedule_work` can be made.
-
-**SRS_THREADPOOL_WIN32_01_008: [** If `threadpool` is `NULL`, `threadpool_open` shall fail and return a non-zero value. **]**
-
-**SRS_THREADPOOL_WIN32_01_011: [** Otherwise, `threadpool_open` shall switch the state to OPENING. **]**
-
-**SRS_THREADPOOL_WIN32_01_026: [** `threadpool_open` shall initialize a thread pool environment by calling `InitializeThreadpoolEnvironment`. **]**
-
-**SRS_THREADPOOL_WIN32_01_027: [** `threadpool_open` shall set the thread pool for the environment to the pool obtained from the execution engine by calling `SetThreadpoolCallbackPool`. **]**
-
-**SRS_THREADPOOL_WIN32_01_028: [** `threadpool_open` shall create a threadpool cleanup group by calling `CreateThreadpoolCleanupGroup`. **]**
-
-**SRS_THREADPOOL_WIN32_01_029: [** `threadpool_open` shall associate the cleanup group with the just created environment by calling `SetThreadpoolCallbackCleanupGroup`. **]**
-
-**SRS_THREADPOOL_WIN32_01_015: [** `threadpool_open` shall set the state to OPEN. **]**
-
-**SRS_THREADPOOL_WIN32_01_012: [** On success, `threadpool_open` shall return 0. **]**
-
-**SRS_THREADPOOL_WIN32_01_013: [** If `threadpool` is already OPEN or OPENING, `threadpool_open` shall fail and return a non-zero value. **]**
-
-**SRS_THREADPOOL_WIN32_01_040: [** If any error occurrs, `threadpool_open` shall fail and return a non-zero value. **]**
-
-### threadpool_close
-
-```c
-MOCKABLE_FUNCTION(, void, threadpool_close, THANDLE(THREADPOOL), threadpool);
-```
-
-`threadpool_close` closes an open `threadpool`.
-
-**SRS_THREADPOOL_WIN32_01_016: [** If `threadpool` is `NULL`, `threadpool_close` shall return. **]**
-
-**SRS_THREADPOOL_WIN32_01_017: [** Otherwise, `threadpool_close` shall switch the state to CLOSING. **]**
-
 **SRS_THREADPOOL_WIN32_01_030: [** `threadpool_close` shall wait for any executing callbacks by calling `CloseThreadpoolCleanupGroupMembers`, passing `FALSE` as `fCancelPendingCallbacks`. **]**
 
 **SRS_THREADPOOL_WIN32_01_032: [** `threadpool_close` shall close the threadpool cleanup group by calling `CloseThreadpoolCleanupGroup`. **]**
 
 **SRS_THREADPOOL_WIN32_01_033: [** `threadpool_close` shall destroy the thread pool environment created in `threadpool_open`. **]**
 
-**SRS_THREADPOOL_WIN32_01_019: [** If `threadpool` is not OPEN, `threadpool_close` shall return. **]**
+**SRS_THREADPOOL_WIN32_42_028: [** `threadpool_dispose` shall decrement the reference count on the `execution_engine`. **]**
 
 ### threadpool_schedule_work
 
