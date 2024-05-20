@@ -40,21 +40,21 @@ MU_DEFINE_ENUM(SOCKET_TYPE, SOCKET_TYPE_VALUES)
 
 typedef struct SOCKET_BUFFER_TAG
 {
-    void* buffer;
     uint32_t length;
+    void* buffer;
 } SOCKET_BUFFER;
 
 MOCKABLE_FUNCTION(, SOCKET_MGR_HANDLE, socket_mgr_create, SOCKET_TYPE, type);
 MOCKABLE_FUNCTION(, void, socket_mgr_destroy, SOCKET_MGR_HANDLE, socket);
 
-MOCKABLE_FUNCTION(, int, socket_client_connect, SOCKET_MGR_HANDLE, socket, const char*, hostname, uint16_t, port, uint32_t, connection_timeout);
-MOCKABLE_FUNCTION(, void, socket_client_disconnect, SOCKET_MGR_HANDLE, socket);
+MOCKABLE_FUNCTION(, int, socket_mgr_connect, SOCKET_MGR_HANDLE, socket, const char*, hostname, uint16_t, port, uint32_t, connection_timeout);
+MOCKABLE_FUNCTION(, void, socket_mgr_disconnect, SOCKET_MGR_HANDLE, socket);
 
-MOCKABLE_FUNCTION(, int, socket_server_listen, SOCKET_MGR_HANDLE, socket, uint16_t, port);
-MOCKABLE_FUNCTION(, SOCKET_MGR_HANDLE, socket_server_accept, SOCKET_MGR_HANDLE, socket);
+MOCKABLE_FUNCTION(, int, socket_mgr_listen, SOCKET_MGR_HANDLE, socket, uint16_t, port);
+MOCKABLE_FUNCTION(, SOCKET_MGR_HANDLE, socket_mgr_accept, SOCKET_MGR_HANDLE, socket);
 
-MOCKABLE_FUNCTION(, int, socket_client_send, SOCKET_MGR_HANDLE, socket, const SOCKET_BUFFER*, payload, uint32_t*, bytes_written, uint32_t, flags, void*, data);
-MOCKABLE_FUNCTION(, int, socket_client_receive, SOCKET_MGR_HANDLE, socket, SOCKET_BUFFER*, payload, uint32_t*, bytes_recv, uint32_t, flags, void*, data);
+MOCKABLE_FUNCTION(, int, socket_mgr_send, SOCKET_MGR_HANDLE, socket, SOCKET_BUFFER*, payload, uint32_t, buffer_count, uint32_t*, bytes_written, uint32_t, flags, void*, data);
+MOCKABLE_FUNCTION(, int, socket_mgr_receive, SOCKET_MGR_HANDLE, socket, SOCKET_BUFFER*, payload, uint32_t, buffer_count, uint32_t*, bytes_recv, uint32_t, flags, void*, data);
 
 
 #ifdef __cplusplus

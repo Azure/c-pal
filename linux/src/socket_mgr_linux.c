@@ -3,9 +3,15 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
-#include "winsock2.h"
-#include "ws2tcpip.h"
-#include "windows.h"
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
+#include <netinet/in.h>
+#include <stdio.h>
 
 #include "macro_utils/macro_utils.h"
 
@@ -22,7 +28,7 @@
 #include "c_pal/sync.h"
 #include "c_pal/string_utils.h"
 
-#include "c_pal/socket_client.h"
+#include "c_pal/socket_mgr.h"
 
 #define SOCKET_MGR_STATE_VALUES \
     SOCKET_MGR_STATE_CLOSED, \
@@ -40,35 +46,6 @@ MU_DEFINE_ENUM_STRINGS(SOCKET_MGR_STATE, SOCKET_MGR_STATE_VALUES)
 MU_DEFINE_ENUM(SOCKET_IO_TYPE, SOCKET_IO_TYPE_VALUES)
 MU_DEFINE_ENUM_STRINGS(SOCKET_IO_TYPE, SOCKET_IO_TYPE_VALUES)
 
-#if 0
-typedef struct SOCKET_SEND_CONTEXT_TAG
-{
-    ON_SOCKET_SEND_COMPLETE on_send_complete;
-    void* on_send_complete_context;
-} SOCKET_SEND_CONTEXT;
-
-// receive context
-typedef struct SOCKET_RECEIVE_CONTEXT_TAG
-{
-    ON_SOCKET_RECEIVE_COMPLETE on_receive_complete;
-    void* on_receive_complete_context;
-} SOCKET_RECEIVE_CONTEXT;
-
-typedef union SOCKET_IO_CONTEXT_UNION_TAG
-{
-    SOCKET_SEND_CONTEXT send;
-    SOCKET_RECEIVE_CONTEXT receive;
-} SOCKET_IO_CONTEXT_UNION;
-
-typedef struct SOCKET_IO_CONTEXT_TAG
-{
-    OVERLAPPED overlapped;
-    SOCKET_IO_TYPE io_type;
-    uint32_t total_buffer_bytes;
-    SOCKET_IO_CONTEXT_UNION io;
-    WSABUF wsa_buffers[];
-} SOCKET_IO_CONTEXT;
-#endif
 typedef struct SOCKET_MGR_TAG
 {
     SOCKET socket;
@@ -79,54 +56,30 @@ typedef struct SOCKET_MGR_TAG
     SOCKET_TYPE type;
 } SOCKET_MGR;
 
-static int connect_to_endpoint(SOCKET client_socket, const ADDRINFO* addrInfo, uint32_t timeout_usec)
+static int set_nonblocking(SOCKET_HANDLE socket)
 {
     int result;
-    if (connect(client_socket, addrInfo->ai_addr, (int)addrInfo->ai_addrlen) != 0)
+    int opts = fcntl(socket, F_GETFL);
+    if (opts < 0)
     {
-        if (WSAGetLastError() == WSAEWOULDBLOCK)
-        {
-            fd_set write_fds;
-            FD_ZERO(&write_fds);
-            FD_SET(client_socket, &write_fds);
-
-            struct timeval tv;
-            tv.tv_sec = 0;
-            tv.tv_usec = timeout_usec;
-
-            int ret = select(0, NULL, &write_fds, NULL, &tv);
-            if (ret == SOCKET_ERROR)
-            {
-                LogError("Failure connecting error: %d", WSAGetLastError());
-                result = MU_FAILURE;
-            }
-            else if (ret == 0)
-            {
-                LogError("Failure timeout (%" PRId32 " us) attempting to connect", timeout_usec);
-                result = MU_FAILURE;
-            }
-            else
-            {
-                if (FD_ISSET(client_socket, &write_fds))
-                {
-                    result = 0;
-                }
-                else
-                {
-                    LogError("Failure connection is not writable: %d", WSAGetLastError());
-                    result = MU_FAILURE;
-                }
-            }
-        }
-        else
-        {
-            LogLastError("Winsock connect failure");
-            result = MU_FAILURE;
-        }
+        char err_msg[128];
+        (void)strerror_r(errno, err_msg, sizeof(err_msg));
+        LogError("Failure getting socket option. Error: %s", MU_P_OR_NULL(err_msg));
+        result = MU_FAILURE;
     }
     else
     {
-        result = 0;
+        if ((opts = fcntl(socket, F_SETFL, opts|O_NONBLOCK)) < 0)
+        {
+            char err_msg[128];
+            (void)strerror_r(errno, err_msg, sizeof(err_msg));
+            LogError("Failure setting socket option. Error: %s", MU_P_OR_NULL(err_msg));
+            result = MU_FAILURE;
+        }
+        else
+        {
+            result = 0;
+        }
     }
     return result;
 }
@@ -134,7 +87,7 @@ static int connect_to_endpoint(SOCKET client_socket, const ADDRINFO* addrInfo, u
 static SOCKET connect_to_client(const char* hostname, uint16_t port, uint32_t connection_timeout)
 {
     SOCKET result;
-    SOCKET client_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    SOCKET client_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (client_socket == INVALID_SOCKET)
     {
         LogLastError("Failure: socket create failure.");
@@ -150,8 +103,8 @@ static SOCKET connect_to_client(const char* hostname, uint16_t port, uint32_t co
         }
         else
         {
-            ADDRINFO addr_hint = { 0 };
-            ADDRINFO* addrInfo = NULL;
+            struct addrinfo addr_hint = { 0 };
+            struct addrinfo* addrInfo = NULL;
 
             addr_hint.ai_family = AF_INET;
             addr_hint.ai_socktype = SOCK_STREAM;
@@ -167,15 +120,17 @@ static SOCKET connect_to_client(const char* hostname, uint16_t port, uint32_t co
             {
                 LogInfo("Connecting to %s:%" PRIu16 " Machine Name: %s, connection timeout: %" PRIu32 "", hostname, port, MU_P_OR_NULL(addrInfo->ai_canonname), connection_timeout);
 
-                u_long iMode = 1;
-                if (ioctlsocket(client_socket, FIONBIO, &iMode) != 0)
+                if (connect(client_socket, addrInfo->ai_addr, addrInfo->ai_addrlen) != 0)
                 {
-                    LogLastError("Failure: ioctlsocket failure.");
+                {
+                    char err_msg[128];
+                    (void)strerror_r(errno, err_msg, sizeof(err_msg));
+                    LogError("Connection failure. Server: %s:%" PRIu16 ". Error: %s", hostname, port, MU_P_OR_NULL(err_msg));
                     result = INVALID_SOCKET;
                 }
-                else if (connect_to_endpoint(client_socket, addrInfo, connection_timeout) != 0)
+                else if (set_nonblocking(client_socket) != 0)
                 {
-                    LogLastError("Connection failure. Server: %s:%" PRIu16 " Machine Name: %s.", hostname, port, MU_P_OR_NULL(addrInfo->ai_canonname));
+                    LogError("Failure: nonblocking failure.");
                     result = INVALID_SOCKET;
                 }
                 else
@@ -187,7 +142,7 @@ static SOCKET connect_to_client(const char* hostname, uint16_t port, uint32_t co
                 freeaddrinfo(addrInfo);
             }
         }
-        closesocket(client_socket);
+        close(client_socket);
     }
 all_ok:
     return result;
@@ -223,13 +178,13 @@ void socket_mgr_destroy(SOCKET_MGR_HANDLE socket_client)
     }
 }
 
-int socket_client_connect(SOCKET_MGR_HANDLE socket_client, const char* hostname, uint16_t port, uint32_t connection_timeout)
+int socket_mgr_connect(SOCKET_MGR_HANDLE socket_client, const char* hostname, uint16_t port, uint32_t connection_timeout)
 {
     int result;
     if (socket_client == NULL ||
         hostname == NULL)
     {
-        LogError("Invalid arguments: SOCKET_MGR_HANDLE socket_client: %p, const char* hostname: %s, uint16_t port: %" PRIu16 ", uint32_t connection_timeout: %" PRIu32 "", 
+        LogError("Invalid arguments: SOCKET_MGR_HANDLE socket_client: %p, const char* hostname: %s, uint16_t port: %" PRIu16 ", uint32_t connection_timeout: %" PRIu32 "",
             socket_client, MU_P_OR_NULL(hostname), port, connection_timeout);
         result = MU_FAILURE;
     }
@@ -263,7 +218,7 @@ int socket_client_connect(SOCKET_MGR_HANDLE socket_client, const char* hostname,
     return result;
 }
 
-void socket_client_disconnect(SOCKET_MGR_HANDLE socket_client)
+void socket_mgr_disconnect(SOCKET_MGR_HANDLE socket_client)
 {
     if (socket_client == NULL)
     {
@@ -272,11 +227,11 @@ void socket_client_disconnect(SOCKET_MGR_HANDLE socket_client)
     }
     else
     {
-        closesocket(socket_client->socket);
+        close(socket_client->socket);
     }
 }
 
-int socket_client_send(SOCKET_MGR_HANDLE socket_client, const SOCKET_BUFFER* payload, uint32_t* bytes_written, uint32_t flags, void* data)
+int socket_mgr_send(SOCKET_MGR_HANDLE socket_client, SOCKET_BUFFER* payload, uint32_t buffer_count, uint32_t* bytes_written, uint32_t flags, void* data)
 {
     int result;
     if (socket_client == NULL ||
@@ -298,18 +253,16 @@ int socket_client_send(SOCKET_MGR_HANDLE socket_client, const SOCKET_BUFFER* pay
         {
             (void)interlocked_increment(&socket_client->pending_api_calls);
 
-            WSABUF wsa_buffers[1] = { 0 };
-            wsa_buffers[0].buf = payload->buffer;
-            wsa_buffers[0].len = payload->length;
-
             DWORD num_bytes = 0;
             LPDWORD num_bytes_param = NULL;
+            // If the overlapped is NULL then set the num bytes params
             if (data == NULL)
             {
                 num_bytes_param = &num_bytes;
             }
 
-            result = WSASend(socket_client->socket, wsa_buffers, 1, num_bytes_param, flags, (LPWSAOVERLAPPED)data, NULL);
+            result = send(socket_client->socket, payload->, len, MSG_NOSIGNAL);
+            result = WSASend(socket_client->socket, (LPWSABUF)payload, buffer_count, num_bytes_param, flags, (LPWSAOVERLAPPED)data, NULL);
             if (result == 0)
             {
 #ifdef ENABLE_SOCKET_LOGGING
@@ -331,7 +284,7 @@ int socket_client_send(SOCKET_MGR_HANDLE socket_client, const SOCKET_BUFFER* pay
     return result;
 }
 
-int socket_client_receive(SOCKET_MGR_HANDLE socket_client, SOCKET_BUFFER* payload, uint32_t* bytes_recv, uint32_t flags, void* data)
+int socket_mgr_receive(SOCKET_MGR_HANDLE socket_client, SOCKET_BUFFER* payload, uint32_t buffer_count, uint32_t* bytes_recv, uint32_t flags, void* data)
 {
     int result;
     if (socket_client == NULL ||
@@ -353,10 +306,6 @@ int socket_client_receive(SOCKET_MGR_HANDLE socket_client, SOCKET_BUFFER* payloa
         {
             (void)interlocked_increment(&socket_client->pending_api_calls);
 
-            WSABUF wsa_buffers[1] = { 0 };
-            wsa_buffers[0].buf = payload->buffer;
-            wsa_buffers[0].len = payload->length;
-
             DWORD num_bytes = 0;
             LPDWORD num_bytes_param = NULL;
             if (data == NULL)
@@ -364,10 +313,10 @@ int socket_client_receive(SOCKET_MGR_HANDLE socket_client, SOCKET_BUFFER* payloa
                 num_bytes_param = &num_bytes;
             }
 
-            result = WSARecv(socket_client->socket, wsa_buffers, 1, num_bytes_param, (LPDWORD)&flags, (LPWSAOVERLAPPED)data, NULL);
+            result = WSARecv(socket_client->socket, (LPWSABUF)payload, buffer_count, num_bytes_param, (LPDWORD)&flags, (LPWSAOVERLAPPED)data, NULL);
             if (result == 0)
             {
-                // Success 
+                // Success
                 if (bytes_recv != NULL)
                 {
                     *bytes_recv = num_bytes;
@@ -393,7 +342,7 @@ int socket_client_receive(SOCKET_MGR_HANDLE socket_client, SOCKET_BUFFER* payloa
     return result;
 }
 
-int socket_server_listen(SOCKET_MGR_HANDLE socket_client, uint16_t port)
+int socket_mgr_listen(SOCKET_MGR_HANDLE socket_client, uint16_t port)
 {
     int result;
     if (socket_client == NULL)
@@ -462,7 +411,7 @@ all_ok:
     return result;
 }
 
-SOCKET_MGR_HANDLE socket_server_accept(SOCKET_MGR_HANDLE socket_client)
+SOCKET_MGR_HANDLE socket_mgr_accept(SOCKET_MGR_HANDLE socket_client)
 {
     SOCKET_MGR* result;
     if (socket_client == NULL)
