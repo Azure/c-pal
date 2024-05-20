@@ -161,11 +161,11 @@ static void wait_for_value(volatile_atomic int32_t* counter, int32_t target_valu
     }
 }
 
-static void open_async_handle(ASYNC_SOCKET_HANDLE handle)
+static void open_async_handle(ASYNC_SOCKET_HANDLE handle, SOCKET_HANDLE socket)
 {
     volatile_atomic int32_t counter = 0;
 
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(handle, on_open_complete, (void*)&counter), "Failure opening async socket");
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(handle, socket, on_open_complete, (void*)&counter), "Failure opening async socket");
 
     wait_for_value(&counter, 1);
 }
@@ -221,14 +221,14 @@ TEST_FUNCTION(connect_no_send_succeeds)
     setup_test_socket(g_port_num, &client_socket, &listen_socket, &accept_socket);
 
     // create the async socket object
-    ASYNC_SOCKET_HANDLE server_async_socket = async_socket_create(execution_engine, accept_socket);
+    ASYNC_SOCKET_HANDLE server_async_socket = async_socket_create(execution_engine);
     ASSERT_IS_NOT_NULL(server_async_socket);
-    ASYNC_SOCKET_HANDLE client_async_socket = async_socket_create(execution_engine, client_socket);
+    ASYNC_SOCKET_HANDLE client_async_socket = async_socket_create(execution_engine);
     ASSERT_IS_NOT_NULL(client_async_socket);
 
     // wait for open to complete
-    open_async_handle(server_async_socket);
-    open_async_handle(client_async_socket);
+    open_async_handle(server_async_socket, accept_socket);
+    open_async_handle(client_async_socket, client_socket);
 
     uint8_t receive_buffer[2];
     ASYNC_SOCKET_BUFFER receive_payload_buffers[1];
@@ -262,14 +262,14 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
     setup_test_socket(g_port_num, &client_socket, &listen_socket, &accept_socket);
 
     // create the async socket object
-    ASYNC_SOCKET_HANDLE server_async_socket = async_socket_create(execution_engine, accept_socket);
+    ASYNC_SOCKET_HANDLE server_async_socket = async_socket_create(execution_engine);
     ASSERT_IS_NOT_NULL(server_async_socket);
-    ASYNC_SOCKET_HANDLE client_async_socket = async_socket_create(execution_engine, client_socket);
+    ASYNC_SOCKET_HANDLE client_async_socket = async_socket_create(execution_engine);
     ASSERT_IS_NOT_NULL(client_async_socket);
 
     // wait for open to complete
-    open_async_handle(server_async_socket);
-    open_async_handle(client_async_socket);
+    open_async_handle(server_async_socket, accept_socket);
+    open_async_handle(client_async_socket, client_socket);
 
     uint8_t data_payload[] = { 0x42, 0x43 };
     uint8_t receive_buffer[2];
@@ -320,14 +320,14 @@ TEST_FUNCTION(receive_and_send_2_buffers_succeeds)
     setup_test_socket(g_port_num, &client_socket, &listen_socket, &accept_socket);
 
     // create the async socket object
-    ASYNC_SOCKET_HANDLE server_async_socket = async_socket_create(execution_engine, accept_socket);
+    ASYNC_SOCKET_HANDLE server_async_socket = async_socket_create(execution_engine);
     ASSERT_IS_NOT_NULL(server_async_socket);
-    ASYNC_SOCKET_HANDLE client_async_socket = async_socket_create(execution_engine, client_socket);
+    ASYNC_SOCKET_HANDLE client_async_socket = async_socket_create(execution_engine);
     ASSERT_IS_NOT_NULL(client_async_socket);
 
     // wait for open to complete
-    open_async_handle(server_async_socket);
-    open_async_handle(client_async_socket);
+    open_async_handle(server_async_socket, accept_socket);
+    open_async_handle(client_async_socket, client_socket);
 
     uint8_t data_payload_1[] = { 0x42, 0x43 };
     uint8_t data_payload_2[] = { 0x02 };
@@ -383,11 +383,11 @@ TEST_FUNCTION(when_server_socket_is_closed_receive_errors_on_client_side)
     setup_test_socket(g_port_num, &client_socket, &listen_socket, &accept_socket);
 
     // create the async socket object
-    ASYNC_SOCKET_HANDLE client_async_socket = async_socket_create(execution_engine, client_socket);
+    ASYNC_SOCKET_HANDLE client_async_socket = async_socket_create(execution_engine);
     ASSERT_IS_NOT_NULL(client_async_socket);
 
     // open and wait for open to complete
-    open_async_handle(client_async_socket);
+    open_async_handle(client_async_socket, client_socket);
 
     uint8_t receive_buffer_1[1];
     ASYNC_SOCKET_BUFFER receive_payload_buffers[1];
@@ -428,14 +428,14 @@ TEST_FUNCTION(multiple_sends_and_receives_succeeds)
     setup_test_socket(g_port_num, &client_socket, &listen_socket, &accept_socket);
 
     // create the async socket object
-    ASYNC_SOCKET_HANDLE server_async_socket = async_socket_create(execution_engine, accept_socket);
+    ASYNC_SOCKET_HANDLE server_async_socket = async_socket_create(execution_engine);
     ASSERT_IS_NOT_NULL(server_async_socket);
-    ASYNC_SOCKET_HANDLE client_async_socket = async_socket_create(execution_engine, client_socket);
+    ASYNC_SOCKET_HANDLE client_async_socket = async_socket_create(execution_engine);
     ASSERT_IS_NOT_NULL(client_async_socket);
 
     // wait for open to complete
-    open_async_handle(server_async_socket);
-    open_async_handle(client_async_socket);
+    open_async_handle(server_async_socket, accept_socket);
+    open_async_handle(client_async_socket, client_socket);
 
     uint8_t data_payload[] = { 0x42, 0x43, 0x44, 0x45 };
     uint8_t receive_buffer[4];
@@ -501,12 +501,12 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _sockets_items))
         setup_test_socket(g_port_num, &client_socket, &listen_socket, &accept_socket);
 
         // create the async socket object
-        ASSERT_IS_NOT_NULL(server_async_socket[index] = async_socket_create(execution_engine, accept_socket));
-        ASSERT_IS_NOT_NULL(client_async_socket[index] = async_socket_create(execution_engine, client_socket));
+        ASSERT_IS_NOT_NULL(server_async_socket[index] = async_socket_create(execution_engine));
+        ASSERT_IS_NOT_NULL(client_async_socket[index] = async_socket_create(execution_engine));
 
         // wait for open to complete
-        open_async_handle(server_async_socket[index]);
-        open_async_handle(client_async_socket[index]);
+        open_async_handle(server_async_socket[index], accept_socket);
+        open_async_handle(client_async_socket[index], client_socket);
     }
 
     uint8_t data_payload[] = { 0x42, 0x43, 0x44, 0x45 };

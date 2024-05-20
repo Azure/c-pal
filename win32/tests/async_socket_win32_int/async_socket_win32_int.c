@@ -151,8 +151,8 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
     setup_sockets(&client_socket, &server_socket, &listen_socket);
 
     // create the async socket object
-    ASYNC_SOCKET_HANDLE server_async_socket = async_socket_create(execution_engine, (SOCKET_HANDLE)server_socket);
-    ASYNC_SOCKET_HANDLE client_async_socket = async_socket_create(execution_engine, (SOCKET_HANDLE)client_socket);
+    ASYNC_SOCKET_HANDLE server_async_socket = async_socket_create(execution_engine);
+    ASYNC_SOCKET_HANDLE client_async_socket = async_socket_create(execution_engine);
 
     // open
     HANDLE server_open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -160,8 +160,8 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
     HANDLE client_open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
     ASSERT_IS_NOT_NULL(client_open_event);
 
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(server_async_socket, on_open_complete, &server_open_event));
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(client_async_socket, on_open_complete, &client_open_event));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(server_async_socket, (SOCKET_HANDLE)server_socket, on_open_complete, &server_open_event));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(client_async_socket, (SOCKET_HANDLE)client_socket, on_open_complete, &client_open_event));
 
     // wait for open to complete
     ASSERT_IS_TRUE(WaitForSingleObject(server_open_event, INFINITE) == WAIT_OBJECT_0);
@@ -218,8 +218,8 @@ TEST_FUNCTION(receive_and_send_2_buffers_succeeds)
     setup_sockets(&client_socket, &server_socket, &listen_socket);
 
     // create the async socket object
-    ASYNC_SOCKET_HANDLE server_async_socket = async_socket_create(execution_engine, (SOCKET_HANDLE)server_socket);
-    ASYNC_SOCKET_HANDLE client_async_socket = async_socket_create(execution_engine, (SOCKET_HANDLE)client_socket);
+    ASYNC_SOCKET_HANDLE server_async_socket = async_socket_create(execution_engine);
+    ASYNC_SOCKET_HANDLE client_async_socket = async_socket_create(execution_engine);
 
     // open
     HANDLE server_open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -227,8 +227,8 @@ TEST_FUNCTION(receive_and_send_2_buffers_succeeds)
     HANDLE client_open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
     ASSERT_IS_NOT_NULL(client_open_event);
 
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(server_async_socket, on_open_complete, &server_open_event));
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(client_async_socket, on_open_complete, &client_open_event));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(server_async_socket, (SOCKET_HANDLE)server_socket, on_open_complete, &server_open_event));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(client_async_socket, (SOCKET_HANDLE)client_socket, on_open_complete, &client_open_event));
 
     // wait for open to complete
     ASSERT_IS_TRUE(WaitForSingleObject(server_open_event, INFINITE) == WAIT_OBJECT_0);
@@ -291,13 +291,13 @@ TEST_FUNCTION(when_server_socket_is_closed_receive_errors_on_client_side)
     setup_sockets(&client_socket, &server_socket, &listen_socket);
 
     // create the async socket object
-    ASYNC_SOCKET_HANDLE client_async_socket = async_socket_create(execution_engine, (SOCKET_HANDLE)client_socket);
+    ASYNC_SOCKET_HANDLE client_async_socket = async_socket_create(execution_engine);
 
     // open
     HANDLE client_open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
     ASSERT_IS_NOT_NULL(client_open_event);
 
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(client_async_socket, on_open_complete, &client_open_event));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(client_async_socket, (SOCKET_HANDLE)client_socket, on_open_complete, &client_open_event));
 
     // wait for open to complete
     ASSERT_IS_TRUE(WaitForSingleObject(client_open_event, INFINITE) == WAIT_OBJECT_0);
