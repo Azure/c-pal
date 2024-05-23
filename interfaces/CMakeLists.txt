@@ -12,7 +12,7 @@ set(pal_interfaces_h_files
     inc/c_pal/platform.h
     inc/c_pal/timer.h
     inc/c_pal/uuid.h
-    inc/c_pal/socket_client.h
+    inc/c_pal/socket_mgr.h
     inc/c_pal/srw_lock.h
     inc/c_pal/srw_lock_ll.h
     inc/c_pal/file.h

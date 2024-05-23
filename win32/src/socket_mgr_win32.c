@@ -481,7 +481,7 @@ SOCKET_MGR_HANDLE socket_mgr_accept(SOCKET_MGR_HANDLE socket_client)
                 {
                     char hostname_addr[256];
                     (void)inet_ntop(AF_INET, (const void*)&cli_addr.sin_addr, hostname_addr, sizeof(hostname_addr));
-                    LogError("Socket connected (%p) from %s:%d", (void*)accepted_socket, hostname_addr, cli_addr.sin_port);
+                    LogError("Socket connected (%" PRI_SOCKET ") from %s:%d", (void*)accepted_socket, hostname_addr, cli_addr.sin_port);
 
                     // Create the socket handle
                     result = malloc(sizeof(SOCKET_MGR));

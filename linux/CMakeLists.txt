@@ -29,7 +29,6 @@ if(${run_helgrind})
     add_definitions(-DUSE_HELGRIND)
 endif()
 
-
 #determining which one of the GBALLOC_LL implementations to use. By convention the file is called "gballoc_ll_" followed by "type".
 string(TOLOWER "${GBALLOC_LL_TYPE}" gballoc_ll_type_lower)
 set(gballoc_ll_c gballoc_ll_${gballoc_ll_type_lower}.c)
@@ -58,6 +57,7 @@ set(pal_linux_c_files
     src/pipe_linux.c
     src/platform_linux.c
     src/single_performance_counter_linux.c
+    src/socket_mgr_linux.c
     src/srw_lock_linux.c
     src/srw_lock_ll_linux.c
     src/string_utils.c

@@ -22,11 +22,10 @@
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h"
 
-#include "c_pal/execution_engine.h"
-#include "c_pal/execution_engine_win32.h"
 #include "c_pal/interlocked.h"
 #include "c_pal/sync.h"
 #include "c_pal/string_utils.h"
+#include "c_pal/socket_handle.h"
 
 #include "c_pal/socket_mgr.h"
 
@@ -48,7 +47,7 @@ MU_DEFINE_ENUM_STRINGS(SOCKET_IO_TYPE, SOCKET_IO_TYPE_VALUES)
 
 typedef struct SOCKET_MGR_TAG
 {
-    SOCKET socket;
+    SOCKET_HANDLE socket;
 
     volatile_atomic int32_t state;
     volatile_atomic int32_t pending_api_calls;
@@ -62,18 +61,14 @@ static int set_nonblocking(SOCKET_HANDLE socket)
     int opts = fcntl(socket, F_GETFL);
     if (opts < 0)
     {
-        char err_msg[128];
-        (void)strerror_r(errno, err_msg, sizeof(err_msg));
-        LogError("Failure getting socket option. Error: %s", MU_P_OR_NULL(err_msg));
+        LogErrorNo("Failure getting socket option.");
         result = MU_FAILURE;
     }
     else
     {
         if ((opts = fcntl(socket, F_SETFL, opts|O_NONBLOCK)) < 0)
         {
-            char err_msg[128];
-            (void)strerror_r(errno, err_msg, sizeof(err_msg));
-            LogError("Failure setting socket option. Error: %s", MU_P_OR_NULL(err_msg));
+            LogErrorNo("Failure setting socket option.");
             result = MU_FAILURE;
         }
         else
@@ -84,13 +79,13 @@ static int set_nonblocking(SOCKET_HANDLE socket)
     return result;
 }
 
-static SOCKET connect_to_client(const char* hostname, uint16_t port, uint32_t connection_timeout)
+static SOCKET_HANDLE connect_to_client(const char* hostname, uint16_t port, uint32_t connection_timeout)
 {
-    SOCKET result;
-    SOCKET client_socket = socket(AF_INET, SOCK_STREAM, 0);
+    SOCKET_HANDLE result;
+    SOCKET_HANDLE client_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (client_socket == INVALID_SOCKET)
     {
-        LogLastError("Failure: socket create failure.");
+        LogErrorNo("Failure: socket create failure.");
         result = INVALID_SOCKET;
     }
     else
@@ -113,7 +108,7 @@ static SOCKET connect_to_client(const char* hostname, uint16_t port, uint32_t co
 
             if (getaddrinfo(hostname, port_string, &addr_hint, &addrInfo) != 0)
             {
-                LogLastError("Failure: getaddrinfo(hostname=%s, portString=%s, &addr_hint=%p, &addrInfo=%p)", hostname, port_string, &addr_hint, &addrInfo);
+                LogErrorNo("Failure: getaddrinfo(hostname=%s, portString=%s, &addr_hint=%p, &addrInfo=%p)", hostname, port_string, &addr_hint, &addrInfo);
                 result = INVALID_SOCKET;
             }
             else
@@ -122,10 +117,7 @@ static SOCKET connect_to_client(const char* hostname, uint16_t port, uint32_t co
 
                 if (connect(client_socket, addrInfo->ai_addr, addrInfo->ai_addrlen) != 0)
                 {
-                {
-                    char err_msg[128];
-                    (void)strerror_r(errno, err_msg, sizeof(err_msg));
-                    LogError("Connection failure. Server: %s:%" PRIu16 ". Error: %s", hostname, port, MU_P_OR_NULL(err_msg));
+                    LogErrorNo("Connection failure. Server: %s:%" PRIu16 ".", hostname, port);
                     result = INVALID_SOCKET;
                 }
                 else if (set_nonblocking(client_socket) != 0)
@@ -253,29 +245,48 @@ int socket_mgr_send(SOCKET_MGR_HANDLE socket_client, SOCKET_BUFFER* payload, uin
         {
             (void)interlocked_increment(&socket_client->pending_api_calls);
 
-            DWORD num_bytes = 0;
-            LPDWORD num_bytes_param = NULL;
-            // If the overlapped is NULL then set the num bytes params
-            if (data == NULL)
+            for (uint32_t index = 0; index < buffer_count; index++)
             {
-                num_bytes_param = &num_bytes;
-            }
-
-            result = send(socket_client->socket, payload->, len, MSG_NOSIGNAL);
-            result = WSASend(socket_client->socket, (LPWSABUF)payload, buffer_count, num_bytes_param, flags, (LPWSAOVERLAPPED)data, NULL);
-            if (result == 0)
-            {
-#ifdef ENABLE_SOCKET_LOGGING
-                LogVerbose("Send completed synchronously at %lf", timer_global_get_elapsed_us());
-#endif
-                if (bytes_written != NULL)
+                ssize_t data_sent = 0;
+                do
                 {
-                    *bytes_written = num_bytes;
+                    ssize_t send_size = send(socket_client->socket, payload[index].buffer, payload[index].length, MSG_NOSIGNAL);
+                    if (send_size < 0)
+                    {
+                        result = MU_FAILURE;
+                        break;
+                    }
+                    else
+                    {
+                        result = 0;
+                        data_sent += send_size;
+                    }
+                } while (data_sent < payload[index].length);
+
+                if (result == 0)
+                {
+    #ifdef ENABLE_SOCKET_LOGGING
+                    LogVerbose("Send completed synchronously at %lf", timer_global_get_elapsed_us());
+    #endif
+                    if (bytes_written != NULL)
+                    {
+                        *bytes_written = data_sent;
+                    }
                 }
-            }
-            else
-            {
-                LogLastError("Failure sending socket data: buffer: %p, length: %" PRIu32 "", payload->buffer, payload->length);
+                else
+                {
+                    if (errno == ECONNRESET)
+                    {
+                        // todo: maybe we need to return a known value
+                        result = MU_FAILURE;
+                        LogError("A reset on the send socket has been encountered");
+                    }
+                    else
+                    {
+                        result = MU_FAILURE;
+                        LogErrorNo("Failure sending socket data: buffer: %p, length: %" PRIu32 "", payload->buffer, payload->length);
+                    }
+                }
             }
             (void)interlocked_decrement(&socket_client->pending_api_calls);
             wake_by_address_single(&socket_client->pending_api_calls);
@@ -306,33 +317,76 @@ int socket_mgr_receive(SOCKET_MGR_HANDLE socket_client, SOCKET_BUFFER* payload, 
         {
             (void)interlocked_increment(&socket_client->pending_api_calls);
 
-            DWORD num_bytes = 0;
-            LPDWORD num_bytes_param = NULL;
-            if (data == NULL)
+            uint32_t total_recv_size = 0;
+            for (uint32_t index = 0; index < buffer_count; index++)
             {
-                num_bytes_param = &num_bytes;
+                ssize_t recv_size = recv(socket_client->socket, payload[index].buffer, payload[index].length, 0);
+                if (recv_size < 0)
+                {
+                    if (errno == EAGAIN || errno == EWOULDBLOCK)
+                    {
+                        // Codes_SRS_ASYNC_SOCKET_LINUX_11_089: [ If errno is EAGAIN or EWOULDBLOCK, then no data is available and event_complete_callback will break out of the function. ]
+                        result = 0;
+                        break;
+                    }
+                    else
+                    {
+                        total_recv_size = 0;
+                        recv_size = 0;
+                        if (errno == ECONNRESET)
+                        {
+                            result = MU_FAILURE;
+                            LogError("A reset on the recv socket has been encountered");
+                        }
+                        else
+                        {
+                            result = MU_FAILURE;
+                            LogErrorNo("failure recv data");
+                        }
+                        break;
+                    }
+                }
+                else if (recv_size == 0)
+                {
+                    LogError("Socket received 0 bytes, assuming socket is closed");
+                    result = MU_FAILURE;
+                    break;
+                }
+                else
+                {
+                    if (recv_size > UINT32_MAX ||
+                        UINT32_MAX - total_recv_size < recv_size)
+                    {
+                        // Handle unlikely overflow
+                        LogError("Overflow in computing receive size (total_recv_size=%" PRIu32 " + recv_size=%zi > UINT32_MAX=%" PRIu32 ")",
+                            total_recv_size, recv_size, UINT32_MAX);
+                        result = MU_FAILURE;
+                    }
+                    else
+                    {
+                        total_recv_size += recv_size;
+                        if (recv_size <= payload[index].length)
+                        {
+#ifdef ENABLE_SOCKET_LOGGING
+                            LogVerbose("Asynchronous receive of %" PRIu32 " bytes completed at %lf", bytes_received, timer_global_get_elapsed_us());
+#endif
+                            result = 0;
+                            break;
+                        }
+                        else
+                        {
+                            // keep recieving data
+                        }
+                    }
+                }
             }
 
-            result = WSARecv(socket_client->socket, (LPWSABUF)payload, buffer_count, num_bytes_param, (LPDWORD)&flags, (LPWSAOVERLAPPED)data, NULL);
             if (result == 0)
             {
                 // Success
                 if (bytes_recv != NULL)
                 {
-                    *bytes_recv = num_bytes;
-                }
-            }
-            else
-            {
-                int wsa_last_error = WSAGetLastError();
-                if (WSA_IO_PENDING == wsa_last_error)
-                {
-                    *bytes_recv = 0;
-                    result = 0;
-                }
-                else
-                {
-                    LogLastError("WSARecv failed with %d, WSAGetLastError returned %lu", result, wsa_last_error);
+                    *bytes_recv = total_recv_size;
                 }
             }
             (void)interlocked_decrement(&socket_client->pending_api_calls);
@@ -364,33 +418,32 @@ int socket_mgr_listen(SOCKET_MGR_HANDLE socket_client, uint16_t port)
             socket_client->socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
             if (socket_client->socket == INVALID_SOCKET)
             {
-                LogLastError("Could not create socket");
+                LogErrorNo("Could not create socket");
                 result = MU_FAILURE;
             }
             else
             {
-                u_long iMode = 1;
                 struct sockaddr_in service;
 
                 service.sin_family = AF_INET;
-                service.sin_addr.s_addr = INADDR_ANY;
+                service.sin_addr.s_addr = htonl(INADDR_ANY);
                 service.sin_port = htons(port);
 
-                if (bind(socket_client->socket, (SOCKADDR*)&service, sizeof(service)) == SOCKET_ERROR)
+                if (bind(socket_client->socket, (struct sockaddr*)&service, sizeof(service)) != 0)
                 {
-                    LogLastError("Could not bind socket, port=%" PRIu16 "", port);
+                    LogErrorNo("Could not bind socket, port=%" PRIu16 "", port);
                     result = MU_FAILURE;
                 }
-                else if (ioctlsocket(socket_client->socket, FIONBIO, &iMode) != 0)
+                else if (set_nonblocking(socket_client->socket) != 0)
                 {
-                    LogLastError("Could not set listening socket in non-blocking mode");
+                    LogErrorNo("Could not set listening socket in non-blocking mode");
                     result = MU_FAILURE;
                 }
                 else
                 {
-                    if (listen(socket_client->socket, SOMAXCONN) == SOCKET_ERROR)
+                    if (listen(socket_client->socket, SOMAXCONN) != 0)
                     {
-                        LogLastError("Could not start listening for connections");
+                        LogErrorNo("Could not start listening for connections");
                         result = MU_FAILURE;
                     }
                     else
@@ -401,7 +454,7 @@ int socket_mgr_listen(SOCKET_MGR_HANDLE socket_client, uint16_t port)
                         goto all_ok;
                     }
                 }
-                closesocket(socket_client->socket);
+                close(socket_client->socket);
                 (void)interlocked_exchange(&socket_client->state, SOCKET_MGR_STATE_CLOSED);
                 wake_by_address_single(&socket_client->state);
             }
@@ -416,8 +469,7 @@ SOCKET_MGR_HANDLE socket_mgr_accept(SOCKET_MGR_HANDLE socket_client)
     SOCKET_MGR* result;
     if (socket_client == NULL)
     {
-        LogError("Invalid arguments: SOCKET_MGR_HANDLE socket_client: %p",
-            socket_client);
+        LogError("Invalid arguments: SOCKET_MGR_HANDLE socket_client: %p", socket_client);
         result = NULL;
     }
     else
@@ -430,43 +482,28 @@ SOCKET_MGR_HANDLE socket_mgr_accept(SOCKET_MGR_HANDLE socket_client)
         }
         else
         {
-            fd_set read_fds;
-            int select_result;
-            struct timeval timeout;
-            bool is_error = false;
+            struct sockaddr_in cli_addr;
+            socklen_t client_len = sizeof(cli_addr);
 
-            read_fds.fd_array[0] = socket_client->socket;
-            read_fds.fd_count = 1;
-            timeout.tv_usec = 1000 * 100;
-            timeout.tv_sec = 0;
-
-            select_result = select(0, &read_fds, NULL, NULL, &timeout);
-            if (select_result == SOCKET_ERROR)
+            SOCKET_HANDLE accepted_socket;
+            accepted_socket = accept(socket_client->socket, (struct sockaddr*)&cli_addr, &client_len);
+            if (accepted_socket == INVALID_SOCKET)
             {
-                LogLastError("Error waiting for socket connections");
-                is_error = true;
+                LogErrorNo("Failure accepting socket");
                 result = NULL;
             }
-            else if (select_result > 0)
+            else
             {
-                struct sockaddr_in cli_addr;
-                socklen_t client_len = sizeof(cli_addr);
-
-                SOCKET accepted_socket = accept(socket_client->socket, (struct sockaddr*)&cli_addr, &client_len);
-                if (accepted_socket == INVALID_SOCKET)
+                if (set_nonblocking(accepted_socket) != 0)
                 {
-                    if (WSAGetLastError() != WSAEWOULDBLOCK)
-                    {
-                        LogLastError("Error accepting socket");
-                        is_error = true;
-                    }
+                    LogError("Failure: nonblocking failure.");
                     result = NULL;
                 }
                 else
                 {
                     char hostname_addr[256];
                     (void)inet_ntop(AF_INET, (const void*)&cli_addr.sin_addr, hostname_addr, sizeof(hostname_addr));
-                    LogError("Socket connected (%p) from %s:%d", (void*)accepted_socket, hostname_addr, cli_addr.sin_port);
+                    LogError("Socket connected (%" PRI_SOCKET ") from %s:%d", accepted_socket, hostname_addr, cli_addr.sin_port);
 
                     // Create the socket handle
                     result = malloc(sizeof(SOCKET_MGR));
@@ -479,16 +516,14 @@ SOCKET_MGR_HANDLE socket_mgr_accept(SOCKET_MGR_HANDLE socket_client)
                         (void)interlocked_exchange(&result->state, SOCKET_MGR_STATE_CONNECTED);
                         (void)interlocked_exchange(&result->pending_api_calls, 0);
                         result->socket = accepted_socket;
+                        goto all_ok;
                     }
                 }
-            }
-            else
-            {
-                LogLastError("Failure accepting socket connection");
-                is_error = true;
-                result = NULL;
+                close(accepted_socket);
             }
         }
+        result = NULL;
     }
+all_ok:
     return result;
 }
