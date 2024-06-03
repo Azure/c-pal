@@ -19,19 +19,11 @@
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_win32.h"
 #include "c_pal/interlocked.h"
+#include "c_pal/sm.h"
 #include "c_pal/sync.h"
 #include "c_pal/string_utils.h"
 
-#include "c_pal/socket_mgr.h"
-
-#define SOCKET_MGR_STATE_VALUES \
-    SOCKET_MGR_STATE_CLOSED, \
-    SOCKET_MGR_STATE_CONNECTING, \
-    SOCKET_MGR_STATE_CONNECTED, \
-    SOCKET_MGR_STATE_CLOSING
-
-MU_DEFINE_ENUM(SOCKET_MGR_STATE, SOCKET_MGR_STATE_VALUES)
-MU_DEFINE_ENUM_STRINGS(SOCKET_MGR_STATE, SOCKET_MGR_STATE_VALUES)
+#include "c_pal/socket_transport.h"
 
 #define SOCKET_IO_TYPE_VALUES \
     SOCKET_IO_TYPE_SEND, \
@@ -40,15 +32,16 @@ MU_DEFINE_ENUM_STRINGS(SOCKET_MGR_STATE, SOCKET_MGR_STATE_VALUES)
 MU_DEFINE_ENUM(SOCKET_IO_TYPE, SOCKET_IO_TYPE_VALUES)
 MU_DEFINE_ENUM_STRINGS(SOCKET_IO_TYPE, SOCKET_IO_TYPE_VALUES)
 
-typedef struct SOCKET_MGR_TAG
+MU_DEFINE_ENUM_STRINGS(SOCKET_SEND_RESULT, SOCKET_SEND_RESULT_VALUES)
+MU_DEFINE_ENUM_STRINGS(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_RESULT_VALUES)
+MU_DEFINE_ENUM_STRINGS(SOCKET_TYPE, SOCKET_TYPE_VALUES)
+
+typedef struct SOCKET_TRANSPORT_TAG
 {
     SOCKET socket;
-
-    volatile_atomic int32_t state;
-    volatile_atomic int32_t pending_api_calls;
-
+    SM_HANDLE sm;
     SOCKET_TYPE type;
-} SOCKET_MGR;
+} SOCKET_TRANSPORT;
 
 static int connect_to_endpoint(SOCKET client_socket, const ADDRINFO* addrInfo, uint32_t timeout_usec)
 {
@@ -63,7 +56,7 @@ static int connect_to_endpoint(SOCKET client_socket, const ADDRINFO* addrInfo, u
 
             struct timeval tv;
             tv.tv_sec = 0;
-            tv.tv_usec = timeout_usec;
+            tv.tv_usec = timeout_usec * 100;
 
             int ret = select(0, NULL, &write_fds, NULL, &tv);
             if (ret == SOCKET_ERROR)
@@ -164,69 +157,76 @@ all_ok:
     return result;
 }
 
-SOCKET_MGR_HANDLE socket_mgr_create(SOCKET_TYPE type)
+SOCKET_TRANSPORT_HANDLE socket_transport_create(SOCKET_TYPE type)
 {
-    SOCKET_MGR* result;
-    result = malloc(sizeof(SOCKET_MGR));
+    SOCKET_TRANSPORT* result;
+    result = malloc(sizeof(SOCKET_TRANSPORT));
     if (result == NULL)
     {
-        LogError("failure allocating SOCKET_MGR: %zu", sizeof(SOCKET_MGR));
+        LogError("failure allocating SOCKET_TRANSPORT: %zu", sizeof(SOCKET_TRANSPORT));
     }
     else
     {
-        result->type = type;
-
-        (void)interlocked_exchange(&result->state, SOCKET_MGR_STATE_CLOSED);
-        (void)interlocked_exchange(&result->pending_api_calls, 0);
+        result->sm = sm_create("Socket_transport_win32");
+        if (result->sm == NULL)
+        {
+            LogError("sm_create failed.");
+        }
+        else
+        {
+            result->type = type;
+            goto all_ok;
+        }
+        free(result);
+        result = NULL;
     }
+all_ok:
     return result;
 }
 
-void socket_mgr_destroy(SOCKET_MGR_HANDLE socket_client)
+void socket_transport_destroy(SOCKET_TRANSPORT_HANDLE socket_transport)
 {
-    if (socket_client == NULL)
+    if (socket_transport == NULL)
     {
         // Do nothing
     }
     else
     {
-        free(socket_client);
+        sm_destroy(socket_transport->sm);
+        free(socket_transport);
     }
 }
 
-int socket_mgr_connect(SOCKET_MGR_HANDLE socket_client, const char* hostname, uint16_t port, uint32_t connection_timeout)
+int socket_transport_connect(SOCKET_TRANSPORT_HANDLE socket_transport, const char* hostname, uint16_t port, uint32_t connection_timeout)
 {
     int result;
-    if (socket_client == NULL ||
+    if (socket_transport == NULL ||
         hostname == NULL)
     {
-        LogError("Invalid arguments: SOCKET_MGR_HANDLE socket_client: %p, const char* hostname: %s, uint16_t port: %" PRIu16 ", uint32_t connection_timeout: %" PRIu32 "",
-            socket_client, MU_P_OR_NULL(hostname), port, connection_timeout);
+        LogError("Invalid arguments: SOCKET_TRANSPORT_HANDLE socket_transport: %p, const char* hostname: %s, uint16_t port: %" PRIu16 ", uint32_t connection_timeout: %" PRIu32 "",
+            socket_transport, MU_P_OR_NULL(hostname), port, connection_timeout);
         result = MU_FAILURE;
     }
     else
     {
-        int32_t current_state = interlocked_compare_exchange(&socket_client->state, SOCKET_MGR_STATE_CONNECTING, SOCKET_MGR_STATE_CLOSED);
-        if (current_state != SOCKET_MGR_STATE_CLOSED)
+        SM_RESULT open_result = sm_open_begin(socket_transport->sm);
+        if (open_result != SM_EXEC_GRANTED)
         {
-            LogError("Open called in state %" PRI_MU_ENUM "", MU_ENUM_VALUE(SOCKET_MGR_STATE, current_state));
+            LogError("sm_open_begin failed with %" PRI_MU_ENUM, MU_ENUM_VALUE(SM_RESULT, open_result));
             result = MU_FAILURE;
         }
         else
         {
-            socket_client->socket = connect_to_client(hostname, port, connection_timeout);
-            if (socket_client->socket == INVALID_SOCKET)
+            socket_transport->socket = connect_to_client(hostname, port, connection_timeout);
+            if (socket_transport->socket == INVALID_SOCKET)
             {
                 LogError("Failure conneting to client hostname: %s:%" PRIu16 "", hostname, port);
                 result = MU_FAILURE;
-                (void)interlocked_exchange(&socket_client->state, SOCKET_MGR_STATE_CLOSED);
-                wake_by_address_single(&socket_client->state);
+                sm_open_end(socket_transport->sm, false);
             }
             else
             {
-                (void)interlocked_exchange(&socket_client->state, SOCKET_MGR_STATE_CONNECTED);
-                wake_by_address_single(&socket_client->state);
-
+                sm_open_end(socket_transport->sm, true);
                 result = 0;
             }
         }
@@ -234,41 +234,51 @@ int socket_mgr_connect(SOCKET_MGR_HANDLE socket_client, const char* hostname, ui
     return result;
 }
 
-void socket_mgr_disconnect(SOCKET_MGR_HANDLE socket_client)
+void socket_transport_disconnect(SOCKET_TRANSPORT_HANDLE socket_transport)
 {
-    if (socket_client == NULL)
+    if (socket_transport == NULL)
     {
-        LogError("Invalid arguments: SOCKET_MGR_HANDLE socket_client: %p",
-            socket_client);
+        LogError("Invalid arguments: SOCKET_TRANSPORT_HANDLE socket_transport: %p",
+            socket_transport);
     }
     else
     {
-        closesocket(socket_client->socket);
+        SM_RESULT close_result = sm_close_begin(socket_transport->sm);
+        if (close_result == SM_EXEC_GRANTED)
+        {
+            if (closesocket(socket_transport->socket) != 0)
+            {
+                LogLastError("Failure in closesocket");
+            }
+            sm_close_end(socket_transport->sm);
+        }
+        else
+        {
+            LogError("sm_close_begin failed with %" PRI_MU_ENUM, MU_ENUM_VALUE(SM_RESULT, close_result));
+        }
     }
 }
 
-int socket_mgr_send(SOCKET_MGR_HANDLE socket_client, SOCKET_BUFFER* payload, uint32_t buffer_count, uint32_t* bytes_written, uint32_t flags, void* data)
+SOCKET_SEND_RESULT socket_transport_send(SOCKET_TRANSPORT_HANDLE socket_transport, SOCKET_BUFFER* payload, uint32_t buffer_count, uint32_t* bytes_written, uint32_t flags, void* data)
 {
-    int result;
-    if (socket_client == NULL ||
+    SOCKET_SEND_RESULT result;
+    if (socket_transport == NULL ||
         payload == NULL)
     {
-        LogError("Invalid arguments: SOCKET_MGR_HANDLE socket_client: %p, const SOCKET_BUFFER* payload: %p, void* data: %p",
-            socket_client, payload, data);
-        result = MU_FAILURE;
+        LogError("Invalid arguments: SOCKET_TRANSPORT_HANDLE socket_transport: %p, const SOCKET_BUFFER* payload: %p, void* data: %p",
+            socket_transport, payload, data);
+        result = SOCKET_SEND_ERROR;
     }
     else
     {
-        int32_t current_state = interlocked_add(&socket_client->state, 0);
-        if (current_state != SOCKET_MGR_STATE_CONNECTED)
+        SM_RESULT sm_result = sm_exec_begin(socket_transport->sm);
+        if (sm_result != SM_EXEC_GRANTED)
         {
-            LogError("Socket client not open, current state is %" PRI_MU_ENUM "", MU_ENUM_VALUE(SOCKET_MGR_STATE, current_state));
+            LogError("sm_exec_begin failed : %" PRI_MU_ENUM, MU_ENUM_VALUE(SM_RESULT, sm_result));
             result = MU_FAILURE;
         }
         else
         {
-            (void)interlocked_increment(&socket_client->pending_api_calls);
-
             DWORD num_bytes = 0;
             LPDWORD num_bytes_param = NULL;
             // If the overlapped is NULL then set the num bytes params
@@ -277,8 +287,9 @@ int socket_mgr_send(SOCKET_MGR_HANDLE socket_client, SOCKET_BUFFER* payload, uin
                 num_bytes_param = &num_bytes;
             }
 
-            result = WSASend(socket_client->socket, (LPWSABUF)payload, buffer_count, num_bytes_param, flags, (LPWSAOVERLAPPED)data, NULL);
-            if (result == 0)
+            int send_result;
+            send_result = WSASend(socket_transport->socket, (LPWSABUF)payload, buffer_count, num_bytes_param, flags, (LPWSAOVERLAPPED)data, NULL);
+            if (send_result == 0)
             {
 #ifdef ENABLE_SOCKET_LOGGING
                 LogVerbose("Send completed synchronously at %lf", timer_global_get_elapsed_us());
@@ -287,40 +298,39 @@ int socket_mgr_send(SOCKET_MGR_HANDLE socket_client, SOCKET_BUFFER* payload, uin
                 {
                     *bytes_written = num_bytes;
                 }
+                result = SOCKET_SEND_OK;
             }
             else
             {
                 LogLastError("Failure sending socket data: buffer: %p, length: %" PRIu32 "", payload->buffer, payload->length);
+                result = SOCKET_SEND_ERROR;
             }
-            (void)interlocked_decrement(&socket_client->pending_api_calls);
-            wake_by_address_single(&socket_client->pending_api_calls);
+            sm_exec_end(socket_transport->sm);
         }
     }
     return result;
 }
 
-int socket_mgr_receive(SOCKET_MGR_HANDLE socket_client, SOCKET_BUFFER* payload, uint32_t buffer_count, uint32_t* bytes_recv, uint32_t flags, void* data)
+SOCKET_RECEIVE_RESULT socket_transport_receive(SOCKET_TRANSPORT_HANDLE socket_transport, SOCKET_BUFFER* payload, uint32_t buffer_count, uint32_t* bytes_recv, uint32_t flags, void* data)
 {
-    int result;
-    if (socket_client == NULL ||
+    SOCKET_RECEIVE_RESULT result;
+    if (socket_transport == NULL ||
         payload == NULL)
     {
-        LogError("Invalid arguments: SOCKET_MGR_HANDLE socket_client=%p, const SOCKET_BUFFER* payload=%p, uint32_t flags=%" PRIu32 ", void*, data=%p",
-            socket_client, payload, flags, data);
-        result = MU_FAILURE;
+        LogError("Invalid arguments: SOCKET_TRANSPORT_HANDLE socket_transport=%p, const SOCKET_BUFFER* payload=%p, uint32_t flags=%" PRIu32 ", void*, data=%p",
+            socket_transport, payload, flags, data);
+        result = SOCKET_RECEIVE_ERROR;
     }
     else
     {
-        int32_t current_state = interlocked_add(&socket_client->state, 0);
-        if (current_state != SOCKET_MGR_STATE_CONNECTED)
+        SM_RESULT sm_result = sm_exec_begin(socket_transport->sm);
+        if (sm_result != SM_EXEC_GRANTED)
         {
-            LogWarning("Socket client not open, current state is %" PRI_MU_ENUM "", MU_ENUM_VALUE(SOCKET_MGR_STATE, current_state));
+            LogError("sm_exec_begin failed : %" PRI_MU_ENUM, MU_ENUM_VALUE(SM_RESULT, sm_result));
             result = MU_FAILURE;
         }
         else
         {
-            (void)interlocked_increment(&socket_client->pending_api_calls);
-
             DWORD num_bytes = 0;
             LPDWORD num_bytes_param = NULL;
             if (data == NULL)
@@ -328,56 +338,60 @@ int socket_mgr_receive(SOCKET_MGR_HANDLE socket_client, SOCKET_BUFFER* payload, 
                 num_bytes_param = &num_bytes;
             }
 
-            result = WSARecv(socket_client->socket, (LPWSABUF)payload, buffer_count, num_bytes_param, (LPDWORD)&flags, (LPWSAOVERLAPPED)data, NULL);
-            if (result == 0)
+            int recv_result = WSARecv(socket_transport->socket, (LPWSABUF)payload, buffer_count, num_bytes_param, (LPDWORD)&flags, (LPWSAOVERLAPPED)data, NULL);
+            if (recv_result == 0)
             {
                 // Success
                 if (bytes_recv != NULL)
                 {
                     *bytes_recv = num_bytes;
                 }
+                result = SOCKET_RECEIVE_OK;
             }
             else
             {
                 int wsa_last_error = WSAGetLastError();
                 if (WSA_IO_PENDING == wsa_last_error)
                 {
-                    *bytes_recv = 0;
-                    result = 0;
+                    if (bytes_recv != NULL)
+                    {
+                        *bytes_recv = 0;
+                    }
+                    result = SOCKET_RECEIVE_WOULD_BLOCK;
                 }
                 else
                 {
-                    LogLastError("WSARecv failed with %d, WSAGetLastError returned %lu", result, wsa_last_error);
+                    LogLastError("WSARecv failed with %d, WSAGetLastError returned %lu", recv_result, wsa_last_error);
+                    result = SOCKET_RECEIVE_ERROR;
                 }
             }
-            (void)interlocked_decrement(&socket_client->pending_api_calls);
-            wake_by_address_single(&socket_client->pending_api_calls);
+            sm_exec_end(socket_transport->sm);
         }
     }
     return result;
 }
 
-int socket_mgr_listen(SOCKET_MGR_HANDLE socket_client, uint16_t port)
+int socket_transport_listen(SOCKET_TRANSPORT_HANDLE socket_transport, uint16_t port)
 {
     int result;
-    if (socket_client == NULL)
+    if (socket_transport == NULL)
     {
-        LogError("Invalid arguments: SOCKET_MGR_HANDLE socket_client: %p",
-            socket_client);
+        LogError("Invalid arguments: SOCKET_TRANSPORT_HANDLE socket_transport: %p",
+            socket_transport);
         result = MU_FAILURE;
     }
     else
     {
-        int32_t current_state = interlocked_compare_exchange(&socket_client->state, SOCKET_MGR_STATE_CONNECTING, SOCKET_MGR_STATE_CLOSED);
-        if (current_state != SOCKET_MGR_STATE_CLOSED)
+        SM_RESULT open_result = sm_open_begin(socket_transport->sm);
+        if (open_result != SM_EXEC_GRANTED)
         {
-            LogError("Open called in state %" PRI_MU_ENUM "", MU_ENUM_VALUE(SOCKET_MGR_STATE, current_state));
+            LogError("sm_open_begin failed with %" PRI_MU_ENUM, MU_ENUM_VALUE(SM_RESULT, open_result));
             result = MU_FAILURE;
         }
         else
         {
-            socket_client->socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-            if (socket_client->socket == INVALID_SOCKET)
+            socket_transport->socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+            if (socket_transport->socket == INVALID_SOCKET)
             {
                 LogLastError("Could not create socket");
                 result = MU_FAILURE;
@@ -391,34 +405,32 @@ int socket_mgr_listen(SOCKET_MGR_HANDLE socket_client, uint16_t port)
                 service.sin_addr.s_addr = INADDR_ANY;
                 service.sin_port = htons(port);
 
-                if (bind(socket_client->socket, (SOCKADDR*)&service, sizeof(service)) == SOCKET_ERROR)
+                if (bind(socket_transport->socket, (SOCKADDR*)&service, sizeof(service)) == SOCKET_ERROR)
                 {
                     LogLastError("Could not bind socket, port=%" PRIu16 "", port);
                     result = MU_FAILURE;
                 }
-                else if (ioctlsocket(socket_client->socket, FIONBIO, &iMode) != 0)
+                else if (ioctlsocket(socket_transport->socket, FIONBIO, &iMode) != 0)
                 {
                     LogLastError("Could not set listening socket in non-blocking mode");
                     result = MU_FAILURE;
                 }
                 else
                 {
-                    if (listen(socket_client->socket, SOMAXCONN) == SOCKET_ERROR)
+                    if (listen(socket_transport->socket, SOMAXCONN) == SOCKET_ERROR)
                     {
                         LogLastError("Could not start listening for connections");
                         result = MU_FAILURE;
                     }
                     else
                     {
-                        (void)interlocked_exchange(&socket_client->state, SOCKET_MGR_STATE_CONNECTED);
-                        wake_by_address_single(&socket_client->state);
+                        sm_open_end(socket_transport->sm, true);
                         result = 0;
                         goto all_ok;
                     }
                 }
-                closesocket(socket_client->socket);
-                (void)interlocked_exchange(&socket_client->state, SOCKET_MGR_STATE_CLOSED);
-                wake_by_address_single(&socket_client->state);
+                closesocket(socket_transport->socket);
+                sm_open_end(socket_transport->sm, false);
             }
         }
     }
@@ -426,21 +438,21 @@ all_ok:
     return result;
 }
 
-SOCKET_MGR_HANDLE socket_mgr_accept(SOCKET_MGR_HANDLE socket_client)
+SOCKET_TRANSPORT_HANDLE socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_transport)
 {
-    SOCKET_MGR* result;
-    if (socket_client == NULL)
+    SOCKET_TRANSPORT* result;
+    if (socket_transport == NULL)
     {
-        LogError("Invalid arguments: SOCKET_MGR_HANDLE socket_client: %p",
-            socket_client);
+        LogError("Invalid arguments: SOCKET_TRANSPORT_HANDLE socket_transport: %p",
+            socket_transport);
         result = NULL;
     }
     else
     {
-        int32_t current_state = interlocked_add(&socket_client->state, 0);
-        if (current_state != SOCKET_MGR_STATE_CONNECTED)
+        SM_RESULT sm_result = sm_exec_begin(socket_transport->sm);
+        if (sm_result != SM_EXEC_GRANTED)
         {
-            LogError("Socket client not open, current state is %" PRI_MU_ENUM "", MU_ENUM_VALUE(SOCKET_MGR_STATE, current_state));
+            LogError("sm_exec_begin failed : %" PRI_MU_ENUM, MU_ENUM_VALUE(SM_RESULT, sm_result));
             result = NULL;
         }
         else
@@ -450,7 +462,7 @@ SOCKET_MGR_HANDLE socket_mgr_accept(SOCKET_MGR_HANDLE socket_client)
             struct timeval timeout;
             bool is_error = false;
 
-            read_fds.fd_array[0] = socket_client->socket;
+            read_fds.fd_array[0] = socket_transport->socket;
             read_fds.fd_count = 1;
             timeout.tv_usec = 1000 * 100;
             timeout.tv_sec = 0;
@@ -467,7 +479,7 @@ SOCKET_MGR_HANDLE socket_mgr_accept(SOCKET_MGR_HANDLE socket_client)
                 struct sockaddr_in cli_addr;
                 socklen_t client_len = sizeof(cli_addr);
 
-                SOCKET accepted_socket = accept(socket_client->socket, (struct sockaddr*)&cli_addr, &client_len);
+                SOCKET accepted_socket = accept(socket_transport->socket, (struct sockaddr*)&cli_addr, &client_len);
                 if (accepted_socket == INVALID_SOCKET)
                 {
                     if (WSAGetLastError() != WSAEWOULDBLOCK)
@@ -484,16 +496,39 @@ SOCKET_MGR_HANDLE socket_mgr_accept(SOCKET_MGR_HANDLE socket_client)
                     LogError("Socket connected (%" PRI_SOCKET ") from %s:%d", (void*)accepted_socket, hostname_addr, cli_addr.sin_port);
 
                     // Create the socket handle
-                    result = malloc(sizeof(SOCKET_MGR));
+                    result = malloc(sizeof(SOCKET_TRANSPORT));
                     if (result == NULL)
                     {
-                        LogError("failure allocating SOCKET_MGR: %zu", sizeof(SOCKET_MGR));
+                        LogError("failure allocating SOCKET_TRANSPORT: %zu", sizeof(SOCKET_TRANSPORT));
                     }
                     else
                     {
-                        (void)interlocked_exchange(&result->state, SOCKET_MGR_STATE_CONNECTED);
-                        (void)interlocked_exchange(&result->pending_api_calls, 0);
-                        result->socket = accepted_socket;
+                        result->sm = sm_create("Socket_transport_win32");
+                        if (result->sm == NULL)
+                        {
+                            LogError("Failed calling sm_create in accept, closing incoming socket.");
+                            closesocket(accepted_socket);
+                            free(result);
+                            result = NULL;
+                        }
+                        else
+                        {
+                            SM_RESULT open_result = sm_open_begin(result->sm);
+                            if (open_result == SM_EXEC_GRANTED)
+                            {
+                                result->type = SOCKET_SERVER;
+                                result->socket = accepted_socket;
+                                sm_open_end(result->sm, true);
+                            }
+                            else
+                            {
+                                LogError("sm_open_begin failed with %" PRI_MU_ENUM " in accept, closing incoming socket.", MU_ENUM_VALUE(SM_RESULT, open_result));
+                                closesocket(accepted_socket);
+                                sm_destroy(result->sm);
+                                free(result);
+                                result = NULL;
+                            }
+                        }
                     }
                 }
             }
@@ -503,7 +538,24 @@ SOCKET_MGR_HANDLE socket_mgr_accept(SOCKET_MGR_HANDLE socket_client)
                 is_error = true;
                 result = NULL;
             }
+            sm_exec_end(socket_transport->sm);
         }
+    }
+    return result;
+}
+
+SOCKET_HANDLE socket_transport_get_underlying_socket(SOCKET_TRANSPORT_HANDLE socket_handle)
+{
+    SOCKET_HANDLE result;
+    if (socket_handle == NULL)
+    {
+        LogError("Invalid arguments: SOCKET_TRANSPORT_HANDLE socket_handle: %p",
+            socket_handle);
+        result = (SOCKET_HANDLE)INVALID_SOCKET;
+    }
+    else
+    {
+        result = (SOCKET_HANDLE)socket_handle->socket;
     }
     return result;
 }

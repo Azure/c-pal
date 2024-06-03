@@ -1,8 +1,14 @@
 #Copyright (C) Microsoft Corporation. All rights reserved.
 
+if(MSVC)
+    set(PAL_OS pal_win32)
+else()
+    set(PAL_OS pal_linux)
+endif()
+
 if(${run_int_tests})
     build_test_folder(pipe_int)
-    build_test_folder(socket_mgr_int)
+    build_test_folder(socket_transport_int)
     build_test_folder(srw_lock_int)
     build_test_folder(srw_lock_ll_int)
     build_test_folder(sysinfo_int)

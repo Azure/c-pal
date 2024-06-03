@@ -24,7 +24,7 @@
 #include "c_pal/interlocked.h"
 #include "c_pal/platform_linux.h"
 #include "c_pal/sync.h"
-#include "c_pal/socket_handle.h"
+#include "c_pal/socket_transport.h"
 
 #ifdef ENABLE_SOCKET_LOGGING
 #include "c_pal/timer.h"
@@ -57,7 +57,7 @@ MU_DEFINE_ENUM_STRINGS(ASYNC_SOCKET_NOTIFY_IO_RESULT, ASYNC_SOCKET_NOTIFY_IO_RES
 
 typedef struct ASYNC_SOCKET_TAG
 {
-    int socket_handle;
+    SOCKET_TRANSPORT_HANDLE socket_transport;
     volatile_atomic int32_t state;
     volatile_atomic int32_t pending_api_calls;
     COMPLETION_PORT_HANDLE completion_port;
@@ -128,8 +128,22 @@ static int on_socket_recv(void* context, ASYNC_SOCKET_HANDLE async_socket, void*
     }
     else
     {
+        SOCKET_BUFFER socket_buffers[1];
+        socket_buffers->buffer = buff;
+        socket_buffers->length = len;
+
+        uint32_t bytes_recv;
         // Codes_SRS_ASYNC_SOCKET_LINUX_04_007: [ on_socket_recv shall attempt to receive data by calling the system recv socket API. ]
-        result = recv(async_socket->socket_handle, buf, len, 0);
+        if (socket_transport_receive(async_socket->socket_transport, socket_buffers, 1, &bytes_recv, 0, NULL) == SOCKET_RECEIVE_ERROR)
+        {
+            LogError("Failure receiving data from transport");
+            result = -1;
+            errno = EOTHER;
+        }
+        else
+        {
+            result = (int)bytes_recv;
+        }
     }
 
     return result;
@@ -493,7 +507,7 @@ void async_socket_destroy(ASYNC_SOCKET_HANDLE async_socket)
     }
 }
 
-int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, SOCKET_HANDLE socket_handle, ON_ASYNC_SOCKET_OPEN_COMPLETE on_open_complete, void* on_open_complete_context)
+int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, SOCKET_TRANSPORT_HANDLE socket_transport, ON_ASYNC_SOCKET_OPEN_COMPLETE on_open_complete, void* on_open_complete_context)
 {
     int result;
     // Codes_SRS_ASYNC_SOCKET_LINUX_11_026: [ on_open_complete_context shall be allowed to be NULL. ]
@@ -503,7 +517,7 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, SOCKET_HANDLE sock
         // Codes_SRS_ASYNC_SOCKET_LINUX_11_025: [ If on_open_complete is NULL, async_socket_open_async shall fail and return a non-zero value. ]
         on_open_complete == NULL ||
         // Codes_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_open_async shall fail and return a non-zero value. ]
-        socket_handle == INVALID_SOCKET
+        socket_transport == NULL
        )
     {
         LogError("ASYNC_SOCKET_HANDLE async_socket=%p, ON_ASYNC_SOCKET_OPEN_COMPLETE on_open_complete=%p, void* on_open_complete_context=%p",
@@ -523,7 +537,7 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, SOCKET_HANDLE sock
         }
         else
         {
-            async_socket->socket_handle = socket_handle;
+            async_socket->socket_transport = socket_transport;
 
             // Codes_SRS_ASYNC_SOCKET_LINUX_11_031: [ async_socket_open_async shall add the socket to the epoll system by calling epoll_ctl with EPOLL_CTL_ADD. ]
             // Codes_SRS_ASYNC_SOCKET_LINUX_11_032: [ async_socket_open_async shall set the state to OPEN. ]

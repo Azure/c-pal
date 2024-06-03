@@ -57,7 +57,7 @@ set(pal_linux_c_files
     src/pipe_linux.c
     src/platform_linux.c
     src/single_performance_counter_linux.c
-    src/socket_mgr_linux.c
+    src/socket_transport_linux.c
     src/srw_lock_linux.c
     src/srw_lock_ll_linux.c
     src/string_utils.c
