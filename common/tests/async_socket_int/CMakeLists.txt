@@ -12,8 +12,6 @@ set(${theseTestsName}_c_files
 set(${theseTestsName}_h_files
 )
 
-message("Including ${PAL_OS}")
-
 build_test_artifacts(${theseTestsName} "tests/c_pal/int" ADDITIONAL_LIBS ${PAL_OS} pal_interfaces c_pal c_pal_ll)
 
 if(WIN32)

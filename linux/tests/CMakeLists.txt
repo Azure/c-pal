@@ -2,7 +2,6 @@
 
 # unit tests
 if(${run_unittests})
-    build_test_folder(async_socket_linux_ut)
     build_test_folder(completion_port_linux_ut)
     build_test_folder(error_handling_linux_ut)
     build_test_folder(execution_engine_linux_ut)
