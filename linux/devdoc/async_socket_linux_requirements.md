@@ -260,9 +260,9 @@ MOCKABLE_FUNCTION(, ASYNC_SOCKET_SEND_SYNC_RESULT, async_socket_send_async, ASYN
 static int on_socket_recv(void* context, ASYNC_SOCKET_HANDLE async_socket, void* buf, size_t len)
 ```
 
-`on_socket_recv` is the default recv callback used when `async_socket_create` is called. This implementation calls the system socket `recv` API.
+`on_socket_recv` is the default recv callback used when `async_socket_create` is called. This implementation calls the system socket `socket_transport_receive` API.
 
-**SRS_ASYNC_SOCKET_LINUX_04_007: [** `on_socket_recv` shall attempt to receive data by calling the system `recv` socket API. **]**
+**SRS_ASYNC_SOCKET_LINUX_04_007: [** `on_socket_recv` shall attempt to receive data by calling the system `socket_transport_receive` socket API. **]**
 
 ### async_socket_receive_async
 
@@ -312,7 +312,7 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
 
 **SRS_ASYNC_SOCKET_LINUX_11_080: [** If `COMPLETION_PORT_EPOLL_ACTION` is `COMPLETION_PORT_EPOLL_EPOLLRDHUP` or `COMPLETION_PORT_EPOLL_ABANDONED`, `event_complete_callback` shall do the following: **]**
 
-- **SRS_ASYNC_SOCKET_LINUX_11_081: [** `event_complete_callback` shall call either the send or recv complete callback with an `ABANDONED` flag when the IO type is either `ASYNC_SOCKET_IO_TYPE_SEND` or `ASYNC_SOCKET_IO_TYPE_RECEIVE` respectively. **]**
+- **SRS_ASYNC_SOCKET_LINUX_11_081: [** `event_complete_callback` shall call either the `socket_transport_send` or `socket_transport_receive` complete callback with an `ABANDONED` flag when the IO type is either `ASYNC_SOCKET_IO_TYPE_SEND` or `ASYNC_SOCKET_IO_TYPE_RECEIVE` respectively. **]**
 
 - **SRS_ASYNC_SOCKET_LINUX_04_008: [** `event_complete_callback` shall call the notify complete callback with an `ABANDONED` flag when the IO type is `ASYNC_SOCKET_IO_TYPE_NOTIFY`. **]**
 
@@ -324,7 +324,7 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
 
 - **SRS_ASYNC_SOCKET_LINUX_11_083: [** Otherwise `event_complete_callback` shall call the `on_recv` callback with the `recv_buffer` buffer and length and do the following: **]**
 
-  - **SRS_ASYNC_SOCKET_LINUX_11_088: [** If the recv size < 0, then: **]**
+  - **SRS_ASYNC_SOCKET_LINUX_11_088: [** If the `socket_transport_receive` size < 0, then: **]**
 
     - **SRS_ASYNC_SOCKET_LINUX_11_089: [** If `errno` is `EAGAIN` or `EWOULDBLOCK`, then no data is available and `event_complete_callback` will break out of the function. **]**
 
@@ -332,9 +332,9 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
 
     - **SRS_ASYNC_SOCKET_LINUX_11_095: [** If `errno` is any other error, then `event_complete_callback` shall call the `on_receive_complete` callback with the `on_receive_complete_context` and `ASYNC_SOCKET_RECEIVE_ERROR`. **]**
 
-  - **SRS_ASYNC_SOCKET_LINUX_11_091: [** If the recv size equals 0, then `event_complete_callback` shall call `on_receive_complete` callback with the `on_receive_complete_context` and `ASYNC_SOCKET_RECEIVE_ABANDONED`. **]**
+  - **SRS_ASYNC_SOCKET_LINUX_11_091: [** If the `socket_transport_receive` size equals 0, then `event_complete_callback` shall call `on_receive_complete` callback with the `on_receive_complete_context` and `ASYNC_SOCKET_RECEIVE_ABANDONED`. **]**
 
-  - **SRS_ASYNC_SOCKET_LINUX_11_092: [** If the recv size > 0, if we have another buffer to fill then we will attempt another read, otherwise we shall call `on_receive_complete` callback with the `on_receive_complete_context` and `ASYNC_SOCKET_RECEIVE_OK`. **]**
+  - **SRS_ASYNC_SOCKET_LINUX_11_092: [** If the `socket_transport_receive` size > 0, if we have another buffer to fill then we will attempt another read, otherwise we shall call `on_receive_complete` callback with the `on_receive_complete_context` and `ASYNC_SOCKET_RECEIVE_OK`. **]**
 
 - **SRS_ASYNC_SOCKET_LINUX_11_093: [** `event_complete_callback` shall then free the `io_context` memory. **]**
 
@@ -342,15 +342,15 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
 
 - **SRS_ASYNC_SOCKET_LINUX_04_010: [** If the IO type is `ASYNC_SOCKET_IO_TYPE_NOTIFY` then `event_complete_callback` shall call the notify complete callback with an `OUT` flag. **]**
 
-- **SRS_ASYNC_SOCKET_LINUX_11_096: [** `event_complete_callback` shall call `send` on the data in the `ASYNC_SOCKET_SEND_CONTEXT` buffer. **]**
+- **SRS_ASYNC_SOCKET_LINUX_11_096: [** `event_complete_callback` shall call `socket_transport_send` on the data in the `ASYNC_SOCKET_SEND_CONTEXT` buffer. **]**
 
-- **SRS_ASYNC_SOCKET_LINUX_11_097: [** If send returns value is < 0 `event_complete_callback` shall do the following: **]**
+- **SRS_ASYNC_SOCKET_LINUX_11_097: [** If `socket_transport_send` returns value is < 0 `event_complete_callback` shall do the following: **]**
 
   - **SRS_ASYNC_SOCKET_LINUX_11_098: [** if `errno` is `ECONNRESET`, then `on_send_complete` shall be called with `ASYNC_SOCKET_SEND_ABANDONED`. **]**
 
   - **SRS_ASYNC_SOCKET_LINUX_11_099: [** if `errno` is anything else, then `on_send_complete` shall be called with `ASYNC_SOCKET_SEND_ERROR`. **]**
 
-- **SRS_ASYNC_SOCKET_LINUX_11_101: [** If send returns a value > 0 but less than the amount to be sent, `event_complete_callback` shall continue to send the data until the payload length has been sent. **]**
+- **SRS_ASYNC_SOCKET_LINUX_11_101: [** If `socket_transport_send` returns a value > 0 but less than the amount to be sent, `event_complete_callback` shall continue to `socket_transport_send` the data until the payload length has been sent. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_100: [** Then `event_complete_callback` shall free the `io_context` memory **]**
 
@@ -358,7 +358,7 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
 
 - **SRS_ASYNC_SOCKET_LINUX_04_011: [** If the IO type is `ASYNC_SOCKET_IO_TYPE_NOTIFY` then `event_complete_callback` shall call the notify complete callback with an `ERROR` flag. **]**
 
-- **SRS_ASYNC_SOCKET_LINUX_11_086: [** Otherwise `event_complete_callback` shall call either the send or recv complete callback with an `ERROR` flag. **]**
+- **SRS_ASYNC_SOCKET_LINUX_11_086: [** Otherwise `event_complete_callback` shall call either the `socket_transport_send` or `socket_transport_receive` complete callback with an `ERROR` flag. **]**
 
 - **SRS_ASYNC_SOCKET_LINUX_11_087: [** Then `event_complete_callback` shall and free the `io_context` memory. **]**
 
