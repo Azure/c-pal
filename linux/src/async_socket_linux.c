@@ -109,9 +109,22 @@ static int on_socket_send(void* context, ASYNC_SOCKET_HANDLE async_socket, const
     else
     {
         // Codes_SRS_ASYNC_SOCKET_LINUX_11_052: [ on_socket_send shall attempt to send the data by calling send with the MSG_NOSIGNAL flag to ensure SIGPIPE is not generated on errors. ]
-        result = send(async_socket->socket_handle, buf, len, MSG_NOSIGNAL);
-    }
+        SOCKET_BUFFER payload;
+        payload.buffer = (void*)buf;
+        payload.length = len;
 
+        uint32_t bytes_written;
+        SOCKET_SEND_RESULT send_result = socket_transport_send(async_socket->socket_transport, &payload, 1, &bytes_written, MSG_NOSIGNAL, NULL);
+        if (send_result == SOCKET_SEND_ERROR)
+        {
+            LogError("Failure sending data on socket transport");
+            result = -1;
+        }
+        else
+        {
+            result = (int)bytes_written;
+        }
+    }
     return result;
 }
 
@@ -129,7 +142,7 @@ static int on_socket_recv(void* context, ASYNC_SOCKET_HANDLE async_socket, void*
     else
     {
         SOCKET_BUFFER socket_buffers[1];
-        socket_buffers->buffer = buff;
+        socket_buffers->buffer = buf;
         socket_buffers->length = len;
 
         uint32_t bytes_recv;
@@ -138,7 +151,6 @@ static int on_socket_recv(void* context, ASYNC_SOCKET_HANDLE async_socket, void*
         {
             LogError("Failure receiving data from transport");
             result = -1;
-            errno = EOTHER;
         }
         else
         {
@@ -406,12 +418,12 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
 
     if (interlocked_add(&async_socket->added_to_completion_port, 0) > 0)
     {
-        completion_port_remove(async_socket->completion_port, async_socket->socket_handle);
+        SOCKET_HANDLE underlying_socket = socket_transport_get_underlying_socket(async_socket->socket_transport);
+        completion_port_remove(async_socket->completion_port, underlying_socket);
     }
 
     // Codes_SRS_ASYNC_SOCKET_LINUX_11_039: [ async_socket_close shall call close on the underlying socket. ]
-    (void)close(async_socket->socket_handle);
-    async_socket->socket_handle = INVALID_SOCKET;
+    socket_transport_disconnect(async_socket->socket_transport);
 
     // Codes_SRS_ASYNC_SOCKET_LINUX_11_041: [ async_socket_close shall set the state to closed. ]
     (void)interlocked_exchange(&async_socket->state, ASYNC_SOCKET_LINUX_STATE_CLOSED);
@@ -683,8 +695,10 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                                 io_context->data.send_ctx.socket_buffer.buffer = buffers[index].buffer + total_data_sent;
                                 io_context->data.send_ctx.socket_buffer.length = buffers[index].length - total_data_sent;
 
+                                SOCKET_HANDLE underlying_socket = socket_transport_get_underlying_socket(async_socket->socket_transport);
+
                                 // Codes_SRS_ASYNC_SOCKET_LINUX_11_057: [ The context shall then be added to the completion port system by calling completion_port_add with EPOLL_CTL_MOD and `event_complete_callback` as the callback. ]
-                                if (completion_port_add(async_socket->completion_port, EPOLLOUT, async_socket->socket_handle, event_complete_callback, io_context) != 0)
+                                if (completion_port_add(async_socket->completion_port, EPOLLOUT, underlying_socket, event_complete_callback, io_context) != 0)
                                 {
                                     LogError("failure with completion_port_add");
                                     result = ASYNC_SOCKET_SEND_SYNC_ERROR;
@@ -839,8 +853,10 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                     LogVerbose("Starting receive at %lf", timer_global_get_elapsed_us());
 #endif
 
+                    SOCKET_HANDLE underlying_socket = socket_transport_get_underlying_socket(async_socket->socket_transport);
+
                     // Codes_SRS_ASYNC_SOCKET_LINUX_11_102: [ Then the context shall then be added to the completion port system by calling completion_port_add with EPOLLIN and event_complete_callback as the callback. ]
-                    if (completion_port_add(async_socket->completion_port, EPOLLIN | EPOLLRDHUP | EPOLLONESHOT, async_socket->socket_handle, event_complete_callback, io_context) != 0)
+                    if (completion_port_add(async_socket->completion_port, EPOLLIN | EPOLLRDHUP | EPOLLONESHOT, underlying_socket, event_complete_callback, io_context) != 0)
                     {
                         // Codes_SRS_ASYNC_SOCKET_LINUX_11_078: [ If any error occurs, async_socket_receive_async shall fail and return a non-zero value. ]
                         LogWarning("failure with completion_port_add");
@@ -912,8 +928,10 @@ int async_socket_notify_io_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_
 
                 int epoll_op = (io_type == ASYNC_SOCKET_NOTIFY_IO_TYPE_IN) ? EPOLLIN : EPOLLOUT;
 
+                SOCKET_HANDLE underlying_socket = socket_transport_get_underlying_socket(async_socket->socket_transport);
+
                 // Codes_SRS_ASYNC_SOCKET_LINUX_04_018: [ Then the context shall then be added to the completion port system by calling completion_port_add with EPOLLIN if io_type is ASYNC_SOCKET_NOTIFY_IO_TYPE_IN and EPOLLOUT otherwise and event_complete_callback as the callback. ]
-                if (completion_port_add(async_socket->completion_port, epoll_op, async_socket->socket_handle, event_complete_callback, io_context) != 0)
+                if (completion_port_add(async_socket->completion_port, epoll_op, underlying_socket, event_complete_callback, io_context) != 0)
                 {
                     // Codes_SRS_ASYNC_SOCKET_LINUX_04_020: [ If any error occurs, async_socket_notify_io_async shall fail and return a non-zero value. ]
                     LogWarning("failure with completion_port_add");
@@ -936,6 +954,5 @@ all_ok:
             wake_by_address_single(&async_socket->pending_api_calls);
         }
     }
-
     return result;
 }
