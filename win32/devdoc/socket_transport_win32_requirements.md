@@ -4,19 +4,9 @@
 
 socket_transport_win32 is the module that abstracts the socket transport for the windows platform
 
-The `SOCKET_TYPE` determines which API are applicable for this instance of socket_transport.  The following chart shows which API's are allowed under which type:
+## References
 
-| API                                    | Allowable Socket Type
-|----------------------------------------|----------------------
-| socket_transport_create                | BOTH
-| socket_transport_destroy               | BOTH
-| socket_transport_connect               | SOCKET_CLIENT
-| socket_transport_listen                | SOCKET_SERVER
-| socket_transport_disconnect            | BOTH
-| socket_transport_accept                | SOCKET_SERVER
-| socket_transport_send                  | BOTH
-| socket_transport_receive               | BOTH
-| socket_transport_get_underlying_socket | BOTH
+- [socket transport requirements](../../interfaces/devdoc/socket_transport_requirements.md)
 
 ## Exposed API
 
