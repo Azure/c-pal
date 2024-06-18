@@ -15,7 +15,9 @@ typedef struct SOCKET_TRANSPORT_TAG* SOCKET_TRANSPORT_HANDLE;
 
 #define SOCKET_SEND_RESULT_VALUES \
     SOCKET_SEND_OK, \
+    SOCKET_SEND_INVALID_ARG, \
     SOCKET_SEND_ERROR, \
+    SOCKET_SEND_FAILED, \
     SOCKET_SEND_SHUTDOWN
 
 MU_DEFINE_ENUM(SOCKET_SEND_RESULT, SOCKET_SEND_RESULT_VALUES)
@@ -133,7 +135,7 @@ On `WSAEWOULDBLOCK` `connect_to_endpoint` shall call the `select` API with the `
 
 - If the return value is 0, this indicates a timeout and `connect_to_endpoint` shall fail.
 
-- Any other value this indicates a possible success and and `connect_to_endpoint` shall test if the socket is writable by calling `FD_ISSET`.
+- Any other value this indicates a possible success and `connect_to_endpoint` shall test if the socket is writable by calling `FD_ISSET`.
 
 If the socket is writable `connect_to_endpoint` shall succeed and return a 0 value.
 
@@ -163,11 +165,11 @@ If `sm_close_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_disconn
 MOCKABLE_FUNCTION(, SOCKET_SEND_RESULT, socket_transport_send, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_BUFFER*, payload, uint32_t, buffer_count, uint32_t*, bytes_written, uint32_t, flags, void*, overlapped_data);
 ```
 
-If `socket_transport` is `NULL`, `socket_transport_send` shall fail and return `SOCKET_SEND_ERROR`.
+If `socket_transport` is `NULL`, `socket_transport_send` shall fail and return `SOCKET_SEND_INVALID_ARG`.
 
-If `payload` is `NULL`, `socket_transport_send` shall fail and return `SOCKET_SEND_ERROR`.
+If `payload` is `NULL`, `socket_transport_send` shall fail and return `SOCKET_SEND_INVALID_ARG`.
 
-If `buffer_count` is `0`, `socket_transport_send` shall fail and return `SOCKET_SEND_ERROR`.
+If `buffer_count` is `0`, `socket_transport_send` shall fail and return `SOCKET_SEND_INVALID_ARG`.
 
 `socket_transport_send` shall call `sm_exec_begin`.
 

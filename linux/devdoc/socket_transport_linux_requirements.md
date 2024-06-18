@@ -14,8 +14,10 @@ socket_transport_linux is the module that abstracts the socket transport for the
 typedef struct SOCKET_TRANSPORT_TAG* SOCKET_TRANSPORT_HANDLE;
 
 #define SOCKET_SEND_RESULT_VALUES \
+    SOCKET_SEND_INVALID_ARG, \
     SOCKET_SEND_OK, \
     SOCKET_SEND_ERROR, \
+    SOCKET_SEND_FAILED, \
     SOCKET_SEND_SHUTDOWN
 
 MU_DEFINE_ENUM(SOCKET_SEND_RESULT, SOCKET_SEND_RESULT_VALUES)
@@ -138,22 +140,22 @@ If `sm_close_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_disconn
 ### socket_transport_send
 
 ```c
-MOCKABLE_FUNCTION(, SOCKET_SEND_RESULT, socket_transport_send, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_BUFFER*, payload, uint32_t, buffer_count, uint32_t*, bytes_sent, uint32_t, flags, void*, overlapped_data);
+MOCKABLE_FUNCTION(, SOCKET_SEND_RESULT, socket_transport_send, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_BUFFER*, payload, uint32_t, buffer_count, uint32_t*, bytes_sent, uint32_t, flags, void*, data);
 ```
 
-If `socket_transport` is `NULL`, `socket_transport_send` shall fail and return `SOCKET_SEND_ERROR`.
+If `socket_transport` is `NULL`, `socket_transport_send` shall fail and return `SOCKET_SEND_INVALID_ARG`.
 
-If `payload` is `NULL`, `socket_transport_send` shall fail and return `SOCKET_SEND_ERROR`.
+If `payload` is `NULL`, `socket_transport_send` shall fail and return `SOCKET_SEND_INVALID_ARG`.
 
-If `buffer_count` is `0`, `socket_transport_send` shall fail and return `SOCKET_SEND_ERROR`.
+If `buffer_count` is `0`, `socket_transport_send` shall fail and return `SOCKET_SEND_INVALID_ARG`.
 
 `socket_transport_send` shall call `sm_exec_begin`.
 
 If `sm_exec_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_send` shall fail and return `SOCKET_SEND_ERROR`.
 
-For each buffer count in payload `socket_transport_send` shall call `send` to send data with `flags`.
+For each buffer count in payload `socket_transport_send` shall call `send` to send data with `flags` as a parameter.
 
-If `send` returns a value less then 0, `socket_transport_send` shall stop sending and return `SOCKET_SEND_ERROR`.
+If `send` returns a value less then 0, `socket_transport_send` shall stop sending and return `SOCKET_SEND_FAILED`.
 
 - If the errno is equal to `ECONNRESET`, `socket_transport_send` shall return `SOCKET_SEND_SHUTDOWN`.
 
@@ -251,7 +253,7 @@ If `sm_exec_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_accept` 
 
 `socket_transport_accept` shall allocate a `SOCKET_TRANSPORT` for the incoming connection and call `sm_create` and `sm_open` on the connection.
 
-If successful `socket_transport_accept` shall return the allocated `SOCKET_TRANSPORT`.
+If successful `socket_transport_accept` shall return the allocated `SOCKET_TRANSPORT` of type SOCKET_DATA.
 
 If any failure is encountered, `socket_transport_accept` shall fail and return `NULL`.
 

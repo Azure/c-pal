@@ -100,10 +100,10 @@ MOCKABLE_FUNCTION(, void, socket_transport_disconnect, SOCKET_TRANSPORT_HANDLE, 
 ### socket_transport_send
 
 ```c
-MOCKABLE_FUNCTION(, SOCKET_SEND_RESULT, socket_transport_send, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_BUFFER*, payload, uint32_t, buffer_count, uint32_t*, bytes_written, uint32_t, flags, void*, overlapped_data);
+MOCKABLE_FUNCTION(, SOCKET_SEND_RESULT, socket_transport_send, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_BUFFER*, payload, uint32_t, buffer_count, uint32_t*, bytes_written, uint32_t, flags, void*, data);
 ```
 
-`socket_transport_send` Send data to the connected endpoint
+`socket_transport_send` sends data to the connected endpoint.  The parameter `flags` is passed through to the send API.
 
 ### socket_transport_receive
 
@@ -111,7 +111,7 @@ MOCKABLE_FUNCTION(, SOCKET_SEND_RESULT, socket_transport_send, SOCKET_TRANSPORT_
 MOCKABLE_FUNCTION(, SOCKET_RECEIVE_RESULT, socket_transport_receive, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_BUFFER*, payload, uint32_t, buffer_count, uint32_t*, bytes_recv, uint32_t, flags, void*, data);
 ```
 
-`socket_transport_receive` Send data from a connected endpoint
+`socket_transport_receive` recieves data from a connected endpoint.  The parameter `flags` is passed through to the recieve API.
 
 
 ### socket_transport_listen
