@@ -43,7 +43,7 @@ typedef struct SOCKET_TRANSPORT_TAG
     SOCKET_TYPE type;
 } SOCKET_TRANSPORT;
 
-static int connect_to_endpoint(SOCKET client_socket, const ADDRINFO* addrInfo, uint32_t timeout_usec)
+static int connect_to_endpoint(SOCKET client_socket, const ADDRINFO* addrInfo, uint32_t connection_timeout_ms)
 {
     int result;
     if (connect(client_socket, addrInfo->ai_addr, (int)addrInfo->ai_addrlen) != 0)
@@ -56,7 +56,7 @@ static int connect_to_endpoint(SOCKET client_socket, const ADDRINFO* addrInfo, u
 
             struct timeval tv;
             tv.tv_sec = 0;
-            tv.tv_usec = timeout_usec * 100;
+            tv.tv_usec = connection_timeout_ms * 100;
 
             int ret = select(0, NULL, &write_fds, NULL, &tv);
             if (ret == SOCKET_ERROR)
@@ -66,7 +66,7 @@ static int connect_to_endpoint(SOCKET client_socket, const ADDRINFO* addrInfo, u
             }
             else if (ret == 0)
             {
-                LogError("Failure timeout (%" PRId32 " us) attempting to connect", timeout_usec);
+                LogError("Failure timeout (%" PRId32 " us) attempting to connect", connection_timeout_ms);
                 result = MU_FAILURE;
             }
             else
@@ -268,7 +268,7 @@ void socket_transport_disconnect(SOCKET_TRANSPORT_HANDLE socket_transport)
     }
 }
 
-SOCKET_SEND_RESULT socket_transport_send(SOCKET_TRANSPORT_HANDLE socket_transport, SOCKET_BUFFER* payload, uint32_t buffer_count, uint32_t* bytes_written, uint32_t flags, void* overlapped_data)
+SOCKET_SEND_RESULT socket_transport_send(SOCKET_TRANSPORT_HANDLE socket_transport, const SOCKET_BUFFER* payload, uint32_t buffer_count, uint32_t* bytes_sent, uint32_t flags, void* overlapped_data)
 {
     SOCKET_SEND_RESULT result;
     if (socket_transport == NULL ||
@@ -304,9 +304,9 @@ SOCKET_SEND_RESULT socket_transport_send(SOCKET_TRANSPORT_HANDLE socket_transpor
 #ifdef ENABLE_SOCKET_LOGGING
                 LogVerbose("Send completed synchronously at %lf", timer_global_get_elapsed_us());
 #endif
-                if (bytes_written != NULL)
+                if (bytes_sent != NULL)
                 {
-                    *bytes_written = num_bytes;
+                    *bytes_sent = num_bytes;
                 }
                 result = SOCKET_SEND_OK;
             }
