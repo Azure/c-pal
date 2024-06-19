@@ -76,7 +76,7 @@ MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create, EXECUTION_ENGINE_H
 MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create_with_transport, EXECUTION_ENGINE_HANDLE, execution_engine, ON_ASYNC_SOCKET_SEND, on_send, void*, on_send_context, ON_ASYNC_SOCKET_RECV, on_recv, void*, on_recv_context);
 MOCKABLE_FUNCTION(, void, async_socket_destroy, ASYNC_SOCKET_HANDLE, async_socket);
 
-MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_socket, SOCKET_HANDLE, socket_handle, ON_ASYNC_SOCKET_OPEN_COMPLETE, on_open_complete, void*, on_open_complete_context);
+MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_socket, SOCKET_TRANSPORT_HANDLE, socket_transport, ON_ASYNC_SOCKET_OPEN_COMPLETE, on_open_complete, void*, on_open_complete_context);
 MOCKABLE_FUNCTION(, void, async_socket_close, ASYNC_SOCKET_HANDLE, async_socket);
 MOCKABLE_FUNCTION(, ASYNC_SOCKET_SEND_SYNC_RESULT, async_socket_send_async, ASYNC_SOCKET_HANDLE, async_socket, const ASYNC_SOCKET_BUFFER*, payload, uint32_t, buffer_count, ON_ASYNC_SOCKET_SEND_COMPLETE, on_send_complete, void*, on_send_complete_context);
 MOCKABLE_FUNCTION(, int, async_socket_receive_async, ASYNC_SOCKET_HANDLE, async_socket, ASYNC_SOCKET_BUFFER*, payload, uint32_t, buffer_count, ON_ASYNC_SOCKET_RECEIVE_COMPLETE, on_receive_complete, void*, on_receive_complete_context);
@@ -132,14 +132,14 @@ MOCKABLE_FUNCTION(, void, async_socket_destroy, ASYNC_SOCKET_HANDLE, async_socke
 ### async_socket_open_async
 
 ```c
-MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_socket, SOCKET_HANDLE, socket_handle, ON_ASYNC_SOCKET_OPEN_COMPLETE, on_open_complete, void*, on_open_complete_context);
+MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_socket, SOCKET_TRANSPORT_HANDLE, socket_transport, ON_ASYNC_SOCKET_OPEN_COMPLETE, on_open_complete, void*, on_open_complete_context);
 ```
 
 `async_socket_open_async` opens the async socket.
 
 **SRS_ASYNC_SOCKET_WIN32_01_007: [** If `async_socket` is NULL, `async_socket_open_async` shall fail and return a non-zero value. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_034: [** If `socket_handle` is `INVALID_SOCKET`, `async_socket_open_async` shall fail and return NULL. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_034: [** If `socket_transport` is `NULL`, `async_socket_open_async` shall fail and return a non-zero value. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_008: [** If `on_open_complete` is NULL, `async_socket_open_async` shall fail and return a non-zero value. **]**
 
@@ -217,19 +217,19 @@ MOCKABLE_FUNCTION(, ASYNC_SOCKET_SEND_SYNC_RESULT, async_socket_send_async, ASYN
 
 **SRS_ASYNC_SOCKET_WIN32_01_028: [** Otherwise `async_socket_send_async` shall create a context for the send where the `payload`, `on_send_complete` and `on_send_complete_context` shall be stored. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_050: [** The context shall also allocate enough memory to keep an array of `buffer_count` WSABUF items. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_050: [** The context shall also allocate enough memory to keep an array of `buffer_count` `SOCKET_BUFFER` items. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_103: [** If the amount of memory needed to allocate the context and the WSABUF items is exceeding UINT32_MAX, `async_socket_send_async` shall fail and return `ASYNC_SOCKET_SEND_SYNC_ERROR`. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_103: [** If the amount of memory needed to allocate the context and the `SOCKET_BUFFER` items is exceeding UINT32_MAX, `async_socket_send_async` shall fail and return `ASYNC_SOCKET_SEND_SYNC_ERROR`. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_056: [** `async_socket_send_async` shall set the WSABUF items to point to the memory/length of the buffers in `payload`. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_056: [** `async_socket_send_async` shall set the `SOCKET_BUFFER` items to point to the memory/length of the buffers in `payload`. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_057: [** An event to be used for the `OVERLAPPED` structure passed to `WSASend` shall be created and stored in the context. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_057: [** An event to be used for the `OVERLAPPED` structure passed to `socket_transport_send` shall be created and stored in the context. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_060: [** An asynchronous IO shall be started by calling `StartThreadpoolIo`. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_061: [** The `WSABUF` array associated with the context shall be sent by calling `WSASend` and passing to it the `OVERLAPPED` structure with the event that was just created, `dwFlags` set to 0, `lpNumberOfBytesSent` set to NULL and `lpCompletionRoutine` set to NULL. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_061: [** The `SOCKET_BUFFER` array associated with the context shall be sent by calling `socket_transport_send` and passing to it the `OVERLAPPED` structure with the event that was just created, `dwFlags` set to 0, `lpNumberOfBytesSent` set to NULL and `lpCompletionRoutine` set to NULL. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_062: [** If `WSASend` fails, `async_socket_send_async` shall call `WSAGetLastError`. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_062: [** If `socket_transport_send` fails, `async_socket_send_async` shall call `WSAGetLastError`. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_053: [** If `WSAGetLastError` returns `WSA_IO_PENDING`, it shall be not treated as an error. **]**
 
@@ -237,7 +237,7 @@ MOCKABLE_FUNCTION(, ASYNC_SOCKET_SEND_SYNC_RESULT, async_socket_send_async, ASYN
 
 **SRS_ASYNC_SOCKET_WIN32_42_002: [** If `WSAGetLastError` returns `WSAECONNRESET`, `async_socket_send_async` shall fail and return `ASYNC_SOCKET_SEND_SYNC_NOT_OPEN`. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_106: [** If `WSASend` fails with any other error, `async_socket_send_async` shall call `CancelThreadpoolIo` and return `ASYNC_SOCKET_SEND_SYNC_ERROR`. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_106: [** If `socket_transport_send` fails with any other error, `async_socket_send_async` shall call `CancelThreadpoolIo` and return `ASYNC_SOCKET_SEND_SYNC_ERROR`. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_045: [** On success, `async_socket_send_async` shall return `ASYNC_SOCKET_SEND_SYNC_OK`. **]**
 
@@ -275,15 +275,15 @@ MOCKABLE_FUNCTION(, int, async_socket_receive_async, ASYNC_SOCKET_HANDLE, async_
 
 **SRS_ASYNC_SOCKET_WIN32_01_079: [** `async_socket_receive_async` shall set the WSABUF items to point to the memory/length of the buffers in `payload`. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_080: [** An event to be used for the `OVERLAPPED` structure passed to `WSARecv` shall be created and stored in the context. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_080: [** An event to be used for the `OVERLAPPED` structure passed to `socket_transport_receive` shall be created and stored in the context. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_081: [** An asynchronous IO shall be started by calling `StartThreadpoolIo`. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_082: [** A receive shall be started for the `WSABUF` array associated with the context calling `WSARecv` and passing to it the `OVERLAPPED` structure with the event that was just created, `dwFlags` set to 0, `lpNumberOfBytesSent` set to NULL and `lpCompletionRoutine` set to NULL.. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_082: [** A receive shall be started for the `WSABUF` array associated with the context calling `socket_transport_receive` and passing to it the `OVERLAPPED` structure with the event that was just created, `dwFlags` set to 0, `lpNumberOfBytesSent` set to NULL and `lpCompletionRoutine` set to NULL.. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_054: [** If `WSARecv` fails with `SOCKET_ERROR`, `async_socket_receive_async` shall call `WSAGetLastError`. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_054: [** If `socket_transport_receive` fails with `SOCKET_RECEIVE_ERROR`, `async_socket_receive_async` shall call `WSAGetLastError`. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_105: [** If `WSARecv` fails with any other error, `async_socket_receive_async` shall call `CancelThreadpoolIo` and return a non-zero value. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_105: [** If `socket_transport_receive` fails with any other error, `async_socket_receive_async` shall call `CancelThreadpoolIo` and return a non-zero value. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_055: [** If `WSAGetLastError` returns `IO_PENDING`, it shall be not treated as an error. **]**
 
