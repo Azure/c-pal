@@ -22,6 +22,7 @@ set(reals_win32_c_files
     ../../common/reals/real_s_list.c
     ../../common/reals/real_interlocked_hl.c
     ../../common/reals/real_thandle_log_context_handle.c
+    ../../common/reals/real_thandle_sm_handle.c
 )
 
 set(reals_win32_h_files
@@ -53,6 +54,8 @@ set(reals_win32_h_files
     ../../common/reals/real_thandle_helper.h
     ../../common/reals/real_thandle_log_context_handle.h
     ../../common/reals/real_thandle_log_context_handle_renames.h
+    ../../common/reals/real_thandle_sm_handle.h
+    ../../common/reals/real_thandle_sm_handle_renames.h
 )
 
 add_library(win32_reals ${reals_win32_c_files} ${reals_win32_h_files})
