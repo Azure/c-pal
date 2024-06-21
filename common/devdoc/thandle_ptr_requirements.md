@@ -38,12 +38,14 @@ THANDLE_PTR_DEFINE(A_S_PTR);
 
 Then use it like:
 ```c
-THANDLE(PTR(A_S_PTR)) one = THANDLE_PTR_CREATE_WITH_MOVE(A_S_PTR)(a_s, dispose);
+THANDLE(PTR(A_S_PTR)) one = THANDLE_PTR_CREATE_WITH_MOVE(A_S_PTR)(&a_s, dispose);
 ```
 
 `a_s` is a pointer of type `A_S_PTR`.
 
 The above code "moves" ("captures") the pointer `a_s` and produces the `THANDLE` `one`. `dispose` is a user function that takes the original `a_s` pointer and frees all resource used by `a_s`.
+
+Following the successful (non-`NULL` return from `THANDLE_PTR_CREATE_WITH_MOVE(A_S_PTR)`), `a_s` is set to `NULL`.
 
 `one->pointer` produces the original `a_s` pointer. Other fields of the `one` pointer should not be used (it also captures the `dispose` function for example).
 
@@ -68,15 +70,19 @@ APIs are:
 
 ### THANDLE_PTR_CREATE_WITH_MOVE(T)
 ```c
-THANDLE(PTR(T)) THANDLE_PTR_CREATE_WITH_MOVE(T)(T pointer, THANDLE_PTR_FREE_FUNC_TYPE_NAME(T) dispose );
+THANDLE(PTR(T)) THANDLE_PTR_CREATE_WITH_MOVE(T)(T* pointer, THANDLE_PTR_FREE_FUNC_TYPE_NAME(T) dispose );
 ```
 
 
 `THANDLE_PTR_CREATE_WITH_MOVE(T)` will "move" `pointer` to a newly created `THANDLE(PTR(T))` which then can be accessed by using the field "pointer" of the structure.
 
+**SRS_THANDLE_PTR_02_004: [** If `pointer` is `NULL` then `THANDLE_PTR_CREATE_WITH_MOVE(T)` shall fail and return `NULL`. **]**
 
-**SRS_THANDLE_PTR_02_001: [** `THANDLE_PTR_CREATE_WITH_MOVE(T)` shall return what `THANDLE_CREATE_FROM_CONTENT(PTR(T))(THANDLE_PTR_DISPOSE(T))` returns. **]**
+**SRS_THANDLE_PTR_02_005: [** `THANDLE_PTR_CREATE_WITH_MOVE(T)` shall call `THANDLE_CREATE_FROM_CONTENT(PTR(T))(THANDLE_PTR_DISPOSE(T))`. **]**
 
+**SRS_THANDLE_PTR_02_006: [** If `THANDLE_CREATE_FROM_CONTENT(PTR(T))(THANDLE_PTR_DISPOSE(T))` fails then `THANDLE_PTR_CREATE_WITH_MOVE(T)` shall return `NULL`. **]**
+
+**SRS_THANDLE_PTR_02_007: [** Otherwise `THANDLE_CREATE_FROM_CONTENT(PTR(T))(THANDLE_PTR_DISPOSE(T))` shall succeed, set `pointer` to `NULL` and return what `THANDLE_CREATE_FROM_CONTENT(PTR(T))(THANDLE_PTR_DISPOSE(T))` returned. **]**
 
 ### THANDLE_PTR_DISPOSE(T)
 ```

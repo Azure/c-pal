@@ -27,7 +27,6 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
 
-
 typedef struct UNDER_TEST_TAG
 {
     int a;
@@ -71,7 +70,20 @@ static void just_call_free(UNDER_TEST_PTR p)
     free(p);
 }
 
-/*Tests_SRS_THANDLE_PTR_02_001: [ THANDLE_PTR_CREATE_WITH_MOVE(T) shall return what THANDLE_CREATE_FROM_CONTENT(PTR(T))(THANDLE_PTR_DISPOSE(T)) returns. ]*/
+/*Tests_SRS_THANDLE_PTR_02_004: [ If pointer is NULL then THANDLE_PTR_CREATE_WITH_MOVE(T) shall fail and return NULL. ]*/
+TEST_FUNCTION(THANDLE_PTR_CREATE_WITH_MOVE_with_NULL_pointer_fails)
+{
+    ///arrange
+
+    ///act
+    THANDLE(PTR(UNDER_TEST_PTR)) t = THANDLE_PTR_CREATE_WITH_MOVE(UNDER_TEST_PTR)(NULL, just_call_free);
+
+    ///assert
+    ASSERT_IS_NULL(t);
+}
+
+/*Tests_SRS_THANDLE_PTR_02_005: [ THANDLE_PTR_CREATE_WITH_MOVE(T) shall call THANDLE_CREATE_FROM_CONTENT(PTR(T))(THANDLE_PTR_DISPOSE(T)). ]*/
+/*Tests_SRS_THANDLE_PTR_02_007: [ Otherwise THANDLE_CREATE_FROM_CONTENT(PTR(T))(THANDLE_PTR_DISPOSE(T)) shall succeed, set pointer to NULL and return what THANDLE_CREATE_FROM_CONTENT(PTR(T))(THANDLE_PTR_DISPOSE(T)) returned. ]*/
 TEST_FUNCTION(THANDLE_PTR_CREATE_WITH_MOVE_happy_path)
 {
     ///arrange
@@ -82,10 +94,11 @@ TEST_FUNCTION(THANDLE_PTR_CREATE_WITH_MOVE_happy_path)
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG)); /*this is THANDLE_CREATE_FROM_CONTENT...*/
 
     ///act
-    THANDLE(PTR(UNDER_TEST_PTR)) t = THANDLE_PTR_CREATE_WITH_MOVE(UNDER_TEST_PTR)(p, just_call_free);
+    THANDLE(PTR(UNDER_TEST_PTR)) t = THANDLE_PTR_CREATE_WITH_MOVE(UNDER_TEST_PTR)(&p, just_call_free);
 
     ///assert
     ASSERT_IS_NOT_NULL(t);
+    ASSERT_IS_NULL(p);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
@@ -93,7 +106,7 @@ TEST_FUNCTION(THANDLE_PTR_CREATE_WITH_MOVE_happy_path)
 
 }
 
-/*Tests_SRS_THANDLE_PTR_02_001: [ THANDLE_PTR_CREATE_WITH_MOVE(T) shall return what THANDLE_CREATE_FROM_CONTENT(PTR(T))(THANDLE_PTR_DISPOSE(T)) returns. ]*/
+/*Tests_SRS_THANDLE_PTR_02_006: [ If THANDLE_CREATE_FROM_CONTENT(PTR(T))(THANDLE_PTR_DISPOSE(T)) fails then THANDLE_PTR_CREATE_WITH_MOVE(T) shall return NULL. ]*/
 TEST_FUNCTION(THANDLE_PTR_CREATE_WITH_MOVE_unhappy_path)
 {
     ///arrange
@@ -105,10 +118,11 @@ TEST_FUNCTION(THANDLE_PTR_CREATE_WITH_MOVE_unhappy_path)
         .SetReturn(NULL);
 
     ///act
-    THANDLE(PTR(UNDER_TEST_PTR)) t = THANDLE_PTR_CREATE_WITH_MOVE(UNDER_TEST_PTR)(p, just_call_free);
+    THANDLE(PTR(UNDER_TEST_PTR)) t = THANDLE_PTR_CREATE_WITH_MOVE(UNDER_TEST_PTR)(&p, just_call_free);
 
     ///assert
     ASSERT_IS_NULL(t);
+    ASSERT_IS_NOT_NULL(p);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
@@ -120,14 +134,16 @@ TEST_FUNCTION(THANDLE_PTR_DISPOSE_call_dispose)
 {
     ///arrange
     UNDER_TEST_PTR p = real_gballoc_hl_malloc(sizeof(UNDER_TEST));
+    UNDER_TEST_PTR original_p = p;
     ASSERT_IS_NOT_NULL(p);
 
-    THANDLE(PTR(UNDER_TEST_PTR)) t = THANDLE_PTR_CREATE_WITH_MOVE(UNDER_TEST_PTR)(p, just_call_free);
+    THANDLE(PTR(UNDER_TEST_PTR)) t = THANDLE_PTR_CREATE_WITH_MOVE(UNDER_TEST_PTR)(&p, just_call_free);
     ASSERT_IS_NOT_NULL(t);
+    ASSERT_IS_NULL(p);
 
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(free(p));           /*this is freeing "p"*/
+    STRICT_EXPECTED_CALL(free(original_p));  /*this is freeing "p"*/
     STRICT_EXPECTED_CALL(free(IGNORED_ARG)); /*this is freeing the THANDLE storage space*/
 
     ///act
@@ -145,8 +161,9 @@ TEST_FUNCTION(THANDLE_PTR_DISPOSE_NULL_does_not_call_anything)
     UNDER_TEST_PTR p = &local; /*note: no function needed to be called to dispose of local*/
     ASSERT_IS_NOT_NULL(p);
 
-    THANDLE(PTR(UNDER_TEST_PTR)) t = THANDLE_PTR_CREATE_WITH_MOVE(UNDER_TEST_PTR)(p, NULL);
+    THANDLE(PTR(UNDER_TEST_PTR)) t = THANDLE_PTR_CREATE_WITH_MOVE(UNDER_TEST_PTR)(&p, NULL);
     ASSERT_IS_NOT_NULL(t);
+    ASSERT_IS_NULL(p);
 
     umock_c_reset_all_calls();
 
