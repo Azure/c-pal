@@ -38,7 +38,7 @@ typedef struct PTR_STRUCT_TAG_TYPE_NAME(T)                                      
 #define THANDLE_PTR_CREATE_WITH_MOVE_FUNCTION_TYPE(T) MU_C2(THANDLE_PTR_CREATE_WITH_MOVE_TYPE_, T)
 
 /*this introduces one new *type* for the function type of THANDLE_PTR_CREATE_WITH_MOVE*/
-#define THANDLE_PTR_CREATE_WITH_MOVE_TYPE(T) typedef THANDLE(PTR(T))(*THANDLE_PTR_CREATE_WITH_MOVE_FUNCTION_TYPE(T))(T pointer, THANDLE_PTR_FREE_FUNC_TYPE_NAME(T) dispose);
+#define THANDLE_PTR_CREATE_WITH_MOVE_TYPE(T) typedef THANDLE(PTR(T))(*THANDLE_PTR_CREATE_WITH_MOVE_FUNCTION_TYPE(T))(T* pointer, THANDLE_PTR_FREE_FUNC_TYPE_NAME(T) dispose);
 
 
 /*this introduces a new *name* for a function that calls the dispose as passed to THANDLE_PTR_CREATE_WITH_MOVE*/
@@ -46,15 +46,15 @@ typedef struct PTR_STRUCT_TAG_TYPE_NAME(T)                                      
 
 #include "umock_c/umock_c_prod.h"
 
-/*this introduces the declaration of a function that returns a THANDLE(PTR(T))*/
+/*this introduces the declarations needed in a .h file for THANDLE(PTR(T))*/
 #define THANDLE_PTR_DECLARE(T) \
     THANDLE_PTR_FREE_FUNC_TYPE(T);                                                                                                      \
     PTR_STRUCT_TYPE_TYPEDEF(T);                                                                                                         \
     THANDLE_TYPE_DECLARE(PTR(T));                                                                                                       \
     THANDLE_PTR_CREATE_WITH_MOVE_TYPE(T);                                                                                               \
-    MOCKABLE_FUNCTION(,THANDLE(PTR(T)), THANDLE_PTR_CREATE_WITH_MOVE(T), T, pointer, THANDLE_PTR_FREE_FUNC_TYPE_NAME(T), dispose );     \
+    MOCKABLE_FUNCTION(,THANDLE(PTR(T)), THANDLE_PTR_CREATE_WITH_MOVE(T), T*, pointer, THANDLE_PTR_FREE_FUNC_TYPE_NAME(T), dispose );     \
 
-/*this introduces the definition of the function declared above*/
+/*this introduces the definitions for the declarations above to be used in a .c file*/
 #define THANDLE_PTR_DEFINE(T)                                                                                                                                           \
     THANDLE_TYPE_DEFINE(PTR(T));                                                                                                                                        \
     static void THANDLE_PTR_DISPOSE(T)(PTR(T)* ptr)                                                                                                                     \
@@ -70,15 +70,39 @@ typedef struct PTR_STRUCT_TAG_TYPE_NAME(T)                                      
             /*do nothing*/                                                                                                                                              \
         }                                                                                                                                                               \
     }                                                                                                                                                                   \
-    THANDLE(PTR(T)) THANDLE_PTR_CREATE_WITH_MOVE(T)(T pointer, THANDLE_PTR_FREE_FUNC_TYPE_NAME(T) dispose )                                                             \
+    THANDLE(PTR(T)) THANDLE_PTR_CREATE_WITH_MOVE(T)(T* pointer, THANDLE_PTR_FREE_FUNC_TYPE_NAME(T) dispose )                                                            \
     {                                                                                                                                                                   \
-        PTR(T) temp =                                                                                                                                                   \
+        THANDLE(PTR(T)) result = NULL;                                                                                                                                  \
+        /*Codes_SRS_THANDLE_PTR_02_004: [ If pointer is NULL then THANDLE_PTR_CREATE_WITH_MOVE(T) shall fail and return NULL. ]*/                                       \
+        if(pointer == NULL)                                                                                                                                             \
         {                                                                                                                                                               \
-            .pointer = pointer, /* this is "move" */                                                                                                                    \
-            .dispose = dispose                                                                                                                                          \
-        };                                                                                                                                                              \
-        /*Codes_SRS_THANDLE_PTR_02_001: [ THANDLE_PTR_CREATE_WITH_MOVE(T) shall return what THANDLE_CREATE_FROM_CONTENT(PTR(T))(THANDLE_PTR_DISPOSE(T)) returns. ]*/    \
-        return THANDLE_CREATE_FROM_CONTENT(PTR(T))(&temp, THANDLE_PTR_DISPOSE(T), NULL);                                                                                \
+            LogError("invalid arguments T* pointer=%p, THANDLE_PTR_FREE_FUNC_TYPE_NAME(" MU_TOSTRING(T) ") dispose=%p", pointer, dispose);                              \
+            /*return as set to NULL already*/;                                                                                                                          \
+        }                                                                                                                                                               \
+        else                                                                                                                                                            \
+        {                                                                                                                                                               \
+            PTR(T) temp =                                                                                                                                               \
+            {                                                                                                                                                           \
+                .pointer = *pointer, /* this is "move" */                                                                                                               \
+                .dispose = dispose                                                                                                                                      \
+            };                                                                                                                                                          \
+            /*Codes_SRS_THANDLE_PTR_02_005: [ THANDLE_PTR_CREATE_WITH_MOVE(T) shall call THANDLE_CREATE_FROM_CONTENT(PTR(T))(THANDLE_PTR_DISPOSE(T)). ]*/               \
+            THANDLE_INITIALIZE_MOVE(PTR(T))(&result, &(THANDLE(PTR(T))){THANDLE_CREATE_FROM_CONTENT(PTR(T))(&temp, THANDLE_PTR_DISPOSE(T), NULL)});                     \
+            if(result == NULL)                                                                                                                                          \
+            {                                                                                                                                                           \
+                /*Codes_SRS_THANDLE_PTR_02_006: [ If THANDLE_CREATE_FROM_CONTENT(PTR(T))(THANDLE_PTR_DISPOSE(T)) fails then THANDLE_PTR_CREATE_WITH_MOVE(T) shall return NULL. ]*/ \
+                LogError("failure in THANDLE_CREATE_FROM_CONTENT(PTR(" MU_TOSTRING(T) "))(&temp=%p, THANDLE_PTR_DISPOSE(T=" MU_TOSTRING(T) ")=%p, NULL)",               \
+                    &temp, THANDLE_PTR_DISPOSE(T));                                                                                                                     \
+                /*return as is*/                                                                                                                                        \
+            }                                                                                                                                                           \
+            else                                                                                                                                                        \
+            {                                                                                                                                                           \
+                /*Codes_SRS_THANDLE_PTR_02_007: [ Otherwise THANDLE_CREATE_FROM_CONTENT(PTR(T))(THANDLE_PTR_DISPOSE(T)) shall succeed, set pointer to NULL and return what THANDLE_CREATE_FROM_CONTENT(PTR(T))(THANDLE_PTR_DISPOSE(T)) returned. ]*/ \
+                *pointer = NULL;                                                                                                                                        \
+                /*return as is (non-NULL)*/                                                                                                                             \
+            }                                                                                                                                                           \
+        }                                                                                                                                                               \
+        return result;                                                                                                                                                  \
     }
 
 #endif /*THANDLE_PTR_H*/
