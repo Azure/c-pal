@@ -92,15 +92,17 @@ TEST_FUNCTION(thandle_int_works_with_both_declare_and_define_in_this_file)
     a_s->a = 42;
     a_s->s = sprintf_char("%s", "3333333333333333333333_here_some_string_3333333333333333333333");
     ASSERT_IS_NOT_NULL(a_s->s);
+    A_S_PTR original_a_s = a_s; /*needed to verification later*/
 
     ///act
     LogInfo("2. move the pointer to the structure into a THANDLE(PTR())");
-    THANDLE(PTR(A_S_PTR)) one = THANDLE_PTR_CREATE_WITH_MOVE(A_S_PTR)(a_s, dispose);
+    THANDLE(PTR(A_S_PTR)) one = THANDLE_PTR_CREATE_WITH_MOVE(A_S_PTR)(&a_s, dispose);
 
     ///assert
     LogInfo("3. verify that the pointer in the THANDLE is the same as the original pointer");
     ASSERT_IS_NOT_NULL(one);
-    ASSERT_ARE_EQUAL(void_ptr, a_s, one->pointer);
+    ASSERT_IS_NULL(a_s);
+    ASSERT_ARE_EQUAL(void_ptr, original_a_s, one->pointer);
 
     ///assert
     LogInfo("3.1 verify that the pointer has the same qualifiers as the original pointer (in this case fields are not const)");
@@ -129,15 +131,17 @@ TEST_FUNCTION(thandle_int_works_with_both_declare_and_define_in_this_file_for_co
     *(int*)& a_s->a = 42;
     *(char**)&a_s->s = sprintf_char("%s", "3333333333333333333333_here_some_string_3333333333333333333333");
     ASSERT_IS_NOT_NULL(a_s->s);
+    A_S_CONST_PTR original_a_s = a_s; /*needed to verification later*/
 
     ///act
     LogInfo("2. move the pointer to the structure into a THANDLE(PTR())");
-    THANDLE(PTR(A_S_CONST_PTR)) one = THANDLE_PTR_CREATE_WITH_MOVE(A_S_CONST_PTR)(a_s, dispose_const);
+    THANDLE(PTR(A_S_CONST_PTR)) one = THANDLE_PTR_CREATE_WITH_MOVE(A_S_CONST_PTR)(&a_s, dispose_const);
 
     ///assert
     LogInfo("3. verify that the pointer in the THANDLE is the same as the original pointer");
     ASSERT_IS_NOT_NULL(one);
-    ASSERT_ARE_EQUAL(void_ptr, a_s, one->pointer);
+    ASSERT_IS_NULL(a_s);
+    ASSERT_ARE_EQUAL(void_ptr, original_a_s, one->pointer);
 
     ///assert
     LogInfo("3.1 verify that the pointer has the same qualifiers as the original pointer (in this case fields are const)");
@@ -158,14 +162,16 @@ TEST_FUNCTION(thandle_int_works_with_both_declare_and_define_in_different_files)
     ///arrange
     EXAMPLE_COMPLETE_PTR p = malloc(sizeof(EXAMPLE_COMPLETE));
     ASSERT_IS_NOT_NULL(p);
-    p->example_complete= 2;
+    p->example_complete = 2;
+    EXAMPLE_COMPLETE_PTR original_p = p;
 
     ///act
-    THANDLE(PTR(EXAMPLE_COMPLETE_PTR)) example_complete = THANDLE_PTR_CREATE_WITH_MOVE(EXAMPLE_COMPLETE_PTR)(p, dispose_example_complete);
+    THANDLE(PTR(EXAMPLE_COMPLETE_PTR)) example_complete = THANDLE_PTR_CREATE_WITH_MOVE(EXAMPLE_COMPLETE_PTR)(&p, dispose_example_complete);
 
     ///assert
     ASSERT_IS_NOT_NULL(example_complete);
-    ASSERT_ARE_EQUAL(void_ptr, p, example_complete->pointer);
+    ASSERT_IS_NULL(p);
+    ASSERT_ARE_EQUAL(void_ptr, original_p, example_complete->pointer);
     ASSERT_ARE_EQUAL(int, 2, example_complete->pointer->example_complete);
 
     ///cleanup
@@ -178,13 +184,15 @@ TEST_FUNCTION(thandle_int_works_with_incomplete_types)
     ///arrange
     EXAMPLE_INCOMPLETE_PTR p = create_example_incomplete();
     ASSERT_IS_NOT_NULL(p);
+    EXAMPLE_INCOMPLETE_PTR original_p = p;
 
     ///act
-    THANDLE(PTR(EXAMPLE_INCOMPLETE_PTR)) example_incomplete = THANDLE_PTR_CREATE_WITH_MOVE(EXAMPLE_INCOMPLETE_PTR)(p, dispose_example_incomplete);
+    THANDLE(PTR(EXAMPLE_INCOMPLETE_PTR)) example_incomplete = THANDLE_PTR_CREATE_WITH_MOVE(EXAMPLE_INCOMPLETE_PTR)(&p, dispose_example_incomplete);
 
     ///assert
     ASSERT_IS_NOT_NULL(example_incomplete);
-    ASSERT_ARE_EQUAL(void_ptr, p, example_incomplete->pointer);
+    ASSERT_IS_NULL(p);
+    ASSERT_ARE_EQUAL(void_ptr, original_p, example_incomplete->pointer);
 
     ///cleanup
     THANDLE_ASSIGN(PTR(EXAMPLE_INCOMPLETE_PTR))(&example_incomplete, NULL);
