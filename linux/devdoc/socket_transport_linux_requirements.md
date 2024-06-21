@@ -65,15 +65,15 @@ MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create, SOCKET_TYP
 
 `socket_transport_create` creates a socket transport.
 
-`socket_transport_create` shall ensure `type` is either `SOCKET_CLIENT`, or `SOCKET_SERVER`.
+**SOCKET_TRANSPORT_LINUX_11_001: [** `socket_transport_create` shall ensure `type` is either `SOCKET_CLIENT`, or `SOCKET_SERVER`. **]**
 
-`socket_transport_create` shall allocate a new `SOCKET_TRANSPORT` object.
+**SOCKET_TRANSPORT_LINUX_11_002: [** `socket_transport_create` shall allocate a new `SOCKET_TRANSPORT` object. **]**
 
-`socket_transport_create` shall call `sm_create` to create a sm object.
+**SOCKET_TRANSPORT_LINUX_11_003: [** `socket_transport_create` shall call `sm_create` to create a sm object. **]**
 
-On any failure `socket_transport_create` shall return `NULL`.
+**SOCKET_TRANSPORT_LINUX_11_004: [** On any failure `socket_transport_create` shall return `NULL`. **]**
 
-On success `socket_transport_create` shall return `SOCKET_TRANSPORT_HANDLE`.
+**SOCKET_TRANSPORT_LINUX_11_005: [** On success `socket_transport_create` shall return `SOCKET_TRANSPORT_HANDLE`. **]**
 
 ### socket_transport_destroy
 
@@ -83,11 +83,11 @@ MOCKABLE_FUNCTION(, void, socket_transport_destroy, SOCKET_TRANSPORT_HANDLE, soc
 
 `socket_transport_destroy` destroys all data stored in the `SOCKET_TRANSPORT_HANDLE` object.
 
-If `socket_transport` is `NULL` `socket_transport_destroy` shall return.
+**SOCKET_TRANSPORT_LINUX_11_006: [** If `socket_transport` is `NULL` `socket_transport_destroy` shall return. **]**
 
-`socket_transport_destroy` shall call `sm_destroy` to destroy the sm object.
+**SOCKET_TRANSPORT_LINUX_11_007: [** `socket_transport_destroy` shall call `sm_destroy` to destroy the sm object. **]**
 
-`socket_transport_destroy` shall free the `SOCKET_TRANSPORT_HANDLE` object.
+**SOCKET_TRANSPORT_LINUX_11_008: [** `socket_transport_destroy` shall free the `SOCKET_TRANSPORT_HANDLE` object. **]**
 
 ### socket_transport_connect
 
@@ -97,27 +97,27 @@ MOCKABLE_FUNCTION(, int, socket_transport_connect, SOCKET_TRANSPORT_HANDLE, sock
 
 `socket_transport_connect` shall connect to a specified endpoint.
 
-If `socket_transport` is `NULL`, `socket_transport_connect` shall fail and return a non-zero value.
+**SOCKET_TRANSPORT_LINUX_11_009: [** If `socket_transport` is `NULL`, `socket_transport_connect` shall fail and return a non-zero value. **]**
 
-If `hostname` is `NULL`, `socket_transport_connect` shall fail and return a non-zero value.
+**SOCKET_TRANSPORT_LINUX_11_010: [** If `hostname` is `NULL`, `socket_transport_connect` shall fail and return a non-zero value. **]**
 
-If `port` is `0`, `socket_transport_connect` shall fail and return a non-zero value.
+**SOCKET_TRANSPORT_LINUX_11_011: [** If `port` is `0`, `socket_transport_connect` shall fail and return a non-zero value. **]**
 
-If the `socket_transport` is not `SOCKET_CLIENT`, `socket_transport_connect` shall fail and return a non-zero value.
+**SOCKET_TRANSPORT_LINUX_11_012: [** If the `socket_transport` is not `SOCKET_CLIENT`, `socket_transport_connect` shall fail and return a non-zero value. **]**
 
-`socket_transport_connect` shall call `sm_open_begin` to begin the open.
+**SOCKET_TRANSPORT_LINUX_11_013: [** `socket_transport_connect` shall call `sm_open_begin` to begin the open. **]**
 
-If `sm_open_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_connect` shall fail and return a non-zero value.
+**SOCKET_TRANSPORT_LINUX_11_014: [** If `sm_open_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_connect` shall fail and return a non-zero value. **]**
 
-`socket_transport_connect` shall call `socket` with the params `AF_INET`, `SOCK_STREAM` and `0`.
+**SOCKET_TRANSPORT_LINUX_11_015: [** `socket_transport_connect` shall call `socket` with the params `AF_INET`, `SOCK_STREAM` and `0`. **]**
 
-`socket_transport_connect` shall call `connect` to connect to the endpoint.
+**SOCKET_TRANSPORT_LINUX_11_016: [** `socket_transport_connect` shall call `connect` to connect to the endpoint. **]**
 
-`socket_transport_connect` shall set the socket to non-blocking by calling `fcntl` with `O_NONBLOCK`.
+**SOCKET_TRANSPORT_LINUX_11_017: [** `socket_transport_connect` shall set the socket to non-blocking by calling `fcntl` with `O_NONBLOCK`. **]**
 
-If successful `socket_transport_connect` shall call `sm_open_end` with `true`.
+**SOCKET_TRANSPORT_LINUX_11_018: [** If successful `socket_transport_connect` shall call `sm_open_end` with `true`. **]**
 
-If any failure is encountered, `socket_transport_connect` shall call `sm_open_end` with `false`, fail and return a non-zero value.
+**SOCKET_TRANSPORT_LINUX_11_019: [** If any failure is encountered, `socket_transport_connect` shall call `sm_open_end` with `false`, fail and return a non-zero value. **]**
 
 ### socket_transport_disconnect
 
@@ -127,7 +127,7 @@ MOCKABLE_FUNCTION(, void, socket_transport_disconnect, SOCKET_TRANSPORT_HANDLE, 
 
 `socket_transport_disconnect` shall disconnect a connected socked from its endpoint.
 
-If `socket_transport` is `NULL`, `socket_transport_disconnect` shall fail and return.
+**SOCKET_TRANSPORT_LINUX_11_020: [** If `socket_transport` is `NULL`, `socket_transport_disconnect` shall fail and return. **]**
 
 `socket_transport_disconnect` shall call `sm_close_begin` to begin the closing process.
 
