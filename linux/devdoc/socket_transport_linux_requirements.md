@@ -271,12 +271,12 @@ MOCKABLE_FUNCTION(, SOCKET_HANDLE, socket_transport_get_underlying_socket, SOCKE
 
 `socket_transport_get_underlying_socket` returns the underlying socket.
 
-If `socket_transport` is `NULL`, `socket_transport_get_underlying_socket` shall fail and return `INVALID_SOCKET`.
+**SOCKET_TRANSPORT_LINUX_11_064: [** If `socket_transport` is `NULL`, `socket_transport_get_underlying_socket` shall fail and return `INVALID_SOCKET`. **]**
 
-`socket_transport_get_underlying_socket` shall call `sm_exec_begin`.
+**SOCKET_TRANSPORT_LINUX_11_065: [** `socket_transport_get_underlying_socket` shall call `sm_exec_begin`. **]**
 
-If `sm_exec_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_get_underlying_socket` shall fail and return `INVALID_SOCKET`.
+**SOCKET_TRANSPORT_LINUX_11_066: [** If `sm_exec_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_get_underlying_socket` shall fail and return `INVALID_SOCKET`. **]**
 
-`socket_transport_get_underlying_socket` shall return the SOCKET_TRANSPORT socket value.
+**SOCKET_TRANSPORT_LINUX_11_067: [** `socket_transport_get_underlying_socket` shall return the `SOCKET_HANDLE` socket value. **]**
 
-`socket_transport_get_underlying_socket` shall call `sm_exec_end`.
+**SOCKET_TRANSPORT_LINUX_11_068: [** `socket_transport_get_underlying_socket` shall call `sm_exec_end`. **]**

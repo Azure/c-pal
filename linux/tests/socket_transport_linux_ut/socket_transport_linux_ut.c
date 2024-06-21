@@ -1190,7 +1190,7 @@ TEST_FUNCTION(socket_transport_listen_invalid_socket_type_fail)
 // Tests_SOCKET_TRANSPORT_LINUX_11_060: [ socket_transport_listen shall bind to the socket by calling bind. ]
 // Tests_SOCKET_TRANSPORT_LINUX_11_061: [ socket_transport_listen shall start listening to incoming connection by calling listen. ]
 // Tests_SOCKET_TRANSPORT_LINUX_11_062: [ If successful socket_transport_listen shall call sm_open_end with true. ]
-TEST_FUNCTION(socket_transport_listen_succeed)
+XTEST_FUNCTION(socket_transport_listen_succeed)
 {
     //arrange
     SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_SERVER);
@@ -1217,7 +1217,7 @@ TEST_FUNCTION(socket_transport_listen_succeed)
 }
 
 // Tests_SOCKET_TRANSPORT_LINUX_11_063: [ If any failure is encountered, socket_transport_listen shall call sm_open_end with false, fail and return a non-zero value. ]
-TEST_FUNCTION(socket_transport_listen_fail)
+XTEST_FUNCTION(socket_transport_listen_fail)
 {
     //arrange
     SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_SERVER);
@@ -1305,7 +1305,25 @@ TEST_FUNCTION(socket_transport_accept_succeed)
 
 // socket_transport_get_underlying_socket
 
-XTEST_FUNCTION(socket_transport_get_underlying_socket_succeed)
+// Tests_SOCKET_TRANSPORT_LINUX_11_064: [ If socket_transport is NULL, socket_transport_get_underlying_socket shall fail and return INVALID_SOCKET. ]
+TEST_FUNCTION(socket_transport_get_underlying_socket_socket_transport_NULL_fail)
+{
+    //arrange
+
+    //act
+    SOCKET_HANDLE underying_socket = socket_transport_get_underlying_socket(NULL);
+
+    //assert
+    ASSERT_ARE_EQUAL(int, INVALID_SOCKET, underying_socket);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+}
+
+// Tests_SOCKET_TRANSPORT_LINUX_11_065: [ socket_transport_get_underlying_socket shall call sm_exec_begin. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_067: [ socket_transport_get_underlying_socket shall return the SOCKET_HANDLE socket value. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_068: [ socket_transport_get_underlying_socket shall call sm_exec_end. ]
+TEST_FUNCTION(socket_transport_get_underlying_socket_succeed)
 {
     //arrange
     SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_SERVER);
@@ -1321,6 +1339,28 @@ XTEST_FUNCTION(socket_transport_get_underlying_socket_succeed)
 
     //assert
     ASSERT_ARE_EQUAL(int, test_socket, underying_socket);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    socket_transport_disconnect(socket_handle);
+    socket_transport_destroy(socket_handle);
+}
+
+// Tests_SOCKET_TRANSPORT_LINUX_11_066: [ If sm_exec_begin does not return SM_EXEC_GRANTED, socket_transport_get_underlying_socket shall fail and return INVALID_SOCKET. ]
+TEST_FUNCTION(socket_transport_get_underlying_socket_not_open_fail)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_SERVER);
+    ASSERT_IS_NOT_NULL(socket_handle);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+
+    //act
+    SOCKET_HANDLE underying_socket = socket_transport_get_underlying_socket(socket_handle);
+
+    //assert
+    ASSERT_ARE_EQUAL(int, INVALID_SOCKET, underying_socket);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup

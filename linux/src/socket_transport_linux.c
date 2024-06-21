@@ -657,6 +657,7 @@ all_ok:
 SOCKET_HANDLE socket_transport_get_underlying_socket(SOCKET_TRANSPORT_HANDLE socket_transport)
 {
     SOCKET_HANDLE result;
+    // Codes_SOCKET_TRANSPORT_LINUX_11_064: [ If socket_transport is NULL, socket_transport_get_underlying_socket shall fail and return INVALID_SOCKET. ]
     if (socket_transport == NULL)
     {
         LogError("Invalid arguments: SOCKET_TRANSPORT_HANDLE socket_transport: %p",
@@ -665,15 +666,19 @@ SOCKET_HANDLE socket_transport_get_underlying_socket(SOCKET_TRANSPORT_HANDLE soc
     }
     else
     {
+        // Codes_SOCKET_TRANSPORT_LINUX_11_065: [ socket_transport_get_underlying_socket shall call sm_exec_begin. ]
         SM_RESULT sm_result = sm_exec_begin(socket_transport->sm);
         if (sm_result != SM_EXEC_GRANTED)
         {
+            // Codes_SOCKET_TRANSPORT_LINUX_11_066: [ If sm_exec_begin does not return SM_EXEC_GRANTED, socket_transport_get_underlying_socket shall fail and return INVALID_SOCKET. ]
             LogError("sm_exec_begin failed : %" PRI_MU_ENUM, MU_ENUM_VALUE(SM_RESULT, sm_result));
             result = (SOCKET_HANDLE)INVALID_SOCKET;
         }
         else
         {
+            // Codes_SOCKET_TRANSPORT_LINUX_11_067: [ socket_transport_get_underlying_socket shall return the SOCKET_HANDLE socket value. ]
             result = (SOCKET_HANDLE)socket_transport->socket;
+            // Codes_SOCKET_TRANSPORT_LINUX_11_068: [ socket_transport_get_underlying_socket shall call sm_exec_end. ]
             sm_exec_end(socket_transport->sm);
         }
     }
