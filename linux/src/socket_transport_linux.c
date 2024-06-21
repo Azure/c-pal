@@ -258,10 +258,21 @@ void socket_transport_disconnect(SOCKET_TRANSPORT_HANDLE socket_transport)
         SM_RESULT close_result = sm_close_begin(socket_transport->sm);
         if (close_result == SM_EXEC_GRANTED)
         {
-            if (close(socket_transport->socket) != 0)
+            // Codes_SOCKET_TRANSPORT_LINUX_11_025: [ socket_transport_disconnect shall call shutdown to stop both the transmit and reception of the connected socket. ]
+            if (shutdown(socket_transport->socket, 2) != 0)
             {
-                LogErrorNo("Close failure on socket: %" PRI_SOCKET "", socket_transport->socket);
+                // Codes_SOCKET_TRANSPORT_LINUX_11_026: [ If shutdown does not return 0, the socket is not valid therefore socket_transport_disconnect shall not call 'close' ]
+                LogErrorNo("shutdown failed on socket: %" PRI_SOCKET "", socket_transport->socket);
             }
+            else
+            {
+                // Codes_SOCKET_TRANSPORT_LINUX_11_023: [ socket_transport_disconnect shall call close to disconnect the connected socket. ]
+                if (close(socket_transport->socket) != 0)
+                {
+                    LogErrorNo("Close failure on socket: %" PRI_SOCKET "", socket_transport->socket);
+                }
+            }
+            // Codes_SOCKET_TRANSPORT_LINUX_11_024: [ socket_transport_disconnect shall call sm_close_end. ]
             sm_close_end(socket_transport->sm);
         }
         else
@@ -274,34 +285,42 @@ void socket_transport_disconnect(SOCKET_TRANSPORT_HANDLE socket_transport)
 SOCKET_SEND_RESULT socket_transport_send(SOCKET_TRANSPORT_HANDLE socket_transport, const SOCKET_BUFFER* payload, uint32_t buffer_count, uint32_t* bytes_sent, uint32_t flags, void* data)
 {
     SOCKET_SEND_RESULT result;
+    // Codes_SOCKET_TRANSPORT_LINUX_11_027: [ If socket_transport is NULL, socket_transport_send shall fail and return SOCKET_SEND_INVALID_ARG. ]
     if (socket_transport == NULL ||
-        payload == NULL)
+        // Codes_SOCKET_TRANSPORT_LINUX_11_028: [ If payload is NULL, socket_transport_send shall fail and return SOCKET_SEND_INVALID_ARG. ]
+        payload == NULL ||
+        // Codes_SOCKET_TRANSPORT_LINUX_11_029: [ If buffer_count is 0, socket_transport_send shall fail and return SOCKET_SEND_INVALID_ARG. ]
+        buffer_count == 0)
     {
-        LogError("Invalid arguments: SOCKET_TRANSPORT_HANDLE socket_transport: %p, const SOCKET_BUFFER* payload: %p, void* data: %p",
-            socket_transport, payload, data);
-        result = SOCKET_SEND_ERROR;
+        LogError("Invalid arguments: SOCKET_TRANSPORT_HANDLE socket_transport: %p, const SOCKET_BUFFER* payload: %p, uint32_T buffer_count: %" PRIu32 ", void* data: %p",
+            socket_transport, payload, buffer_count, data);
+        result = SOCKET_SEND_INVALID_ARG;
     }
     else
     {
+        // Codes_SOCKET_TRANSPORT_LINUX_11_030: [ socket_transport_send shall call sm_exec_begin. ]
         SM_RESULT sm_result = sm_exec_begin(socket_transport->sm);
         if (sm_result != SM_EXEC_GRANTED)
         {
+            // Codes_SOCKET_TRANSPORT_LINUX_11_031: [ If sm_exec_begin does not return SM_EXEC_GRANTED, socket_transport_send shall fail and return SOCKET_SEND_ERROR. ]
             LogError("sm_exec_begin failed : %" PRI_MU_ENUM, MU_ENUM_VALUE(SM_RESULT, sm_result));
-            result = MU_FAILURE;
+            result = SOCKET_SEND_ERROR;
         }
         else
         {
             uint32_t total_send_size = 0;
             for (uint32_t index = 0; index < buffer_count; index++)
             {
+                // Codes_SOCKET_TRANSPORT_LINUX_11_032: [ For each buffer count in payload socket_transport_send shall call send to send data with flags as a parameter. ]
                 ssize_t data_sent = 0;
                 do
                 {
                     ssize_t send_size = send(socket_transport->socket, payload[index].buffer, payload[index].length, flags);
                     if (send_size < 0)
                     {
-                        // Log below where we get the errno
-                        result = SOCKET_SEND_ERROR;
+                        // Codes_SOCKET_TRANSPORT_LINUX_11_033: [ If send returns a value less then 0, socket_transport_send shall stop sending and return SOCKET_SEND_FAILED. ]
+                        LogErrorNo("Failure sending data index: %" PRIu32 ", payload.buffer: %p, payload.length: %" PRIu32 "", index, payload[index].buffer, payload[index].length);
+                        result = SOCKET_SEND_FAILED;
                         break;
                     }
                     else
@@ -309,6 +328,7 @@ SOCKET_SEND_RESULT socket_transport_send(SOCKET_TRANSPORT_HANDLE socket_transpor
                         result = SOCKET_SEND_OK;
                         data_sent += send_size;
                     }
+                    // Codes_SOCKET_TRANSPORT_LINUX_11_035: [ Otherwise socket_transport_send shall continue calling send until the SOCKET_BUFFER length is reached. ]
                 } while (data_sent < payload[index].length);
 
                 if (result == SOCKET_SEND_OK)
@@ -322,12 +342,13 @@ SOCKET_SEND_RESULT socket_transport_send(SOCKET_TRANSPORT_HANDLE socket_transpor
                 {
                     if (errno == ECONNRESET)
                     {
-                        // todo: maybe we need to return a known value
+                        // Codes_SOCKET_TRANSPORT_LINUX_11_034: [ If the errno is equal to ECONNRESET, socket_transport_send shall return SOCKET_SEND_SHUTDOWN. ]
                         result = SOCKET_SEND_SHUTDOWN;
                         LogError("A reset on the send socket has been encountered");
                     }
                     else
                     {
+                        // Send the result unchanged
                         LogErrorNo("Failure sending socket data: buffer: %p, length: %" PRIu32 "", payload->buffer, payload->length);
                     }
                 }
@@ -345,18 +366,24 @@ SOCKET_SEND_RESULT socket_transport_send(SOCKET_TRANSPORT_HANDLE socket_transpor
 SOCKET_RECEIVE_RESULT socket_transport_receive(SOCKET_TRANSPORT_HANDLE socket_transport, SOCKET_BUFFER* payload, uint32_t buffer_count, uint32_t* bytes_recv, uint32_t flags, void* data)
 {
     SOCKET_RECEIVE_RESULT result;
+    // Codes_SOCKET_TRANSPORT_LINUX_11_038: [ If socket_transport is NULL, socket_transport_receive shall fail and return SOCKET_RECEIVE_INVALID_ARG. ]
     if (socket_transport == NULL ||
-        payload == NULL)
+        // Codes_SOCKET_TRANSPORT_LINUX_11_039: [ If payload is NULL, socket_transport_receive shall fail and return SOCKET_RECEIVE_INVALID_ARG. ]
+        payload == NULL ||
+        // Codes_SOCKET_TRANSPORT_LINUX_11_040: [ If buffer_count is 0, socket_transport_receive shall fail and return SOCKET_RECEIVE_INVALID_ARG. ]
+        buffer_count == 0)
     {
-        LogError("Invalid arguments: SOCKET_TRANSPORT_HANDLE socket_transport=%p, const SOCKET_BUFFER* payload=%p, uint32_t flags=%" PRIu32 ", void*, data=%p",
-            socket_transport, payload, flags, data);
-        result = SOCKET_RECEIVE_ERROR;
+        LogError("Invalid arguments: SOCKET_TRANSPORT_HANDLE socket_transport=%p, const SOCKET_BUFFER* payload=%p, uint32_t buffer_count: %" PRIu32 ", uint32_t flags=%" PRIu32 ", void*, data=%p",
+            socket_transport, payload, buffer_count, flags, data);
+        result = SOCKET_RECEIVE_INVALID_ARG;
     }
     else
     {
+        // Codes_SOCKET_TRANSPORT_LINUX_11_041: [ socket_transport_receive shall call sm_exec_begin. ]
         SM_RESULT sm_result = sm_exec_begin(socket_transport->sm);
         if (sm_result != SM_EXEC_GRANTED)
         {
+            // Codes_SOCKET_TRANSPORT_LINUX_11_042: [ If sm_exec_begin does not return SM_EXEC_GRANTED, socket_transport_receive shall fail and return SOCKET_RECEIVE_ERROR. ]
             LogError("sm_exec_begin failed : %" PRI_MU_ENUM, MU_ENUM_VALUE(SM_RESULT, sm_result));
             result = SOCKET_RECEIVE_ERROR;
         }
@@ -365,11 +392,14 @@ SOCKET_RECEIVE_RESULT socket_transport_receive(SOCKET_TRANSPORT_HANDLE socket_tr
             uint32_t total_recv_size = 0;
             for (uint32_t index = 0; index < buffer_count; index++)
             {
+                // Codes_SOCKET_TRANSPORT_LINUX_11_043: [ For each buffer count in payload socket_transport_receive shall call recv with the flags parameter. ]
                 ssize_t recv_size = recv(socket_transport->socket, payload[index].buffer, payload[index].length, flags);
                 if (recv_size < 0)
                 {
+                    // Codes_SOCKET_TRANSPORT_LINUX_11_044: [ If recv a value less then 0, socket_transport_receive shall do the following: ]
                     if (errno == EAGAIN || errno == EWOULDBLOCK)
                     {
+                        // Codes_SOCKET_TRANSPORT_LINUX_11_045: [ If errno is EAGAIN or EWOULDBLOCK, socket_transport_receive shall break out of loop and return SOCKET_RECEIVE_WOULD_BLOCK. ]
                         result = SOCKET_RECEIVE_WOULD_BLOCK;
                         break;
                     }
@@ -379,11 +409,13 @@ SOCKET_RECEIVE_RESULT socket_transport_receive(SOCKET_TRANSPORT_HANDLE socket_tr
                         recv_size = 0;
                         if (errno == ECONNRESET)
                         {
+                            // Codes_SOCKET_TRANSPORT_LINUX_11_046: [ If errno is ECONNRESET, socket_transport_receive shall break out of the loop and return SOCKET_RECEIVE_SHUTDOWN. ]
                             result = SOCKET_RECEIVE_SHUTDOWN;
                             LogError("A reset on the recv socket has been encountered");
                         }
                         else
                         {
+                            // Codes_SOCKET_TRANSPORT_LINUX_11_047: [ else socket_transport_receive shall break out of the looop and return SOCKET_RECEIVE_ERROR. ]
                             result = SOCKET_RECEIVE_ERROR;
                             LogErrorNo("failure recv data");
                         }
@@ -392,12 +424,15 @@ SOCKET_RECEIVE_RESULT socket_transport_receive(SOCKET_TRANSPORT_HANDLE socket_tr
                 }
                 else if (recv_size == 0)
                 {
+                    // Codes_SOCKET_TRANSPORT_LINUX_11_048: [ If recv returns a 0 value, socket_transport_receive shall break and return SOCKET_RECEIVE_SHUTDOWN. ]
                     LogError("Socket received 0 bytes, assuming socket is closed");
                     result = SOCKET_RECEIVE_SHUTDOWN;
                     break;
                 }
                 else
                 {
+                    // Codes_SOCKET_TRANSPORT_LINUX_11_049: [ Else socket_transport_receive shall do the following: ]
+                    // Codes_SOCKET_TRANSPORT_LINUX_11_050: [ socket_transport_receive shall test that the total recv size will not overflow. ]
                     if (recv_size > UINT32_MAX ||
                         UINT32_MAX - total_recv_size < recv_size)
                     {
@@ -405,9 +440,11 @@ SOCKET_RECEIVE_RESULT socket_transport_receive(SOCKET_TRANSPORT_HANDLE socket_tr
                         LogError("Overflow in computing receive size (total_recv_size=%" PRIu32 " + recv_size=%zi > UINT32_MAX=%" PRIu32 ")",
                             total_recv_size, recv_size, UINT32_MAX);
                         result = SOCKET_RECEIVE_ERROR;
+                        break;
                     }
                     else
                     {
+                        // Codes_SOCKET_TRANSPORT_LINUX_11_051: [ socket_transport_receive shall store the received byte size. ]
                         total_recv_size += recv_size;
                         if (recv_size <= payload[index].length)
                         {
@@ -424,7 +461,7 @@ SOCKET_RECEIVE_RESULT socket_transport_receive(SOCKET_TRANSPORT_HANDLE socket_tr
                 }
             }
 
-            if (result == 0)
+            if (result == SOCKET_RECEIVE_OK)
             {
                 // Success
                 if (bytes_recv != NULL)
@@ -432,6 +469,7 @@ SOCKET_RECEIVE_RESULT socket_transport_receive(SOCKET_TRANSPORT_HANDLE socket_tr
                     *bytes_recv = total_recv_size;
                 }
             }
+            // Codes_SOCKET_TRANSPORT_LINUX_11_053: [ socket_transport_receive shall call sm_exec_end. ]
             sm_exec_end(socket_transport->sm);
         }
     }
@@ -441,7 +479,9 @@ SOCKET_RECEIVE_RESULT socket_transport_receive(SOCKET_TRANSPORT_HANDLE socket_tr
 int socket_transport_listen(SOCKET_TRANSPORT_HANDLE socket_transport, uint16_t port)
 {
     int result;
+    // Codes_SOCKET_TRANSPORT_LINUX_11_054: [ If socket_transport is NULL, socket_transport_listen shall fail and return a non-zero value. ]
     if (socket_transport == NULL ||
+        // Codes_SOCKET_TRANSPORT_LINUX_11_055: [ If port is 0, socket_transport_listen shall fail and return a non-zero value. ]
         port == 0)
     {
         LogError("Invalid arguments: SOCKET_TRANSPORT_HANDLE socket_transport: %p, uint16_t port: %" PRIu16 "",
@@ -450,6 +490,7 @@ int socket_transport_listen(SOCKET_TRANSPORT_HANDLE socket_transport, uint16_t p
     }
     else
     {
+        // Codes_SOCKET_TRANSPORT_LINUX_11_056: [ If the transport type is not SOCKET_SERVER, socket_transport_listen shall fail and return a non-zero value. ]
         if (socket_transport->type != SOCKET_SERVER)
         {
             LogError("Invalid socket type for this API expected: SOCKET_SERVER, actual: %" PRI_MU_ENUM, MU_ENUM_VALUE(SOCKET_TYPE, socket_transport->type));
@@ -457,14 +498,17 @@ int socket_transport_listen(SOCKET_TRANSPORT_HANDLE socket_transport, uint16_t p
         }
         else
         {
+            // Codes_SOCKET_TRANSPORT_LINUX_11_057: [ socket_transport_listen shall call sm_open_begin to begin the open. ]
             SM_RESULT open_result = sm_open_begin(socket_transport->sm);
             if (open_result != SM_EXEC_GRANTED)
             {
+                // Codes_SOCKET_TRANSPORT_LINUX_11_058: [ If sm_open_begin does not return SM_EXEC_GRANTED, socket_transport_listen shall fail and return a non-zero value. ]
                 LogError("sm_open_begin failed with %" PRI_MU_ENUM, MU_ENUM_VALUE(SM_RESULT, open_result));
                 result = MU_FAILURE;
             }
             else
             {
+                // Codes_SOCKET_TRANSPORT_LINUX_11_059: [ socket_transport_listen shall call socket with the params AF_INET, SOCK_STREAM and IPPROTO_TCP. ]
                 socket_transport->socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
                 if (socket_transport->socket == INVALID_SOCKET)
                 {
@@ -479,6 +523,7 @@ int socket_transport_listen(SOCKET_TRANSPORT_HANDLE socket_transport, uint16_t p
                     service.sin_addr.s_addr = htonl(INADDR_ANY);
                     service.sin_port = htons(port);
 
+                    // Codes_SOCKET_TRANSPORT_LINUX_11_060: [ socket_transport_listen shall bind to the socket by calling bind. ]
                     if (bind(socket_transport->socket, (struct sockaddr*)&service, sizeof(service)) != 0)
                     {
                         LogErrorNo("Could not bind socket, port=%" PRIu16 "", port);
@@ -491,6 +536,7 @@ int socket_transport_listen(SOCKET_TRANSPORT_HANDLE socket_transport, uint16_t p
                     }
                     else
                     {
+                        // Codes_SOCKET_TRANSPORT_LINUX_11_061: [ socket_transport_listen shall start listening to incoming connection by calling listen. ]
                         if (listen(socket_transport->socket, SOMAXCONN) != 0)
                         {
                             LogErrorNo("Could not start listening for connections");
@@ -498,11 +544,13 @@ int socket_transport_listen(SOCKET_TRANSPORT_HANDLE socket_transport, uint16_t p
                         }
                         else
                         {
+                            // Codess_SOCKET_TRANSPORT_LINUX_11_062: [ If successful socket_transport_listen shall call sm_open_end with true. ]
                             sm_open_end(socket_transport->sm, true);
                             result = 0;
                             goto all_ok;
                         }
                     }
+                    // Codes_SOCKET_TRANSPORT_LINUX_11_063: [ If any failure is encountered, socket_transport_listen shall call sm_open_end with false, fail and return a non-zero value. ]
                     close(socket_transport->socket);
                     sm_open_end(socket_transport->sm, false);
                 }

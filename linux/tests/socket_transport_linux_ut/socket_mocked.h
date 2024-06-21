@@ -24,6 +24,8 @@
 #define recv mocked_recv
 #define accept mocked_accept
 #define close mocked_close
+#define shutdown mocked_shutdown
+#define fcntl mocked_fcntl
 
 MOCKABLE_FUNCTION(, int, mocked_getaddrinfo, const char*, pNodeName, const char*, pServiceName, const struct addrinfo*, pHints, struct addrinfo**, ppResult);
 MOCKABLE_FUNCTION(, void, mocked_freeaddrinfo, struct addrinfo*, pAddrInfo);
@@ -37,5 +39,7 @@ MOCKABLE_FUNCTION(, ssize_t, mocked_send, SOCKET_HANDLE, sockfd, const void*, bu
 MOCKABLE_FUNCTION(, ssize_t, mocked_recv, SOCKET_HANDLE, sockfd, void*, buf, size_t, len, int, flags);
 MOCKABLE_FUNCTION(, SOCKET_HANDLE, mocked_accept, SOCKET_HANDLE, s, struct sockaddr*, addr, socklen_t*, addrlen);
 MOCKABLE_FUNCTION(, int, mocked_close, SOCKET_HANDLE, s);
+MOCKABLE_FUNCTION(, int, mocked_shutdown, SOCKET_HANDLE, __fd, int, __how);
+extern int mocked_fcntl(int __fd, int __cmd, ...);
 
 #endif // SOCKET_MOCKED_H

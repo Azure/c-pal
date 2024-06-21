@@ -129,13 +129,17 @@ MOCKABLE_FUNCTION(, void, socket_transport_disconnect, SOCKET_TRANSPORT_HANDLE, 
 
 **SOCKET_TRANSPORT_LINUX_11_020: [** If `socket_transport` is `NULL`, `socket_transport_disconnect` shall fail and return. **]**
 
-`socket_transport_disconnect` shall call `sm_close_begin` to begin the closing process.
+**SOCKET_TRANSPORT_LINUX_11_021: [** `socket_transport_disconnect` shall call `sm_close_begin` to begin the closing process. **]**
 
-If `sm_close_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_disconnect` shall fail and return.
+**SOCKET_TRANSPORT_LINUX_11_022: [** If `sm_close_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_disconnect` shall fail and return. **]**
 
-`socket_transport_disconnect` shall call `shutdown` and `close` to disconnect the connected socket.
+**SOCKET_TRANSPORT_LINUX_11_025: [** `socket_transport_disconnect` shall call `shutdown` to stop both the transmit and reception of the connected socket. **]**
 
-`socket_transport_disconnect` shall call `sm_close_end`.
+**SOCKET_TRANSPORT_LINUX_11_026: [** If `shutdown` does not return 0, the socket is not valid therefore `socket_transport_disconnect` shall not call 'close' **]**
+
+**SOCKET_TRANSPORT_LINUX_11_023: [** `socket_transport_disconnect` shall call `close` to disconnect the connected socket. **]**
+
+**SOCKET_TRANSPORT_LINUX_11_024: [** `socket_transport_disconnect` shall call `sm_close_end`. **]**
 
 ### socket_transport_send
 
@@ -143,27 +147,27 @@ If `sm_close_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_disconn
 MOCKABLE_FUNCTION(, SOCKET_SEND_RESULT, socket_transport_send, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_BUFFER*, payload, uint32_t, buffer_count, uint32_t*, bytes_sent, uint32_t, flags, void*, data);
 ```
 
-If `socket_transport` is `NULL`, `socket_transport_send` shall fail and return `SOCKET_SEND_INVALID_ARG`.
+**SOCKET_TRANSPORT_LINUX_11_027: [** If `socket_transport` is `NULL`, `socket_transport_send` shall fail and return `SOCKET_SEND_INVALID_ARG`. **]**
 
-If `payload` is `NULL`, `socket_transport_send` shall fail and return `SOCKET_SEND_INVALID_ARG`.
+**SOCKET_TRANSPORT_LINUX_11_028: [** If `payload` is `NULL`, `socket_transport_send` shall fail and return `SOCKET_SEND_INVALID_ARG`. **]**
 
-If `buffer_count` is `0`, `socket_transport_send` shall fail and return `SOCKET_SEND_INVALID_ARG`.
+**SOCKET_TRANSPORT_LINUX_11_029: [** If `buffer_count` is `0`, `socket_transport_send` shall fail and return `SOCKET_SEND_INVALID_ARG`. **]**
 
-`socket_transport_send` shall call `sm_exec_begin`.
+**SOCKET_TRANSPORT_LINUX_11_030: [** `socket_transport_send` shall call `sm_exec_begin`. **]**
 
-If `sm_exec_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_send` shall fail and return `SOCKET_SEND_ERROR`.
+**SOCKET_TRANSPORT_LINUX_11_031: [** If `sm_exec_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_send` shall fail and return `SOCKET_SEND_ERROR`. **]**
 
-For each buffer count in payload `socket_transport_send` shall call `send` to send data with `flags` as a parameter.
+**SOCKET_TRANSPORT_LINUX_11_032: [** For each buffer count in payload `socket_transport_send` shall call `send` to send data with `flags` as a parameter. **]**
 
-If `send` returns a value less then 0, `socket_transport_send` shall stop sending and return `SOCKET_SEND_FAILED`.
+**SOCKET_TRANSPORT_LINUX_11_033: [** If `send` returns a value less then 0, `socket_transport_send` shall stop sending and return `SOCKET_SEND_FAILED`. **]**
 
-- If the errno is equal to `ECONNRESET`, `socket_transport_send` shall return `SOCKET_SEND_SHUTDOWN`.
+- **SOCKET_TRANSPORT_LINUX_11_034: [** If the errno is equal to `ECONNRESET`, `socket_transport_send` shall return `SOCKET_SEND_SHUTDOWN`. **]**
 
-Otherwise `socket_transport_send` shall continue calling send until the `SOCKET_BUFFER` length is reached.
+**SOCKET_TRANSPORT_LINUX_11_035: [** Otherwise `socket_transport_send` shall continue calling send until the `SOCKET_BUFFER` length is reached. **]**
 
-If `bytes_sent` is not `NULL`, `socket_transport_send` shall set `bytes_sent` the total bytes sent.
+**SOCKET_TRANSPORT_LINUX_11_036: [** If `bytes_sent` is not `NULL`, `socket_transport_send` shall set `bytes_sent` the total bytes sent. **]**
 
-`socket_transport_send` shall call `sm_exec_end`.
+**SOCKET_TRANSPORT_LINUX_11_037: [** `socket_transport_send` shall call `sm_exec_end`. **]**
 
 ### socket_transport_receive
 
@@ -171,37 +175,37 @@ If `bytes_sent` is not `NULL`, `socket_transport_send` shall set `bytes_sent` th
 MOCKABLE_FUNCTION(, SOCKET_RECEIVE_RESULT, socket_transport_receive, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_BUFFER*, payload, uint32_t, buffer_count, uint32_t*, bytes_recv, uint32_t, flags, void*, data);
 ```
 
-If `socket_transport` is `NULL`, `socket_transport_receive` shall fail and return `SOCKET_RECEIVE_ERROR`.
+**SOCKET_TRANSPORT_LINUX_11_038: [** If `socket_transport` is `NULL`, `socket_transport_receive` shall fail and return `SOCKET_RECEIVE_INVALID_ARG`. **]**
 
-If `payload` is `NULL`, `socket_transport_receive` shall fail and return `SOCKET_RECEIVE_ERROR`.
+**SOCKET_TRANSPORT_LINUX_11_039: [** If `payload` is `NULL`, `socket_transport_receive` shall fail and return `SOCKET_RECEIVE_INVALID_ARG`. **]**
 
-If `buffer_count` is `0`, `socket_transport_receive` shall fail and return `SOCKET_RECEIVE_ERROR`.
+**SOCKET_TRANSPORT_LINUX_11_040: [** If `buffer_count` is `0`, `socket_transport_receive` shall fail and return `SOCKET_RECEIVE_INVALID_ARG`. **]**
 
-`socket_transport_receive` shall call `sm_exec_begin`.
+**SOCKET_TRANSPORT_LINUX_11_041: [** `socket_transport_receive` shall call `sm_exec_begin`. **]**
 
-If `sm_exec_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_receive` shall fail and return `SOCKET_RECEIVE_ERROR`.
+**SOCKET_TRANSPORT_LINUX_11_042: [** If `sm_exec_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_receive` shall fail and return `SOCKET_RECEIVE_ERROR`. **]**
 
-For each buffer count in payload `socket_transport_receive` shall call `recv` with the `flags` parameter.
+**SOCKET_TRANSPORT_LINUX_11_043: [** For each buffer count in payload `socket_transport_receive` shall call `recv` with the `flags` parameter. **]**
 
-If `recv` a value less then 0, `socket_transport_receive` shall do the following:
+**SOCKET_TRANSPORT_LINUX_11_044: [** If `recv` a value less then 0, `socket_transport_receive` shall do the following: **]**
 
-- If `errno` is `EAGAIN` or `EWOULDBLOCK`, `socket_transport_receive` shall break out of loop and return `SOCKET_RECEIVE_WOULD_BLOCK`.
+- **SOCKET_TRANSPORT_LINUX_11_045: [** If `errno` is `EAGAIN` or `EWOULDBLOCK`, `socket_transport_receive` shall break out of loop and return `SOCKET_RECEIVE_WOULD_BLOCK`. **]**
 
-- If `errno` is `ECONNRESET`, `socket_transport_receive` shall break out of the loop and return `SOCKET_RECEIVE_SHUTDOWN`.
+- **SOCKET_TRANSPORT_LINUX_11_046: [** If `errno` is `ECONNRESET`, `socket_transport_receive` shall break out of the loop and return `SOCKET_RECEIVE_SHUTDOWN`. **]**
 
-- else `socket_transport_receive` shall break out of the looop and return `SOCKET_RECEIVE_ERROR`.
+- **SOCKET_TRANSPORT_LINUX_11_047: [** else `socket_transport_receive` shall break out of the looop and return `SOCKET_RECEIVE_ERROR`. **]**
 
-If `recv` returns a `0` value, `socket_transport_receive` shall break and return `SOCKET_RECEIVE_SHUTDOWN`.
+**SOCKET_TRANSPORT_LINUX_11_048: [** If `recv` returns a `0` value, `socket_transport_receive` shall break and return `SOCKET_RECEIVE_SHUTDOWN`. **]**
 
-Else `socket_transport_receive` shall do the following:
+**SOCKET_TRANSPORT_LINUX_11_049: [** Else `socket_transport_receive` shall do the following: **]**
 
-- `socket_transport_receive` shall test that the total recv size will not overflow.
+- **SOCKET_TRANSPORT_LINUX_11_050: [** `socket_transport_receive` shall test that the total recv size will not overflow. **]**
 
-- `socket_transport_receive` shall store the received byte size.
+- **SOCKET_TRANSPORT_LINUX_11_051: [** `socket_transport_receive` shall store the received byte size. **]**
 
-If `bytes_recv` is not `NULL`, `socket_transport_send` shall set `bytes_recv` the total bytes received.
+**SOCKET_TRANSPORT_LINUX_11_052: [** If `bytes_recv` is not `NULL`, `socket_transport_send` shall set `bytes_recv` the total bytes received. **]**
 
-`socket_transport_receive` shall call `sm_exec_end`.
+**SOCKET_TRANSPORT_LINUX_11_053: [** `socket_transport_receive` shall call `sm_exec_end`. **]**
 
 ### socket_transport_listen
 
@@ -211,25 +215,25 @@ MOCKABLE_FUNCTION(, int, socket_transport_listen, SOCKET_TRANSPORT_HANDLE, socke
 
 `socket_transport_listen` is to listen for incoming connections.
 
-If `socket_transport` is `NULL`, `socket_transport_listen` shall fail and return a non-zero value.
+**SOCKET_TRANSPORT_LINUX_11_054: [** If `socket_transport` is `NULL`, `socket_transport_listen` shall fail and return a non-zero value. **]**
 
-If `port` is `0`, `socket_transport_listen` shall fail and return a non-zero value.
+**SOCKET_TRANSPORT_LINUX_11_055: [** If `port` is `0`, `socket_transport_listen` shall fail and return a non-zero value. **]**
 
-If the transport type is not `SOCKET_SERVER`, `socket_transport_listen` shall fail and return a non-zero value.
+**SOCKET_TRANSPORT_LINUX_11_056: [** If the transport type is not `SOCKET_SERVER`, `socket_transport_listen` shall fail and return a non-zero value. **]**
 
-`socket_transport_listen` shall call `sm_open_begin` to begin the open.
+**SOCKET_TRANSPORT_LINUX_11_057: [** `socket_transport_listen` shall call `sm_open_begin` to begin the open. **]**
 
-If `sm_open_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_listen` shall fail and return a non-zero value.
+**SOCKET_TRANSPORT_LINUX_11_058: [** If `sm_open_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_listen` shall fail and return a non-zero value. **]**
 
-`socket_transport_listen` shall call `socket` with the params `AF_INET`, `SOCK_STREAM` and `IPPROTO_TCP`.
+**SOCKET_TRANSPORT_LINUX_11_059: [** `socket_transport_listen` shall call `socket` with the params `AF_INET`, `SOCK_STREAM` and `IPPROTO_TCP`. **]**
 
-`socket_transport_listen` shall bind to the socket by calling `bind`.
+**SOCKET_TRANSPORT_LINUX_11_060: [** `socket_transport_listen` shall bind to the socket by calling `bind`. **]**
 
-`socket_transport_listen` shall start listening to incoming connection by calling `listen`.
+**SOCKET_TRANSPORT_LINUX_11_061: [** `socket_transport_listen` shall start listening to incoming connection by calling `listen`. **]**
 
-If successful `socket_transport_listen` shall call `sm_open_end` with `true`.
+**SOCKET_TRANSPORT_LINUX_11_062: [** If successful `socket_transport_listen` shall call `sm_open_end` with `true`. **]**
 
-If any failure is encountered, `socket_transport_listen` shall call `sm_open_end` with `false`, fail and return a non-zero value.
+**SOCKET_TRANSPORT_LINUX_11_063: [** If any failure is encountered, `socket_transport_listen` shall call `sm_open_end` with `false`, fail and return a non-zero value. **]**
 
 ### socket_transport_accept
 
