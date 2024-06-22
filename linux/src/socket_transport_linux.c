@@ -2,30 +2,29 @@
 
 #include <stdlib.h>
 #include <inttypes.h>
+#include <stdio.h>
+#include <stdbool.h>
 
 #include <arpa/inet.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
 #include <netinet/in.h>
-#include <stdio.h>
 
 #include "macro_utils/macro_utils.h"
 
-#include "umock_c/umock_c_prod.h"
+#include "umock_c/umock_c_prod.h" // IWYU pragma: keep
 
 #include "c_logging/logger.h"
+#include "c_logging/log_context.h"
+#include "c_logging/log_context_property_type_ascii_char_ptr.h"
 
-#include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/gballoc_hl.h"        // IWYU pragma: keep
+#include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 
-#include "c_pal/interlocked.h"
 #include "c_pal/sm.h"
-#include "c_pal/sync.h"
-#include "c_pal/string_utils.h"
 #include "c_pal/socket_handle.h"
 
 #include "c_pal/socket_transport.h"

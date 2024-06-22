@@ -1,16 +1,14 @@
 // Copyright(C) Microsoft Corporation.All rights reserved.
 
 #include <stdlib.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
 
-#include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <errno.h>
-#include <netinet/in.h>
-#include <stdio.h>
 
 #include "macro_utils/macro_utils.h"
 
@@ -28,23 +26,17 @@
 #include "socket_mocked.h"
 
 #include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 #include "c_pal/socket_handle.h"
-#include "c_pal/execution_engine.h"
-#include "c_pal/interlocked.h"
 #include "c_pal/sm.h"
-#include "c_pal/sync.h"
-#include "c_pal/string_utils.h"
 
 #undef ENABLE_MOCKS
 
-#include "umock_c/umock_c_prod.h"
-#include "real_gballoc_hl.h"
+#include "umock_c/umock_c_prod.h"   // IWYU pragma: keep
+#include "real_gballoc_hl.h"        // IWYU pragma: keep
 #include "../reals/real_sm.h"
 
 #include "c_pal/socket_transport.h"
-
-#define XTEST_FUNCTION(x) void x(void)
 
 #define MAX_SOCKET_ARRAY            10
 
@@ -93,8 +85,10 @@ static SOCKET_HANDLE my_socket(int af, int type, int protocol)
 static SOCKET_HANDLE my_accept(SOCKET_HANDLE s, struct sockaddr* addr, socklen_t* addrlen)
 {
     (void)s;
-    (void)addr;
     (void)addrlen;
+
+    struct sockaddr_in* cli_addr = (struct sockaddr_in*)addr;
+    cli_addr->sin_port = TEST_INCOMING_PORT;
     g_test_socket_array[test_socket++] = real_gballoc_ll_malloc(sizeof(SOCKET_HANDLE));
     return test_socket-1;
 }
@@ -104,6 +98,16 @@ static int my_close(int s)
     test_socket--;
     real_gballoc_ll_free((void*)g_test_socket_array[s]);
     return 0;
+}
+
+static const char* my_inet_ntop(int af, const void* cp, char* buf, socklen_t len)
+{
+    (void)af;
+    (void)cp;
+    (void)len;
+
+    strcpy(buf, TEST_INCOMING_HOSTNAME);
+    return buf;
 }
 
 static int my_getaddrinfo(const char* pNodeName, const char* pServiceName, const struct addrinfo* pHints, struct addrinfo** ppResult)
@@ -155,6 +159,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(listen, -1);
     REGISTER_GLOBAL_MOCK_HOOK(accept, my_accept);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(accept, INVALID_SOCKET);
+    REGISTER_GLOBAL_MOCK_HOOK(inet_ntop, my_inet_ntop);
     REGISTER_GLOBAL_MOCK_HOOK(getaddrinfo, my_getaddrinfo);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(getaddrinfo, MU_FAILURE);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(connect, MU_FAILURE);
@@ -168,6 +173,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_UMOCK_ALIAS_TYPE(SM_HANDLE, void*);
     REGISTER_UMOCK_ALIAS_TYPE(SOCKET_HANDLE, int);
     REGISTER_UMOCK_ALIAS_TYPE(ssize_t, long);
+    REGISTER_UMOCK_ALIAS_TYPE(socklen_t, int);
 
     g_addrInfo.ai_canonname = "ai_canonname";
     for (size_t index = 0; index < TEST_BYTES_RECV; index++)
@@ -1349,6 +1355,7 @@ TEST_FUNCTION(socket_transport_accept_succeed)
 
     STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
     STRICT_EXPECTED_CALL(accept(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(inet_ntop(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(sm_create(IGNORED_ARG));
     STRICT_EXPECTED_CALL(sm_open_begin(IGNORED_ARG));
@@ -1380,6 +1387,8 @@ TEST_FUNCTION(socket_transport_accept_fail)
 
     STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
     STRICT_EXPECTED_CALL(accept(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(inet_ntop(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(sm_create(IGNORED_ARG));
     STRICT_EXPECTED_CALL(sm_open_begin(IGNORED_ARG));
