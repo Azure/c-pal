@@ -7,10 +7,11 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
 #include <netdb.h>
 #include <errno.h>
 
-#include "macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
 #include "real_gballoc_ll.h"
 

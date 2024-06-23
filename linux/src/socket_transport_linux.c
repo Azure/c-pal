@@ -13,7 +13,7 @@
 #include <errno.h>
 #include <netinet/in.h>
 
-#include "macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
 #include "umock_c/umock_c_prod.h" // IWYU pragma: keep
 
