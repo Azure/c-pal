@@ -31,6 +31,12 @@ typedef struct PTR_STRUCT_TAG_TYPE_NAME(T)                                      
     THANDLE_PTR_FREE_FUNC_TYPE_NAME(T) dispose; /*original dispose passed to THANDLE_PTR_CREATE_WITH_MOVE*/     \
 } PTR(T);
 
+#define PRI_T_PTR "p"
+
+#define T_PTR_VALUE(t_ptr) ((t_ptr)->pointer)
+
+#define T_PTR_VALUE_OR_NULL(t_ptr) ((t_ptr) == NULL ? NULL : (t_ptr)->pointer)
+
 /*this introduces one new *name* for a function which is used to capture a T ptr and move it under the THANDLE(PTR(T))*/
 #define THANDLE_PTR_CREATE_WITH_MOVE(T) MU_C2(THANDLE_PTR_CREATE_WITH_MOVE_, T)
 
