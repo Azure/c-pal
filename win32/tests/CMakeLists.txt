@@ -14,6 +14,7 @@ if(${run_unittests})
     build_test_folder(reals_win32_ut)
     build_test_folder(sysinfo_win32_ut)
     build_test_folder(file_win32_ut)
+    build_test_folder(socket_transport_win32_ut)
     build_test_folder(single_performance_counter_win32_ut)
     build_test_folder(string_utils_win32_ut)
     build_test_folder(uuid_win32_ut)
@@ -32,12 +33,9 @@ if(${run_unittests})
     endif()
 
     build_test_folder(gballoc_hl_passthrough_ut)
-
-
 endif()
 
 if(${run_int_tests})
-    build_test_folder(async_socket_win32_int)
     build_test_folder(malloc_multi_flex_int)
     build_test_folder(threadpool_win32_int)
     build_test_folder(string_utils_int)
