@@ -244,25 +244,25 @@ MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_accept, SOCKET_TRA
 
 `socket_transport_accept` accepts the incoming connections.
 
-If `socket_transport` is `NULL`, `socket_transport_accept` shall fail and return `NULL`.
+**SOCKET_TRANSPORT_LINUX_11_069: [** If `socket_transport` is `NULL`, `socket_transport_accept` shall fail and return `NULL`. **]**
 
-If the transport type is not `SOCKET_SERVER`, `socket_transport_accept` shall fail and return `NULL`.
+**SOCKET_TRANSPORT_LINUX_11_070: [** If the transport type is not `SOCKET_SERVER`, `socket_transport_accept` shall fail and return `NULL`. **]**
 
-`socket_transport_accept` shall call `sm_exec_begin`.
+**SOCKET_TRANSPORT_LINUX_11_071: [** `socket_transport_accept` shall call `sm_exec_begin`. **]**
 
-If `sm_exec_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_accept` shall fail and return `NULL`.
+**SOCKET_TRANSPORT_LINUX_11_072: [** If `sm_exec_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_accept` shall fail and return `NULL`. **]**
 
-`socket_transport_accept` shall call `accept` to accept the incoming socket connection.
+**SOCKET_TRANSPORT_LINUX_11_073: [** `socket_transport_accept` shall call `accept` to accept the incoming socket connection. **]**
 
-`socket_transport_accept` shall set the incoming socket to non-blocking.
+**SOCKET_TRANSPORT_LINUX_11_074: [** `socket_transport_accept` shall set the incoming socket to non-blocking. **]**
 
-`socket_transport_accept` shall allocate a `SOCKET_TRANSPORT` for the incoming connection and call `sm_create` and `sm_open` on the connection.
+**SOCKET_TRANSPORT_LINUX_11_075: [** `socket_transport_accept` shall allocate a `SOCKET_TRANSPORT` for the incoming connection and call `sm_create` and `sm_open` on the connection. **]**
 
-If successful `socket_transport_accept` shall return the allocated `SOCKET_TRANSPORT` of type SOCKET_DATA.
+**SOCKET_TRANSPORT_LINUX_11_076: [** If successful `socket_transport_accept` shall return the allocated `SOCKET_TRANSPORT` of type SOCKET_DATA. **]**
 
-If any failure is encountered, `socket_transport_accept` shall fail and return `NULL`.
+**SOCKET_TRANSPORT_LINUX_11_077: [** If any failure is encountered, `socket_transport_accept` shall fail and return `NULL`. **]**
 
-`socket_transport_accept` shall call `sm_exec_end`.
+**SOCKET_TRANSPORT_LINUX_11_078: [** `socket_transport_accept` shall call `sm_exec_end`. **]**
 
 ### socket_transport_get_underlying_socket
 

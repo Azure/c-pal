@@ -3,15 +3,18 @@
 #ifndef SOCKET_MOCKED_H
 #define SOCKET_MOCKED_H
 
-#include <arpa/inet.h>
+#include <stddef.h>
+
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h>
 
 #include "umock_c/umock_c_prod.h"
 
 #include "c_pal/socket_handle.h"
 
+struct addrinfo;
+
+#define inet_ntop mocked_inet_ntop
 #define getaddrinfo mocked_getaddrinfo
 #define freeaddrinfo mocked_freeaddrinfo
 #define connect mocked_connect
@@ -27,6 +30,7 @@
 #define shutdown mocked_shutdown
 #define fcntl mocked_fcntl
 
+MOCKABLE_FUNCTION(, const char*, mocked_inet_ntop, int, af, const void*, cp, char*, buf, socklen_t, len);
 MOCKABLE_FUNCTION(, int, mocked_getaddrinfo, const char*, pNodeName, const char*, pServiceName, const struct addrinfo*, pHints, struct addrinfo**, ppResult);
 MOCKABLE_FUNCTION(, void, mocked_freeaddrinfo, struct addrinfo*, pAddrInfo);
 MOCKABLE_FUNCTION(, int, mocked_connect, SOCKET_HANDLE, s, const struct sockaddr*, name, int, namelen);

@@ -1,18 +1,17 @@
 // Copyright(C) Microsoft Corporation.All rights reserved.
 
 #include <stdlib.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
 
-#include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <errno.h>
 #include <netinet/in.h>
-#include <stdio.h>
+#include <netdb.h>
+#include <errno.h>
 
-#include "macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
 #include "real_gballoc_ll.h"
 
@@ -28,23 +27,17 @@
 #include "socket_mocked.h"
 
 #include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 #include "c_pal/socket_handle.h"
-#include "c_pal/execution_engine.h"
-#include "c_pal/interlocked.h"
 #include "c_pal/sm.h"
-#include "c_pal/sync.h"
-#include "c_pal/string_utils.h"
 
 #undef ENABLE_MOCKS
 
-#include "umock_c/umock_c_prod.h"
-#include "real_gballoc_hl.h"
+#include "umock_c/umock_c_prod.h"   // IWYU pragma: keep
+#include "real_gballoc_hl.h"        // IWYU pragma: keep
 #include "../reals/real_sm.h"
 
 #include "c_pal/socket_transport.h"
-
-#define XTEST_FUNCTION(x) void x(void)
 
 #define MAX_SOCKET_ARRAY            10
 
@@ -87,23 +80,35 @@ static SOCKET_HANDLE my_socket(int af, int type, int protocol)
     ASSERT_IS_TRUE(test_socket < MAX_SOCKET_ARRAY);
 
     g_test_socket_array[test_socket++] = real_gballoc_ll_malloc(sizeof(SOCKET_HANDLE));
-    return test_socket;
+    return test_socket-1;
 }
 
 static SOCKET_HANDLE my_accept(SOCKET_HANDLE s, struct sockaddr* addr, socklen_t* addrlen)
 {
     (void)s;
-    (void)addr;
     (void)addrlen;
+
+    struct sockaddr_in* cli_addr = (struct sockaddr_in*)addr;
+    cli_addr->sin_port = TEST_INCOMING_PORT;
     g_test_socket_array[test_socket++] = real_gballoc_ll_malloc(sizeof(SOCKET_HANDLE));
-    return test_socket;
+    return test_socket-1;
 }
 
 static int my_close(int s)
 {
-    real_gballoc_ll_free((void*)g_test_socket_array[s]);
     test_socket--;
+    real_gballoc_ll_free((void*)g_test_socket_array[s]);
     return 0;
+}
+
+static const char* my_inet_ntop(int af, const void* cp, char* buf, socklen_t len)
+{
+    (void)af;
+    (void)cp;
+    (void)len;
+
+    strcpy(buf, TEST_INCOMING_HOSTNAME);
+    return buf;
 }
 
 static int my_getaddrinfo(const char* pNodeName, const char* pServiceName, const struct addrinfo* pHints, struct addrinfo** ppResult)
@@ -155,6 +160,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(listen, -1);
     REGISTER_GLOBAL_MOCK_HOOK(accept, my_accept);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(accept, INVALID_SOCKET);
+    REGISTER_GLOBAL_MOCK_HOOK(inet_ntop, my_inet_ntop);
     REGISTER_GLOBAL_MOCK_HOOK(getaddrinfo, my_getaddrinfo);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(getaddrinfo, MU_FAILURE);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(connect, MU_FAILURE);
@@ -168,6 +174,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_UMOCK_ALIAS_TYPE(SM_HANDLE, void*);
     REGISTER_UMOCK_ALIAS_TYPE(SOCKET_HANDLE, int);
     REGISTER_UMOCK_ALIAS_TYPE(ssize_t, long);
+    REGISTER_UMOCK_ALIAS_TYPE(socklen_t, int);
 
     g_addrInfo.ai_canonname = "ai_canonname";
     for (size_t index = 0; index < TEST_BYTES_RECV; index++)
@@ -383,7 +390,6 @@ TEST_FUNCTION(socket_transport_connect_succeed)
     STRICT_EXPECTED_CALL(socket(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(getaddrinfo(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(connect(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
-
     STRICT_EXPECTED_CALL(freeaddrinfo(IGNORED_ARG));
     STRICT_EXPECTED_CALL(sm_open_end(IGNORED_ARG, true));
 
@@ -505,6 +511,12 @@ TEST_FUNCTION(socket_transport_disconnect_shutdown_fail_succeed)
     //arrange
     SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
     ASSERT_IS_NOT_NULL(socket_handle);
+    umock_c_reset_all_calls();
+
+    int dummy_socket = 100;
+    STRICT_EXPECTED_CALL(sm_open_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(socket(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(dummy_socket);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
     umock_c_reset_all_calls();
 
@@ -520,7 +532,6 @@ TEST_FUNCTION(socket_transport_disconnect_shutdown_fail_succeed)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
-    socket_transport_disconnect(socket_handle);
     socket_transport_destroy(socket_handle);
 }
 
@@ -1190,7 +1201,7 @@ TEST_FUNCTION(socket_transport_listen_invalid_socket_type_fail)
 // Tests_SOCKET_TRANSPORT_LINUX_11_060: [ socket_transport_listen shall bind to the socket by calling bind. ]
 // Tests_SOCKET_TRANSPORT_LINUX_11_061: [ socket_transport_listen shall start listening to incoming connection by calling listen. ]
 // Tests_SOCKET_TRANSPORT_LINUX_11_062: [ If successful socket_transport_listen shall call sm_open_end with true. ]
-XTEST_FUNCTION(socket_transport_listen_succeed)
+TEST_FUNCTION(socket_transport_listen_succeed)
 {
     //arrange
     SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_SERVER);
@@ -1217,7 +1228,7 @@ XTEST_FUNCTION(socket_transport_listen_succeed)
 }
 
 // Tests_SOCKET_TRANSPORT_LINUX_11_063: [ If any failure is encountered, socket_transport_listen shall call sm_open_end with false, fail and return a non-zero value. ]
-XTEST_FUNCTION(socket_transport_listen_fail)
+TEST_FUNCTION(socket_transport_listen_fail)
 {
     //arrange
     SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_SERVER);
@@ -1273,6 +1284,68 @@ TEST_FUNCTION(socket_transport_listen_sm_open_not_granted_fail)
 
 // socket_transport_accept
 
+// Tests_SOCKET_TRANSPORT_LINUX_11_069: [ If socket_transport is NULL, socket_transport_accept shall fail and return NULL. ]
+TEST_FUNCTION(socket_transport_accept_socket_transport_NULL_fail)
+{
+    //arrange
+
+    //act
+    SOCKET_TRANSPORT_HANDLE accept_socket_handle = socket_transport_accept(NULL);
+
+    //assert
+    ASSERT_IS_NULL(accept_socket_handle);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+}
+
+// Tests_SOCKET_TRANSPORT_LINUX_11_070: [ If the transport type is not SOCKET_SERVER, socket_transport_accept shall fail and return NULL. ]
+TEST_FUNCTION(socket_transport_accept_invalid_type_fail)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    ASSERT_IS_NOT_NULL(socket_handle);
+    umock_c_reset_all_calls();
+
+    //act
+    SOCKET_TRANSPORT_HANDLE accept_socket_handle = socket_transport_accept(socket_handle);
+
+    //assert
+    ASSERT_IS_NULL(accept_socket_handle);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    socket_transport_disconnect(socket_handle);
+    socket_transport_destroy(socket_handle);
+}
+
+// Tests_SOCKET_TRANSPORT_LINUX_11_072: [ If sm_exec_begin does not return SM_EXEC_GRANTED, socket_transport_accept shall fail and return NULL. ]
+TEST_FUNCTION(socket_transport_accept_not_listening_succeed)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_SERVER);
+    ASSERT_IS_NOT_NULL(socket_handle);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+
+    //act
+    SOCKET_TRANSPORT_HANDLE accept_socket_handle = socket_transport_accept(socket_handle);
+
+    //assert
+    ASSERT_IS_NULL(accept_socket_handle);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    socket_transport_disconnect(socket_handle);
+    socket_transport_destroy(socket_handle);
+}
+
+// Tests_SOCKET_TRANSPORT_LINUX_11_071: [ socket_transport_accept shall call sm_exec_begin. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_073: [ socket_transport_accept shall call accept to accept the incoming socket connection. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_074: [ socket_transport_accept shall set the incoming socket to non-blocking. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_075: [ socket_transport_accept shall allocate a SOCKET_TRANSPORT for the incoming connection and call sm_create and sm_open on the connection. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_076: [ If successful socket_transport_accept shall return the allocated SOCKET_TRANSPORT of type SOCKET_DATA. ]
 TEST_FUNCTION(socket_transport_accept_succeed)
 {
     //arrange
@@ -1283,6 +1356,7 @@ TEST_FUNCTION(socket_transport_accept_succeed)
 
     STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
     STRICT_EXPECTED_CALL(accept(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(inet_ntop(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(sm_create(IGNORED_ARG));
     STRICT_EXPECTED_CALL(sm_open_begin(IGNORED_ARG));
@@ -1299,6 +1373,46 @@ TEST_FUNCTION(socket_transport_accept_succeed)
     //cleanup
     socket_transport_disconnect(accept_socket_handle);
     socket_transport_destroy(accept_socket_handle);
+    socket_transport_disconnect(socket_handle);
+    socket_transport_destroy(socket_handle);
+}
+
+// Tests_SOCKET_TRANSPORT_LINUX_11_077: [ If any failure is encountered, socket_transport_accept shall fail and return NULL. ]
+TEST_FUNCTION(socket_transport_accept_fail)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_SERVER);
+    ASSERT_IS_NOT_NULL(socket_handle);
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(socket_handle, TEST_PORT));
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(accept(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(inet_ntop(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(sm_create(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(sm_open_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(sm_open_end(IGNORED_ARG, true));
+    STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
+    umock_c_negative_tests_snapshot();
+
+    for (size_t index = 0; index < umock_c_negative_tests_call_count(); index++)
+    {
+        if (umock_c_negative_tests_can_call_fail(index))
+        {
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(index);
+
+            //act
+            SOCKET_TRANSPORT_HANDLE accept_socket_handle = socket_transport_accept(socket_handle);
+
+            //assert
+            ASSERT_IS_NULL(accept_socket_handle);
+        }
+    }
+
+    //cleanup
     socket_transport_disconnect(socket_handle);
     socket_transport_destroy(socket_handle);
 }
@@ -1338,7 +1452,7 @@ TEST_FUNCTION(socket_transport_get_underlying_socket_succeed)
     SOCKET_HANDLE underying_socket = socket_transport_get_underlying_socket(socket_handle);
 
     //assert
-    ASSERT_ARE_EQUAL(int, test_socket, underying_socket);
+    ASSERT_ARE_EQUAL(int, test_socket-1, underying_socket);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup

@@ -17,7 +17,7 @@ void function_under_test(void)
     LOG_CONTEXT_HANDLE log_context_handle =(LOG_CONTEXT_HANDLE)0x42; // This is a dummy value that is not used in the test.
 
     /*create a THANDLE out of the LOG_CONTEXT_HANDLE*/
-    THANDLE(PTR(LOG_CONTEXT_HANDLE)) thandle = THANDLE_PTR_CREATE_WITH_MOVE(LOG_CONTEXT_HANDLE)(log_context_handle, NULL); // This is a dummy value that is not used in the test.
+    THANDLE(PTR(LOG_CONTEXT_HANDLE)) thandle = THANDLE_PTR_CREATE_WITH_MOVE(LOG_CONTEXT_HANDLE)(&log_context_handle, NULL); // This is a dummy value that is not used in the test.
 
     /*here be pretending usage*/
 
