@@ -26,6 +26,7 @@
 #define WSASend mocked_WSASend
 #define __WSAFDIsSet mocked___WSAFDIsSet
 #define ioctlsocket mocked_ioctlsocket
+#define shutdown mocked_shutdown
 
 MOCKABLE_FUNCTION(, int, mocked_getaddrinfo, const char*, pNodeName, const char*, pServiceName, const ADDRINFOA*, pHints, PADDRINFOA*, ppResult);
 MOCKABLE_FUNCTION(, int, mocked_connect, SOCKET, s, const struct sockaddr*, name, int, namelen);
@@ -44,4 +45,6 @@ MOCKABLE_FUNCTION(, PCSTR, mocked_inet_ntop, INT, Family, const VOID*, pAddr, PS
 MOCKABLE_FUNCTION(, int, mocked_WSARecv, SOCKET, s, LPWSABUF, lpBuffers, DWORD, dwBufferCount, LPDWORD, lpNumberOfBytesRecvd, LPDWORD, lpFlags, LPWSAOVERLAPPED, lpOverlapped, LPWSAOVERLAPPED_COMPLETION_ROUTINE, lpCompletionRoutine);
 MOCKABLE_FUNCTION(, int, mocked_WSASend, SOCKET, s, LPWSABUF, lpBuffers, DWORD, dwBufferCount, LPDWORD, lpNumberOfBytesSent, DWORD, dwFlags, LPWSAOVERLAPPED, lpOverlapped, LPWSAOVERLAPPED_COMPLETION_ROUTINE, lpCompletionRoutine);
 MOCKABLE_FUNCTION(, int, mocked___WSAFDIsSet, SOCKET, fd, fd_set*, p);
+MOCKABLE_FUNCTION(, int, mocked_shutdown, SOCKET, __fd, int, __how);
+
 #endif // WINSOCK_MOCKED_H

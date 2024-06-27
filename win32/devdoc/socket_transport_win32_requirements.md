@@ -155,6 +155,8 @@ MOCKABLE_FUNCTION(, void, socket_transport_disconnect, SOCKET_TRANSPORT_HANDLE, 
 
 **SOCKET_TRANSPORT_WIN32_09_029: [** If `sm_close_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_disconnect` shall fail and return. **]**
 
+**SOCKET_TRANSPORT_WIN32_09_083: [** If `shutdown` does not return 0, the socket is not valid therefore `socket_transport_disconnect` shall not call `close` **]**
+
 **SOCKET_TRANSPORT_WIN32_09_030: [** `socket_transport_disconnect` shall call `closesocket` to disconnect the connected socket. **]**
 
 **SOCKET_TRANSPORT_WIN32_09_031: [** `socket_transport_disconnect` shall call `sm_close_end`. **]**
@@ -189,11 +191,11 @@ MOCKABLE_FUNCTION(, SOCKET_SEND_RESULT, socket_transport_send, SOCKET_TRANSPORT_
 MOCKABLE_FUNCTION(, SOCKET_RECEIVE_RESULT, socket_transport_receive, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_BUFFER*, payload, uint32_t, buffer_count, uint32_t*, bytes_recv, uint32_t, flags, void*, data);
 ```
 
-**SOCKET_TRANSPORT_WIN32_09_041: [** If `socket_transport` is `NULL`, `socket_transport_receive` shall fail and return `SOCKET_RECEIVE_ERROR`. **]**
+**SOCKET_TRANSPORT_WIN32_09_041: [** If `socket_transport` is `NULL`, `socket_transport_receive` shall fail and return `SOCKET_RECEIVE_INVALID_ARG`. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_042: [** If `payload` is `NULL`, `socket_transport_receive` shall fail and return `SOCKET_RECEIVE_ERROR`. **]**
+**SOCKET_TRANSPORT_WIN32_09_042: [** If `payload` is `NULL`, `socket_transport_receive` shall fail and return `SOCKET_RECEIVE_INVALID_ARG`. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_043: [** If `buffer_count` is `0`, `socket_transport_receive` shall fail and return `SOCKET_RECEIVE_ERROR`. **]**
+**SOCKET_TRANSPORT_WIN32_09_043: [** If `buffer_count` is `0`, `socket_transport_receive` shall fail and return `SOCKET_RECEIVE_INVALID_ARG`. **]**
 
 **SOCKET_TRANSPORT_WIN32_09_044: [** `socket_transport_receive` shall call `sm_exec_begin`. **]**
 

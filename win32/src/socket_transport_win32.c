@@ -1,6 +1,7 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 
 #include <stdlib.h>
+#include <stdbool.h>
 #include <inttypes.h>
 
 #include "winsock2.h"
@@ -219,7 +220,6 @@ void socket_transport_destroy(SOCKET_TRANSPORT_HANDLE socket_transport)
     if (socket_transport == NULL)
     {
         // Do nothing
-        return;
     }
     else
     {
@@ -237,10 +237,10 @@ int socket_transport_connect(SOCKET_TRANSPORT_HANDLE socket_transport, const cha
     int result;
 
     // Codes_SOCKET_TRANSPORT_WIN32_09_009: [ If socket_transport is NULL, socket_transport_connect shall fail and return a non-zero value. ]
-    // Codes_SOCKET_TRANSPORT_WIN32_09_010: [If hostname is NULL, socket_transport_connect shall fail and return a non - zero value.]
-    // Codes_SOCKET_TRANSPORT_WIN32_09_011 : [If port is 0, socket_transport_connect shall fail and return a non - zero value.]
     if (socket_transport == NULL ||
+        // Codes_SOCKET_TRANSPORT_WIN32_09_010: [If hostname is NULL, socket_transport_connect shall fail and return a non - zero value.]
         hostname == NULL ||
+        // Codes_SOCKET_TRANSPORT_WIN32_09_011 : [If port is 0, socket_transport_connect shall fail and return a non - zero value.]
         port == 0)
     {
         LogError("Invalid arguments: SOCKET_TRANSPORT_HANDLE socket_transport: %p, const char* hostname: %s, uint16_t port: %" PRIu16 ", uint32_t connection_timeout: %" PRIu32 "",
@@ -303,10 +303,18 @@ void socket_transport_disconnect(SOCKET_TRANSPORT_HANDLE socket_transport)
         SM_RESULT close_result = sm_close_begin(socket_transport->sm);
         if (close_result == SM_EXEC_GRANTED)
         {
-            // Codes_SOCKET_TRANSPORT_WIN32_09_030: [ socket_transport_disconnect shall call closesocket to disconnect the connected socket. ]
-            if (closesocket(socket_transport->socket) != 0)
+            // Codes_SOCKET_TRANSPORT_WIN32_09_083: [ If shutdown does not return 0, the socket is not valid therefore socket_transport_disconnect shall not call close ]
+            if (shutdown(socket_transport->socket, 2) != 0)
             {
-                LogLastError("Failure in closesocket");
+                LogErrorNo("shutdown failed on socket: %" PRI_SOCKET "", socket_transport->socket);
+            }
+            else
+            {
+                // Codes_SOCKET_TRANSPORT_WIN32_09_030: [ socket_transport_disconnect shall call closesocket to disconnect the connected socket. ]
+                if (closesocket(socket_transport->socket) != 0)
+                {
+                    LogLastError("Failure in closesocket %" PRI_SOCKET "", socket_transport->socket);
+                }
             }
             // Codes_SOCKET_TRANSPORT_WIN32_09_031: [ socket_transport_disconnect shall call sm_close_end. ]
             sm_close_end(socket_transport->sm);
@@ -324,15 +332,15 @@ SOCKET_SEND_RESULT socket_transport_send(SOCKET_TRANSPORT_HANDLE socket_transpor
 {
     SOCKET_SEND_RESULT result;
     // Codes_SOCKET_TRANSPORT_WIN32_09_032: [ If socket_transport is NULL, socket_transport_send shall fail and return SOCKET_SEND_INVALID_ARG. ]
-    // Codes_SOCKET_TRANSPORT_WIN32_09_033: [ If payload is NULL, socket_transport_send shall fail and return SOCKET_SEND_INVALID_ARG. ]
-    // Codes_SOCKET_TRANSPORT_WIN32_09_034: [ If buffer_count is 0, socket_transport_send shall fail and return SOCKET_SEND_INVALID_ARG. ]
     if (socket_transport == NULL ||
+        // Codes_SOCKET_TRANSPORT_WIN32_09_033: [ If payload is NULL, socket_transport_send shall fail and return SOCKET_SEND_INVALID_ARG. ]
         payload == NULL ||
+        // Codes_SOCKET_TRANSPORT_WIN32_09_034: [ If buffer_count is 0, socket_transport_send shall fail and return SOCKET_SEND_INVALID_ARG. ]
         buffer_count == 0)
     {
         LogError("Invalid arguments: SOCKET_TRANSPORT_HANDLE socket_transport: %p, const SOCKET_BUFFER* payload: %p, void* overlapped_data: %p",
             socket_transport, payload, overlapped_data);
-        result = SOCKET_SEND_ERROR;
+        result = SOCKET_SEND_INVALID_ARG;
     }
     else
     {
@@ -398,7 +406,7 @@ SOCKET_RECEIVE_RESULT socket_transport_receive(SOCKET_TRANSPORT_HANDLE socket_tr
     {
         LogError("Invalid arguments: SOCKET_TRANSPORT_HANDLE socket_transport=%p, const SOCKET_BUFFER* payload=%p, uint32_t flags=%" PRIu32 ", void*, data=%p",
             socket_transport, payload, flags, data);
-        result = SOCKET_RECEIVE_ERROR;
+        result = SOCKET_RECEIVE_INVALID_ARG;
     }
     else
     {
@@ -545,7 +553,7 @@ int socket_transport_listen(SOCKET_TRANSPORT_HANDLE socket_transport, uint16_t p
                         }
                     }
                     // Codes_SOCKET_TRANSPORT_WIN32_09_066: [ socket_transport_listen shall call closesocket. ]
-                    closesocket(socket_transport->socket);
+                    (void)closesocket(socket_transport->socket);
 
                     // Codes_SOCKET_TRANSPORT_WIN32_09_064: [ If any failure is encountered, socket_transport_listen shall call sm_open_end with false, fail and return a non-zero value. ]
                     sm_open_end(socket_transport->sm, false);
@@ -603,7 +611,7 @@ SOCKET_TRANSPORT_HANDLE socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_t
                 select_result = select(0, &read_fds, NULL, NULL, &timeout);
                 if (select_result == SOCKET_ERROR)
                 {
-                    LogLastError("Error waiting for socket connections");
+                    LogLastError("Error waiting for socket connections %", select_result);
                     is_error = true;
                     result = NULL;
                 }
@@ -620,7 +628,7 @@ SOCKET_TRANSPORT_HANDLE socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_t
                     {
                         if (WSAGetLastError() != WSAEWOULDBLOCK)
                         {
-                            LogLastError("Error accepting socket");
+                            LogLastError("Error in accepting socket %" PRI_SOCKET "", accepted_socket);
                             is_error = true;
                         }
                         result = NULL;
@@ -652,7 +660,7 @@ SOCKET_TRANSPORT_HANDLE socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_t
                                 SM_RESULT open_result = sm_open_begin(result->sm);
                                 if (open_result == SM_EXEC_GRANTED)
                                 {
-                                    result->type = SOCKET_SERVER;
+                                    result->type = SOCKET_CLIENT;
                                     result->socket = accepted_socket;
                                     sm_open_end(result->sm, true);
                                 }

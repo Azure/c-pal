@@ -112,6 +112,13 @@ static PCSTR my_inet_ntop(INT Family, const VOID* pAddr, PSTR pStringBuf, size_t
     return pStringBuf;
 }
 
+static int my_shutdown(SOCKET s, int how)
+{
+    (void)s;
+    (void)how;
+    return 0;
+}
+
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
@@ -147,6 +154,8 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(getaddrinfo, MU_FAILURE);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(connect, MU_FAILURE);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(ioctlsocket, 1);
+    REGISTER_GLOBAL_MOCK_HOOK(shutdown, my_shutdown);
+    REGISTER_GLOBAL_MOCK_FAIL_RETURN(shutdown, 1);
 
     REGISTER_GLOBAL_MOCK_HOOK(inet_ntop, my_inet_ntop);
 
@@ -652,17 +661,54 @@ TEST_FUNCTION(socket_transport_disconnect_invalid_arguments)
 
 }
 
+// Tests_SOCKET_TRANSPORT_WIN32_09_083: [ If shutdown does not return 0, the socket is not valid therefore socket_transport_disconnect shall not call close ]
+TEST_FUNCTION(socket_transport_disconnect_shutdown_fail)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    ASSERT_IS_NOT_NULL(socket_handle);
+    umock_c_reset_all_calls();
+
+    int dummy_socket = 100;
+    STRICT_EXPECTED_CALL(sm_open_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(socket(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(dummy_socket);
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(sm_close_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(shutdown(IGNORED_ARG, 2))
+        .SetReturn(MU_FAILURE);
+    STRICT_EXPECTED_CALL(sm_close_end(IGNORED_ARG));
+
+    //act
+    socket_transport_disconnect(socket_handle);
+
+    //assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    socket_transport_destroy(socket_handle);
+}
+
 // Tests_SOCKET_TRANSPORT_WIN32_09_030: [ socket_transport_disconnect shall call closesocket to disconnect the connected socket. ]
 TEST_FUNCTION(socket_transport_disconnect_failure_closesocket)
 {
     //arrange
     SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
     ASSERT_IS_NOT_NULL(socket_handle);
+    umock_c_reset_all_calls();
+
+    int dummy_socket = 100;
+    STRICT_EXPECTED_CALL(sm_open_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(socket(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(dummy_socket);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
     umock_c_reset_all_calls();
     umock_c_negative_tests_snapshot();
 
     STRICT_EXPECTED_CALL(sm_close_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(shutdown(IGNORED_ARG, 2));
     STRICT_EXPECTED_CALL(closesocket(IGNORED_ARG))
         .SetReturn(1);
     STRICT_EXPECTED_CALL(sm_close_end(IGNORED_ARG));
@@ -678,8 +724,9 @@ TEST_FUNCTION(socket_transport_disconnect_failure_closesocket)
     socket_transport_destroy(socket_handle);
 }
 
+
 // Tests_SOCKET_TRANSPORT_LINUX_9_029: [ If sm_close_begin does not return SM_EXEC_GRANTED, socket_transport_disconnect shall fail and return. ]
-TEST_FUNCTION(socket_transport_disconnect_close_fail_succeed)
+TEST_FUNCTION(socket_transport_disconnect_sm_close_fail)
 {
     //arrange
     SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
@@ -688,7 +735,7 @@ TEST_FUNCTION(socket_transport_disconnect_close_fail_succeed)
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(sm_close_begin(IGNORED_ARG))
-        .SetReturn(SM_ERROR);
+        .SetReturn(SM_EXEC_REFUSED);
 
     //act
     socket_transport_disconnect(socket_handle);
@@ -713,6 +760,7 @@ TEST_FUNCTION(socket_transport_disconnect_succeed)
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(sm_close_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(shutdown(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(closesocket(IGNORED_ARG));
     STRICT_EXPECTED_CALL(sm_close_end(IGNORED_ARG));
 
@@ -744,7 +792,7 @@ TEST_FUNCTION(socket_transport_send_fail_socket_transport_NULL)
     SOCKET_SEND_RESULT result = socket_transport_send(NULL, &payload, 1, &bytes_written, TEST_FLAGS, NULL);
 
     //assert
-    ASSERT_ARE_EQUAL(SOCKET_SEND_RESULT, SOCKET_SEND_ERROR, result);
+    ASSERT_ARE_EQUAL(SOCKET_SEND_RESULT, SOCKET_SEND_INVALID_ARG, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
@@ -770,7 +818,7 @@ TEST_FUNCTION(socket_transport_send_fail_payload_NULL)
     SOCKET_SEND_RESULT result = socket_transport_send(socket_handle, NULL, 1, &bytes_written, TEST_FLAGS, NULL);
 
     //assert
-    ASSERT_ARE_EQUAL(SOCKET_SEND_RESULT, SOCKET_SEND_ERROR, result);
+    ASSERT_ARE_EQUAL(SOCKET_SEND_RESULT, SOCKET_SEND_INVALID_ARG, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
@@ -798,7 +846,7 @@ TEST_FUNCTION(socket_transport_send_fail_buffercount_zero)
     SOCKET_SEND_RESULT result = socket_transport_send(socket_handle, &payload, 0, &bytes_written, TEST_FLAGS, NULL);
 
     //assert
-    ASSERT_ARE_EQUAL(SOCKET_SEND_RESULT, SOCKET_SEND_ERROR, result);
+    ASSERT_ARE_EQUAL(SOCKET_SEND_RESULT, SOCKET_SEND_INVALID_ARG, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
@@ -913,7 +961,7 @@ TEST_FUNCTION(socket_transport_receive_socket_transport_NULL_fail)
     SOCKET_RECEIVE_RESULT result = socket_transport_receive(NULL, &payload, 1, &bytes_recv, TEST_FLAGS, NULL);
 
     //assert
-    ASSERT_ARE_EQUAL(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_ERROR, result);
+    ASSERT_ARE_EQUAL(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_INVALID_ARG, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
@@ -933,7 +981,7 @@ TEST_FUNCTION(socket_transport_receive_payload_NULL_fail)
     SOCKET_RECEIVE_RESULT result = socket_transport_receive(socket_handle, NULL, 1, &bytes_recv, TEST_FLAGS, NULL);
 
     //assert
-    ASSERT_ARE_EQUAL(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_ERROR, result);
+    ASSERT_ARE_EQUAL(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_INVALID_ARG, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
@@ -957,7 +1005,7 @@ TEST_FUNCTION(socket_transport_receive_buffer_count_0_fail)
     SOCKET_RECEIVE_RESULT result = socket_transport_receive(socket_handle, &payload, 0, &bytes_recv, TEST_FLAGS, NULL);
 
     //assert
-    ASSERT_ARE_EQUAL(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_ERROR, result);
+    ASSERT_ARE_EQUAL(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_INVALID_ARG, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
@@ -989,6 +1037,7 @@ TEST_FUNCTION(socket_transport_receive_not_connected_fail)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
+    socket_transport_disconnect(socket_handle);
     socket_transport_destroy(socket_handle);
 }
 
@@ -1151,6 +1200,7 @@ TEST_FUNCTION(socket_transport_listen_port_0_fail)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
+    socket_transport_disconnect(socket_handle);
     socket_transport_destroy(socket_handle);
 }
 
@@ -1170,6 +1220,7 @@ TEST_FUNCTION(socket_transport_listen_invalid_socket_type_fail)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
+    socket_transport_disconnect(socket_handle);
     socket_transport_destroy(socket_handle);
 }
 
@@ -1192,6 +1243,7 @@ TEST_FUNCTION(socket_transport_listen_sm_open_not_granted_fail)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
+    socket_transport_disconnect(socket_handle);
     socket_transport_destroy(socket_handle);
 }
 
@@ -1336,6 +1388,7 @@ TEST_FUNCTION(socket_transport_listen_fail)
         }
     }
     //cleanup
+    socket_transport_disconnect(socket_handle);
     socket_transport_destroy(socket_handle);
 }
 
@@ -1466,10 +1519,15 @@ TEST_FUNCTION(socket_transport_accept_malloc_fail)
     ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(socket_handle, TEST_PORT));
     umock_c_reset_all_calls();
 
+    int dummy_socket = 100;
     STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
     STRICT_EXPECTED_CALL(select(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(accept(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(inet_ntop(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(accept(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(dummy_socket);
+    STRICT_EXPECTED_CALL(inet_ntop(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CallCannotFail();
+
+    // this is returning null, so why is there a memory leak? sockethandle is being cleaned up.
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG))
         .SetReturn(NULL);
     STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
@@ -1482,8 +1540,6 @@ TEST_FUNCTION(socket_transport_accept_malloc_fail)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
-    socket_transport_disconnect(accept_socket_handle);
-    socket_transport_destroy(accept_socket_handle);
     socket_transport_disconnect(socket_handle);
     socket_transport_destroy(socket_handle);
 }
@@ -1516,8 +1572,6 @@ TEST_FUNCTION(socket_transport_accept_sm_create_fail)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
-    socket_transport_disconnect(accept_socket_handle);
-    socket_transport_destroy(accept_socket_handle);
     socket_transport_disconnect(socket_handle);
     socket_transport_destroy(socket_handle);
 }
@@ -1552,8 +1606,6 @@ TEST_FUNCTION(socket_transport_accept_sm_open_begin_fail)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
-    socket_transport_disconnect(accept_socket_handle);
-    socket_transport_destroy(accept_socket_handle);
     socket_transport_disconnect(socket_handle);
     socket_transport_destroy(socket_handle);
 }
@@ -1580,8 +1632,6 @@ TEST_FUNCTION(socket_transport_accept_fail)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
-    socket_transport_disconnect(accept_socket_handle);
-    socket_transport_destroy(accept_socket_handle);
     socket_transport_disconnect(socket_handle);
     socket_transport_destroy(socket_handle);
 }
