@@ -176,8 +176,8 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create(SOCKET_TYPE type)
 {
     SOCKET_TRANSPORT* result;
 
-    // Codes_SOCKET_TRANSPORT_WIN32_09_001: [ socket_transport_create shall ensure type is either SOCKET_CLIENT, or SOCKET_SERVER. ]
-    if (type != SOCKET_CLIENT && type != SOCKET_SERVER)
+    // Codes_SOCKET_TRANSPORT_WIN32_09_001: [ socket_transport_create shall ensure type is either SOCKET_CLIENT, or SOCKET_BINDING. ]
+    if (type != SOCKET_CLIENT && type != SOCKET_BINDING)
     {
         LogError("Invalid socket type specified: %" PRI_MU_ENUM "", MU_ENUM_VALUE(SOCKET_TYPE, type));
         result = NULL;
@@ -303,10 +303,10 @@ void socket_transport_disconnect(SOCKET_TRANSPORT_HANDLE socket_transport)
         SM_RESULT close_result = sm_close_begin(socket_transport->sm);
         if (close_result == SM_EXEC_GRANTED)
         {
-            // Codes_SOCKET_TRANSPORT_WIN32_09_083: [ If shutdown does not return 0, the socket is not valid therefore socket_transport_disconnect shall not call close ]
-            if (shutdown(socket_transport->socket, 2) != 0)
+            // Codes_SOCKET_TRANSPORT_WIN32_09_083: [ If shutdown does not return 0 on a socket that is not a binding socket, the socket is not valid therefore socket_transport_disconnect shall not call close ]
+            if (socket_transport->type != SOCKET_BINDING && shutdown(socket_transport->socket, SD_BOTH) != 0)
             {
-                LogErrorNo("shutdown failed on socket: %" PRI_SOCKET "", socket_transport->socket);
+                LogLastError("shutdown failed on socket: %" PRI_SOCKET "", socket_transport->socket);
             }
             else
             {
@@ -488,10 +488,10 @@ int socket_transport_listen(SOCKET_TRANSPORT_HANDLE socket_transport, uint16_t p
     }
     else
     {
-        // Codes_SOCKET_TRANSPORT_WIN32_09_057: [ If the transport type is not SOCKET_SERVER, socket_transport_listen shall fail and return a non-zero value. ]
-        if (socket_transport->type != SOCKET_SERVER)
+        // Codes_SOCKET_TRANSPORT_WIN32_09_057: [ If the transport type is not SOCKET_BINDING, socket_transport_listen shall fail and return a non-zero value. ]
+        if (socket_transport->type != SOCKET_BINDING)
         {
-            LogError("Invalid socket type for this API expected: SOCKET_SERVER, actual: %" PRI_MU_ENUM, MU_ENUM_VALUE(SOCKET_TYPE, socket_transport->type));
+            LogError("Invalid socket type for this API expected: SOCKET_BINDING, actual: %" PRI_MU_ENUM, MU_ENUM_VALUE(SOCKET_TYPE, socket_transport->type));
             result = MU_FAILURE;
         }
         else
@@ -578,10 +578,10 @@ SOCKET_TRANSPORT_HANDLE socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_t
     }
     else
     {
-        // Codes_SOCKET_TRANSPORT_WIN32_09_068: [ If the transport type is not SOCKET_SERVER, socket_transport_accept shall fail and return a non-zero value. ]
-        if (socket_transport->type != SOCKET_SERVER)
+        // Codes_SOCKET_TRANSPORT_WIN32_09_068: [ If the transport type is not SOCKET_BINDING, socket_transport_accept shall fail and return a non-zero value. ]
+        if (socket_transport->type != SOCKET_BINDING)
         {
-            LogError("Invalid socket type for this API expected: SOCKET_SERVER, actual: %" PRI_MU_ENUM, MU_ENUM_VALUE(SOCKET_TYPE, socket_transport->type));
+            LogError("Invalid socket type for this API expected: SOCKET_BINDING, actual: %" PRI_MU_ENUM, MU_ENUM_VALUE(SOCKET_TYPE, socket_transport->type));
             result = NULL;
         }
         else
@@ -640,6 +640,7 @@ SOCKET_TRANSPORT_HANDLE socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_t
                         (void)inet_ntop(AF_INET, (const void*)&cli_addr.sin_addr, hostname_addr, sizeof(hostname_addr));
 
                         // Create the socket handle
+                        // Codes_SOCKET_TRANSPORT_WIN32_09_084: [ If malloc fails, socket_transport_accept shall fail and return NULL. ]
                         result = malloc(sizeof(SOCKET_TRANSPORT));
                         if (result == NULL)
                         {
@@ -647,6 +648,7 @@ SOCKET_TRANSPORT_HANDLE socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_t
                         }
                         else
                         {
+                            // Codes_SOCKET_TRANSPORT_WIN32_09_085: [ If sm_create fails, socket_transport_accept shall close the incoming socket, fail, and return NULL. ]
                             result->sm = sm_create("Socket_transport_win32");
                             if (result->sm == NULL)
                             {
@@ -657,6 +659,7 @@ SOCKET_TRANSPORT_HANDLE socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_t
                             }
                             else
                             {
+                                // Codes_SOCKET_TRANSPORT_WIN32_09_086: [ If sm_open_begin fails, socket_transport_accept shall close the incoming socket, fail, and return NULL ]
                                 SM_RESULT open_result = sm_open_begin(result->sm);
                                 if (open_result == SM_EXEC_GRANTED)
                                 {

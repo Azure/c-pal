@@ -32,7 +32,7 @@ MU_DEFINE_ENUM(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_RESULT_VALUES)
 
 #define SOCKET_TYPE_VALUES \
     SOCKET_CLIENT, \
-    SOCKET_SERVER
+    SOCKET_BINDING
 
 MU_DEFINE_ENUM(SOCKET_TYPE, SOCKET_TYPE_VALUES)
 
@@ -65,7 +65,7 @@ MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create, SOCKET_TYP
 
 `socket_transport_create` creates a socket transport.
 
-**SOCKET_TRANSPORT_WIN32_09_001: [** `socket_transport_create` shall ensure `type` is either `SOCKET_CLIENT`, or `SOCKET_SERVER`. **]**
+**SOCKET_TRANSPORT_WIN32_09_001: [** `socket_transport_create` shall ensure `type` is either `SOCKET_CLIENT`, or `SOCKET_BINDING`. **]**
 
 **SOCKET_TRANSPORT_WIN32_09_002: [** `socket_transport_create` shall allocate a new `SOCKET_TRANSPORT` object. **]**
 
@@ -155,7 +155,7 @@ MOCKABLE_FUNCTION(, void, socket_transport_disconnect, SOCKET_TRANSPORT_HANDLE, 
 
 **SOCKET_TRANSPORT_WIN32_09_029: [** If `sm_close_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_disconnect` shall fail and return. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_083: [** If `shutdown` does not return 0, the socket is not valid therefore `socket_transport_disconnect` shall not call `close` **]**
+**SOCKET_TRANSPORT_WIN32_09_083: [** If `shutdown` does not return 0 on a socket that is not a binding socket, the socket is not valid therefore `socket_transport_disconnect` shall not call `close` **]**
 
 **SOCKET_TRANSPORT_WIN32_09_030: [** `socket_transport_disconnect` shall call `closesocket` to disconnect the connected socket. **]**
 
@@ -231,7 +231,7 @@ MOCKABLE_FUNCTION(, int, socket_transport_listen, SOCKET_TRANSPORT_HANDLE, socke
 
 **SOCKET_TRANSPORT_WIN32_09_056: [** If `port` is `0`, `socket_transport_listen` shall fail and return a non-zero value. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_057: [** If the transport type is not `SOCKET_SERVER`, `socket_transport_listen` shall fail and return a non-zero value. **]**
+**SOCKET_TRANSPORT_WIN32_09_057: [** If the transport type is not `SOCKET_BINDING`, `socket_transport_listen` shall fail and return a non-zero value. **]**
 
 **SOCKET_TRANSPORT_WIN32_09_058: [** `socket_transport_listen` shall call `sm_open_begin` to begin the open. **]**
 
@@ -261,7 +261,7 @@ MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_accept, SOCKET_TRA
 
 **SOCKET_TRANSPORT_WIN32_09_067: [** If `socket_transport` is `NULL`, `socket_transport_accept` shall fail and return a non-zero value. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_068: [** If the transport type is not `SOCKET_SERVER`, `socket_transport_accept` shall fail and return a non-zero value. **]**
+**SOCKET_TRANSPORT_WIN32_09_068: [** If the transport type is not `SOCKET_BINDING`, `socket_transport_accept` shall fail and return a non-zero value. **]**
 
 **SOCKET_TRANSPORT_WIN32_09_069: [** `socket_transport_accept` shall call `sm_exec_begin`. **]**
 
@@ -274,6 +274,12 @@ MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_accept, SOCKET_TRA
 **SOCKET_TRANSPORT_WIN32_09_073: [** If `accept` returns an INVALID_SOCKET, `socket_transport_accept` shall fail and return `Null`. **]**
 
 **SOCKET_TRANSPORT_WIN32_09_074: [** `socket_transport_accept` shall allocate a `SOCKET_TRANSPORT` for the incoming connection and call `sm_create` and `sm_open` on the connection. **]**
+
+**SOCKET_TRANSPORT_WIN32_09_084: [** If `malloc` fails, `socket_transport_accept` shall fail and return `NULL`. **]**
+
+**SOCKET_TRANSPORT_WIN32_09_085: [** If `sm_create` fails, `socket_transport_accept` shall close the incoming socket, fail, and return `NULL`. **]**
+
+**SOCKET_TRANSPORT_WIN32_09_086: [** If `sm_open_begin` fails, `socket_transport_accept` shall close the incoming socket, fail, and return `NULL` **]**
 
 **SOCKET_TRANSPORT_WIN32_09_075: [** If successful `socket_transport_accept` shall return the allocated `SOCKET_TRANSPORT`. **]**
 

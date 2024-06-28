@@ -50,7 +50,7 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 TEST_FUNCTION(send_and_receive_2_buffer_of_2_byte_succeeds)
 {
     // assert
-    SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create(SOCKET_SERVER);
+    SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create(SOCKET_BINDING);
     ASSERT_IS_NOT_NULL(listen_socket);
 
     ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, TEST_PORT));
@@ -156,7 +156,7 @@ static uint32_t make_send_recv_buffer(uint8_t item_count, uint32_t data_size, SO
 TEST_FUNCTION(send_and_receive_random_buffer_of_random_byte_succeeds)
 {
     // assert
-    SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create(SOCKET_SERVER);
+    SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create(SOCKET_BINDING);
     ASSERT_IS_NOT_NULL(listen_socket);
 
     ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, TEST_PORT));
