@@ -47,6 +47,7 @@ set(pal_win32_c_files
     src/pipe_win32.c
     src/platform_win32.c
     src/single_performance_counter_win32.c
+    src/socket_transport_win32.c
     src/srw_lock_win32.c
     src/srw_lock_ll_win32.c
     src/string_utils.c

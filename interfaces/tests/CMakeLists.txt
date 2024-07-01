@@ -10,6 +10,7 @@ if(${run_int_tests})
     if(MSVC)
         # file_int is not yet there on Linux
         build_test_folder(file_int)
+        build_test_folder(socket_transport_int)
     endif()
 endif()
 
