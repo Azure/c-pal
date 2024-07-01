@@ -137,8 +137,8 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create(SOCKET_TYPE type)
 {
     SOCKET_TRANSPORT* result;
 
-    // Codes_SOCKET_TRANSPORT_LINUX_11_001: [ socket_transport_create shall ensure type is either SOCKET_CLIENT, or SOCKET_SERVER. ]
-    if (type != SOCKET_CLIENT && type != SOCKET_SERVER)
+    // Codes_SOCKET_TRANSPORT_LINUX_11_001: [ socket_transport_create shall ensure type is either SOCKET_CLIENT, or SOCKET_BINDING. ]
+    if (type != SOCKET_CLIENT && type != SOCKET_BINDING)
     {
         // Codes_SOCKET_TRANSPORT_LINUX_11_004: [ On any failure socket_transport_create shall return NULL. ]
         LogError("Invalid socket type specified: %" PRI_MU_ENUM "", MU_ENUM_VALUE(SOCKET_TYPE, type) );
@@ -490,10 +490,10 @@ int socket_transport_listen(SOCKET_TRANSPORT_HANDLE socket_transport, uint16_t p
     }
     else
     {
-        // Codes_SOCKET_TRANSPORT_LINUX_11_056: [ If the transport type is not SOCKET_SERVER, socket_transport_listen shall fail and return a non-zero value. ]
-        if (socket_transport->type != SOCKET_SERVER)
+        // Codes_SOCKET_TRANSPORT_LINUX_11_056: [ If the transport type is not SOCKET_BINDING, socket_transport_listen shall fail and return a non-zero value. ]
+        if (socket_transport->type != SOCKET_BINDING)
         {
-            LogError("Invalid socket type for this API expected: SOCKET_SERVER, actual: %" PRI_MU_ENUM, MU_ENUM_VALUE(SOCKET_TYPE, socket_transport->type));
+            LogError("Invalid socket type for this API expected: SOCKET_BINDING, actual: %" PRI_MU_ENUM, MU_ENUM_VALUE(SOCKET_TYPE, socket_transport->type));
             result = MU_FAILURE;
         }
         else
@@ -572,10 +572,10 @@ SOCKET_TRANSPORT_HANDLE socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_t
     }
     else
     {
-        // Codes_SOCKET_TRANSPORT_LINUX_11_070: [ If the transport type is not SOCKET_SERVER, socket_transport_accept shall fail and return NULL. ]
-        if (socket_transport->type != SOCKET_SERVER)
+        // Codes_SOCKET_TRANSPORT_LINUX_11_070: [ If the transport type is not SOCKET_BINDING, socket_transport_accept shall fail and return NULL. ]
+        if (socket_transport->type != SOCKET_BINDING)
         {
-            LogError("Invalid socket type for this API expected: SOCKET_SERVER, actual: %" PRI_MU_ENUM, MU_ENUM_VALUE(SOCKET_TYPE, socket_transport->type));
+            LogError("Invalid socket type for this API expected: SOCKET_BINDING, actual: %" PRI_MU_ENUM, MU_ENUM_VALUE(SOCKET_TYPE, socket_transport->type));
             result = NULL;
         }
         else

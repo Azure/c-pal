@@ -11,9 +11,9 @@ The `SOCKET_TYPE` determines which API are applicable for this instance of socke
 | socket_transport_create                | BOTH
 | socket_transport_destroy               | BOTH
 | socket_transport_connect               | SOCKET_CLIENT
-| socket_transport_listen                | SOCKET_SERVER
+| socket_transport_listen                | SOCKET_BINDING
 | socket_transport_disconnect            | BOTH
-| socket_transport_accept                | SOCKET_SERVER
+| socket_transport_accept                | SOCKET_BINDING
 | socket_transport_send                  | BOTH
 | socket_transport_receive               | BOTH
 | socket_transport_get_underlying_socket | BOTH
@@ -40,7 +40,7 @@ MU_DEFINE_ENUM(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_RESULT_VALUES)
 
 #define SOCKET_TYPE_VALUES \
     SOCKET_CLIENT, \
-    SOCKET_SERVER
+    SOCKET_BINDING
 
 MU_DEFINE_ENUM(SOCKET_TYPE, SOCKET_TYPE_VALUES)
 

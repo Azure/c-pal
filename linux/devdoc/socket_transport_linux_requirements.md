@@ -33,7 +33,7 @@ MU_DEFINE_ENUM(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_RESULT_VALUES)
 
 #define SOCKET_TYPE_VALUES \
     SOCKET_CLIENT, \
-    SOCKET_SERVER
+    SOCKET_BINDING
 
 MU_DEFINE_ENUM(SOCKET_TYPE, SOCKET_TYPE_VALUES)
 
@@ -66,7 +66,7 @@ MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create, SOCKET_TYP
 
 `socket_transport_create` creates a socket transport.
 
-**SOCKET_TRANSPORT_LINUX_11_001: [** `socket_transport_create` shall ensure `type` is either `SOCKET_CLIENT`, or `SOCKET_SERVER`. **]**
+**SOCKET_TRANSPORT_LINUX_11_001: [** `socket_transport_create` shall ensure `type` is either `SOCKET_CLIENT`, or `SOCKET_BINDING`. **]**
 
 **SOCKET_TRANSPORT_LINUX_11_002: [** `socket_transport_create` shall allocate a new `SOCKET_TRANSPORT` object. **]**
 
@@ -220,7 +220,7 @@ MOCKABLE_FUNCTION(, int, socket_transport_listen, SOCKET_TRANSPORT_HANDLE, socke
 
 **SOCKET_TRANSPORT_LINUX_11_055: [** If `port` is `0`, `socket_transport_listen` shall fail and return a non-zero value. **]**
 
-**SOCKET_TRANSPORT_LINUX_11_056: [** If the transport type is not `SOCKET_SERVER`, `socket_transport_listen` shall fail and return a non-zero value. **]**
+**SOCKET_TRANSPORT_LINUX_11_056: [** If the transport type is not `SOCKET_BINDING`, `socket_transport_listen` shall fail and return a non-zero value. **]**
 
 **SOCKET_TRANSPORT_LINUX_11_057: [** `socket_transport_listen` shall call `sm_open_begin` to begin the open. **]**
 
@@ -246,7 +246,7 @@ MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_accept, SOCKET_TRA
 
 **SOCKET_TRANSPORT_LINUX_11_069: [** If `socket_transport` is `NULL`, `socket_transport_accept` shall fail and return `NULL`. **]**
 
-**SOCKET_TRANSPORT_LINUX_11_070: [** If the transport type is not `SOCKET_SERVER`, `socket_transport_accept` shall fail and return `NULL`. **]**
+**SOCKET_TRANSPORT_LINUX_11_070: [** If the transport type is not `SOCKET_BINDING`, `socket_transport_accept` shall fail and return `NULL`. **]**
 
 **SOCKET_TRANSPORT_LINUX_11_071: [** `socket_transport_accept` shall call `sm_exec_begin`. **]**
 
