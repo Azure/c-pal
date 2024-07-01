@@ -66,7 +66,7 @@ MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create, SOCKET_TYP
 
 `socket_transport_create` creates a socket transport.
 
-**SOCKET_TRANSPORT_LINUX_11_001: [** `socket_transport_create` shall ensure `type` is either `SOCKET_CLIENT`, or `SOCKET_BINDING`. **]**
+**SOCKET_TRANSPORT_LINUX_11_001: [** If `type` is not `SOCKET_CLIENT`, or `SOCKET_BINDING`, `socket_transport_create` shall fail and return `NULL`. **]**
 
 **SOCKET_TRANSPORT_LINUX_11_002: [** `socket_transport_create` shall allocate a new `SOCKET_TRANSPORT` object. **]**
 

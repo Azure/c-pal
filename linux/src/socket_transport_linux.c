@@ -71,13 +71,11 @@ static int set_nonblocking(SOCKET_HANDLE socket)
 
 static SOCKET_HANDLE connect_to_client(const char* hostname, uint16_t port, uint32_t connection_timeout)
 {
-    SOCKET_HANDLE result;
     // Codes_SOCKET_TRANSPORT_LINUX_11_015: [ socket_transport_connect shall call socket with the params AF_INET, SOCK_STREAM and 0. ]
     SOCKET_HANDLE client_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (client_socket == INVALID_SOCKET)
     {
         LogErrorNo("Failure: socket create failure.");
-        result = INVALID_SOCKET;
     }
     else
     {
@@ -85,7 +83,6 @@ static SOCKET_HANDLE connect_to_client(const char* hostname, uint16_t port, uint
         if (sprintf(port_string, "%u", port) < 0)
         {
             LogError("failed to copy port value %" PRIu16 "", port);
-            result = INVALID_SOCKET;
         }
         else
         {
@@ -100,7 +97,6 @@ static SOCKET_HANDLE connect_to_client(const char* hostname, uint16_t port, uint
             if (getaddrinfo(hostname, port_string, &addr_hint, &addrInfo) != 0)
             {
                 LogErrorNo("Failure: getaddrinfo(hostname=%s, portString=%s, &addr_hint=%p, &addrInfo=%p)", hostname, port_string, &addr_hint, &addrInfo);
-                result = INVALID_SOCKET;
             }
             else
             {
@@ -110,34 +106,32 @@ static SOCKET_HANDLE connect_to_client(const char* hostname, uint16_t port, uint
                 if (connect(client_socket, addrInfo->ai_addr, addrInfo->ai_addrlen) != 0)
                 {
                     LogErrorNo("Connection failure. Server: %s:%" PRIu16 ".", hostname, port);
-                    result = INVALID_SOCKET;
                 }
                 // Codes_SOCKET_TRANSPORT_LINUX_11_017: [ socket_transport_connect shall set the socket to non-blocking by calling fcntl with O_NONBLOCK. ]
                 else if (set_nonblocking(client_socket) != 0)
                 {
                     LogError("Failure: nonblocking failure.");
-                    result = INVALID_SOCKET;
                 }
                 else
                 {
                     freeaddrinfo(addrInfo);
-                    result = client_socket;
                     goto all_ok;
                 }
                 freeaddrinfo(addrInfo);
             }
         }
         close(client_socket);
+        client_socket = INVALID_SOCKET;
     }
 all_ok:
-    return result;
+    return client_socket;
 }
 
 SOCKET_TRANSPORT_HANDLE socket_transport_create(SOCKET_TYPE type)
 {
     SOCKET_TRANSPORT* result;
 
-    // Codes_SOCKET_TRANSPORT_LINUX_11_001: [ socket_transport_create shall ensure type is either SOCKET_CLIENT, or SOCKET_BINDING. ]
+    // Codes_SOCKET_TRANSPORT_LINUX_11_001: [ If type is not SOCKET_CLIENT, or SOCKET_BINDING, socket_transport_create shall fail and return NULL. ]
     if (type != SOCKET_CLIENT && type != SOCKET_BINDING)
     {
         // Codes_SOCKET_TRANSPORT_LINUX_11_004: [ On any failure socket_transport_create shall return NULL. ]

@@ -179,7 +179,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     g_addrInfo.ai_canonname = "ai_canonname";
     for (size_t index = 0; index < TEST_BYTES_RECV; index++)
     {
-        recv_buff[index] = 'a';
+        recv_buff[index] = 'a' + index;
     }
 }
 
@@ -198,11 +198,9 @@ TEST_FUNCTION_INITIALIZE(init)
 TEST_FUNCTION_CLEANUP(cleanup)
 {
     umock_c_negative_tests_deinit();
-
-    //ASSERT_ARE_EQUAL(uint32_t, 0, test_socket, "socket were not matched with close");
 }
 
-// Tests_SOCKET_TRANSPORT_LINUX_11_001: [ socket_transport_create shall ensure type is either SOCKET_CLIENT, or SOCKET_BINDING. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_001: [ If type is not SOCKET_CLIENT, or SOCKET_BINDING, socket_transport_create shall fail and return NULL. ]
 TEST_FUNCTION(socket_transport_create_invalid_type_fail)
 {
     //arrange
