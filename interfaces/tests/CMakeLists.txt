@@ -9,8 +9,8 @@ if(${run_int_tests})
     build_test_folder(uuid_int)
     if(MSVC)
         # file_int is not yet there on Linux
-        build_test_folder(file_int)
         build_test_folder(socket_transport_int)
+        build_test_folder(file_int)
     endif()
 endif()
 
