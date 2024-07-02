@@ -2,10 +2,11 @@
 
 #include <stdlib.h>
 #include <inttypes.h>
+#include <string.h>
 
 #include "testrunnerswitcher.h"
 
-#include "macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h"  // IWYU pragma: keep
 
 #include "c_pal/platform.h"
 #include "c_pal/gballoc_hl.h"
@@ -17,8 +18,10 @@
 
 #define XTEST_FUNCTION(x) void x(void)
 
-#define TEST_PORT 4366
-#define TEST_CONN_TIMEOUT 10000
+#define TEST_PORT           4466
+#define TEST_CONN_TIMEOUT   10000
+
+static uint16_t g_port_num = TEST_PORT;
 
 TEST_DEFINE_ENUM_TYPE(SOCKET_SEND_RESULT, SOCKET_SEND_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_RESULT_VALUES);
@@ -30,6 +33,23 @@ TEST_SUITE_INITIALIZE(suite_init)
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 
     ASSERT_ARE_EQUAL(int, 0, platform_init());
+
+    // Need to see what port we can use because on linux there are 3 iteration of this
+    // test: normal, valgrind, and helgrind, so we need to incrment the port number
+    SOCKET_TRANSPORT_HANDLE test_socket = socket_transport_create(SOCKET_BINDING);
+    ASSERT_IS_NOT_NULL(test_socket);
+
+    for (size_t index = 0; index < 10; index++)
+    {
+        int socket_result = socket_transport_listen(test_socket, g_port_num);
+        g_port_num++;
+        if (socket_result == 0)
+        {
+            break;
+        }
+    }
+    socket_transport_disconnect(test_socket);
+    socket_transport_destroy(test_socket);
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
@@ -45,6 +65,7 @@ TEST_FUNCTION_INITIALIZE(method_init)
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
 {
+    g_port_num++;
 }
 
 TEST_FUNCTION(send_and_receive_2_buffer_of_2_byte_succeeds)
@@ -53,13 +74,13 @@ TEST_FUNCTION(send_and_receive_2_buffer_of_2_byte_succeeds)
     SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create(SOCKET_BINDING);
     ASSERT_IS_NOT_NULL(listen_socket);
 
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, TEST_PORT));
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num));
 
     // create the async socket object
     SOCKET_TRANSPORT_HANDLE client_socket = socket_transport_create(SOCKET_CLIENT);
     ASSERT_IS_NOT_NULL(client_socket);
 
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", TEST_PORT, 10000));
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, 10000));
 
     SOCKET_TRANSPORT_HANDLE incoming_socket = socket_transport_accept(listen_socket);
 
@@ -159,13 +180,13 @@ TEST_FUNCTION(send_and_receive_random_buffer_of_random_byte_succeeds)
     SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create(SOCKET_BINDING);
     ASSERT_IS_NOT_NULL(listen_socket);
 
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, TEST_PORT));
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num));
 
     // create the async socket object
     SOCKET_TRANSPORT_HANDLE client_socket = socket_transport_create(SOCKET_CLIENT);
     ASSERT_IS_NOT_NULL(client_socket);
 
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", TEST_PORT, 10000));
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, 10000));
 
     SOCKET_TRANSPORT_HANDLE incoming_socket = socket_transport_accept(listen_socket);
 
