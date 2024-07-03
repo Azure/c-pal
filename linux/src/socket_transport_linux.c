@@ -127,45 +127,67 @@ all_ok:
     return client_socket;
 }
 
-SOCKET_TRANSPORT_HANDLE socket_transport_create(SOCKET_TYPE type)
+SOCKET_TRANSPORT_HANDLE socket_transport_create_client(void)
 {
     SOCKET_TRANSPORT* result;
 
-    // Codes_SOCKET_TRANSPORT_LINUX_11_001: [ If type is not SOCKET_CLIENT, or SOCKET_BINDING, socket_transport_create shall fail and return NULL. ]
-    if (type != SOCKET_CLIENT && type != SOCKET_BINDING)
+    // Codes_SOCKET_TRANSPORT_WIN32_11_002: [ socket_transport_create shall allocate a new SOCKET_TRANSPORT object. ]
+    result = malloc(sizeof(SOCKET_TRANSPORT));
+    if (result == NULL)
     {
-        // Codes_SOCKET_TRANSPORT_LINUX_11_004: [ On any failure socket_transport_create shall return NULL. ]
-        LogError("Invalid socket type specified: %" PRI_MU_ENUM "", MU_ENUM_VALUE(SOCKET_TYPE, type) );
-        result = NULL;
+        LogError("failure allocating SOCKET_TRANSPORT: %zu", sizeof(SOCKET_TRANSPORT));
     }
     else
     {
-        // Codes_SOCKET_TRANSPORT_LINUX_11_002: [ socket_transport_create shall allocate a new SOCKET_TRANSPORT object. ]
-        result = malloc(sizeof(SOCKET_TRANSPORT));
-        if (result == NULL)
+        // Codes_SOCKET_TRANSPORT_WIN32_11_003: [ socket_transport_create shall call sm_create to create a sm object. ]
+        result->sm = sm_create("Socket_transport_win32");
+        if (result->sm == NULL)
         {
-            // Codes_SOCKET_TRANSPORT_LINUX_11_004: [ On any failure socket_transport_create shall return NULL. ]
-            LogError("failure allocating SOCKET_TRANSPORT: %zu", sizeof(SOCKET_TRANSPORT));
+            LogError("sm_create failed.");
         }
         else
         {
-            // Codes_SOCKET_TRANSPORT_LINUX_11_003: [ socket_transport_create shall call sm_create to create a sm object. ]
-            result->sm = sm_create("socket_transport_win32");
-            if (result->sm == NULL)
-            {
-                // Codes_SOCKET_TRANSPORT_LINUX_11_004: [ On any failure socket_transport_create shall return NULL. ]
-                LogError("sm_create failed.");
-            }
-            else
-            {
-                result->type = type;
-                goto all_ok;
-            }
-            free(result);
-            result = NULL;
+            result->type = SOCKET_CLIENT;
+            goto all_ok;
         }
+        free(result);
+        // Codes_SOCKET_TRANSPORT_WIN32_11_004: [ On any failure socket_transport_create shall return NULL. ]
+        result = NULL;
     }
 all_ok:
+    // Codes_SOCKET_TRANSPORT_WIN32_11_005: [ On success socket_transport_create shall return SOCKET_TRANSPORT_HANDLE. ]
+    return result;
+}
+
+SOCKET_TRANSPORT_HANDLE socket_transport_create_server(void)
+{
+    SOCKET_TRANSPORT* result;
+
+    // Codes_SOCKET_TRANSPORT_LINUX_11_079: [ socket_transport_create shall allocate a new SOCKET_TRANSPORT object. ]
+    result = malloc(sizeof(SOCKET_TRANSPORT));
+    if (result == NULL)
+    {
+        LogError("failure allocating SOCKET_TRANSPORT: %zu", sizeof(SOCKET_TRANSPORT));
+    }
+    else
+    {
+        // Codes_SOCKET_TRANSPORT_WIN32_11_80: [ socket_transport_create shall call sm_create to create a sm object. ]
+        result->sm = sm_create("Socket_transport_win32");
+        if (result->sm == NULL)
+        {
+            LogError("sm_create failed.");
+        }
+        else
+        {
+            result->type = SOCKET_BINDING;
+            goto all_ok;
+        }
+        free(result);
+        // Codes_SOCKET_TRANSPORT_WIN32_11_081: [ On any failure socket_transport_create shall return NULL. ]
+        result = NULL;
+    }
+all_ok:
+    // Codes_SOCKET_TRANSPORT_WIN32_11_082: [ On success socket_transport_create shall return SOCKET_TRANSPORT_HANDLE. ]
     return result;
 }
 

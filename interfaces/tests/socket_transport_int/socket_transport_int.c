@@ -36,7 +36,7 @@ TEST_SUITE_INITIALIZE(suite_init)
 
     // Need to see what port we can use because on linux there are 3 iteration of this
     // test: normal, valgrind, and helgrind, so we need to incrment the port number
-    SOCKET_TRANSPORT_HANDLE test_socket = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE test_socket = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(test_socket);
 
     for (size_t index = 0; index < 10; index++)
@@ -71,13 +71,13 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 TEST_FUNCTION(send_and_receive_2_buffer_of_2_byte_succeeds)
 {
     // assert
-    SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(listen_socket);
 
     ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num));
 
     // create the async socket object
-    SOCKET_TRANSPORT_HANDLE client_socket = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE client_socket = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(client_socket);
 
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, 10000));
@@ -177,13 +177,13 @@ static uint32_t make_send_recv_buffer(uint8_t item_count, uint32_t data_size, SO
 TEST_FUNCTION(send_and_receive_random_buffer_of_random_byte_succeeds)
 {
     // assert
-    SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(listen_socket);
 
     ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num));
 
     // create the async socket object
-    SOCKET_TRANSPORT_HANDLE client_socket = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE client_socket = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(client_socket);
 
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, 10000));

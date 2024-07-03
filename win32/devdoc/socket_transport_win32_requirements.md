@@ -42,7 +42,8 @@ typedef struct SOCKET_BUFFER_TAG
     void* buffer;
 } SOCKET_BUFFER;
 
-MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create, SOCKET_TYPE, type);
+MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_client);
+MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_server);
 MOCKABLE_FUNCTION(, void, socket_transport_destroy, SOCKET_TRANSPORT_HANDLE, socket_transport);
 
 MOCKABLE_FUNCTION(, int, socket_transport_connect, SOCKET_TRANSPORT_HANDLE, socket_transport, const char*, hostname, uint16_t, port, uint32_t, connection_timeout_ms);
@@ -57,15 +58,13 @@ MOCKABLE_FUNCTION(, SOCKET_RECEIVE_RESULT, socket_transport_receive, SOCKET_TRAN
 MOCKABLE_FUNCTION(, SOCKET_HANDLE, socket_transport_get_underlying_socket, SOCKET_TRANSPORT_HANDLE, socket_transport);
 ```
 
-### socket_transport_create
+### socket_transport_create_client
 
 ```c
-MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create, SOCKET_TYPE, type);
+MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_client);
 ```
 
-`socket_transport_create` creates a socket transport.
-
-**SOCKET_TRANSPORT_WIN32_09_001: [** `socket_transport_create` shall ensure `type` is either `SOCKET_CLIENT`, or `SOCKET_BINDING`. **]**
+`socket_transport_create_client` creates a client socket transport.
 
 **SOCKET_TRANSPORT_WIN32_09_002: [** `socket_transport_create` shall allocate a new `SOCKET_TRANSPORT` object. **]**
 
@@ -74,6 +73,23 @@ MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create, SOCKET_TYP
 **SOCKET_TRANSPORT_WIN32_09_004: [** On any failure `socket_transport_create` shall return `NULL`. **]**
 
 **SOCKET_TRANSPORT_WIN32_09_005: [** On success `socket_transport_create` shall return `SOCKET_TRANSPORT_HANDLE`. **]**
+
+### socket_transport_create_server
+
+```c
+MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_server);
+```
+
+`socket_transport_create_server` creates a server socket transport.
+
+**SOCKET_TRANSPORT_WIN32_09_087: [** `socket_transport_create` shall allocate a new `SOCKET_TRANSPORT` object. **]**
+
+**SOCKET_TRANSPORT_WIN32_09_088: [** `socket_transport_create` shall call `sm_create` to create a sm object. **]**
+
+**SOCKET_TRANSPORT_WIN32_09_089: [** On any failure `socket_transport_create` shall return `NULL`. **]**
+
+**SOCKET_TRANSPORT_WIN32_09_090: [** On success `socket_transport_create` shall return `SOCKET_TRANSPORT_HANDLE`. **]**
+
 
 ### socket_transport_destroy
 
