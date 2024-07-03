@@ -1209,7 +1209,7 @@ TEST_FUNCTION(socket_transport_listen_port_0_fail)
 TEST_FUNCTION(socket_transport_listen_invalid_socket_type_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
