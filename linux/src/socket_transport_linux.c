@@ -131,7 +131,7 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create_client(void)
 {
     SOCKET_TRANSPORT* result;
 
-    // Codes_SOCKET_TRANSPORT_WIN32_11_002: [ socket_transport_create shall allocate a new SOCKET_TRANSPORT object. ]
+    // Codes_SOCKET_TRANSPORT_WIN32_11_002: [ socket_transport_create_client shall allocate a new SOCKET_TRANSPORT object. ]
     result = malloc(sizeof(SOCKET_TRANSPORT));
     if (result == NULL)
     {
@@ -139,7 +139,7 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create_client(void)
     }
     else
     {
-        // Codes_SOCKET_TRANSPORT_WIN32_11_003: [ socket_transport_create shall call sm_create to create a sm object. ]
+        // Codes_SOCKET_TRANSPORT_LINUX_11_003: [ socket_transport_create_client shall call sm_create to create a sm object with the type set to SOCKET_CLIENT. ]
         result->sm = sm_create("Socket_transport_win32");
         if (result->sm == NULL)
         {
@@ -151,11 +151,11 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create_client(void)
             goto all_ok;
         }
         free(result);
-        // Codes_SOCKET_TRANSPORT_WIN32_11_004: [ On any failure socket_transport_create shall return NULL. ]
+        // Codes_SOCKET_TRANSPORT_WIN32_11_004: [ On any failure socket_transport_create_client shall return NULL. ]
         result = NULL;
     }
 all_ok:
-    // Codes_SOCKET_TRANSPORT_WIN32_11_005: [ On success socket_transport_create shall return SOCKET_TRANSPORT_HANDLE. ]
+    // Codes_SOCKET_TRANSPORT_WIN32_11_005: [ On success socket_transport_create_client shall return SOCKET_TRANSPORT_HANDLE. ]
     return result;
 }
 
@@ -171,7 +171,7 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create_server(void)
     }
     else
     {
-        // Codes_SOCKET_TRANSPORT_WIN32_11_80: [ socket_transport_create shall call sm_create to create a sm object. ]
+        // Codes_SOCKET_TRANSPORT_LINUX_11_080: [ socket_transport_create_server shall call sm_create to create a sm object with the type set to SOCKET_BINDING. ]
         result->sm = sm_create("Socket_transport_win32");
         if (result->sm == NULL)
         {

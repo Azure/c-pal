@@ -66,13 +66,13 @@ MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_client);
 
 `socket_transport_create_client` creates a client socket transport.
 
-**SOCKET_TRANSPORT_WIN32_09_002: [** `socket_transport_create` shall allocate a new `SOCKET_TRANSPORT` object. **]**
+**SOCKET_TRANSPORT_WIN32_09_002: [** `socket_transport_create_client` shall allocate a new `SOCKET_TRANSPORT` object. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_003: [** `socket_transport_create` shall call `sm_create` to create a sm object. **]**
+**SOCKET_TRANSPORT_WIN32_09_003: [** `socket_transport_create_client` shall call `sm_create` to create a sm object with the type set to SOCKET_CLIENT. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_004: [** On any failure `socket_transport_create` shall return `NULL`. **]**
+**SOCKET_TRANSPORT_WIN32_09_004: [** On any failure `socket_transport_create_client` shall return `NULL`. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_005: [** On success `socket_transport_create` shall return `SOCKET_TRANSPORT_HANDLE`. **]**
+**SOCKET_TRANSPORT_WIN32_09_005: [** On success `socket_transport_create_client` shall return `SOCKET_TRANSPORT_HANDLE`. **]**
 
 ### socket_transport_create_server
 
@@ -82,13 +82,13 @@ MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_server);
 
 `socket_transport_create_server` creates a server socket transport.
 
-**SOCKET_TRANSPORT_WIN32_09_087: [** `socket_transport_create` shall allocate a new `SOCKET_TRANSPORT` object. **]**
+**SOCKET_TRANSPORT_WIN32_09_087: [** `socket_transport_create_server` shall allocate a new `SOCKET_TRANSPORT` object. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_088: [** `socket_transport_create` shall call `sm_create` to create a sm object. **]**
+**SOCKET_TRANSPORT_WIN32_09_088: [** `socket_transport_create_server` shall call `sm_create` to create a sm object with the type set to SOCKET_BINDING. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_089: [** On any failure `socket_transport_create` shall return `NULL`. **]**
+**SOCKET_TRANSPORT_WIN32_09_089: [** On any failure `socket_transport_create_server` shall return `NULL`. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_090: [** On success `socket_transport_create` shall return `SOCKET_TRANSPORT_HANDLE`. **]**
+**SOCKET_TRANSPORT_WIN32_09_090: [** On success `socket_transport_create_server` shall return `SOCKET_TRANSPORT_HANDLE`. **]**
 
 
 ### socket_transport_destroy

@@ -176,7 +176,7 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create_client()
 {
     SOCKET_TRANSPORT* result;
 
-    // Codes_SOCKET_TRANSPORT_WIN32_09_002: [ socket_transport_create shall allocate a new SOCKET_TRANSPORT object. ]
+    // Codes_SOCKET_TRANSPORT_WIN32_09_002: [ socket_transport_create_client shall allocate a new SOCKET_TRANSPORT object. ]
     result = malloc(sizeof(SOCKET_TRANSPORT));
     if (result == NULL)
     {
@@ -184,7 +184,7 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create_client()
     }
     else
     {
-        // Codes_SOCKET_TRANSPORT_WIN32_09_003: [ socket_transport_create shall call sm_create to create a sm object. ]
+        // Codes_SOCKET_TRANSPORT_WIN32_09_003: [ socket_transport_create_client shall call sm_create to create a sm object with the type set to SOCKET_CLIENT. ]
         result->sm = sm_create("Socket_transport_win32");
         if (result->sm == NULL)
         {
@@ -208,7 +208,7 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create_server()
 {
     SOCKET_TRANSPORT* result;
 
-    // Codes_SOCKET_TRANSPORT_WIN32_09_087: [ socket_transport_create shall allocate a new SOCKET_TRANSPORT object. ]
+    // Codes_SOCKET_TRANSPORT_WIN32_09_087: [ socket_transport_create_server shall allocate a new SOCKET_TRANSPORT object. ]
     result = malloc(sizeof(SOCKET_TRANSPORT));
     if (result == NULL)
     {
@@ -216,7 +216,7 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create_server()
     }
     else
     {
-        // Codes_SOCKET_TRANSPORT_WIN32_09_088: [ socket_transport_create shall call sm_create to create a sm object. ]
+        // Codes_SOCKET_TRANSPORT_WIN32_09_088: [ socket_transport_create_server shall call sm_create to create a sm object with the type set to SOCKET_BINDING. ]
         result->sm = sm_create("Socket_transport_win32");
         if (result->sm == NULL)
         {
@@ -228,11 +228,11 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create_server()
             goto all_ok;
         }
         free(result);
-        // Codes_SOCKET_TRANSPORT_WIN32_09_089: [ On any failure socket_transport_create shall return NULL. ]
+        // Codes_SOCKET_TRANSPORT_WIN32_09_089: [ On any failure socket_transport_create_server shall return NULL. ]
         result = NULL;
     }
 all_ok:
-    // Codes_SOCKET_TRANSPORT_WIN32_09_090: [ On success socket_transport_create shall return SOCKET_TRANSPORT_HANDLE. ]
+    // Codes_SOCKET_TRANSPORT_WIN32_09_090: [ On success socket_transport_create_server shall return SOCKET_TRANSPORT_HANDLE. ]
     return result;
 }
 

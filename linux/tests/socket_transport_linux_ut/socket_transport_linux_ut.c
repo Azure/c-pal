@@ -201,7 +201,7 @@ TEST_FUNCTION_CLEANUP(cleanup)
 }
 
 // Tests_SOCKET_TRANSPORT_LINUX_11_002: [ socket_transport_create_client shall allocate a new SOCKET_TRANSPORT object. ]
-// Tests_SOCKET_TRANSPORT_LINUX_11_003: [ socket_transport_create_client shall call sm_create to create a sm object. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_003: [ socket_transport_create_client shall call sm_create to create a sm object with the type set to SOCKET_CLIENT. ]
 // Tests_SOCKET_TRANSPORT_LINUX_11_005: [ On success socket_transport_create_client shall return SOCKET_TRANSPORT_HANDLE. ]
 TEST_FUNCTION(socket_transport_create_client_succeed)
 {
@@ -247,7 +247,7 @@ TEST_FUNCTION(socket_transport_create_client_fail)
 }
 
 // Tests_SOCKET_TRANSPORT_LINUX_11_079: [ socket_transport_create_server shall allocate a new SOCKET_TRANSPORT object. ]
-// Tests_SOCKET_TRANSPORT_LINUX_11_080: [ socket_transport_create_server shall call sm_create to create a sm object. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_080: [ socket_transport_create_server shall call sm_create to create a sm object to create a sm object with the type set to SOCKET_BINDING. ]
 // Tests_SOCKET_TRANSPORT_LINUX_11_082: [ On success socket_transport_create_server shall return SOCKET_TRANSPORT_HANDLE. ]
 TEST_FUNCTION(socket_transport_create_server_succeed)
 {
