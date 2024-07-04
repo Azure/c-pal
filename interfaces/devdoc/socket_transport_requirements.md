@@ -8,7 +8,8 @@ The `SOCKET_TYPE` determines which API are applicable for this instance of socke
 
 | API                                    | Allowable Socket Type
 |----------------------------------------|----------------------
-| socket_transport_create                | BOTH
+| socket_transport_create_client         | SOCKET_CLIENT
+| socket_transport_create_server         | SOCKET_BINDING
 | socket_transport_destroy               | BOTH
 | socket_transport_connect               | SOCKET_CLIENT
 | socket_transport_listen                | SOCKET_BINDING
@@ -50,7 +51,8 @@ typedef struct SOCKET_BUFFER_TAG
     void* buffer;
 } SOCKET_BUFFER;
 
-MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create, SOCKET_TYPE, type);
+MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_client);
+MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_server);
 MOCKABLE_FUNCTION(, void, socket_transport_destroy, SOCKET_TRANSPORT_HANDLE, socket_transport);
 
 MOCKABLE_FUNCTION(, int, socket_transport_connect, SOCKET_TRANSPORT_HANDLE, socket_transport, const char*, hostname, uint16_t, port, uint32_t, connection_timeout_ms);
@@ -65,13 +67,21 @@ MOCKABLE_FUNCTION(, SOCKET_RECEIVE_RESULT, socket_transport_receive, SOCKET_TRAN
 MOCKABLE_FUNCTION(, SOCKET_HANDLE, socket_transport_get_underlying_socket, SOCKET_TRANSPORT_HANDLE, socket_transport);
 ```
 
-### socket_transport_create
+### socket_transport_create_client
 
 ```c
-MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create, SOCKET_TYPE, type);
+MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_client);
 ```
 
-`socket_transport_create` creates a socket transport.
+`socket_transport_create_client` creates a client socket transport.
+
+### socket_transport_create_server
+
+```c
+MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_server);
+```
+
+`socket_transport_create_server` creates a binding socket transport.
 
 ### socket_transport_destroy
 

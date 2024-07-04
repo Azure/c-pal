@@ -197,8 +197,8 @@ TEST_FUNCTION_CLEANUP(cleanup)
 
 }
 
-// Tests_SOCKET_TRANSPORT_WIN32_09_004: [ On any failure socket_transport_create shall return NULL. ]
-TEST_FUNCTION(socket_transport_create_fail)
+// Tests_SOCKET_TRANSPORT_WIN32_09_004: [ On any failure socket_transport_create_client shall return NULL. ]
+TEST_FUNCTION(socket_transport_create_client_fail)
 {
     //arrange
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
@@ -213,7 +213,7 @@ TEST_FUNCTION(socket_transport_create_fail)
             umock_c_negative_tests_fail_call(index);
 
             //act
-            SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+            SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
 
             //assert
             ASSERT_IS_NULL(socket_handle);
@@ -223,31 +223,59 @@ TEST_FUNCTION(socket_transport_create_fail)
     //cleanup
 }
 
-// Tests_SOCKET_TRANSPORT_LINUX_09_001: [ socket_transport_create shall ensure type is either SOCKET_CLIENT, or SOCKET_BINDING. ]
-TEST_FUNCTION(socket_transport_create_invalid_type_fail)
-{
-    //arrange
-
-    //act
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create((SOCKET_TYPE)555);
-
-    //assert
-    ASSERT_IS_NULL(socket_handle);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    //cleanup
-    socket_transport_destroy(socket_handle);
-}
-
-// Tests_SOCKET_TRANSPORT_WIN32_09_005: [ On success socket_transport_create shall return SOCKET_TRANSPORT_HANDLE. ]
-TEST_FUNCTION(socket_transport_create_succeed)
+// Tests_SOCKET_TRANSPORT_WIN32_09_005: [ On success socket_transport_create_client shall return SOCKET_TRANSPORT_HANDLE. ]
+TEST_FUNCTION(socket_transport_create_client_succeed)
 {
     //arrange
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(sm_create(IGNORED_ARG));
 
     //act
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
+
+    //assert
+    ASSERT_IS_NOT_NULL(socket_handle);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    socket_transport_destroy(socket_handle);
+}
+
+// Tests_SOCKET_TRANSPORT_WIN32_09_089: [ On any failure socket_transport_create_server shall return NULL. ]
+TEST_FUNCTION(socket_transport_create_server_fail)
+{
+    //arrange
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(sm_create(IGNORED_ARG));
+    umock_c_negative_tests_snapshot();
+
+    for (size_t index = 0; index < umock_c_negative_tests_call_count(); index++)
+    {
+        if (umock_c_negative_tests_can_call_fail(index))
+        {
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(index);
+
+            //act
+            SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
+
+            //assert
+            ASSERT_IS_NULL(socket_handle);
+        }
+    }
+
+    //cleanup
+}
+
+// Tests_SOCKET_TRANSPORT_WIN32_09_090: [ On success socket_transport_create_server shall return SOCKET_TRANSPORT_HANDLE. ]
+TEST_FUNCTION(socket_transport_create_server_succeeds)
+{
+    //arrange
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(sm_create(IGNORED_ARG));
+
+    //act
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
 
     //assert
     ASSERT_IS_NOT_NULL(socket_handle);
@@ -276,7 +304,7 @@ TEST_FUNCTION(socket_transport_destroy_socket_NULL_fail)
 TEST_FUNCTION(socket_transport_destroy_succeed)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -298,7 +326,7 @@ TEST_FUNCTION(socket_transport_destroy_succeed)
 TEST_FUNCTION(socket_transport_connect_winsock_connect_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -331,7 +359,7 @@ TEST_FUNCTION(socket_transport_connect_winsock_connect_fail)
 TEST_FUNCTION(socket_transport_connect_connecting_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -367,7 +395,7 @@ TEST_FUNCTION(socket_transport_connect_connecting_fail)
 TEST_FUNCTION(socket_transport_connect_timeout_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -402,7 +430,7 @@ TEST_FUNCTION(socket_transport_connect_timeout_fail)
 TEST_FUNCTION(socket_transport_connect_fd_isset_fails)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -440,7 +468,7 @@ TEST_FUNCTION(socket_transport_connect_fd_isset_fails)
 TEST_FUNCTION(socket_transport_connect_socket_transport_NULL_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -464,7 +492,7 @@ TEST_FUNCTION(socket_transport_connect_invalid_arguments_hostname)
     umock_c_negative_tests_snapshot();
 
     //act
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     int result = socket_transport_connect(socket_handle, NULL, TEST_PORT, TEST_CONNECTION_TIMEOUT);
 
     //assert
@@ -485,7 +513,7 @@ TEST_FUNCTION(socket_transport_connect_invalid_arguments_fail_port)
     umock_c_negative_tests_snapshot();
 
     //act
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     int result = socket_transport_connect(socket_handle, TEST_HOSTNAME, 0, TEST_CONNECTION_TIMEOUT);
 
     //assert
@@ -503,7 +531,7 @@ TEST_FUNCTION(socket_transport_connect_fail_sockettransporttype)
     //arrange
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(sm_create(IGNORED_ARG));
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
     umock_c_negative_tests_snapshot();
 
     //act
@@ -524,7 +552,7 @@ TEST_FUNCTION(socket_transport_connect_sm_open_begin_fail)
     //arrange
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(sm_create(IGNORED_ARG));
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     STRICT_EXPECTED_CALL(sm_open_begin(IGNORED_ARG))
         .SetReturn(SM_EXEC_REFUSED);
     umock_c_negative_tests_snapshot();
@@ -544,7 +572,7 @@ TEST_FUNCTION(socket_transport_connect_sm_open_begin_fail)
 TEST_FUNCTION(socket_transport_connect_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -580,7 +608,7 @@ TEST_FUNCTION(socket_transport_connect_fail)
 TEST_FUNCTION(socket_transport_connect_fd_isset_succeeds)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -616,7 +644,7 @@ TEST_FUNCTION(socket_transport_connect_fd_isset_succeeds)
 TEST_FUNCTION(socket_transport_connect_succeed)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -661,7 +689,7 @@ TEST_FUNCTION(socket_transport_disconnect_invalid_arguments)
 TEST_FUNCTION(socket_transport_disconnect_shutdown_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -691,7 +719,7 @@ TEST_FUNCTION(socket_transport_disconnect_shutdown_fail)
 TEST_FUNCTION(socket_transport_disconnect_failure_closesocket)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -723,7 +751,7 @@ TEST_FUNCTION(socket_transport_disconnect_failure_closesocket)
 TEST_FUNCTION(socket_transport_disconnect_binding_socket_closesocket)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -754,7 +782,7 @@ TEST_FUNCTION(socket_transport_disconnect_binding_socket_closesocket)
 TEST_FUNCTION(socket_transport_disconnect_sm_close_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
     umock_c_reset_all_calls();
@@ -779,7 +807,7 @@ TEST_FUNCTION(socket_transport_disconnect_sm_close_fail)
 TEST_FUNCTION(socket_transport_disconnect_succeed)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
     umock_c_reset_all_calls();
@@ -827,7 +855,7 @@ TEST_FUNCTION(socket_transport_send_fail_socket_transport_NULL)
 TEST_FUNCTION(socket_transport_send_fail_payload_NULL)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
     umock_c_reset_all_calls();
@@ -855,7 +883,7 @@ TEST_FUNCTION(socket_transport_send_fail_payload_NULL)
 TEST_FUNCTION(socket_transport_send_fail_buffercount_zero)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
     umock_c_reset_all_calls();
@@ -883,7 +911,7 @@ TEST_FUNCTION(socket_transport_send_fail_buffercount_zero)
 TEST_FUNCTION(socket_transport_send_fail_sm_exec_begin)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
     umock_c_reset_all_calls();
@@ -913,7 +941,7 @@ TEST_FUNCTION(socket_transport_send_fail_sm_exec_begin)
 TEST_FUNCTION(socket_transport_send_fail_WSASend)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
     umock_c_reset_all_calls();
@@ -948,7 +976,7 @@ TEST_FUNCTION(socket_transport_send_fail_WSASend)
 TEST_FUNCTION(socket_transport_send_succeed)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
     umock_c_reset_all_calls();
@@ -997,7 +1025,7 @@ TEST_FUNCTION(socket_transport_receive_socket_transport_NULL_fail)
 TEST_FUNCTION(socket_transport_receive_payload_NULL_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
     umock_c_reset_all_calls();
@@ -1020,7 +1048,7 @@ TEST_FUNCTION(socket_transport_receive_payload_NULL_fail)
 TEST_FUNCTION(socket_transport_receive_buffer_count_0_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
     umock_c_reset_all_calls();
@@ -1045,7 +1073,7 @@ TEST_FUNCTION(socket_transport_receive_buffer_count_0_fail)
 TEST_FUNCTION(socket_transport_receive_sm_exec_begin_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -1075,7 +1103,7 @@ TEST_FUNCTION(socket_transport_receive_sm_exec_begin_fail)
 TEST_FUNCTION(socket_transport_receive_socket_receive_would_block)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
     umock_c_reset_all_calls();
@@ -1108,7 +1136,7 @@ TEST_FUNCTION(socket_transport_receive_socket_receive_would_block)
 TEST_FUNCTION(socket_transport_receive_socket_receive_error)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
     umock_c_reset_all_calls();
@@ -1145,7 +1173,7 @@ TEST_FUNCTION(socket_transport_receive_socket_receive_error)
 TEST_FUNCTION(socket_transport_receive_succeed)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
     umock_c_reset_all_calls();
@@ -1182,7 +1210,7 @@ TEST_FUNCTION(socket_transport_receive_succeed)
 TEST_FUNCTION(socket_transport_listen_succeed)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -1225,7 +1253,7 @@ TEST_FUNCTION(socket_transport_listen_socket_transport_NULL_fail)
 TEST_FUNCTION(socket_transport_listen_port_0_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -1244,7 +1272,7 @@ TEST_FUNCTION(socket_transport_listen_port_0_fail)
 TEST_FUNCTION(socket_transport_listen_invalid_socket_type_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -1263,7 +1291,7 @@ TEST_FUNCTION(socket_transport_listen_invalid_socket_type_fail)
 TEST_FUNCTION(socket_transport_listen_sm_open_not_granted_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -1285,7 +1313,7 @@ TEST_FUNCTION(socket_transport_listen_sm_open_not_granted_fail)
 TEST_FUNCTION(socket_transport_listen_socket_create_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -1308,7 +1336,7 @@ TEST_FUNCTION(socket_transport_listen_socket_create_fail)
 TEST_FUNCTION(socket_transport_listen_socket_bind_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -1335,7 +1363,7 @@ TEST_FUNCTION(socket_transport_listen_socket_bind_fail)
 TEST_FUNCTION(socket_transport_listen_socket_ioctlsocket_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -1363,7 +1391,7 @@ TEST_FUNCTION(socket_transport_listen_socket_ioctlsocket_fail)
 TEST_FUNCTION(socket_transport_listen_socket_listen_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -1392,7 +1420,7 @@ TEST_FUNCTION(socket_transport_listen_socket_listen_fail)
 TEST_FUNCTION(socket_transport_listen_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
 
@@ -1431,7 +1459,7 @@ TEST_FUNCTION(socket_transport_listen_fail)
 TEST_FUNCTION(socket_transport_accept_succeed)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(socket_handle);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(socket_handle, TEST_PORT));
     umock_c_reset_all_calls();
@@ -1479,7 +1507,7 @@ TEST_FUNCTION(socket_transport_accept_null_input_fail)
 TEST_FUNCTION(socket_transport_accept_sockettransport_type_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_CLIENT);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
     umock_c_negative_tests_snapshot();
@@ -1499,7 +1527,7 @@ TEST_FUNCTION(socket_transport_accept_sockettransport_type_fail)
 TEST_FUNCTION(socket_transport_accept_smexecbegin_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(socket_handle);
     umock_c_reset_all_calls();
     umock_c_negative_tests_snapshot();
@@ -1522,7 +1550,7 @@ TEST_FUNCTION(socket_transport_accept_smexecbegin_fail)
 TEST_FUNCTION(socket_transport_accept_select_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(socket_handle);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(socket_handle, TEST_PORT));
     umock_c_reset_all_calls();
@@ -1549,7 +1577,7 @@ TEST_FUNCTION(socket_transport_accept_select_fail)
 TEST_FUNCTION(socket_transport_accept_accept_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(socket_handle);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(socket_handle, TEST_PORT));
     umock_c_reset_all_calls();
@@ -1579,7 +1607,7 @@ TEST_FUNCTION(socket_transport_accept_accept_fail)
 TEST_FUNCTION(socket_transport_accept_malloc_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(socket_handle);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(socket_handle, TEST_PORT));
     umock_c_reset_all_calls();
@@ -1612,7 +1640,7 @@ TEST_FUNCTION(socket_transport_accept_malloc_fail)
 TEST_FUNCTION(socket_transport_accept_sm_create_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(socket_handle);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(socket_handle, TEST_PORT));
     umock_c_reset_all_calls();
@@ -1644,7 +1672,7 @@ TEST_FUNCTION(socket_transport_accept_sm_create_fail)
 TEST_FUNCTION(socket_transport_accept_sm_open_begin_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(socket_handle);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(socket_handle, TEST_PORT));
     umock_c_reset_all_calls();
@@ -1678,7 +1706,7 @@ TEST_FUNCTION(socket_transport_accept_sm_open_begin_fail)
 TEST_FUNCTION(socket_transport_accept_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(socket_handle);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(socket_handle, TEST_PORT));
     umock_c_reset_all_calls();
@@ -1708,7 +1736,7 @@ TEST_FUNCTION(socket_transport_accept_fail)
 TEST_FUNCTION(socket_transport_get_underlying_socket_succeed)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(socket_handle);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(socket_handle, TEST_PORT));
     umock_c_reset_all_calls();
@@ -1732,7 +1760,7 @@ TEST_FUNCTION(socket_transport_get_underlying_socket_succeed)
 TEST_FUNCTION(socket_transport_get_underlying_socket_smexecbegin_fail)
 {
     //arrange
-    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create(SOCKET_BINDING);
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(socket_handle);
     ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(socket_handle, TEST_PORT));
     umock_c_reset_all_calls();
