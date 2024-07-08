@@ -8,6 +8,9 @@
 
 #include "macro_utils/macro_utils.h"  // IWYU pragma: keep
 
+#include "c_logging/log_level.h"
+#include "c_logging/logger.h"
+
 #include "c_pal/platform.h"
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/socket_transport.h"
@@ -42,11 +45,13 @@ TEST_SUITE_INITIALIZE(suite_init)
     for (size_t index = 0; index < 10; index++)
     {
         int socket_result = socket_transport_listen(test_socket, g_port_num);
-        g_port_num++;
         if (socket_result == 0)
         {
+            LogInfo("Socket_transport_listen success %" PRIu16 "", g_port_num);
             break;
         }
+        g_port_num++;
+        LogInfo("Socket_transport_listen failed %" PRIu16 "", g_port_num);
     }
     socket_transport_disconnect(test_socket);
     socket_transport_destroy(test_socket);
@@ -74,7 +79,7 @@ TEST_FUNCTION(send_and_receive_2_buffer_of_2_byte_succeeds)
     SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(listen_socket);
 
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num));
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num), "failed listening on port %" PRIu16 "", g_port_num);
 
     // create the async socket object
     SOCKET_TRANSPORT_HANDLE client_socket = socket_transport_create_client();
