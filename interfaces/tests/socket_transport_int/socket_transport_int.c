@@ -8,7 +8,6 @@
 
 #include "macro_utils/macro_utils.h"  // IWYU pragma: keep
 
-#include "c_logging/log_level.h"
 #include "c_logging/logger.h"
 
 #include "c_pal/platform.h"
