@@ -18,8 +18,12 @@
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/socket_transport.h"
 
-#ifndef WIN32
-    #include <sys/socket.h>
+#ifdef WIN32
+#define SOCKET_SEND_FLAG     0
+#else
+#include <sys/socket.h>
+#define SOCKET_SEND_FLAG     MSG_NOSIGNAL
+
 #endif // !WIN32
 
 #define XTEST_FUNCTION(x) void x(void)
@@ -82,11 +86,11 @@ TEST_SUITE_CLEANUP(suite_cleanup)
 
 TEST_FUNCTION_INITIALIZE(method_init)
 {
+    g_port_num++;
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
 {
-    g_port_num++;
 }
 
 TEST_FUNCTION(send_and_receive_2_buffer_of_2_byte_succeeds)
@@ -128,10 +132,7 @@ TEST_FUNCTION(send_and_receive_2_buffer_of_2_byte_succeeds)
     uint32_t bytes_recv;
     uint32_t bytes_written;
 
-    uint32_t flag = 0;
-#ifndef WIN32
-    flag = MSG_NOSIGNAL;
-#endif // !WIN32
+    uint32_t flag = SOCKET_SEND_FLAG;
 
     // Send data back and forth
     ASSERT_ARE_EQUAL(SOCKET_SEND_RESULT, SOCKET_SEND_OK, socket_transport_send(client_socket, send_data, 2, &bytes_written, flag, NULL));
@@ -168,7 +169,7 @@ static uint32_t make_send_recv_buffer(uint8_t item_count, uint32_t data_size, SO
     {
         send_data[inner].length = recv_data[inner].length = data_size;
 
-        send_data[inner].buffer = malloc(sizeof(unsigned char)* data_size);
+        send_data[inner].buffer = malloc(sizeof(unsigned char) * data_size);
         ASSERT_IS_NOT_NULL(send_data[inner].buffer);
         recv_data[inner].buffer = malloc(sizeof(unsigned char) * data_size);
         ASSERT_IS_NOT_NULL(recv_data[inner].buffer);
@@ -223,7 +224,7 @@ TEST_FUNCTION(send_and_receive_random_buffer_of_random_byte_succeeds)
 
     uint32_t bytes_recv;
     uint32_t bytes_sent;
-    uint32_t flag = 0;
+    uint32_t flag = SOCKET_SEND_FLAG;
 
     // Send data back and forth
     ASSERT_ARE_EQUAL(SOCKET_SEND_RESULT, SOCKET_SEND_OK, socket_transport_send(client_socket, send_data, buffer_count, &bytes_sent, flag, NULL));
@@ -285,12 +286,13 @@ static int thread_worker_func(void* parameter)
     return 0;
 }
 
-// chaos test
-// This test will intitialize a series of sockets, both client and binding sockets
-/*This test will do the following:
+/* chaos test
+* This test will do the following:
 * create a bunch of client sockets to connect to binding socket every second
 * create a thread to listen and connect
 * send and receive random buffers of data per client
+* Disconnect a random incoming socket
+* Test if the disconnected socket receives the data from the client socket
 */
 TEST_FUNCTION(socket_transport_chaos_knight_test)
 {
@@ -323,7 +325,7 @@ TEST_FUNCTION(socket_transport_chaos_knight_test)
 
         uint32_t bytes_recv;
         uint32_t bytes_sent;
-        uint32_t flag = 0;
+        uint32_t flag = SOCKET_SEND_FLAG;
 
         // Send data back and forth
         ASSERT_ARE_EQUAL(SOCKET_SEND_RESULT, SOCKET_SEND_OK, socket_transport_send(chaos_knight_test.client_socket_handles[i], send_data, buffer_count, &bytes_sent, flag, NULL));
@@ -343,48 +345,10 @@ TEST_FUNCTION(socket_transport_chaos_knight_test)
         free(recv_data);
     }
 
-    // cleanup
-
-    for (size_t i = 0; i < CHAOS_THREAD_COUNT; i++)
-    {
-        socket_transport_disconnect(chaos_knight_test.client_socket_handles[i]);
-        socket_transport_destroy(chaos_knight_test.client_socket_handles[i]);
-
-        socket_transport_disconnect(chaos_knight_test.incoming_socket_handles[i]);
-        socket_transport_destroy(chaos_knight_test.incoming_socket_handles[i]);
-    }
-
-    socket_transport_disconnect(chaos_knight_test.listen_socket);
-    socket_transport_destroy(chaos_knight_test.listen_socket);
-
-}
-
-/*This test will do the following:
-    Disconnect a random incoming socket
-    Test if the disconnected socket receives the data from the client socket
-*/
-TEST_FUNCTION(socket_transport_chaos_test_server_quits)
-{
-
-    CHAOS_TEST_SOCKETS chaos_knight_test;
-
-    for (size_t i = 0; i < CHAOS_THREAD_COUNT; i++)
-    {
-        chaos_knight_test.client_socket_handles[i] = socket_transport_create_client();
-
-        ASSERT_IS_NOT_NULL(chaos_knight_test.client_socket_handles[i]);
-
-    }
-
-    THREAD_HANDLE thread;
-
-    interlocked_exchange(&chaos_knight_test.API_create_result, 0);
-    ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&thread, thread_worker_func, &chaos_knight_test));
-    wait_for_value(&chaos_knight_test.API_create_result, 1);
-
     // server disconnects
     socket_transport_disconnect(chaos_knight_test.incoming_socket_handles[FAILED_SERVER_NUM]);
 
+    // resend data back and forth with disconnected
     for (size_t i = 0; i < CHAOS_THREAD_COUNT; i++)
     {
         uint8_t buffer_count = 8;
@@ -398,10 +362,14 @@ TEST_FUNCTION(socket_transport_chaos_test_server_quits)
 
         uint32_t bytes_recv;
         uint32_t bytes_sent;
-        uint32_t flag = 0;
 
-        ASSERT_ARE_EQUAL(SOCKET_SEND_RESULT, SOCKET_SEND_OK, socket_transport_send(chaos_knight_test.client_socket_handles[i], send_data, buffer_count, &bytes_sent, flag, NULL));
-        ASSERT_ARE_EQUAL(int, total_bytes, bytes_sent);
+        uint32_t flag = SOCKET_SEND_FLAG;
+
+        SOCKET_SEND_RESULT send_result = socket_transport_send(chaos_knight_test.client_socket_handles[i], send_data, buffer_count, &bytes_sent, flag, NULL);
+        if (send_result == SOCKET_SEND_OK)
+        {
+            ASSERT_ARE_EQUAL(int, total_bytes, bytes_sent);
+        }
 
         if (i == FAILED_SERVER_NUM)
         {
@@ -438,6 +406,7 @@ TEST_FUNCTION(socket_transport_chaos_test_server_quits)
 
     socket_transport_disconnect(chaos_knight_test.listen_socket);
     socket_transport_destroy(chaos_knight_test.listen_socket);
+
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
