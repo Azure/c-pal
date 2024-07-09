@@ -9,7 +9,6 @@
 #include "c_pal/execution_engine.h"
 #include "c_pal/threadapi.h"
 #include "c_pal/interlocked.h"
-#include "c_pal/execution_engine_win32.h"
 
 #include "c_pal/sync.h"
 
@@ -280,7 +279,6 @@ static int thread_worker_func(void* parameter)
 
     ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(chaos_test->listen_socket, g_port_num));
 
-    // create listening sockets for each client socket
     for (i = 0; i < CHAOS_THREAD_COUNT; i++)
     {
         ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(chaos_test->client_socket_handles[i], "localhost", g_port_num, 10000));
@@ -290,7 +288,6 @@ static int thread_worker_func(void* parameter)
         ASSERT_IS_NOT_NULL(chaos_test->incoming_socket_handles[i]);
     }
 
-    // increment the wait for value
     (void)interlocked_increment(&chaos_test->API_create_result);
     wake_by_address_single(&chaos_test->API_create_result);
     return 0;
@@ -298,11 +295,14 @@ static int thread_worker_func(void* parameter)
 
 // chaos test
 // This test will intitialize a series of sockets, both client and binding sockets
+/*This test will do the following:
+* create a bunch of client sockets to connect to binding socket every second
+* create a thread to listen and connect
+* send and receive random buffers of data per client
+*/
 TEST_FUNCTION(socket_transport_chaos_knight_test)
 {
     CHAOS_TEST_SOCKETS chaos_knight_test;
-
-    // create a bunch of client sockets to connect to binding socket every second
 
     for (size_t i = 0; i < CHAOS_THREAD_COUNT; i++)
     {
@@ -313,15 +313,12 @@ TEST_FUNCTION(socket_transport_chaos_knight_test)
         Sleep(1);
     }
 
-    // connect and listen in a thread
     THREAD_HANDLE thread;
 
-    // call thread_create_api
     interlocked_exchange(&chaos_knight_test.API_create_result, 0);
     ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&thread, thread_worker_func, &chaos_knight_test));
     wait_for_value(&chaos_knight_test.API_create_result, 1);
 
-    // send and receive random buffer of data per client
     for (size_t i = 0; i < CHAOS_THREAD_COUNT; i++)
     {
         uint8_t buffer_count = 8;
@@ -371,13 +368,14 @@ TEST_FUNCTION(socket_transport_chaos_knight_test)
 
 }
 
+/*This test will do the following:
+    Disconnect a random incoming socket
+    Test if the disconnected socket receives the data from the client socket
+*/
 TEST_FUNCTION(socket_transport_chaos_test_server_quits)
 {
-    // start server and clients
 
     CHAOS_TEST_SOCKETS chaos_knight_test;
-
-    // create a bunch of client sockets to connect to binding socket every second
 
     for (size_t i = 0; i < CHAOS_THREAD_COUNT; i++)
     {
@@ -388,20 +386,14 @@ TEST_FUNCTION(socket_transport_chaos_test_server_quits)
         Sleep(1);
     }
 
-    // connect and listen in a thread
     THREAD_HANDLE thread;
 
-    // call thread_create_api
     interlocked_exchange(&chaos_knight_test.API_create_result, 0);
     ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&thread, thread_worker_func, &chaos_knight_test));
     wait_for_value(&chaos_knight_test.API_create_result, 1);
 
-    // server fails
+    // server disconnects
     socket_transport_disconnect(chaos_knight_test.incoming_socket_handles[FAILED_SERVER_NUM]);
-
-    // client tries to send and receive data
-    // client continues sending and receiving data on failure of one client socket
-    // send and receive random buffer of data per client
 
     for (size_t i = 0; i < CHAOS_THREAD_COUNT; i++)
     {
@@ -421,8 +413,6 @@ TEST_FUNCTION(socket_transport_chaos_test_server_quits)
         ASSERT_ARE_EQUAL(SOCKET_SEND_RESULT, SOCKET_SEND_OK, socket_transport_send(chaos_knight_test.client_socket_handles[i], send_data, buffer_count, &bytes_sent, flag, NULL));
         ASSERT_ARE_EQUAL(int, total_bytes, bytes_sent);
 
-        // Send data back and forth
-        // Test if disconnected incoming socket isn't receiving
         if (i == FAILED_SERVER_NUM)
         {
             ASSERT_ARE_EQUAL(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_ERROR, socket_transport_receive(chaos_knight_test.incoming_socket_handles[i], recv_data, buffer_count, &bytes_recv, 0, NULL));
