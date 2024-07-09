@@ -310,7 +310,6 @@ TEST_FUNCTION(socket_transport_chaos_knight_test)
 
         ASSERT_IS_NOT_NULL(chaos_knight_test.client_socket_handles[i]);
 
-        Sleep(1);
     }
 
     THREAD_HANDLE thread;
@@ -383,7 +382,6 @@ TEST_FUNCTION(socket_transport_chaos_test_server_quits)
 
         ASSERT_IS_NOT_NULL(chaos_knight_test.client_socket_handles[i]);
 
-        Sleep(1);
     }
 
     THREAD_HANDLE thread;
