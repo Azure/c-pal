@@ -32,6 +32,7 @@
 #define TEST_CONN_TIMEOUT   10000
 
 static uint16_t g_port_num = TEST_PORT;
+SOCKET_TRANSPORT_HANDLE g_test_socket;
 
 #define CHAOS_THREAD_COUNT 4
 
@@ -59,28 +60,27 @@ TEST_SUITE_INITIALIZE(suite_init)
 
     // Need to see what port we can use because on linux there are 3 iteration of this
     // test: normal, valgrind, and helgrind, so we need to incrment the port number
-    SOCKET_TRANSPORT_HANDLE test_socket = socket_transport_create_server();
-    ASSERT_IS_NOT_NULL(test_socket);
+    g_test_socket = socket_transport_create_server();
+    ASSERT_IS_NOT_NULL(g_test_socket);
 
     for (size_t index = 0; index < 10; index++)
     {
-        int socket_result = socket_transport_listen(test_socket, g_port_num);
+        int socket_result = socket_transport_listen(g_test_socket, g_port_num);
         if (socket_result == 0)
         {
             LogInfo("Socket_transport_listen success %" PRIu16 "", g_port_num);
             break;
         }
-        g_port_num++;
+        g_port_num+=5;
         LogInfo("Socket_transport_listen failed %" PRIu16 "", g_port_num);
     }
-    socket_transport_disconnect(test_socket);
-    socket_transport_destroy(test_socket);
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
 {
+    socket_transport_disconnect(g_test_socket);
+    socket_transport_destroy(g_test_socket);
     (void)platform_deinit();
-
     gballoc_hl_deinit();
 }
 
