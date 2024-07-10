@@ -71,7 +71,7 @@ TEST_SUITE_INITIALIZE(suite_init)
             LogInfo("Socket_transport_listen success %" PRIu16 "", g_port_num);
             break;
         }
-        g_port_num+=5;
+        g_port_num = g_port_num + 5;
         LogInfo("Socket_transport_listen failed %" PRIu16 "", g_port_num);
     }
 }
