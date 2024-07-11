@@ -8,7 +8,7 @@
 
 #include "macro_utils/macro_utils.h"  // IWYU pragma: keep
 
-#include "c_logging/logger.h"
+#include "c_logging/logger.h"  // IWYU pragma: keep
 
 #include "c_pal/platform.h"
 #include "c_pal/gballoc_hl.h"
@@ -35,25 +35,6 @@ TEST_SUITE_INITIALIZE(suite_init)
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 
     ASSERT_ARE_EQUAL(int, 0, platform_init());
-
-    // Need to see what port we can use because on linux there are 3 iteration of this
-    // test: normal, valgrind, and helgrind, so we need to incrment the port number
-    SOCKET_TRANSPORT_HANDLE test_socket = socket_transport_create_server();
-    ASSERT_IS_NOT_NULL(test_socket);
-
-    for (size_t index = 0; index < 10; index++)
-    {
-        int socket_result = socket_transport_listen(test_socket, g_port_num);
-        if (socket_result == 0)
-        {
-            LogInfo("Socket_transport_listen success %" PRIu16 "", g_port_num);
-            break;
-        }
-        g_port_num++;
-        LogInfo("Socket_transport_listen failed %" PRIu16 "", g_port_num);
-    }
-    socket_transport_disconnect(test_socket);
-    socket_transport_destroy(test_socket);
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
@@ -69,7 +50,6 @@ TEST_FUNCTION_INITIALIZE(method_init)
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
 {
-    g_port_num++;
 }
 
 TEST_FUNCTION(send_and_receive_2_buffer_of_2_byte_succeeds)
@@ -84,7 +64,7 @@ TEST_FUNCTION(send_and_receive_2_buffer_of_2_byte_succeeds)
     SOCKET_TRANSPORT_HANDLE client_socket = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(client_socket);
 
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, 10000));
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
 
     SOCKET_TRANSPORT_HANDLE incoming_socket = socket_transport_accept(listen_socket);
 
@@ -190,7 +170,7 @@ TEST_FUNCTION(send_and_receive_random_buffer_of_random_byte_succeeds)
     SOCKET_TRANSPORT_HANDLE client_socket = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(client_socket);
 
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, 10000));
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
 
     SOCKET_TRANSPORT_HANDLE incoming_socket = socket_transport_accept(listen_socket);
 

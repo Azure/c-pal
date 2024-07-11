@@ -22,6 +22,7 @@ struct addrinfo;
 #define htons mocked_htons
 #define bind mocked_bind
 #define ioctlsocket mocked_ioctlsocket
+#define setsockopt mock_setsockopt
 #define listen mocked_listen
 #define send mocked_send
 #define recv mocked_recv
@@ -38,6 +39,7 @@ MOCKABLE_FUNCTION(, SOCKET_HANDLE, mocked_socket, int, af, int, type, int, proto
 MOCKABLE_FUNCTION(, u_short, mocked_htons, unsigned short, hostshort);
 MOCKABLE_FUNCTION(, int, mocked_bind, SOCKET_HANDLE, s, const struct sockaddr*, name, int, namelen);
 MOCKABLE_FUNCTION(, int, mocked_ioctlsocket, int, s, long, cmd, u_long*, argp);
+MOCKABLE_FUNCTION(, int, mock_setsockopt, int, fd, int, __level, int, __optname, const void*, __optval, socklen_t, __optlen);
 MOCKABLE_FUNCTION(, int, mocked_listen, SOCKET_HANDLE, s, int, backlog);
 MOCKABLE_FUNCTION(, ssize_t, mocked_send, SOCKET_HANDLE, sockfd, const void*, buf, size_t, len, int, flags);
 MOCKABLE_FUNCTION(, ssize_t, mocked_recv, SOCKET_HANDLE, sockfd, void*, buf, size_t, len, int, flags);
