@@ -5,17 +5,25 @@
 #include <string.h>
 
 #include "testrunnerswitcher.h"
+#include "c_pal/threadapi.h"
+#include "c_pal/interlocked.h"
+
+#include "c_pal/sync.h"
 
 #include "macro_utils/macro_utils.h"  // IWYU pragma: keep
 
 #include "c_logging/logger.h"  // IWYU pragma: keep
 
-#include "c_pal/platform.h"
+#include "c_pal/platform.h" // IWYU pragma: keep
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/socket_transport.h"
 
-#ifndef WIN32
-    #include <sys/socket.h>
+#ifdef WIN32
+#define SOCKET_SEND_FLAG     0
+#else
+#include <sys/socket.h>
+#define SOCKET_SEND_FLAG     MSG_NOSIGNAL
+
 #endif // !WIN32
 
 #define XTEST_FUNCTION(x) void x(void)
@@ -24,9 +32,23 @@
 #define TEST_CONN_TIMEOUT   10000
 
 static uint16_t g_port_num = TEST_PORT;
+SOCKET_TRANSPORT_HANDLE g_test_socket;
+
+#define CHAOS_THREAD_COUNT 4
+
+typedef struct CHAOS_TEST_SOCKETS_TAG
+{
+    SOCKET_TRANSPORT_HANDLE client_socket_handles[CHAOS_THREAD_COUNT];
+    SOCKET_TRANSPORT_HANDLE incoming_socket_handles[CHAOS_THREAD_COUNT];
+    SOCKET_TRANSPORT_HANDLE listen_socket;
+    volatile_atomic int32_t API_create_result;
+    int failed_server_num;
+
+} CHAOS_TEST_SOCKETS;
 
 TEST_DEFINE_ENUM_TYPE(SOCKET_SEND_RESULT, SOCKET_SEND_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_RESULT_VALUES);
+TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
@@ -35,17 +57,36 @@ TEST_SUITE_INITIALIZE(suite_init)
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 
     ASSERT_ARE_EQUAL(int, 0, platform_init());
+
+    // Need to see what port we can use because on linux there are 3 iteration of this
+    // test: normal, valgrind, and helgrind, so we need to incrment the port number
+    g_test_socket = socket_transport_create_server();
+    ASSERT_IS_NOT_NULL(g_test_socket);
+
+    for (size_t index = 0; index < 10; index++)
+    {
+        int socket_result = socket_transport_listen(g_test_socket, g_port_num);
+        if (socket_result == 0)
+        {
+            LogInfo("Socket_transport_listen success %" PRIu16 "", g_port_num);
+            break;
+        }
+        g_port_num = g_port_num + 5;
+        LogInfo("Socket_transport_listen failed %" PRIu16 "", g_port_num);
+    }
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
 {
+    socket_transport_disconnect(g_test_socket);
+    socket_transport_destroy(g_test_socket);
     (void)platform_deinit();
-
     gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(method_init)
 {
+    g_port_num++;
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
@@ -91,10 +132,7 @@ TEST_FUNCTION(send_and_receive_2_buffer_of_2_byte_succeeds)
     uint32_t bytes_recv;
     uint32_t bytes_written;
 
-    uint32_t flag = 0;
-#ifndef WIN32
-    flag = MSG_NOSIGNAL;
-#endif // !WIN32
+    uint32_t flag = SOCKET_SEND_FLAG;
 
     // Send data back and forth
     ASSERT_ARE_EQUAL(SOCKET_SEND_RESULT, SOCKET_SEND_OK, socket_transport_send(client_socket, send_data, 2, &bytes_written, flag, NULL));
@@ -131,7 +169,7 @@ static uint32_t make_send_recv_buffer(uint8_t item_count, uint32_t data_size, SO
     {
         send_data[inner].length = recv_data[inner].length = data_size;
 
-        send_data[inner].buffer = malloc(sizeof(unsigned char)* data_size);
+        send_data[inner].buffer = malloc(sizeof(unsigned char) * data_size);
         ASSERT_IS_NOT_NULL(send_data[inner].buffer);
         recv_data[inner].buffer = malloc(sizeof(unsigned char) * data_size);
         ASSERT_IS_NOT_NULL(recv_data[inner].buffer);
@@ -173,6 +211,7 @@ TEST_FUNCTION(send_and_receive_random_buffer_of_random_byte_succeeds)
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
 
     SOCKET_TRANSPORT_HANDLE incoming_socket = socket_transport_accept(listen_socket);
+    ASSERT_IS_NOT_NULL(incoming_socket);
 
     uint8_t buffer_count = 8;
 
@@ -185,7 +224,7 @@ TEST_FUNCTION(send_and_receive_random_buffer_of_random_byte_succeeds)
 
     uint32_t bytes_recv;
     uint32_t bytes_sent;
-    uint32_t flag = 0;
+    uint32_t flag = SOCKET_SEND_FLAG;
 
     // Send data back and forth
     ASSERT_ARE_EQUAL(SOCKET_SEND_RESULT, SOCKET_SEND_OK, socket_transport_send(client_socket, send_data, buffer_count, &bytes_sent, flag, NULL));
@@ -212,6 +251,147 @@ TEST_FUNCTION(send_and_receive_random_buffer_of_random_byte_succeeds)
 
     socket_transport_disconnect(listen_socket);
     socket_transport_destroy(listen_socket);
+}
+
+static void wait_for_value(volatile_atomic int32_t* counter, int32_t target_value)
+{
+    int32_t value;
+    while ((value = interlocked_add(counter, 0)) != target_value)
+    {
+        (void)wait_on_address(counter, value, UINT32_MAX);
+    }
+}
+
+static int connect_and_listen_func(void* parameter)
+{
+    size_t i;
+    CHAOS_TEST_SOCKETS* chaos_knight_test = parameter;
+
+    chaos_knight_test->listen_socket = socket_transport_create_server();
+    ASSERT_IS_NOT_NULL(chaos_knight_test->listen_socket);
+
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(chaos_knight_test->listen_socket, g_port_num));
+
+    for (i = 0; i < CHAOS_THREAD_COUNT; i++)
+    {
+        ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(chaos_knight_test->client_socket_handles[i], "localhost", g_port_num, TEST_CONN_TIMEOUT));
+
+        chaos_knight_test->incoming_socket_handles[i] = socket_transport_accept(chaos_knight_test->listen_socket);
+
+        ASSERT_IS_NOT_NULL(chaos_knight_test->incoming_socket_handles[i]);
+    }
+
+    (void)interlocked_increment(&chaos_knight_test->API_create_result);
+    wake_by_address_single(&chaos_knight_test->API_create_result);
+    return 0;
+}
+
+/* chaos test
+* This test will do the following:
+* create a bunch of client sockets to connect to binding socket every second
+* create a thread to listen and connect
+* send and receive random buffers of data per client
+* Disconnect a random incoming socket
+* Test if the disconnected socket receives the data from the client socket
+*/
+TEST_FUNCTION(socket_transport_chaos_knight_test)
+{
+    CHAOS_TEST_SOCKETS chaos_knight_test;
+    chaos_knight_test.failed_server_num = rand() % CHAOS_THREAD_COUNT + 0;
+
+    for (size_t i = 0; i < CHAOS_THREAD_COUNT; i++)
+    {
+        chaos_knight_test.client_socket_handles[i] = socket_transport_create_client();
+
+        ASSERT_IS_NOT_NULL(chaos_knight_test.client_socket_handles[i]);
+
+    }
+
+    interlocked_exchange(&chaos_knight_test.API_create_result, 0);
+    connect_and_listen_func(&chaos_knight_test);
+    wait_for_value(&chaos_knight_test.API_create_result, 1);
+
+    // disconnect random server on second run
+    for (size_t runs = 0; runs < 2; runs++)
+    {
+        if (runs == 1)
+        {
+            socket_transport_disconnect(chaos_knight_test.incoming_socket_handles[chaos_knight_test.failed_server_num]);
+        }
+
+        for (size_t i = 0; i < CHAOS_THREAD_COUNT; i++)
+        {
+            uint8_t buffer_count = 8;
+
+            SOCKET_BUFFER* send_data;
+            SOCKET_BUFFER* recv_data;
+
+            uint32_t data_size = 64;
+
+            uint32_t total_bytes = make_send_recv_buffer(buffer_count, data_size, &send_data, &recv_data);
+
+            uint32_t bytes_recv;
+            uint32_t bytes_sent;
+            uint32_t flag = SOCKET_SEND_FLAG;
+
+            if (runs == 0) {
+                ASSERT_ARE_EQUAL(SOCKET_SEND_RESULT, SOCKET_SEND_OK, socket_transport_send(chaos_knight_test.client_socket_handles[i], send_data, buffer_count, &bytes_sent, flag, NULL));
+                ASSERT_ARE_EQUAL(int, total_bytes, bytes_sent);
+
+                ASSERT_ARE_EQUAL(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_OK, socket_transport_receive(chaos_knight_test.incoming_socket_handles[i], recv_data, buffer_count, &bytes_recv, 0, NULL));
+                ASSERT_ARE_EQUAL(int, total_bytes, bytes_recv);
+            }
+            else
+            {
+                SOCKET_SEND_RESULT send_result = socket_transport_send(chaos_knight_test.client_socket_handles[i], send_data, buffer_count, &bytes_sent, flag, NULL);
+                if (send_result == SOCKET_SEND_OK)
+                {
+                    ASSERT_ARE_EQUAL(int, total_bytes, bytes_sent);
+                }
+
+                if (i == chaos_knight_test.failed_server_num)
+                {
+                    ASSERT_ARE_EQUAL(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_ERROR, socket_transport_receive(chaos_knight_test.incoming_socket_handles[i], recv_data, buffer_count, &bytes_recv, 0, NULL));
+                }
+                else
+                {
+                    ASSERT_ARE_EQUAL(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_OK, socket_transport_receive(chaos_knight_test.incoming_socket_handles[i], recv_data, buffer_count, &bytes_recv, 0, NULL));
+                    ASSERT_ARE_EQUAL(int, total_bytes, bytes_recv);
+                }
+            }
+
+            for (uint32_t inner = 0; inner < buffer_count; inner++)
+            {
+                if (runs == 0)
+                {
+                    ASSERT_ARE_EQUAL(int, 0, memcmp(send_data[inner].buffer, recv_data[inner].buffer, send_data[inner].length), "mismatch data from array index %" PRIu32 "", inner);
+                }
+
+                free(send_data[inner].buffer);
+                free(recv_data[inner].buffer);
+            }
+            free(send_data);
+            free(recv_data);
+        }
+
+    }
+
+    // cleanup
+    for (size_t i = 0; i < CHAOS_THREAD_COUNT; i++)
+    {
+        socket_transport_disconnect(chaos_knight_test.client_socket_handles[i]);
+        socket_transport_destroy(chaos_knight_test.client_socket_handles[i]);
+
+        if (i != chaos_knight_test.failed_server_num)
+        {
+            socket_transport_disconnect(chaos_knight_test.incoming_socket_handles[i]);
+        }
+        socket_transport_destroy(chaos_knight_test.incoming_socket_handles[i]);
+    }
+
+    socket_transport_disconnect(chaos_knight_test.listen_socket);
+    socket_transport_destroy(chaos_knight_test.listen_socket);
+
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
