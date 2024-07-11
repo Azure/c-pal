@@ -1226,6 +1226,7 @@ TEST_FUNCTION(socket_transport_listen_invalid_socket_type_fail)
 
 // Tests_SOCKET_TRANSPORT_LINUX_11_057: [ socket_transport_listen shall call sm_open_begin to begin the open. ]
 // Tests_SOCKET_TRANSPORT_LINUX_11_059: [ socket_transport_listen shall call socket with the params AF_INET, SOCK_STREAM and IPPROTO_TCP. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_083: [ socket_transport_listen shall set the SO_REUSEADDR option on the socket. ]
 // Tests_SOCKET_TRANSPORT_LINUX_11_060: [ socket_transport_listen shall bind to the socket by calling bind. ]
 // Tests_SOCKET_TRANSPORT_LINUX_11_061: [ socket_transport_listen shall start listening to incoming connection by calling listen. ]
 // Tests_SOCKET_TRANSPORT_LINUX_11_062: [ If successful socket_transport_listen shall call sm_open_end with true. ]
@@ -1238,6 +1239,7 @@ TEST_FUNCTION(socket_transport_listen_succeed)
 
     STRICT_EXPECTED_CALL(sm_open_begin(IGNORED_ARG));
     STRICT_EXPECTED_CALL(socket(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(setsockopt(IGNORED_ARG, SOL_SOCKET, SO_REUSEADDR, IGNORED_ARG, sizeof(int)));
     STRICT_EXPECTED_CALL(htons(TEST_PORT));
     STRICT_EXPECTED_CALL(bind(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(listen(IGNORED_ARG, IGNORED_ARG));
@@ -1265,7 +1267,10 @@ TEST_FUNCTION(socket_transport_listen_fail)
 
     STRICT_EXPECTED_CALL(sm_open_begin(IGNORED_ARG));
     STRICT_EXPECTED_CALL(socket(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(htons(TEST_PORT));
+    STRICT_EXPECTED_CALL(setsockopt(IGNORED_ARG, SOL_SOCKET, SO_REUSEADDR, IGNORED_ARG, sizeof(int)))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(htons(TEST_PORT))
+        .CallCannotFail();
     STRICT_EXPECTED_CALL(bind(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(listen(IGNORED_ARG, IGNORED_ARG));
     umock_c_negative_tests_snapshot();

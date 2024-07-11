@@ -243,6 +243,8 @@ MOCKABLE_FUNCTION(, int, socket_transport_listen, SOCKET_TRANSPORT_HANDLE, socke
 
 **SOCKET_TRANSPORT_LINUX_11_059: [** `socket_transport_listen` shall call `socket` with the params `AF_INET`, `SOCK_STREAM` and `IPPROTO_TCP`. **]**
 
+**SOCKET_TRANSPORT_LINUX_11_083: [** `socket_transport_listen` shall set the `SO_REUSEADDR` option on the socket. **]**
+
 **SOCKET_TRANSPORT_LINUX_11_060: [** `socket_transport_listen` shall bind to the socket by calling `bind`. **]**
 
 **SOCKET_TRANSPORT_LINUX_11_061: [** `socket_transport_listen` shall start listening to incoming connection by calling `listen`. **]**
