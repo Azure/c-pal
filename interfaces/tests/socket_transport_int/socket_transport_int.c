@@ -8,8 +8,6 @@
 #include "c_pal/threadapi.h"
 #include "c_pal/interlocked.h"
 
-#include "c_pal/sync.h"
-
 #include "macro_utils/macro_utils.h"  // IWYU pragma: keep
 
 #include "c_logging/logger.h"  // IWYU pragma: keep
@@ -32,7 +30,6 @@
 #define TEST_CONN_TIMEOUT   10000
 
 static uint16_t g_port_num = TEST_PORT;
-SOCKET_TRANSPORT_HANDLE g_test_socket;
 
 #define CHAOS_THREAD_COUNT 4
 
@@ -57,36 +54,16 @@ TEST_SUITE_INITIALIZE(suite_init)
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 
     ASSERT_ARE_EQUAL(int, 0, platform_init());
-
-    // Need to see what port we can use because on linux there are 3 iteration of this
-    // test: normal, valgrind, and helgrind, so we need to incrment the port number
-    g_test_socket = socket_transport_create_server();
-    ASSERT_IS_NOT_NULL(g_test_socket);
-
-    for (size_t index = 0; index < 10; index++)
-    {
-        int socket_result = socket_transport_listen(g_test_socket, g_port_num);
-        if (socket_result == 0)
-        {
-            LogInfo("Socket_transport_listen success %" PRIu16 "", g_port_num);
-            break;
-        }
-        g_port_num = g_port_num + 5;
-        LogInfo("Socket_transport_listen failed %" PRIu16 "", g_port_num);
-    }
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
 {
-    socket_transport_disconnect(g_test_socket);
-    socket_transport_destroy(g_test_socket);
     (void)platform_deinit();
     gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(method_init)
 {
-    g_port_num++;
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
@@ -253,14 +230,6 @@ TEST_FUNCTION(send_and_receive_random_buffer_of_random_byte_succeeds)
     socket_transport_destroy(listen_socket);
 }
 
-static void wait_for_value(volatile_atomic int32_t* counter, int32_t target_value)
-{
-    int32_t value;
-    while ((value = interlocked_add(counter, 0)) != target_value)
-    {
-        (void)wait_on_address(counter, value, UINT32_MAX);
-    }
-}
 
 static int connect_and_listen_func(void* parameter)
 {
@@ -281,8 +250,6 @@ static int connect_and_listen_func(void* parameter)
         ASSERT_IS_NOT_NULL(chaos_knight_test->incoming_socket_handles[i]);
     }
 
-    (void)interlocked_increment(&chaos_knight_test->API_create_result);
-    wake_by_address_single(&chaos_knight_test->API_create_result);
     return 0;
 }
 
@@ -307,9 +274,7 @@ TEST_FUNCTION(socket_transport_chaos_knight_test)
 
     }
 
-    interlocked_exchange(&chaos_knight_test.API_create_result, 0);
     connect_and_listen_func(&chaos_knight_test);
-    wait_for_value(&chaos_knight_test.API_create_result, 1);
 
     // disconnect random server on second run
     for (size_t runs = 0; runs < 2; runs++)
