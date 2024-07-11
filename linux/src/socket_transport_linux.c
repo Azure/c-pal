@@ -535,6 +535,10 @@ int socket_transport_listen(SOCKET_TRANSPORT_HANDLE socket_transport, uint16_t p
                 {
                     struct sockaddr_in service;
 
+                    const int enable = 1;
+                    // Codes_SOCKET_TRANSPORT_LINUX_11_083: [ socket_transport_listen shall set the SO_REUSEADDR option on the socket. ]
+                    (void)setsockopt(socket_transport->socket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
+
                     service.sin_family = AF_INET;
                     service.sin_addr.s_addr = htonl(INADDR_ANY);
                     service.sin_port = htons(port);
@@ -568,8 +572,8 @@ int socket_transport_listen(SOCKET_TRANSPORT_HANDLE socket_transport, uint16_t p
                     }
                     // Codes_SOCKET_TRANSPORT_LINUX_11_063: [ If any failure is encountered, socket_transport_listen shall call sm_open_end with false, fail and return a non-zero value. ]
                     close(socket_transport->socket);
-                    sm_open_end(socket_transport->sm, false);
                 }
+                sm_open_end(socket_transport->sm, false);
             }
         }
     }
