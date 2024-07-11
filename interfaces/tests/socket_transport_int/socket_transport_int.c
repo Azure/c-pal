@@ -8,8 +8,6 @@
 #include "c_pal/threadapi.h"
 #include "c_pal/interlocked.h"
 
-#include "c_pal/sync.h"
-
 #include "macro_utils/macro_utils.h"  // IWYU pragma: keep
 
 #include "c_logging/logger.h"  // IWYU pragma: keep
@@ -32,7 +30,6 @@
 #define TEST_CONN_TIMEOUT   10000
 
 static uint16_t g_port_num = TEST_PORT;
-//SOCKET_TRANSPORT_HANDLE g_test_socket;
 
 #define CHAOS_THREAD_COUNT 4
 
