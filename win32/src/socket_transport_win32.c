@@ -23,6 +23,7 @@
 #include "c_pal/sm.h"
 #include "c_pal/sync.h"
 #include "c_pal/string_utils.h"
+#include "c_pal/timer.h"
 
 #include "c_pal/socket_transport.h"
 
