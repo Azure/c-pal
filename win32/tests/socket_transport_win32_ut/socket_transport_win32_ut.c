@@ -119,6 +119,13 @@ static int my_shutdown(SOCKET s, int how)
     return 0;
 }
 
+static int my_gethostname(char* name, int namelen)
+{
+    (void)namelen;
+    strcpy(name, TEST_INCOMING_HOSTNAME);
+    return 0;
+}
+
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
@@ -131,7 +138,9 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_SM_GLOBAL_MOCK_HOOK();
 
     REGISTER_GLOBAL_MOCK_HOOK(malloc, real_gballoc_ll_malloc);
+    REGISTER_GLOBAL_MOCK_HOOK(malloc_2, real_gballoc_ll_malloc_2);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(malloc, NULL);
+    REGISTER_GLOBAL_MOCK_FAIL_RETURN(malloc_2, NULL);
     REGISTER_GLOBAL_MOCK_HOOK(free, real_gballoc_ll_free);
 
     REGISTER_UMOCK_ALIAS_TYPE(WORD, uint16_t);
@@ -158,6 +167,10 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(shutdown, 1);
 
     REGISTER_GLOBAL_MOCK_HOOK(inet_ntop, my_inet_ntop);
+    REGISTER_GLOBAL_MOCK_FAIL_RETURN(inet_ntop, NULL);
+    REGISTER_GLOBAL_MOCK_HOOK(gethostname, my_gethostname);
+    REGISTER_GLOBAL_MOCK_FAIL_RETURN(gethostname, SOCKET_ERROR);
+    REGISTER_GLOBAL_MOCK_FAIL_RETURN(gethostbyname, NULL);
 
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(select, SOCKET_ERROR);
     REGISTER_GLOBAL_MOCK_RETURNS(WSAGetLastError, WSAEALREADY, WSAEFAULT);
@@ -1794,6 +1807,195 @@ TEST_FUNCTION(socket_transport_get_underlying_socket_NULL_input_fail)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
+}
+
+// socket_transport_get_local_address
+
+TEST_FUNCTION(socket_transport_get_local_address_handle_NULL_fail)
+{
+    //arrange
+    char hostname[MAX_GET_HOST_NAME_LEN];
+    LOCAL_ADDRESS* local_address_list;
+    uint32_t address_count;
+
+    //act
+    int result = socket_transport_get_local_address(NULL, hostname, &local_address_list, &address_count);
+
+    //assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // Cleanup
+}
+
+TEST_FUNCTION(socket_transport_get_local_address_hostname_NULL_fail)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
+    ASSERT_IS_NOT_NULL(socket_handle);
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
+    umock_c_reset_all_calls();
+
+    LOCAL_ADDRESS* local_address_list;
+    uint32_t address_count;
+
+    //act
+    int result = socket_transport_get_local_address(socket_handle, NULL, &local_address_list, &address_count);
+
+    //assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // Cleanup
+    socket_transport_disconnect(socket_handle);
+    socket_transport_destroy(socket_handle);
+}
+
+TEST_FUNCTION(socket_transport_get_local_address_address_count_NULL_fail)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
+    ASSERT_IS_NOT_NULL(socket_handle);
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
+    umock_c_reset_all_calls();
+
+    char hostname[MAX_GET_HOST_NAME_LEN];
+    LOCAL_ADDRESS* local_address_list;
+
+    //act
+    int result = socket_transport_get_local_address(socket_handle, hostname, &local_address_list, NULL);
+
+    //assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // Cleanup
+    socket_transport_disconnect(socket_handle);
+    socket_transport_destroy(socket_handle);
+}
+
+TEST_FUNCTION(socket_transport_get_local_address_success)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
+    ASSERT_IS_NOT_NULL(socket_handle);
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
+    umock_c_reset_all_calls();
+
+    char hostname[MAX_GET_HOST_NAME_LEN];
+    LOCAL_ADDRESS* local_address_list;
+    uint32_t address_count;
+
+    uint32_t NUM_OF_ADDRESSES = 2;
+    const char* ip_address_list[] = {
+        "10.0.0.1",
+        "10.0.0.50",
+        NULL
+    };
+
+    struct hostent test_host_info = {0};
+    test_host_info.h_addrtype = AF_INET;
+    test_host_info.h_addr_list = ip_address_list;
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(gethostname(IGNORED_ARG, MAX_GET_HOST_NAME_LEN));
+    STRICT_EXPECTED_CALL(gethostbyname(IGNORED_ARG))
+        .SetReturn(&test_host_info);
+    STRICT_EXPECTED_CALL(malloc_2(IGNORED_ARG, 2));
+    STRICT_EXPECTED_CALL(inet_ntop(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(inet_ntop(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
+
+    //act
+    int result = socket_transport_get_local_address(socket_handle, hostname, &local_address_list, &address_count);
+
+    //assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(int, NUM_OF_ADDRESSES, address_count);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // Cleanup
+    socket_transport_disconnect(socket_handle);
+    socket_transport_destroy(socket_handle);
+    free(local_address_list);
+}
+
+TEST_FUNCTION(socket_transport_get_local_address_no_address_list_success)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
+    ASSERT_IS_NOT_NULL(socket_handle);
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
+    umock_c_reset_all_calls();
+
+    char hostname[MAX_GET_HOST_NAME_LEN];
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(gethostname(IGNORED_ARG, MAX_GET_HOST_NAME_LEN));
+    STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
+
+    //act
+    int result = socket_transport_get_local_address(socket_handle, hostname, NULL, NULL);
+
+    //assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // Cleanup
+    socket_transport_disconnect(socket_handle);
+    socket_transport_destroy(socket_handle);
+}
+
+TEST_FUNCTION(socket_transport_get_local_address_fail)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
+    ASSERT_IS_NOT_NULL(socket_handle);
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
+    umock_c_reset_all_calls();
+
+    char hostname[MAX_GET_HOST_NAME_LEN];
+    LOCAL_ADDRESS* local_address_list;
+    uint32_t address_count;
+
+    const char* ip_address_list[] = {
+        "10.0.0.1",
+        "10.0.0.50",
+        NULL
+    };
+
+    struct hostent test_host_info = { 0 };
+    test_host_info.h_addrtype = AF_INET;
+    test_host_info.h_addr_list = ip_address_list;
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(gethostname(IGNORED_ARG, MAX_GET_HOST_NAME_LEN));
+    STRICT_EXPECTED_CALL(gethostbyname(IGNORED_ARG))
+        .SetReturn(&test_host_info);
+    STRICT_EXPECTED_CALL(malloc_2(IGNORED_ARG, 2));
+    STRICT_EXPECTED_CALL(inet_ntop(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(inet_ntop(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
+    umock_c_negative_tests_snapshot();
+
+    for (size_t index = 0; index < umock_c_negative_tests_call_count(); index++)
+    {
+        if (umock_c_negative_tests_can_call_fail(index))
+        {
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(index);
+
+            //act
+            int result = socket_transport_get_local_address(socket_handle, hostname, &local_address_list, &address_count);
+
+            //assert
+            ASSERT_ARE_NOT_EQUAL(int, 0, result);
+        }
+    }
+
+    // Cleanup
+    socket_transport_disconnect(socket_handle);
+    socket_transport_destroy(socket_handle);
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

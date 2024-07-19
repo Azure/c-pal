@@ -359,4 +359,39 @@ TEST_FUNCTION(socket_transport_chaos_knight_test)
 
 }
 
+TEST_FUNCTION(get_local_socket_address_test)
+{
+    // assert
+    SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create_server();
+    ASSERT_IS_NOT_NULL(listen_socket);
+
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num));
+
+    // create the async socket object
+    SOCKET_TRANSPORT_HANDLE client_socket = socket_transport_create_client();
+    ASSERT_IS_NOT_NULL(client_socket);
+
+    char client_hostname[MAX_GET_HOST_NAME_LEN] = { 0 };
+    char server_hostname[MAX_GET_HOST_NAME_LEN] = { 0 };
+
+    LOCAL_ADDRESS* server_local_address_list;
+    LOCAL_ADDRESS* client_local_address_list;
+    uint32_t server_list_count;
+    uint32_t client_list_count;
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_get_local_address(listen_socket, server_hostname, &server_local_address_list, &server_list_count));
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_get_local_address(client_socket, client_hostname, &client_local_address_list, &client_list_count));
+
+    ASSERT_ARE_EQUAL(char_ptr, server_hostname, client_hostname);
+    ASSERT_ARE_EQUAL(uint32_t, server_list_count, client_list_count);
+
+    socket_transport_disconnect(client_socket);
+    socket_transport_destroy(client_socket);
+
+    socket_transport_disconnect(listen_socket);
+    socket_transport_destroy(listen_socket);
+
+    free(server_local_address_list);
+    free(client_local_address_list);
+}
+
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
