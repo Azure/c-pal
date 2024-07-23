@@ -14,8 +14,15 @@
 #include "c_pal/execution_engine.h"
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/execution_engine_win32.h"
+#include "c_pal/socket_transport.h"
+#include "c_pal/socket_handle.h"
 
-#define TEST_PORT 4266
+#define XTEST_FUNCTION(x) void x(void)
+
+#define TEST_PORT           4466
+#define TEST_CONN_TIMEOUT   10000
+
+static uint16_t g_port_num = TEST_PORT;
 
 TEST_DEFINE_ENUM_TYPE(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_RESULT_VALUES)
 TEST_DEFINE_ENUM_TYPE(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_RESULT_VALUES)
@@ -51,67 +58,6 @@ static void on_receive_complete_with_error(void* context, ASYNC_SOCKET_RECEIVE_R
     (void)bytes_received;
 }
 
-static void setup_sockets(SOCKET* client_socket, SOCKET* server_socket, SOCKET* listen_socket)
-{
-    // create a server socket
-    *listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    ASSERT_ARE_NOT_EQUAL(void_ptr, INVALID_SOCKET, listen_socket);
-
-    struct sockaddr_in service;
-    service.sin_family = AF_INET;
-    service.sin_addr.s_addr = INADDR_ANY;
-    service.sin_port = htons((u_short)TEST_PORT);
-
-    // bind it
-    ASSERT_ARE_EQUAL(int, 0, bind(*listen_socket, (SOCKADDR *)&service, sizeof(service)));
-
-    // set it to async IO
-    u_long mode = 1;
-    ASSERT_ARE_EQUAL(int, 0, ioctlsocket(*listen_socket, FIONBIO, &mode));
-
-    // start listening
-    ASSERT_ARE_EQUAL(int, 0, listen(*listen_socket, SOMAXCONN));
-
-    // create a client socket
-    *client_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    ASSERT_ARE_NOT_EQUAL(void_ptr, INVALID_SOCKET, *client_socket);
-
-    char portString[16];
-    ADDRINFO addrHint = { 0 };
-    ADDRINFO* addrInfo = NULL;
-
-    addrHint.ai_family = AF_INET;
-    addrHint.ai_socktype = SOCK_STREAM;
-    addrHint.ai_protocol = 0;
-
-    ASSERT_IS_TRUE(sprintf(portString, "%u", TEST_PORT) >= 0);
-
-    ASSERT_ARE_EQUAL(int, 0, getaddrinfo("localhost", portString, &addrHint, &addrInfo));
-
-    // connect
-    ASSERT_ARE_EQUAL(int, 0, connect(*client_socket, addrInfo->ai_addr, (int)addrInfo->ai_addrlen));
-
-    // set async
-    ASSERT_ARE_EQUAL(int, 0, ioctlsocket(*listen_socket, FIONBIO, &mode));
-
-    // accept it on the server side
-    fd_set read_fds;
-    int select_result;
-    struct timeval timeout;
-
-    read_fds.fd_array[0] = *listen_socket;
-    read_fds.fd_count = 1;
-    timeout.tv_usec = 1000 * 100;
-    timeout.tv_sec = 0;
-    select_result = select(0, &read_fds, NULL, NULL, &timeout);
-    ASSERT_ARE_NOT_EQUAL(int, SOCKET_ERROR, select_result);
-
-    *server_socket = accept(*listen_socket, NULL, NULL);
-    ASSERT_ARE_NOT_EQUAL(void_ptr, INVALID_SOCKET, *server_socket);
-
-    ASSERT_ARE_EQUAL(int, 0, ioctlsocket(*server_socket, FIONBIO, &mode));
-}
-
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
@@ -145,10 +91,24 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
-    SOCKET client_socket;
-    SOCKET server_socket;
-    SOCKET listen_socket;
-    setup_sockets(&client_socket, &server_socket, &listen_socket);
+    SOCKET_TRANSPORT_HANDLE client_socket;
+    SOCKET_TRANSPORT_HANDLE server_socket;
+    SOCKET_TRANSPORT_HANDLE listen_socket;
+
+    // assert
+    listen_socket = socket_transport_create_server();
+    ASSERT_IS_NOT_NULL(listen_socket);
+
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num), "failed listening on port %" PRIu16 "", g_port_num);
+
+    // create the async socket object
+    client_socket = socket_transport_create_client();
+    ASSERT_IS_NOT_NULL(client_socket);
+
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
+
+    server_socket = socket_transport_accept(listen_socket);
+    ASSERT_IS_NOT_NULL(server_socket);
 
     // create the async socket object
     ASYNC_SOCKET_HANDLE server_async_socket = async_socket_create(execution_engine);
@@ -160,8 +120,8 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
     HANDLE client_open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
     ASSERT_IS_NOT_NULL(client_open_event);
 
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(server_async_socket, (SOCKET_HANDLE)server_socket, on_open_complete, &server_open_event));
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(client_async_socket, (SOCKET_HANDLE)client_socket, on_open_complete, &client_open_event));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(server_async_socket, server_socket, on_open_complete, &server_open_event));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(client_async_socket, client_socket, on_open_complete, &client_open_event));
 
     // wait for open to complete
     ASSERT_IS_TRUE(WaitForSingleObject(server_open_event, INFINITE) == WAIT_OBJECT_0);
@@ -180,7 +140,6 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
     ASSERT_IS_NOT_NULL(send_event);
     HANDLE receive_event = CreateEvent(NULL, FALSE, FALSE, NULL);
     ASSERT_IS_NOT_NULL(receive_event);
-
     // act (send one byte and receive it)
     ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(server_async_socket, send_payload_buffers, 1, on_send_complete, &send_event));
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(client_async_socket, receive_payload_buffers, 1, on_receive_complete, &receive_event));
@@ -196,13 +155,17 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
     (void)CloseHandle(server_open_event);
     async_socket_close(server_async_socket);
     async_socket_close(client_async_socket);
-    closesocket(server_socket);
-    closesocket(listen_socket);
-    closesocket(client_socket);
+    socket_transport_disconnect(server_socket);
+    socket_transport_destroy(server_socket);
+    socket_transport_disconnect(client_socket);
+    socket_transport_destroy(client_socket);
+    socket_transport_disconnect(listen_socket);
+    socket_transport_destroy(listen_socket);
     async_socket_destroy(server_async_socket);
     async_socket_destroy(client_async_socket);
     execution_engine_dec_ref(execution_engine);
 }
+
 
 TEST_FUNCTION(receive_and_send_2_buffers_succeeds)
 {
@@ -212,10 +175,23 @@ TEST_FUNCTION(receive_and_send_2_buffers_succeeds)
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
-    SOCKET client_socket;
-    SOCKET server_socket;
-    SOCKET listen_socket;
-    setup_sockets(&client_socket, &server_socket, &listen_socket);
+    SOCKET_TRANSPORT_HANDLE client_socket;
+    SOCKET_TRANSPORT_HANDLE server_socket;
+    SOCKET_TRANSPORT_HANDLE listen_socket;
+
+    // assert
+    listen_socket = socket_transport_create_server();
+    ASSERT_IS_NOT_NULL(listen_socket);
+
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num), "failed listening on port %" PRIu16 "", g_port_num);
+
+    // create the async socket object
+    client_socket = socket_transport_create_client();
+    ASSERT_IS_NOT_NULL(client_socket);
+
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
+
+    server_socket = socket_transport_accept(listen_socket);
 
     // create the async socket object
     ASYNC_SOCKET_HANDLE server_async_socket = async_socket_create(execution_engine);
@@ -227,8 +203,8 @@ TEST_FUNCTION(receive_and_send_2_buffers_succeeds)
     HANDLE client_open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
     ASSERT_IS_NOT_NULL(client_open_event);
 
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(server_async_socket, (SOCKET_HANDLE)server_socket, on_open_complete, &server_open_event));
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(client_async_socket, (SOCKET_HANDLE)client_socket, on_open_complete, &client_open_event));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(server_async_socket, server_socket, on_open_complete, &server_open_event));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(client_async_socket, client_socket, on_open_complete, &client_open_event));
 
     // wait for open to complete
     ASSERT_IS_TRUE(WaitForSingleObject(server_open_event, INFINITE) == WAIT_OBJECT_0);
@@ -269,9 +245,12 @@ TEST_FUNCTION(receive_and_send_2_buffers_succeeds)
     (void)CloseHandle(server_open_event);
     async_socket_close(server_async_socket);
     async_socket_close(client_async_socket);
-    closesocket(server_socket);
-    closesocket(listen_socket);
-    closesocket(client_socket);
+    socket_transport_disconnect(server_socket);
+    socket_transport_destroy(server_socket);
+    socket_transport_disconnect(client_socket);
+    socket_transport_destroy(client_socket);
+    socket_transport_disconnect(listen_socket);
+    socket_transport_destroy(listen_socket);
     async_socket_destroy(server_async_socket);
     async_socket_destroy(client_async_socket);
     execution_engine_dec_ref(execution_engine);
@@ -285,10 +264,23 @@ TEST_FUNCTION(when_server_socket_is_closed_receive_errors_on_client_side)
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
-    SOCKET client_socket;
-    SOCKET server_socket;
-    SOCKET listen_socket;
-    setup_sockets(&client_socket, &server_socket, &listen_socket);
+    SOCKET_TRANSPORT_HANDLE client_socket;
+    SOCKET_TRANSPORT_HANDLE server_socket;
+    SOCKET_TRANSPORT_HANDLE listen_socket;
+
+    // assert
+    listen_socket = socket_transport_create_server();
+    ASSERT_IS_NOT_NULL(listen_socket);
+
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num), "failed listening on port %" PRIu16 "", g_port_num);
+
+    // create the async socket object
+    client_socket = socket_transport_create_client();
+    ASSERT_IS_NOT_NULL(client_socket);
+
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
+
+    server_socket = socket_transport_accept(listen_socket);
 
     // create the async socket object
     ASYNC_SOCKET_HANDLE client_async_socket = async_socket_create(execution_engine);
@@ -297,7 +289,7 @@ TEST_FUNCTION(when_server_socket_is_closed_receive_errors_on_client_side)
     HANDLE client_open_event = CreateEvent(NULL, FALSE, FALSE, NULL);
     ASSERT_IS_NOT_NULL(client_open_event);
 
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(client_async_socket, (SOCKET_HANDLE)client_socket, on_open_complete, &client_open_event));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(client_async_socket, client_socket, on_open_complete, &client_open_event));
 
     // wait for open to complete
     ASSERT_IS_TRUE(WaitForSingleObject(client_open_event, INFINITE) == WAIT_OBJECT_0);
@@ -313,7 +305,7 @@ TEST_FUNCTION(when_server_socket_is_closed_receive_errors_on_client_side)
     // act (send one byte and receive it)
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(client_async_socket, receive_payload_buffers, 1, on_receive_complete_with_error, &receive_event));
 
-    closesocket(client_socket);
+    socket_transport_disconnect(client_socket);
 
     // assert
     ASSERT_IS_TRUE(WaitForSingleObject(receive_event, INFINITE) == WAIT_OBJECT_0);
@@ -322,8 +314,11 @@ TEST_FUNCTION(when_server_socket_is_closed_receive_errors_on_client_side)
     (void)CloseHandle(receive_event);
     (void)CloseHandle(client_open_event);
     async_socket_close(client_async_socket);
-    closesocket(server_socket);
-    closesocket(listen_socket);
+    socket_transport_disconnect(server_socket);
+    socket_transport_destroy(server_socket);
+    socket_transport_destroy(client_socket);
+    socket_transport_disconnect(listen_socket);
+    socket_transport_destroy(listen_socket);
     async_socket_destroy(client_async_socket);
     execution_engine_dec_ref(execution_engine);
 }
