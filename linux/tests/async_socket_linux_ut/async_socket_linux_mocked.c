@@ -2,6 +2,7 @@
 
 #include <stddef.h>     // for size_t
 #include <sys/types.h>  // for ssize_t
+#include <stdint.h>     // for uint32_t
 #include "c_pal/socket_transport.h"
 #include "c_pal/socket_handle.h"
 

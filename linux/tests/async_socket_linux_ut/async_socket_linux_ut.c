@@ -17,9 +17,7 @@
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umocktypes_charptr.h"
 #include "umock_c/umock_c_negative_tests.h"
-#include "umock_c/umocktypes_bool.h"
-#include "umock_c/umocktypes.h"
-
+#include "c_logging/logger.h" 
 
 #define ENABLE_MOCKS
 

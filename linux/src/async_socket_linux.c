@@ -24,7 +24,6 @@
 #include "c_pal/interlocked.h"
 #include "c_pal/platform_linux.h"
 #include "c_pal/sync.h"
-#include "c_pal/socket_handle.h"
 #include "c_pal/socket_transport.h"
 
 #ifdef ENABLE_SOCKET_LOGGING

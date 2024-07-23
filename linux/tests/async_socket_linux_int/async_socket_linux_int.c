@@ -1,12 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #include <inttypes.h>
-#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <fcntl.h>
-#include <unistd.h>
-#include <errno.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <string.h>
 
