@@ -5,7 +5,7 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <errno.h>
-#include <sys/types.h>                       // for ssize_t
+#include <sys/types.h>                 // for ssize_t
 
 #include "macro_utils/macro_utils.h"  // IWYU pragma: keep
 
