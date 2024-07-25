@@ -25,7 +25,7 @@
 #include "c_pal/platform_linux.h"
 #include "c_pal/sync.h"
 #include "c_pal/socket_transport.h"
-#include "c_pal/socket_handle.h"
+#include "c_pal/socket_handle.h"    // IWYU pragma: keep
 
 #ifdef ENABLE_SOCKET_LOGGING
 #include "c_pal/timer.h"
@@ -125,7 +125,6 @@ static int on_socket_send(void* context, ASYNC_SOCKET_HANDLE async_socket, const
             result = bytes_sent;
         }
     }
-
     return result;
 }
 
@@ -148,7 +147,7 @@ static int on_socket_recv(void* context, ASYNC_SOCKET_HANDLE async_socket, void*
         uint32_t bytes_recv;
 
         SOCKET_RECEIVE_RESULT recv_result = socket_transport_receive(async_socket->socket_transport_handle, &input_buf, 1, &bytes_recv, 0, NULL);
-        
+
         if(recv_result != SOCKET_RECEIVE_OK && recv_result != SOCKET_RECEIVE_WOULD_BLOCK && recv_result != SOCKET_RECEIVE_SHUTDOWN)
         {
             result = -1;

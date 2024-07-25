@@ -2309,14 +2309,17 @@ TEST_FUNCTION(event_complete_func_send_EPOLLOUT_success)
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
-        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t));
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t))
+        .SetReturn(SOCKET_SEND_FAILED);
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_handle, IGNORED_ARG, IGNORED_ARG));
     errno = EWOULDBLOCK;
-    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(async_socket, payload_buffers, 1, test_on_send_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
+    send_amt = 2;
     STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t))
         .SetReturn(SOCKET_SEND_OK);
     STRICT_EXPECTED_CALL(test_on_send_complete(test_callback_ctx, ASYNC_SOCKET_SEND_OK));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
@@ -2452,6 +2455,7 @@ TEST_FUNCTION(event_complete_func_EPOLLOUT_multiple_sends_success)
         .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t))
         .SetReturn(SOCKET_SEND_OK);
     STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t))
         .SetReturn(SOCKET_SEND_OK);
     STRICT_EXPECTED_CALL(test_on_send_complete(test_callback_ctx, ASYNC_SOCKET_SEND_OK));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
