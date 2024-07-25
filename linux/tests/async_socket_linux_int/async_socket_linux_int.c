@@ -136,7 +136,7 @@ TEST_SUITE_CLEANUP(suite_cleanup)
 
 TEST_FUNCTION_INITIALIZE(method_init)
 {
-    g_port_num++;
+    g_port_num+=5;
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
@@ -432,6 +432,7 @@ TEST_FUNCTION(multiple_sends_and_receives_succeeds)
     listen_socket = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(listen_socket);
 
+    g_port_num++;
     ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num), "failed listening on port %" PRIu16 "", g_port_num);
 
     // create the async socket object
@@ -577,12 +578,12 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _sockets_items))
     {
         async_socket_close(server_async_socket[index]);
         async_socket_close(client_async_socket[index]);
-        async_socket_destroy(server_async_socket[index]);
-        async_socket_destroy(client_async_socket[index]);
         socket_transport_disconnect(client_socket[index]);
         socket_transport_destroy(client_socket[index]);
         socket_transport_disconnect(server_socket[index]);
         socket_transport_destroy(server_socket[index]);
+        async_socket_destroy(server_async_socket[index]);
+        async_socket_destroy(client_async_socket[index]);
     }
     execution_engine_dec_ref(execution_engine);
 }
