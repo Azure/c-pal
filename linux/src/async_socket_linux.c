@@ -25,6 +25,7 @@
 #include "c_pal/platform_linux.h"
 #include "c_pal/sync.h"
 #include "c_pal/socket_transport.h"
+#include "c_pal/socket_handle.h"
 
 #ifdef ENABLE_SOCKET_LOGGING
 #include "c_pal/timer.h"
@@ -95,7 +96,7 @@ typedef struct ASYNC_SOCKET_IO_CONTEXT_TAG
     } data;
 } ASYNC_SOCKET_IO_CONTEXT;
 
-static int on_socket_send(void* context, ASYNC_SOCKET_HANDLE async_socket, void* buf, size_t len)
+static int on_socket_send(void* context, ASYNC_SOCKET_HANDLE async_socket, const void* buf, size_t len)
 {
     int result;
 
@@ -110,14 +111,14 @@ static int on_socket_send(void* context, ASYNC_SOCKET_HANDLE async_socket, void*
     {
         // Codes_SRS_ASYNC_SOCKET_LINUX_11_052: [ on_socket_send shall attempt to send the data by calling socket_transport_send with the MSG_NOSIGNAL flag to ensure SIGPIPE is not generated on errors. ]
         SOCKET_BUFFER input_buf;
-        input_buf.buffer = buf;
+        input_buf.buffer = (unsigned char*)buf;
+
         input_buf.length = len;
         uint32_t bytes_sent;
         if(socket_transport_send(async_socket->socket_transport_handle, &input_buf, 1, &bytes_sent, MSG_NOSIGNAL, NULL) != SOCKET_SEND_OK)
         {
             result = -1;
-            LogError("socket_transport_send failed.");
-            
+            LogError("socket_transport_send failed input_buf.buffer: %p, input_buf.length: %" PRIu32 ".", input_buf.buffer, input_buf.length);
         }
         else
         {
@@ -135,8 +136,8 @@ static int on_socket_recv(void* context, ASYNC_SOCKET_HANDLE async_socket, void*
 
     if (async_socket == NULL)
     {
-        LogCritical("Invalid argument on_recv void* context, ASYNC_SOCKET_HANDLE async_socket, const void* buf, size_t len");
         result = -1;
+        LogCritical("Invalid argument on_recv void* context, ASYNC_SOCKET_HANDLE async_socket, const void* buf, size_t len");
     }
     else
     {
@@ -145,10 +146,23 @@ static int on_socket_recv(void* context, ASYNC_SOCKET_HANDLE async_socket, void*
         input_buf.buffer = buf;
         input_buf.length = len;
         uint32_t bytes_recv;
-        if(socket_transport_receive(async_socket->socket_transport_handle, &input_buf, 1, &bytes_recv, 0, NULL) != SOCKET_RECEIVE_OK)
+
+        SOCKET_RECEIVE_RESULT recv_result = socket_transport_receive(async_socket->socket_transport_handle, &input_buf, 1, &bytes_recv, 0, NULL);
+        
+        if(recv_result != SOCKET_RECEIVE_OK && recv_result != SOCKET_RECEIVE_WOULD_BLOCK && recv_result != SOCKET_RECEIVE_SHUTDOWN)
         {
-            LogError("socket_transport_send receive.");
             result = -1;
+            LogError("socket_transport_receive failed input_buf.buffer: %p, input_buf.length: %" PRIu32 ".", input_buf.buffer, input_buf.length);
+        }
+        else if(recv_result == SOCKET_RECEIVE_WOULD_BLOCK)
+        {
+            result = -1;
+            LogInfo("Not enough space in send buffer of nonblocking socket. bytes sent: %" PRIu32 " input_buf.buffer: %p, input_buf.length: %" PRIu32 ".", bytes_recv, input_buf.buffer, input_buf.length);
+
+        } else if(recv_result == SOCKET_RECEIVE_SHUTDOWN)
+        {
+            result = 0;
+            LogError("Socket received 0 bytes. bytes sent: %" PRIu32 " input_buf.buffer: %p, input_buf.length: %" PRIu32 ".", bytes_recv, input_buf.buffer, input_buf.length);
         }
         else
         {

@@ -14,11 +14,9 @@
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_stdint.h"
-//#include "umock_c/umocktypes_bool.h"
 #include "umock_c/umocktypes_charptr.h"
-//#include "umock_c/umocktypes.h"
 #include "umock_c/umock_c_negative_tests.h"
-//#include "umock_c/umocktypes_windows.h"
+#include "umock_c/umocktypes_windows.h"
 
 #define ENABLE_MOCKS
 
@@ -26,18 +24,13 @@
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_win32.h"
-// #include "c_pal/interlocked.h"
-// #include "c_pal/sm.h"
-// #include "c_pal/sync.h"
-// #include "c_pal/string_utils.h"
+#include "c_pal/string_utils.h"
 #include "c_pal/socket_transport.h"
 #include "c_pal/socket_handle.h"
 
 #undef ENABLE_MOCKS
 
 #include "real_gballoc_hl.h"
-// #include "../reals/real_sm.h"
-// #include "umock_c/umock_c_prod.h"
 
 #include "c_pal/async_socket.h"
 
@@ -107,8 +100,6 @@ MOCK_FUNCTION_WITH_CODE(, void, mocked_WaitForThreadpoolIoCallbacks, PTP_IO, pio
 MOCK_FUNCTION_END()
 MOCK_FUNCTION_WITH_CODE(, void, mocked_CancelThreadpoolIo, PTP_IO, pio)
 MOCK_FUNCTION_END()
-MOCK_FUNCTION_WITH_CODE(WSAAPI, int, mocked_closesocket, SOCKET, s)
-MOCK_FUNCTION_END(0)
 
 MOCK_FUNCTION_WITH_CODE(, void, test_on_open_complete, void*, context, ASYNC_SOCKET_OPEN_RESULT, open_result)
 MOCK_FUNCTION_END()
@@ -116,15 +107,6 @@ MOCK_FUNCTION_WITH_CODE(, void, test_on_send_complete, void*, context, ASYNC_SOC
 MOCK_FUNCTION_END()
 MOCK_FUNCTION_WITH_CODE(, void, test_on_receive_complete, void*, context, ASYNC_SOCKET_RECEIVE_RESULT, receive_result, uint32_t, bytes_received)
 MOCK_FUNCTION_END()
-
-MOCK_FUNCTION_WITH_CODE(, SOCKET_HANDLE, mocked_socket_transport_get_underlying_socket, SOCKET_TRANSPORT_HANDLE, socket_transport)
-MOCK_FUNCTION_END((HANDLE)0x4242)
-
-MOCK_FUNCTION_WITH_CODE(, SOCKET_SEND_RESULT, mocked_socket_transport_send,SOCKET_TRANSPORT_HANDLE, socket_transport, const SOCKET_BUFFER*, payload, uint32_t, buffer_count, uint32_t*, bytes_sent, uint32_t, flags, void*, overlapped_data)
-MOCK_FUNCTION_END(SOCKET_SEND_OK)
-
-MOCK_FUNCTION_WITH_CODE(, SOCKET_RECEIVE_RESULT, mocked_socket_transport_receive, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_BUFFER*, payload, uint32_t, buffer_count, uint32_t*, bytes_recv, uint32_t, flags, void*, data)
-MOCK_FUNCTION_END(SOCKET_RECEIVE_OK)
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
@@ -151,8 +133,6 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_CreateThreadpoolCleanupGroup, NULL);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_CreateThreadpoolIo, NULL);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_CreateEventA, NULL);
-    REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_socket_transport_send, 1);
-    REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_socket_transport_receive, 1);
 
     REGISTER_UMOCK_ALIAS_TYPE(PTP_IO, void*);
     REGISTER_UMOCK_ALIAS_TYPE(PTP_CALLBACK_ENVIRON, void*);
@@ -173,6 +153,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_UMOCK_ALIAS_TYPE(LPWSAOVERLAPPED, void*);
     REGISTER_UMOCK_ALIAS_TYPE(LPWSAOVERLAPPED_COMPLETION_ROUTINE, void*);
     REGISTER_UMOCK_ALIAS_TYPE(SOCKET_TRANSPORT_HANDLE, void*);
+    REGISTER_UMOCK_ALIAS_TYPE(SOCKET_HANDLE, void*);
 
     REGISTER_TYPE(ASYNC_SOCKET_OPEN_RESULT, ASYNC_SOCKET_OPEN_RESULT);
     REGISTER_TYPE(ASYNC_SOCKET_SEND_RESULT, ASYNC_SOCKET_SEND_RESULT);
@@ -325,7 +306,7 @@ TEST_FUNCTION(async_socket_destroy_closes_first_if_open)
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG))
         .CaptureArgumentValue_pcbe(&cbe);
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_get_underlying_socket(test_socket));
+    STRICT_EXPECTED_CALL(socket_transport_get_underlying_socket(test_socket));
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io);
     ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242));
@@ -418,7 +399,7 @@ TEST_FUNCTION(async_socket_open_async_succeeds)
         .CaptureArgumentValue_pcbe(&cbe);
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool))
         .ValidateArgumentValue_pcbe(&cbe);
-    STRICT_EXPECTED_CALL(mocked_socket_transport_get_underlying_socket(test_socket));
+    STRICT_EXPECTED_CALL(socket_transport_get_underlying_socket(test_socket));
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .ValidateArgumentValue_pcbe(&cbe);
     STRICT_EXPECTED_CALL(test_on_open_complete((void*)0x4242, ASYNC_SOCKET_OPEN_OK));
@@ -449,7 +430,7 @@ TEST_FUNCTION(async_socket_open_async_succeeds_with_NULL_context)
         .CaptureArgumentValue_pcbe(&cbe);
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool))
         .ValidateArgumentValue_pcbe(&cbe);
-    STRICT_EXPECTED_CALL(mocked_socket_transport_get_underlying_socket(test_socket));
+    STRICT_EXPECTED_CALL(socket_transport_get_underlying_socket(test_socket));
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .ValidateArgumentValue_pcbe(&cbe);
     STRICT_EXPECTED_CALL(test_on_open_complete(NULL, ASYNC_SOCKET_OPEN_OK));
@@ -539,7 +520,6 @@ TEST_FUNCTION(async_socket_close_with_NULL_returns)
 }
 
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_019: [ Otherwise, async_socket_close shall switch the state to CLOSING. ]*/
-/* Tests_SRS_ASYNC_SOCKET_WIN32_42_006: [ async_socket_close shall call closesocket on the underlying socket. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_040: [ async_socket_close shall wait for any executing callbacks by calling WaitForThreadpoolIoCallbacks, passing FALSE as fCancelPendingCallbacks. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_059: [ async_socket_close shall close the threadpool IO created in async_socket_open_async by calling CloseThreadpoolIo. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_042: [ async_socket_close shall destroy the thread pool environment created in async_socket_open_async. ]*/
@@ -556,6 +536,8 @@ TEST_FUNCTION(async_socket_close_reverses_the_actions_from_open)
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG))
         .CaptureArgumentValue_pcbe(&cbe);
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool));
+    STRICT_EXPECTED_CALL(socket_transport_get_underlying_socket(test_socket))
+        .SetReturn((SOCKET_HANDLE)0x4242);
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolIo(test_socket, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .CaptureReturn(&test_ptp_io);
     (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
@@ -912,8 +894,9 @@ TEST_FUNCTION(async_socket_send_async_succeeds)
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
-        .CaptureArgumentValue_overlapped_data(&overlapped);
+    STRICT_EXPECTED_CALL(socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
+        .CaptureArgumentValue_overlapped_data(&overlapped)
+        .SetReturn(SOCKET_SEND_OK);
 
     // act
     result = async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, (void*)0x4244);
@@ -955,8 +938,9 @@ TEST_FUNCTION(async_socket_send_async_with_NULL_on_send_complete_context_succeed
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
-        .CaptureArgumentValue_overlapped_data(&overlapped);
+    STRICT_EXPECTED_CALL(socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
+        .CaptureArgumentValue_overlapped_data(&overlapped)
+        .SetReturn(SOCKET_SEND_OK);
 
     // act
     result = async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, NULL);
@@ -994,8 +978,7 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_send_async_fails)
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    //STRICT_EXPECTED_CALL(mocked_WSASend(IGNORED_ARG, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG, NULL));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
         .SetReturn(WSAEINVAL)
         .CallCannotFail();
@@ -1051,7 +1034,7 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_WSA_IO_PENDING_it_is_treated_
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
         .CaptureArgumentValue_overlapped_data(&overlapped)
         .SetReturn(SOCKET_SEND_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
@@ -1099,7 +1082,7 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_an_error_then_async_socket_se
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL))
         .CaptureReturn(&overlapped_event);
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
         .CaptureArgumentValue_overlapped_data(&overlapped)
         .SetReturn(SOCKET_SEND_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
@@ -1150,7 +1133,7 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_WSAGetLastError_then_async_so
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL))
         .CaptureReturn(&overlapped_event);
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
         .CaptureArgumentValue_overlapped_data(&overlapped)
         .SetReturn(SOCKET_SEND_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
@@ -1200,7 +1183,7 @@ TEST_FUNCTION(when_socket_transport_send_returns_an_error_different_than_SOCKET_
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL))
         .CaptureReturn(&overlapped_event);
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
         .CaptureArgumentValue_overlapped_data(&overlapped)
         .SetReturn(1);
     STRICT_EXPECTED_CALL(mocked_CancelThreadpoolIo(test_ptp_io));
@@ -1553,8 +1536,9 @@ TEST_FUNCTION(async_socket_receive_async_succeeds)
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG))
-        .CaptureArgumentValue_data(&overlapped);
+    STRICT_EXPECTED_CALL(socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG))
+        .CaptureArgumentValue_data(&overlapped)
+        .SetReturn(SOCKET_RECEIVE_OK);
 
     // act
     result = async_socket_receive_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_receive_complete, (void*)0x4244);
@@ -1596,8 +1580,9 @@ TEST_FUNCTION(async_socket_receive_async_with_NULL_on_send_complete_context_succ
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, expected_flags, IGNORED_ARG))
-        .CaptureArgumentValue_data(&overlapped);
+    STRICT_EXPECTED_CALL(socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, expected_flags, IGNORED_ARG))
+        .CaptureArgumentValue_data(&overlapped)
+        .SetReturn(SOCKET_RECEIVE_OK);
 
     // act
     result = async_socket_receive_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_receive_complete, NULL);
@@ -1635,7 +1620,7 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_receive_async_fails)
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
         .SetReturn(WSAEINVAL)
         .CallCannotFail();
@@ -1690,7 +1675,7 @@ TEST_FUNCTION(when_get_last_error_for_receive_returns_WSA_IO_PENDING_it_is_treat
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, expected_flags, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, expected_flags, IGNORED_ARG))
         .CaptureArgumentValue_data(&overlapped)
         .SetReturn(SOCKET_RECEIVE_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
@@ -1738,7 +1723,7 @@ TEST_FUNCTION(when_WSARecv_returns_an_error_different_than_SOCKET_ERROR_async_so
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL))
         .CaptureReturn(&overlapped_event);
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, expected_flags, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, expected_flags, IGNORED_ARG))
         .CaptureArgumentValue_data(&overlapped)
         .SetReturn(1);
     STRICT_EXPECTED_CALL(mocked_CancelThreadpoolIo(test_ptp_io));
@@ -1787,7 +1772,7 @@ TEST_FUNCTION(when_get_last_error_for_receive_returns_an_error_then_async_socket
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL))
         .CaptureReturn(&overlapped_event);
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, expected_flags, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, expected_flags, IGNORED_ARG))
         .CaptureArgumentValue_data(&overlapped)
         .SetReturn(SOCKET_RECEIVE_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
@@ -1835,8 +1820,9 @@ TEST_FUNCTION(on_io_complete_with_NULL_overlapped_for_send_returns)
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
-        .CaptureArgumentValue_overlapped_data(&overlapped);
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
+        .CaptureArgumentValue_overlapped_data(&overlapped)
+        .SetReturn(SOCKET_SEND_OK);
 
     (void)async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, (void*)0x4244);
     umock_c_reset_all_calls();
@@ -1882,7 +1868,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_send_as_complete_with_O
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
         .CaptureArgumentValue_overlapped_data(&overlapped)
         .SetReturn(SOCKET_SEND_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
@@ -1934,7 +1920,7 @@ TEST_FUNCTION(on_io_complete_with_error_indicates_the_send_as_complete_with_ERRO
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
         .CaptureArgumentValue_overlapped_data(&overlapped)
         .SetReturn(SOCKET_SEND_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
@@ -1982,7 +1968,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_and_number_of_bytes_sent_less_than_ex
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
         .CaptureArgumentValue_overlapped_data(&overlapped)
         .SetReturn(SOCKET_SEND_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
@@ -2030,7 +2016,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_and_number_of_bytes_sent_more_than_ex
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG,1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
         .CaptureArgumentValue_overlapped_data(&overlapped)
         .SetReturn(SOCKET_SEND_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
@@ -2077,8 +2063,9 @@ TEST_FUNCTION(on_io_complete_with_NULL_overlapped_for_receive_returns)
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG,1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG))
-        .CaptureArgumentValue_data(&overlapped);
+    STRICT_EXPECTED_CALL(socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG))
+        .CaptureArgumentValue_data(&overlapped)
+        .SetReturn(SOCKET_SEND_OK);
     (void)async_socket_receive_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_receive_complete, (void*)0x4244);
     umock_c_reset_all_calls();
 
@@ -2123,7 +2110,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_wit
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG))
         .CaptureArgumentValue_data(&overlapped)
         .SetReturn(SOCKET_RECEIVE_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
@@ -2175,7 +2162,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_wit
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG,1,sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG))
         .CaptureArgumentValue_data(&overlapped)
         .SetReturn(SOCKET_RECEIVE_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
@@ -2223,7 +2210,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_wit
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG,1,sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG))
         .CaptureArgumentValue_data(&overlapped)
         .SetReturn(SOCKET_RECEIVE_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
@@ -2275,7 +2262,7 @@ TEST_FUNCTION(on_io_complete_with_error_indicates_the_receive_as_complete_with_E
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG))
         .CaptureArgumentValue_data(&overlapped)
         .SetReturn(SOCKET_RECEIVE_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
@@ -2323,7 +2310,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_receive_as_complete_wit
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(WSABUF)));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG))
         .CaptureArgumentValue_data(&overlapped)
         .SetReturn(SOCKET_RECEIVE_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
@@ -2370,7 +2357,7 @@ static void on_io_complete_with_error_indicates_the_receive_as_complete_with_ABA
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
-    STRICT_EXPECTED_CALL(mocked_socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(socket_transport_receive(test_socket, IGNORED_ARG, 1, NULL, IGNORED_ARG, IGNORED_ARG))
         .CaptureArgumentValue_data(&overlapped)
         .SetReturn(SOCKET_RECEIVE_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())

@@ -21,10 +21,6 @@
 #define CloseHandle mocked_CloseHandle
 #define WaitForThreadpoolIoCallbacks mocked_WaitForThreadpoolIoCallbacks
 #define CancelThreadpoolIo mocked_CancelThreadpoolIo
-#define closesocket mocked_closesocket
-#define socket_transport_get_underlying_socket mocked_socket_transport_get_underlying_socket
-#define socket_transport_send mocked_socket_transport_send
-#define socket_transport_receive mocked_socket_transport_receive
 
 PTP_IO WINAPI mocked_CreateThreadpoolIo(HANDLE fl, PTP_WIN32_IO_CALLBACK pfnio, PVOID pv, PTP_CALLBACK_ENVIRON pcbe);
 void mocked_InitializeThreadpoolEnvironment(PTP_CALLBACK_ENVIRON pcbe);
@@ -40,9 +36,5 @@ int mocked_WSAGetLastError(void);
 BOOL mocked_CloseHandle(HANDLE hObject);
 void mocked_WaitForThreadpoolIoCallbacks(PTP_IO pio, BOOL fCancelPendingCallbacks);
 void mocked_CancelThreadpoolIo(PTP_IO pio);
-int WSAAPI mocked_closesocket(SOCKET s);
-SOCKET_HANDLE mocked_socket_transport_get_underlying_socket(SOCKET_TRANSPORT_HANDLE socket_transport);
-SOCKET_SEND_RESULT mocked_socket_transport_send(SOCKET_TRANSPORT_HANDLE socket_transport, const SOCKET_BUFFER* payload, uint32_t buffer_count, uint32_t* bytes_sent, uint32_t flags, void* overlapped_data);
-SOCKET_RECEIVE_RESULT mocked_socket_transport_receive(SOCKET_TRANSPORT_HANDLE socket_transport, SOCKET_BUFFER* payload, uint32_t buffer_count, uint32_t* bytes_recv, uint32_t flags, void* data);
 
 #include "../../src/async_socket_win32.c"
