@@ -68,13 +68,23 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 {
 }
 
+void set_up_listen_socket(SOCKET_TRANSPORT_HANDLE listen_socket)
+{
+    int result = socket_transport_listen(listen_socket, g_port_num);
+    if(result != 0)
+    {
+        g_port_num++;
+        ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num), "failed listening on port %" PRIu16 "", g_port_num);
+    }
+}
+
 TEST_FUNCTION(send_and_receive_2_buffer_of_2_byte_succeeds)
 {
     // assert
     SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(listen_socket);
 
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num), "failed listening on port %" PRIu16 "", g_port_num);
+    set_up_listen_socket(listen_socket);
 
     // create the async socket object
     SOCKET_TRANSPORT_HANDLE client_socket = socket_transport_create_client();
@@ -177,7 +187,7 @@ TEST_FUNCTION(send_and_receive_random_buffer_of_random_byte_succeeds)
     SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(listen_socket);
 
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num));
+    set_up_listen_socket(listen_socket);
 
     // create the async socket object
     SOCKET_TRANSPORT_HANDLE client_socket = socket_transport_create_client();
@@ -237,7 +247,7 @@ static int connect_and_listen_func(void* parameter)
     chaos_knight_test->listen_socket = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(chaos_knight_test->listen_socket);
 
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(chaos_knight_test->listen_socket, g_port_num));
+    set_up_listen_socket(chaos_knight_test->listen_socket);
 
     for (i = 0; i < CHAOS_THREAD_COUNT; i++)
     {
