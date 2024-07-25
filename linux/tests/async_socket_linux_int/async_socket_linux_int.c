@@ -143,6 +143,16 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 {
 }
 
+void set_up_listen_socket(SOCKET_TRANSPORT_HANDLE listen_socket)
+{
+    int result = socket_transport_listen(listen_socket, g_port_num);
+    if(result != 0)
+    {
+        g_port_num++;
+        ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num), "failed listening on port %" PRIu16 "", g_port_num);
+    }
+}
+
 TEST_FUNCTION(connect_no_send_succeeds)
 {
     // assert
@@ -158,7 +168,7 @@ TEST_FUNCTION(connect_no_send_succeeds)
     listen_socket = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(listen_socket);
 
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num), "failed listening on port %" PRIu16 "", g_port_num);
+    set_up_listen_socket(listen_socket);
 
     // create the async socket object
     client_socket = socket_transport_create_client();
@@ -216,7 +226,7 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
     listen_socket = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(listen_socket);
 
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num), "failed listening on port %" PRIu16 "", g_port_num);
+    set_up_listen_socket(listen_socket);
 
     // create the async socket object
     client_socket = socket_transport_create_client();
@@ -291,7 +301,7 @@ TEST_FUNCTION(receive_and_send_2_buffers_succeeds)
     listen_socket = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(listen_socket);
 
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num), "failed listening on port %" PRIu16 "", g_port_num);
+    set_up_listen_socket(listen_socket);
 
     // create the async socket object
     client_socket = socket_transport_create_client();
@@ -371,7 +381,7 @@ TEST_FUNCTION(when_server_socket_is_closed_receive_errors_on_client_side)
     listen_socket = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(listen_socket);
 
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num), "failed listening on port %" PRIu16 "", g_port_num);
+    set_up_listen_socket(listen_socket);
 
     // create the async socket object
     client_socket = socket_transport_create_client();
@@ -431,9 +441,8 @@ TEST_FUNCTION(multiple_sends_and_receives_succeeds)
 
     listen_socket = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(listen_socket);
-
-    g_port_num++;
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num), "failed listening on port %" PRIu16 "", g_port_num);
+    
+    set_up_listen_socket(listen_socket);
 
     // create the async socket object
     client_socket = socket_transport_create_client();
@@ -512,7 +521,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _sockets_items))
     listen_socket = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(listen_socket);
 
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num), "failed listening on port %" PRIu16 "", g_port_num);
+    set_up_listen_socket(listen_socket);
 
     ASYNC_SOCKET_HANDLE server_async_socket[N_WORK_ITEMS];
     ASYNC_SOCKET_HANDLE client_async_socket[N_WORK_ITEMS];
