@@ -158,7 +158,8 @@ static int on_socket_recv(void* context, ASYNC_SOCKET_HANDLE async_socket, void*
             result = -1;
             LogInfo("Not enough space in send buffer of nonblocking socket. bytes sent: %" PRIu32 " input_buf.buffer: %p, input_buf.length: %" PRIu32 ".", bytes_recv, input_buf.buffer, input_buf.length);
 
-        } else if(recv_result == SOCKET_RECEIVE_SHUTDOWN)
+        } 
+        else if(recv_result == SOCKET_RECEIVE_SHUTDOWN)
         {
             result = 0;
             LogError("Socket received 0 bytes. bytes sent: %" PRIu32 " input_buf.buffer: %p, input_buf.length: %" PRIu32 ".", bytes_recv, input_buf.buffer, input_buf.length);

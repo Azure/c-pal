@@ -5,7 +5,6 @@
 
 #include "macro_utils/macro_utils.h"
 #include "c_pal/execution_engine.h"
-#include "socket_handle.h"
 #include "socket_transport.h"
 #include "umock_c/umock_c_prod.h"
 

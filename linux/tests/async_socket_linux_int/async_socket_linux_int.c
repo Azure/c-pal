@@ -136,7 +136,7 @@ TEST_SUITE_CLEANUP(suite_cleanup)
 
 TEST_FUNCTION_INITIALIZE(method_init)
 {
-    g_port_num+=5;
+    g_port_num++;
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)

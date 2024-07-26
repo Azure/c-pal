@@ -895,7 +895,7 @@ TEST_FUNCTION(async_socket_send_async_succeeds)
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
-        .CaptureArgumentValue_overlapped_data(&overlapped)
+        .CaptureArgumentValue_data(&overlapped)
         .SetReturn(SOCKET_SEND_OK);
 
     // act
@@ -939,7 +939,7 @@ TEST_FUNCTION(async_socket_send_async_with_NULL_on_send_complete_context_succeed
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
-        .CaptureArgumentValue_overlapped_data(&overlapped)
+        .CaptureArgumentValue_data(&overlapped)
         .SetReturn(SOCKET_SEND_OK);
 
     // act
@@ -1035,7 +1035,7 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_WSA_IO_PENDING_it_is_treated_
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
-        .CaptureArgumentValue_overlapped_data(&overlapped)
+        .CaptureArgumentValue_data(&overlapped)
         .SetReturn(SOCKET_SEND_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
         .SetReturn(WSA_IO_PENDING);
@@ -1083,7 +1083,7 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_an_error_then_async_socket_se
         .CaptureReturn(&overlapped_event);
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
-        .CaptureArgumentValue_overlapped_data(&overlapped)
+        .CaptureArgumentValue_data(&overlapped)
         .SetReturn(SOCKET_SEND_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
         .SetReturn(WSAENOBUFS);
@@ -1134,7 +1134,7 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_WSAGetLastError_then_async_so
         .CaptureReturn(&overlapped_event);
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
-        .CaptureArgumentValue_overlapped_data(&overlapped)
+        .CaptureArgumentValue_data(&overlapped)
         .SetReturn(SOCKET_SEND_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
         .SetReturn(WSAECONNRESET);
@@ -1184,7 +1184,7 @@ TEST_FUNCTION(when_socket_transport_send_returns_an_error_different_than_SOCKET_
         .CaptureReturn(&overlapped_event);
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
-        .CaptureArgumentValue_overlapped_data(&overlapped)
+        .CaptureArgumentValue_data(&overlapped)
         .SetReturn(1);
     STRICT_EXPECTED_CALL(mocked_CancelThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
@@ -1821,7 +1821,7 @@ TEST_FUNCTION(on_io_complete_with_NULL_overlapped_for_send_returns)
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
-        .CaptureArgumentValue_overlapped_data(&overlapped)
+        .CaptureArgumentValue_data(&overlapped)
         .SetReturn(SOCKET_SEND_OK);
 
     (void)async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, (void*)0x4244);
@@ -1869,7 +1869,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_send_as_complete_with_O
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
-        .CaptureArgumentValue_overlapped_data(&overlapped)
+        .CaptureArgumentValue_data(&overlapped)
         .SetReturn(SOCKET_SEND_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
         .SetReturn(WSA_IO_PENDING);
@@ -1921,7 +1921,7 @@ TEST_FUNCTION(on_io_complete_with_error_indicates_the_send_as_complete_with_ERRO
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
-        .CaptureArgumentValue_overlapped_data(&overlapped)
+        .CaptureArgumentValue_data(&overlapped)
         .SetReturn(SOCKET_SEND_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
         .SetReturn(WSA_IO_PENDING);
@@ -1969,7 +1969,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_and_number_of_bytes_sent_less_than_ex
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
-        .CaptureArgumentValue_overlapped_data(&overlapped)
+        .CaptureArgumentValue_data(&overlapped)
         .SetReturn(SOCKET_SEND_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
         .SetReturn(WSA_IO_PENDING);
@@ -2017,7 +2017,7 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_and_number_of_bytes_sent_more_than_ex
     STRICT_EXPECTED_CALL(mocked_CreateEventA(NULL, FALSE, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
-        .CaptureArgumentValue_overlapped_data(&overlapped)
+        .CaptureArgumentValue_data(&overlapped)
         .SetReturn(SOCKET_SEND_ERROR);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
         .SetReturn(WSA_IO_PENDING);
