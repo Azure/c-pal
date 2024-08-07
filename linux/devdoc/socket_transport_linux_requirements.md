@@ -31,6 +31,13 @@ MU_DEFINE_ENUM(SOCKET_SEND_RESULT, SOCKET_SEND_RESULT_VALUES)
 
 MU_DEFINE_ENUM(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_RESULT_VALUES)
 
+#define SOCKET_ACCEPT_RESULT_VALUES \
+    SOCKET_ACCEPT_OK, \
+    SOCKET_ACCEPT_ERROR, \
+    SOCKET_ACCEPT_NO_SOCKET
+
+MU_DEFINE_ENUM(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_RESULT_VALUES)
+
 #define SOCKET_TYPE_VALUES \
     SOCKET_CLIENT, \
     SOCKET_BINDING
@@ -51,7 +58,7 @@ MOCKABLE_FUNCTION(, int, socket_transport_connect, SOCKET_TRANSPORT_HANDLE, sock
 MOCKABLE_FUNCTION(, int, socket_transport_listen, SOCKET_TRANSPORT_HANDLE, socket_transport, uint16_t, port);
 MOCKABLE_FUNCTION(, void, socket_transport_disconnect, SOCKET_TRANSPORT_HANDLE, socket_transport);
 
-MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_accept, SOCKET_TRANSPORT_HANDLE, socket_transport);
+MOCKABLE_FUNCTION(, SOCKET_ACCEPT_RESULT, socket_transport_accept, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_TRANSPORT_HANDLE*, accepted_socket);
 
 MOCKABLE_FUNCTION(, SOCKET_SEND_RESULT, socket_transport_send, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_BUFFER*, payload, uint32_t, buffer_count, uint32_t*, bytes_sent, uint32_t, flags, void*, data);
 MOCKABLE_FUNCTION(, SOCKET_RECEIVE_RESULT, socket_transport_receive, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_BUFFER*, payload, uint32_t, buffer_count, uint32_t*, bytes_recv, uint32_t, flags, void*, data);
@@ -256,18 +263,18 @@ MOCKABLE_FUNCTION(, int, socket_transport_listen, SOCKET_TRANSPORT_HANDLE, socke
 ### socket_transport_accept
 
 ```c
-MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_accept, SOCKET_TRANSPORT_HANDLE, socket_transport);
+MOCKABLE_FUNCTION(, SOCKET_ACCEPT_RESULT, socket_transport_accept, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_TRANSPORT_HANDLE*, accepted_socket);
 ```
 
 `socket_transport_accept` accepts the incoming connections.
 
-**SOCKET_TRANSPORT_LINUX_11_069: [** If `socket_transport` is `NULL`, `socket_transport_accept` shall fail and return `NULL`. **]**
+**SOCKET_TRANSPORT_LINUX_11_069: [** If `socket_transport` is `NULL`, `socket_transport_accept` shall fail and return `SOCKET_ACCEPT_ERROR`. **]**
 
-**SOCKET_TRANSPORT_LINUX_11_070: [** If the transport type is not `SOCKET_BINDING`, `socket_transport_accept` shall fail and return `NULL`. **]**
+**SOCKET_TRANSPORT_LINUX_11_070: [** If the transport type is not `SOCKET_BINDING`, `socket_transport_accept` shall fail and return `SOCKET_ACCEPT_ERROR`. **]**
 
 **SOCKET_TRANSPORT_LINUX_11_071: [** `socket_transport_accept` shall call `sm_exec_begin`. **]**
 
-**SOCKET_TRANSPORT_LINUX_11_072: [** If `sm_exec_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_accept` shall fail and return `NULL`. **]**
+**SOCKET_TRANSPORT_LINUX_11_072: [** If `sm_exec_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_accept` shall fail and return `SOCKET_ACCEPT_ERROR`. **]**
 
 **SOCKET_TRANSPORT_LINUX_11_073: [** `socket_transport_accept` shall call `accept` to accept the incoming socket connection. **]**
 
@@ -275,9 +282,9 @@ MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_accept, SOCKET_TRA
 
 **SOCKET_TRANSPORT_LINUX_11_075: [** `socket_transport_accept` shall allocate a `SOCKET_TRANSPORT` for the incoming connection and call `sm_create` and `sm_open` on the connection. **]**
 
-**SOCKET_TRANSPORT_LINUX_11_076: [** If successful `socket_transport_accept` shall return the allocated `SOCKET_TRANSPORT` of type SOCKET_DATA. **]**
+**SOCKET_TRANSPORT_LINUX_11_076: [** If successful `socket_transport_accept` shall pass the allocated `SOCKET_TRANSPORT` of type SOCKET_DATA and return `SOCKET_ACCEPT_OK`. **]**
 
-**SOCKET_TRANSPORT_LINUX_11_077: [** If any failure is encountered, `socket_transport_accept` shall fail and return `NULL`. **]**
+**SOCKET_TRANSPORT_LINUX_11_077: [** If any failure is encountered, `socket_transport_accept` shall fail and return `SOCKET_ACCEPT_ERROR`. **]**
 
 **SOCKET_TRANSPORT_LINUX_11_078: [** `socket_transport_accept` shall call `sm_exec_end`. **]**
 
