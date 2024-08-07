@@ -249,10 +249,6 @@ static int connect_and_listen_func(void* parameter)
     {
         ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(chaos_knight_test->client_socket_handles[i], "localhost", g_port_num, TEST_CONN_TIMEOUT));
 
-        //chaos_knight_test->incoming_socket_handles[i] = socket_transport_accept(chaos_knight_test->listen_socket);
-
-        //ASSERT_IS_NOT_NULL(chaos_knight_test->incoming_socket_handles[i]);
-
         ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_OK, socket_transport_accept(chaos_knight_test->listen_socket, &chaos_knight_test->incoming_socket_handles[i]));
     }
 

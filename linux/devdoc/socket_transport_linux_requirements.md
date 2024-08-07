@@ -282,7 +282,7 @@ MOCKABLE_FUNCTION(, SOCKET_ACCEPT_RESULT, socket_transport_accept, SOCKET_TRANSP
 
 **SOCKET_TRANSPORT_LINUX_11_075: [** `socket_transport_accept` shall allocate a `SOCKET_TRANSPORT` for the incoming connection and call `sm_create` and `sm_open` on the connection. **]**
 
-**SOCKET_TRANSPORT_LINUX_11_076: [** If successful `socket_transport_accept` shall pass the allocated `SOCKET_TRANSPORT` of type SOCKET_DATA and return `SOCKET_ACCEPT_OK`. **]**
+**SOCKET_TRANSPORT_LINUX_11_076: [** If successful `socket_transport_accept` shall assign accepted_socket to be the allocated incoming `SOCKET_TRANSPORT` and return `SOCKET_ACCEPT_OK`. **]**
 
 **SOCKET_TRANSPORT_LINUX_11_077: [** If any failure is encountered, `socket_transport_accept` shall fail and return `SOCKET_ACCEPT_ERROR`. **]**
 

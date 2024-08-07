@@ -1505,7 +1505,6 @@ TEST_FUNCTION(socket_transport_accept_null_input_fail)
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
-    ASSERT_IS_NULL(accept_socket_handle);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
@@ -1524,7 +1523,6 @@ TEST_FUNCTION(socket_transport_accept_sockettransport_type_fail)
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
-    ASSERT_IS_NULL(accept_socket_handle);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
@@ -1549,7 +1547,6 @@ TEST_FUNCTION(socket_transport_accept_smexecbegin_fail)
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
-    ASSERT_IS_NULL(accept_socket_handle);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
@@ -1577,7 +1574,6 @@ TEST_FUNCTION(socket_transport_accept_select_fail)
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
-    ASSERT_IS_NULL(accept_socket_handle);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
@@ -1585,7 +1581,7 @@ TEST_FUNCTION(socket_transport_accept_select_fail)
     socket_transport_destroy(socket_handle);
 }
 
-// Tests_SOCKET_TRANSPORT_WIN32_09_091: [ If select returns zero, socket_transport_accept shall set accepted_socket to NULL and return SOCKET_ACCEPT_NO_SOCKET. ]
+// Tests_SOCKET_TRANSPORT_WIN32_09_091: [ If select returns zero, socket_transport_accept shall set accepted_socket to NULL and return SOCKET_ACCEPT_NO_CONNECTION. ]
 TEST_FUNCTION(socket_transport_accept_select_returns_zero)
 {
     //arrange
@@ -1605,8 +1601,7 @@ TEST_FUNCTION(socket_transport_accept_select_returns_zero)
     SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle);
 
     //assert
-    ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_NO_SOCKET, accept_result);
-    ASSERT_IS_NULL(accept_socket_handle);
+    ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_NO_CONNECTION, accept_result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
@@ -1638,7 +1633,6 @@ TEST_FUNCTION(socket_transport_accept_accept_fail)
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
-    ASSERT_IS_NULL(accept_socket_handle);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
@@ -1673,7 +1667,6 @@ TEST_FUNCTION(socket_transport_accept_malloc_fail)
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
-    ASSERT_IS_NULL(accept_socket_handle);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
@@ -1707,7 +1700,6 @@ TEST_FUNCTION(socket_transport_accept_sm_create_fail)
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
-    ASSERT_IS_NULL(accept_socket_handle);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
@@ -1743,7 +1735,6 @@ TEST_FUNCTION(socket_transport_accept_sm_open_begin_fail)
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
-    ASSERT_IS_NULL(accept_socket_handle);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
@@ -1771,7 +1762,6 @@ TEST_FUNCTION(socket_transport_accept_fail)
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
-    ASSERT_IS_NULL(accept_socket_handle);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup

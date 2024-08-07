@@ -33,7 +33,7 @@ MU_DEFINE_ENUM(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_RESULT_VALUES)
 #define SOCKET_ACCEPT_RESULT_VALUES \
     SOCKET_ACCEPT_OK, \
     SOCKET_ACCEPT_ERROR, \
-    SOCKET_ACCEPT_NO_SOCKET
+    SOCKET_ACCEPT_NO_CONNECTION
 
 MU_DEFINE_ENUM(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_RESULT_VALUES)
 
@@ -292,7 +292,7 @@ MOCKABLE_FUNCTION(, SOCKET_ACCEPT_RESULT, socket_transport_accept, SOCKET_TRANSP
 
 **SOCKET_TRANSPORT_WIN32_09_071: [** `socket_transport_accept` shall call `select` determine if the socket is ready to be read passing a timeout of 10 milliseconds. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_091: [** If `select` returns zero, socket_transport_accept shall set accepted_socket to `NULL` and return `SOCKET_ACCEPT_NO_SOCKET`. **]**
+**SOCKET_TRANSPORT_WIN32_09_091: [** If `select` returns zero, socket_transport_accept shall set accepted_socket to `NULL` and return `SOCKET_ACCEPT_NO_CONNECTION`. **]**
 
 **SOCKET_TRANSPORT_WIN32_09_072: [** `socket_transport_accept` shall call `accept` to accept the incoming socket connection. **]**
 
