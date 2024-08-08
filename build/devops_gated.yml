@@ -1,4 +1,9 @@
 name: $(BuildID)_$(BuildDefinitionName)_$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
+parameters:
+  - name: run_codeql
+    type: boolean
+    default: false
+
 resources:
   repositories:
   - repository: self
@@ -14,7 +19,8 @@ jobs:
   parameters:
     GBALLOC_LL_TYPE_VALUES: ["PASSTHROUGH", "JEMALLOC"]
 
-- template: /pipeline_templates/codeql3000_default.yml@c_build_tools
+- ${{ if parameters.run_codeql }}:
+  - template: /pipeline_templates/codeql3000_default.yml@c_build_tools
 
 - job: linuxubuntu
   displayName: 'Build Linux Ubuntu'

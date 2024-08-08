@@ -16,8 +16,12 @@
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_win32.h"
 #include "c_pal/timer.h"
+#include "c_pal/socket_transport.h"
+#include "c_pal/sm.h"
 
 #include "c_pal/async_socket.h"
+
+
 
 #define ASYNC_SOCKET_WIN32_STATE_VALUES \
     ASYNC_SOCKET_WIN32_STATE_CLOSED, \
@@ -43,7 +47,7 @@ MU_DEFINE_ENUM_STRINGS(ASYNC_SOCKET_NOTIFY_IO_RESULT, ASYNC_SOCKET_NOTIFY_IO_RES
 
 typedef struct ASYNC_SOCKET_TAG
 {
-    SOCKET_HANDLE socket_handle;
+    SOCKET_TRANSPORT_HANDLE socket_transport_handle;
     EXECUTION_ENGINE_HANDLE execution_engine;
     volatile LONG state;
     PTP_POOL pool;
@@ -78,7 +82,7 @@ typedef struct ASYNC_SOCKET_IO_CONTEXT_TAG
     ASYNC_SOCKET_IO_TYPE io_type;
     uint32_t total_buffer_bytes;
     ASYNC_SOCKET_IO_CONTEXT_UNION io;
-    WSABUF wsa_buffers[];
+    SOCKET_BUFFER wsa_buffers[];
 } ASYNC_SOCKET_IO_CONTEXT;
 
 static VOID WINAPI on_io_complete(PTP_CALLBACK_INSTANCE instance, PVOID context, PVOID overlapped, ULONG io_result, ULONG_PTR number_of_bytes_transferred, PTP_IO io)
@@ -152,6 +156,7 @@ static VOID WINAPI on_io_complete(PTP_CALLBACK_INSTANCE instance, PVOID context,
                     }
                     case ERROR_NETNAME_DELETED:
                     case ERROR_CONNECTION_ABORTED:
+                    case ERROR_OPERATION_ABORTED:
                     {
                         /* Codes_SRS_ASYNC_SOCKET_WIN32_42_001: [ If io_result is ERROR_NETNAME_DELETED or ERROR_CONNECTION_ABORTED, the on_receive_complete callback passed to async_socket_receive_async shall be called with on_receive_complete_context as context, ASYNC_SOCKET_RECEIVE_ABANDONED as result and 0 for bytes_received. ]*/
                         LogError("Receive IO completed with error %lu (socket seems to be closed)", io_result);
@@ -219,15 +224,6 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
 
         (void)WaitOnAddress(&async_socket->pending_api_calls, &current_pending_api_calls, sizeof(current_pending_api_calls), INFINITE);
     } while (1);
-
-    // Close socket must happen after changing state of the async_socket to not allow any more calls on the socket
-    // but before the call to WaitForThreadpoolIoCallbacks
-
-    LogInfo("async socket is closing, closesocket(%p);", async_socket->socket_handle);
-
-    /* Codes_SRS_ASYNC_SOCKET_WIN32_42_006: [ async_socket_close shall call closesocket on the underlying socket. ]*/
-    (void)closesocket((SOCKET)async_socket->socket_handle);
-    async_socket->socket_handle = (SOCKET_HANDLE)INVALID_SOCKET;
 
     /* Codes_SRS_ASYNC_SOCKET_WIN32_01_040: [ async_socket_close shall wait for any executing callbacks by calling WaitForThreadpoolIoCallbacks, passing FALSE as fCancelPendingCallbacks. ]*/
     WaitForThreadpoolIoCallbacks(async_socket->tp_io, FALSE);
@@ -334,7 +330,7 @@ void async_socket_destroy(ASYNC_SOCKET_HANDLE async_socket)
     }
 }
 
-int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, SOCKET_HANDLE socket_handle, ON_ASYNC_SOCKET_OPEN_COMPLETE on_open_complete, void* on_open_complete_context)
+int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, SOCKET_TRANSPORT_HANDLE socket_transport, ON_ASYNC_SOCKET_OPEN_COMPLETE on_open_complete, void* on_open_complete_context)
 {
     int result;
 
@@ -345,8 +341,8 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, SOCKET_HANDLE sock
         (async_socket == NULL) ||
         /* Codes_SRS_ASYNC_SOCKET_WIN32_01_008: [ If on_open_complete is NULL, async_socket_open_async shall fail and return a non-zero value. ]*/
         (on_open_complete == NULL) ||
-        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_034: [ If socket_handle is INVALID_SOCKET, async_socket_create shall fail and return NULL. ]*/
-        (SOCKET)socket_handle == INVALID_SOCKET
+        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_034: [ If socket_transport is NULL, async_socket_open_async shall fail and return a non-zero value. ]*/
+        (socket_transport == NULL)
         )
     {
         /* Codes_SRS_ASYNC_SOCKET_WIN32_01_039: [ If any error occurs, async_socket_open_async shall fail and return a non-zero value. ]*/
@@ -366,7 +362,7 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, SOCKET_HANDLE sock
         }
         else
         {
-            async_socket->socket_handle = socket_handle;
+            async_socket->socket_transport_handle = socket_transport;
 
             /* Codes_SRS_ASYNC_SOCKET_WIN32_01_016: [ Otherwise async_socket_open_async shall initialize a thread pool environment by calling InitializeThreadpoolEnvironment. ]*/
             InitializeThreadpoolEnvironment(&async_socket->tp_environment);
@@ -374,8 +370,8 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, SOCKET_HANDLE sock
             /* Codes_SRS_ASYNC_SOCKET_WIN32_01_036: [ async_socket_open_async shall set the thread pool for the environment to the pool obtained from the execution engine by calling SetThreadpoolCallbackPool. ]*/
             SetThreadpoolCallbackPool(&async_socket->tp_environment, async_socket->pool);
 
-            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_058: [ async_socket_open_async shall create a threadpool IO by calling CreateThreadpoolIo and passing socket_handle, the callback environment to it and on_io_complete as callback. ]*/
-            async_socket->tp_io = CreateThreadpoolIo(async_socket->socket_handle, on_io_complete, NULL, &async_socket->tp_environment);
+            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_058: [ async_socket_open_async shall create a threadpool IO by calling CreateThreadpoolIo and passing socket_transport_get_underlying_socket, the callback environment to it and on_io_complete as callback. ]*/
+            async_socket->tp_io = CreateThreadpoolIo((HANDLE)socket_transport_get_underlying_socket(async_socket->socket_transport_handle), on_io_complete, NULL, &async_socket->tp_environment);
             if (async_socket->tp_io == NULL)
             {
                 /* Codes_SRS_ASYNC_SOCKET_WIN32_01_039: [ If any error occurs, async_socket_open_async shall fail and return a non-zero value. ]*/
@@ -396,9 +392,6 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, SOCKET_HANDLE sock
 
                 goto all_ok;
             }
-
-            async_socket->socket_handle = (SOCKET_HANDLE)INVALID_SOCKET;
-
             DestroyThreadpoolEnvironment(&async_socket->tp_environment);
 
             (void)InterlockedExchange(&async_socket->state, (LONG)ASYNC_SOCKET_WIN32_STATE_CLOSED);
@@ -528,13 +521,13 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                         /* Codes_SRS_ASYNC_SOCKET_WIN32_01_056: [ async_socket_send_async shall set the WSABUF items to point to the memory/length of the buffers in payload. ]*/
                         for (i = 0; i < buffer_count; i++)
                         {
-                            send_context->wsa_buffers[i].buf = buffers[i].buffer;
-                            send_context->wsa_buffers[i].len = buffers[i].length;
+                            send_context->wsa_buffers[i].buffer = buffers[i].buffer;
+                            send_context->wsa_buffers[i].length = buffers[i].length;
                         }
 
                         (void)memset(&send_context->overlapped, 0, sizeof(send_context->overlapped));
 
-                        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_057: [ An event to be used for the OVERLAPPED structure passed to WSASend shall be created and stored in the context. ]*/
+                        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_057: [ An event to be used for the OVERLAPPED structure passed to socket_transport_send shall be created and stored in the context. ]*/
                         send_context->overlapped.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
                         if (send_context->overlapped.hEvent == NULL)
                         {
@@ -544,7 +537,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                         }
                         else
                         {
-                            int wsa_send_result;
+                            SOCKET_SEND_RESULT socket_transport_send_result;
                             int wsa_last_error;
 
                             send_context->io_type = ASYNC_SOCKET_IO_TYPE_SEND;
@@ -558,22 +551,22 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                             LogVerbose("Starting send of %" PRIu32 " bytes at %lf", total_buffer_bytes, timer_global_get_elapsed_us());
 #endif
 
-                            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_061: [ The WSABUF array associated with the context shall be sent by calling WSASend and passing to it the OVERLAPPED structure with the event that was just created, dwFlags set to 0, lpNumberOfBytesSent set to NULL and lpCompletionRoutine set to NULL. ]*/
-                            wsa_send_result = WSASend((SOCKET)async_socket->socket_handle, send_context->wsa_buffers, buffer_count, NULL, 0, &send_context->overlapped, NULL);
+                            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_061: [ The SOCKET_BUFFER array associated with the context shall be sent by calling socket_transport_send and passing to it the OVERLAPPED structure with the event that was just created, flags set to 0, and bytes_sent set to NULL. ]*/
+                            socket_transport_send_result = socket_transport_send(async_socket->socket_transport_handle, send_context->wsa_buffers, buffer_count, NULL, 0, &send_context->overlapped);
 
-                            switch (wsa_send_result)
+                            switch (socket_transport_send_result)
                             {
                                 default:
                                 {
-                                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_106: [ If WSASend fails with any other error, async_socket_send_async shall call CancelThreadpoolIo and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
-                                    LogLastError("WSASend failed with %d", wsa_send_result);
+                                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_106: [ If socket_transport_send fails with any other error, async_socket_send_async shall call CancelThreadpoolIo and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
+                                    LogLastError("socket_transport_send failed with %d", socket_transport_send_result);
                                     result = ASYNC_SOCKET_SEND_SYNC_ERROR;
 
                                     break;
                                 }
-                                case SOCKET_ERROR:
+                                case SOCKET_SEND_ERROR:
                                 {
-                                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_062: [ If WSASend fails, async_socket_send_async shall call WSAGetLastError. ]*/
+                                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_062: [ If socket_transport_send fails, async_socket_send_async shall call WSAGetLastError. ]*/
                                     wsa_last_error = WSAGetLastError();
 
                                     switch (wsa_last_error)
@@ -581,7 +574,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                                         default:
                                         {
                                             /* Codes_SRS_ASYNC_SOCKET_WIN32_01_029: [ If any error occurs, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
-                                            LogLastError("WSASend failed with %d, WSAGetLastError returned %lu", wsa_send_result, (unsigned long)wsa_last_error);
+                                            LogLastError("socket_transport_send failed with %d, WSAGetLastError returned %lu", socket_transport_send_result, (unsigned long)wsa_last_error);
                                             result = ASYNC_SOCKET_SEND_SYNC_ERROR;
 
                                             break;
@@ -589,7 +582,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                                         case WSAECONNRESET:
                                         {
                                             /* Codes_SRS_ASYNC_SOCKET_WIN32_42_002: [ If WSAGetLastError returns WSAECONNRESET, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_NOT_OPEN. ]*/
-                                            LogLastError("WSASend failed with %d, WSAGetLastError returned %lu", wsa_send_result, (unsigned long)wsa_last_error);
+                                            LogLastError("socket_transport_send failed with %d, WSAGetLastError returned %lu", socket_transport_send_result, (unsigned long)wsa_last_error);
                                             result = ASYNC_SOCKET_SEND_SYNC_NOT_OPEN;
 
                                             break;
@@ -604,7 +597,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                                     }
                                     break;
                                 }
-                                case 0:
+                                case SOCKET_SEND_OK:
                                 {
                                     /* Codes_SRS_ASYNC_SOCKET_WIN32_01_045: [ On success, async_socket_send_async shall return ASYNC_SOCKET_SEND_SYNC_OK. ]*/
 #ifdef ENABLE_SOCKET_LOGGING
@@ -735,8 +728,8 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                     /* Codes_SRS_ASYNC_SOCKET_WIN32_01_079: [ async_socket_receive_async shall set the WSABUF items to point to the memory/length of the buffers in payload. ]*/
                     for (i = 0; i < buffer_count; i++)
                     {
-                        receive_context->wsa_buffers[i].buf = payload[i].buffer;
-                        receive_context->wsa_buffers[i].len = payload[i].length;
+                        receive_context->wsa_buffers[i].buffer = payload[i].buffer;
+                        receive_context->wsa_buffers[i].length = payload[i].length;
                     }
 
                     (void)memset(&receive_context->overlapped, 0, sizeof(receive_context->overlapped));
@@ -751,7 +744,7 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                     }
                     else
                     {
-                        int wsa_receive_result;
+                        SOCKET_RECEIVE_RESULT socket_transport_receive_result;
                         int wsa_last_error;
                         DWORD flags = 0;
 
@@ -766,23 +759,23 @@ int async_socket_receive_async(ASYNC_SOCKET_HANDLE async_socket, ASYNC_SOCKET_BU
                         LogVerbose("Starting receive at %lf", timer_global_get_elapsed_us());
 #endif
 
-                        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_082: [ A receive shall be started for the WSABUF array associated with the context calling WSARecv and passing to it the OVERLAPPED structure with the event that was just created, dwFlags set to 0, lpNumberOfBytesSent set to NULL and lpCompletionRoutine set to NULL. ]*/
-                        wsa_receive_result = WSARecv((SOCKET)async_socket->socket_handle, receive_context->wsa_buffers, buffer_count, NULL, &flags, &receive_context->overlapped, NULL);
+                        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_082: [ A receive shall be started for the WSABUF array associated with the context calling socket_transport_receive and passing to it the OVERLAPPED structure with the event that was just created, flags set to 0, and bytes_sent set to NULL. ]*/
+                        socket_transport_receive_result = socket_transport_receive(async_socket->socket_transport_handle, receive_context->wsa_buffers, buffer_count, 0, flags, &receive_context->overlapped);
 
-                        if ((wsa_receive_result != 0) && (wsa_receive_result != SOCKET_ERROR))
+                        if ((socket_transport_receive_result != SOCKET_RECEIVE_OK) && (socket_transport_receive_result != SOCKET_RECEIVE_ERROR) && (socket_transport_receive_result != SOCKET_RECEIVE_WOULD_BLOCK))
                         {
-                            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_105: [ If WSARecv fails with any other error, async_socket_receive_async shall call CancelThreadpoolIo and return a non-zero value. ]*/
-                            LogLastError("WSARecv failed with %d", wsa_receive_result);
+                            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_105: [ If socket_transport_receive fails with any other error, async_socket_receive_async shall call CancelThreadpoolIo and return a non-zero value. ]*/
+                            LogLastError("socket_transport_receive failed with %d", socket_transport_receive_result);
                             CancelThreadpoolIo(async_socket->tp_io);
 
                             result = MU_FAILURE;
                         }
-                        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_054: [ If WSARecv fails with SOCKET_ERROR, async_socket_receive_async shall call WSAGetLastError. ]*/
+                        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_054: [ If socket_transport_receive fails with SOCKET_RECEIVE_ERROR, async_socket_receive_async shall call WSAGetLastError. ]*/
                         /* Codes_SRS_ASYNC_SOCKET_WIN32_01_055: [ If WSAGetLastError returns IO_PENDING, it shall be not treated as an error. ]*/
-                        else if ((wsa_receive_result == SOCKET_ERROR) && ((wsa_last_error = WSAGetLastError()) != WSA_IO_PENDING))
+                        else if ((socket_transport_receive_result == SOCKET_RECEIVE_ERROR) && ((wsa_last_error = WSAGetLastError()) != WSA_IO_PENDING))
                         {
                             /* Codes_SRS_ASYNC_SOCKET_WIN32_01_084: [ If any error occurs, async_socket_receive_async shall fail and return a non-zero value. ]*/
-                            LogLastError("WSARecv failed with %d, WSAGetLastError returned %lu", wsa_receive_result, wsa_last_error);
+                            LogLastError("socket_transport_receive failed with %d, WSAGetLastError returned %lu", socket_transport_receive_result, wsa_last_error);
 
                             /* Codes_SRS_ASYNC_SOCKET_WIN32_01_099: [ If WSAGetLastError returns any other error, async_socket_receive_async shall call CancelThreadpoolIo. ]*/
                             CancelThreadpoolIo(async_socket->tp_io);

@@ -160,7 +160,7 @@ MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_soc
 
 **SRS_ASYNC_SOCKET_LINUX_11_026: [** `on_open_complete_context` shall be allowed to be `NULL`. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_003: [** If `socket_handle` is `INVALID_SOCKET`, `async_socket_open_async` shall fail and return non-zero value. **]**
+**SRS_ASYNC_SOCKET_LINUX_11_003: [** If `socket_transport_handle` is `NULL`, `async_socket_open_async` shall fail and return non-zero value. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_027: [** Otherwise, `async_socket_open_async` shall switch the state to `OPENING`. **]**
 
@@ -189,8 +189,6 @@ MOCKABLE_FUNCTION(, void, async_socket_close, ASYNC_SOCKET_HANDLE, async_socket)
 **SRS_ASYNC_SOCKET_LINUX_11_036: [** Otherwise, `async_socket_close` shall switch the state to CLOSING. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_037: [** `async_socket_close` shall wait for all executing `async_socket_send_async` and `async_socket_receive_async` APIs. **]**
-
-**SRS_ASYNC_SOCKET_LINUX_11_039: [** `async_socket_close` shall call `close` on the underlying socket. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_041: [** `async_socket_close` shall set the state to CLOSED. **]**
 
@@ -236,7 +234,7 @@ MOCKABLE_FUNCTION(, ASYNC_SOCKET_SEND_SYNC_RESULT, async_socket_send_async, ASYN
 
 **SRS_ASYNC_SOCKET_LINUX_11_053: [** `async_socket_send_async` shall continue to send the data until the payload length has been sent. **]**
 
-**SRS_ASYNC_SOCKET_LINUX_11_054: [** If the `send` fails to send the data, `async_socket_send_async` shall do the following: **]**
+**SRS_ASYNC_SOCKET_LINUX_11_054: [** If `socket_transport_send` fails to send the data, `async_socket_send_async` shall do the following: **]**
 
 - **SRS_ASYNC_SOCKET_LINUX_11_055: [** If the `errno` value is `EAGAIN` or `EWOULDBLOCK`. **]**
 
