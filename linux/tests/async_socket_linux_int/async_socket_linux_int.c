@@ -176,7 +176,7 @@ TEST_FUNCTION(connect_no_send_succeeds)
 
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
 
-    server_socket = socket_transport_accept(listen_socket);
+    socket_transport_accept(listen_socket, &server_socket);
     ASSERT_IS_NOT_NULL(server_socket);
 
     // create the async socket object
@@ -234,7 +234,7 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
 
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
 
-    server_socket = socket_transport_accept(listen_socket);
+    socket_transport_accept(listen_socket, &server_socket);
     ASSERT_IS_NOT_NULL(server_socket);
 
     // create the async socket object
@@ -309,7 +309,7 @@ TEST_FUNCTION(receive_and_send_2_buffers_succeeds)
 
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
 
-    server_socket = socket_transport_accept(listen_socket);
+    socket_transport_accept(listen_socket, &server_socket);
     ASSERT_IS_NOT_NULL(server_socket);
 
     // create the async socket object
@@ -389,7 +389,7 @@ TEST_FUNCTION(when_server_socket_is_closed_receive_errors_on_client_side)
 
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
 
-    server_socket = socket_transport_accept(listen_socket);
+    socket_transport_accept(listen_socket, &server_socket);
     ASSERT_IS_NOT_NULL(server_socket);
 
     // create the async socket object
@@ -450,7 +450,7 @@ TEST_FUNCTION(multiple_sends_and_receives_succeeds)
 
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
 
-    server_socket = socket_transport_accept(listen_socket);
+    socket_transport_accept(listen_socket, &server_socket);
     ASSERT_IS_NOT_NULL(server_socket);
 
     // create the async socket object
@@ -539,7 +539,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _sockets_items))
 
         ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket[index], "localhost", g_port_num, TEST_CONN_TIMEOUT));
 
-        server_socket[index] = socket_transport_accept(listen_socket);
+        socket_transport_accept(listen_socket, &server_socket[index]);
         ASSERT_IS_NOT_NULL(server_socket[index]);
 
         // create the async socket object
