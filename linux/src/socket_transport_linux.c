@@ -619,8 +619,19 @@ SOCKET_ACCEPT_RESULT socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_tran
                 accepted_socket = accept(socket_transport->socket, (struct sockaddr*)&cli_addr, &client_len);
                 if (accepted_socket == INVALID_SOCKET)
                 {
-                    LogErrorNo("Failure accepting socket");
-                    result = SOCKET_ACCEPT_ERROR;
+                    // Codes_SOCKET_TRANSPORT_LINUX_11_084: [ If errno is EAGAIN or EWOULDBLOCK, socket_transport_accept shall return SOCKET_ACCEPT_NO_CONNECTION. ]
+                    if(errno == EAGAIN || errno == EWOULDBLOCK)
+                    {
+                        LogErrorNo("The socket is nonblocking and no connections are present to be accepted.");
+                        result = SOCKET_ACCEPT_NO_CONNECTION;
+                        sm_exec_end(socket_transport->sm);
+                        goto all_ok;
+                    }
+                    else
+                    {
+                        LogErrorNo("Failure accepting socket.");
+                        result = SOCKET_ACCEPT_ERROR;
+                    }
                 }
                 else
                 {

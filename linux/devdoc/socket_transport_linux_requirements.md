@@ -278,6 +278,8 @@ MOCKABLE_FUNCTION(, SOCKET_ACCEPT_RESULT, socket_transport_accept, SOCKET_TRANSP
 
 **SOCKET_TRANSPORT_LINUX_11_073: [** `socket_transport_accept` shall call `accept` to accept the incoming socket connection. **]**
 
+**SOCKET_TRANSPORT_LINUX_11_084: [** If `errno` is `EAGAIN` or `EWOULDBLOCK`, socket_transport_accept shall return `SOCKET_ACCEPT_NO_CONNECTION`. **]**
+
 **SOCKET_TRANSPORT_LINUX_11_074: [** `socket_transport_accept` shall set the incoming socket to non-blocking. **]**
 
 **SOCKET_TRANSPORT_LINUX_11_075: [** `socket_transport_accept` shall allocate a `SOCKET_TRANSPORT` for the incoming connection and call `sm_create` and `sm_open` on the connection. **]**

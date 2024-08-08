@@ -625,7 +625,6 @@ SOCKET_ACCEPT_RESULT socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_tran
                 fd_set read_fds;
                 int select_result;
                 struct timeval timeout;
-                bool is_error = false;
 
                 read_fds.fd_array[0] = socket_transport->socket;
                 read_fds.fd_count = 1;
@@ -637,7 +636,6 @@ SOCKET_ACCEPT_RESULT socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_tran
                 if (select_result == SOCKET_ERROR)
                 {
                     LogLastError("Error waiting for socket connections %", select_result);
-                    is_error = true;
                     result = SOCKET_ACCEPT_ERROR;
                 }
                 else if (select_result > 0)
@@ -654,7 +652,6 @@ SOCKET_ACCEPT_RESULT socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_tran
                         if (WSAGetLastError() != WSAEWOULDBLOCK)
                         {
                             LogLastError("Error in accepting socket %" PRI_SOCKET "", accepted_socket);
-                            is_error = true;
                         }
                         result = SOCKET_ACCEPT_ERROR;
                     }
@@ -716,7 +713,6 @@ SOCKET_ACCEPT_RESULT socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_tran
                 {
                     // Codes_SOCKET_TRANSPORT_WIN32_09_076: [ If any failure is encountered, socket_transport_accept shall fail and return SOCKET_ACCEPT_ERROR. ]
                     LogLastError("Failure accepting socket connection");
-                    is_error = true;
                     result = SOCKET_ACCEPT_ERROR;
                 }
                 // Codes_SOCKET_TRANSPORT_WIN32_09_077: [ socket_transport_accept shall call sm_exec_end. ]
