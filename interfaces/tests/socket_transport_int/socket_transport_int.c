@@ -43,6 +43,7 @@ typedef struct CHAOS_TEST_SOCKETS_TAG
 
 TEST_DEFINE_ENUM_TYPE(SOCKET_SEND_RESULT, SOCKET_SEND_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_RESULT_VALUES);
+TEST_DEFINE_ENUM_TYPE(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
@@ -92,7 +93,9 @@ TEST_FUNCTION(send_and_receive_2_buffer_of_2_byte_succeeds)
 
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
 
-    SOCKET_TRANSPORT_HANDLE incoming_socket = socket_transport_accept(listen_socket);
+    SOCKET_TRANSPORT_HANDLE incoming_socket;
+    ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_OK, socket_transport_accept(listen_socket, &incoming_socket));
+    ASSERT_IS_NOT_NULL(incoming_socket);
 
     uint8_t send_payload_1[] = { 0x42, 0x43 };
     uint8_t send_payload_2[] = { 0x44, 0x45 };
@@ -195,7 +198,8 @@ TEST_FUNCTION(send_and_receive_random_buffer_of_random_byte_succeeds)
 
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
 
-    SOCKET_TRANSPORT_HANDLE incoming_socket = socket_transport_accept(listen_socket);
+    SOCKET_TRANSPORT_HANDLE incoming_socket;
+    ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_OK, socket_transport_accept(listen_socket, &incoming_socket));
     ASSERT_IS_NOT_NULL(incoming_socket);
 
     uint8_t buffer_count = 8;
@@ -253,9 +257,7 @@ static int connect_and_listen_func(void* parameter)
     {
         ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(chaos_knight_test->client_socket_handles[i], "localhost", g_port_num, TEST_CONN_TIMEOUT));
 
-        chaos_knight_test->incoming_socket_handles[i] = socket_transport_accept(chaos_knight_test->listen_socket);
-
-        ASSERT_IS_NOT_NULL(chaos_knight_test->incoming_socket_handles[i]);
+        ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_OK, socket_transport_accept(chaos_knight_test->listen_socket, &chaos_knight_test->incoming_socket_handles[i]));
     }
 
     return 0;

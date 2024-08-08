@@ -60,6 +60,8 @@ TEST_DEFINE_ENUM_TYPE(SOCKET_SEND_RESULT, SOCKET_SEND_RESULT_VALUES)
 IMPLEMENT_UMOCK_C_ENUM_TYPE(SOCKET_SEND_RESULT, SOCKET_SEND_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_RESULT_VALUES)
 IMPLEMENT_UMOCK_C_ENUM_TYPE(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_RESULT_VALUES);
+TEST_DEFINE_ENUM_TYPE(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_RESULT_VALUES)
+IMPLEMENT_UMOCK_C_ENUM_TYPE(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_RESULT_VALUES);
 
 MU_DEFINE_ENUM_STRINGS(SM_RESULT, SM_RESULT_VALUES);
 IMPLEMENT_UMOCK_C_ENUM_TYPE(SM_RESULT, SM_RESULT_VALUES);
@@ -1317,22 +1319,23 @@ TEST_FUNCTION(socket_transport_listen_sm_open_not_granted_fail)
 
 // socket_transport_accept
 
-// Tests_SOCKET_TRANSPORT_LINUX_11_069: [ If socket_transport is NULL, socket_transport_accept shall fail and return NULL. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_069: [ If socket_transport is NULL, socket_transport_accept shall fail and return SOCKET_ACCEPT_ERROR. ]
 TEST_FUNCTION(socket_transport_accept_socket_transport_NULL_fail)
 {
     //arrange
 
     //act
-    SOCKET_TRANSPORT_HANDLE accept_socket_handle = socket_transport_accept(NULL);
+    SOCKET_TRANSPORT_HANDLE accept_socket_handle;
+    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(NULL, &accept_socket_handle);
 
     //assert
-    ASSERT_IS_NULL(accept_socket_handle);
+    ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
 }
 
-// Tests_SOCKET_TRANSPORT_LINUX_11_070: [ If the transport type is not SOCKET_BINDING, socket_transport_accept shall fail and return NULL. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_070: [ If the transport type is not SOCKET_BINDING, socket_transport_accept shall fail and return SOCKET_ACCEPT_ERROR. ]
 TEST_FUNCTION(socket_transport_accept_invalid_type_fail)
 {
     //arrange
@@ -1341,10 +1344,11 @@ TEST_FUNCTION(socket_transport_accept_invalid_type_fail)
     umock_c_reset_all_calls();
 
     //act
-    SOCKET_TRANSPORT_HANDLE accept_socket_handle = socket_transport_accept(socket_handle);
+    SOCKET_TRANSPORT_HANDLE accept_socket_handle;
+    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle);
 
     //assert
-    ASSERT_IS_NULL(accept_socket_handle);
+    ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
@@ -1352,7 +1356,7 @@ TEST_FUNCTION(socket_transport_accept_invalid_type_fail)
     socket_transport_destroy(socket_handle);
 }
 
-// Tests_SOCKET_TRANSPORT_LINUX_11_072: [ If sm_exec_begin does not return SM_EXEC_GRANTED, socket_transport_accept shall fail and return NULL. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_072: [ If sm_exec_begin does not return SM_EXEC_GRANTED, socket_transport_accept shall fail and return SOCKET_ACCEPT_ERROR. ]
 TEST_FUNCTION(socket_transport_accept_not_listening_succeed)
 {
     //arrange
@@ -1363,10 +1367,69 @@ TEST_FUNCTION(socket_transport_accept_not_listening_succeed)
     STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
 
     //act
-    SOCKET_TRANSPORT_HANDLE accept_socket_handle = socket_transport_accept(socket_handle);
+    SOCKET_TRANSPORT_HANDLE accept_socket_handle;
+    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle);
 
     //assert
-    ASSERT_IS_NULL(accept_socket_handle);
+    ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    socket_transport_disconnect(socket_handle);
+    socket_transport_destroy(socket_handle);
+}
+
+// Tests_SOCKET_TRANSPORT_LINUX_11_084: [ If errno is EAGAIN or EWOULDBLOCK, socket_transport_accept shall return SOCKET_ACCEPT_NO_CONNECTION. ]
+TEST_FUNCTION(socket_transport_accept_accept_returns_EAGAIN)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
+    ASSERT_IS_NOT_NULL(socket_handle);
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(socket_handle, TEST_PORT));
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(accept(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(INVALID_SOCKET);
+    STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
+
+    errno = EAGAIN;
+
+    //act
+    SOCKET_TRANSPORT_HANDLE accept_socket_handle;
+    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle);
+
+    //assert
+    ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_NO_CONNECTION, accept_result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    socket_transport_disconnect(socket_handle);
+    socket_transport_destroy(socket_handle);
+}
+
+// Tests_SOCKET_TRANSPORT_LINUX_11_084: [ If errno is EAGAIN or EWOULDBLOCK, socket_transport_accept shall return SOCKET_ACCEPT_NO_CONNECTION. ]
+TEST_FUNCTION(socket_transport_accept_accept_returns_EWOULDBLOCK)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
+    ASSERT_IS_NOT_NULL(socket_handle);
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(socket_handle, TEST_PORT));
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(accept(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(INVALID_SOCKET);
+    STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
+
+    errno = EWOULDBLOCK;
+
+    //act
+    SOCKET_TRANSPORT_HANDLE accept_socket_handle;
+    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle);
+
+    //assert
+    ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_NO_CONNECTION, accept_result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
@@ -1378,7 +1441,7 @@ TEST_FUNCTION(socket_transport_accept_not_listening_succeed)
 // Tests_SOCKET_TRANSPORT_LINUX_11_073: [ socket_transport_accept shall call accept to accept the incoming socket connection. ]
 // Tests_SOCKET_TRANSPORT_LINUX_11_074: [ socket_transport_accept shall set the incoming socket to non-blocking. ]
 // Tests_SOCKET_TRANSPORT_LINUX_11_075: [ socket_transport_accept shall allocate a SOCKET_TRANSPORT for the incoming connection and call sm_create and sm_open on the connection. ]
-// Tests_SOCKET_TRANSPORT_LINUX_11_076: [ If successful socket_transport_accept shall return the allocated SOCKET_TRANSPORT of type SOCKET_DATA. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_076: [ If successful socket_transport_accept shall assign accepted_socket to be the allocated incoming SOCKET_TRANSPORT and return SOCKET_ACCEPT_OK. ]
 TEST_FUNCTION(socket_transport_accept_succeed)
 {
     //arrange
@@ -1397,9 +1460,11 @@ TEST_FUNCTION(socket_transport_accept_succeed)
     STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
 
     //act
-    SOCKET_TRANSPORT_HANDLE accept_socket_handle = socket_transport_accept(socket_handle);
+    SOCKET_TRANSPORT_HANDLE accept_socket_handle;
+    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle);
 
     //assert
+    ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_OK, accept_result);
     ASSERT_IS_NOT_NULL(accept_socket_handle);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
@@ -1410,7 +1475,7 @@ TEST_FUNCTION(socket_transport_accept_succeed)
     socket_transport_destroy(socket_handle);
 }
 
-// Tests_SOCKET_TRANSPORT_LINUX_11_077: [ If any failure is encountered, socket_transport_accept shall fail and return NULL. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_077: [ If any failure is encountered, socket_transport_accept shall fail and return SOCKET_ACCEPT_ERROR. ]
 TEST_FUNCTION(socket_transport_accept_fail)
 {
     //arrange
@@ -1438,10 +1503,11 @@ TEST_FUNCTION(socket_transport_accept_fail)
             umock_c_negative_tests_fail_call(index);
 
             //act
-            SOCKET_TRANSPORT_HANDLE accept_socket_handle = socket_transport_accept(socket_handle);
+            SOCKET_TRANSPORT_HANDLE accept_socket_handle;
+            SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle);
 
             //assert
-            ASSERT_IS_NULL(accept_socket_handle);
+            ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
         }
     }
 
