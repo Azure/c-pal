@@ -1811,6 +1811,7 @@ TEST_FUNCTION(socket_transport_get_underlying_socket_NULL_input_fail)
 
 // socket_transport_get_local_address
 
+// Tests_SOCKET_TRANSPORT_WIN32_11_001: [ If socket_transport is NULL, socket_transport_get_local_address shall fail and return a non-zero value. ]
 TEST_FUNCTION(socket_transport_get_local_address_handle_NULL_fail)
 {
     //arrange
@@ -1828,6 +1829,7 @@ TEST_FUNCTION(socket_transport_get_local_address_handle_NULL_fail)
     // Cleanup
 }
 
+// Tests_SOCKET_TRANSPORT_WIN32_11_002: [ If hostname is NULL, socket_transport_get_local_address shall fail and return a non-zero value. ]
 TEST_FUNCTION(socket_transport_get_local_address_hostname_NULL_fail)
 {
     //arrange
