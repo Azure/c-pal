@@ -1478,7 +1478,7 @@ TEST_FUNCTION(socket_transport_accept_succeed)
 
     //act
     SOCKET_TRANSPORT_HANDLE accept_socket_handle;
-    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle);
+    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle, TEST_CONNECTION_TIMEOUT);
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_OK, accept_result);
@@ -1501,7 +1501,7 @@ TEST_FUNCTION(socket_transport_accept_null_input_fail)
 
     //act
     SOCKET_TRANSPORT_HANDLE accept_socket_handle;
-    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(NULL, &accept_socket_handle);
+    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(NULL, &accept_socket_handle, TEST_CONNECTION_TIMEOUT);
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
@@ -1519,7 +1519,7 @@ TEST_FUNCTION(socket_transport_accept_sockettransport_type_fail)
 
     //act
     SOCKET_TRANSPORT_HANDLE accept_socket_handle;
-    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle);
+    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle, TEST_CONNECTION_TIMEOUT);
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
@@ -1543,7 +1543,7 @@ TEST_FUNCTION(socket_transport_accept_smexecbegin_fail)
 
     //act
     SOCKET_TRANSPORT_HANDLE accept_socket_handle;
-    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle);
+    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle, TEST_CONNECTION_TIMEOUT);
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
@@ -1570,7 +1570,7 @@ TEST_FUNCTION(socket_transport_accept_select_fail)
 
     //act
     SOCKET_TRANSPORT_HANDLE accept_socket_handle;
-    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle);
+    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle, TEST_CONNECTION_TIMEOUT);
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
@@ -1598,7 +1598,7 @@ TEST_FUNCTION(socket_transport_accept_select_returns_zero)
 
     //act
     SOCKET_TRANSPORT_HANDLE accept_socket_handle;
-    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle);
+    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle, TEST_CONNECTION_TIMEOUT);
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_NO_CONNECTION, accept_result);
@@ -1629,7 +1629,7 @@ TEST_FUNCTION(socket_transport_accept_accept_fail)
 
     //act
     SOCKET_TRANSPORT_HANDLE accept_socket_handle;
-    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle);
+    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle, TEST_CONNECTION_TIMEOUT);
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
@@ -1663,7 +1663,7 @@ TEST_FUNCTION(socket_transport_accept_malloc_fail)
 
     //act
     SOCKET_TRANSPORT_HANDLE accept_socket_handle;
-    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle);
+    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle, TEST_CONNECTION_TIMEOUT);
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
@@ -1696,7 +1696,7 @@ TEST_FUNCTION(socket_transport_accept_sm_create_fail)
 
     //act
     SOCKET_TRANSPORT_HANDLE accept_socket_handle;
-    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle);
+    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle, TEST_CONNECTION_TIMEOUT);
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
@@ -1731,7 +1731,7 @@ TEST_FUNCTION(socket_transport_accept_sm_open_begin_fail)
 
     //act
     SOCKET_TRANSPORT_HANDLE accept_socket_handle;
-    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle);
+    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle, TEST_CONNECTION_TIMEOUT);
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
@@ -1758,7 +1758,7 @@ TEST_FUNCTION(socket_transport_accept_fail)
 
     //act
     SOCKET_TRANSPORT_HANDLE accept_socket_handle;
-    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle);
+    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle, TEST_CONNECTION_TIMEOUT);
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);

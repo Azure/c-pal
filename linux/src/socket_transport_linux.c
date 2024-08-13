@@ -581,10 +581,12 @@ all_ok:
     return result;
 }
 
-SOCKET_ACCEPT_RESULT socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_transport, SOCKET_TRANSPORT_HANDLE* accepting_socket)
+SOCKET_ACCEPT_RESULT socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_transport, SOCKET_TRANSPORT_HANDLE* accepting_socket, uint32_t connection_timeout_ms)
 {
     SOCKET_TRANSPORT* accept_result;
     SOCKET_ACCEPT_RESULT result;
+    (void)connection_timeout_ms;
+
     // Codes_SOCKET_TRANSPORT_LINUX_11_069: [ If socket_transport is NULL, socket_transport_accept shall fail and return SOCKET_ACCEPT_ERROR. ]
     if (socket_transport == NULL)
     {
