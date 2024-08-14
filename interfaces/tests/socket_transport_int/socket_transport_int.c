@@ -15,7 +15,7 @@
 #include "c_pal/platform.h" // IWYU pragma: keep
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/socket_transport.h"
-#include "c_pal/timer.h"
+#include "c_pal/timer.h" // IWYU pragma: keep
 
 #ifdef WIN32
 #define SOCKET_SEND_FLAG     0
