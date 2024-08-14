@@ -62,7 +62,7 @@ static int connect_to_endpoint(SOCKET client_socket, const ADDRINFO* addrInfo, u
 
             struct timeval tv;
             tv.tv_sec = 0;
-            tv.tv_usec = connection_timeout_ms * 100;
+            tv.tv_usec = connection_timeout_ms * 1000;
 
             // Codes_SOCKET_TRANSPORT_WIN32_09_021: [ On WSAEWOULDBLOCK connect_to_endpoint shall call the select API with the connection_timeout_ms and check the return value: ]
             int ret = select(0, NULL, &write_fds, NULL, &tv);
@@ -589,7 +589,7 @@ all_ok:
     return result;
 }
 
-SOCKET_ACCEPT_RESULT socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_transport, SOCKET_TRANSPORT_HANDLE* accepted_socket)
+SOCKET_ACCEPT_RESULT socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_transport, SOCKET_TRANSPORT_HANDLE* accepted_socket, uint32_t connection_timeout_ms)
 {
     SOCKET_TRANSPORT* accept_result;
     SOCKET_ACCEPT_RESULT result;
@@ -628,7 +628,7 @@ SOCKET_ACCEPT_RESULT socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_tran
 
                 read_fds.fd_array[0] = socket_transport->socket;
                 read_fds.fd_count = 1;
-                timeout.tv_usec = 1000 * 100;
+                timeout.tv_usec = connection_timeout_ms * 1000;
                 timeout.tv_sec = 0;
 
                 // Codes_SOCKET_TRANSPORT_WIN32_09_071: [ socket_transport_accept shall call select determine if the socket is ready to be read passing a timeout of 10 milliseconds. ]
