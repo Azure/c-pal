@@ -107,7 +107,7 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
 
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
 
-    socket_transport_accept(listen_socket, &server_socket);
+    socket_transport_accept(listen_socket, &server_socket, TEST_CONN_TIMEOUT);
     ASSERT_IS_NOT_NULL(server_socket);
 
     // create the async socket object
@@ -191,7 +191,7 @@ TEST_FUNCTION(receive_and_send_2_buffers_succeeds)
 
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
 
-    socket_transport_accept(listen_socket, &server_socket);
+    socket_transport_accept(listen_socket, &server_socket, TEST_CONN_TIMEOUT);
 
     // create the async socket object
     ASYNC_SOCKET_HANDLE server_async_socket = async_socket_create(execution_engine);
@@ -280,7 +280,7 @@ TEST_FUNCTION(when_server_socket_is_closed_receive_errors_on_client_side)
 
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
 
-    socket_transport_accept(listen_socket, &server_socket);
+    socket_transport_accept(listen_socket, &server_socket, TEST_CONN_TIMEOUT);
 
     // create the async socket object
     ASYNC_SOCKET_HANDLE client_async_socket = async_socket_create(execution_engine);

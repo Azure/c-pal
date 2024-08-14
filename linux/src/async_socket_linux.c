@@ -148,18 +148,18 @@ static int on_socket_recv(void* context, ASYNC_SOCKET_HANDLE async_socket, void*
 
         SOCKET_RECEIVE_RESULT recv_result = socket_transport_receive(async_socket->socket_transport_handle, &input_buf, 1, &bytes_recv, 0, NULL);
 
-        if(recv_result != SOCKET_RECEIVE_OK && recv_result != SOCKET_RECEIVE_WOULD_BLOCK && recv_result != SOCKET_RECEIVE_SHUTDOWN)
+        if (recv_result != SOCKET_RECEIVE_OK && recv_result != SOCKET_RECEIVE_WOULD_BLOCK && recv_result != SOCKET_RECEIVE_SHUTDOWN)
         {
             result = -1;
             LogError("socket_transport_receive failed input_buf.buffer: %p, input_buf.length: %" PRIu32 ".", input_buf.buffer, input_buf.length);
         }
-        else if(recv_result == SOCKET_RECEIVE_WOULD_BLOCK)
+        else if (recv_result == SOCKET_RECEIVE_WOULD_BLOCK)
         {
             result = -1;
             LogInfo("Not enough space in send buffer of nonblocking socket. bytes sent: %" PRIu32 " input_buf.buffer: %p, input_buf.length: %" PRIu32 ".", bytes_recv, input_buf.buffer, input_buf.length);
 
         } 
-        else if(recv_result == SOCKET_RECEIVE_SHUTDOWN)
+        else if (recv_result == SOCKET_RECEIVE_SHUTDOWN)
         {
             result = 0;
             LogError("Socket received 0 bytes. bytes sent: %" PRIu32 " input_buf.buffer: %p, input_buf.length: %" PRIu32 ".", bytes_recv, input_buf.buffer, input_buf.length);
