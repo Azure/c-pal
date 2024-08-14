@@ -15,6 +15,7 @@
 #include "c_pal/platform.h" // IWYU pragma: keep
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/socket_transport.h"
+#include "c_pal/timer.h" // IWYU pragma: keep
 
 #ifdef WIN32
 #define SOCKET_SEND_FLAG     0
@@ -71,6 +72,60 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 {
 }
 
+#if WIN32
+TEST_FUNCTION(connect_to_endpoint_timesout)
+{
+    // assert;
+
+    // create the async socket object
+    SOCKET_TRANSPORT_HANDLE client_socket = socket_transport_create_client();
+    ASSERT_IS_NOT_NULL(client_socket);
+
+
+    double start_time = timer_global_get_elapsed_ms();
+    ASSERT_ARE_NOT_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
+    double time_elapsed = timer_global_get_elapsed_ms() - start_time;
+
+    // within 500 ms of the timeout since the connection timeout is
+    // not exact
+    time_elapsed += 500;
+
+    // Ensure that the elapsed time is greater than or equal to the connection timeout
+    ASSERT_IS_TRUE(time_elapsed >= TEST_CONN_TIMEOUT, "Connection did not time out correctly: expected timeout: %" PRId32 " actual time: %f", TEST_CONN_TIMEOUT, time_elapsed);
+
+    // cleanup
+
+    socket_transport_disconnect(client_socket);
+    socket_transport_destroy(client_socket);
+
+}
+
+TEST_FUNCTION(socket_transport_accept_timesout)
+{
+    SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create_server();
+    ASSERT_IS_NOT_NULL(listen_socket);
+
+    //uint16_t g_port_num_fail = -1;
+
+    socket_transport_listen(listen_socket, (uint16_t) - 1);
+
+    // assert
+
+    SOCKET_TRANSPORT_HANDLE incoming_socket;
+    double start_time = timer_global_get_elapsed_ms();
+    ASSERT_ARE_NOT_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_OK, socket_transport_accept(listen_socket, &incoming_socket, TEST_CONN_TIMEOUT));
+    double time_elapsed = timer_global_get_elapsed_ms() - start_time;
+
+    time_elapsed += 500;
+
+    ASSERT_IS_TRUE(time_elapsed >= TEST_CONN_TIMEOUT, "Connection did not time out correctly: expected timeout: %" PRId32 " actual time: %f", TEST_CONN_TIMEOUT, time_elapsed);
+
+    socket_transport_disconnect(listen_socket);
+    socket_transport_destroy(listen_socket);
+
+}
+#endif
+
 TEST_FUNCTION(send_and_receive_2_buffer_of_2_byte_succeeds)
 {
     // assert
@@ -86,7 +141,7 @@ TEST_FUNCTION(send_and_receive_2_buffer_of_2_byte_succeeds)
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
 
     SOCKET_TRANSPORT_HANDLE incoming_socket;
-    ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_OK, socket_transport_accept(listen_socket, &incoming_socket));
+    ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_OK, socket_transport_accept(listen_socket, &incoming_socket, TEST_CONN_TIMEOUT));
     ASSERT_IS_NOT_NULL(incoming_socket);
 
     uint8_t send_payload_1[] = { 0x42, 0x43 };
@@ -191,7 +246,7 @@ TEST_FUNCTION(send_and_receive_random_buffer_of_random_byte_succeeds)
     ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
 
     SOCKET_TRANSPORT_HANDLE incoming_socket;
-    ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_OK, socket_transport_accept(listen_socket, &incoming_socket));
+    ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_OK, socket_transport_accept(listen_socket, &incoming_socket, TEST_CONN_TIMEOUT));
     ASSERT_IS_NOT_NULL(incoming_socket);
 
     uint8_t buffer_count = 8;
@@ -249,7 +304,7 @@ static int connect_and_listen_func(void* parameter)
     {
         ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(chaos_knight_test->client_socket_handles[i], "localhost", g_port_num, TEST_CONN_TIMEOUT));
 
-        ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_OK, socket_transport_accept(chaos_knight_test->listen_socket, &chaos_knight_test->incoming_socket_handles[i]));
+        ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_OK, socket_transport_accept(chaos_knight_test->listen_socket, &chaos_knight_test->incoming_socket_handles[i], TEST_CONN_TIMEOUT));
     }
 
     return 0;
