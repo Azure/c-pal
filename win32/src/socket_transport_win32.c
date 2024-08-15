@@ -240,6 +240,42 @@ all_ok:
     return result;
 }
 
+SOCKET_TRANSPORT_HANDLE socket_transport_create_from_socket(SOCKET_HANDLE socket_handle)
+{
+    SOCKET_TRANSPORT* result;
+
+    if ((SOCKET)socket_handle == INVALID_SOCKET)
+    {
+        LogError("Invalid socket, unable to create socket_transport_handle.");
+    }
+    else
+    {
+        result = malloc(sizeof(SOCKET_TRANSPORT));
+        if (result == NULL)
+        {
+            LogError("failure allocating SOCKET_TRANSPORT: %zu", sizeof(SOCKET_TRANSPORT));
+        }
+        else
+        {
+            result->sm = sm_create("Socket_transport_win32");
+            if (result->sm == NULL)
+            {
+                LogError("sm_create failed.");
+            }
+            else
+            {
+                result->type = SOCKET_CLIENT;
+                result->socket = (SOCKET)socket_handle;
+                goto all_ok;
+            }
+            free(result);
+        }
+    }
+    result = NULL;
+all_ok:
+    return result;
+}
+
 void socket_transport_destroy(SOCKET_TRANSPORT_HANDLE socket_transport)
 {
     // Codes_SOCKET_TRANSPORT_WIN32_09_006: [ If socket_transport is NULL socket_transport_destroy shall return. ]
@@ -756,6 +792,29 @@ SOCKET_HANDLE socket_transport_get_underlying_socket(SOCKET_TRANSPORT_HANDLE soc
 
             // Codes_SOCKET_TRANSPORT_WIN32_09_082: [ socket_transport_get_underlying_socket shall call sm_exec_end. ]
             sm_exec_end(socket_transport->sm);
+        }
+    }
+    return result;
+}
+
+int socket_transport_check_valid_handle(SOCKET_TRANSPORT_HANDLE socket_transport_handle)
+{
+    int result;
+    if (socket_transport_handle == NULL)
+    {
+        LogError("Invalid argument: SOCKET_TRANSPORT_HANDLE socket_transport_handle: %p", socket_transport_handle);
+        result = -1;
+    }
+    else
+    {
+        if (socket_transport_handle->socket == INVALID_SOCKET)
+        {
+            LogError("Invalid socket in argument: SOCKET_TRANSPORT_HANDLE socket_transport_handle: %p", socket_transport_handle);
+            result = -1;
+        }
+        else
+        {
+            result = 0;
         }
     }
     return result;

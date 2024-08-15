@@ -90,6 +90,14 @@ MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_server);
 
 `socket_transport_create_server` creates a binding socket transport.
 
+### socket_transport_create_from_socket
+
+```c
+MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_from_socket, SOCKET_HANDLE, socket_handle);
+```
+
+`socket_transport_create_from_socket` creates a client socket transport from a given socket handle.
+
 ### socket_transport_destroy
 
 ```c
@@ -154,3 +162,11 @@ MOCKABLE_FUNCTION(, SOCKET_HANDLE, socket_transport_get_underlying_socket, SOCKE
 ```
 
 `socket_transport_get_underlying_socket` returns the underlying socket.
+
+### socket_transport_check_valid_handle
+
+```c
+MOCKABLE_FUNCTION(, int, socket_transport_check_valid_handle, SOCKET_TRANSPORT_HANDLE, socket_transport_handle);
+```
+
+`socket_transport_check_valid_handle` checks that the internal socket is valid.

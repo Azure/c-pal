@@ -140,7 +140,7 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create_client(void)
     else
     {
         // Codes_SOCKET_TRANSPORT_LINUX_11_003: [ socket_transport_create_client shall call sm_create to create a sm object with the type set to SOCKET_CLIENT. ]
-        result->sm = sm_create("Socket_transport_win32");
+        result->sm = sm_create("Socket_transport_linux");
         if (result->sm == NULL)
         {
             LogError("sm_create failed.");
@@ -172,7 +172,7 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create_server(void)
     else
     {
         // Codes_SOCKET_TRANSPORT_LINUX_11_080: [ socket_transport_create_server shall call sm_create to create a sm object with the type set to SOCKET_BINDING. ]
-        result->sm = sm_create("Socket_transport_win32");
+        result->sm = sm_create("Socket_transport_linux");
         if (result->sm == NULL)
         {
             LogError("sm_create failed.");
@@ -188,6 +188,42 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create_server(void)
     }
 all_ok:
     // Codes_SOCKET_TRANSPORT_WIN32_11_082: [ On success socket_transport_create shall return SOCKET_TRANSPORT_HANDLE. ]
+    return result;
+}
+
+SOCKET_TRANSPORT_HANDLE socket_transport_create_from_socket(SOCKET_HANDLE socket_handle)
+{
+    SOCKET_TRANSPORT* result;
+
+    if (socket_handle == INVALID_SOCKET)
+    {
+        LogError("Invalid socket, unable to create socket_transport_handle.");
+    }
+    else
+    {
+        result = malloc(sizeof(SOCKET_TRANSPORT));
+        if (result == NULL)
+        {
+            LogError("failure allocating SOCKET_TRANSPORT: %zu", sizeof(SOCKET_TRANSPORT));
+        }
+        else
+        {
+            result->sm = sm_create("Socket_transport_win32");
+            if (result->sm == NULL)
+            {
+                LogError("sm_create failed.");
+            }
+            else
+            {
+                result->type = SOCKET_CLIENT;
+                result->socket = socket_handle;
+                goto all_ok;
+            }
+            free(result);
+        }
+    }
+    result = NULL;
+all_ok:
     return result;
 }
 
@@ -245,7 +281,7 @@ int socket_transport_connect(SOCKET_TRANSPORT_HANDLE socket_transport, const cha
                 if (socket_transport->socket == INVALID_SOCKET)
                 {
                     // Codes_SOCKET_TRANSPORT_LINUX_11_019: [ If any failure is encountered, socket_transport_connect shall call sm_open_end with false, fail and return a non-zero value. ]
-                    LogError("Failure conneting to client hostname: %s:%" PRIu16 "", hostname, port);
+                    LogError("Failure connecting to client hostname: %s:%" PRIu16 "", hostname, port);
                     result = MU_FAILURE;
                     sm_open_end(socket_transport->sm, false);
                 }
@@ -657,7 +693,7 @@ SOCKET_ACCEPT_RESULT socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_tran
                         }
                         else
                         {
-                            accept_result->sm = sm_create("Socket_transport_win32");
+                            accept_result->sm = sm_create("Socket_transport_linux");
                             if (accept_result->sm == NULL)
                             {
                                 LogError("Failed calling sm_create in accept, closing incoming socket.");
@@ -725,6 +761,29 @@ SOCKET_HANDLE socket_transport_get_underlying_socket(SOCKET_TRANSPORT_HANDLE soc
             result = (SOCKET_HANDLE)socket_transport->socket;
             // Codes_SOCKET_TRANSPORT_LINUX_11_068: [ socket_transport_get_underlying_socket shall call sm_exec_end. ]
             sm_exec_end(socket_transport->sm);
+        }
+    }
+    return result;
+}
+
+int socket_transport_check_valid_handle(SOCKET_TRANSPORT_HANDLE socket_transport_handle)
+{
+    int result;
+    if (socket_transport_handle == NULL)
+    {
+        LogError("Invalid argument: SOCKET_TRANSPORT_HANDLE socket_transport_handle: %p", socket_transport_handle);
+        result = -1;
+    }
+    else
+    {
+        if (socket_transport_handle->socket == INVALID_SOCKET)
+        {
+            LogError("Invalid socket in argument: SOCKET_TRANSPORT_HANDLE socket_transport_handle: %p", socket_transport_handle);
+            result = -1;
+        }
+        else
+        {
+            result = 0;
         }
     }
     return result;

@@ -1581,4 +1581,120 @@ TEST_FUNCTION(socket_transport_get_underlying_socket_not_open_fail)
     socket_transport_destroy(socket_handle);
 }
 
+TEST_FUNCTION(socket_transport_create_from_socket_succeeds)
+{
+    //arrange
+    umock_c_reset_all_calls();
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(sm_create(IGNORED_ARG));
+
+    //act
+    SOCKET_TRANSPORT_HANDLE socket_transport = socket_transport_create_from_socket((SOCKET_HANDLE)test_socket);
+
+    //assert
+    ASSERT_IS_NOT_NULL(socket_transport);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    socket_transport_destroy(socket_transport);
+}
+
+TEST_FUNCTION(socket_transport_create_from_socket_invalid_input)
+{
+    //arrange
+    umock_c_reset_all_calls();
+
+    //act
+    SOCKET_TRANSPORT_HANDLE socket_transport = socket_transport_create_from_socket((SOCKET_HANDLE)INVALID_SOCKET);
+
+    //assert
+    ASSERT_IS_NULL(socket_transport);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    socket_transport_destroy(socket_transport);
+}
+
+TEST_FUNCTION(socket_transport_create_from_socket_fail)
+{
+    //arrange
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(sm_create(IGNORED_ARG));
+    umock_c_negative_tests_snapshot();
+
+    for (size_t index = 0; index < umock_c_negative_tests_call_count(); index++)
+    {
+        if (umock_c_negative_tests_can_call_fail(index))
+        {
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(index);
+
+            //act
+            SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_from_socket((SOCKET_HANDLE)test_socket);
+
+            //assert
+            ASSERT_IS_NULL(socket_handle);
+
+            //cleanup
+            socket_transport_destroy(socket_handle);
+        }
+    }
+}
+
+TEST_FUNCTION(socket_transport_check_valid_handle_NULL_input)
+{
+    //arrange
+    umock_c_reset_all_calls();
+
+    //act
+    int result = socket_transport_check_valid_handle(NULL);
+
+    //assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+TEST_FUNCTION(socket_transport_check_valid_handle_succeeds)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE test_socket_transport = socket_transport_create_client();
+    socket_transport_connect(test_socket_transport, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT);
+    umock_c_reset_all_calls();
+
+    //act
+    int result = socket_transport_check_valid_handle(test_socket_transport);
+
+    //assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    socket_transport_disconnect(test_socket_transport);
+    socket_transport_destroy(test_socket_transport);
+}
+
+TEST_FUNCTION(socket_transport_check_valid_handle_INVALID_SOCKET)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE test_socket_transport = socket_transport_create_client();
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(sm_open_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(socket(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(INVALID_SOCKET);
+    STRICT_EXPECTED_CALL(sm_open_end(IGNORED_ARG, false));
+
+    //act
+    socket_transport_connect(test_socket_transport, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT);
+    int result = socket_transport_check_valid_handle(test_socket_transport);
+
+    //assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    socket_transport_disconnect(test_socket_transport);
+    socket_transport_destroy(test_socket_transport);
+}
+
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
