@@ -163,10 +163,10 @@ MOCKABLE_FUNCTION(, SOCKET_HANDLE, socket_transport_get_underlying_socket, SOCKE
 
 `socket_transport_get_underlying_socket` returns the underlying socket.
 
-### socket_transport_check_valid_handle
+### socket_transport_is_valid_socket
 
 ```c
-MOCKABLE_FUNCTION(, int, socket_transport_check_valid_handle, SOCKET_TRANSPORT_HANDLE, socket_transport_handle);
+MOCKABLE_FUNCTION(, bool, socket_transport_is_valid_socket, SOCKET_TRANSPORT_HANDLE, socket_transport_handle);
 ```
 
 `socket_transport_check_valid_handle` checks that the internal socket is valid.

@@ -64,7 +64,7 @@ MOCKABLE_FUNCTION(, SOCKET_SEND_RESULT, socket_transport_send, SOCKET_TRANSPORT_
 MOCKABLE_FUNCTION(, SOCKET_RECEIVE_RESULT, socket_transport_receive, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_BUFFER*, payload, uint32_t, buffer_count, uint32_t*, bytes_recv, uint32_t, flags, void*, data);
 
 MOCKABLE_FUNCTION(, SOCKET_HANDLE, socket_transport_get_underlying_socket, SOCKET_TRANSPORT_HANDLE, socket_transport);
-MOCKABLE_FUNCTION(, int, socket_transport_check_valid_handle, SOCKET_TRANSPORT_HANDLE, socket_transport_handle);
+MOCKABLE_FUNCTION(, bool, socket_transport_is_valid_socket, SOCKET_TRANSPORT_HANDLE, socket_transport_handle);
 ```
 
 ### socket_transport_create_client
@@ -107,15 +107,17 @@ MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_from_socket
 
 `socket_transport_create_from_socket` creates a client socket transport from a given socket handle.
 
-**SOCKET_TRANSPORT_WIN32_09_096: [** If socket_handle is an INVALID_SOCKET, `socket_transport_create_from_socket` shall fail and return NULL. **]**
+**SOCKET_TRANSPORT_WIN32_09_096: [** If socket_handle is an INVALID_SOCKET, `socket_transport_create_from_socket` shall fail and return `NULL`. **]**
 
 **SOCKET_TRANSPORT_WIN32_09_097: [** `socket_transport_create_from_socket` shall allocate a new SOCKET_TRANSPORT object. **]**
 
 **SOCKET_TRANSPORT_WIN32_09_098: [** `socket_transport_create_from_socket` shall call sm_create to create a sm_object with the type set to SOCKET_CLIENT. **]**
 
+**SOCKET_TRANSPORT_WIN32_09_014: [** If `sm_open_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_create_from_socket` shall fail and return `NULL`. **]**
+
 **SOCKET_TRANSPORT_WIN32_09_099: [** `socket_transport_create_from_socket` shall assign the socket_handle to the new allocated socket transport. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_100: [** On any failure `socket_transport_create_from_socket` shall return NULL. **]**
+**SOCKET_TRANSPORT_WIN32_09_100: [** On any failure `socket_transport_create_from_socket` shall return `NULL`. **]**
 
 **SOCKET_TRANSPORT_WIN32_09_101: [** On success `socket_transport_create_from_socket` shall return SOCKET_TRANSPORT_HANDLE. **]**
 
@@ -352,16 +354,16 @@ MOCKABLE_FUNCTION(, SOCKET_HANDLE, socket_transport_get_underlying_socket, SOCKE
 
 **SOCKET_TRANSPORT_WIN32_09_082: [** `socket_transport_get_underlying_socket` shall call `sm_exec_end`. **]**
 
-### socket_transport_check_valid_handle
+### socket_transport_is_valid_socket
 
 ```c
-MOCKABLE_FUNCTION(, int, socket_transport_check_valid_handle, SOCKET_TRANSPORT_HANDLE, socket_transport_handle);
+MOCKABLE_FUNCTION(, bool, socket_transport_is_valid_socket, SOCKET_TRANSPORT_HANDLE, socket_transport_handle);
 ```
 
-**SOCKET_TRANSPORT_WIN32_09_092: [** `socket_transport_check_valid_handle` checks that the internal socket is valid. **]**
+**SOCKET_TRANSPORT_WIN32_09_092: [** `socket_transport_is_valid_socket` checks that the internal socket is valid. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_093: [** If `socket_transport_handle` is `NULL`, `socket_transport_check_valid_handle` shall fail and return `-1`. **]**
+**SOCKET_TRANSPORT_WIN32_09_093: [** If `socket_transport_handle` is `NULL`, `socket_transport_is_valid_socket` shall fail and return false. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_094: [** If the socket inside `socket_transport_handle` is an `INVALID_SOCKET`, `socket_transport_check_valid_handle` shall fail and return `-1`. **]**
+**SOCKET_TRANSPORT_WIN32_09_094: [** If the socket inside `socket_transport_handle` is an `INVALID_SOCKET`, `socket_transport_is_valid_socket` shall fail and return false. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_095: [** On success, `socket_transport_check_valid_handle` shall return 0. **]**
+**SOCKET_TRANSPORT_WIN32_09_095: [** On success, `socket_transport_is_valid_socket` shall return true. **]**
