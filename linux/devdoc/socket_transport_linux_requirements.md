@@ -52,6 +52,7 @@ typedef struct SOCKET_BUFFER_TAG
 
 MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_client);
 MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_server);
+MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_from_socket, SOCKET_HANDLE, socket_handle);
 MOCKABLE_FUNCTION(, void, socket_transport_destroy, SOCKET_TRANSPORT_HANDLE, socket_transport);
 
 MOCKABLE_FUNCTION(, int, socket_transport_connect, SOCKET_TRANSPORT_HANDLE, socket_transport, const char*, hostname, uint16_t, port, uint32_t, connection_timeout_ms);
@@ -64,6 +65,7 @@ MOCKABLE_FUNCTION(, SOCKET_SEND_RESULT, socket_transport_send, SOCKET_TRANSPORT_
 MOCKABLE_FUNCTION(, SOCKET_RECEIVE_RESULT, socket_transport_receive, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_BUFFER*, payload, uint32_t, buffer_count, uint32_t*, bytes_recv, uint32_t, flags, void*, data);
 
 MOCKABLE_FUNCTION(, SOCKET_HANDLE, socket_transport_get_underlying_socket, SOCKET_TRANSPORT_HANDLE, socket_transport);
+MOCKABLE_FUNCTION(, bool, socket_transport_is_valid_socket, SOCKET_TRANSPORT_HANDLE, socket_transport_handle);
 ```
 
 ### socket_transport_create_client
@@ -97,6 +99,28 @@ MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_server);
 **SOCKET_TRANSPORT_LINUX_11_081: [** On any failure `socket_transport_create_server` shall return `NULL`. **]**
 
 **SOCKET_TRANSPORT_LINUX_11_082: [** On success `socket_transport_create_server` shall return `SOCKET_TRANSPORT_HANDLE`. **]**
+
+### socket_transport_create_from_socket
+
+```c
+MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_from_socket, SOCKET_HANDLE, socket_handle);
+```
+
+`socket_transport_create_from_socket` creates a client socket transport from a given socket handle.
+
+**SOCKET_TRANSPORT_LINUX_11_086: [** If socket_handle is an INVALID_SOCKET, `socket_transport_create_from_socket` shall fail and return `NULL`. **]**
+
+**SOCKET_TRANSPORT_LINUX_11_087: [** `socket_transport_create_from_socket` shall allocate a new SOCKET_TRANSPORT object. **]**
+
+**SOCKET_TRANSPORT_LINUX_11_088: [** `socket_transport_create_from_socket` shall call sm_create to create a sm_object with the type set to SOCKET_CLIENT. **]**
+
+**SOCKET_TRANSPORT_LINUX_11_097: [** If `sm_open_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_create_from_socket` shall fail and return `NULL`. **]**
+
+**SOCKET_TRANSPORT_LINUX_11_096: [** `socket_transport_create_from_socket` shall assign the socket_handle to the new allocated socket transport. **]**
+
+**SOCKET_TRANSPORT_LINUX_11_090: [** On any failure `socket_transport_create_from_socket` shall return `NULL`. **]**
+
+**SOCKET_TRANSPORT_LINUX_11_091: [** On success `socket_transport_create_from_socket` shall return SOCKET_TRANSPORT_HANDLE. **]**
 
 ### socket_transport_destroy
 
@@ -307,3 +331,17 @@ MOCKABLE_FUNCTION(, SOCKET_HANDLE, socket_transport_get_underlying_socket, SOCKE
 **SOCKET_TRANSPORT_LINUX_11_067: [** `socket_transport_get_underlying_socket` shall return the `SOCKET_HANDLE` socket value. **]**
 
 **SOCKET_TRANSPORT_LINUX_11_068: [** `socket_transport_get_underlying_socket` shall call `sm_exec_end`. **]**
+
+### socket_transport_is_valid_socket
+
+```c
+MOCKABLE_FUNCTION(, bool, socket_transport_is_valid_socket, SOCKET_TRANSPORT_HANDLE, socket_transport_handle);
+```
+
+`socket_transport_is_valid_socket` checks that the internal socket is valid.
+
+**SOCKET_TRANSPORT_LINUX_11_093: [** If `socket_transport_handle` is `NULL`, `socket_transport_is_valid_socket` shall fail and return `false`. **]**
+
+**SOCKET_TRANSPORT_LINUX_11_094: [** If the socket inside `socket_transport_handle` is an `INVALID_SOCKET`, `socket_transport_is_valid_socket` shall fail and return `false`. **]**
+
+**SOCKET_TRANSPORT_LINUX_11_095: [** On success, `socket_transport_is_valid_socket` shall return `true`. **]**
