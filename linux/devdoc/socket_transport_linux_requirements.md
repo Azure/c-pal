@@ -65,7 +65,7 @@ MOCKABLE_FUNCTION(, SOCKET_SEND_RESULT, socket_transport_send, SOCKET_TRANSPORT_
 MOCKABLE_FUNCTION(, SOCKET_RECEIVE_RESULT, socket_transport_receive, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_BUFFER*, payload, uint32_t, buffer_count, uint32_t*, bytes_recv, uint32_t, flags, void*, data);
 
 MOCKABLE_FUNCTION(, SOCKET_HANDLE, socket_transport_get_underlying_socket, SOCKET_TRANSPORT_HANDLE, socket_transport);
-MOCKABLE_FUNCTION(, int, socket_transport_check_valid_handle, SOCKET_TRANSPORT_HANDLE, socket_transport_handle);
+MOCKABLE_FUNCTION(, bool, socket_transport_is_valid_socket, SOCKET_TRANSPORT_HANDLE, socket_transport_handle);
 ```
 
 ### socket_transport_create_client

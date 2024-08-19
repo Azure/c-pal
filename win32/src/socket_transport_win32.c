@@ -815,15 +815,17 @@ SOCKET_HANDLE socket_transport_get_underlying_socket(SOCKET_TRANSPORT_HANDLE soc
 
 bool socket_transport_is_valid_socket(SOCKET_TRANSPORT_HANDLE socket_transport_handle)
 {
-    bool result = false;
+    bool result;
     if (socket_transport_handle == NULL)
     {
+        result = false;
         LogError("Invalid argument: SOCKET_TRANSPORT_HANDLE socket_transport_handle: %p", socket_transport_handle);
     }
     else
     {
         if (socket_transport_handle->socket == INVALID_SOCKET)
         {
+            result = false;
             LogError("Invalid socket in argument: SOCKET_TRANSPORT_HANDLE socket_transport_handle: %p", socket_transport_handle);
         }
         else
