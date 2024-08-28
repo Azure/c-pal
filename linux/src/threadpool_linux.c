@@ -507,16 +507,66 @@ void threadpool_close(THANDLE(THREADPOOL) threadpool)
     }
 }
 
+/* threadpool_create_work_item */
+
+/* Codes_SRS_THREADPOOL_LINUX_05_001: [ threadpool_create_work_item shall initialize the return task_item of type PTHREADPOOL_TASK to NULL so that in case of error, a NULL can be returned. ] */
+
+/* Codes_SRS_THREADPOOL_LINUX_05_002: [ If threadpool is NULL, threadpool_create_work_item shall fail and return a NULL value. ] */
+
+/* Codes_SRS_THREADPOOL_LINUX_05_003: [ If work_function is NULL, threadpool_create_work_item shall fail and return a NULL value. ] */
+
+/* Codes_SRS_THREADPOOL_LINUX_05_004: [ threadpool_create_work_item shall call sm_exec_begin. ] */
+
+/* Codes_SRS_THREADPOOL_LINUX_05_005: [ If sm_exec_begin returns SM_EXEC_REFUSED, threadpool_create_work_item shall fail and return a NULL value. ] */
+
+/* Codes_SRS_THREADPOOL_LINUX_05_006: [ threadpool_create_work_item shall acquire the SRW lock in shared mode by calling srw_lock_acquire_shared. ] */
+
+/* Codes_SRS_THREADPOOL_LINUX_05_007: [ threadpool_create_work_item shall increment the insert_pos. ] */
+
+/* Codes_SRS_THREADPOOL_LINUX_05_008: [ If task state is TASK_NOT_USED, threadpool_create_work_item shall set the current task state to TASK_INITIALIZING. ] */
+
+/* Codes_SRS_THREADPOOL_LINUX_05_009: [ Otherwise, threadpool_create_work_item shall release the shared SRW lock by calling srw_lock_release_shared and increase task_array capacity :  ] */
+
+/* Codes_SRS_THREADPOOL_LINUX_05_010: [ If reallocating the task array fails, threadpool_create_work_item shall fail and return a NULL value. ] */
+
+/* Codes_SRS_THREADPOOL_LINUX_05_011: [ threadpool_create_work_item shall copy the work function and work function context into insert position in the task array and return the PTHREADPOOL_TASK at insert position. ] */
+
+/* Codes_SRS_THREADPOOL_LINUX_05_012: [ threadpool_create_work_item shall set the task_state to TASK_WAITING and then release the shared SRW lock. ] */
+
+/* Codes_SRS_THREADPOOL_LINUX_05_013: [ threadpool_create_work_item shall return the PTHREADPOOL_TASK at insert position. ] */
+
+/* Codes_SRS_THREADPOOL_LINUX_05_014: [ threadpool_create_work_item shall call sm_exec_end. ] */
+
 PVOID threadpool_create_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, PVOID work_function_context)
 {
     LogWarning("Printing %p %p %p", threadpool, work_function, work_function_context);
     return NULL;
 }
+
+/* threadpool_schedule_work_item */
+
+/* Codes_SRS_THREADPOOL_LINUX_05_015: [ work_item_context can be a NULL value ] */
+
+/* Codes_SRS_THREADPOOL_LINUX_05_016: [ If threadpool is NULL, threadpool_schedule_work_item shall fail and return a non-zero value. ] */
+
+/* Codes_SRS_THREADPOOL_LINUX_05_017: [ threadpool_schedule_work_item shall call sm_exec_begin. ] */
+
+/* Codes_SRS_THREADPOOL_LINUX_05_018: [ If sm_exec_begin returns SM_EXEC_REFUSED, threadpool_schedule_work_item shall fail and return a non-zero value. ] */
+
+/* Codes_SRS_THREADPOOL_LINUX_05_019: [ threadpool_schedule_work_item shall unblock the threadpool semaphore by calling sem_post. ] */
+
+/* Codes_SRS_THREADPOOL_LINUX_05_020: [ threadpool_schedule_work_item shall call sm_exec_end. ] */
+
 int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, PVOID work_item_context)
 {
     LogWarning("Printing %p %p", threadpool, work_item_context);
     return 0;
 }
+
+/* threadpool_work_context_destroy */
+
+/* Codes_SRS_THREADPOOL_LINUX_05_021: [ Do nothing, just placeholder for WIN32 equivalent since there is no work item or work item context equivalent in Linux ] */
+
 void threadpool_work_context_destroy(PVOID work_item_context) {
     LogWarning("Printing %p", work_item_context);
 }
