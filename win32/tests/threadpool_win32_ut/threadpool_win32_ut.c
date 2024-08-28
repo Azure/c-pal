@@ -748,14 +748,6 @@ TEST_FUNCTION(when_underlying_calls_fail_threadpool_schedule_work_fails)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-/* on_work_callback_v2 */
-
-/* Tests_SRS_THREADPOOL_WIN32_05_001: [ If context is NULL, on_work_callback_v2 shall return. ] */
-
-/* Tests_SRS_THREADPOOL_WIN32_05_002: [ Otherwise context shall be used as the context created in threadpool_create_work_item. ] */
-
-/* Tests_SRS_THREADPOOL_WIN32_05_003: [ The work_function callback passed to threadpool_create_work_item shall be called with the work_function_context as an argument. work_function_context was set inside the threadpool_create_work_item as an argument to CreateThreadpoolContext. ] */
-
 /* on_work_callback */
 
 /* Tests_SRS_THREADPOOL_WIN32_01_035: [ If context is NULL, on_work_callback shall return. ]*/
@@ -1314,41 +1306,5 @@ TEST_FUNCTION(on_timer_callback_calls_user_callback_multiple_times_as_timer_fire
     threadpool_timer_destroy(timer_instance);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
-
-/* threadpool_create_work_item */
-
-/* Tests_SRS_THREADPOOL_WIN32_05_004: [ threadpool_create_work_item shall initialize the work_item_context to NULL, where NULL would be a failure indicator to the calling functions ] */
-
-/* Tests_SRS_THREADPOOL_WIN32_05_005 : [ If threadpool is NULL, threadpool_create_work_item shall fail and return a NULL value. ] */
-
-/* Tests_SRS_THREADPOOL_WIN32_05_006 : [ If work_function is NULL, threadpool_create_work_item shall fail and return a NULL value. ] */
-
-/* Tests_SRS_THREADPOOL_WIN32_05_007 : [ Otherwise threadpool_create_work_item shall allocate a context where work_function, work_function_context, and ptp_work shall be saved. ] */
-
-/* Tests_SRS_THREADPOOL_WIN32_05_008 : [ If any error occurs, threadpool_create_work_item shall fail and return a NULL value. ] */
-
-/* Tests_SRS_THREADPOOL_WIN32_05_009 : [ threadpool_create_work_item shall create PTP_WORK by calling CreateThreadpoolWork to set the callback function as on_work_callback_v2 and pass the newly created context whenever the callback is called in the tp_environment. ] */
-
-/* Tests_SRS_THREADPOOL_WIN32_05_010 : [ If any error occurs, threadpool_create_work_item shall fail, free the newly created context and return a NULL value. ] */
-
-/* threadpool_schedule_work_item */
-
-/* Tests_SRS_THREADPOOL_WIN32_05_011: [ If threadpool is NULL, threadpool_schedule_work_item shall fail and return a non-zero value. ] */
-
-/* Tests_SRS_THREADPOOL_WIN32_05_012 : [ If work_function is NULL, threadpool_schedule_work_item shall fail and return a non-zero value. ] */
-
-/* Tests_SRS_THREADPOOL_WIN32_05_013 : [ If ptp_work within the context is NULL, threadpool_schedule_work_item shall fail and return a non-zero value. ] */
-
-/* Tests_SRS_THREADPOOL_WIN32_05_014 : [ threadpool_schedule_work_item shall call SubmitThreadpoolWork to submit the work item for execution. ] */
-
-/* threadpool_work_context_destroy */
-
-/* Tests_SRS_THREADPOOL_WIN32_05_015: [ If work_item_context is NULL, threadpool_work_context_destroy shall fail and not do anything before returning. ] */
-
-/* Tests_SRS_THREADPOOL_WIN32_05_016 : [ If ptp_work within the work_item_context is not NULL, then threadpool_work_context_destroy shall call CloseThreadpoolWork. ] */
-
-/* Tests_SRS_THREADPOOL_WIN32_05_017 : [ If ptp_work is NULL, threadpool_work_context_destroy shall NOT call CloseThreadpoolWork. ] */
-
-/* Tests_SRS_THREADPOOL_WIN32_05_018 : [ threadpool_work_context_destroy shall free the work_item_context allocated in threadpool_create_work_item. ] */
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
