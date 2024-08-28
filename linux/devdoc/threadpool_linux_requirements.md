@@ -77,6 +77,12 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HAN
 MOCKABLE_FUNCTION(, int, threadpool_open, THANDLE(THREADPOOL), threadpool);
 MOCKABLE_FUNCTION(, void, threadpool_close, THANDLE(THREADPOOL), threadpool);
 
+MOCKABLE_FUNCTION(, PVOID, threadpool_create_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, PVOID, work_function_context);
+
+MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, PVOID, work_item_context);
+
+MOCKABLE_FUNCTION(, void, threadpool_work_context_destroy, PVOID, work_item_context);
+
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 
 MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, TIMER_INSTANCE_HANDLE*, timer_handle);
@@ -381,3 +387,63 @@ static int threadpool_work_func(void* param);
 **SRS_THREADPOOL_LINUX_07_084: [** If the work item function is not `NULL`, `threadpool_work_func` shall execute it with `work_function_ctx`. **]**
 
 **SRS_THREADPOOL_LINUX_07_085: [** `threadpool_work_func` shall loop until `threadpool_close` or `threadpool_destroy` is called. **]**
+
+```c
+MOCKABLE_FUNCTION(, PVOID, threadpool_create_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, PVOID, work_function_context);
+```
+
+`threadpool_create_work_item` creates a work item to be executed by the threadpool.
+
+**SRS_THREADPOOL_LINUX_05_001: [** `threadpool_create_work_item` shall initialize the return `task_item` of type `PTHREADPOOL_TASK` to `NULL` so that in case of error, a `NULL` can be returned. **]**
+
+**SRS_THREADPOOL_LINUX_05_002: [** If `threadpool` is `NULL`, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
+
+**SRS_THREADPOOL_LINUX_05_003: [** If `work_function` is `NULL`, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
+
+**SRS_THREADPOOL_LINUX_05_004: [** `threadpool_create_work_item` shall call `sm_exec_begin`. **]**
+
+**SRS_THREADPOOL_LINUX_05_005: [** If `sm_exec_begin` returns `SM_EXEC_REFUSED`, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
+
+**SRS_THREADPOOL_LINUX_05_006: [** `threadpool_create_work_item` shall acquire the `SRW lock` in shared mode by calling `srw_lock_acquire_shared`. **]**
+
+**SRS_THREADPOOL_LINUX_05_007: [** `threadpool_create_work_item` shall increment the `insert_pos`. **]**
+
+**SRS_THREADPOOL_LINUX_05_008: [** If task state is `TASK_NOT_USED`, `threadpool_create_work_item` shall set the current task state to `TASK_INITIALIZING`. **]**
+
+**SRS_THREADPOOL_LINUX_05_009: [** Otherwise, `threadpool_create_work_item` shall release the shared SRW lock by calling `srw_lock_release_shared` and increase `task_array` capacity: **]**
+
+**SRS_THREADPOOL_LINUX_05_010: [** If reallocating the task array fails, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
+
+**SRS_THREADPOOL_LINUX_05_011: [** `threadpool_create_work_item` shall copy the work function and work function context into insert position in the task array and return the variable of `PTHREADPOOL_TASK` at insert position. **]**
+
+**SRS_THREADPOOL_LINUX_05_012: [** `threadpool_create_work_item` shall set the `task_state` to `TASK_WAITING` and then release the shared SRW lock. **]**
+
+**SRS_THREADPOOL_LINUX_05_013: [** `threadpool_create_work_item` shall return the `PTHREADPOOL_TASK` at insert position. **]**
+
+**SRS_THREADPOOL_LINUX_05_014: [** `threadpool_create_work_item` shall call `sm_exec_end`. **]**
+
+```c
+MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, PVOID, work_item_context);
+```
+
+`threadpool_schedule_work_item` schedules a work item to be executed by the threadpool.
+
+**SRS_THREADPOOL_LINUX_05_015: [** `work_item_context` can be a `NULL` value **]**
+
+**SRS_THREADPOOL_LINUX_05_016: [** If `threadpool` is `NULL`, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
+
+**SRS_THREADPOOL_LINUX_05_017: [** `threadpool_schedule_work_item` shall call `sm_exec_begin`. **]**
+
+**SRS_THREADPOOL_LINUX_05_018: [** If `sm_exec_begin` returns `SM_EXEC_REFUSED`, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
+
+**SRS_THREADPOOL_LINUX_05_019: [** `threadpool_schedule_work_item` shall unblock the `threadpool` semaphore by calling `sem_post`. **]**
+
+**SRS_THREADPOOL_LINUX_05_020: [** `threadpool_schedule_work_item` shall call `sm_exec_end`. **]**
+
+```c
+MOCKABLE_FUNCTION(, void, threadpool_work_context_destroy, PVOID, work_item_context);
+```
+
+`threadpool_work_context_destroy` Does nothing and a placeholder for WIN32 equivalent function stub
+
+**SRS_THREADPOOL_LINUX_05_021: [** Do nothing, just placeholder for WIN32 equivalent since there is no work item or work item context equivalent in Linux implementation of the Thread Pool **]**

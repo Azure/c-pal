@@ -71,7 +71,7 @@ typedef struct THREADPOOL_TASK_TAG
     THREADPOOL_WORK_FUNCTION work_function;
     void* work_function_ctx;
     volatile uint32_t pending_api_calls;
-} THREADPOOL_TASK;
+} THREADPOOL_TASK, *PTHREADPOOL_TASK;
 
 typedef struct THREADPOOL_TAG
 {
@@ -505,6 +505,20 @@ void threadpool_close(THANDLE(THREADPOOL) threadpool)
         THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
         internal_close(threadpool_ptr);
     }
+}
+
+PVOID threadpool_create_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, PVOID work_function_context)
+{
+    LogWarning("Printing %p %p %p", threadpool, work_function, work_function_context);
+    return NULL;
+}
+int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, PVOID work_item_context)
+{
+    LogWarning("Printing %p %p", threadpool, work_item_context);
+    return 0;
+}
+void threadpool_work_context_destroy(PVOID work_item_context) {
+    LogWarning("Printing %p", work_item_context);
 }
 
 int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_ctx)

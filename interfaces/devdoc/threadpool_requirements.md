@@ -31,6 +31,12 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HAN
 MOCKABLE_FUNCTION(, int, threadpool_open, THANDLE(THREADPOOL), threadpool);
 MOCKABLE_FUNCTION(, void, threadpool_close, THANDLE(THREADPOOL), threadpool);
 
+MOCKABLE_FUNCTION(, PVOID, threadpool_create_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, PVOID, work_function_context);
+
+MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, PVOID, work_item_context);
+
+MOCKABLE_FUNCTION(, void, threadpool_work_context_destroy, PVOID, work_item_context);
+
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 
 MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, TIMER_INSTANCE_HANDLE*, timer_handle);
@@ -103,6 +109,60 @@ MOCKABLE_FUNCTION(, void, threadpool_close, THREADPOOL_HANDLE, threadpool);
 **NON_THREADPOOL_01_018: [** Then `threadpool_close` shall close the threadpool, leaving it in a state where an `threadpool_open` can be performed. **]**
 
 **NON_THREADPOOL_01_019: [** If `threadpool` is not OPEN, `threadpool_close` shall return. **]**
+
+### threadpool_create_work_item
+
+```c
+MOCKABLE_FUNCTION(, PVOID, threadpool_create_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, PVOID, work_function_context);
+```
+
+`threadpool_create_work_item` creates a work item to be executed by the threadpool.
+
+**NON_THREADPOOL_05_001: [** `threadpool_create_work_item` shall initialize the `work_item_context` to `NULL`, where `NULL` would be a failure indicator to the calling functions **]**
+
+**NON_THREADPOOL_05_002: [** If `threadpool` is `NULL`, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
+
+**NON_THREADPOOL_05_003: [** If `work_function` is `NULL`, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
+
+**NON_THREADPOOL_05_004: [** Otherwise `threadpool_create_work_item` shall allocate a context where `work_function`, `work_function_context`, and `ptp_work` shall be saved. **]**
+
+**NON_THREADPOOL_05_005: [** If any error occurs, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
+
+**NON_THREADPOOL_05_006: [** `threadpool_create_work_item` shall create `PTP_WORK` by calling `CreateThreadpoolWork` to set the callback function as `on_work_callback_v2` and pass the newly created context whenever the callback is called in the tp_environment. **]**
+
+**NON_THREADPOOL_05_007: [** If any error occurs, `threadpool_create_work_item` shall fail, free the newly created context and return a `NULL` value. **]**
+
+### threadpool_schedule_work_item
+
+```c
+MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, PVOID, work_item_context);
+```
+
+`threadpool_schedule_work_item` schedules a work item to be executed by the threadpool.
+
+**NON_THREADPOOL_05_008: [** If `threadpool` is NULL, `threadpool_schedule_work_item` shall fail and return a `non-zero` value. **]**
+
+**NON_THREADPOOL_05_009: [** If `work_function` is NULL, `threadpool_schedule_work_item` shall fail and return a `non-zero` value. **]**
+
+**NON_THREADPOOL_05_010: [** If `ptp_work` within the context is `NULL`, `threadpool_schedule_work_item` shall fail and return a `non-zero` value. **]**
+
+**NON_THREADPOOL_05_011: [** `threadpool_schedule_work_item` shall call `SubmitThreadpoolWork` to submit the work item for execution. **]**
+
+### threadpool_work_context_destroy
+
+```c
+MOCKABLE_FUNCTION(, void, threadpool_work_context_destroy, PVOID, work_item_context);
+```
+
+`threadpool_work_context_destroy` closes the `ptp_work` member variable in `work_item_context` of type `PWORK_ITEM_CONTEXT_V2` and then frees the `work_item_context`
+
+**NON_THREADPOOL_05_012: [** If `work_item_context` is `NULL`, `threadpool_work_context_destroy` shall fail and not do anything before returning. **]**
+
+**NON_THREADPOOL_05_013: [** If `ptp_work` within the `work_item_context` is not `NULL`, then `threadpool_work_context_destroy` shall call `CloseThreadpoolWork`. **]**
+
+**NON_THREADPOOL_05_014: [** If `ptp_work` is `NULL`, `threadpool_work_context_destroy` shall NOT call `CloseThreadpoolWork`. **]**
+
+**NON_THREADPOOL_05_015: [** `threadpool_work_context_destroy` shall free the `work_item_context` allocated in `threadpool_create_work_item`. **]**
 
 ### threadpool_schedule_work
 

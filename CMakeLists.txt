@@ -11,7 +11,7 @@ endif()
 #if ((NOT TARGET c_pal) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/c-pal/CMakeLists.txt))
 #    add_subdirectory(deps/c-pal)
 #    include_directories(${C_PAL_INC_FOLDER})
-#endif() 
+#endif()
 
 if (TARGET c_pal)
     RETURN()
@@ -93,7 +93,7 @@ set(run_reals_check OFF)
 if ((NOT TARGET c_build_tools) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/c-build-tools/CMakeLists.txt))
     add_subdirectory(deps/c-build-tools)
     set_default_build_options()
-endif() 
+endif()
 
 if ((WIN32) AND ("${GBALLOC_LL_TYPE}" STREQUAL "JEMALLOC"))
     # Bring in vcpkg
@@ -125,37 +125,37 @@ endif()
 if ((NOT TARGET macro_utils_c) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/macro-utils-c/CMakeLists.txt))
     add_subdirectory(deps/macro-utils-c)
     include_directories(${MACRO_UTILS_INC_FOLDER})
-endif() 
+endif()
 
 if ((NOT TARGET c_logging_v2) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/c-logging/CMakeLists.txt))
     add_subdirectory(deps/c-logging)
     include_directories(deps/c-logging/v2/inc)
-endif() 
+endif()
 
 if ((NOT TARGET ctest) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/ctest/CMakeLists.txt))
     add_subdirectory(deps/ctest)
     include_directories(${CTEST_INC_FOLDER})
-endif() 
+endif()
 
 if ((NOT TARGET testrunnerswitcher) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/c-testrunnerswitcher/CMakeLists.txt))
     add_subdirectory(deps/c-testrunnerswitcher)
     include_directories(${TESTRUNNERSWITCHER_INC_FOLDER})
-endif() 
+endif()
 
 if ((NOT TARGET umock_c) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/umock-c/CMakeLists.txt))
     add_subdirectory(deps/umock-c)
     include_directories(${UMOCK_C_INC_FOLDER})
-endif() 
+endif()
 
 # Skip for Linux iwyu
 if (WIN32)
     if (
-        (NOT TARGET mimalloc-obj) AND 
+        (NOT TARGET mimalloc-obj) AND
         (${GBALLOC_LL_TYPE} STREQUAL "MIMALLOC") AND
         (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/mimalloc/CMakeLists.txt)
         )
             set(MI_BUILD_SHARED OFF CACHE BOOL "Build shared library" FORCE) #not building a dll allows building on 32 bit, otherwise there's some errors on init.c about not finding a imported symbol
-            set(MI_BUILD_TESTS OFF CACHE BOOL "Build test executables" FORCE) 
+            set(MI_BUILD_TESTS OFF CACHE BOOL "Build test executables" FORCE)
             #for mimalloc disable this warning: Warning C4459: declaration of 'os_page_size' hides global declaration
             #for mimalloc disable this warning: Warning C4100: 'try_alignment': unreferenced formal parameter
             #for mimalloc disable this warning: warning C4505: 'mi_os_get_aligned_hint': unreferenced local function has been removed
@@ -169,7 +169,7 @@ if (WIN32)
 
             add_subdirectory(deps/mimalloc)
             include_directories(deps/mimalloc/include)
-            
+
             set(CMAKE_C_FLAGS ${PREV_CMAKE_C_FLAGS})
             set(CMAKE_CXX_FLAGS ${PREV_CMAKE_CXX_FLAGS})
     endif()
@@ -185,7 +185,7 @@ set(run_reals_check ${original_run_reals_check})
 include(CTest)
 enable_testing()
 
-set(C_PAL_INC_FOLDER 
+set(C_PAL_INC_FOLDER
     ${CMAKE_CURRENT_LIST_DIR}/interfaces/inc
     ${CMAKE_CURRENT_LIST_DIR}/common/inc
     ${CMAKE_CURRENT_LIST_DIR}/c_pal_ll/interfaces/inc
