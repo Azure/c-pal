@@ -94,6 +94,8 @@ typedef struct THREADPOOL_TAG
     THREAD_HANDLE* thread_handle_array;
 } THREADPOOL;
 
+typedef void* PVOID;
+
 THANDLE_TYPE_DEFINE(THREADPOOL);
 
 static void on_timer_callback(sigval_t timer_data)
