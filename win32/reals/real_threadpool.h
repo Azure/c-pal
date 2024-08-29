@@ -37,11 +37,11 @@ extern "C" {
     int real_threadpool_open(THANDLE(THREADPOOL) threadpool);
     void real_threadpool_close(THANDLE(THREADPOOL) threadpool);
 
-    PVOID real_threadpool_create_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, PVOID work_function_context);
+    THREADPOOL_WORK_ITEM_HANDLE real_threadpool_create_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context);
 
-    int real_threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, PVOID work_item_context);
+    int real_threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_ITEM_HANDLE work_item_context);
 
-    void real_threadpool_work_context_destroy(PVOID work_item_context);
+    void real_threadpool_destroy_work_item(THREADPOOL_WORK_ITEM_HANDLE work_item_context);
 
     int real_threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context);
 
