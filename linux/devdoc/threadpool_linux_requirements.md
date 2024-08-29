@@ -418,7 +418,7 @@ MOCKABLE_FUNCTION(, THREADPOOL_WORK_ITEM_HANDLE, threadpool_create_work_item, TH
 
 **S_R_S_THREADPOOL_LINUX_05_011: [** `threadpool_create_work_item` shall set the `task_state` to `TASK_WAITING` and then release the shared SRW lock. **]**
 
-**S_R_S_THREADPOOL_LINUX_05_012: [** `threadpool_create_work_item` shall return the `PTHREADPOOL_TASK` at insert position. **]**
+**S_R_S_THREADPOOL_LINUX_05_012: [** `threadpool_create_work_item` shall return the `PTHREADPOOL_TASK` at insert position indicating a success to the caller. **]**
 
 **S_R_S_THREADPOOL_LINUX_05_013: [** `threadpool_create_work_item` shall call `sm_exec_end`. **]**
 
@@ -430,7 +430,7 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), thr
 
 `threadpool_schedule_work_item` schedules a work item to be executed by the threadpool.
 
-**S_R_S_THREADPOOL_LINUX_05_014: [** `work_item_context` can be a `NULL` value **]**
+**S_R_S_THREADPOOL_LINUX_05_014: [** `work_item_context` can be a `NULL` value. **]**
 
 **S_R_S_THREADPOOL_LINUX_05_015: [** If `threadpool` is `NULL`, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
 
@@ -450,4 +450,4 @@ MOCKABLE_FUNCTION(, void, threadpool_destroy_work_item, THREADPOOL_WORK_ITEM_HAN
 
 `threadpool_work_context_destroy` Does nothing and a placeholder for WIN32 equivalent function stub
 
-**S_R_S_THREADPOOL_LINUX_05_020: [** Do nothing, just placeholder for WIN32 equivalent since there is no work item or work item context equivalent in Linux implementation of the Thread Pool **]**
+**S_R_S_THREADPOOL_LINUX_05_020: [** Do nothing, just placeholder for WIN32 equivalent since there is no work item or work item context equivalent in Linux implementation of the Thread Pool. **]**

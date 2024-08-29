@@ -277,13 +277,16 @@ MOCKABLE_FUNCTION(, THREADPOOL_WORK_ITEM_HANDLE, threadpool_create_work_item, TH
 
 **S_R_S_THREADPOOL_WIN32_05_005: [** If `work_function` is `NULL`, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
 
-**S_R_S_THREADPOOL_WIN32_05_006: [** Otherwise `threadpool_create_work_item` shall allocate a context where `work_function`, `work_function_context`, and `ptp_work` shall be saved. **]**
+**S_R_S_THREADPOOL_WIN32_05_006: [** Otherwise `threadpool_create_work_item` shall allocate a context `work_item_context` of type `THREADPOOL_WORK_ITEM_HANDLE` where `work_function`, `work_function_context`, and `ptp_work` shall be saved. **]**
 
 **S_R_S_THREADPOOL_WIN32_05_007: [** If any error occurs, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
 
-**S_R_S_THREADPOOL_WIN32_05_008: [** `threadpool_create_work_item` shall create `PTP_WORK` by calling `CreateThreadpoolWork` to set the callback function as `on_work_callback_v2`. **]**
+**S_R_S_THREADPOOL_WIN32_05_008: [** `threadpool_create_work_item` shall create `work_item_context` member variable `ptp_work` of type `PTP_WORK` by calling `CreateThreadpoolWork` to set the callback function as `on_work_callback_v2`. **]**
 
-**S_R_S_THREADPOOL_WIN32_05_009: [** If any error occurs, `threadpool_create_work_item` shall fail, free the newly created context and return a `NULL` value. **]**
+**S_R_S_THREADPOOL_WIN32_05_009: [** If there are no errors then this `work_item_context` of type `THREADPOOL_WORK_ITEM_HANDLE` would be returned indicating a succcess to the caller**]**
+
+**S_R_S_THREADPOOL_WIN32_05_010: [** If any error occurs, `threadpool_create_work_item` shall fail, free the newly created context and return a `NULL` value. **]**
+
 
 ### threadpool_schedule_work_item
 
@@ -293,11 +296,11 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), thr
 
 `threadpool_schedule_work_item` schedules a work item to be executed by the threadpool.
 
-**S_R_S_THREADPOOL_WIN32_05_010: [** If `threadpool` is NULL, `threadpool_schedule_work_item` shall fail and return a `non-zero` value. **]**
+**S_R_S_THREADPOOL_WIN32_05_011: [** If `threadpool` is NULL, `threadpool_schedule_work_item` shall fail and return a `non-zero` value. **]**
 
-**S_R_S_THREADPOOL_WIN32_05_011: [** If `work_item_context` is NULL, `threadpool_schedule_work_item` shall fail and return a `non-zero` value. **]**
+**S_R_S_THREADPOOL_WIN32_05_012: [** If `work_item_context` is NULL, `threadpool_schedule_work_item` shall fail and return a `non-zero` value. **]**
 
-**S_R_S_THREADPOOL_WIN32_05_012: [** `threadpool_schedule_work_item` shall call `SubmitThreadpoolWork` to submit the work item for execution. **]**
+**S_R_S_THREADPOOL_WIN32_05_013: [** `threadpool_schedule_work_item` shall call `SubmitThreadpoolWork` to submit the work item for execution. **]**
 
 ### threadpool_destroy_work_item
 
@@ -307,8 +310,8 @@ MOCKABLE_FUNCTION(, void, threadpool_destroy_work_item, THREADPOOL_WORK_ITEM_HAN
 
 `threadpool_destroy_work_item` closes the `ptp_work` member variable in `work_item_context`and then frees the `work_item_context`
 
-**S_R_S_THREADPOOL_WIN32_05_013: [** If `work_item_context` is `NULL`, `threadpool_destroy_work_item` shall fail and not do anything before returning. **]**
+**S_R_S_THREADPOOL_WIN32_05_014: [** If `work_item_context` is `NULL`, `threadpool_destroy_work_item` shall fail and not do anything before returning. **]**
 
-**S_R_S_THREADPOOL_WIN32_05_014: [** `threadpool_destroy_work_item` shall call `CloseThreadpoolWork` to close `ptp_work`. **]**
+**S_R_S_THREADPOOL_WIN32_05_015: [** `threadpool_destroy_work_item` shall call `CloseThreadpoolWork` to close `ptp_work`. **]**
 
-**S_R_S_THREADPOOL_WIN32_05_015: [** `threadpool_destroy_work_item` shall free the `work_item_context`. **]**
+**S_R_S_THREADPOOL_WIN32_05_016: [** `threadpool_destroy_work_item` shall free the `work_item_context`. **]**
