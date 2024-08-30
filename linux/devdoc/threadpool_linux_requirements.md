@@ -400,45 +400,45 @@ MOCKABLE_FUNCTION(, THREADPOOL_WORK_ITEM_HANDLE, threadpool_create_work_item, TH
 
 **S_R_S_THREADPOOL_LINUX_05_002: [** If `work_function` is `NULL`, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
 
-**S_R_S_THREADPOOL_LINUX_05_003: [** `threadpool_create_work_item` shall call `sm_exec_begin`. **]**
+**S_R_S_THREADPOOL_LINUX_05_003: [** `threadpool_create_work_item` shall create `THREADPOOL_WORK_ITEM_HANDLE` variable `threadpool_work_item` by calling `malloc`. **]**
 
-**S_R_S_THREADPOOL_LINUX_05_004: [** If `sm_exec_begin` returns `SM_EXEC_REFUSED`, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
+**S_R_S_THREADPOOL_LINUX_05_004: [** If the `malloc` fails and `threadpool_work_item` is `NULL` then log the error and return `NULL`. **]**
 
-**S_R_S_THREADPOOL_LINUX_05_005: [** `threadpool_create_work_item` shall acquire the `SRW lock` in shared mode by calling `srw_lock_acquire_shared`. **]**
-
-**S_R_S_THREADPOOL_LINUX_05_006: [** `threadpool_create_work_item` shall increment the `insert_pos`. **]**
-
-**S_R_S_THREADPOOL_LINUX_05_007: [** If task state is `TASK_NOT_USED`, `threadpool_create_work_item` shall set the current task state to `TASK_INITIALIZING`. **]**
-
-**S_R_S_THREADPOOL_LINUX_05_008: [** Otherwise, `threadpool_create_work_item` shall release the shared SRW lock by calling `srw_lock_release_shared` and increase `task_array` capacity: **]**
-
-**S_R_S_THREADPOOL_LINUX_05_009: [** If reallocating the task array fails, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
-
-**S_R_S_THREADPOOL_LINUX_05_010: [** `threadpool_create_work_item` shall copy the work function and work function context into insert position in the task array and return the variable of `PTHREADPOOL_TASK` at insert position. **]**
-
-**S_R_S_THREADPOOL_LINUX_05_011: [** `threadpool_create_work_item` shall set the `task_state` to `TASK_WAITING` and then release the shared SRW lock. **]**
-
-**S_R_S_THREADPOOL_LINUX_05_012: [** `threadpool_create_work_item` shall return the `PTHREADPOOL_TASK` at insert position indicating a success to the caller. **]**
-
-**S_R_S_THREADPOOL_LINUX_05_013: [** `threadpool_create_work_item` shall call `sm_exec_end`. **]**
+**S_R_S_THREADPOOL_LINUX_05_005: [** `threadpool_create_work_item` shall copy the `work_function` and `work_function_context` into the `threadpool_work_item` amd return `threadpool_work_item` to indicate success. **]**
 
 ### threadpool_schedule_work_item
 
 ```c
-MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_ITEM_HANDLE, work_item_context);
+MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_ITEM_HANDLE, work_item);
 ```
 
 `threadpool_schedule_work_item` schedules a work item to be executed by the threadpool.
 
-**S_R_S_THREADPOOL_LINUX_05_014: [** `work_item_context` can be a `NULL` value. **]**
+**S_R_S_THREADPOOL_LINUX_05_006: [** If `threadpool` is `NULL`, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
 
-**S_R_S_THREADPOOL_LINUX_05_015: [** If `threadpool` is `NULL`, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
+**S_R_S_THREADPOOL_LINUX_05_007: [** If `work_item` is `NULL`,  `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
 
-**S_R_S_THREADPOOL_LINUX_05_016: [** `threadpool_schedule_work_item` shall call `sm_exec_begin`. **]**
+**S_R_S_THREADPOOL_LINUX_05_008: [** `threadpool_schedule_work_item` shall call `sm_exec_begin`. **]**
 
-**S_R_S_THREADPOOL_LINUX_05_017: [** If `sm_exec_begin` returns `SM_EXEC_REFUSED`, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
+**S_R_S_THREADPOOL_LINUX_05_009: [** If `sm_exec_begin` returns `SM_EXEC_REFUSED`, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
 
-**S_R_S_THREADPOOL_LINUX_05_018: [** `threadpool_schedule_work_item` shall unblock the `threadpool` semaphore by calling `sem_post`. **]**
+**S_R_S_THREADPOOL_LINUX_05_010: [** `threadpool_schedule_work_item` shall acquire the `SRW lock` in shared mode by calling `srw_lock_acquire_shared`. **]**
+
+**S_R_S_THREADPOOL_LINUX_05_011: [** `threadpool_schedule_work_item` shall increment the `insert_pos`. **]**
+
+**S_R_S_THREADPOOL_LINUX_05_012: [** If task state is `TASK_NOT_USED`, `threadpool_schedule_work_item` shall set the current task state to `TASK_INITIALIZING`. **]**
+
+**S_R_S_THREADPOOL_LINUX_05_013: [** Otherwise, `threadpool_schedule_work_item` shall release the shared SRW lock by calling `srw_lock_release_shared` and increase `task_array` capacity: **]**
+
+**S_R_S_THREADPOOL_LINUX_05_014: [** If reallocating the task array fails, `threadpool_schedule_work_item` shall fail and return a `NULL` value. **]**
+
+**S_R_S_THREADPOOL_LINUX_05_015: [** `threadpool_schedule_work_item` shall copy the `work_function` and `work_function_context` from `work_item` into insert position in the task array and return `0` on success. **]**
+
+**S_R_S_THREADPOOL_LINUX_05_016: [** `threadpool_schedule_work_item` shall set the `task_state` to `TASK_WAITING` and then release the shared SRW lock. **]**
+
+**S_R_S_THREADPOOL_LINUX_05_017: [** `threadpool_schedule_work_item` shall unblock the `threadpool` semaphore by calling `sem_post`. **]**
+
+**S_R_S_THREADPOOL_LINUX_05_018: [** `threadpool_schedule_work_item` shall return `0` on success. **]**
 
 **S_R_S_THREADPOOL_LINUX_05_019: [** `threadpool_schedule_work_item` shall call `sm_exec_end`. **]**
 
