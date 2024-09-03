@@ -400,11 +400,11 @@ MOCKABLE_FUNCTION(, THREADPOOL_WORK_ITEM_HANDLE, threadpool_create_work_item, TH
 
 **S_R_S_THREADPOOL_LINUX_05_002: [** If `work_function` is `NULL`, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
 
-**S_R_S_THREADPOOL_LINUX_05_003: [** `threadpool_create_work_item` shall create `THREADPOOL_WORK_ITEM_HANDLE` variable `threadpool_work_item` by calling `malloc`. **]**
+**S_R_S_THREADPOOL_LINUX_05_003: [** `threadpool_create_work_item` shall allocate memory for `threadpool_work_item` of type `THREADPOOL_WORK_ITEM_HANDLE`. **]**
 
 **S_R_S_THREADPOOL_LINUX_05_004: [** If the `malloc` fails and `threadpool_work_item` is `NULL` then log the error and return `NULL`. **]**
 
-**S_R_S_THREADPOOL_LINUX_05_005: [** `threadpool_create_work_item` shall copy the `work_function` and `work_function_context` into the `threadpool_work_item` amd return `threadpool_work_item` to indicate success. **]**
+**S_R_S_THREADPOOL_LINUX_05_005: [** `threadpool_create_work_item` shall copy the `work_function` and `work_function_context` into the `threadpool_work_item` and return `threadpool_work_item` to indicate success. **]**
 
 ### threadpool_schedule_work_item
 
@@ -450,4 +450,4 @@ MOCKABLE_FUNCTION(, void, threadpool_destroy_work_item, THREADPOOL_WORK_ITEM_HAN
 
 `threadpool_work_context_destroy` Does nothing and a placeholder for WIN32 equivalent function stub
 
-**S_R_S_THREADPOOL_LINUX_05_020: [** Do nothing, just placeholder for WIN32 equivalent since there is no work item or work item context equivalent in Linux implementation of the Thread Pool. **]**
+**S_R_S_THREADPOOL_LINUX_05_020: [** Free memory allocated to the work item of type `THREADPOOL_WORK_ITEM_HANDLE` created in `threadpool_create_work_item`. **]**

@@ -126,9 +126,9 @@ MOCKABLE_FUNCTION(, THREADPOOL_WORK_ITEM_HANDLE, threadpool_create_work_item, TH
 
 **NON_THREADPOOL_05_004: [** If any error occurs, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
 
-**NON_THREADPOOL_05_005: [** `threadpool_create_work_item` shall create an individual work item context of type `THREADPOOL_WORK_ITEM_HANDLE` and if needed set a local callback function. **]**
+**NON_THREADPOOL_05_005: [** `threadpool_create_work_item` shall create an individual work item context of type `THREADPOOL_WORK_ITEM_HANDLE` **]**
 
-**NON_THREADPOOL_05_006: [** If there are no errors then this work item context of type `THREADPOOL_WORK_ITEM_HANDLE` would be returned indicating a success to the caller. **]**
+**NON_THREADPOOL_05_006: [** If there are no errors then the work item of type `THREADPOOL_WORK_ITEM_HANDLE` is created and returned to the caller. **]**
 
 **NON_THREADPOOL_05_007: [** If any error occurs, `threadpool_create_work_item` shall fail, free the newly created context and return a `NULL` value. **]**
 
