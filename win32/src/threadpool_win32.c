@@ -29,6 +29,13 @@ typedef struct WORK_ITEM_CONTEXT_TAG
     void* work_function_context;
 } WORK_ITEM_CONTEXT;
 
+typedef struct THREADPOOL_WORK_ITEM_TAG
+{
+    THREADPOOL_WORK_FUNCTION work_function;
+    void* work_function_context;
+    PTP_WORK* ptp_work;
+} THREADPOOL_WORK_ITEM, *THREADPOOL_WORK_ITEM_HANDLE;
+
 typedef struct TIMER_INSTANCE_TAG
 {
     PTP_TIMER timer;
@@ -78,6 +85,11 @@ static VOID CALLBACK on_work_callback(PTP_CALLBACK_INSTANCE instance, PVOID cont
     }
 }
 
+static VOID CALLBACK on_work_callback_v2(PTP_CALLBACK_INSTANCE instance, PVOID context, PTP_WORK work)
+{
+    LogWarning("Printing %p %p %p", instance, context, work);
+}
+
 static void internal_close(THREADPOOL* threadpool)
 {
     do
@@ -113,7 +125,7 @@ static void threadpool_dispose(THREADPOOL* threadpool)
         int32_t current_state = InterlockedCompareExchange(&threadpool->state, THREADPOOL_WIN32_STATE_CLOSING, THREADPOOL_WIN32_STATE_OPEN);
         if (current_state == THREADPOOL_WIN32_STATE_OPEN)
         {
-            /* Codes_SRS_THREADPOOL_WIN32_01_007: [ threadpool_destroy shall perform an implicit close if threadpool is OPEN. ]*/
+            /* Codes_SRS_THREADPOOL_WIN32_01_007: [ threadpool_dispose shall perform an implicit close if threadpool is OPEN. ]*/
             internal_close(threadpool);
             break;
         }
@@ -263,6 +275,26 @@ void threadpool_close(THANDLE(THREADPOOL) threadpool)
             internal_close(threadpool_ptr);
         }
     }
+}
+
+THREADPOOL_WORK_ITEM_HANDLE threadpool_create_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context)
+{
+    (void*)threadpool;
+    (void*)work_function;
+    (void*)work_function_context;
+    return NULL;
+}
+
+int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_ITEM_HANDLE work_item_context)
+{
+    (void*)threadpool;
+    (void*)work_item_context;
+    return 0;
+}
+
+void threadpool_destroy_work_item(THREADPOOL_WORK_ITEM_HANDLE work_item_context)
+{
+    (void*)work_item_context;
 }
 
 int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context)
