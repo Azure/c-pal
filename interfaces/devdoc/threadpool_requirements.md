@@ -138,7 +138,7 @@ MOCKABLE_FUNCTION(, THREADPOOL_WORK_ITEM_HANDLE, threadpool_create_work_item, TH
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_ITEM_HANDLE, work_item_context);
 ```
 
-`threadpool_schedule_work_item` schedules a work item to be executed by the threadpool. This API is called multiple times on the same `THREADPOOL_WORK_ITEM_HANDLE` and fails only if the arguments are passed `NULL`.
+`threadpool_schedule_work_item` schedules a work item to be executed by the threadpool. This API can be called multiple times on the same `THREADPOOL_WORK_ITEM_HANDLE` and fails only if the arguments are passed `NULL`.
 
 **NON_THREADPOOL_05_008: [** If `threadpool` is NULL, `threadpool_schedule_work_item` shall fail and return a `non-zero` value. **]**
 
