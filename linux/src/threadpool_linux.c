@@ -73,6 +73,14 @@ typedef struct THREADPOOL_TASK_TAG
     volatile uint32_t pending_api_calls;
 } THREADPOOL_TASK;
 
+typedef struct THREADPOOL_WORK_ITEM_TAG
+{
+    volatile_atomic int32_t task_state;
+    THREADPOOL_WORK_FUNCTION work_function;
+    void* work_function_ctx;
+    volatile uint32_t pending_api_calls;
+} THREADPOOL_WORK_ITEM, * THREADPOOL_WORK_ITEM_HANDLE;
+
 typedef struct THREADPOOL_TAG
 {
     volatile_atomic int32_t run_thread;
@@ -505,6 +513,23 @@ void threadpool_close(THANDLE(THREADPOOL) threadpool)
         THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
         internal_close(threadpool_ptr);
     }
+}
+
+THREADPOOL_WORK_ITEM_HANDLE threadpool_create_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context)
+{
+    LogWarning("Not Implemented: threadpool_create_work_item(%p, %p, %p)", threadpool, work_function, work_function_context);
+    return NULL;
+}
+
+int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_ITEM_HANDLE work_item_context)
+{
+    LogWarning("Not Implemented: threadpool_schedule_work_item(%p)", work_item_context);
+    return 0;
+}
+
+void threadpool_work_context_destroy(THREADPOOL_WORK_ITEM_HANDLE work_item_context)
+{
+    LogWarning("Not Implemented: threadpool_work_context_destroy(%p)", work_item_context);
 }
 
 int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_ctx)
