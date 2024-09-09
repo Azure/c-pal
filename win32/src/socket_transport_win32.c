@@ -240,6 +240,58 @@ all_ok:
     return result;
 }
 
+SOCKET_TRANSPORT_HANDLE socket_transport_create_from_socket(SOCKET_HANDLE socket_handle)
+{
+    SOCKET_TRANSPORT* result;
+    // Codes_SOCKET_TRANSPORT_WIN32_09_096: [ If socket_handle is an INVALID_SOCKET, socket_transport_create_from_socket shall fail and return NULL. ]
+    if ((SOCKET)socket_handle == INVALID_SOCKET)
+    {
+        LogError("Invalid socket, unable to create socket_transport_handle.");
+    }
+    else
+    {
+        // Codes_SOCKET_TRANSPORT_WIN32_09_097: [ socket_transport_create_from_socket shall allocate a new SOCKET_TRANSPORT object. ]
+        result = malloc(sizeof(SOCKET_TRANSPORT));
+        if (result == NULL)
+        {
+            LogError("failure allocating SOCKET_TRANSPORT: %zu", sizeof(SOCKET_TRANSPORT));
+        }
+        else
+        {
+            // Codes_SOCKET_TRANSPORT_WIN32_09_098: [ socket_transport_create_from_socket shall call sm_create to create a sm_object with the type set to SOCKET_CLIENT. ]
+            result->sm = sm_create("Socket_transport_win32");
+            if (result->sm == NULL)
+            {
+                LogError("sm_create failed.");
+            }
+            else
+            {
+                // Codes_SOCKET_TRANSPORT_WIN32_09_014: [ If sm_open_begin does not return SM_EXEC_GRANTED, socket_transport_create_from_socket shall fail and return NULL. ]
+                SM_RESULT open_result = sm_open_begin(result->sm);
+                if (open_result == SM_EXEC_GRANTED)
+                {
+                    result->type = SOCKET_CLIENT;
+                    // Codes_SOCKET_TRANSPORT_WIN32_09_099: [ socket_transport_create_from_socket shall assign the socket_handle to the new allocated socket transport. ]
+                    result->socket = (SOCKET)socket_handle;
+                    sm_open_end(result->sm, true);
+                    // Codes_SOCKET_TRANSPORT_WIN32_09_101: [ On success socket_transport_create_from_socket shall return SOCKET_TRANSPORT_HANDLE. ]
+                    goto all_ok;
+                }
+                else
+                {
+                    LogError("sm_open_begin failed with %" PRI_MU_ENUM " in accept, closing incoming socket.", MU_ENUM_VALUE(SM_RESULT, open_result));
+                }
+                sm_destroy(result->sm);
+            }
+            free(result);
+        }
+    }
+    // Codes_SOCKET_TRANSPORT_WIN32_09_100: [ On any failure socket_transport_create_from_socket shall return NULL. ]
+    result = NULL;
+all_ok:
+    return result;
+}
+
 void socket_transport_destroy(SOCKET_TRANSPORT_HANDLE socket_transport)
 {
     // Codes_SOCKET_TRANSPORT_WIN32_09_006: [ If socket_transport is NULL socket_transport_destroy shall return. ]
@@ -756,6 +808,29 @@ SOCKET_HANDLE socket_transport_get_underlying_socket(SOCKET_TRANSPORT_HANDLE soc
 
             // Codes_SOCKET_TRANSPORT_WIN32_09_082: [ socket_transport_get_underlying_socket shall call sm_exec_end. ]
             sm_exec_end(socket_transport->sm);
+        }
+    }
+    return result;
+}
+
+bool socket_transport_is_valid_socket(SOCKET_TRANSPORT_HANDLE socket_transport_handle)
+{
+    bool result;
+    if (socket_transport_handle == NULL)
+    {
+        result = false;
+        LogError("Invalid argument: SOCKET_TRANSPORT_HANDLE socket_transport_handle: %p", socket_transport_handle);
+    }
+    else
+    {
+        if (socket_transport_handle->socket == INVALID_SOCKET)
+        {
+            result = false;
+            LogError("Invalid socket in argument: SOCKET_TRANSPORT_HANDLE socket_transport_handle: %p", socket_transport_handle);
+        }
+        else
+        {
+            result = true;
         }
     }
     return result;

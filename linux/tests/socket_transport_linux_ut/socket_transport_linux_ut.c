@@ -1581,4 +1581,131 @@ TEST_FUNCTION(socket_transport_get_underlying_socket_not_open_fail)
     socket_transport_destroy(socket_handle);
 }
 
+// Tests_SOCKET_TRANSPORT_LINUX_11_087: [ socket_transport_create_from_socket shall allocate a new SOCKET_TRANSPORT object. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_088: [ socket_transport_create_from_socket shall call sm_create to create a sm_object with the type set to SOCKET_CLIENT. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_096: [ socket_transport_create_from_socket shall assign the socket_handle to the new allocated socket transport. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_091: [ On success socket_transport_create_from_socket shall return SOCKET_TRANSPORT_HANDLE. ]
+TEST_FUNCTION(socket_transport_create_from_socket_succeeds)
+{
+    //arrange
+    umock_c_reset_all_calls();
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(sm_create(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(sm_open_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(sm_open_end(IGNORED_ARG, true));
+
+    //act
+    SOCKET_TRANSPORT_HANDLE socket_transport = socket_transport_create_from_socket((SOCKET_HANDLE)test_socket);
+
+    //assert
+    ASSERT_IS_NOT_NULL(socket_transport);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    socket_transport_destroy(socket_transport);
+}
+
+// Tests_SOCKET_TRANSPORT_LINUX_11_086: [ If socket_handle is an INVALID_SOCKET, socket_transport_create_from_socket shall fail and return NULL. ]
+TEST_FUNCTION(socket_transport_create_from_socket_invalid_input)
+{
+    //arrange
+    umock_c_reset_all_calls();
+
+    //act
+    SOCKET_TRANSPORT_HANDLE socket_transport = socket_transport_create_from_socket((SOCKET_HANDLE)INVALID_SOCKET);
+
+    //assert
+    ASSERT_IS_NULL(socket_transport);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+// Tests_SOCKET_TRANSPORT_LINUX_11_097: [ If sm_open_begin does not return SM_EXEC_GRANTED, socket_transport_create_from_socket shall fail and return NULL. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_090: [ On any failure socket_transport_create_from_socket shall return NULL. ]
+TEST_FUNCTION(socket_transport_create_from_socket_fail)
+{
+    //arrange
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(sm_create(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(sm_open_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(sm_destroy(IGNORED_ARG));
+    umock_c_negative_tests_snapshot();
+
+    for (size_t index = 0; index < umock_c_negative_tests_call_count(); index++)
+    {
+        if (umock_c_negative_tests_can_call_fail(index))
+        {
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(index);
+
+            //act
+            SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_from_socket((SOCKET_HANDLE)test_socket);
+
+            //assert
+            ASSERT_IS_NULL(socket_handle);
+
+            //cleanup
+            socket_transport_destroy(socket_handle);
+        }
+    }
+}
+
+// Tests_SOCKET_TRANSPORT_LINUX_11_093: [ If socket_transport_handle is NULL, socket_transport_is_valid_socket shall fail and return false. ]
+TEST_FUNCTION(socket_transport_is_valid_socket_NULL_input)
+{
+    //arrange
+    umock_c_reset_all_calls();
+
+    //act
+    bool result = socket_transport_is_valid_socket(NULL);
+
+    //assert
+    ASSERT_IS_TRUE(!result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+// Tests_SOCKET_TRANSPORT_LINUX_11_095: [ On success, socket_transport_is_valid_socket shall return true. ]
+TEST_FUNCTION(socket_transport_is_valid_socket_succeeds)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE test_socket_transport = socket_transport_create_client();
+    socket_transport_connect(test_socket_transport, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT);
+    umock_c_reset_all_calls();
+
+    //act
+    bool result = socket_transport_is_valid_socket(test_socket_transport);
+
+    //assert
+    ASSERT_IS_TRUE(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    socket_transport_disconnect(test_socket_transport);
+    socket_transport_destroy(test_socket_transport);
+}
+
+// Tests_SOCKET_TRANSPORT_LINUX_11_094: [ If the socket inside socket_transport_handle is an INVALID_SOCKET, socket_transport_is_valid_socket shall fail and return false. ]
+TEST_FUNCTION(socket_transport_is_valid_socket_INVALID_SOCKET)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE test_socket_transport = socket_transport_create_client();
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(sm_open_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(socket(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(INVALID_SOCKET);
+    STRICT_EXPECTED_CALL(sm_open_end(IGNORED_ARG, false));
+
+    //act
+    socket_transport_connect(test_socket_transport, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT);
+    bool result = socket_transport_is_valid_socket(test_socket_transport);
+
+    //assert
+    ASSERT_IS_TRUE(!result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    socket_transport_disconnect(test_socket_transport);
+    socket_transport_destroy(test_socket_transport);
+}
+
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
