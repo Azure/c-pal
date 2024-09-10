@@ -527,7 +527,7 @@ int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WOR
     return 0;
 }
 
-void threadpool_work_context_destroy(THREADPOOL_WORK_ITEM_HANDLE work_item_context)
+static void threadpool_work_context_destroy(THREADPOOL_WORK_ITEM_HANDLE work_item_context)
 {
     LogWarning("Not Implemented: threadpool_work_context_destroy(%p)", work_item_context);
 }
