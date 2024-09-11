@@ -142,6 +142,8 @@ MOCKABLE_FUNCTION(, void, async_socket_destroy, ASYNC_SOCKET_HANDLE, async_socke
 
 **SRS_ASYNC_SOCKET_LINUX_11_021: [** `async_socket_destroy` shall perform an implicit close if `async_socket` is `OPEN`. **]**
 
+**SRS_ASYNC_SOCKET_LINUX_11_103: [** If the `socket_transport` is not NULL, `async_socket_destroy` shall call `socket_transport_destroy`. **]**
+
 **SRS_ASYNC_SOCKET_LINUX_11_022: [** `async_socket_destroy` shall decrement the reference count on the completion port. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_023: [** `async_socket_destroy` shall free all resources associated with `async_socket`. **]**
@@ -191,6 +193,8 @@ MOCKABLE_FUNCTION(, void, async_socket_close, ASYNC_SOCKET_HANDLE, async_socket)
 **SRS_ASYNC_SOCKET_LINUX_11_037: [** `async_socket_close` shall wait for all executing `async_socket_send_async` and `async_socket_receive_async` APIs. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_041: [** `async_socket_close` shall set the state to CLOSED. **]**
+
+**SRS_ASYNC_SOCKET_LINUX_11_104: [** `async_socket_close` shall call `socket_transport_disconnect`. **]**
 
 **SRS_ASYNC_SOCKET_LINUX_11_042: [** If `async_socket` is not OPEN, `async_socket_close` shall return. **]**
 

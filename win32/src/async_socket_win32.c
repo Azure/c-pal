@@ -21,8 +21,6 @@
 
 #include "c_pal/async_socket.h"
 
-
-
 #define ASYNC_SOCKET_WIN32_STATE_VALUES \
     ASYNC_SOCKET_WIN32_STATE_CLOSED, \
     ASYNC_SOCKET_WIN32_STATE_OPENING, \
@@ -225,6 +223,9 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
         (void)WaitOnAddress(&async_socket->pending_api_calls, &current_pending_api_calls, sizeof(current_pending_api_calls), INFINITE);
     } while (1);
 
+    // Codes_SRS_ASYNC_SOCKET_WIN32_11_002: [ async_socket_close shall call socket_transport_disconnect. ]
+    socket_transport_disconnect(async_socket->socket_transport_handle);
+
     /* Codes_SRS_ASYNC_SOCKET_WIN32_01_040: [ async_socket_close shall wait for any executing callbacks by calling WaitForThreadpoolIoCallbacks, passing FALSE as fCancelPendingCallbacks. ]*/
     WaitForThreadpoolIoCallbacks(async_socket->tp_io, FALSE);
 
@@ -281,6 +282,7 @@ ASYNC_SOCKET_HANDLE async_socket_create(EXECUTION_ENGINE_HANDLE execution_engine
             /* Codes_SRS_ASYNC_SOCKET_WIN32_01_035: [ async_socket_create shall obtain the PTP_POOL from the execution engine passed to async_socket_create by calling execution_engine_win32_get_threadpool. ]*/
             result->pool = execution_engine_win32_get_threadpool(execution_engine);
 
+            result->socket_transport_handle = NULL;
             (void)InterlockedExchange(&result->pending_api_calls, 0);
             (void)InterlockedExchange(&result->state, (LONG)ASYNC_SOCKET_WIN32_STATE_CLOSED);
 
@@ -321,6 +323,12 @@ void async_socket_destroy(ASYNC_SOCKET_HANDLE async_socket)
 
             (void)WaitOnAddress(&async_socket->state, &current_state, sizeof(current_state), INFINITE);
         } while (1);
+
+        if (async_socket->socket_transport_handle != NULL)
+        {
+            // Codes_SRS_ASYNC_SOCKET_WIN32_11_001: [ If the socket_transport is not NULL, async_socket_destroy shall call socket_transport_destroy. ]
+            socket_transport_destroy(async_socket->socket_transport_handle);
+        }
 
         /* Codes_SRS_ASYNC_SOCKET_WIN32_42_005: [ async_socket_destroy shall decrement the reference count on the execution engine. ]*/
         execution_engine_dec_ref(async_socket->execution_engine);

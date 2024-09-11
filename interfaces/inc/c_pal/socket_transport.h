@@ -3,12 +3,6 @@
 #ifndef SOCKET_TRANSPORT_H
 #define SOCKET_TRANSPORT_H
 
-#include "macro_utils/macro_utils.h"
-
-#include "umock_c/umock_c_prod.h"
-
-#include "socket_handle.h"
-
 #ifdef __cplusplus
 #include <cstdint>
 extern "C" {
@@ -16,6 +10,12 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 #endif
+
+#include "macro_utils/macro_utils.h"
+
+#include "umock_c/umock_c_prod.h"
+
+#include "c_pal/socket_handle.h"
 
 typedef struct SOCKET_TRANSPORT_TAG* SOCKET_TRANSPORT_HANDLE;
 

@@ -4,8 +4,10 @@
 #define ASYNC_SOCKET_H
 
 #include "macro_utils/macro_utils.h"
+
 #include "c_pal/execution_engine.h"
-#include "socket_transport.h"
+#include "c_pal/socket_transport.h"
+
 #include "umock_c/umock_c_prod.h"
 
 #ifdef __cplusplus

@@ -17,7 +17,7 @@
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umocktypes_charptr.h"
 #include "umock_c/umock_c_negative_tests.h"
-#include "c_logging/logger.h" 
+#include "c_logging/logger.h"
 
 #define ENABLE_MOCKS
 
@@ -124,6 +124,7 @@ static void mock_internal_close_setup(void)
 {
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(socket_transport_disconnect(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
@@ -367,6 +368,7 @@ TEST_FUNCTION(async_socket_destroy_with_NULL_returns)
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_020: [ While async_socket is OPENING or CLOSING, async_socket_destroy shall wait for the open/close to complete either successfully or with error. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_103: [ If the socket_transport is not NULL, async_socket_destroy shall call socket_transport_destroy. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_022: [ async_socket_destroy shall decrement the reference count on the completion port. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_023: [ async_socket_destroy shall free all resources associated with async_socket. ]
 TEST_FUNCTION(async_socket_destroy_frees_resources)
@@ -401,6 +403,7 @@ TEST_FUNCTION(async_socket_destroy_closes_first_if_open)
     // close first
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     mock_internal_close_setup();
+    STRICT_EXPECTED_CALL(socket_transport_destroy(IGNORED_ARG));
     STRICT_EXPECTED_CALL(completion_port_dec_ref(IGNORED_ARG));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
@@ -596,6 +599,7 @@ TEST_FUNCTION(async_socket_close_with_NULL_returns)
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_036: [ Otherwise, async_socket_close shall switch the state to CLOSING. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_037: [ async_socket_close shall wait for all executing async_socket_send_async and async_socket_receive_async APIs. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_041: [ async_socket_close shall set the state to closed. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_104: [ async_socket_close shall call socket_transport_disconnect. ]
 TEST_FUNCTION(async_socket_close_reverses_the_actions_from_open)
 {
     // arrange
@@ -2721,7 +2725,7 @@ TEST_FUNCTION(async_socket_notify_io_async_succeeds_for_OUT)
     // cleanup
     async_socket_destroy(async_socket);
     free(g_event_callback_ctx);
-    
+
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_04_020: [ If any error occurs, async_socket_notify_io_async shall fail and return a non-zero value. ]
@@ -2753,7 +2757,7 @@ TEST_FUNCTION(async_socket_notify_io_async_fails_when_completion_port_add_fails)
 
     // cleanup
     async_socket_destroy(async_socket);
-    
+
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

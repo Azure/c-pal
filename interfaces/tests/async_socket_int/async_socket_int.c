@@ -1,30 +1,27 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+#include <stdlib.h>
 #include <inttypes.h>
-#include <sys/socket.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <string.h>
 
 #include "testrunnerswitcher.h"
 
-#include "macro_utils/macro_utils.h" // IWYU pragma: keep
+#include "macro_utils/macro_utils.h"
 
 #include "c_pal/async_socket.h"
 #include "c_pal/execution_engine.h"
-#include "c_pal/gballoc_hl.h"
 #include "c_pal/interlocked.h"
-#include "c_pal/sync.h"
-#include "c_pal/socket_handle.h"
+#include "c_pal/gballoc_hl.h"
 #include "c_pal/platform.h"
 #include "c_pal/socket_transport.h"
+#include "c_pal/socket_handle.h"
+#include "c_pal/sync.h"
 
-#define SOCKET_SEND_FLAG MSG_NOSIGNAL
+#define XTEST_FUNCTION(x) void x(void)
+
 #define TEST_PORT           4466
-
 #define TEST_CONN_TIMEOUT   10000
 
-static int g_port_num = TEST_PORT;
+static uint16_t g_port_num = TEST_PORT;
 
 TEST_DEFINE_ENUM_TYPE(ASYNC_SOCKET_OPEN_RESULT, ASYNC_SOCKET_OPEN_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_RESULT_VALUES)
@@ -51,6 +48,7 @@ static void on_send_complete(void* context, ASYNC_SOCKET_SEND_RESULT send_result
 
 static void on_receive_complete(void* context, ASYNC_SOCKET_RECEIVE_RESULT receive_result, uint32_t bytes_received)
 {
+    (void)bytes_received;
     volatile_atomic int32_t* thread_counter = (volatile_atomic int32_t*)context;
 
     ASSERT_ARE_EQUAL(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_OK, receive_result);
@@ -60,6 +58,8 @@ static void on_receive_complete(void* context, ASYNC_SOCKET_RECEIVE_RESULT recei
 
 static void on_receive_abandoned_complete(void* context, ASYNC_SOCKET_RECEIVE_RESULT receive_result, uint32_t bytes_received)
 {
+    (void)context;
+    (void)bytes_received;
     ASSERT_ARE_EQUAL(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_ABANDONED, receive_result);
 }
 
@@ -74,20 +74,12 @@ static void on_receive_and_accumulate_complete(void* context, ASYNC_SOCKET_RECEI
 
 static void on_receive_complete_with_error(void* context, ASYNC_SOCKET_RECEIVE_RESULT receive_result, uint32_t bytes_received)
 {
+    (void)bytes_received;
     volatile_atomic int32_t* thread_counter = (volatile_atomic int32_t*)context;
 
     ASSERT_ARE_EQUAL(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_ABANDONED, receive_result);
     (void)interlocked_increment(thread_counter);
     wake_by_address_single(thread_counter);
-}
-
-static void set_nonblocking(SOCKET_HANDLE socket)
-{
-    int opts = fcntl(socket, F_GETFL);
-    ASSERT_IS_TRUE(opts >= 0, "Failure getting socket option");
-
-    opts = fcntl(socket, F_SETFL, opts|O_NONBLOCK);
-    ASSERT_IS_TRUE(opts >= 0, "Failure setting socket option");
 }
 
 static void wait_for_value(volatile_atomic int32_t* counter, int32_t target_value)
@@ -106,6 +98,16 @@ static void open_async_handle(ASYNC_SOCKET_HANDLE handle, SOCKET_TRANSPORT_HANDL
     ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(handle, socket, on_open_complete, (void*)&counter), "Failure opening async socket");
 
     wait_for_value(&counter, 1);
+}
+
+void set_up_listen_socket(SOCKET_TRANSPORT_HANDLE listen_socket)
+{
+    int result = socket_transport_listen(listen_socket, g_port_num);
+    if(result != 0)
+    {
+        g_port_num++;
+        ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num), "failed listening on port %" PRIu16 "", g_port_num);
+    }
 }
 
 static void dump_bytes(const char* msg, uint8_t data_payload[], uint32_t length)
@@ -141,16 +143,6 @@ TEST_FUNCTION_INITIALIZE(method_init)
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
 {
-}
-
-void set_up_listen_socket(SOCKET_TRANSPORT_HANDLE listen_socket)
-{
-    int result = socket_transport_listen(listen_socket, g_port_num);
-    if(result != 0)
-    {
-        g_port_num++;
-        ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num), "failed listening on port %" PRIu16 "", g_port_num);
-    }
 }
 
 TEST_FUNCTION(connect_no_send_succeeds)
@@ -197,13 +189,13 @@ TEST_FUNCTION(connect_no_send_succeeds)
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(client_async_socket, receive_payload_buffers, 1, on_receive_abandoned_complete, NULL));
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(server_async_socket, receive_payload_buffers, 1, on_receive_abandoned_complete, NULL));
 
+    //socket_transport_disconnect(server_socket);
+    //socket_transport_disconnect(client_socket);
+    socket_transport_disconnect(listen_socket);
     async_socket_close(server_async_socket);
     async_socket_close(client_async_socket);
-    socket_transport_disconnect(server_socket);
-    socket_transport_destroy(server_socket);
-    socket_transport_disconnect(client_socket);
-    socket_transport_destroy(client_socket);
-    socket_transport_disconnect(listen_socket);
+    //socket_transport_destroy(server_socket);
+    //socket_transport_destroy(client_socket);
     socket_transport_destroy(listen_socket);
     async_socket_destroy(server_async_socket);
     async_socket_destroy(client_async_socket);
@@ -242,7 +234,7 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
     ASSERT_IS_NOT_NULL(server_async_socket);
     ASYNC_SOCKET_HANDLE client_async_socket = async_socket_create(execution_engine);
     ASSERT_IS_NOT_NULL(client_async_socket);
-    
+
     // wait for open to complete
     open_async_handle(server_async_socket, server_socket);
     open_async_handle(client_async_socket, client_socket);
@@ -272,12 +264,12 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
 
     ASSERT_ARE_EQUAL(int, 0, memcmp(receive_payload_buffers[0].buffer, send_payload_buffers[0].buffer, sizeof(data_payload)));
 
-    async_socket_close(server_async_socket);
-    async_socket_close(client_async_socket);
-    socket_transport_disconnect(server_socket);
-    socket_transport_destroy(server_socket);
-    socket_transport_disconnect(client_socket);
-    socket_transport_destroy(client_socket);
+    //async_socket_close(server_async_socket);
+    //async_socket_close(client_async_socket);
+    //socket_transport_disconnect(server_socket);
+    //socket_transport_destroy(server_socket);
+    //socket_transport_disconnect(client_socket);
+    //socket_transport_destroy(client_socket);
     socket_transport_disconnect(listen_socket);
     socket_transport_destroy(listen_socket);
     async_socket_destroy(server_async_socket);
@@ -354,10 +346,10 @@ TEST_FUNCTION(receive_and_send_2_buffers_succeeds)
     // cleanup
     async_socket_close(server_async_socket);
     async_socket_close(client_async_socket);
-    socket_transport_disconnect(server_socket);
-    socket_transport_destroy(server_socket);
-    socket_transport_disconnect(client_socket);
-    socket_transport_destroy(client_socket);
+    //socket_transport_disconnect(server_socket);
+    //socket_transport_destroy(server_socket);
+    //socket_transport_disconnect(client_socket);
+    //socket_transport_destroy(client_socket);
     socket_transport_disconnect(listen_socket);
     socket_transport_destroy(listen_socket);
     async_socket_destroy(server_async_socket);
@@ -407,7 +399,6 @@ TEST_FUNCTION(when_server_socket_is_closed_receive_errors_on_client_side)
     volatile_atomic int32_t recv_counter;
     interlocked_exchange(&recv_counter, 0);
 
-    //close(accept_socket);
     socket_transport_disconnect(server_socket);
 
     // act (send one byte and receive it)
@@ -419,8 +410,8 @@ TEST_FUNCTION(when_server_socket_is_closed_receive_errors_on_client_side)
     // cleanup
     async_socket_close(client_async_socket);
     socket_transport_destroy(server_socket);
-    socket_transport_disconnect(client_socket);
-    socket_transport_destroy(client_socket);
+    //socket_transport_disconnect(client_socket);
+    //socket_transport_destroy(client_socket);
     socket_transport_disconnect(listen_socket);
     socket_transport_destroy(listen_socket);
     async_socket_destroy(client_async_socket);
@@ -441,7 +432,7 @@ TEST_FUNCTION(multiple_sends_and_receives_succeeds)
 
     listen_socket = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(listen_socket);
-    
+
     set_up_listen_socket(listen_socket);
 
     // create the async socket object
@@ -497,10 +488,10 @@ TEST_FUNCTION(multiple_sends_and_receives_succeeds)
 
     async_socket_close(server_async_socket);
     async_socket_close(client_async_socket);
-    socket_transport_disconnect(server_socket);
-    socket_transport_destroy(server_socket);
-    socket_transport_disconnect(client_socket);
-    socket_transport_destroy(client_socket);
+    //socket_transport_disconnect(server_socket);
+    //socket_transport_destroy(server_socket);
+    //socket_transport_disconnect(client_socket);
+    //socket_transport_destroy(client_socket);
     socket_transport_disconnect(listen_socket);
     socket_transport_destroy(listen_socket);
     async_socket_destroy(server_async_socket);
@@ -528,7 +519,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _sockets_items))
 
     SOCKET_TRANSPORT_HANDLE client_socket[N_WORK_ITEMS];
     SOCKET_TRANSPORT_HANDLE server_socket[N_WORK_ITEMS];
-    
+
     uint32_t socket_count = N_WORK_ITEMS;
 
     for (uint32_t index = 0; index < socket_count; index++)
@@ -587,10 +578,10 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _sockets_items))
     {
         async_socket_close(server_async_socket[index]);
         async_socket_close(client_async_socket[index]);
-        socket_transport_disconnect(client_socket[index]);
-        socket_transport_destroy(client_socket[index]);
-        socket_transport_disconnect(server_socket[index]);
-        socket_transport_destroy(server_socket[index]);
+        //socket_transport_disconnect(client_socket[index]);
+        //socket_transport_destroy(client_socket[index]);
+        //socket_transport_disconnect(server_socket[index]);
+        //socket_transport_destroy(server_socket[index]);
         async_socket_destroy(server_async_socket[index]);
         async_socket_destroy(client_async_socket[index]);
     }
