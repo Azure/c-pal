@@ -3,11 +3,7 @@
 
 #include <stdint.h>
 
-#undef DECLSPEC_IMPORT
-
-#pragma warning(disable: 4273)
-
-#include <winsock2.h>
+#include "winsock2.h"
 
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
@@ -16,19 +12,14 @@
 #include "umock_c/umock_c_negative_tests.h"
 #include "macro_utils/macro_utils.h"
 
-#define ENABLE_MOCKS
-
-#include "umock_c/umock_c_prod.h"
-#undef ENABLE_MOCKS
-
 #include "c_pal/platform.h"
 
 #define ENABLE_MOCKS
 
-MOCK_FUNCTION_WITH_CODE(WSAAPI, int, WSAStartup, WORD, wVersionRequested, LPWSADATA, lpWSAData)
+MOCK_FUNCTION_WITH_CODE(, int, mocked_WSAStartup, WORD, wVersionRequested, LPWSADATA, lpWSAData)
 MOCK_FUNCTION_END(0)
 
-MOCK_FUNCTION_WITH_CODE(WSAAPI, int, WSACleanup)
+MOCK_FUNCTION_WITH_CODE(, int, mocked_WSACleanup)
 MOCK_FUNCTION_END(0)
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
@@ -74,7 +65,7 @@ TEST_FUNCTION(platform_init_success)
     int result;
 
     //arrange
-    STRICT_EXPECTED_CALL(WSAStartup(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_WSAStartup(IGNORED_ARG, IGNORED_ARG));
 
     //act
     result = platform_init();
@@ -91,7 +82,7 @@ TEST_FUNCTION(platform_init_WSAStartup_0_fail)
     int result;
 
     //arrange
-    STRICT_EXPECTED_CALL(WSAStartup(IGNORED_ARG, IGNORED_ARG)).SetReturn(1);
+    STRICT_EXPECTED_CALL(mocked_WSAStartup(IGNORED_ARG, IGNORED_ARG)).SetReturn(1);
 
     //act
     result = platform_init();
@@ -106,7 +97,7 @@ TEST_FUNCTION(platform_init_WSAStartup_0_fail)
 TEST_FUNCTION(platform_deinit_success)
 {
     //arrange
-    STRICT_EXPECTED_CALL(WSACleanup());
+    STRICT_EXPECTED_CALL(mocked_WSACleanup());
 
     //act
     platform_deinit();

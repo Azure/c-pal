@@ -2,13 +2,14 @@
 
 #include <inttypes.h>
 
+#include "Windows.h"
+#include "pdh.h"
+
 #include "macro_utils/macro_utils.h"
 #include "c_logging/logger.h"
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/srw_lock.h"
-
-#include "pdh.h"
 
 #include "c_pal/single_performance_counter.h"
 
@@ -65,7 +66,7 @@ static int get_current_app_name(char* app_name, uint32_t app_name_size)
             else
             {
                 // Codes_SRS_SINGLE_PERFORMANCE_COUNTER_45_009: [ single_performance_counter_create shall call snprintf to copy the executable name without extension. ]
-                int bytes_printed = snprintf(app_name, app_name_size, "%*.*s", 
+                int bytes_printed = snprintf(app_name, app_name_size, "%*.*s",
                     (int)(where_is_last_dot - where_is_last_backslash), (int)(where_is_last_dot - where_is_last_backslash), where_is_last_backslash);
                 if (bytes_printed < 0)
                 {
@@ -126,8 +127,8 @@ static int get_current_counter_path_string(const char* performance_object, const
 IMPLEMENT_MOCKABLE_FUNCTION(, SINGLE_PERFORMANCE_COUNTER_HANDLE, single_performance_counter_create, const char*, performance_object, const char*, performance_counter)
 {
     SINGLE_PERFORMANCE_COUNTER_HANDLE result;
-    if 
-    ( 
+    if
+    (
         // Codes_SRS_SINGLE_PERFORMANCE_COUNTER_45_002: [ single_performance_counter_create shall return NULL if performance_object is NULL. ]
         performance_object == NULL ||
         // Codes_SRS_SINGLE_PERFORMANCE_COUNTER_45_003: [ single_performance_counter_create shall return NULL if performance_counter is NULL. ]
