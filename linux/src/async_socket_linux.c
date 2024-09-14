@@ -434,9 +434,6 @@ static void internal_close(ASYNC_SOCKET_HANDLE async_socket)
         completion_port_remove(async_socket->completion_port, socket_transport_get_underlying_socket(async_socket->socket_transport_handle));
     }
 
-    // Codes_SRS_ASYNC_SOCKET_LINUX_11_104: [ async_socket_close shall call socket_transport_disconnect. ]
-    socket_transport_disconnect(async_socket->socket_transport_handle);
-
     // Codes_SRS_ASYNC_SOCKET_LINUX_11_041: [ async_socket_close shall set the state to closed. ]
     (void)interlocked_exchange(&async_socket->state, ASYNC_SOCKET_LINUX_STATE_CLOSED);
     wake_by_address_single(&async_socket->state);
@@ -523,12 +520,6 @@ void async_socket_destroy(ASYNC_SOCKET_HANDLE async_socket)
             }
             (void)wait_on_address(&async_socket->state, current_state, UINT32_MAX);
         } while (1);
-
-        if (async_socket->socket_transport_handle != NULL)
-        {
-            // Codes_SRS_ASYNC_SOCKET_LINUX_11_103: [ If the socket_transport is not NULL, async_socket_destroy shall call socket_transport_destroy. ]
-            socket_transport_destroy(async_socket->socket_transport_handle);
-        }
 
         // Codes_SRS_ASYNC_SOCKET_LINUX_11_022: [ async_socket_destroy shall decrement the reference count on the completion port. ]
         completion_port_dec_ref(async_socket->completion_port);
