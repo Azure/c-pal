@@ -95,6 +95,21 @@ void timer_destroy(TIMER_HANDLE timer)
 static LARGE_INTEGER g_freq;
 static volatile LONG g_timer_state = 0; /*0 - not "created", 1 - "created", "2" - creating*/
 
+/*returns a time in seconds since "some" start.*/
+double timer_global_get_elapsed(void)
+{
+    while (InterlockedCompareExchange(&g_timer_state, 2, 0) != 1)
+    {
+        (void)QueryPerformanceFrequency(&g_freq); /*from MSDN:  On systems that run Windows XP or later, the function will always succeed and will thus never return zero.*/
+        (void)InterlockedExchange(&g_timer_state, 1);
+    }
+
+    /* Codes_SRS_TIMER_27_001: [ timer_global_get_elapsed shall return the elapsed time in seconds from a start time in the past. ]*/
+    LARGE_INTEGER now;
+    (void)QueryPerformanceCounter(&now);
+    return (double)now.QuadPart / (double)g_freq.QuadPart;
+}
+
 /*returns a time in ms since "some" start.*/
 double timer_global_get_elapsed_ms(void)
 {
