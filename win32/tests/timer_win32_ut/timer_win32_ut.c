@@ -69,6 +69,7 @@ TEST_SUITE_CLEANUP(suite_cleanup)
 
 TEST_FUNCTION_INITIALIZE(init)
 {
+    global_timer_state_reset();
     umock_c_reset_all_calls();
 }
 
@@ -240,7 +241,7 @@ TEST_FUNCTION(timer_destroy_frees_handle)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-TEST_FUNCTION(g_timer_get_elapsed_succeeds)
+TEST_FUNCTION(g_timer_get_elapsed_in_seconds_succeeds)
 {
     ///arrange
     LARGE_INTEGER pretendFreq;
@@ -299,6 +300,39 @@ TEST_FUNCTION(g_timer_get_elapsed_in_ms_succeeds)
     ASSERT_IS_TRUE(elapsed1 == 2000.0); /* all integer number up to 2^31 are perfectly representable by double*/
 
     ASSERT_IS_TRUE(elapsed2 == 5000.0); /* all integer number up to 2^31 are perfectly representable by double*/
+
+    //assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+TEST_FUNCTION(g_timer_get_elapsed_in_us_succeeds)
+{
+
+    ///arrange
+    LARGE_INTEGER pretendFreq;
+    pretendFreq.QuadPart = 1000;
+
+    STRICT_EXPECTED_CALL(mocked_QueryPerformanceFrequency(IGNORED_ARG))
+        .CopyOutArgumentBuffer_lpFrequency(&pretendFreq, sizeof(pretendFreq));
+
+    LARGE_INTEGER pretendCounter1;
+    pretendCounter1.QuadPart = 2000;
+    STRICT_EXPECTED_CALL(mocked_QueryPerformanceCounter(IGNORED_ARG))
+        .CopyOutArgumentBuffer_lpPerformanceCount(&pretendCounter1, sizeof(pretendCounter1));
+
+    /*note: missing second QueryPerformanceFrequency*/
+    LARGE_INTEGER pretendCounter2;
+    pretendCounter2.QuadPart = 5000;
+    STRICT_EXPECTED_CALL(mocked_QueryPerformanceCounter(IGNORED_ARG))
+        .CopyOutArgumentBuffer_lpPerformanceCount(&pretendCounter2, sizeof(pretendCounter2));
+
+    ///act
+    double elapsed1 = timer_global_get_elapsed_us();
+    double elapsed2 = timer_global_get_elapsed_us();
+
+    ASSERT_IS_TRUE(elapsed1 == 2000000.0); /* all integer number up to 2^31 are perfectly representable by double*/
+
+    ASSERT_IS_TRUE(elapsed2 == 5000000.0); /* all integer number up to 2^31 are perfectly representable by double*/
 
     //assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());

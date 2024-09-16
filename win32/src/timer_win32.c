@@ -95,6 +95,11 @@ void timer_destroy(TIMER_HANDLE timer)
 static LARGE_INTEGER g_freq;
 static volatile LONG g_timer_state = 0; /*0 - not "created", 1 - "created", "2" - creating*/
 
+void global_timer_state_reset(void)
+{
+    (void)InterlockedExchange(&g_timer_state, 0);
+}
+
 /*returns a time in seconds since "some" start.*/
 double timer_global_get_elapsed(void)
 {
@@ -107,7 +112,7 @@ double timer_global_get_elapsed(void)
     /* Codes_SRS_TIMER_27_001: [ timer_global_get_elapsed shall return the elapsed time in seconds from a start time in the past. ]*/
     LARGE_INTEGER now;
     (void)QueryPerformanceCounter(&now);
-    return (double)now.QuadPart / (double)g_freq.QuadPart;
+    return (double)now.QuadPart/ (double)g_freq.QuadPart;
 }
 
 /*returns a time in ms since "some" start.*/
