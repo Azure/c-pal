@@ -296,7 +296,6 @@ TEST_FUNCTION(async_socket_destroy_frees_resources)
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_094: [ async_socket_open_async shall set the state to OPEN. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_006: [ async_socket_destroy shall perform an implicit close if async_socket is OPEN. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_093: [ While async_socket is OPENING or CLOSING, async_socket_destroy shall wait for the open to complete either successfully or with error. ]*/
-// Tests_SRS_ASYNC_SOCKET_WIN32_11_001: [ If the socket_transport is not NULL, async_socket_destroy shall call socket_transport_destroy. ]
 TEST_FUNCTION(async_socket_destroy_closes_first_if_open)
 {
     // arrange
@@ -314,12 +313,10 @@ TEST_FUNCTION(async_socket_destroy_closes_first_if_open)
     umock_c_reset_all_calls();
 
     // close first
-    STRICT_EXPECTED_CALL(socket_transport_disconnect(test_socket));
     STRICT_EXPECTED_CALL(mocked_WaitForThreadpoolIoCallbacks(test_ptp_io, FALSE));
     STRICT_EXPECTED_CALL(mocked_CloseThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(mocked_DestroyThreadpoolEnvironment(cbe));
 
-    STRICT_EXPECTED_CALL(socket_transport_destroy(test_socket));
     STRICT_EXPECTED_CALL(execution_engine_dec_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
@@ -526,7 +523,6 @@ TEST_FUNCTION(async_socket_close_with_NULL_returns)
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_042: [ async_socket_close shall destroy the thread pool environment created in async_socket_open_async. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_020: [ async_socket_close shall wait for all executing async_socket_send_async and async_socket_receive_async APIs. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_021: [ Then async_socket_close shall close the async socket. ]*/
-// Tests_SRS_ASYNC_SOCKET_WIN32_11_002: [ async_socket_close shall call socket_transport_disconnect. ]
 TEST_FUNCTION(async_socket_close_reverses_the_actions_from_open)
 {
     // arrange
@@ -544,8 +540,6 @@ TEST_FUNCTION(async_socket_close_reverses_the_actions_from_open)
         .CaptureReturn(&test_ptp_io);
     (void)async_socket_open_async(async_socket, test_socket, test_on_open_complete, (void*)0x4242);
     umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(socket_transport_disconnect(test_socket));
 
     STRICT_EXPECTED_CALL(mocked_WaitForThreadpoolIoCallbacks(test_ptp_io, FALSE));
     STRICT_EXPECTED_CALL(mocked_CloseThreadpoolIo(test_ptp_io));

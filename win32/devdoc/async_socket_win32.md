@@ -125,8 +125,6 @@ MOCKABLE_FUNCTION(, void, async_socket_destroy, ASYNC_SOCKET_HANDLE, async_socke
 
 **SRS_ASYNC_SOCKET_WIN32_01_006: [** `async_socket_destroy` shall perform an implicit close if `async_socket` is `OPEN`. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_11_001: [** If the `socket_transport` is not NULL, `async_socket_destroy` shall call `socket_transport_destroy`. **]**
-
 **SRS_ASYNC_SOCKET_WIN32_42_005: [** `async_socket_destroy` shall decrement the reference count on the execution engine. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_005: [** `async_socket_destroy` shall free all resources associated with `async_socket`. **]**
@@ -180,8 +178,6 @@ MOCKABLE_FUNCTION(, void, async_socket_close, ASYNC_SOCKET_HANDLE, async_socket)
 **SRS_ASYNC_SOCKET_WIN32_01_020: [** `async_socket_close` shall wait for all executing `async_socket_send_async` and `async_socket_receive_async` APIs. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_021: [** Then `async_socket_close` shall close the async socket. **]**
-
-**SRS_ASYNC_SOCKET_WIN32_11_002: [** `async_socket_close` shall call `socket_transport_disconnect`. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_040: [** `async_socket_close` shall wait for any executing callbacks by calling `WaitForThreadpoolIoCallbacks`, passing FALSE as `fCancelPendingCallbacks`. **]**
 
