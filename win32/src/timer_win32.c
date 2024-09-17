@@ -101,7 +101,7 @@ void global_timer_state_reset(void)
 }
 
 /*returns a time in seconds since "some" start.*/
-double timer_global_get_elapsed(void)
+double timer_global_get_elapsed_s(void)
 {
     while (InterlockedCompareExchange(&g_timer_state, 2, 0) != 1)
     {
@@ -109,7 +109,7 @@ double timer_global_get_elapsed(void)
         (void)InterlockedExchange(&g_timer_state, 1);
     }
 
-    /* Codes_SRS_TIMER_27_001: [ timer_global_get_elapsed shall return the elapsed time in seconds from a start time in the past. ]*/
+    /* Codes_SRS_TIMER_27_001: [ timer_global_get_elapsed_s shall return the elapsed time in seconds from a start time in the past. ]*/
     LARGE_INTEGER now;
     (void)QueryPerformanceCounter(&now);
     return (double)now.QuadPart/ (double)g_freq.QuadPart;

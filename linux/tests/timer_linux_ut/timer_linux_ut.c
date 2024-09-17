@@ -437,6 +437,51 @@ TEST_FUNCTION(when_clock_gettime_fails_timer_get_elapsed_ms_also_fails)
     timer_destroy(timer);
 }
 
+/* timer_global_get_elapsed_s */
+
+/* Tests_SRS_TIMER_LINUX_27_001: [ timer_global_get_elapsed_s shall call clock_gettime with CLOCK_MONOTONIC to obtain the current timer value. ]*/
+/* Tests_SRS_TIMER_LINUX_27_002: [ timer_global_get_elapsed_s shall return the elapsed time in seconds (as returned by clock_gettime). ]*/
+TEST_FUNCTION(timer_global_get_elapsed_s_succeeds)
+{
+    ///arrange
+    struct timespec time_1;
+    time_1.tv_sec = 0;
+    time_1.tv_nsec = 0;
+    STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_MONOTONIC, IGNORED_ARG))
+        .CopyOutArgumentBuffer_tp(&time_1, sizeof(time_1));
+    struct timespec time_2;
+    time_2.tv_sec = 9;
+    time_2.tv_nsec = 900000000;
+    STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_MONOTONIC, IGNORED_ARG))
+        .CopyOutArgumentBuffer_tp(&time_2, sizeof(time_2));
+
+    ///act
+    double elapsed1 = timer_global_get_elapsed_s();
+    double elapsed2 = timer_global_get_elapsed_s();
+
+    ASSERT_IS_TRUE(elapsed1 == 0.0);
+    ASSERT_IS_TRUE(elapsed2 == 9.9);
+
+    //assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/* Tests_SRS_TIMER_LINUX_27_003: [ If any error occurs, timer_global_get_elapsed_s shall return -1. ]*/
+TEST_FUNCTION(when_clock_gettime_fails_timer_global_get_elapsed_s_also_fails)
+{
+    ///arrange
+    STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_MONOTONIC, IGNORED_ARG))
+        .SetReturn(-1);
+
+    ///act
+    double elapsed = timer_global_get_elapsed_s();
+
+    ASSERT_IS_TRUE(elapsed == -1.0);
+
+    //assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
 /* timer_global_get_elapsed_ms */
 
 /* Tests_SRS_TIMER_LINUX_01_014: [ timer_global_get_elapsed_ms shall call clock_gettime with CLOCK_MONOTONIC to obtain the current timer value. ]*/
@@ -519,7 +564,7 @@ TEST_FUNCTION(when_clock_gettime_fails_timer_global_get_elapsed_us_also_fails)
         .SetReturn(-1);
 
     ///act
-    double elapsed = timer_global_get_elapsed_ms();
+    double elapsed = timer_global_get_elapsed_us();
 
     ASSERT_IS_TRUE(elapsed == -1.0);
 

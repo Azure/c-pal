@@ -14,7 +14,7 @@ MOCKABLE_FUNCTION(, int, timer_start, TIMER_HANDLE, handle);
 MOCKABLE_FUNCTION(, double, timer_get_elapsed, TIMER_HANDLE, timer);
 MOCKABLE_FUNCTION(, double, timer_get_elapsed_ms, TIMER_HANDLE, timer);
 MOCKABLE_FUNCTION(, void, timer_destroy, TIMER_HANDLE, timer);
-MOCKABLE_FUNCTION(, double, timer_global_get_elapsed);
+MOCKABLE_FUNCTION(, double, timer_global_get_elapsed_s);
 MOCKABLE_FUNCTION(, double, timer_global_get_elapsed_ms);
 MOCKABLE_FUNCTION(, double, timer_global_get_elapsed_us);
 ```
@@ -77,15 +77,15 @@ MOCKABLE_FUNCTION(, double, timer_get_elapsed_ms, TIMER_HANDLE, timer);
 
 **SRS_TIMER_01_009: [** Otherwise `timer_get_elapsed_ms` shall return the time difference in milliseconds between the current time and the start time of the timer. **]**
 
-### timer_global_get_elapsed
+### timer_global_get_elapsed_s
 
 ```c
-MOCKABLE_FUNCTION(, double, timer_global_get_elapsed);
+MOCKABLE_FUNCTION(, double, timer_global_get_elapsed_s);
 ```
 
-`timer_global_get_elapsed` returns the elapsed time in seconds from a start time in the past (the actual point in time is unspecified).
+`timer_global_get_elapsed_s` returns the elapsed time in seconds from a start time in the past (the actual point in time is unspecified).
 
-**SRS_TIMER_27_001: [** `timer_global_get_elapsed` shall return the elapsed time in seconds from a start time in the past. **]**
+**SRS_TIMER_27_001: [** `timer_global_get_elapsed_s` shall return the elapsed time in seconds from a start time in the past. **]**
 
 ### timer_global_get_elapsed_ms
 

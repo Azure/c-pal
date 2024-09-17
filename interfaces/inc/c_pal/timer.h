@@ -19,7 +19,7 @@ MOCKABLE_FUNCTION(, double, timer_get_elapsed, TIMER_HANDLE, timer);
 MOCKABLE_FUNCTION(, double, timer_get_elapsed_ms, TIMER_HANDLE, timer);
 MOCKABLE_FUNCTION(, void, timer_destroy, TIMER_HANDLE, timer);
 MOCKABLE_FUNCTION(, void, global_timer_state_reset);
-MOCKABLE_FUNCTION(, double, timer_global_get_elapsed);
+MOCKABLE_FUNCTION(, double, timer_global_get_elapsed_s);
 MOCKABLE_FUNCTION(, double, timer_global_get_elapsed_ms);
 MOCKABLE_FUNCTION(, double, timer_global_get_elapsed_us);
 
