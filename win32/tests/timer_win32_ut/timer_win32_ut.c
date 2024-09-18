@@ -241,6 +241,7 @@ TEST_FUNCTION(timer_destroy_frees_handle)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
+/* Tests_SRS_TIMER_27_001: [timer_global_get_elapsed_s shall return the elapsed time in seconds from a start time in the past.**] */
 TEST_FUNCTION(g_timer_get_elapsed_in_seconds_succeeds)
 {
     ///arrange
