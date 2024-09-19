@@ -1515,7 +1515,7 @@ TEST_FUNCTION(threadpool_create_work_item_fails_for_NULL_threadpool)
 
 /* Tests_SRS_THREADPOOL_WIN32_05_005: [ If work_function is NULL, threadpool_create_work_item shall fail and return a NULL value. ] */
 
-TEST_FUNCTION(threadpool_create_work_item_fails_for_NULL_work_item_context)
+TEST_FUNCTION(threadpool_create_work_item_fails_for_NULL_test_work_function)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
@@ -1523,11 +1523,15 @@ TEST_FUNCTION(threadpool_create_work_item_fails_for_NULL_work_item_context)
     THREADPOOL_WORK_ITEM_HANDLE return_work_item_context;
 
     // act
-    return_work_item_context = threadpool_create_work_item(threadpool, test_work_function, NULL);
+    return_work_item_context = threadpool_create_work_item(threadpool, NULL, (void*)0x4243);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_EQUAL(void_ptr, NULL, return_work_item_context);
+
+    // cleanup
+
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
 /* Tests_SRS_THREADPOOL_WIN32_05_007: [ If any error occurs, threadpool_create_work_item shall fail and return a NULL value. ]*/
@@ -1633,6 +1637,10 @@ TEST_FUNCTION(threadpool_schedule_work_item_fails_for_NULL_work_item_context)
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_NOT_EQUAL(int, 0, schedule_return_status);
+
+    // cleanup
+
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
 /* Tests_SRS_THREADPOOL_WIN32_05_013: [ threadpool_schedule_work_item shall call SubmitThreadpoolWork to submit the work item for execution. ] */
@@ -1652,18 +1660,18 @@ TEST_FUNCTION(threadpool_schedule_work_item_succeeds)
         .CaptureArgumentValue_pfnwk(&test_work_callback_v2)
         .CaptureArgumentValue_pv(&test_work_item_context)
         .CaptureReturn(&ptp_work);
+    THREADPOOL_WORK_ITEM_HANDLE return_work_item_context;
+    return_work_item_context = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
+    ASSERT_ARE_EQUAL(void_ptr, return_work_item_context, test_work_item_context);
+    umock_c_reset_all_calls();
+
     STRICT_EXPECTED_CALL(mocked_SubmitThreadpoolWork(IGNORED_ARG))
         .ValidateArgumentValue_pwk(&ptp_work);
-    STRICT_EXPECTED_CALL(test_work_function((void*)0x4243));
-
-    THREADPOOL_WORK_ITEM_HANDLE return_work_item_context;
 
     // act
-    return_work_item_context = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
     schedule_return_status = threadpool_schedule_work_item(threadpool, return_work_item_context);
 
     // assert
-    ASSERT_ARE_EQUAL(void_ptr, return_work_item_context, test_work_item_context);
     ASSERT_ARE_EQUAL(int, 0, schedule_return_status);
 
     // assert
@@ -1699,6 +1707,10 @@ TEST_FUNCTION(threadpool_destroy_work_item_fails_for_NULL_work_item_context)
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
 /* Tests_SRS_THREADPOOL_WIN32_05_016: [ threadpool_destroy_work_item shall call CloseThreadpoolWork to close ptp_work. ] */
@@ -1719,21 +1731,22 @@ TEST_FUNCTION(threadpool_destroy_work_item_succeeds)
         .CaptureArgumentValue_pfnwk(&test_work_callback_v2)
         .CaptureArgumentValue_pv(&test_work_item_context)
         .CaptureReturn(&ptp_work);
+    THREADPOOL_WORK_ITEM_HANDLE return_work_item_context;
+    return_work_item_context = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
+    ASSERT_ARE_EQUAL(void_ptr, return_work_item_context, test_work_item_context);
+    umock_c_reset_all_calls();
+
     STRICT_EXPECTED_CALL(mocked_SubmitThreadpoolWork(IGNORED_ARG))
         .ValidateArgumentValue_pwk(&ptp_work);
     STRICT_EXPECTED_CALL(test_work_function((void*)0x4243));
+    schedule_return_status = threadpool_schedule_work_item(threadpool, return_work_item_context);
+    ASSERT_ARE_EQUAL(int, 0, schedule_return_status);
+    umock_c_reset_all_calls();
+
     STRICT_EXPECTED_CALL(mocked_CloseThreadpoolWork(ptp_work));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-    THREADPOOL_WORK_ITEM_HANDLE return_work_item_context;
 
-    // act
-    return_work_item_context = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
-    schedule_return_status = threadpool_schedule_work_item(threadpool, return_work_item_context);
     threadpool_destroy_work_item(threadpool, test_work_item_context);
-
-    // assert
-    ASSERT_ARE_EQUAL(void_ptr, return_work_item_context, test_work_item_context);
-    ASSERT_ARE_EQUAL(int, 0, schedule_return_status);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
