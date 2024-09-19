@@ -11,6 +11,7 @@
 #include "c_pal/execution_engine_win32.h"
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/log_critical_and_terminate.h"
 #include "c_pal/thandle.h"
 #include "c_pal/threadpool.h"
 
@@ -89,8 +90,8 @@ static VOID CALLBACK on_work_callback_v2(PTP_CALLBACK_INSTANCE instance, PVOID c
 {
     if (context == NULL)
     {
-        /* Codes_SRS_THREADPOOL_WIN32_05_001: [ If context is NULL, on_work_callback_v2 shall return. ]*/
-        LogError("Invalid arguments: PTP_CALLBACK_INSTANCE instance=%p, PVOID context=%p, PTP_WORK work=%p",
+        /* Codes_SRS_THREADPOOL_WIN32_05_001: [ If context is NULL, on_work_callback_v2 shall Log Message with severity CRITICAL and terminate. ]*/
+        LogCriticalAndTerminate("Invalid arguments: PTP_CALLBACK_INSTANCE instance=%p, PVOID context=%p, PTP_WORK work=%p",
             instance, context, work);
     }
     else
@@ -312,7 +313,7 @@ THREADPOOL_WORK_ITEM_HANDLE threadpool_create_work_item(THANDLE(THREADPOOL) thre
         (void)InterlockedIncrement(&threadpool_ptr->pending_api_calls);
 
         THREADPOOL_WIN32_STATE state = InterlockedAdd(&threadpool_ptr->state, 0);
-        if (state != (LONG)THREADPOOL_WIN32_STATE_OPEN)
+        if (state != THREADPOOL_WIN32_STATE_OPEN)
         {
             LogWarning("Bad state: %" PRI_MU_ENUM, MU_ENUM_VALUE(THREADPOOL_WIN32_STATE, state));
         }
@@ -368,7 +369,7 @@ int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WOR
         (void)InterlockedIncrement(&threadpool_ptr->pending_api_calls);
 
         THREADPOOL_WIN32_STATE state = InterlockedAdd(&threadpool_ptr->state, 0);
-        if (state != (LONG)THREADPOOL_WIN32_STATE_OPEN)
+        if (state != THREADPOOL_WIN32_STATE_OPEN)
         {
             LogWarning("Bad state: %" PRI_MU_ENUM, MU_ENUM_VALUE(THREADPOOL_WIN32_STATE, state));
         }
@@ -402,7 +403,7 @@ void threadpool_destroy_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WOR
         (void)InterlockedIncrement(&threadpool_ptr->pending_api_calls);
 
         THREADPOOL_WIN32_STATE state = InterlockedAdd(&threadpool_ptr->state, 0);
-        if (state != (LONG)THREADPOOL_WIN32_STATE_OPEN)
+        if (state != THREADPOOL_WIN32_STATE_OPEN)
         {
             LogWarning("Bad state: %" PRI_MU_ENUM, MU_ENUM_VALUE(THREADPOOL_WIN32_STATE, state));
         }
@@ -442,7 +443,7 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
         (void)InterlockedIncrement(&threadpool_ptr->pending_api_calls);
 
         THREADPOOL_WIN32_STATE state = InterlockedAdd(&threadpool_ptr->state, 0);
-        if (state != (LONG)THREADPOOL_WIN32_STATE_OPEN)
+        if (state != THREADPOOL_WIN32_STATE_OPEN)
         {
             LogWarning("Bad state: %" PRI_MU_ENUM, MU_ENUM_VALUE(THREADPOOL_WIN32_STATE, state));
             result = MU_FAILURE;
@@ -554,7 +555,7 @@ int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_
         (void)InterlockedIncrement(&threadpool_ptr->pending_api_calls);
 
         THREADPOOL_WIN32_STATE state = InterlockedAdd(&threadpool_ptr->state, 0);
-        if (state != (LONG)THREADPOOL_WIN32_STATE_OPEN)
+        if (state != THREADPOOL_WIN32_STATE_OPEN)
         {
             LogWarning("Bad state: %" PRI_MU_ENUM, MU_ENUM_VALUE(THREADPOOL_WIN32_STATE, state));
             result = MU_FAILURE;

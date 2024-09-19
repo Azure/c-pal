@@ -24,6 +24,7 @@
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_win32.h"
 #include "c_pal/interlocked.h"
+#include "c_pal/ps_util.h"
 
 #undef ENABLE_MOCKS
 
@@ -1309,7 +1310,7 @@ TEST_FUNCTION(on_timer_callback_calls_user_callback_multiple_times_as_timer_fire
 
 /* on_work_callback_v2 */
 
-/* Tests_SRS_THREADPOOL_WIN32_05_001: [ If context is NULL, on_work_callback_v2 shall return. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_05_001: [ If context is NULL, on_work_callback_v2 shall Log Message with severity CRITICAL and terminate. ]*/
 TEST_FUNCTION(on_work_callback_v2_with_NULL_context_returns)
 {
     // arrange
@@ -1335,6 +1336,8 @@ TEST_FUNCTION(on_work_callback_v2_with_NULL_context_returns)
     ASSERT_ARE_EQUAL(void_ptr, return_work_item_context, test_work_item_context);
 
     umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(ps_util_terminate_process());
 
     // act
     test_work_callback_v2(NULL, NULL, ptp_work);

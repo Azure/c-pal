@@ -170,7 +170,7 @@ static VOID CALLBACK on_work_callback_v2(PTP_CALLBACK_INSTANCE instance, void* c
 
 `on_work_callback_v2` executes the work function passed to `threadpool_create_work_item`.
 
-**SRS_THREADPOOL_WIN32_05_001: [** If `context` is `NULL`, `on_work_callback_v2` shall return. **]**
+**SRS_THREADPOOL_WIN32_05_001: [** If `context` is `NULL`, `on_work_callback_v2` shall Log Message with severity `CRITICAL` and `terminate`. **]**
 
 **SRS_THREADPOOL_WIN32_05_002: [** Otherwise `context` shall be used as the context created in `threadpool_create_work_item`. **]**
 
