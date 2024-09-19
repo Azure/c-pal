@@ -32,6 +32,8 @@ double real_timer_get_elapsed(TIMER_HANDLE handle);
 
 double real_timer_get_elapsed_ms(TIMER_HANDLE handle);
 
+double real_timer_global_get_elapsed_s(void);
+
 double real_timer_global_get_elapsed_ms(void);
 
 double real_timer_global_get_elapsed_us(void);
