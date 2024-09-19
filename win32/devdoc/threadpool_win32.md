@@ -27,7 +27,7 @@ MOCKABLE_FUNCTION(, THREADPOOL_WORK_ITEM_HANDLE, threadpool_create_work_item, TH
 
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_ITEM_HANDLE, work_item_context);
 
-MOCKABLE_FUNCTION(, void, threadpool_destroy_work_item, THREADPOOL_WORK_ITEM_HANDLE, work_item_context);
+MOCKABLE_FUNCTION(, void, threadpool_destroy_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_ITEM_HANDLE, work_item_context);
 
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 
@@ -170,11 +170,11 @@ static VOID CALLBACK on_work_callback_v2(PTP_CALLBACK_INSTANCE instance, void* c
 
 `on_work_callback_v2` executes the work function passed to `threadpool_create_work_item`.
 
-**S_R_S_THREADPOOL_WIN32_05_001: [** If `context` is `NULL`, `on_work_callback_v2` shall return. **]**
+**SRS_THREADPOOL_WIN32_05_001: [** If `context` is `NULL`, `on_work_callback_v2` shall return. **]**
 
-**S_R_S_THREADPOOL_WIN32_05_002: [** Otherwise `context` shall be used as the context created in `threadpool_create_work_item`. **]**
+**SRS_THREADPOOL_WIN32_05_002: [** Otherwise `context` shall be used as the context created in `threadpool_create_work_item`. **]**
 
-**S_R_S_THREADPOOL_WIN32_05_003: [** The `work_function` callback passed to `threadpool_create_work_item` shall be called with the `work_function_context` as an argument. `work_function_context` was set inside the `threadpool_create_work_item` as an argument to `CreateThreadpoolContext`. **]**
+**SRS_THREADPOOL_WIN32_05_003: [** The `work_function` callback passed to `threadpool_create_work_item` shall be called with the `work_function_context` as an argument. `work_function_context` was set inside the `threadpool_create_work_item` as an argument to `CreateThreadpoolContext`. **]**
 
 
 ### threadpool_timer_start
@@ -273,19 +273,19 @@ MOCKABLE_FUNCTION(, THREADPOOL_WORK_ITEM_HANDLE, threadpool_create_work_item, TH
 
 `threadpool_create_work_item` creates a work item to be executed by the threadpool.
 
-**S_R_S_THREADPOOL_WIN32_05_004: [** If `threadpool` is `NULL`, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
+**SRS_THREADPOOL_WIN32_05_004: [** If `threadpool` is `NULL`, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
 
-**S_R_S_THREADPOOL_WIN32_05_005: [** If `work_function` is `NULL`, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
+**SRS_THREADPOOL_WIN32_05_005: [** If `work_function` is `NULL`, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
 
-**S_R_S_THREADPOOL_WIN32_05_006: [** Otherwise `threadpool_create_work_item` shall allocate a context `work_item_context` of type `THREADPOOL_WORK_ITEM_HANDLE` where `work_function`, `work_function_context`, and `ptp_work` shall be saved. **]**
+**SRS_THREADPOOL_WIN32_05_006: [** Otherwise `threadpool_create_work_item` shall allocate a context `work_item_context` of type `THREADPOOL_WORK_ITEM_HANDLE` where `work_function`, `work_function_context`, and `ptp_work` shall be saved. **]**
 
-**S_R_S_THREADPOOL_WIN32_05_007: [** If any error occurs, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
+**SRS_THREADPOOL_WIN32_05_007: [** If any error occurs, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
 
-**S_R_S_THREADPOOL_WIN32_05_008: [** `threadpool_create_work_item` shall create `work_item_context` member variable `ptp_work` of type `PTP_WORK` by calling `CreateThreadpoolWork` to set the callback function as `on_work_callback_v2`. **]**
+**SRS_THREADPOOL_WIN32_05_008: [** `threadpool_create_work_item` shall create `work_item_context` member variable `ptp_work` of type `PTP_WORK` by calling `CreateThreadpoolWork` to set the callback function as `on_work_callback_v2`. **]**
 
-**S_R_S_THREADPOOL_WIN32_05_009: [** If there are no errors then this `work_item_context` of type `THREADPOOL_WORK_ITEM_HANDLE` would be returned indicating a succcess to the caller**]**
+**SRS_THREADPOOL_WIN32_05_009: [** If there are no errors then this `work_item_context` of type `THREADPOOL_WORK_ITEM_HANDLE` would be returned indicating a succcess to the caller. **]**
 
-**S_R_S_THREADPOOL_WIN32_05_010: [** If any error occurs, `threadpool_create_work_item` shall fail, free the newly created context and return a `NULL` value. **]**
+**SRS_THREADPOOL_WIN32_05_010: [** If any error occurs, `threadpool_create_work_item` shall fail, free the newly created context and return a `NULL` value. **]**
 
 
 ### threadpool_schedule_work_item
@@ -296,22 +296,24 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), thr
 
 `threadpool_schedule_work_item` schedules a work item to be executed by the threadpool.
 
-**S_R_S_THREADPOOL_WIN32_05_011: [** If `threadpool` is NULL, `threadpool_schedule_work_item` shall fail and return a `non-zero` value. **]**
+**SRS_THREADPOOL_WIN32_05_011: [** If `threadpool` is NULL, `threadpool_schedule_work_item` shall fail and return a `non-zero` value. **]**
 
-**S_R_S_THREADPOOL_WIN32_05_012: [** If `work_item_context` is NULL, `threadpool_schedule_work_item` shall fail and return a `non-zero` value. **]**
+**SRS_THREADPOOL_WIN32_05_012: [** If `work_item_context` is NULL, `threadpool_schedule_work_item` shall fail and return a `non-zero` value. **]**
 
-**S_R_S_THREADPOOL_WIN32_05_013: [** `threadpool_schedule_work_item` shall call `SubmitThreadpoolWork` to submit the work item for execution. **]**
+**SRS_THREADPOOL_WIN32_05_013: [** `threadpool_schedule_work_item` shall call `SubmitThreadpoolWork` to submit the work item for execution. **]**
 
 ### threadpool_destroy_work_item
 
 ```c
-MOCKABLE_FUNCTION(, void, threadpool_destroy_work_item, THREADPOOL_WORK_ITEM_HANDLE, work_item_context);
+MOCKABLE_FUNCTION(, void, threadpool_destroy_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_ITEM_HANDLE, work_item_context);
 ```
 
 `threadpool_destroy_work_item` closes the `ptp_work` member variable in `work_item_context`and then frees the `work_item_context`
 
-**S_R_S_THREADPOOL_WIN32_05_014: [** If `work_item_context` is `NULL`, `threadpool_destroy_work_item` shall fail and not do anything before returning. **]**
+**SRS_THREADPOOL_WIN32_05_014: [ ** If `threadpool` is `NULL`, `threadpool_destroy_work_item` shall fail and return a `non-zero` value. **]**
 
-**S_R_S_THREADPOOL_WIN32_05_015: [** `threadpool_destroy_work_item` shall call `CloseThreadpoolWork` to close `ptp_work`. **]**
+**SRS_THREADPOOL_WIN32_05_015: [** If `work_item_context` is `NULL`, `threadpool_destroy_work_item` shall fail and not do anything before returning. **]**
 
-**S_R_S_THREADPOOL_WIN32_05_016: [** `threadpool_destroy_work_item` shall free the `work_item_context`. **]**
+**SRS_THREADPOOL_WIN32_05_016: [** `threadpool_destroy_work_item` shall call `CloseThreadpoolWork` to close `ptp_work`. **]**
+
+**SRS_THREADPOOL_WIN32_05_017: [** `threadpool_destroy_work_item` shall free the `work_item_context`. **]**
