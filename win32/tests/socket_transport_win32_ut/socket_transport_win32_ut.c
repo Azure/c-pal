@@ -29,8 +29,7 @@
 #include "c_pal/interlocked.h"
 #include "c_pal/sm.h"
 #include "c_pal/sync.h"
-#include "c_pal/string_utils.h"
-
+#include "../../win32/src/string_utils.c"
 #undef ENABLE_MOCKS
 
 #include "umock_c/umock_c_prod.h"
@@ -1919,7 +1918,7 @@ TEST_FUNCTION(socket_transport_is_valid_socket_NULL_input)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-// Tests_SOCKET_TRANSPORT_WIN32_09_095: [ On success, socket_transport_is_valid_socket shall return true. 
+// Tests_SOCKET_TRANSPORT_WIN32_09_095: [ On success, socket_transport_is_valid_socket shall return true.
 TEST_FUNCTION(socket_transport_is_valid_socket_succeeds)
 {
     //arrange

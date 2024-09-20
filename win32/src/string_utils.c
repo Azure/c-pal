@@ -152,7 +152,7 @@ wchar_t* sprintf_wchar_function(const wchar_t* format, ...)
 }
 
 /*takes a FILETIME, returns a nice string representation of it*/
-char* FILETIME_toAsciiArray(const FILETIME* fileTime)
+IMPLEMENT_MOCKABLE_FUNCTION(, char*, FILETIME_toAsciiArra, const FILETIME*, fileTime)
 {
     char* result;
     if (fileTime == NULL)
@@ -204,7 +204,7 @@ char* FILETIME_toAsciiArray(const FILETIME* fileTime)
     return result;
 }
 
-char* FILETIME_to_string_UTC(const FILETIME* fileTime)
+IMPLEMENT_MOCKABLE_FUNCTION(, char*, FILETIME_to_string_UTC, const FILETIME*, fileTime)
 {
     char* result;
     /*Codes_SRS_STRING_UTILS_02_001: [ If fileTime is NULL then FILETIME_to_string_UTC shall fail and return NULL. ]*/
