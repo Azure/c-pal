@@ -152,7 +152,7 @@ wchar_t* sprintf_wchar_function(const wchar_t* format, ...)
 }
 
 /*takes a FILETIME, returns a nice string representation of it*/
-IMPLEMENT_MOCKABLE_FUNCTION(, char*, FILETIME_toAsciiArra, const FILETIME*, fileTime)
+IMPLEMENT_MOCKABLE_FUNCTION(, char*, FILETIME_toAsciiArray, const FILETIME*, fileTime)
 {
     char* result;
     if (fileTime == NULL)
