@@ -14,10 +14,6 @@
 
 `job_object_helper_limit_resources` is an API that uses the job object API to limit the amount of physical memory and CPU that the current process can consume.
 
-**SRS_JOB_OBJECT_HELPER_18_001: [** `percent_physical_memory` is allowed to be `0`, which means "do not limit physical memory usage". **]**
-
-**SRS_JOB_OBJECT_HELPER_18_002: [** `percent_cpu` is allowed to be `0`, which means "do not limit CPU usage". **]**
-
 **SRS_JOB_OBJECT_HELPER_18_003: [** If `percent_physical_memory` and `percent_cpu` are both `0`, `job_object_helper_limit_resources` shall succeed and return `0`. **]**
 
 **SRS_JOB_OBJECT_HELPER_18_004: [** If `percent_physical_memory` is greater than `100`, `job_object_helper_limit_resources` shall fail and return a non-zero value. **]**

@@ -9,9 +9,9 @@
 #include "c_pal/job_object_helper.h"
 
 
-IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_limit_resources, uint32_t, percent_pysical_memory, uint32_t, percent_cpu)
+IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_limit_resources, uint32_t, percent_physical_memory, uint32_t, percent_cpu)
 {
-    (void) percent_pysical_memory;
+    (void) percent_physical_memory;
     (void) percent_cpu;
     return MU_FAILURE;
 }

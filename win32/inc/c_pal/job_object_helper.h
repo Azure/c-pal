@@ -20,7 +20,7 @@ extern "C"
 {
 #endif
 
-    MOCKABLE_FUNCTION(, int, job_object_helper_limit_resources, uint32_t, percent_pysical_memory, uint32_t, percent_cpu);
+    MOCKABLE_FUNCTION(, int, job_object_helper_limit_resources, uint32_t, percent_physical_memory, uint32_t, percent_cpu);
 
 #ifdef __cplusplus
 }
