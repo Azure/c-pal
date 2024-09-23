@@ -6,5 +6,7 @@
 #define timer_get_elapsed               real_timer_get_elapsed
 #define timer_get_elapsed_ms            real_timer_get_elapsed_ms
 #define timer_destroy                   real_timer_destroy
+#define global_timer_state_reset        real_global_timer_state_reset
+#define timer_global_get_elapsed_s      real_timer_global_get_elapsed_s
 #define timer_global_get_elapsed_ms     real_timer_global_get_elapsed_ms
 #define timer_global_get_elapsed_us     real_timer_global_get_elapsed_us
