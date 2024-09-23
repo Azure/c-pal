@@ -445,9 +445,11 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), thr
 ### threadpool_destroy_work_item
 
 ```c
-MOCKABLE_FUNCTION(, void, threadpool_destroy_work_item, THREADPOOL_WORK_ITEM_HANDLE, work_item_context);
+MOCKABLE_FUNCTION(, void, threadpool_destroy_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_ITEM_HANDLE, work_item_context);
 ```
 
-`threadpool_work_context_destroy` Does nothing and a placeholder for WIN32 equivalent function stub
+`threadpool_destroy_work_item` Does nothing and a placeholder for WIN32 equivalent function stub
 
-**S_R_S_THREADPOOL_LINUX_05_020: [** `threadpool_work_context_destroy` shall free the memory allocated to the work item of type `THREADPOOL_WORK_ITEM_HANDLE` created in `threadpool_create_work_item`. **]**
+**S_R_S_THREADPOOL_LINUX_05_020: [ ** If `threadpool` is `NULL`, `threadpool_destroy_work_item` shall fail and return a `non-zero` value. **]**
+
+**S_R_S_THREADPOOL_LINUX_05_021: [** `threadpool_work_context_destroy` shall free the memory allocated to the work item of type `THREADPOOL_WORK_ITEM_HANDLE` created in `threadpool_create_work_item`. **]**
