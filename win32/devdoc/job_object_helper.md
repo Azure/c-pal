@@ -30,7 +30,7 @@
 
 **SRS_JOB_OBJECT_HELPER_18_009: [** `job_object_helper_limit_resources` shall call `GlobalMemoryStatusEx` to get the total amount of physical memory in kb. **]**
 
-**SRS_JOB_OBJECT_HELPER_18_010: [** `job_object_helper_limit_resources` shall call `SetInformationJobObject`, passing `JobObjectBasicLimitInformation` and a `JOBOBJECT_BASIC_LIMIT_INFORMATION` object with `JOB_OBJECT_LIMIT_WORKINGSET` set and `MinimumWorkingSetSize` set to `0` and `MaximumWorkingSetSize` set to the `percent_physical_memory` percent of the physical memory in bytes. **]**
+**SRS_JOB_OBJECT_HELPER_18_010: [** `job_object_helper_limit_resources` shall call `SetInformationJobObject`, passing `JobObjectExtendedLimitInformation` and a `JOBOBJECT_EXTENDED_LIMIT_INFORMATION` object with `JOB_OBJECT_LIMIT_JOB_MEMORY` set and `JobMemoryLimit` set to the `percent_physical_memory` percent of the physical memory in bytes. **]**
 
 **SRS_JOB_OBJECT_HELPER_18_011: [** `job_object_helper_limit_resources` shall call `SetInformationJobObject` passing `JobObjectCpuRateControlInformation` and a `JOBOBJECT_CPU_RATE_CONTROL_INFORMATION` object with `JOB_OBJECT_CPU_RATE_CONTROL_ENABLE` and `JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP` set, and `CpuRate` set to `percent_cpu` times `100`. **]**
 
