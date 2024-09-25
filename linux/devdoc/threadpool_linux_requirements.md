@@ -414,7 +414,7 @@ MOCKABLE_FUNCTION(, THREADPOOL_WORK_ITEM_HANDLE, threadpool_create_work_item, TH
 
 **S_R_S_THREADPOOL_LINUX_05_005: [** `threadpool_create_work_item` shall allocate memory for `threadpool_work_item` of type `THREADPOOL_WORK_ITEM_HANDLE`. **]**
 
-**S_R_S_THREADPOOL_LINUX_05_006: [** If the `malloc` fails and `threadpool_work_item` is `NULL` then log the error and return `NULL`. **]**
+**S_R_S_THREADPOOL_LINUX_05_006: [** If during the initialization of `threadpool_work_item`, `malloc` fails then log the error and threadpool_create_work_item shall return `NULL`. **]**
 
 **S_R_S_THREADPOOL_LINUX_05_007: [** `threadpool_create_work_item` shall initialize `pending_work_item_count` to `0` then copy the `work_function` and `work_function_context` into the `threadpool_work_item` and return `threadpool_work_item` to indicate success. **]**
 
