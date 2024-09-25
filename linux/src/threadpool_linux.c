@@ -71,14 +71,14 @@ typedef struct THREADPOOL_TASK_TAG
     THREADPOOL_WORK_FUNCTION work_function;
     void* work_function_ctx;
     volatile uint32_t pending_api_calls;
+    volatile_atomic uint32_t *pending_work_item_count_ptr;
 } THREADPOOL_TASK;
 
 typedef struct THREADPOOL_WORK_ITEM_TAG
 {
-    volatile_atomic int32_t task_state;
     THREADPOOL_WORK_FUNCTION work_function;
     void* work_function_ctx;
-    volatile uint32_t pending_api_calls;
+    volatile_atomic uint32_t pending_work_item_count;
 } THREADPOOL_WORK_ITEM, * THREADPOOL_WORK_ITEM_HANDLE;
 
 typedef struct THREADPOOL_TAG
@@ -584,12 +584,13 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
                     }
                     continue;
                 }
-                /* Codes_SRS_THREADPOOL_LINUX_07_049: [ threadpool_schedule_work shall copy the work function and work function context into insert position in the task array and return zero on success. ]*/
+                /* Codes_SRS_THREADPOOL_LINUX_07_049: [ threadpool_schedule_work shall initialize pending_work_item_count_ptr with NULL then copy the work function and work function context into insert position in the task array and return zero on success. ]*/
                 else
                 {
                     THREADPOOL_TASK* task_item = &threadpool_ptr->task_array[insert_pos];
                     task_item->work_function_ctx = work_function_ctx;
                     task_item->work_function = work_function;
+                    task_item->pending_work_item_count_ptr = NULL;
 
                     /* Codes_SRS_THREADPOOL_LINUX_07_050: [ threadpool_schedule_work shall set the task_state to TASK_WAITING and then release the shared SRW lock. ]*/
                     (void)interlocked_exchange(&task_item->task_state, TASK_WAITING);
