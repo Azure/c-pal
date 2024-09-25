@@ -584,7 +584,7 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
                     }
                     continue;
                 }
-                /* Codes_SRS_THREADPOOL_LINUX_07_049: [ threadpool_schedule_work shall initialize pending_work_item_count_ptr with NULL then copy the work function and work function context into insert position in the task array and return zero on success. ]*/
+                /* Codes_SRS_THREADPOOL_LINUX_07_049: [ threadpool_schedule_work shall initialize pending_work_item_count_ptr with NULL then copy the work function and work function context into insert position in the task array and assign `0` to the return variable to indicate success. ]*/
                 else
                 {
                     THREADPOOL_TASK* task_item = &threadpool_ptr->task_array[insert_pos];

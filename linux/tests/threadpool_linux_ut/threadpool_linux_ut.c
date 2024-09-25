@@ -750,7 +750,7 @@ TEST_FUNCTION(threadpool_schedule_work_with_NULL_work_function_fails)
 /* Tests_SRS_THREADPOOL_LINUX_07_033: [ threadpool_schedule_work shall acquire the SRW lock in shared mode by calling srw_lock_acquire_shared. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_034: [ threadpool_schedule_work shall increment the insert_pos. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_035: [ If task state is TASK_NOT_USED, threadpool_schedule_work shall set the current task state to TASK_INITIALIZING. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_049: [ threadpool_schedule_work shall initialize pending_work_item_count_ptr with NULL then copy the work function and work function context into insert position in the task array and return zero on success. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_049: [ threadpool_schedule_work shall initialize pending_work_item_count_ptr with NULL then copy the work function and work function context into insert position in the task array and assign `0` to the return variable to indicate success. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_050: [ threadpool_schedule_work shall set the task_state to TASK_WAITING and then release the shared SRW lock. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_051: [ threadpool_schedule_work shall unblock the threadpool semaphore by calling sem_post. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_047: [ threadpool_schedule_work shall return zero on success. ]*/
@@ -779,7 +779,7 @@ TEST_FUNCTION(threadpool_schedule_work_succeeds)
 /* Tests_SRS_THREADPOOL_LINUX_07_033: [ threadpool_schedule_work shall acquire the SRW lock in shared mode by calling srw_lock_acquire_shared. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_034: [ threadpool_schedule_work shall increment the insert_pos. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_035: [ If task state is TASK_NOT_USED, threadpool_schedule_work shall set the current task state to TASK_INITIALIZING. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_049: [ threadpool_schedule_work shall initialize pending_work_item_count_ptr with NULL then copy the work function and work function context into insert position in the task array and return zero on success. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_049: [ threadpool_schedule_work shall initialize pending_work_item_count_ptr with NULL then copy the work function and work function context into insert position in the task array and assign `0` to the return variable to indicate success. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_050: [ threadpool_schedule_work shall set the task_state to TASK_WAITING and then release the shared SRW lock. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_051: [ threadpool_schedule_work shall unblock the threadpool semaphore by calling sem_post. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_047: [ threadpool_schedule_work shall return zero on success. ]*/
