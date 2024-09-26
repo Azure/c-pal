@@ -33,6 +33,7 @@ if(${run_unittests})
     endif()
 
     build_test_folder(gballoc_hl_passthrough_ut)
+    build_test_folder(job_object_helper_ut)
 endif()
 
 if(${run_int_tests})
