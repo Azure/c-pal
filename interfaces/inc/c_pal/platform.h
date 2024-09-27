@@ -6,8 +6,6 @@
 
 #include "umock_c/umock_c_prod.h"
 
-#define GUID_LENGTH 64
-
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
