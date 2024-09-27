@@ -3,10 +3,11 @@
 
 #include <stdlib.h>
 
+#include "windows.h"
+
 #include "macro_utils/macro_utils.h"
 
 #include "testrunnerswitcher.h"
-#include "windows.h"
 #include "umock_c/umock_c.h"
 #include "umock_c/umock_c_negative_tests.h"
 #include "umock_c/umocktypes_windows.h"
@@ -42,7 +43,7 @@ MOCK_FUNCTION_WITH_CODE(, BOOL, mocked_GlobalMemoryStatusEx, LPMEMORYSTATUSEX, l
 {
     ASSERT_IS_NOT_NULL(lpBuffer);
     ASSERT_ARE_EQUAL(size_t, lpBuffer->dwLength, sizeof(MEMORYSTATUSEX));
-    memset(lpBuffer, 0, sizeof(MEMORYSTATUSEX));
+    (void)memset(lpBuffer, 0, sizeof(MEMORYSTATUSEX));
     lpBuffer->dwLength = sizeof(MEMORYSTATUSEX);
     lpBuffer->ullTotalPhys = test_total_physical_memory;
 }
@@ -55,15 +56,15 @@ MOCK_FUNCTION_WITH_CODE(, BOOL, mocked_SetInformationJobObject, HANDLE, hJob, JO
     ASSERT_IS_NOT_NULL(lpJobObjectInformation);
     if (JobObjectInformationClass == JobObjectExtendedLimitInformation)
     {
-        memcpy((void*)&captured_extended_limit_information, lpJobObjectInformation, cbJobObjectInformationLength);
+        (void)memcpy(&captured_extended_limit_information, lpJobObjectInformation, cbJobObjectInformationLength);
     }
     else if (JobObjectInformationClass == JobObjectCpuRateControlInformation)
     {
-        memcpy((void*)&captured_cpu_rate_control_information, lpJobObjectInformation, cbJobObjectInformationLength);
+        (void)memcpy(&captured_cpu_rate_control_information, lpJobObjectInformation, cbJobObjectInformationLength);
     }
     else
     {
-        ASSERT_FAIL();
+        ASSERT_FAIL("Unexpected JobObjectInformationClass passed to SetInformationJobObject");
     }
 }
 MOCK_FUNCTION_END(TRUE)
@@ -72,15 +73,9 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
-    int result;
-
-    ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
-
-    result = umock_c_init(on_umock_c_error);
-    ASSERT_ARE_EQUAL(int, 0, result, "umock_c_init failed");
-
-    result = umocktypes_windows_register_types();
-    ASSERT_ARE_EQUAL(int, 0, result, "umocktypes_windows_register_types failed");
+    ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL), "real_gballoc_hl_init failed");
+    ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error), "umock_c_init failed");
+    ASSERT_ARE_EQUAL(int, 0, umocktypes_windows_register_types(), "umocktypes_windows_register_types failed");
 
     REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
 
@@ -157,16 +152,16 @@ TEST_FUNCTION(job_object_helper_limit_resources_called_with_101_cpu)
 
 static void setup_job_object_helper_limit_resources_expected_calls()
 {
+    STRICT_EXPECTED_CALL(mocked_GlobalMemoryStatusEx(IGNORED_ARG))
+        .SetReturn(TRUE)
+        .SetFailReturn(FALSE);
     STRICT_EXPECTED_CALL(mocked_CreateJobObject(NULL,NULL))
         .SetReturn(test_job_object)
         .SetFailReturn(NULL);
     STRICT_EXPECTED_CALL(mocked_GetCurrentProcess())
         .SetReturn(test_process)
-        .SetFailReturn(NULL);
+        .CallCannotFail();
     STRICT_EXPECTED_CALL(mocked_AssignProcessToJobObject(test_job_object, test_process))
-        .SetReturn(TRUE)
-        .SetFailReturn(FALSE);
-    STRICT_EXPECTED_CALL(mocked_GlobalMemoryStatusEx(IGNORED_ARG))
         .SetReturn(TRUE)
         .SetFailReturn(FALSE);
     STRICT_EXPECTED_CALL(mocked_SetInformationJobObject(test_job_object, JobObjectExtendedLimitInformation, IGNORED_ARG, sizeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION)))
@@ -183,10 +178,10 @@ static void setup_job_object_helper_limit_resources_expected_calls()
         .CallCannotFail();
 }
 
+/*Tests_SRS_JOB_OBJECT_HELPER_18_009: [ job_object_helper_limit_resources shall call GlobalMemoryStatusEx to get the total amount of physical memory in kb. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_006: [ job_object_helper_limit_resources shall call CreateJobObject to create a new job object passing NULL for both lpJobAttributes and lpName. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_007: [ job_object_helper_limit_resources shall call GetCurrentProcess to get the current process handle. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_008: [ job_object_helper_limit_resources shall call AssignProcessToJobObject to assign the current process to the new job object. ]*/
-/*Tests_SRS_JOB_OBJECT_HELPER_18_009: [ job_object_helper_limit_resources shall call GlobalMemoryStatusEx to get the total amount of physical memory in kb. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_010: [ job_object_helper_limit_resources shall call SetInformationJobObject, passing JobObjectExtendedLimitInformation and a JOBOBJECT_EXTENDED_LIMIT_INFORMATION object with JOB_OBJECT_LIMIT_JOB_MEMORY set and JobMemoryLimit set to the percent_physical_memory percent of the physical memory in bytes. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_011: [ job_object_helper_limit_resources shall call SetInformationJobObject passing JobObjectCpuRateControlInformation and a JOBOBJECT_CPU_RATE_CONTROL_INFORMATION object with JOB_OBJECT_CPU_RATE_CONTROL_ENABLE and JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP set, and CpuRate set to percent_cpu times 100. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_012: [ job_object_helper_limit_resources shall call CloseHandle to close the handle of the current process. ]*/
