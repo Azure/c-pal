@@ -75,11 +75,11 @@ IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_limit_resources, uint32_t, 
                     extended_limit_information.JobMemoryLimit = percent_physical_memory * memory_status_ex.ullTotalPhys / 100;
                     if (!SetInformationJobObject(job_object, JobObjectExtendedLimitInformation, &extended_limit_information, sizeof(extended_limit_information)))
                     {
-                        LogLastError("SetInformationJobObject("
-                            " job_object = %p"
-                            ", JobObjectExtendedLimitInformation"
-                            ", &extended_limit_information = %p"
-                            ", sizeof(extended_limit_information) = %zu) failed",
+                        LogLastError("SetInformationJobObject ("
+                            "job_object = %p, "
+                            "JobObjectExtendedLimitInformation, "
+                            "&extended_limit_information = %p, "
+                            "sizeof(extended_limit_information) = %zu) failed",
                             job_object,
                             &extended_limit_information,
                             sizeof(extended_limit_information));
@@ -95,10 +95,10 @@ IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_limit_resources, uint32_t, 
                         if (!SetInformationJobObject(job_object, JobObjectCpuRateControlInformation, &cpu_rate_control_information, sizeof(cpu_rate_control_information)))
                         {
                             LogLastError("SetInformationJobObject("
-                                " job_object = %p"
-                                ", JobObjectCpuRateControlInformation"
-                                ", &cpu_rate_control_information = %p"
-                                ", sizeof(cpu_rate_control_information) = %zu) failed",
+                                "job_object = %p, "
+                                "JobObjectCpuRateControlInformation, "
+                                "&cpu_rate_control_information = %p, "
+                                "sizeof(cpu_rate_control_information) = %zu) failed",
                                 job_object,
                                 &cpu_rate_control_information,
                                 sizeof(cpu_rate_control_information));
