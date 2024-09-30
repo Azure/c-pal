@@ -243,3 +243,5 @@ install_library_with_prefix(c_pal c_pal  ${c_pal_interace_includes} ${c_pal_comm
 
 include(CMakePackageConfigHelpers)
 
+#Insert vld in all executables if so required
+add_vld_if_defined(${CMAKE_CURRENT_SOURCE_DIR})

@@ -35,6 +35,7 @@ set(gballoc_hl_c gballoc_hl_${gballoc_hl_type_lower}.c)
 set(pal_win32_h_files
     ${pal_common_h_files}
     inc/c_pal/execution_engine_win32.h
+    inc/c_pal/job_object_helper.h
 )
 
 set(pal_win32_c_files
@@ -57,6 +58,7 @@ set(pal_win32_c_files
     src/uuid_win32.c
     src/${gballoc_ll_c}
     src/${gballoc_hl_c}
+    src/job_object_helper.c
 )
 
 FILE(GLOB pal_win32_md_files "devdoc/*.md")

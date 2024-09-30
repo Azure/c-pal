@@ -180,6 +180,28 @@ double timer_get_elapsed_ms(TIMER_HANDLE timer)
     return result;
 }
 
+double timer_global_get_elapsed_s(void)
+{
+    double result;
+    struct timespec elapsed_time;
+
+    /* Codes_SRS_TIMER_27_001: [ timer_global_get_elapsed_s shall return the elapsed time in seconds from a start time in the past. ]*/
+    /* Codes_SRS_TIMER_LINUX_27_001: [ timer_global_get_elapsed_s shall call clock_gettime with CLOCK_MONOTONIC to obtain the current timer value. ]*/
+    if (clock_gettime(CLOCK_MONOTONIC, &elapsed_time) < 0)
+    {
+        /* Codes_SRS_TIMER_LINUX_27_003: [ If any error occurs, timer_global_get_elapsed_s shall return -1. ]*/
+        LogError("clock_gettime failed");
+        result = -1.0;
+    }
+    else
+    {
+        /* Codes_SRS_TIMER_LINUX_27_002: [ timer_global_get_elapsed_s shall return the elapsed time in seconds (as returned by clock_gettime). ]*/
+        result = (double)elapsed_time.tv_sec;
+        result += (double)elapsed_time.tv_nsec / 1000000000;
+    }
+    return result;
+}
+
 double timer_global_get_elapsed_ms(void)
 {
     double result;
