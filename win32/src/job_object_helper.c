@@ -9,9 +9,32 @@
 #include "c_pal/job_object_helper.h"
 
 
-IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_limit_resources, uint32_t, percent_physical_memory, uint32_t, percent_cpu)
+IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_create)
 {
+    return NULL;
+}
+
+IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_open, THANDLE(JOB_OBJECT_HELPER), job_object_helper)
+{
+    (void) job_object_helper;
+    return MU_FAILURE;
+}
+
+IMPLEMENT_MOCKABLE_FUNCTION(, void, job_object_helper_close, THANDLE(JOB_OBJECT_HELPER), job_object_helper)
+{
+    (void) job_object_helper;
+}
+
+IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_limit_memory, THANDLE(JOB_OBJECT_HELPER), job_object_helper, uint32_t, percent_physical_memory)
+{
+    (void) job_object_helper;
     (void) percent_physical_memory;
+    return MU_FAILURE;
+}
+
+IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_limit_cpu, THANDLE(JOB_OBJECT_HELPER), job_object_helper, uint32_t, percent_cpu)
+{
+    (void) job_object_helper;
     (void) percent_cpu;
     return MU_FAILURE;
 }
