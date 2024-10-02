@@ -685,7 +685,7 @@ SOCKET_ACCEPT_RESULT socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_tran
                 timeout.tv_usec = connection_timeout_ms * MILLISECONDS_CONVERSION;
                 timeout.tv_sec = 0;
 
-                // Codes_SOCKET_TRANSPORT_WIN32_09_071: [ socket_transport_accept shall call select determine if the socket is ready to be read passing connection_timeout_ms. ]
+                // Codes_SOCKET_TRANSPORT_WIN32_09_071: [ socket_transport_accept shall call select to determine if the socket is ready to be read passing connection_timeout_ms. ]
                 select_result = select(0, &read_fds, NULL, NULL, &timeout);
                 if (select_result == SOCKET_ERROR)
                 {

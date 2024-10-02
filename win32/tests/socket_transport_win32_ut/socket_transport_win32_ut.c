@@ -1453,7 +1453,7 @@ TEST_FUNCTION(socket_transport_listen_fail)
 // socket_transport_accept
 
 // Tests_SOCKET_TRANSPORT_WIN32_09_069: [ socket_transport_accept shall call sm_exec_begin. ]
-// Tests_SOCKET_TRANSPORT_WIN32_09_071: [ socket_transport_accept shall call select determine if the socket is ready to be read passing connection_timeout_ms. ]
+// Tests_SOCKET_TRANSPORT_WIN32_09_071: [ socket_transport_accept shall call select to determine if the socket is ready to be read passing connection_timeout_ms. ]
 // Tests_SOCKET_TRANSPORT_WIN32_09_072: [ socket_transport_accept shall call accept to accept the incoming socket connection. ]
 // Tests_SOCKET_TRANSPORT_WIN32_09_074: [ socket_transport_accept shall allocate a SOCKET_TRANSPORT for the incoming connection and call sm_create and sm_open on the connection. ]
 // Tests_SOCKET_TRANSPORT_WIN32_09_075: [ If successful socket_transport_accept shall return SOCKET_ACCEPT_OK. ]

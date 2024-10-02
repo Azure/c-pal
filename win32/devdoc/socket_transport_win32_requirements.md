@@ -314,7 +314,7 @@ MOCKABLE_FUNCTION(, SOCKET_ACCEPT_RESULT, socket_transport_accept, SOCKET_TRANSP
 
 **SOCKET_TRANSPORT_WIN32_09_070: [** If `sm_exec_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_accept` shall fail and return `SOCKET_ACCEPT_ERROR`. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_071: [** `socket_transport_accept` shall call `select` determine if the socket is ready to be read passing `connection_timeout_ms`. **]**
+**SOCKET_TRANSPORT_WIN32_09_071: [** `socket_transport_accept` shall call `select` to determine if the socket is ready to be read passing `connection_timeout_ms`. **]**
 
 **SOCKET_TRANSPORT_WIN32_11_001: [** If `select` returns `SOCKET_ERROR` and `WSAGetLastError` return `WSAEINPROGRESS`, `socket_transport_accept` shall return `SOCKET_ACCEPT_INPROGRESS`. **]**
 
