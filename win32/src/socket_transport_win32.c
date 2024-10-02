@@ -685,12 +685,23 @@ SOCKET_ACCEPT_RESULT socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_tran
                 timeout.tv_usec = connection_timeout_ms * MILLISECONDS_CONVERSION;
                 timeout.tv_sec = 0;
 
-                // Codes_SOCKET_TRANSPORT_WIN32_09_071: [ socket_transport_accept shall call select determine if the socket is ready to be read passing a timeout of 10 milliseconds. ]
+                // Codes_SOCKET_TRANSPORT_WIN32_09_071: [ socket_transport_accept shall call select determine if the socket is ready to be read passing connection_timeout_ms. ]
                 select_result = select(0, &read_fds, NULL, NULL, &timeout);
                 if (select_result == SOCKET_ERROR)
                 {
-                    LogLastError("Error waiting for socket connections %", select_result);
-                    result = SOCKET_ACCEPT_ERROR;
+                    // Codes_SOCKET_TRANSPORT_WIN32_11_001: [ If select returns SOCKET_ERROR and WSAGetLastError return WSAEINPROGRESS, socket_transport_accept shall return SOCKET_ACCEPT_INPROGRESS. ]
+                    DWORD last_error = WSAGetLastError();
+                    if (last_error == WSAEINPROGRESS)
+                    {
+                        LogLastError("socket is in progress");
+                        result = SOCKET_ACCEPT_INPROGRESS;
+                    }
+                    else
+                    {
+                        // Codes_SOCKET_TRANSPORT_WIN32_11_002: [ If select returns SOCKET_ERROR and WSAGetLastError does not return WSAEINPROGRESS, socket_transport_accept shall return SOCKET_ACCEPT_ERROR. ]
+                        LogLastError("Error waiting for socket connections %", select_result);
+                        result = SOCKET_ACCEPT_ERROR;
+                    }
                 }
                 else if (select_result > 0)
                 {
@@ -700,14 +711,26 @@ SOCKET_ACCEPT_RESULT socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_tran
                     // Codes_SOCKET_TRANSPORT_WIN32_09_072: [ socket_transport_accept shall call accept to accept the incoming socket connection. ]
                     SOCKET accepting_socket = accept(socket_transport->socket, (struct sockaddr*)&cli_addr, &client_len);
 
-                    // Codes_SOCKET_TRANSPORT_WIN32_09_073: [ If accept returns an INVALID_SOCKET, socket_transport_accept shall fail and return SOCKET_ACCEPT_ERROR. ]
                     if (accepting_socket == INVALID_SOCKET)
                     {
-                        if (WSAGetLastError() != WSAEWOULDBLOCK)
+                        DWORD last_error = WSAGetLastError();
+                        // Codes_SOCKET_TRANSPORT_WIN32_11_003: [ If accept returns an INVALID_SOCKET and WSAGetLastError returns WSAENOBUFS, socket_transport_accept shall fail and return SOCKET_ACCEPT_PORT_EXHAUSTION. ]
+                        if (last_error == WSAENOBUFS)
                         {
-                            LogLastError("Error in accepting socket %" PRI_SOCKET "", accepted_socket);
+                            LogError("The server socket is experiencing port exhaustion");
+                            result = SOCKET_ACCEPT_PORT_EXHAUSTION;
                         }
-                        result = SOCKET_ACCEPT_ERROR;
+                        // Codes_SOCKET_TRANSPORT_WIN32_11_004: [ If accept returns an INVALID_SOCKET and WSAGetLastError returns WSAEWOULDBLOCK, socket_transport_accept shall fail and return SOCKET_ACCEPT_NO_CONNECTION. ]
+                        else if (last_error == WSAEWOULDBLOCK)
+                        {
+                            result = SOCKET_ACCEPT_NO_CONNECTION;
+                        }
+                        // Codes_SOCKET_TRANSPORT_WIN32_09_073: [ If accept returns an INVALID_SOCKET and WSAGetLastError does not return WSAEWOULDBLOCK, socket_transport_accept shall fail and return SOCKET_ACCEPT_ERROR. ]
+                        else
+                        {
+                            LogLastError("Error in accepting socket");
+                            result = SOCKET_ACCEPT_ERROR;
+                        }
                     }
                     else
                     {

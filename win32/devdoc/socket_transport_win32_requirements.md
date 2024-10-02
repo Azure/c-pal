@@ -301,7 +301,7 @@ MOCKABLE_FUNCTION(, int, socket_transport_listen, SOCKET_TRANSPORT_HANDLE, socke
 ### socket_transport_accept
 
 ```c
-MOCKABLE_FUNCTION(, SOCKET_ACCEPT_RESULT, socket_transport_accept, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_TRANSPORT_HANDLE*, accepted_socket);
+MOCKABLE_FUNCTION(, SOCKET_ACCEPT_RESULT, socket_transport_accept, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_TRANSPORT_HANDLE*, accepted_socket, uint32_t, connection_timeout_ms);
 ```
 
 `socket_transport_accept` accepts the incoming connections.
@@ -314,13 +314,21 @@ MOCKABLE_FUNCTION(, SOCKET_ACCEPT_RESULT, socket_transport_accept, SOCKET_TRANSP
 
 **SOCKET_TRANSPORT_WIN32_09_070: [** If `sm_exec_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_accept` shall fail and return `SOCKET_ACCEPT_ERROR`. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_071: [** `socket_transport_accept` shall call `select` determine if the socket is ready to be read passing a timeout of 10 milliseconds. **]**
+**SOCKET_TRANSPORT_WIN32_09_071: [** `socket_transport_accept` shall call `select` determine if the socket is ready to be read passing `connection_timeout_ms`. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_091: [** If `select` returns zero, socket_transport_accept shall set accepted_socket to `NULL` and return `SOCKET_ACCEPT_NO_CONNECTION`. **]**
+**SOCKET_TRANSPORT_WIN32_11_001: [** If `select` returns `SOCKET_ERROR` and `WSAGetLastError` return `WSAEINPROGRESS`, `socket_transport_accept` shall return `SOCKET_ACCEPT_INPROGRESS`. **]**
+
+**SOCKET_TRANSPORT_WIN32_11_002: [** If `select` returns `SOCKET_ERROR` and `WSAGetLastError` does not return `WSAEINPROGRESS`, `socket_transport_accept` shall return `SOCKET_ACCEPT_ERROR`. **]**
+
+**SOCKET_TRANSPORT_WIN32_09_091: [** If `select` returns zero, `socket_transport_accept` shall set accepted_socket to `NULL` and return `SOCKET_ACCEPT_NO_CONNECTION`. **]**
 
 **SOCKET_TRANSPORT_WIN32_09_072: [** `socket_transport_accept` shall call `accept` to accept the incoming socket connection. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_073: [** If `accept` returns an INVALID_SOCKET, `socket_transport_accept` shall fail and return `SOCKET_ACCEPT_ERROR`. **]**
+**SOCKET_TRANSPORT_WIN32_09_073: [** If `accept` returns an `INVALID_SOCKET` and `WSAGetLastError` does not return `WSAEWOULDBLOCK`, `socket_transport_accept` shall fail and return `SOCKET_ACCEPT_ERROR`. **]**
+
+**SOCKET_TRANSPORT_WIN32_11_003: [** If `accept` returns an `INVALID_SOCKET` and `WSAGetLastError` returns `WSAENOBUFS`, `socket_transport_accept` shall fail and return `SOCKET_ACCEPT_PORT_EXHAUSTION`. **]**
+
+**SOCKET_TRANSPORT_WIN32_11_004: [** If `accept` returns an `INVALID_SOCKET` and `WSAGetLastError` returns `WSAEWOULDBLOCK`, `socket_transport_accept` shall fail and return `SOCKET_ACCEPT_NO_CONNECTION`. **]**
 
 **SOCKET_TRANSPORT_WIN32_09_074: [** `socket_transport_accept` shall allocate a `SOCKET_TRANSPORT` for the incoming connection and call `sm_create` and `sm_open` on the connection. **]**
 
