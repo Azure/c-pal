@@ -218,12 +218,12 @@ static int threadpool_work_func(void* param)
                     if (work_function != NULL)
                     {
                         work_function(work_function_ctx);
-                        /* Codes_SRS_THREADPOOL_LINUX_05_032: [ If the `threadpool_destroy_work_item_ptr` is not `NULL` then: ]*/
+                        /* Codes_SRS_THREADPOOL_LINUX_05_036: [ If the `threadpool_destroy_work_item_ptr` is not `NULL` then: ]*/
                         if (NULL != threadpool->task_array[current_index].pending_work_item_count_ptr)
                         {
                             /* Codes_SRS_THREADPOOL_LINUX_07_076: [ threadpool_work_func shall acquire the shared SRW lock by calling srw_lock_acquire_shared. ]*/
                             srw_lock_acquire_shared(threadpool->srw_lock);
-                            /* Codes_SRS_THREADPOOL_LINUX_05_036: [ threadpool_work_func shall decrement the pending_work_item_count_ptr by calling interlocked_decrement. ]*/
+                            /* Codes_SRS_THREADPOOL_LINUX_05_037: [ threadpool_work_func shall decrement the pending_work_item_count_ptr by calling interlocked_decrement. ]*/
                             interlocked_decrement(threadpool->task_array[current_index].pending_work_item_count_ptr);
                             /* Codes_SRS_THREADPOOL_LINUX_07_083: [ threadpool_work_func shall release the shared SRW lock by calling srw_lock_release_shared. ]*/
                             srw_lock_release_shared(threadpool->srw_lock);
@@ -798,7 +798,7 @@ THREADPOOL_WORK_ITEM_HANDLE threadpool_create_work_item(THANDLE(THREADPOOL) thre
     THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item = NULL;
 
     if (
-        /* Codes_SRS THREADPOOL_LINUX_05_001: [ If threadpool is NULL, threadpool_create_work_item shall fail and set the return variable threadpool_work_item a NULL value. ] */
+        /* Codes_SRS_THREADPOOL_LINUX_05_001: [ If threadpool is NULL, threadpool_create_work_item shall fail and set the return variable threadpool_work_item a NULL value. ] */
         (threadpool == NULL) ||
         /* Codes_SRS_THREADPOOL_LINUX_05_002: [ If work_function is NULL, threadpool_create_work_item shall fail and set the return variable threadpool_work_item a NULL value. ]*/
         (work_function == NULL)
@@ -878,17 +878,17 @@ int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WOR
                 /* Codes_SRS_THREADPOOL_LINUX_05_015: [ threadpool_schedule_work_item shall increment the insert_pos. ]*/
                 int64_t insert_pos = (interlocked_increment_64(&threadpool_ptr->insert_idx) - 1) % existing_count;
 
-                /* Codes_SRS_THREADPOOL_LINUX_07_016: [ If task state is TASK_NOT_USED, threadpool_schedule_work_item shall set the current task state to TASK_INITIALIZING. ]*/
+                /* Codes_SRS_THREADPOOL_LINUX_05_016: [ If task state is TASK_NOT_USED, threadpool_schedule_work_item shall set the current task state to TASK_INITIALIZING. ]*/
                 int32_t task_state = interlocked_compare_exchange(&threadpool_ptr->task_array[insert_pos].task_state, TASK_INITIALIZING, TASK_NOT_USED);
 
                 if (task_state != TASK_NOT_USED)
                 {
-                    /* Codes_SRS_THREADPOOL_LINUX_07_017: [ Otherwise, threadpool_schedule_work_item shall release the shared SRW lock by calling srw_lock_release_shared and increase task_array capacity: ]*/
+                    /* Codes_SRS_THREADPOOL_LINUX_05_017: [ Otherwise, threadpool_schedule_work_item shall release the shared SRW lock by calling srw_lock_release_shared and increase task_array capacity: ]*/
                     srw_lock_release_shared(threadpool_ptr->srw_lock);
 
                     if (reallocate_threadpool_array(threadpool_ptr) != 0)
                     {
-                        /* Codes_SRS_THREADPOOL_LINUX_07_018: [ If reallocating the task array fails, threadpool_schedule_work_item shall fail by setting the return variable a non-zero value and break. ]*/
+                        /* Codes_SRS_THREADPOOL_LINUX_05_018: [ If reallocating the task array fails, threadpool_schedule_work_item shall fail by setting the return variable a non-zero value and break. ]*/
                         LogError("Failure reallocating threadpool_ptr");
                         result = MU_FAILURE;
                         break;

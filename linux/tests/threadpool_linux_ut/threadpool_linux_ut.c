@@ -603,9 +603,9 @@ TEST_FUNCTION(threadpool_work_func_succeeds_for_threadpool_schedule_work)
 /* Tests_SRS_THREADPOOL_LINUX_07_082: [ threadpool_work_func shall set the task state to TASK_NOT_USED. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_083: [ threadpool_work_func shall release the shared SRW lock by calling srw_lock_release_shared. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_084: [ If the work item function is not NULL, threadpool_work_func shall execute it with work_function_ctx. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_05_032: [ If the `threadpool_destroy_work_item_ptr` is not `NULL` then: ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_036: [ If the `threadpool_destroy_work_item_ptr` is not `NULL` then: ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_076: [ threadpool_work_func shall acquire the shared SRW lock by calling srw_lock_acquire_shared. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_05_036: [ threadpool_work_func shall decrement the pending_work_item_count_ptr by calling interlocked_decrement. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_037: [ threadpool_work_func shall decrement the pending_work_item_count_ptr by calling interlocked_decrement. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_083: [ threadpool_work_func shall release the shared SRW lock by calling srw_lock_release_shared. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_085: [ threadpool_work_func shall loop until threadpool_close or threadpool_destroy is called. ]*/
 TEST_FUNCTION(threadpool_work_func_succeeds_for_threadpool_schedule_work_item)
@@ -1876,6 +1876,24 @@ TEST_FUNCTION(threadpool_destroy_work_item_with_NULL_threadpool_fails)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
+/* Tests_SRS_THREADPOOL_LINUX_05_027: [ If threadpool_work_item is NULL, threadpool_destroy_work_item shall fail. ]*/
+
+TEST_FUNCTION(threadpool_destroy_work_item_with_NULL_threadpool_work_item_fails)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
+    umock_c_reset_all_calls();
+
+    // call
+    threadpool_destroy_work_item(threadpool, NULL);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
 /* Tests_SRS_THREADPOOL_LINUX_05_028: [ threadpool_destroy_work_item shall call sm_exec_begin. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_029: [ If sm_exec_begin returns SM_EXEC_REFUSED, threadpool_destroy_work_item shall fail. ]*/
 
@@ -1897,6 +1915,7 @@ TEST_FUNCTION(threadpool_destroy_work_item_fails_when_threadpool_not_open)
 /* Tests_SRS_THREADPOOL_LINUX_05_028: [ threadpool_destroy_work_item shall call sm_exec_begin. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_030: [ threadpool_destroy_work_item shall wait for pending_work_item_count to become 0. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_034: [ If InterlockedHL_WaitForValue does not return INTERLOCKED_HL_OK then Log Message with severity CRITICAL and terminate. ]*/
+
 TEST_FUNCTION(threadpool_destroy_work_item_fails_for_InterlockedHL_WaitForValue_returns_INTERLOCKED_HL_ERROR)
 {
     // arrange
@@ -1928,12 +1947,13 @@ TEST_FUNCTION(threadpool_destroy_work_item_fails_for_InterlockedHL_WaitForValue_
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-/* SRS_THREADPOOL_LINUX_05_028: [ threadpool_destroy_work_item shall call sm_exec_begin. ]*/
-/* SRS_THREADPOOL_LINUX_05_030: [ threadpool_destroy_work_item shall wait for pending_work_item_count to become 0. ]*/
-/* SRS_THREADPOOL_LINUX_05_031: [ threadpool_destroy_work_item shall acquire the SRW lock in shared mode by calling srw_lock_acquire_shared. ]*/
-/* SRS_THREADPOOL_LINUX_05_032: [ threadpool_destroy_work_item shall free the memory allocated to the work item of type THREADPOOL_WORK_ITEM_HANDLE created in threadpool_create_work_item. ]*/
-/* SRS_THREADPOOL_LINUX_05_033: [ threadpool_destroy_work_item shall release the shared SRW lock. ]*/
-/* SRS_THREADPOOL_LINUX_05_035: [ threadpool_destroy_work_item shall call sm_exec_end. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_028: [ threadpool_destroy_work_item shall call sm_exec_begin. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_030: [ threadpool_destroy_work_item shall wait for pending_work_item_count to become 0. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_031: [ threadpool_destroy_work_item shall acquire the SRW lock in shared mode by calling srw_lock_acquire_shared. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_032: [ threadpool_destroy_work_item shall free the memory allocated to the work item of type THREADPOOL_WORK_ITEM_HANDLE created in threadpool_create_work_item. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_033: [ threadpool_destroy_work_item shall release the shared SRW lock. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_035: [ threadpool_destroy_work_item shall call sm_exec_end. ]*/
+
 TEST_FUNCTION(threadpool_destroy_work_item_succeeds)
 {
     // arrange
