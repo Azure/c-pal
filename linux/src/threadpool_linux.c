@@ -817,7 +817,7 @@ THREADPOOL_WORK_ITEM_HANDLE threadpool_create_work_item(THANDLE(THREADPOOL) thre
         if (open_result != SM_EXEC_GRANTED)
         {
             /* Codes_SRS_THREADPOOL_LINUX_05_004: [ If sm_exec_begin returns SM_EXEC_REFUSED, threadpool_create_work_item shall fail and set the return variable threadpool_work_item a NULL value. ]*/
-            LogError("sm_open_begin failed with %" PRI_MU_ENUM, MU_ENUM_VALUE(SM_RESULT, open_result));
+            LogError("sm_exec_begin failed with %" PRI_MU_ENUM, MU_ENUM_VALUE(SM_RESULT, open_result));
         }
         else
         {
