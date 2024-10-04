@@ -32,6 +32,7 @@
 #include "c_pal/sm.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_linux.h"
+#include "c_pal/ps_util.h"
 
 #undef ENABLE_MOCKS
 
@@ -73,6 +74,10 @@ MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 MU_DEFINE_ENUM_STRINGS(SM_RESULT, SM_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(SM_RESULT, SM_RESULT_VALUES);
 IMPLEMENT_UMOCK_C_ENUM_TYPE(SM_RESULT, SM_RESULT_VALUES);
+
+MU_DEFINE_ENUM_STRINGS(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
+TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
+IMPLEMENT_UMOCK_C_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
 
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {
@@ -147,6 +152,23 @@ static void threadpool_schedule_work_succeed_expectations(void)
     STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
 }
 
+static void threadpool_create_work_item_success_expectations(void)
+{
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
+}
+static void threadpool_destroy_work_item_succeed_expectations(void)
+{
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(InterlockedHL_WaitForValue(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG)).SetReturn(INTERLOCKED_HL_OK);
+    STRICT_EXPECTED_CALL(srw_lock_acquire_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
+}
+
 static void threadpool_task(void* parameter)
 {
     volatile_atomic int32_t* thread_counter = (volatile_atomic int32_t*)parameter;
@@ -216,6 +238,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_GLOBAL_MOCK_RETURNS(mocked_timer_settime, 0, -1);
 
     REGISTER_TYPE(SM_RESULT, SM_RESULT);
+    REGISTER_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT);
 
     REGISTER_UMOCKC_PAIRED_CREATE_DESTROY_CALLS(sm_create, sm_destroy);
 }
@@ -539,7 +562,7 @@ TEST_FUNCTION(threadpool_work_func_succeeds_when_sem_timedwait_fails)
 /* Tests_SRS_THREADPOOL_LINUX_07_083: [ threadpool_work_func shall release the shared SRW lock by calling srw_lock_release_shared. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_084: [ If the work item function is not NULL, threadpool_work_func shall execute it with work_function_ctx. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_085: [ threadpool_work_func shall loop until threadpool_close or threadpool_destroy is called. ]*/
-TEST_FUNCTION(threadpool_work_func_succeeds)
+TEST_FUNCTION(threadpool_work_func_succeeds_for_threadpool_schedule_work)
 {
     //arrange
     THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
@@ -566,6 +589,57 @@ TEST_FUNCTION(threadpool_work_func_succeeds)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_07_074: [ threadpool_work_func shall get the real time by calling clock_gettime to set the waiting time for semaphore. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_075: [ threadpool_work_func shall wait on the semaphore with a time limit. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_076: [ threadpool_work_func shall acquire the shared SRW lock by calling srw_lock_acquire_shared. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_077: [ threadpool_work_func shall get the current task array size by calling interlocked_add. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_078: [ threadpool_work_func shall increment the current consume index by calling interlocked_increment_64. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_079: [ threadpool_work_func shall get the next waiting task consume index from incremented consume index modulo current task array size. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_080: [ If consume index has task state TASK_WAITING, threadpool_work_func shall set the task state to TASK_WORKING. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_081: [ threadpool_work_func shall copy the function and parameter to local variables. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_082: [ threadpool_work_func shall set the task state to TASK_NOT_USED. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_083: [ threadpool_work_func shall release the shared SRW lock by calling srw_lock_release_shared. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_084: [ If the work item function is not NULL, threadpool_work_func shall execute it with work_function_ctx. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_032: [ If the `threadpool_destroy_work_item_ptr` is not `NULL` then: ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_076: [ threadpool_work_func shall acquire the shared SRW lock by calling srw_lock_acquire_shared. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_036: [ threadpool_work_func shall decrement the pending_work_item_count_ptr by calling interlocked_decrement. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_083: [ threadpool_work_func shall release the shared SRW lock by calling srw_lock_release_shared. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_085: [ threadpool_work_func shall loop until threadpool_close or threadpool_destroy is called. ]*/
+TEST_FUNCTION(threadpool_work_func_succeeds_for_threadpool_schedule_work_item)
+{
+    //arrange
+    THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
+    THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4242);
+    threadpool_schedule_work_item(threadpool, threadpool_work_item);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_REALTIME, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_sem_timedwait(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(srw_lock_acquire_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_increment_64(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(test_work_function(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(srw_lock_acquire_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0)).SetReturn(1);
+
+    //act
+    g_saved_worker_thread_func(g_saved_worker_thread_func_context);
+
+    //assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    threadpool_destroy_work_item(threadpool, threadpool_work_item);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
@@ -1348,6 +1422,539 @@ TEST_FUNCTION(on_timer_callback_does_nothing_with_null_pointer)
 
     // cleanup
     threadpool_timer_destroy(timer_instance);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* threadpool_create_work_item */
+
+/* Tests_SRS_THREADPOOL_LINUX_05_001: [ If threadpool is NULL, threadpool_create_work_item shall fail and set the return variable threadpool_work_item a NULL value. ]*/
+
+TEST_FUNCTION(threadpool_create_work_item_with_NULL_threadpool_fails)
+{
+    // arrange
+    THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item;
+
+    // act
+    threadpool_work_item = threadpool_create_work_item(NULL, test_work_function, (void*)0x4243);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NULL(threadpool_work_item);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_05_002: [ If work_function is NULL, threadpool_create_work_item shall fail and set the return variable threadpool_work_item a NULL value. ] */
+
+TEST_FUNCTION(threadpool_create_work_item_with_NULL_work_function_fails)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
+    THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item;
+    umock_c_reset_all_calls();
+
+    // act
+    threadpool_work_item = threadpool_create_work_item(threadpool, NULL, (void*)0x4243);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NULL(threadpool_work_item);
+
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_05_003: [ threadpool_create_work_item shall call sm_exec_begin. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_005: [ threadpool_create_work_item shall allocate memory for threadpool_work_item of type THREADPOOL_WORK_ITEM_HANDLE. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_007: [ threadpool_create_work_item shall initialize pending_work_item_count to 0 then copy the work_function and work_function_context into the threadpool_work_item and an initialized threadpool_work_item when returned indicates success. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_008: [ threadpool_create_work_item shall call sm_exec_end. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_009: [ Return the value inside threadpool_work_item ]*/
+
+TEST_FUNCTION(threadpool_create_work_item_succeeds)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool();
+    THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item;
+    umock_c_reset_all_calls();
+    threadpool_create_work_item_success_expectations();
+
+    // act
+    threadpool_work_item = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NOT_NULL(threadpool_work_item);
+
+    // cleanup
+    umock_c_reset_all_calls();
+    threadpool_destroy_work_item_succeed_expectations();
+    threadpool_destroy_work_item(threadpool, threadpool_work_item);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_05_003: [ threadpool_create_work_item shall call sm_exec_begin. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_005: [ threadpool_create_work_item shall allocate memory for threadpool_work_item of type THREADPOOL_WORK_ITEM_HANDLE. ] */
+/* Tests_SRS_THREADPOOL_LINUX_05_007: [ threadpool_create_work_item shall initialize pending_work_item_count to 0 then copy the work_function and work_function_context into the threadpool_work_item and an initialized threadpool_work_item when returned indicates success. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_008: [ threadpool_create_work_item shall call sm_exec_end. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_009: [ Return the value inside threadpool_work_item ]*/
+
+TEST_FUNCTION(threadpool_create_work_item_succeeds_with_NULL_work_function_context)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool();
+    THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item;
+    umock_c_reset_all_calls();
+    threadpool_create_work_item_success_expectations();
+
+    // act
+    threadpool_work_item = threadpool_create_work_item(threadpool, test_work_function, NULL);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NOT_NULL(threadpool_work_item);
+
+    // cleanup
+    umock_c_reset_all_calls();
+    threadpool_destroy_work_item_succeed_expectations();
+    threadpool_destroy_work_item(threadpool, threadpool_work_item);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+
+/* Tests_SRS_THREADPOOL_LINUX_05_006: [ If during the initialization of threadpool_work_item, malloc fails then threadpool_create_work_item shall fail. ]*/
+
+TEST_FUNCTION(threadpool_create_work_item_fails_for_malloc)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
+    THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item;
+
+    umock_c_negative_tests_snapshot();
+    for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
+    {
+        if (umock_c_negative_tests_can_call_fail(i))
+        {
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(i);
+
+            // act
+            threadpool_work_item = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
+
+            // assert
+            ASSERT_IS_NULL(threadpool_work_item);
+        }
+    }
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_05_003: [ threadpool_create_work_item shall call sm_exec_begin. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_004: [ If sm_exec_begin returns SM_EXEC_REFUSED, threadpool_create_work_item shall fail and set the return variable threadpool_work_item a NULL value. ]*/
+
+TEST_FUNCTION(threadpool_create_work_item_fails_when_threadpool_not_open)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
+    THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item;
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+
+    // act
+    threadpool_work_item = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NULL(threadpool_work_item);
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* threadpool_schedule_work_item */
+
+/* Tests_SRS_THREADPOOL_LINUX_05_010: [ If threadpool is NULL, threadpool_schedule_work_item shall fail and set the return variable with a non-zero value. ]*/
+
+TEST_FUNCTION(threadpool_schedule_work_item_with_NULL_threadpool_fails)
+{
+    // arrange
+    int work_item_schedule_result;
+
+    // act
+    work_item_schedule_result = threadpool_schedule_work_item(NULL, (void*)0x4243);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_NOT_EQUAL(int, 0, work_item_schedule_result);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_05_011: [ If threadpool_work_item is NULL, threadpool_schedule_work_item shall fail and set the return variable with a non-zero value. ] */
+
+TEST_FUNCTION(threadpool_schedule_work_item_with_NULL_work_function_fails)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
+    int work_item_schedule_result;
+    umock_c_reset_all_calls();
+
+    // act
+    work_item_schedule_result = threadpool_schedule_work_item(threadpool, NULL);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_NOT_EQUAL(int, 0, work_item_schedule_result);
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_05_012: [ threadpool_schedule_work_item shall call sm_exec_begin. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_013: [ If sm_exec_begin returns SM_EXEC_REFUSED, threadpool_schedule_work_item shall fail and set the return variable with a non-zero value. ]*/
+
+TEST_FUNCTION(threadpool_schedule_work_item_fails_when_threadpool_not_open)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
+    int result;
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+
+    // act
+    result = threadpool_schedule_work_item(threadpool, (void*)0x4243);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_05_012: [ threadpool_schedule_work_item shall call sm_exec_begin. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_014: [ threadpool_schedule_work_item shall acquire the SRW lock in shared mode by calling srw_lock_acquire_shared. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_015: [ threadpool_schedule_work_item shall increment the insert_pos. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_016: [ If task state is TASK_NOT_USED, threadpool_schedule_work_item shall set the current task state to TASK_INITIALIZING. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_019: [ threadpool_schedule_work_item shall increment the pending_work_item_count by calling interlocked_increment and copy its address to pending_work_item_count_ptr into insert position in the task array ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_020: [ threadpool_schedule_work_item shall copy the work_function and work_function_context from threadpool_work_item into insert position in the task array. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_021: [ threadpool_schedule_work_item shall set the task_state to TASK_WAITING and then release the shared SRW lock. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_022: [ threadpool_schedule_work_item shall unblock the threadpool semaphore by calling sem_post. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_023: [ threadpool_schedule_work_item shall set the return variable to 0 to indicate success. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_024: [ threadpool_schedule_work_item shall call sm_exec_end. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_025: [ threadpool_schedule_work_item shall return with the contents of the value of the return variable ]*/
+
+TEST_FUNCTION(threadpool_schedule_work_item_succeeds)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool();
+    umock_c_reset_all_calls();
+
+    THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item;
+    threadpool_create_work_item_success_expectations();
+    threadpool_work_item = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NOT_NULL(threadpool_work_item);
+    umock_c_reset_all_calls();
+
+    int result;
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(srw_lock_acquire_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_increment_64(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_sem_post(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
+    // act
+    result = threadpool_schedule_work_item(threadpool, threadpool_work_item);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(int, 0, result);
+
+    // cleanup
+    umock_c_reset_all_calls();
+    threadpool_destroy_work_item_succeed_expectations();
+    threadpool_destroy_work_item(threadpool, threadpool_work_item);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_05_012: [ threadpool_schedule_work_item shall call sm_exec_begin. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_014: [ threadpool_schedule_work_item shall acquire the SRW lock in shared mode by calling srw_lock_acquire_shared. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_015: [ threadpool_schedule_work_item shall increment the insert_pos. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_016: [ If task state is TASK_NOT_USED, threadpool_schedule_work_item shall set the current task state to TASK_INITIALIZING. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_017: [ Otherwise, threadpool_schedule_work_item shall release the shared SRW lock by calling srw_lock_release_shared and increase task_array capacity.]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_019: [ threadpool_schedule_work_item shall increment the pending_work_item_count by calling interlocked_increment and copy its address to pending_work_item_count_ptr into insert position in the task array ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_020: [ threadpool_schedule_work_item shall copy the work_function and work_function_context from threadpool_work_item into insert position in the task array. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_021: [ threadpool_schedule_work_item shall set the task_state to TASK_WAITING and then release the shared SRW lock. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_022: [ threadpool_schedule_work_item shall unblock the threadpool semaphore by calling sem_post. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_023: [ threadpool_schedule_work_item shall set the return variable to 0 to indicate success. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_024: [ threadpool_schedule_work_item shall call sm_exec_end. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_025: [ threadpool_schedule_work_item shall return with the contents of the value of the return variable ]*/
+
+TEST_FUNCTION(threadpool_schedule_work_item_realloc_array_with_no_empty_space)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool();
+    umock_c_reset_all_calls();
+
+    THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item;
+    threadpool_create_work_item_success_expectations();
+    threadpool_work_item = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NOT_NULL(threadpool_work_item);
+    umock_c_reset_all_calls();
+
+    int result;
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+
+    STRICT_EXPECTED_CALL(srw_lock_acquire_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_increment_64(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG)).SetReturn(0);
+
+    STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(srw_lock_acquire_exclusive(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(realloc_2(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG)).IgnoreAllCalls();
+    STRICT_EXPECTED_CALL(interlocked_add_64(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_add_64(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_exchange_64(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_exchange_64(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(srw_lock_release_exclusive(IGNORED_ARG));
+
+    STRICT_EXPECTED_CALL(srw_lock_acquire_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_increment_64(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_sem_post(IGNORED_ARG));
+
+    STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
+
+    // act
+    result = threadpool_schedule_work_item(threadpool, threadpool_work_item);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(int, 0, result);
+
+    // cleanup
+    umock_c_reset_all_calls();
+    threadpool_destroy_work_item_succeed_expectations();
+    threadpool_destroy_work_item(threadpool, threadpool_work_item);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_05_012: [ threadpool_schedule_work_item shall call sm_exec_begin. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_014: [ threadpool_schedule_work_item shall acquire the SRW lock in shared mode by calling srw_lock_acquire_shared. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_015: [ threadpool_schedule_work_item shall increment the insert_pos. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_016: [ If task state is TASK_NOT_USED, threadpool_schedule_work_item shall set the current task state to TASK_INITIALIZING. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_017: [ Otherwise, threadpool_schedule_work_item shall release the shared SRW lock by calling srw_lock_release_shared and increase task_array capacity. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_018: [ If reallocating the task array fails, threadpool_schedule_work_item shall fail and set the return variable a non-zero value. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_024: [ threadpool_schedule_work_item shall call sm_exec_end. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_025: [ threadpool_schedule_work_item shall return with the contents of the value of the return variable ]*/
+
+TEST_FUNCTION(threadpool_schedule_work_item_fails_when_new_array_size_overflows)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool();
+    umock_c_reset_all_calls();
+
+    THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item;
+    threadpool_create_work_item_success_expectations();
+    threadpool_work_item = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NOT_NULL(threadpool_work_item);
+    umock_c_reset_all_calls();
+
+    int result;
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+
+    STRICT_EXPECTED_CALL(srw_lock_acquire_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_increment_64(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG)).SetReturn(0);
+
+    STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(srw_lock_acquire_exclusive(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0)).SetReturn(INT32_MAX / 2 + 1);
+    STRICT_EXPECTED_CALL(srw_lock_release_exclusive(IGNORED_ARG));
+
+    STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
+
+    // act
+    result = threadpool_schedule_work_item(threadpool, threadpool_work_item);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+
+    // cleanup
+    umock_c_reset_all_calls();
+    threadpool_destroy_work_item_succeed_expectations();
+    threadpool_destroy_work_item(threadpool, threadpool_work_item);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_05_012: [ threadpool_schedule_work_item shall call sm_exec_begin. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_014: [ threadpool_schedule_work_item shall acquire the SRW lock in shared mode by calling srw_lock_acquire_shared. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_015: [ threadpool_schedule_work_item shall increment the insert_pos. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_016: [ If task state is TASK_NOT_USED, threadpool_schedule_work_item shall set the current task state to TASK_INITIALIZING. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_017: [ Otherwise, threadpool_schedule_work_item shall release the shared SRW lock by calling srw_lock_release_shared and increase task_array capacity. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_018: [ If reallocating the task array fails, threadpool_schedule_work_item shall fail and set the return variable a non-zero value. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_024: [ threadpool_schedule_work_item shall call sm_exec_end. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_025: [ threadpool_schedule_work_item shall return with the contents of the value of the return variable ]*/
+
+TEST_FUNCTION(threadpool_schedule_work_item_fails_when_realloc_array_fails)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool();
+    umock_c_reset_all_calls();
+
+    THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item;
+    threadpool_create_work_item_success_expectations();
+    threadpool_work_item = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NOT_NULL(threadpool_work_item);
+    umock_c_reset_all_calls();
+
+    int result;
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+
+    STRICT_EXPECTED_CALL(srw_lock_acquire_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_increment_64(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG)).SetReturn(0);
+
+    STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(srw_lock_acquire_exclusive(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(realloc_2(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG)).SetReturn(NULL);
+    STRICT_EXPECTED_CALL(srw_lock_release_exclusive(IGNORED_ARG));
+
+    STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
+
+    // act
+    result = threadpool_schedule_work_item(threadpool, threadpool_work_item);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+
+    // cleanup
+    umock_c_reset_all_calls();
+    threadpool_destroy_work_item_succeed_expectations();
+    threadpool_destroy_work_item(threadpool, threadpool_work_item);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* threadpool_destroy_work_item */
+
+/* Tests_SRS_THREADPOOL_LINUX_05_026: [ If threadpool is NULL, threadpool_destroy_work_item shall fail. ]*/
+
+TEST_FUNCTION(threadpool_destroy_work_item_with_NULL_threadpool_fails)
+{
+    // call
+    threadpool_destroy_work_item(NULL, (void*)0x4243);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_05_028: [ threadpool_destroy_work_item shall call sm_exec_begin. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_029: [ If sm_exec_begin returns SM_EXEC_REFUSED, threadpool_destroy_work_item shall fail. ]*/
+
+TEST_FUNCTION(threadpool_destroy_work_item_fails_when_threadpool_not_open)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
+    umock_c_reset_all_calls();
+    // call
+    threadpool_destroy_work_item(threadpool, NULL);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_05_028: [ threadpool_destroy_work_item shall call sm_exec_begin. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_030: [ threadpool_destroy_work_item shall wait for pending_work_item_count to become 0. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_034: [ If InterlockedHL_WaitForValue does not return INTERLOCKED_HL_OK then Log Message with severity CRITICAL and terminate. ]*/
+TEST_FUNCTION(threadpool_destroy_work_item_fails_for_InterlockedHL_WaitForValue_returns_INTERLOCKED_HL_ERROR)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool();
+    umock_c_reset_all_calls();
+
+    THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item;
+    threadpool_create_work_item_success_expectations();
+    threadpool_work_item = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NOT_NULL(threadpool_work_item);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(InterlockedHL_WaitForValue(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG)).SetReturn(INTERLOCKED_HL_ERROR);
+    STRICT_EXPECTED_CALL(ps_util_terminate_process());
+    STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
+
+    threadpool_destroy_work_item(threadpool, threadpool_work_item);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    umock_c_reset_all_calls();
+    threadpool_destroy_work_item_succeed_expectations();
+    threadpool_destroy_work_item(threadpool, threadpool_work_item);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* SRS_THREADPOOL_LINUX_05_028: [ threadpool_destroy_work_item shall call sm_exec_begin. ]*/
+/* SRS_THREADPOOL_LINUX_05_030: [ threadpool_destroy_work_item shall wait for pending_work_item_count to become 0. ]*/
+/* SRS_THREADPOOL_LINUX_05_031: [ threadpool_destroy_work_item shall acquire the SRW lock in shared mode by calling srw_lock_acquire_shared. ]*/
+/* SRS_THREADPOOL_LINUX_05_032: [ threadpool_destroy_work_item shall free the memory allocated to the work item of type THREADPOOL_WORK_ITEM_HANDLE created in threadpool_create_work_item. ]*/
+/* SRS_THREADPOOL_LINUX_05_033: [ threadpool_destroy_work_item shall release the shared SRW lock. ]*/
+/* SRS_THREADPOOL_LINUX_05_035: [ threadpool_destroy_work_item shall call sm_exec_end. ]*/
+TEST_FUNCTION(threadpool_destroy_work_item_succeeds)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool();
+    umock_c_reset_all_calls();
+
+    THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item;
+    threadpool_create_work_item_success_expectations();
+    threadpool_work_item = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NOT_NULL(threadpool_work_item);
+    umock_c_reset_all_calls();
+
+    threadpool_destroy_work_item_succeed_expectations();
+
+    // act
+    threadpool_destroy_work_item(threadpool, threadpool_work_item);
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
