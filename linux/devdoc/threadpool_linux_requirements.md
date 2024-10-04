@@ -388,11 +388,11 @@ static int threadpool_work_func(void* param);
 
 - **SRS_THREADPOOL_LINUX_05_036: [** If the `threadpool_destroy_work_item_ptr` is not `NULL` then: **]**
 
-    - **SRS_THREADPOOL_LINUX_07_076: [** `threadpool_work_func` shall acquire the shared SRW lock by calling `srw_lock_acquire_shared`. **]**
+    - **S_R_S_THREADPOOL_LINUX_07_076: [** `threadpool_work_func` shall acquire the shared SRW lock by calling `srw_lock_acquire_shared`. **]**
 
     - **SRS_THREADPOOL_LINUX_05_037: [** `threadpool_work_func` shall decrement the `pending_work_item_count_ptr` by calling `interlocked_decrement`. **]**
 
-    - **SRS_THREADPOOL_LINUX_07_083: [** `threadpool_work_func` shall release the shared SRW lock by calling `srw_lock_release_shared`. **]**
+    - **S_R_S_THREADPOOL_LINUX_07_083: [** `threadpool_work_func` shall release the shared SRW lock by calling `srw_lock_release_shared`. **]**
 
 **SRS_THREADPOOL_LINUX_07_085: [** `threadpool_work_func` shall loop until `threadpool_close` or `threadpool_destroy` is called. **]**
 
