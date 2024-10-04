@@ -604,9 +604,9 @@ TEST_FUNCTION(threadpool_work_func_succeeds_for_threadpool_schedule_work)
 /* Tests_SRS_THREADPOOL_LINUX_07_083: [ threadpool_work_func shall release the shared SRW lock by calling srw_lock_release_shared. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_084: [ If the work item function is not NULL, threadpool_work_func shall execute it with work_function_ctx. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_036: [ If the `threadpool_destroy_work_item_ptr` is not `NULL` then: ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_076: [ threadpool_work_func shall acquire the shared SRW lock by calling srw_lock_acquire_shared. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_05_037: [ threadpool_work_func shall decrement the pending_work_item_count_ptr by calling interlocked_decrement. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_083: [ threadpool_work_func shall release the shared SRW lock by calling srw_lock_release_shared. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_037: [ threadpool_work_func shall acquire the shared SRW lock by calling srw_lock_acquire_shared. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_038: [ threadpool_work_func shall decrement the pending_work_item_count_ptr by calling interlocked_decrement. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_039: [ threadpool_work_func shall release the shared SRW lock by calling srw_lock_release_shared. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_085: [ threadpool_work_func shall loop until threadpool_close or threadpool_destroy is called. ]*/
 TEST_FUNCTION(threadpool_work_func_succeeds_for_threadpool_schedule_work_item)
 {

@@ -221,11 +221,11 @@ static int threadpool_work_func(void* param)
                         /* Codes_SRS_THREADPOOL_LINUX_05_036: [ If the `threadpool_destroy_work_item_ptr` is not `NULL` then: ]*/
                         if (NULL != threadpool->task_array[current_index].pending_work_item_count_ptr)
                         {
-                            /* Codes_SRS_THREADPOOL_LINUX_07_076: [ threadpool_work_func shall acquire the shared SRW lock by calling srw_lock_acquire_shared. ]*/
+                            /* Codes_SRS_THREADPOOL_LINUX_05_037: [ threadpool_work_func shall acquire the shared SRW lock by calling srw_lock_acquire_shared. ]*/
                             srw_lock_acquire_shared(threadpool->srw_lock);
-                            /* Codes_SRS_THREADPOOL_LINUX_05_037: [ threadpool_work_func shall decrement the pending_work_item_count_ptr by calling interlocked_decrement. ]*/
+                            /* Codes_SRS_THREADPOOL_LINUX_05_038: [ threadpool_work_func shall decrement the pending_work_item_count_ptr by calling interlocked_decrement. ]*/
                             interlocked_decrement(threadpool->task_array[current_index].pending_work_item_count_ptr);
-                            /* Codes_SRS_THREADPOOL_LINUX_07_083: [ threadpool_work_func shall release the shared SRW lock by calling srw_lock_release_shared. ]*/
+                            /* Codes_SRS_THREADPOOL_LINUX_05_039: [ threadpool_work_func shall release the shared SRW lock by calling srw_lock_release_shared. ]*/
                             srw_lock_release_shared(threadpool->srw_lock);
                         }
                     }
@@ -274,6 +274,7 @@ static int reallocate_threadpool_array(THREADPOOL* threadpool)
                 {
                     temp_array[index].work_function = NULL;
                     temp_array[index].work_function_ctx = NULL;
+                    temp_array[index].pending_work_item_count_ptr = NULL;
                     (void)interlocked_exchange(&temp_array[index].task_state, TASK_NOT_USED);
                 }
                 threadpool->task_array = temp_array;
@@ -391,6 +392,7 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                         {
                             result->task_array[index].work_function = NULL;
                             result->task_array[index].work_function_ctx = NULL;
+                            result->task_array[index].pending_work_item_count_ptr = NULL;
                             (void)interlocked_exchange(&result->task_array[index].task_state, TASK_NOT_USED);
                         }
 
