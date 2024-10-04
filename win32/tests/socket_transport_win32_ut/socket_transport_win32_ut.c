@@ -1453,7 +1453,7 @@ TEST_FUNCTION(socket_transport_listen_fail)
 // socket_transport_accept
 
 // Tests_SOCKET_TRANSPORT_WIN32_09_069: [ socket_transport_accept shall call sm_exec_begin. ]
-// Tests_SOCKET_TRANSPORT_WIN32_09_071: [ socket_transport_accept shall call select determine if the socket is ready to be read passing a timeout of 10 milliseconds. ]
+// Tests_SOCKET_TRANSPORT_WIN32_09_071: [ socket_transport_accept shall call select to determine if the socket is ready to be read passing connection_timeout_ms. ]
 // Tests_SOCKET_TRANSPORT_WIN32_09_072: [ socket_transport_accept shall call accept to accept the incoming socket connection. ]
 // Tests_SOCKET_TRANSPORT_WIN32_09_074: [ socket_transport_accept shall allocate a SOCKET_TRANSPORT for the incoming connection and call sm_create and sm_open on the connection. ]
 // Tests_SOCKET_TRANSPORT_WIN32_09_075: [ If successful socket_transport_accept shall return SOCKET_ACCEPT_OK. ]
@@ -1552,7 +1552,7 @@ TEST_FUNCTION(socket_transport_accept_smexecbegin_fail)
     socket_transport_destroy(socket_handle);
 }
 
-// Tests_SOCKET_TRANSPORT_WIN32_09_071: [ socket_transport_accept shall call select determine if the socket is ready to be read passing a timeout of 10 milliseconds. ]
+// Tests_SOCKET_TRANSPORT_WIN32_11_002: [ If select returns SOCKET_ERROR and WSAGetLastError does not return WSAEINPROGRESS, socket_transport_accept shall return SOCKET_ACCEPT_ERROR. ]
 TEST_FUNCTION(socket_transport_accept_select_fail)
 {
     //arrange
@@ -1565,6 +1565,7 @@ TEST_FUNCTION(socket_transport_accept_select_fail)
     STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
     STRICT_EXPECTED_CALL(select(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .SetReturn(SOCKET_ERROR);
+    STRICT_EXPECTED_CALL(WSAGetLastError());
     STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
 
     //act
@@ -1573,6 +1574,36 @@ TEST_FUNCTION(socket_transport_accept_select_fail)
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    socket_transport_disconnect(socket_handle);
+    socket_transport_destroy(socket_handle);
+}
+
+// Tests_SOCKET_TRANSPORT_WIN32_11_001: [ If select returns SOCKET_ERROR and WSAGetLastError return WSAEINPROGRESS, socket_transport_accept shall return SOCKET_ACCEPT_INPROGRESS. ]
+TEST_FUNCTION(socket_transport_accept_select_in_progress_fail)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
+    ASSERT_IS_NOT_NULL(socket_handle);
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(socket_handle, TEST_PORT));
+    umock_c_reset_all_calls();
+    umock_c_negative_tests_snapshot();
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(select(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(SOCKET_ERROR);
+    STRICT_EXPECTED_CALL(WSAGetLastError())
+        .SetReturn(WSAEINPROGRESS);
+    STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
+
+    //act
+    SOCKET_TRANSPORT_HANDLE accept_socket_handle;
+    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle, TEST_CONNECTION_TIMEOUT);
+
+    //assert
+    ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_INPROGRESS, accept_result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
@@ -1608,7 +1639,7 @@ TEST_FUNCTION(socket_transport_accept_select_returns_zero)
     socket_transport_destroy(socket_handle);
 }
 
-// Tests_SOCKET_TRANSPORT_WIN32_09_073: [ If accept returns an INVALID_SOCKET, socket_transport_accept shall fail and return SOCKET_ACCEPT_ERROR. ]
+// Tests_SOCKET_TRANSPORT_WIN32_09_073: [ If accept returns an INVALID_SOCKET and WSAGetLastError does not return WSAEWOULDBLOCK, socket_transport_accept shall fail and return SOCKET_ACCEPT_ERROR. ]
 TEST_FUNCTION(socket_transport_accept_accept_fail)
 {
     //arrange
@@ -1623,7 +1654,7 @@ TEST_FUNCTION(socket_transport_accept_accept_fail)
     STRICT_EXPECTED_CALL(accept(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .SetReturn((SOCKET)SOCKET_ERROR);
     STRICT_EXPECTED_CALL(WSAGetLastError())
-        .SetReturn(0);
+        .SetReturn(WSAENOTSOCK);
     STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
 
     //act
@@ -1632,6 +1663,68 @@ TEST_FUNCTION(socket_transport_accept_accept_fail)
 
     //assert
     ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_ERROR, accept_result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    socket_transport_disconnect(socket_handle);
+    socket_transport_destroy(socket_handle);
+}
+
+// Tests_SOCKET_TRANSPORT_WIN32_11_003: [ If accept returns an INVALID_SOCKET and WSAGetLastError returns WSAENOBUFS, socket_transport_accept shall fail and return SOCKET_ACCEPT_PORT_EXHAUSTION. ]
+TEST_FUNCTION(socket_transport_accept_accept_no_buffer_fail)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
+    ASSERT_IS_NOT_NULL(socket_handle);
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(socket_handle, TEST_PORT));
+    umock_c_reset_all_calls();
+    umock_c_negative_tests_snapshot();
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(select(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(accept(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn((SOCKET)SOCKET_ERROR);
+    STRICT_EXPECTED_CALL(WSAGetLastError())
+        .SetReturn(WSAENOBUFS);
+    STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
+
+    //act
+    SOCKET_TRANSPORT_HANDLE accept_socket_handle;
+    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle, TEST_CONNECTION_TIMEOUT);
+
+    //assert
+    ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_PORT_EXHAUSTION, accept_result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    socket_transport_disconnect(socket_handle);
+    socket_transport_destroy(socket_handle);
+}
+
+// Tests_SOCKET_TRANSPORT_WIN32_11_004: [ If accept returns an INVALID_SOCKET and WSAGetLastError returns WSAEWOULDBLOCK, socket_transport_accept shall fail and return SOCKET_ACCEPT_NO_CONNECTION. ]
+TEST_FUNCTION(socket_transport_accept_accept_would_block_no_connection)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_server();
+    ASSERT_IS_NOT_NULL(socket_handle);
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(socket_handle, TEST_PORT));
+    umock_c_reset_all_calls();
+    umock_c_negative_tests_snapshot();
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(select(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(accept(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn((SOCKET)SOCKET_ERROR);
+    STRICT_EXPECTED_CALL(WSAGetLastError())
+        .SetReturn(WSAEWOULDBLOCK);
+    STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
+
+    //act
+    SOCKET_TRANSPORT_HANDLE accept_socket_handle;
+    SOCKET_ACCEPT_RESULT accept_result = socket_transport_accept(socket_handle, &accept_socket_handle, TEST_CONNECTION_TIMEOUT);
+
+    //assert
+    ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_NO_CONNECTION, accept_result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     //cleanup
