@@ -171,8 +171,8 @@ TEST_FUNCTION(one_work_item_schedule_works)
     LogInfo("Waiting for task to complete");
     do
     {
-        (void)wait_on_address(&thread_counter, 1, UINT32_MAX);
-    } while (thread_counter != 1);
+        (void)wait_on_address(&thread_counter, 1, TEST_TIMEOUT_VALUE);
+    } while (interlocked_add(&thread_counter, 0) != 1);
 
     ASSERT_ARE_EQUAL(int32_t, thread_counter, 1, "Thread counter has timed out");
 
@@ -204,8 +204,8 @@ TEST_FUNCTION(one_work_item_schedule_work_item)
     LogInfo("Waiting for task to complete");
     do
     {
-        (void)wait_on_address(&thread_counter, 1, UINT32_MAX);
-    } while (thread_counter != 1);
+        (void)wait_on_address(&thread_counter, 1, TEST_TIMEOUT_VALUE);
+    } while (interlocked_add(&thread_counter, 0) != 1);
 
     ASSERT_ARE_EQUAL(int32_t, thread_counter, 1, "Thread counter has timed out");
 
@@ -246,8 +246,8 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
     // assert
     do
     {
-        wait_on_address(&thread_counter, 1, TEST_TIMEOUT_VALUE);
-    } while (thread_counter != num_threads);
+        (void)wait_on_address(&thread_counter, 1, TEST_TIMEOUT_VALUE);
+    } while (interlocked_add(&thread_counter, 0) != num_threads);
 
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
@@ -281,8 +281,8 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work))
     // assert
     do
     {
-        wait_on_address(&thread_counter, 1, TEST_TIMEOUT_VALUE);
-    } while (thread_counter != num_threads);
+        (void)wait_on_address(&thread_counter, 1, TEST_TIMEOUT_VALUE);
+    } while (interlocked_add(&thread_counter, 0) != num_threads);
 
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
@@ -318,8 +318,8 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
 
     do
     {
-        wait_on_address(&thread_counter, 1, UINT32_MAX);
-    } while (thread_counter != num_threads);
+        (void)wait_on_address(&thread_counter, 1, TEST_TIMEOUT_VALUE);
+    } while (interlocked_add(&thread_counter, 0) != num_threads);
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
@@ -350,8 +350,8 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_with_pool_threads))
 
     do
     {
-        wait_on_address(&thread_counter, 1, UINT32_MAX);
-    } while (thread_counter != num_threads);
+        (void)wait_on_address(&thread_counter, 1, TEST_TIMEOUT_VALUE);
+    } while (interlocked_add(&thread_counter, 0) != num_threads);
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
@@ -387,8 +387,8 @@ TEST_FUNCTION(threadpool_chaos_knight)
     // assert
     do
     {
-        wait_on_address(&thread_counter, 1, UINT32_MAX);
-    } while (thread_counter != num_threads);
+        (void)wait_on_address(&thread_counter, 1, TEST_TIMEOUT_VALUE);
+    } while (interlocked_add(&thread_counter, 0) != num_threads);
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
@@ -427,8 +427,8 @@ TEST_FUNCTION(threadpool_chaos_knight_v2)
     // assert
     do
     {
-        wait_on_address(&thread_counter, 1, UINT32_MAX);
-    } while (thread_counter != num_threads);
+        (void)wait_on_address(&thread_counter, 1, TEST_TIMEOUT_VALUE);
+    } while (interlocked_add(&thread_counter, 0) != num_threads);
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
@@ -787,8 +787,8 @@ TEST_FUNCTION(schedule_after_close_works)
     LogInfo("Waiting for task to complete");
     do
     {
-        (void)wait_on_address(&thread_counter, 1, UINT32_MAX);
-    } while (thread_counter != 1);
+        (void)wait_on_address(&thread_counter, 1, TEST_TIMEOUT_VALUE);
+    } while (interlocked_add(&thread_counter, 0) != 1);
 
     ASSERT_ARE_EQUAL(int32_t, thread_counter, 1, "Thread counter has timed out");
     threadpool_destroy_work_item(threadpool, threadpool_work_item);
@@ -810,8 +810,8 @@ TEST_FUNCTION(schedule_after_close_works)
     LogInfo("Waiting for task to complete");
     do
     {
-        (void)wait_on_address(&thread_counter, 1, UINT32_MAX);
-    } while (thread_counter != 1);
+        (void)wait_on_address(&thread_counter, 1, TEST_TIMEOUT_VALUE);
+    } while (interlocked_add(&thread_counter, 0) != 1);
 
     ASSERT_ARE_EQUAL(int32_t, thread_counter, 1, "Thread counter has timed out");
 
@@ -841,8 +841,8 @@ TEST_FUNCTION(schedule_after_close_works_v2)
     LogInfo("Waiting for task to complete");
     do
     {
-        (void)wait_on_address(&thread_counter, 1, UINT32_MAX);
-    } while (thread_counter != 1);
+        (void)wait_on_address(&thread_counter, 1, TEST_TIMEOUT_VALUE);
+    } while (interlocked_add(&thread_counter, 0) != 1);
 
     ASSERT_ARE_EQUAL(int32_t, thread_counter, 1, "Thread counter has timed out");
     threadpool_close(threadpool);
@@ -860,8 +860,8 @@ TEST_FUNCTION(schedule_after_close_works_v2)
     LogInfo("Waiting for task to complete");
     do
     {
-        (void)wait_on_address(&thread_counter, 1, UINT32_MAX);
-    } while (thread_counter != 1);
+        (void)wait_on_address(&thread_counter, 1, TEST_TIMEOUT_VALUE);
+    } while (interlocked_add(&thread_counter, 0) != 1);
 
     ASSERT_ARE_EQUAL(int32_t, thread_counter, 1, "Thread counter has timed out");
 
