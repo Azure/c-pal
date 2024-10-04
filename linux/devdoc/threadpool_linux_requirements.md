@@ -422,6 +422,7 @@ MOCKABLE_FUNCTION(, THREADPOOL_WORK_ITEM_HANDLE, threadpool_create_work_item, TH
 
 **SRS_THREADPOOL_LINUX_05_009: [** Return the value inside `threadpool_work_item` **]**
 
+
 ### threadpool_schedule_work_item
 
 ```c
