@@ -175,11 +175,7 @@ TEST_FUNCTION(one_work_item_schedule_works)
 
     // assert
     LogInfo("Waiting for task to complete");
-    do
-    {
-        (void)InterlockedHL_WaitForValue(&thread_counter, num_threads, TEST_TIMEOUT_VALUE);
-    } while (interlocked_add(&thread_counter, 0) != num_threads);
-
+    ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
@@ -213,11 +209,7 @@ TEST_FUNCTION(one_work_item_schedule_work_item)
 
     // assert
     LogInfo("Waiting for task to complete");
-    do
-    {
-        (void)InterlockedHL_WaitForValue(&thread_counter, num_threads, TEST_TIMEOUT_VALUE);
-    } while (interlocked_add(&thread_counter, 0) != num_threads);
-
+    ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
@@ -259,10 +251,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
     LogInfo("Scheduled threads waiting for threads to complete");
 
     // assert
-    do
-    {
-        (void)InterlockedHL_WaitForValue(&thread_counter, num_threads, TEST_TIMEOUT_VALUE);
-    } while (interlocked_add(&thread_counter, 0) != num_threads);
+    ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
@@ -297,10 +286,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work))
     LogInfo("Scheduled threads waiting for threads to complete");
 
     // assert
-    do
-    {
-        (void)InterlockedHL_WaitForValue(&thread_counter, num_threads, TEST_TIMEOUT_VALUE);
-    } while (interlocked_add(&thread_counter, 0) != num_threads);
+    ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
@@ -337,11 +323,8 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
         ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(threadpool, threadpool_work_item));
     }
 
-    do
-    {
-        (void)InterlockedHL_WaitForValue(&thread_counter, num_threads, TEST_TIMEOUT_VALUE);
-    } while (interlocked_add(&thread_counter, 0) != num_threads);
-
+    // assert
+    ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
@@ -374,10 +357,8 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_with_pool_threads))
         ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter));
     }
 
-    do
-    {
-        (void)InterlockedHL_WaitForValue(&thread_counter, num_threads, TEST_TIMEOUT_VALUE);
-    } while (interlocked_add(&thread_counter, 0) != num_threads);
+    // assert
+    ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
@@ -414,11 +395,8 @@ TEST_FUNCTION(threadpool_chaos_knight)
         ThreadAPI_Sleep(sleepy_time);
     }
 
-    do
-    {
-        (void)InterlockedHL_WaitForValue(&thread_counter, num_threads, TEST_TIMEOUT_VALUE);
-    } while (interlocked_add(&thread_counter, 0) != num_threads);
-
+    // assert
+    ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
@@ -459,10 +437,7 @@ TEST_FUNCTION(threadpool_chaos_knight_v2)
     }
 
     // assert
-    do
-    {
-        (void)InterlockedHL_WaitForValue(&thread_counter, num_threads, TEST_TIMEOUT_VALUE);
-    } while (interlocked_add(&thread_counter, 0) != num_threads);
+    ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
@@ -501,10 +476,8 @@ TEST_FUNCTION(threadpool_force_wrap_around)
     }
 
     // assert
-    do
-    {
-        (void)InterlockedHL_WaitForValue(&thread_counter, num_threads, TEST_TIMEOUT_VALUE);
-    } while (interlocked_add(&thread_counter, 0) != num_threads);
+    ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
+    ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
     threadpool_close(threadpool);
@@ -542,10 +515,8 @@ TEST_FUNCTION(threadpool_force_wrap_around_v2)
     }
 
     // assert
-    do
-    {
-        (void)InterlockedHL_WaitForValue(&thread_counter, num_threads, TEST_TIMEOUT_VALUE);
-    } while (interlocked_add(&thread_counter, 0) != num_threads);
+    ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
+    ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
 
@@ -884,11 +855,8 @@ TEST_FUNCTION(schedule_after_close_works)
 
     // assert
     LogInfo("Waiting for task to complete");
-    do
-    {
-        (void)wait_on_address(&thread_counter, num_threads, TEST_TIMEOUT_VALUE);
-    } while (interlocked_add(&thread_counter, 0) != num_threads);
-
+    // assert
+    ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
@@ -939,11 +907,8 @@ TEST_FUNCTION(schedule_after_close_works_v2)
 
     // assert
     LogInfo("Waiting for task to complete");
-    do
-    {
-        (void)InterlockedHL_WaitForValue(&thread_counter, num_threads, TEST_TIMEOUT_VALUE);
-    } while (interlocked_add(&thread_counter, 0) != num_threads);
-
+    // assert
+    ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
