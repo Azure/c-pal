@@ -13,15 +13,20 @@
 
 #include "macro_utils/macro_utils.h"
 
+#include "c_pal/thandle.h"
+
+typedef struct JOB_OBJECT_HELPER_TAG JOB_OBJECT_HELPER;
+THANDLE_TYPE_DECLARE(JOB_OBJECT_HELPER);
+
 #include "umock_c/umock_c_prod.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-    MOCKABLE_FUNCTION(, int, job_object_helper_limit_resources, uint32_t, percent_physical_memory, uint32_t, percent_cpu);
-
+    MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_create);
+    MOCKABLE_FUNCTION(, int, job_object_helper_limit_memory, THANDLE(JOB_OBJECT_HELPER), job_object_helper, uint32_t, percent_physical_memory);
+    MOCKABLE_FUNCTION(, int, job_object_helper_limit_cpu, THANDLE(JOB_OBJECT_HELPER), job_object_helper, uint32_t, percent_cpu);
 #ifdef __cplusplus
 }
 #endif
