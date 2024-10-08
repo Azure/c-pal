@@ -191,6 +191,35 @@ set(C_PAL_INC_FOLDER
     ${CMAKE_CURRENT_LIST_DIR}/c_pal_ll/interfaces/inc
     CACHE INTERNAL "this is what needs to be included if using c_pal" FORCE)
 
+#this function takes as arguments a LIBRARY_NAME followed by a list of HEADER_FILES
+#it builds a separate header file which includes all the HEADER_FILES under the ENABLE_MOCKS_DECL #define
+#it builds a separate source file which is build under the ENABLE_MOCKS #define
+#it adds the header file and the source file to a library called ${LIBRARY_NAME}_mocks
+#it adds the headers as precompiles headers for the ${LIBRARY_NAME}_mocks library
+function(add_mock_library LIBRARY_NAME)
+    set(options)
+    set(oneValueArgs)
+    set(multiValueArgs HEADER_FILES)
+    cmake_parse_arguments(ARG "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    set(MOCKS_HEADER_FILE ${CMAKE_CURRENT_BINARY_DIR}/${LIBRARY_NAME}_mocks.h)
+    set(MOCKS_SOURCE_FILE ${CMAKE_CURRENT_BINARY_DIR}/${LIBRARY_NAME}_mocks.c)
+
+    file(WRITE ${MOCKS_HEADER_FILE} "#ifdef ENABLE_MOCKS_DECL\n")
+    foreach(HEADER_FILE ${ARG_HEADER_FILES})
+        file(APPEND ${MOCKS_HEADER_FILE} "#include \"${HEADER_FILE}\"\n")
+    endforeach()
+    file(APPEND ${MOCKS_HEADER_FILE} "#endif\n")
+
+    file(WRITE ${MOCKS_SOURCE_FILE} "#ifdef ENABLE_MOCKS\n")
+    file(APPEND ${MOCKS_SOURCE_FILE} "#include \"${MOCKS_HEADER_FILE}\"\n")
+    file(APPEND ${MOCKS_SOURCE_FILE} "#endif\n")
+
+    add_library(${LIBRARY_NAME}_mocks ${MOCKS_SOURCE_FILE} ${MOCKS_HEADER_FILE})
+    target_include_directories(${LIBRARY_NAME}_mocks PUBLIC ${C_PAL_INC_FOLDER})
+    target_precompile_headers(${LIBRARY_NAME}_mocks PUBLIC ${MOCKS_HEADER_FILE})
+endfunction()
+
 add_subdirectory(build_functions)
 
 add_subdirectory(interfaces)

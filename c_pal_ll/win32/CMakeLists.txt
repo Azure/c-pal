@@ -6,7 +6,7 @@ set(pal_ll_win32_h_files
     ../interfaces/inc/c_pal/threadapi.h
 )
 
-set(pal_ll_win32_c_files    
+set(pal_ll_win32_c_files
     src/interlocked_win32.c
     src/sync_win32.c
     src/threadapi_win32.c
@@ -20,12 +20,12 @@ include_directories(../common/inc)
 include_directories(../c_pal_ll/interfaces/inc)
 
 add_library(pal_ll_win32 ${pal_ll_win32_h_files} ${pal_ll_win32_c_files} ${pal_ll_win32_md_files})
-
 set_target_properties(pal_ll_win32 PROPERTIES LINKER_LANGUAGE C)
 
 target_link_libraries(pal_ll_win32 pal_ll_interfaces synchronization rpcrt4 c_logging_v2)
 
 target_include_directories(pal_ll_win32 PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc ${CMAKE_CURRENT_LIST_DIR}/src)
 
+add_subdirectory(mocks)
 add_subdirectory(reals)
 add_subdirectory(tests)
