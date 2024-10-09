@@ -205,18 +205,33 @@ function(add_mock_library LIBRARY_NAME)
     set(MOCKS_HEADER_FILE ${CMAKE_CURRENT_BINARY_DIR}/${LIBRARY_NAME}_mocks.h)
     set(MOCKS_SOURCE_FILE ${CMAKE_CURRENT_BINARY_DIR}/${LIBRARY_NAME}_mocks.c)
 
-    file(WRITE ${MOCKS_HEADER_FILE} "#ifdef ENABLE_MOCKS_DECL\n")
+    file(WRITE ${MOCKS_HEADER_FILE} "#ifndef ${LIBRARY_NAME}_H\n")
+    file(APPEND ${MOCKS_HEADER_FILE} "#define ${LIBRARY_NAME}_H\n\n")
+
+    file(APPEND ${MOCKS_HEADER_FILE} "#define ENABLE_MOCKS\n")
+    file(APPEND ${MOCKS_HEADER_FILE} "#define ENABLE_MOCKS_DECL\n")
+
     foreach(HEADER_FILE ${ARG_HEADER_FILES})
         file(APPEND ${MOCKS_HEADER_FILE} "#include \"${HEADER_FILE}\"\n")
     endforeach()
-    file(APPEND ${MOCKS_HEADER_FILE} "#endif\n")
 
-    file(WRITE ${MOCKS_SOURCE_FILE} "#ifdef ENABLE_MOCKS\n")
-    file(APPEND ${MOCKS_SOURCE_FILE} "#include \"${MOCKS_HEADER_FILE}\"\n")
-    file(APPEND ${MOCKS_SOURCE_FILE} "#endif\n")
+    file(APPEND ${MOCKS_HEADER_FILE} "#undef ENABLE_MOCKS_DECL\n")
+    file(APPEND ${MOCKS_HEADER_FILE} "#undef ENABLE_MOCKS\n\n")
+
+    file(APPEND ${MOCKS_HEADER_FILE} "#endif // ${LIBRARY_NAME}_H\n")
+
+
+    file(WRITE ${MOCKS_SOURCE_FILE} "#define ENABLE_MOCKS\n")
+    foreach(HEADER_FILE ${ARG_HEADER_FILES})
+        file(APPEND ${MOCKS_SOURCE_FILE} "#include \"${HEADER_FILE}\"\n")
+    endforeach()
+    file(APPEND ${MOCKS_SOURCE_FILE} "#undef ENABLE_MOCKS\n")
+
+    set_source_files_properties(${MOCKS_SOURCE_FILE} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 
     add_library(${LIBRARY_NAME}_mocks ${MOCKS_SOURCE_FILE} ${MOCKS_HEADER_FILE})
-    target_include_directories(${LIBRARY_NAME}_mocks PUBLIC ${C_PAL_INC_FOLDER})
+    target_include_directories(${LIBRARY_NAME}_mocks PUBLIC $<TARGET_PROPERTY:${LIBRARY_NAME},INTERFACE_INCLUDE_DIRECTORIES>)
+
     target_precompile_headers(${LIBRARY_NAME}_mocks PUBLIC ${MOCKS_HEADER_FILE})
 endfunction()
 
