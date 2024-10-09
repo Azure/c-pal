@@ -231,6 +231,7 @@ function(add_mock_library LIBRARY_NAME)
 
     add_library(${LIBRARY_NAME}_mocks ${MOCKS_SOURCE_FILE} ${MOCKS_HEADER_FILE})
     target_include_directories(${LIBRARY_NAME}_mocks PUBLIC $<TARGET_PROPERTY:${LIBRARY_NAME},INTERFACE_INCLUDE_DIRECTORIES>)
+    target_link_libraries(${LIBRARY_NAME}_mocks PUBLIC umock_c)
 
     target_precompile_headers(${LIBRARY_NAME}_mocks PUBLIC ${MOCKS_HEADER_FILE})
 endfunction()
