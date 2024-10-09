@@ -3,6 +3,8 @@
 
 #include "real_gballoc_hl_renames.h"
 
+#include "real_ps_util_renames.h"
+
 #include "real_interlocked_renames.h"
 
 #include "real_execution_engine_renames.h"
