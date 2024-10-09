@@ -223,6 +223,8 @@ function(add_mock_library LIBRARY_NAME)
 
     file(WRITE ${MOCKS_SOURCE_FILE} "#define ENABLE_MOCKS\n")
     foreach(HEADER_FILE ${ARG_HEADER_FILES})
+        #note: if CMAKE error "file failed to open for writing (Permission denied):" around these lines "... then just close Visual Studio.
+        #it seems Visual Studio is aggressively scanning precompiled headers and CMake might find the file being opened by cl.exe
         file(APPEND ${MOCKS_SOURCE_FILE} "#include \"${HEADER_FILE}\"\n")
     endforeach()
     file(APPEND ${MOCKS_SOURCE_FILE} "#undef ENABLE_MOCKS\n")
