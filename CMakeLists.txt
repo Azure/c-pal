@@ -191,57 +191,7 @@ set(C_PAL_INC_FOLDER
     ${CMAKE_CURRENT_LIST_DIR}/c_pal_ll/interfaces/inc
     CACHE INTERNAL "this is what needs to be included if using c_pal" FORCE)
 
-#this function takes as arguments a LIBRARY_NAME followed by a list of HEADER_FILES
-#it builds a separate header file which includes all the HEADER_FILES under the ENABLE_MOCKS_DECL #define
-#it builds a separate source file which is build under the ENABLE_MOCKS #define
-#it adds the header file and the source file to a library called ${LIBRARY_NAME}_mocks
-#it adds the headers as precompiles headers for the ${LIBRARY_NAME}_mocks library
-function(add_mock_library LIBRARY_NAME)
-    set(options)
-    set(oneValueArgs)
-    set(multiValueArgs HEADER_FILES)
-    cmake_parse_arguments(ARG "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-    string(TOUPPER ${LIBRARY_NAME} LIBRARY_NAME_UPPER)
-
-    set(MOCKS_HEADER_FILE ${CMAKE_CURRENT_BINARY_DIR}/${LIBRARY_NAME_UPPER}_mocks.h)
-    set(MOCKS_SOURCE_FILE ${CMAKE_CURRENT_BINARY_DIR}/${LIBRARY_NAME_UPPER}_mocks.c)
-
-    file(WRITE ${MOCKS_HEADER_FILE} "// Copyright (c) Microsoft. All rights reserved.\n")
-    file(WRITE ${MOCKS_HEADER_FILE} "// Licensed under the MIT license. See LICENSE file in the project root for full license information.\n")
-    file(WRITE ${MOCKS_HEADER_FILE} "// THIS IS A GENERATED FILE, DO NOT EDIT.\n\n")
-    file(WRITE ${MOCKS_HEADER_FILE} "#ifndef ${LIBRARY_NAME_UPPER}_MOCKS_H\n")
-    file(APPEND ${MOCKS_HEADER_FILE} "#define ${LIBRARY_NAME_UPPER}_MOCKS_H\n\n")
-
-    file(APPEND ${MOCKS_HEADER_FILE} "#define ENABLE_MOCKS\n")
-    file(APPEND ${MOCKS_HEADER_FILE} "#define ENABLE_MOCKS_DECL\n")
-
-    foreach(HEADER_FILE ${ARG_HEADER_FILES})
-        file(APPEND ${MOCKS_HEADER_FILE} "#include \"${HEADER_FILE}\"\n")
-    endforeach()
-
-    file(APPEND ${MOCKS_HEADER_FILE} "#undef ENABLE_MOCKS_DECL\n")
-    file(APPEND ${MOCKS_HEADER_FILE} "#undef ENABLE_MOCKS\n\n")
-
-    file(APPEND ${MOCKS_HEADER_FILE} "#endif // ${LIBRARY_NAME_UPPER}_MOCKS_H\n")
-
-
-    file(WRITE ${MOCKS_SOURCE_FILE} "#define ENABLE_MOCKS\n")
-    foreach(HEADER_FILE ${ARG_HEADER_FILES})
-        #note: if CMAKE error "file failed to open for writing (Permission denied):" around these lines "... then just close Visual Studio.
-        #it seems Visual Studio is aggressively scanning precompiled headers and CMake might find the file being opened by cl.exe
-        file(APPEND ${MOCKS_SOURCE_FILE} "#include \"${HEADER_FILE}\"\n")
-    endforeach()
-    file(APPEND ${MOCKS_SOURCE_FILE} "#undef ENABLE_MOCKS\n")
-
-    set_source_files_properties(${MOCKS_SOURCE_FILE} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
-
-    add_library(${LIBRARY_NAME}_mocks ${MOCKS_SOURCE_FILE} ${MOCKS_HEADER_FILE})
-    target_include_directories(${LIBRARY_NAME}_mocks PUBLIC $<TARGET_PROPERTY:${LIBRARY_NAME},INTERFACE_INCLUDE_DIRECTORIES>)
-    target_link_libraries(${LIBRARY_NAME}_mocks PUBLIC umock_c)
-
-    target_precompile_headers(${LIBRARY_NAME}_mocks PUBLIC ${MOCKS_HEADER_FILE})
-endfunction()
 
 add_subdirectory(build_functions)
 
