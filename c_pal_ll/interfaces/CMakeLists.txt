@@ -10,13 +10,11 @@ set(pal_ll_interfaces_h_files
 FILE(GLOB pal_ll_interfaces_md_files "devdoc/*.md")
 SOURCE_GROUP(devdoc FILES ${pal_ll_interfaces_md_files})
 
-add_library(pal_ll_interfaces INTERFACE)
-target_include_directories(pal_ll_interfaces INTERFACE
-    ${CMAKE_CURRENT_LIST_DIR}
-    ${CMAKE_CURRENT_LIST_DIR}/inc
-    ${MACRO_UTILS_INC_FOLDER})
+add_library(pal_ll_interfaces INTERFACE
+    ${pal_ll_interfaces_h_files}
+    )
 
-target_sources(pal_ll_interfaces INTERFACE ${pal_ll_interfaces_h_files})
+target_include_directories(pal_ll_interfaces INTERFACE inc)
 
 add_mock_library(pal_ll_interfaces HEADER_FILES ${pal_ll_interfaces_h_files})
 
