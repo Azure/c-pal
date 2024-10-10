@@ -210,8 +210,8 @@ function(add_mock_library LIBRARY_NAME)
     file(WRITE ${MOCKS_HEADER_FILE} "// Copyright (c) Microsoft. All rights reserved.\n")
     file(WRITE ${MOCKS_HEADER_FILE} "// Licensed under the MIT license. See LICENSE file in the project root for full license information.\n")
     file(WRITE ${MOCKS_HEADER_FILE} "// THIS IS A GENERATED FILE, DO NOT EDIT.\n\n")
-    file(WRITE ${MOCKS_HEADER_FILE} "#ifndef ${LIBRARY_NAME_UPPER}_H\n")
-    file(APPEND ${MOCKS_HEADER_FILE} "#define ${LIBRARY_NAME_UPPER}_H\n\n")
+    file(WRITE ${MOCKS_HEADER_FILE} "#ifndef ${LIBRARY_NAME_UPPER}_MOCKS_H\n")
+    file(APPEND ${MOCKS_HEADER_FILE} "#define ${LIBRARY_NAME_UPPER}_MOCKS_H\n\n")
 
     file(APPEND ${MOCKS_HEADER_FILE} "#define ENABLE_MOCKS\n")
     file(APPEND ${MOCKS_HEADER_FILE} "#define ENABLE_MOCKS_DECL\n")
@@ -223,7 +223,7 @@ function(add_mock_library LIBRARY_NAME)
     file(APPEND ${MOCKS_HEADER_FILE} "#undef ENABLE_MOCKS_DECL\n")
     file(APPEND ${MOCKS_HEADER_FILE} "#undef ENABLE_MOCKS\n\n")
 
-    file(APPEND ${MOCKS_HEADER_FILE} "#endif // ${LIBRARY_NAME_UPPER}_H\n")
+    file(APPEND ${MOCKS_HEADER_FILE} "#endif // ${LIBRARY_NAME_UPPER}_MOCKS_H\n")
 
 
     file(WRITE ${MOCKS_SOURCE_FILE} "#define ENABLE_MOCKS\n")
