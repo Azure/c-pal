@@ -10,7 +10,6 @@ endif()
 
 #if ((NOT TARGET c_pal) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/c-pal/CMakeLists.txt))
 #    add_subdirectory(deps/c-pal)
-#    include_directories(${C_PAL_INC_FOLDER})
 #endif()
 
 if (TARGET c_pal)
@@ -124,27 +123,22 @@ endif()
 
 if ((NOT TARGET macro_utils_c) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/macro-utils-c/CMakeLists.txt))
     add_subdirectory(deps/macro-utils-c)
-    include_directories(${MACRO_UTILS_INC_FOLDER})
 endif()
 
 if ((NOT TARGET c_logging_v2) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/c-logging/CMakeLists.txt))
     add_subdirectory(deps/c-logging)
-    include_directories(deps/c-logging/v2/inc)
 endif()
 
 if ((NOT TARGET ctest) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/ctest/CMakeLists.txt))
     add_subdirectory(deps/ctest)
-    include_directories(${CTEST_INC_FOLDER})
 endif()
 
 if ((NOT TARGET testrunnerswitcher) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/c-testrunnerswitcher/CMakeLists.txt))
     add_subdirectory(deps/c-testrunnerswitcher)
-    include_directories(${TESTRUNNERSWITCHER_INC_FOLDER})
 endif()
 
 if ((NOT TARGET umock_c) AND (EXISTS ${CMAKE_CURRENT_LIST_DIR}/deps/umock-c/CMakeLists.txt))
     add_subdirectory(deps/umock-c)
-    include_directories(${UMOCK_C_INC_FOLDER})
 endif()
 
 # Skip for Linux iwyu
@@ -184,14 +178,6 @@ set(run_reals_check ${original_run_reals_check})
 
 include(CTest)
 enable_testing()
-
-set(C_PAL_INC_FOLDER
-    ${CMAKE_CURRENT_LIST_DIR}/interfaces/inc
-    ${CMAKE_CURRENT_LIST_DIR}/common/inc
-    ${CMAKE_CURRENT_LIST_DIR}/c_pal_ll/interfaces/inc
-    CACHE INTERNAL "this is what needs to be included if using c_pal" FORCE)
-
-
 
 add_subdirectory(build_functions)
 
