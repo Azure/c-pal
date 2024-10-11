@@ -18,7 +18,6 @@ set(pal_ll_interfaces_h_files_with_inc_prefix)
 add_library(pal_ll_interfaces INTERFACE
     ${pal_ll_interfaces_h_files_with_inc_prefix}
 )
-
 target_include_directories(pal_ll_interfaces INTERFACE inc)
 
 add_mock_library(pal_ll_interfaces HEADER_FILES ${pal_ll_interfaces_h_files})
