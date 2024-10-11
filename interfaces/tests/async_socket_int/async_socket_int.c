@@ -189,14 +189,23 @@ TEST_FUNCTION(connect_no_send_succeeds)
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(client_async_socket, receive_payload_buffers, 1, on_receive_abandoned_complete, NULL));
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(server_async_socket, receive_payload_buffers, 1, on_receive_abandoned_complete, NULL));
 
-    //socket_transport_disconnect(server_socket);
-    //socket_transport_disconnect(client_socket);
-    socket_transport_disconnect(listen_socket);
+#ifdef _MSC_VER // only for windows
+    socket_transport_disconnect(server_socket);
     async_socket_close(server_async_socket);
+    socket_transport_disconnect(client_socket);
     async_socket_close(client_async_socket);
-    //socket_transport_destroy(server_socket);
-    //socket_transport_destroy(client_socket);
+#else
+    async_socket_close(server_async_socket);
+    socket_transport_disconnect(server_socket);
+    async_socket_close(client_async_socket);
+    socket_transport_disconnect(client_socket);
+#endif
+
+    socket_transport_disconnect(listen_socket);
     socket_transport_destroy(listen_socket);
+
+    socket_transport_destroy(server_socket);
+    socket_transport_destroy(client_socket);
     async_socket_destroy(server_async_socket);
     async_socket_destroy(client_async_socket);
     execution_engine_dec_ref(execution_engine);
@@ -264,14 +273,21 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
 
     ASSERT_ARE_EQUAL(int, 0, memcmp(receive_payload_buffers[0].buffer, send_payload_buffers[0].buffer, sizeof(data_payload)));
 
-    //async_socket_close(server_async_socket);
-    //async_socket_close(client_async_socket);
-    //socket_transport_disconnect(server_socket);
-    //socket_transport_destroy(server_socket);
-    //socket_transport_disconnect(client_socket);
-    //socket_transport_destroy(client_socket);
+#ifdef _MSC_VER // only for windows
+    socket_transport_disconnect(server_socket);
+    async_socket_close(server_async_socket);
+    socket_transport_disconnect(client_socket);
+    async_socket_close(client_async_socket);
+#else
+    async_socket_close(server_async_socket);
+    socket_transport_disconnect(server_socket);
+    async_socket_close(client_async_socket);
+    socket_transport_disconnect(client_socket);
+#endif
     socket_transport_disconnect(listen_socket);
     socket_transport_destroy(listen_socket);
+    socket_transport_destroy(server_socket);
+    socket_transport_destroy(client_socket);
     async_socket_destroy(server_async_socket);
     async_socket_destroy(client_async_socket);
     execution_engine_dec_ref(execution_engine);
@@ -344,14 +360,21 @@ TEST_FUNCTION(receive_and_send_2_buffers_succeeds)
     wait_for_value(&recv_counter, 1);
 
     // cleanup
+#ifdef _MSC_VER // only for windows
+    socket_transport_disconnect(server_socket);
     async_socket_close(server_async_socket);
+    socket_transport_disconnect(client_socket);
     async_socket_close(client_async_socket);
-    //socket_transport_disconnect(server_socket);
-    //socket_transport_destroy(server_socket);
-    //socket_transport_disconnect(client_socket);
-    //socket_transport_destroy(client_socket);
+#else
+    async_socket_close(server_async_socket);
+    socket_transport_disconnect(server_socket);
+    async_socket_close(client_async_socket);
+    socket_transport_disconnect(client_socket);
+#endif
     socket_transport_disconnect(listen_socket);
     socket_transport_destroy(listen_socket);
+    socket_transport_destroy(server_socket);
+    socket_transport_destroy(client_socket);
     async_socket_destroy(server_async_socket);
     async_socket_destroy(client_async_socket);
     execution_engine_dec_ref(execution_engine);
@@ -408,10 +431,17 @@ TEST_FUNCTION(when_server_socket_is_closed_receive_errors_on_client_side)
     wait_for_value(&recv_counter, 1);
 
     // cleanup
+#ifdef _MSC_VER // only for windows
+    socket_transport_disconnect(client_socket);
     async_socket_close(client_async_socket);
+#else
+    async_socket_close(client_async_socket);
+    socket_transport_disconnect(client_socket);
+#endif
+
+    async_socket_close(client_async_socket);
+    socket_transport_destroy(client_socket);
     socket_transport_destroy(server_socket);
-    //socket_transport_disconnect(client_socket);
-    //socket_transport_destroy(client_socket);
     socket_transport_disconnect(listen_socket);
     socket_transport_destroy(listen_socket);
     async_socket_destroy(client_async_socket);
@@ -486,14 +516,21 @@ TEST_FUNCTION(multiple_sends_and_receives_succeeds)
     wait_for_value(&send_counter, 3);
     wait_for_value(&recv_counter, expected_recv_size);
 
+#ifdef _MSC_VER // only for windows
+    socket_transport_disconnect(server_socket);
     async_socket_close(server_async_socket);
+    socket_transport_disconnect(client_socket);
     async_socket_close(client_async_socket);
-    //socket_transport_disconnect(server_socket);
-    //socket_transport_destroy(server_socket);
-    //socket_transport_disconnect(client_socket);
-    //socket_transport_destroy(client_socket);
+#else
+    async_socket_close(server_async_socket);
+    socket_transport_disconnect(server_socket);
+    async_socket_close(client_async_socket);
+    socket_transport_disconnect(client_socket);
+#endif
     socket_transport_disconnect(listen_socket);
     socket_transport_destroy(listen_socket);
+    socket_transport_destroy(server_socket);
+    socket_transport_destroy(client_socket);
     async_socket_destroy(server_async_socket);
     async_socket_destroy(client_async_socket);
     execution_engine_dec_ref(execution_engine);
@@ -576,12 +613,20 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _sockets_items))
 
     for (uint32_t index = 0; index < socket_count; index++)
     {
+#ifdef _MSC_VER // only for windows
+        socket_transport_disconnect(server_socket[index]);
         async_socket_close(server_async_socket[index]);
+        socket_transport_disconnect(client_socket[index]);
         async_socket_close(client_async_socket[index]);
-        //socket_transport_disconnect(client_socket[index]);
-        //socket_transport_destroy(client_socket[index]);
-        //socket_transport_disconnect(server_socket[index]);
-        //socket_transport_destroy(server_socket[index]);
+#else
+        async_socket_close(server_async_socket[index]);
+        socket_transport_disconnect(server_socket[index]);
+        async_socket_close(client_async_socket[index]);
+        socket_transport_disconnect(client_socket[index]);
+#endif
+
+        socket_transport_destroy(client_socket[index]);
+        socket_transport_destroy(server_socket[index]);
         async_socket_destroy(server_async_socket[index]);
         async_socket_destroy(client_async_socket[index]);
     }

@@ -1,9 +1,4 @@
 name: $(BuildID)_$(BuildDefinitionName)_$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
-parameters:
-  - name: run_codeql
-    type: boolean
-    default: false
-
 resources:
   repositories:
   - repository: self
