@@ -10,9 +10,6 @@ set(${theseTestsName}_c_files
     srw_lock_ll_linux_mocked.c
 )
 
-set(${theseTestsName}_cpp_files
-)
-
 set(${theseTestsName}_h_files
 )
 

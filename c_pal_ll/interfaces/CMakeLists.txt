@@ -1,22 +1,26 @@
 #Copyright (C) Microsoft Corporation. All rights reserved.
 
 set(pal_ll_interfaces_h_files
-    inc/c_pal/interlocked.h
-    inc/c_pal/interlocked_macros.h
-    inc/c_pal/sync.h
-    inc/c_pal/threadapi.h
+    c_pal/interlocked.h
+    c_pal/interlocked_macros.h
+    c_pal/sync.h
+    c_pal/threadapi.h
 )
 
 FILE(GLOB pal_ll_interfaces_md_files "devdoc/*.md")
 SOURCE_GROUP(devdoc FILES ${pal_ll_interfaces_md_files})
 
-set(PAL_LL_INTERFACES_INC_FOLDER ${CMAKE_CURRENT_LIST_DIR}/inc CACHE INTERNAL "this is what needs to be included if using the PAL interfaces" FORCE)
+set(pal_ll_interfaces_h_files_with_inc_prefix)
+    foreach(file ${pal_ll_interfaces_h_files})
+        list(APPEND pal_ll_interfaces_h_files_with_inc_prefix "inc/${file}")
+    endforeach()
 
-include_directories(${CMAKE_CURRENT_LIST_DIR}/inc)
-include_directories(${MACRO_UTILS_INC_FOLDER})
+add_library(pal_ll_interfaces INTERFACE
+    ${pal_ll_interfaces_h_files_with_inc_prefix}
+)
+target_include_directories(pal_ll_interfaces INTERFACE inc)
 
-add_library(pal_ll_interfaces INTERFACE)
-target_include_directories(pal_ll_interfaces INTERFACE ${CMAKE_CURRENT_LIST_DIR}/inc)
+add_mock_library(pal_ll_interfaces HEADER_FILES ${pal_ll_interfaces_h_files})
 
 add_subdirectory(reals)
 

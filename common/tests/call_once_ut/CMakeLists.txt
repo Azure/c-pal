@@ -10,11 +10,8 @@ set(${theseTestsName}_c_files
     ../../src/call_once.c
 )
 
-set(${theseTestsName}_cpp_files
-)
-
 set(${theseTestsName}_h_files
 )
 
-build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS pal_interfaces c_pal_reals pal_ll_interfaces)
+build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS pal_interfaces c_pal_reals pal_ll_interfaces pal_ll_interfaces_mocks)
 

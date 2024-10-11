@@ -9,9 +9,6 @@ set(${theseTestsName}_test_files
 set(${theseTestsName}_c_files
 )
 
-set(${theseTestsName}_cpp_files
-)
-
 set(${theseTestsName}_h_files
 )
 

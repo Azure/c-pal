@@ -10,9 +10,6 @@ set(${theseTestsName}_c_files
     ../../src/lazy_init.c
 )
 
-set(${theseTestsName}_cpp_files
-)
-
 set(${theseTestsName}_h_files
 )
 

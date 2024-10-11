@@ -11,9 +11,6 @@ set(${theseTestsName}_c_files
     ../../src/string_utils.c
 )
 
-set(${theseTestsName}_cpp_files
-)
-
 set(${theseTestsName}_h_files
 )
 
