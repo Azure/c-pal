@@ -556,6 +556,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                             switch (socket_transport_send_result)
                             {
                                 default:
+                                case SOCKET_SEND_ERROR:
                                 {
                                     /* Codes_SRS_ASYNC_SOCKET_WIN32_01_106: [ If socket_transport_send fails with any other error, async_socket_send_async shall call CancelThreadpoolIo and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
                                     LogLastError("socket_transport_send failed with %d", socket_transport_send_result);
@@ -563,7 +564,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
 
                                     break;
                                 }
-                                case SOCKET_SEND_ERROR:
+                                case SOCKET_SEND_FAILED:
                                 {
                                     /* Codes_SRS_ASYNC_SOCKET_WIN32_01_062: [ If socket_transport_send fails, async_socket_send_async shall call WSAGetLastError. ]*/
                                     wsa_last_error = WSAGetLastError();

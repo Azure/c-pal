@@ -1034,7 +1034,7 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_WSA_IO_PENDING_it_is_treated_
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
         .CaptureArgumentValue_data(&overlapped)
-        .SetReturn(SOCKET_SEND_ERROR);
+        .SetReturn(SOCKET_SEND_FAILED);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
         .SetReturn(WSA_IO_PENDING);
 
@@ -1082,7 +1082,7 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_an_error_then_async_socket_se
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
         .CaptureArgumentValue_data(&overlapped)
-        .SetReturn(SOCKET_SEND_ERROR);
+        .SetReturn(SOCKET_SEND_FAILED);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
         .SetReturn(WSAENOBUFS);
     STRICT_EXPECTED_CALL(mocked_CancelThreadpoolIo(test_ptp_io));
@@ -1133,7 +1133,7 @@ TEST_FUNCTION(when_get_last_error_for_send_returns_WSAGetLastError_then_async_so
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
         .CaptureArgumentValue_data(&overlapped)
-        .SetReturn(SOCKET_SEND_ERROR);
+        .SetReturn(SOCKET_SEND_FAILED);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
         .SetReturn(WSAECONNRESET);
     STRICT_EXPECTED_CALL(mocked_CancelThreadpoolIo(test_ptp_io));
@@ -1868,10 +1868,10 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_indicates_the_send_as_complete_with_O
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
         .CaptureArgumentValue_data(&overlapped)
-        .SetReturn(SOCKET_SEND_ERROR);
+        .SetReturn(SOCKET_SEND_FAILED);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
         .SetReturn(WSA_IO_PENDING);
-    (void)async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, (void*)0x4244);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, (void*)0x4244));
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(test_on_send_complete((void*)0x4244, ASYNC_SOCKET_SEND_OK));
@@ -1920,10 +1920,10 @@ TEST_FUNCTION(on_io_complete_with_error_indicates_the_send_as_complete_with_ERRO
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
         .CaptureArgumentValue_data(&overlapped)
-        .SetReturn(SOCKET_SEND_ERROR);
+        .SetReturn(SOCKET_SEND_FAILED);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
         .SetReturn(WSA_IO_PENDING);
-    (void)async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, (void*)0x4244);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, (void*)0x4244));
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(test_on_send_complete((void*)0x4244, ASYNC_SOCKET_SEND_ERROR));
@@ -1968,10 +1968,10 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_and_number_of_bytes_sent_less_than_ex
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
         .CaptureArgumentValue_data(&overlapped)
-        .SetReturn(SOCKET_SEND_ERROR);
+        .SetReturn(SOCKET_SEND_FAILED);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
         .SetReturn(WSA_IO_PENDING);
-    (void)async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, (void*)0x4244);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, (void*)0x4244));
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(test_on_send_complete((void*)0x4244, ASYNC_SOCKET_SEND_ERROR));
@@ -2016,10 +2016,10 @@ TEST_FUNCTION(on_io_complete_with_NO_ERROR_and_number_of_bytes_sent_more_than_ex
     STRICT_EXPECTED_CALL(mocked_StartThreadpoolIo(test_ptp_io));
     STRICT_EXPECTED_CALL(socket_transport_send(test_socket, IGNORED_ARG, 1, NULL, 0, IGNORED_ARG))
         .CaptureArgumentValue_data(&overlapped)
-        .SetReturn(SOCKET_SEND_ERROR);
+        .SetReturn(SOCKET_SEND_FAILED);
     STRICT_EXPECTED_CALL(mocked_WSAGetLastError())
         .SetReturn(WSA_IO_PENDING);
-    (void)async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, (void*)0x4244);
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, (void*)0x4244));
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(test_on_send_complete((void*)0x4244, ASYNC_SOCKET_SEND_ERROR));
