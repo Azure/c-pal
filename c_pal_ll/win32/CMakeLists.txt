@@ -17,7 +17,7 @@ target_link_libraries(pal_ll_win32 pal_ll_interfaces synchronization rpcrt4 c_lo
 target_include_directories(pal_ll_win32 PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/inc
     ${CMAKE_CURRENT_LIST_DIR}/src
-    ../common/inc
+    ../../common/inc
     ../c_pal_ll/interfaces/inc
 )
 
