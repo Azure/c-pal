@@ -19,7 +19,7 @@ include_directories(../interfaces/inc)
 add_library(pal_ll_linux ${pal_ll_linux_h_files} ${pal_ll_linux_c_files} ${pal_ll_linux_md_files})
 set_target_properties(pal_ll_linux PROPERTIES LINKER_LANGUAGE C)
 target_link_libraries(pal_ll_linux pal_ll_interfaces pal_interfaces rt pthread c_logging_v2 umock_c)
-target_include_directories(pal_ll_linux PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc)
+target_include_directories(pal_ll_linux PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc ../../common/inc)
 
 # Set CMAKE_INSTALL_* if not defined
 include(GNUInstallDirs)
