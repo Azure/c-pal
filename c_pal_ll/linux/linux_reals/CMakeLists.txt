@@ -15,5 +15,5 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/../src)
 
 add_library(linux_ll_reals ${linux_ll_reals_c_files} ${linux_ll_reals_h_files})
 set_target_properties(linux_ll_reals PROPERTIES LINKER_LANGUAGE C)
-target_include_directories(linux_ll_reals PUBLIC . ${CMAKE_CURRENT_LIST_DIR}/../../../common/reals  ${CMAKE_CURRENT_LIST_DIR}/../../interfaces/inc)
+target_include_directories(linux_ll_reals PUBLIC . ${CMAKE_CURRENT_LIST_DIR}/../../../common/reals  ${CMAKE_CURRENT_LIST_DIR}/../../interfaces/inc "$<TARGET_PROPERTY:pal_ll_linux,INTERFACE_INCLUDE_DIRECTORIES>")
 target_link_libraries(linux_ll_reals pal_ll_interfaces_reals rt uuid pthread umock_c)
