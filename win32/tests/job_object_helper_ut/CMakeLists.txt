@@ -16,4 +16,4 @@ set(${theseTestsName}_h_files
 
 include_directories(../../inc)
 
-build_test_artifacts(${theseTestsName} "tests/geo_helpers" ADDITIONAL_LIBS pal_interfaces pal_ll_interfaces c_pal_reals c_pal_ll_reals)
+build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS pal_interfaces pal_ll_interfaces c_pal_reals c_pal_ll_reals)

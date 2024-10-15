@@ -93,7 +93,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_crea
         // Free on failure
         if (job_object_helper != NULL)
         {
-            free(job_object_helper);
+            THANDLE_FREE(JOB_OBJECT_HELPER)(job_object_helper);
         }
     }
 
