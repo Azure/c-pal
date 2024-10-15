@@ -53,7 +53,7 @@ MOCKABLE_FUNCTION(, int, job_object_helper_limit_memory, THANDLE(JOB_OBJECT_HELP
 
 **SRS_JOB_OBJECT_HELPER_18_037: [** If `percent_physical_memory` is greater than `100`, `job_object_helper_limit_memory` shall fail and return a non-zero value. **]**
 
-*SRS_JOB_OBJECT_HELPER_18_039: [** `job_object_helper_limit_memory` shall call `SetInformationJobObject`, passing `JobObjectExtendedLimitInformation` and a `JOBOBJECT_EXTENDED_LIMIT_INFORMATION` object with `JOB_OBJECT_LIMIT_JOB_MEMORY` set and `JobMemoryLimit` set to the `percent_physical_memory` percent of the physical memory in bytes. **]**
+**SRS_JOB_OBJECT_HELPER_18_039: [** `job_object_helper_limit_memory` shall call `SetInformationJobObject`, passing `JobObjectExtendedLimitInformation` and a `JOBOBJECT_EXTENDED_LIMIT_INFORMATION` object with `JOB_OBJECT_LIMIT_JOB_MEMORY` set and `JobMemoryLimit` set to the `percent_physical_memory` percent of the physical memory in bytes. **]**
 
 **SRS_JOB_OBJECT_HELPER_18_041: [** If there are any failures, `job_object_helper_limit_memory` shall fail and return a non-zero value. **]**
 
@@ -64,7 +64,7 @@ MOCKABLE_FUNCTION(, int, job_object_helper_limit_memory, THANDLE(JOB_OBJECT_HELP
 ```c
 MOCKABLE_FUNCTION(, int, job_object_helper_limit_cpu, THANDLE(JOB_OBJECT_HELPER), job_object_helper, uint32_t, percent_cpu);
 ```
-`job_object_helper_limit_cpu` limits the amount of CPU available to the current process. 
+`job_object_helper_limit_cpu` limits the amount of CPU available to the current process.
 
 **SRS_JOB_OBJECT_HELPER_18_043: [** If `job_object_helper` is `NULL`, `job_object_helper_limit_cpu` shall fail and return a non-zero value. **]**
 
