@@ -126,12 +126,10 @@ TEST_FUNCTION_CLEANUP(cleanup)
 {
 }
 
-/*Tests_SRS_JOB_OBJECT_HELPER_18_035: [ If job_object_helper is NULL, job_object_helper_limit_memory shall fail and return a non-zero value. ]*/
-/*Tests_SRS_JOB_OBJECT_HELPER_18_036: [ If percent_physical_memory is 0, job_object_helper_limit_memory shall fail and return a non-zero value. ]*/
-/*Tests_SRS_JOB_OBJECT_HELPER_18_037: [ If percent_physical_memory is greater than 100, job_object_helper_limit_memory shall fail and return a non-zero value. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_039: [ job_object_helper_limit_memory shall call SetInformationJobObject, passing JobObjectExtendedLimitInformation and a JOBOBJECT_EXTENDED_LIMIT_INFORMATION object with JOB_OBJECT_LIMIT_JOB_MEMORY set and JobMemoryLimit set to the percent_physical_memory percent of the physical memory in bytes. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_041: [ If there are any failures, job_object_helper_limit_memory shall fail and return a non-zero value. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_042: [ job_object_helper_limit_memory shall succeed and return 0. ]*/
+
 /*Tests_SRS_JOB_OBJECT_HELPER_18_043: [ If job_object_helper is NULL, job_object_helper_limit_cpu shall fail and return a non-zero value. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_044: [ If percent_cpu is 0, job_object_helper_limit_cpu shall fail and return a non-zero value. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_045: [ If percent_cpu is greater than 100, job_object_helper_limit_cpu shall fail and return a non-zero value. ]*/
@@ -147,7 +145,7 @@ TEST_FUNCTION_CLEANUP(cleanup)
 /*Tests_SRS_JOB_OBJECT_HELPER_18_026: [ job_object_helper_create shall call AssignProcessToJobObject to assign the current process to the new job object. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_027: [ job_object_helper_create shall call CloseHandle to close the handle of the current process. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_019: [ job_object_helper_create shall succeed and return the JOB_OBJECT_HELPER object. ]*/
-TEST_FUNCTION(test_job_object_helper_create_succeeds)
+TEST_FUNCTION(job_object_helper_create_succeeds)
 {
     // arrange
     setup_job_object_helper_create_expectations();
@@ -164,7 +162,7 @@ TEST_FUNCTION(test_job_object_helper_create_succeeds)
 }
 
 /*Tests_SRS_JOB_OBJECT_HELPER_18_018: [ If there are any failures, job_object_helper_create shall fail and return NULL. ]*/
-TEST_FUNCTION(test_job_object_helper_create_fails)
+TEST_FUNCTION(job_object_helper_create_fails)
 {
     // arrange
     setup_job_object_helper_create_expectations();
@@ -188,7 +186,7 @@ TEST_FUNCTION(test_job_object_helper_create_fails)
 }
 
 /*Tests_SRS_JOB_OBJECT_HELPER_18_033: [ job_object_helper_dispose shall call CloseHandle to close the handle to the job object. ]*/
-TEST_FUNCTION(test_job_object_helper_dispose_succeeds)
+TEST_FUNCTION(job_object_helper_dispose_succeeds)
 {
     // arrange
     setup_job_object_helper_create_expectations();
@@ -205,6 +203,50 @@ TEST_FUNCTION(test_job_object_helper_dispose_succeeds)
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
+
+/*Tests_SRS_JOB_OBJECT_HELPER_18_035: [ If job_object_helper is NULL, job_object_helper_limit_memory shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(job_object_helper_limit_memory_with_NULL_job_object_helper)
+{
+    // arrange
+
+    // act
+    int result = job_object_helper_limit_memory(NULL, 42);
+
+    // assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+
+}
+
+/*Tests_SRS_JOB_OBJECT_HELPER_18_036: [ If percent_physical_memory is 0, job_object_helper_limit_memory shall fail and return a non-zero value. ]*/
+/*Tests_SRS_JOB_OBJECT_HELPER_18_037: [ If percent_physical_memory is greater than 100, job_object_helper_limit_memory shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(job_object_helper_limit_memory_with_invalid_percent_physical_memory)
+{
+    // arrange
+    setup_job_object_helper_create_expectations();
+    THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_create();
+    umock_c_reset_all_calls();
+
+    uint32_t invalid_values[] = {0, 101, 143};
+
+    for (int i=0; i < _countof(invalid_values); i++)
+    {
+        // act
+        int result = job_object_helper_limit_memory(job_object_helper, invalid_values[i]);
+
+        // assert
+        ASSERT_ARE_NOT_EQUAL(int, 0, result);
+        // nothing is expected, nothing should be done.
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    }
+
+    // cleanup
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
+}
+
+TEST_FUNCTION(job_object_helper_limit_memory_with_over_100_percent_physical_memory)
+{
+}
+
 
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
