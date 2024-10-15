@@ -25,7 +25,8 @@ set(pal_interfaces_h_files
 FILE(GLOB pal_interfaces_md_files "devdoc/*.md")
 SOURCE_GROUP(devdoc FILES ${pal_interfaces_md_files})
 
-include_directories(../common/inc) #for thandle.h
+include_directories(../linux/inc) #for "pal_windows_defines.h" when compiling linux code.
+include_directories(../common/inc) #for thandle.h which is used in threadpool.h
 
 set(pal_interfaces_h_files_with_inc_prefix)
     foreach(file ${pal_interfaces_h_files})
