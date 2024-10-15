@@ -8,7 +8,6 @@ set(${theseTestsName}_test_files
 )
 
 set(${theseTestsName}_c_files
-    job_object_helper_mocked.c
 )
 
 set(${theseTestsName}_h_files
@@ -16,4 +15,4 @@ set(${theseTestsName}_h_files
 
 include_directories(../../inc)
 
-build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS pal_interfaces pal_ll_interfaces c_pal_reals c_pal_ll_reals)
+build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS c_pal)
