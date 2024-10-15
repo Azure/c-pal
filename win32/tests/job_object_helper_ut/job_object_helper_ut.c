@@ -93,6 +93,20 @@ static void setup_job_object_helper_create_expectations()
         .CallCannotFail();
 }
 
+static void setup_job_helper_limit_memory_expectations()
+{
+    STRICT_EXPECTED_CALL(mocked_SetInformationJobObject(test_job_object, JobObjectExtendedLimitInformation, IGNORED_ARG, sizeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION)))
+        .SetReturn(TRUE)
+        .SetFailReturn(FALSE);
+}
+
+static void setup_job_helper_limit_cpu_expectations()
+{
+    STRICT_EXPECTED_CALL(mocked_SetInformationJobObject(test_job_object, JobObjectCpuRateControlInformation, IGNORED_ARG, sizeof(JOBOBJECT_CPU_RATE_CONTROL_INFORMATION)))
+        .SetReturn(TRUE)
+        .SetFailReturn(FALSE);
+}
+
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
@@ -125,18 +139,6 @@ TEST_FUNCTION_INITIALIZE(init)
 TEST_FUNCTION_CLEANUP(cleanup)
 {
 }
-
-/*Tests_SRS_JOB_OBJECT_HELPER_18_039: [ job_object_helper_limit_memory shall call SetInformationJobObject, passing JobObjectExtendedLimitInformation and a JOBOBJECT_EXTENDED_LIMIT_INFORMATION object with JOB_OBJECT_LIMIT_JOB_MEMORY set and JobMemoryLimit set to the percent_physical_memory percent of the physical memory in bytes. ]*/
-/*Tests_SRS_JOB_OBJECT_HELPER_18_041: [ If there are any failures, job_object_helper_limit_memory shall fail and return a non-zero value. ]*/
-/*Tests_SRS_JOB_OBJECT_HELPER_18_042: [ job_object_helper_limit_memory shall succeed and return 0. ]*/
-
-/*Tests_SRS_JOB_OBJECT_HELPER_18_043: [ If job_object_helper is NULL, job_object_helper_limit_cpu shall fail and return a non-zero value. ]*/
-/*Tests_SRS_JOB_OBJECT_HELPER_18_044: [ If percent_cpu is 0, job_object_helper_limit_cpu shall fail and return a non-zero value. ]*/
-/*Tests_SRS_JOB_OBJECT_HELPER_18_045: [ If percent_cpu is greater than 100, job_object_helper_limit_cpu shall fail and return a non-zero value. ]*/
-/*Tests_SRS_JOB_OBJECT_HELPER_18_047: [ job_object_helper_limit_cpu shall call SetInformationJobObject passing JobObjectCpuRateControlInformation and a JOBOBJECT_CPU_RATE_CONTROL_INFORMATION object with JOB_OBJECT_CPU_RATE_CONTROL_ENABLE and JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP set, and CpuRate set to percent_cpu times 100. ]*/
-/*Tests_SRS_JOB_OBJECT_HELPER_18_049: [ If there are any failures, job_object_helper_limit_cpu shall fail and return a non-zero value. ]*/
-/*Tests_SRS_JOB_OBJECT_HELPER_18_050: [ job_object_helper_limit_cpu shall succeed and return 0. ]*/
-
 
 /*Tests_SRS_JOB_OBJECT_HELPER_18_016: [ job_object_helper_create shall allocate a JOB_OBJECT_HELPER object. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_023: [ job_object_helper_create shall call GlobalMemoryStatusEx to get the total amount of physical memory in kb. ]*/
@@ -243,10 +245,94 @@ TEST_FUNCTION(job_object_helper_limit_memory_with_invalid_percent_physical_memor
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
 }
 
-TEST_FUNCTION(job_object_helper_limit_memory_with_over_100_percent_physical_memory)
+/*Tests_SRS_JOB_OBJECT_HELPER_18_039: [ job_object_helper_limit_memory shall call SetInformationJobObject, passing JobObjectExtendedLimitInformation and a JOBOBJECT_EXTENDED_LIMIT_INFORMATION object with JOB_OBJECT_LIMIT_JOB_MEMORY set and JobMemoryLimit set to the percent_physical_memory percent of the physical memory in bytes. ]*/
+/*Tests_SRS_JOB_OBJECT_HELPER_18_042: [ job_object_helper_limit_memory shall succeed and return 0. ]*/
+TEST_FUNCTION(job_object_helper_limit_memory_succeeds)
+{
+    // arrange
+    setup_job_object_helper_create_expectations();
+    THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_create();
+    umock_c_reset_all_calls();
+    setup_job_helper_limit_memory_expectations();
+
+    // act
+    int result = job_object_helper_limit_memory(job_object_helper, 42);
+
+    // assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+
+    // cleanup
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
+}
+
+/*Tests_SRS_JOB_OBJECT_HELPER_18_041: [ If there are any failures, job_object_helper_limit_memory shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(job_object_helper_limit_memory_fails)
 {
 }
 
+/*Tests_SRS_JOB_OBJECT_HELPER_18_043: [ If job_object_helper is NULL, job_object_helper_limit_cpu shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(job_object_helper_limit_cpu_with_NULL_job_object_helper)
+{
+    // arrange
+
+    // act
+    int result = job_object_helper_limit_cpu(NULL, 42);
+
+    // assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+
+}
+
+/*Tests_SRS_JOB_OBJECT_HELPER_18_044: [ If percent_cpu is 0, job_object_helper_limit_cpu shall fail and return a non-zero value. ]*/
+/*Tests_SRS_JOB_OBJECT_HELPER_18_045: [ If percent_cpu is greater than 100, job_object_helper_limit_cpu shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(job_object_helper_limit_cpu_with_invalid_percent_cpu)
+{
+    // arrange
+    setup_job_object_helper_create_expectations();
+    THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_create();
+    umock_c_reset_all_calls();
+
+    uint32_t invalid_values[] = {0, 101, 143};
+
+    for (int i=0; i < _countof(invalid_values); i++)
+    {
+        // act
+        int result = job_object_helper_limit_cpu(job_object_helper, invalid_values[i]);
+
+        // assert
+        ASSERT_ARE_NOT_EQUAL(int, 0, result);
+        // nothing is expected, nothing should be done.
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    }
+
+    // cleanup
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
+}
+
+/*Tests_SRS_JOB_OBJECT_HELPER_18_047: [ job_object_helper_limit_cpu shall call SetInformationJobObject passing JobObjectCpuRateControlInformation and a JOBOBJECT_CPU_RATE_CONTROL_INFORMATION object with JOB_OBJECT_CPU_RATE_CONTROL_ENABLE and JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP set, and CpuRate set to percent_cpu times 100. ]*/
+/*Tests_SRS_JOB_OBJECT_HELPER_18_050: [ job_object_helper_limit_cpu shall succeed and return 0. ]*/
+TEST_FUNCTION(job_object_helper_limit_cpu_succeeds)
+{
+    // arrange
+    setup_job_object_helper_create_expectations();
+    THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_create();
+    umock_c_reset_all_calls();
+    setup_job_helper_limit_cpu_expectations();
+
+    // act
+    int result = job_object_helper_limit_cpu(job_object_helper, 42);
+
+    // assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+
+    // cleanup
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
+}
+
+/*Tests_SRS_JOB_OBJECT_HELPER_18_049: [ If there are any failures, job_object_helper_limit_cpu shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(job_object_helper_limit_cpu_fails)
+{
+}
 
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
