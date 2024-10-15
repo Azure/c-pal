@@ -93,14 +93,14 @@ static void setup_job_object_helper_create_expectations()
         .CallCannotFail();
 }
 
-static void setup_job_helper_limit_memory_expectations()
+static void setup_job_object_helper_limit_memory_expectations()
 {
     STRICT_EXPECTED_CALL(mocked_SetInformationJobObject(test_job_object, JobObjectExtendedLimitInformation, IGNORED_ARG, sizeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION)))
         .SetReturn(TRUE)
         .SetFailReturn(FALSE);
 }
 
-static void setup_job_helper_limit_cpu_expectations()
+static void setup_job_object_helper_limit_cpu_expectations()
 {
     STRICT_EXPECTED_CALL(mocked_SetInformationJobObject(test_job_object, JobObjectCpuRateControlInformation, IGNORED_ARG, sizeof(JOBOBJECT_CPU_RATE_CONTROL_INFORMATION)))
         .SetReturn(TRUE)
@@ -253,7 +253,7 @@ TEST_FUNCTION(job_object_helper_limit_memory_succeeds)
     setup_job_object_helper_create_expectations();
     THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_create();
     umock_c_reset_all_calls();
-    setup_job_helper_limit_memory_expectations();
+    setup_job_object_helper_limit_memory_expectations();
 
     // act
     int result = job_object_helper_limit_memory(job_object_helper, 42);
@@ -268,6 +268,30 @@ TEST_FUNCTION(job_object_helper_limit_memory_succeeds)
 /*Tests_SRS_JOB_OBJECT_HELPER_18_041: [ If there are any failures, job_object_helper_limit_memory shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(job_object_helper_limit_memory_fails)
 {
+    // arrange
+    setup_job_object_helper_create_expectations();
+    THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_create();
+    umock_c_reset_all_calls();
+    setup_job_object_helper_limit_memory_expectations();
+    umock_c_negative_tests_snapshot();
+
+    for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
+    {
+        if (umock_c_negative_tests_can_call_fail(i))
+        {
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(i);
+
+            // act
+            int result = job_object_helper_limit_memory(job_object_helper, 42);
+
+            // assert
+            ASSERT_ARE_NOT_EQUAL(int, 0, result);
+        }
+    }
+
+    // cleanup
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
 }
 
 /*Tests_SRS_JOB_OBJECT_HELPER_18_043: [ If job_object_helper is NULL, job_object_helper_limit_cpu shall fail and return a non-zero value. ]*/
@@ -317,7 +341,7 @@ TEST_FUNCTION(job_object_helper_limit_cpu_succeeds)
     setup_job_object_helper_create_expectations();
     THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_create();
     umock_c_reset_all_calls();
-    setup_job_helper_limit_cpu_expectations();
+    setup_job_object_helper_limit_cpu_expectations();
 
     // act
     int result = job_object_helper_limit_cpu(job_object_helper, 42);
@@ -332,6 +356,30 @@ TEST_FUNCTION(job_object_helper_limit_cpu_succeeds)
 /*Tests_SRS_JOB_OBJECT_HELPER_18_049: [ If there are any failures, job_object_helper_limit_cpu shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(job_object_helper_limit_cpu_fails)
 {
+    // arrange
+    setup_job_object_helper_create_expectations();
+    THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_create();
+    umock_c_reset_all_calls();
+    setup_job_object_helper_limit_cpu_expectations();
+    umock_c_negative_tests_snapshot();
+
+    for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
+    {
+        if (umock_c_negative_tests_can_call_fail(i))
+        {
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(i);
+
+            // act
+            int result = job_object_helper_limit_cpu(job_object_helper, 42);
+
+            // assert
+            ASSERT_ARE_NOT_EQUAL(int, 0, result);
+        }
+    }
+
+    // cleanup
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
 }
 
 
