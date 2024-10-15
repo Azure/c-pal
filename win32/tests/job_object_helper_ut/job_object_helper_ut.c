@@ -74,8 +74,10 @@ MOCK_FUNCTION_END(TRUE)
 static void setup_job_object_helper_create_expectations()
 {
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1))
+        .CallCannotFail();
     STRICT_EXPECTED_CALL(mocked_GlobalMemoryStatusEx(IGNORED_ARG))
+        .SetReturn(TRUE)
         .SetFailReturn(FALSE);
     STRICT_EXPECTED_CALL(mocked_CreateJobObject(NULL, NULL))
         .SetReturn(test_job_object)
@@ -88,8 +90,7 @@ static void setup_job_object_helper_create_expectations()
         .SetFailReturn(FALSE);
     STRICT_EXPECTED_CALL(mocked_CloseHandle(test_process_handle))
         .SetReturn(TRUE)
-        .SetFailReturn(FALSE);
-
+        .CallCannotFail();
 }
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
@@ -165,6 +166,25 @@ TEST_FUNCTION(test_job_object_helper_create_succeeds)
 /*Tests_SRS_JOB_OBJECT_HELPER_18_018: [ If there are any failures, job_object_helper_create shall fail and return NULL. ]*/
 TEST_FUNCTION(test_job_object_helper_create_fails)
 {
+    // arrange
+    setup_job_object_helper_create_expectations();
+    umock_c_negative_tests_snapshot();
+
+    for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
+    {
+        if (umock_c_negative_tests_can_call_fail(i))
+        {
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(i);
+
+            // act
+            THANDLE(JOB_OBJECT_HELPER) result = job_object_helper_create();
+
+            // assert
+            ASSERT_IS_NULL(result);
+        }
+    }
+
 }
 
 /*Tests_SRS_JOB_OBJECT_HELPER_18_033: [ job_object_helper_dispose shall call CloseHandle to close the handle to the job object. ]*/
