@@ -71,6 +71,27 @@ MOCK_FUNCTION_WITH_CODE(, BOOL, mocked_SetInformationJobObject, HANDLE, hJob, JO
 }
 MOCK_FUNCTION_END(TRUE)
 
+static void setup_job_object_helper_create_expectations()
+{
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
+    STRICT_EXPECTED_CALL(mocked_GlobalMemoryStatusEx(IGNORED_ARG))
+        .SetFailReturn(FALSE);
+    STRICT_EXPECTED_CALL(mocked_CreateJobObject(NULL, NULL))
+        .SetReturn(test_job_object)
+        .SetFailReturn(NULL);
+    STRICT_EXPECTED_CALL(mocked_GetCurrentProcess())
+        .SetReturn(test_process_handle)
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(mocked_AssignProcessToJobObject(test_job_object, test_process_handle))
+        .SetReturn(TRUE)
+        .SetFailReturn(FALSE);
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(test_process_handle))
+        .SetReturn(TRUE)
+        .SetFailReturn(FALSE);
+
+}
+
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
@@ -104,11 +125,6 @@ TEST_FUNCTION_CLEANUP(cleanup)
 {
 }
 
-/*Tests_SRS_JOB_OBJECT_HELPER_18_019: [ job_object_helper_create shall succeed and return the JOB_OBJECT_HELPER object. ]*/
-
-/*Tests_SRS_JOB_OBJECT_HELPER_18_018: [ If there are any failures, job_object_helper_create shall fail and return NULL. ]*/
-
-/*Tests_SRS_JOB_OBJECT_HELPER_18_033: [ job_object_helper_dispose shall call CloseHandle to close the handle to the job object. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_035: [ If job_object_helper is NULL, job_object_helper_limit_memory shall fail and return a non-zero value. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_036: [ If percent_physical_memory is 0, job_object_helper_limit_memory shall fail and return a non-zero value. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_037: [ If percent_physical_memory is greater than 100, job_object_helper_limit_memory shall fail and return a non-zero value. ]*/
@@ -129,19 +145,11 @@ TEST_FUNCTION_CLEANUP(cleanup)
 /*Tests_SRS_JOB_OBJECT_HELPER_18_025: [ job_object_helper_create shall call GetCurrentProcess to get the current process handle. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_026: [ job_object_helper_create shall call AssignProcessToJobObject to assign the current process to the new job object. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_027: [ job_object_helper_create shall call CloseHandle to close the handle of the current process. ]*/
+/*Tests_SRS_JOB_OBJECT_HELPER_18_019: [ job_object_helper_create shall succeed and return the JOB_OBJECT_HELPER object. ]*/
 TEST_FUNCTION(test_job_object_helper_create_succeeds)
 {
     // arrange
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
-    STRICT_EXPECTED_CALL(mocked_GlobalMemoryStatusEx(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mocked_CreateJobObject(NULL, NULL))
-        .SetReturn(test_job_object);
-    STRICT_EXPECTED_CALL(mocked_GetCurrentProcess())
-        .SetReturn(test_process_handle);
-    STRICT_EXPECTED_CALL(mocked_AssignProcessToJobObject(test_job_object, test_process_handle))
-        .SetReturn(TRUE);
-    STRICT_EXPECTED_CALL(mocked_CloseHandle(test_process_handle));
+    setup_job_object_helper_create_expectations();
 
     // act
     THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_create();
@@ -153,5 +161,30 @@ TEST_FUNCTION(test_job_object_helper_create_succeeds)
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
 
 }
+
+/*Tests_SRS_JOB_OBJECT_HELPER_18_018: [ If there are any failures, job_object_helper_create shall fail and return NULL. ]*/
+TEST_FUNCTION(test_job_object_helper_create_fails)
+{
+}
+
+/*Tests_SRS_JOB_OBJECT_HELPER_18_033: [ job_object_helper_dispose shall call CloseHandle to close the handle to the job object. ]*/
+TEST_FUNCTION(test_job_object_helper_dispose_succeeds)
+{
+    // arrange
+    setup_job_object_helper_create_expectations();
+    THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_create();
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(test_job_object));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+
+    // act
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
