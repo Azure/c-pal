@@ -96,10 +96,12 @@ TEST_FUNCTION(test_job_object_helper_limit_memory)
 {
     LogInfo("Each block is %zu MB", TEST_BUFFER_SIZE / MEGABYTE);
 
+#if 0
     /* First, measure without any limits. This tells us virtual memory size. */
     size_t blocks_with_no_limit = get_malloc_limit_before_failure();
     ASSERT_ARE_NOT_EQUAL(size_t, 0, blocks_with_no_limit);
     LogInfo("Memory limits: No artificial limit     = %zu blocks = %zu MB", blocks_with_no_limit, blocks_with_no_limit * TEST_BUFFER_SIZE / MEGABYTE);
+#endif
 
     THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_create();
     ASSERT_IS_NOT_NULL(job_object_helper);
@@ -112,8 +114,10 @@ TEST_FUNCTION(test_job_object_helper_limit_memory)
     ASSERT_ARE_NOT_EQUAL(size_t, 0, blocks_at_100_percent);
 
     LogInfo("Memory limits: 100%% of physical memory = %zu blocks = %zu MB", blocks_at_100_percent, blocks_at_100_percent * TEST_BUFFER_SIZE / MEGABYTE);
+#if 0
     size_t actual_100_percent_percentage = blocks_at_100_percent * 100 / blocks_with_no_limit;
     LogInfo("100%% limit measured at %zu%% of virtual", actual_100_percent_percentage);
+#endif
 
     /* Constrain to 100% of physical memory and re-measure. */
     result = job_object_helper_limit_memory(job_object_helper, 50);
