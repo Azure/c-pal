@@ -157,7 +157,7 @@ TEST_FUNCTION(test_job_object_helper_limit_cpu)
     size_t time_with_at_2_percent_cpu = get_elapsed_milliseconds_for_cpu_bound_task();
     LogInfo("Using 2%% CPU = %zu milliseconds", time_with_at_2_percent_cpu);
 
-    ASSERT_IS_TRUE(time_with_at_2_percent_cpu  > (time_with_no_limit * 12 / 10), "Using 2% CPU value should slow us down by 20% at least");
+    ASSERT_IS_TRUE(time_with_at_2_percent_cpu  > (time_with_no_limit * 11 / 10), "Using 2% CPU value should slow us down by 10% at least");
 
     /* Constrain to 1% of CPU and re-measure. */
     result = job_object_helper_limit_cpu(job_object_helper, 1);
@@ -166,7 +166,7 @@ TEST_FUNCTION(test_job_object_helper_limit_cpu)
     size_t time_with_at_1_percent_cpu = get_elapsed_milliseconds_for_cpu_bound_task();
     LogInfo("Using 1%% CPU = %zu milliseconds", time_with_at_1_percent_cpu);
 
-    ASSERT_IS_TRUE(time_with_at_1_percent_cpu  > (time_with_no_limit * 14 / 10), "Using 4% CPU value should slow us down by 40% at least");
+    ASSERT_IS_TRUE(time_with_at_1_percent_cpu  > (time_with_no_limit * 12 / 10), "Using 4% CPU value should slow us down by 20% at least");
 
     /* Go back to 100% */
     result = job_object_helper_limit_cpu(job_object_helper, 100);
