@@ -2,11 +2,11 @@
 #Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #this cmakelists.txt in intended to build test for every combination of gballoc_hl and gballoc_ll
-#to do that, it uses GBALOC_LL_IMPL and GBALLOC_HL_IMPL (which are set in a foreach() loop in the folder above). 
+#to do that, it uses GBALOC_LL_IMPL and GBALLOC_HL_IMPL (which are set in a foreach() loop in the folder above).
 #since it would result in multiple of the same target, it uses ${BINARY_DIR} suffix on the CMake binary build folder AND on the targets that it builds (they all need to be unique)
 
 
-set(theseTestsNameBase gballoc_hl_int) 
+set(theseTestsNameBase gballoc_hl_int)
 
 set(theseTestsName ${theseTestsNameBase}_${BINARY_DIR}_int)
 
