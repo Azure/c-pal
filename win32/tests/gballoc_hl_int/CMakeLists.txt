@@ -3,12 +3,13 @@
 
 #this cmakelists.txt in intended to build test for every combination of gballoc_hl and gballoc_ll
 #to do that, it uses GBALOC_LL_IMPL and GBALLOC_HL_IMPL (which are set in a foreach() loop in the folder above).
-#since it would result in multiple of the same target, it uses ${BINARY_DIR} suffix on the CMake binary build folder AND on the targets that it builds (they all need to be unique)
+#since it would result in multiple of the same target, it uses ${arg_BINARY_DIR} suffix on the CMake binary build folder AND on the targets that it builds (they all need to be unique)
+#arg_BINARY_DIR is set in function(build_test_folder...) in c-testrunnerswitcher
 
 
 set(theseTestsNameBase gballoc_hl_int)
 
-set(theseTestsName ${theseTestsNameBase}_${BINARY_DIR}_int)
+set(theseTestsName ${theseTestsNameBase}_${arg_BINARY_DIR}_int)
 
 set(${theseTestsName}_test_files
     ${theseTestsNameBase}.c
