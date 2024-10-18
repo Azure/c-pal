@@ -177,7 +177,7 @@ static void threadpool_task(void* parameter)
     wake_by_address_single(thread_counter);
 }
 
-static THANDLE(THREADPOOL) test_create_and_open_threadpool()
+static THANDLE(THREADPOOL) test_create_and_open_threadpool(void)
 {
     THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);

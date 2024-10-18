@@ -13,8 +13,6 @@ extern "C" {
 
 #include "macro_utils/macro_utils.h"
 
-#include "umock_c/umock_c_prod.h"
-
 #include "c_pal/socket_handle.h"
 
 typedef struct SOCKET_TRANSPORT_TAG* SOCKET_TRANSPORT_HANDLE;
@@ -57,6 +55,11 @@ typedef struct SOCKET_BUFFER_TAG
     uint32_t length;
     unsigned char* buffer;
 } SOCKET_BUFFER;
+
+#include "umock_c/umock_c_prod.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_client);
 MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_server);

@@ -3,7 +3,7 @@
 
 #add a library with the types that can be used for umock.
 add_library(c_pal_umocktypes umocktypes_uuid_t.c ./inc/c_pal/umocktypes_uuid_t.h)
-target_link_libraries(c_pal_umocktypes c_pal ctest)
+target_link_libraries(c_pal_umocktypes c_pal_reals ctest)
 target_include_directories(c_pal_umocktypes PUBLIC ./inc)
 
 

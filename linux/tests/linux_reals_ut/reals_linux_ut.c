@@ -11,6 +11,8 @@
 #include "c_pal/execution_engine.h" // IWYU pragma: keep
 #include "c_pal/interlocked.h" // IWYU pragma: keep
 #include "c_pal/thandle_log_context_handle.h" // IWYU pragma: keep
+#include "c_pal/socket_transport.h" // IWYU pragma: keep
+#include "c_pal/async_socket.h" // IWYU pragma: keep
 
 #define REGISTER_GLOBAL_MOCK_HOOK(original, real) \
     (original == real) ? (void)0 : (void)1;
@@ -25,6 +27,8 @@
 #include "real_execution_engine.h"
 #include "real_interlocked.h"
 #include "real_thandle_log_context_handle.h"
+#include "real_socket_transport.h"
+#include "real_async_socket.h"
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
@@ -45,6 +49,8 @@ TEST_FUNCTION(check_all_c_pal_reals)
     REGISTER_EXECUTION_ENGINE_GLOBAL_MOCK_HOOK();
     REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK();
     REGISTER_THANDLE_LOG_CONTEXT_HANDLE_GLOBAL_MOCK_HOOK();
+    REGISTER_SOCKET_TRANSPORT_GLOBAL_MOCK_HOOK();
+    REGISTER_ASYNC_SOCKET_GLOBAL_MOCK_HOOK();
     // assert
     // no explicit assert, if it builds it works
 }

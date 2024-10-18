@@ -20,8 +20,6 @@ add_library(pal_ll_interfaces INTERFACE
 )
 target_include_directories(pal_ll_interfaces INTERFACE inc)
 
-add_mock_library(pal_ll_interfaces HEADER_FILES ${pal_ll_interfaces_h_files})
-
 add_subdirectory(reals)
 
 add_subdirectory(tests)

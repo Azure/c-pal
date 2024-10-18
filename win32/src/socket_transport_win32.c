@@ -176,7 +176,7 @@ all_ok:
     return result;
 }
 
-SOCKET_TRANSPORT_HANDLE socket_transport_create_client()
+SOCKET_TRANSPORT_HANDLE socket_transport_create_client(void)
 {
     SOCKET_TRANSPORT* result;
 
@@ -208,7 +208,7 @@ all_ok:
     return result;
 }
 
-SOCKET_TRANSPORT_HANDLE socket_transport_create_server()
+SOCKET_TRANSPORT_HANDLE socket_transport_create_server(void)
 {
     SOCKET_TRANSPORT* result;
 
