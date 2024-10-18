@@ -7,7 +7,7 @@ set(${theseTestsName}_test_files
 )
 
 set(${theseTestsName}_c_files
-    async_socket_linux_mocked.c
+    ../../src/async_socket_linux.c
 )
 
 set(${theseTestsName}_h_files
