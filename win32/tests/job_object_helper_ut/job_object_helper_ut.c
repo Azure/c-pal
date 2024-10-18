@@ -10,6 +10,7 @@
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
 #include "umock_c/umock_c_negative_tests.h"
+#include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umocktypes_windows.h"
 
 #include "c_pal/interlocked.h"
@@ -33,8 +34,6 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
 
-#define test_percent_cpu 42
-#define test_percent_physical_memory 89
 #define test_total_physical_memory 20480
 
 MOCK_FUNCTION_WITH_CODE(, HANDLE, mocked_CreateJobObject, LPSECURITY_ATTRIBUTES, lpJobAttributes, LPCSTR, lpName)
@@ -83,9 +82,6 @@ MOCK_FUNCTION_END(TRUE)
 static void setup_job_object_helper_create_expectations()
 {
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mocked_GlobalMemoryStatusEx(IGNORED_ARG))
-        .SetReturn(TRUE)
-        .SetFailReturn(FALSE);
     STRICT_EXPECTED_CALL(mocked_CreateJobObject(NULL, NULL))
         .SetFailReturn(NULL);
     STRICT_EXPECTED_CALL(mocked_GetCurrentProcess())
@@ -100,6 +96,9 @@ static void setup_job_object_helper_create_expectations()
 
 static void setup_job_object_helper_limit_memory_expectations(void)
 {
+    STRICT_EXPECTED_CALL(mocked_GlobalMemoryStatusEx(IGNORED_ARG))
+        .SetReturn(TRUE)
+        .SetFailReturn(FALSE);
     STRICT_EXPECTED_CALL(mocked_SetInformationJobObject(IGNORED_ARG, JobObjectExtendedLimitInformation, IGNORED_ARG, sizeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION)))
         .SetReturn(TRUE)
         .SetFailReturn(FALSE);
@@ -118,6 +117,7 @@ TEST_SUITE_INITIALIZE(suite_init)
 {
     ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL), "real_gballoc_hl_init failed");
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error), "umock_c_init failed");
+    ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types(), "umocktypes_stdint_register_types failed");
     ASSERT_ARE_EQUAL(int, 0, umocktypes_windows_register_types(), "umocktypes_windows_register_types failed");
 
     REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
@@ -146,7 +146,6 @@ TEST_FUNCTION_CLEANUP(cleanup)
 }
 
 /*Tests_SRS_JOB_OBJECT_HELPER_18_016: [ job_object_helper_create shall allocate a JOB_OBJECT_HELPER object. ]*/
-/*Tests_SRS_JOB_OBJECT_HELPER_18_023: [ job_object_helper_create shall call GlobalMemoryStatusEx to get the total amount of physical memory in kb. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_024: [ job_object_helper_create shall call CreateJobObject to create a new job object passing NULL for both lpJobAttributes and lpName. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_025: [ job_object_helper_create shall call GetCurrentProcess to get the current process handle. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_026: [ job_object_helper_create shall call AssignProcessToJobObject to assign the current process to the new job object. ]*/
@@ -249,6 +248,7 @@ TEST_FUNCTION(job_object_helper_limit_memory_with_invalid_percent_physical_memor
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
 }
 
+/*Tests_SRS_JOB_OBJECT_HELPER_18_023: [ job_object_helper_limit_memory shall call GlobalMemoryStatusEx to get the total amount of physical memory in kb. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_039: [ job_object_helper_limit_memory shall call SetInformationJobObject, passing JobObjectExtendedLimitInformation and a JOBOBJECT_EXTENDED_LIMIT_INFORMATION object with JOB_OBJECT_LIMIT_JOB_MEMORY set and JobMemoryLimit set to the percent_physical_memory percent of the physical memory in bytes. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_18_042: [ job_object_helper_limit_memory shall succeed and return 0. ]*/
 TEST_FUNCTION(job_object_helper_limit_memory_succeeds)
@@ -265,6 +265,8 @@ TEST_FUNCTION(job_object_helper_limit_memory_succeeds)
     // assert
     ASSERT_ARE_EQUAL(int, 0, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(unsigned_long, JOB_OBJECT_LIMIT_JOB_MEMORY, captured_extended_limit_information.BasicLimitInformation.LimitFlags);
+    ASSERT_ARE_EQUAL(size_t, test_total_physical_memory * 42 /100, captured_extended_limit_information.JobMemoryLimit);
 
     // cleanup
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
@@ -352,6 +354,8 @@ TEST_FUNCTION(job_object_helper_limit_cpu_succeeds)
 
     // assert
     ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(unsigned_long, JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP, captured_cpu_rate_control_information.ControlFlags);
+    ASSERT_ARE_EQUAL(size_t, 4200, captured_cpu_rate_control_information.CpuRate);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup

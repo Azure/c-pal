@@ -17,8 +17,6 @@ MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_create);
 
 **SRS_JOB_OBJECT_HELPER_18_016: [** `job_object_helper_create` shall allocate a `JOB_OBJECT_HELPER` object. **]**
 
-**SRS_JOB_OBJECT_HELPER_18_023: [** `job_object_helper_create` shall call `GlobalMemoryStatusEx` to get the total amount of physical memory in kb. **]**
-
 **SRS_JOB_OBJECT_HELPER_18_024: [** `job_object_helper_create` shall call `CreateJobObject` to create a new job object passing `NULL` for both `lpJobAttributes` and `lpName`. **]**
 
 **SRS_JOB_OBJECT_HELPER_18_025: [** `job_object_helper_create` shall call `GetCurrentProcess` to get the current process handle. **]**
@@ -45,13 +43,15 @@ static void job_object_helper_dispose(JOB_OBJECT_HELPER* job_object_helper);
 ```c
 MOCKABLE_FUNCTION(, int, job_object_helper_limit_memory, THANDLE(JOB_OBJECT_HELPER), job_object_helper, uint32_t, percent_physical_memory);
 ```
-`job_object_helper_limit_memory` limits the amount of physical memory available to the current progess.
+`job_object_helper_limit_memory` limits the amount of physical memory available to the current process.
 
 **SRS_JOB_OBJECT_HELPER_18_035: [** If `job_object_helper` is `NULL`, `job_object_helper_limit_memory` shall fail and return a non-zero value. **]**
 
 **SRS_JOB_OBJECT_HELPER_18_036: [** If `percent_physical_memory` is `0`, `job_object_helper_limit_memory` shall fail and return a non-zero value. **]**
 
 **SRS_JOB_OBJECT_HELPER_18_037: [** If `percent_physical_memory` is greater than `100`, `job_object_helper_limit_memory` shall fail and return a non-zero value. **]**
+
+**SRS_JOB_OBJECT_HELPER_18_023: [** `job_object_helper_limit_memory` shall call `GlobalMemoryStatusEx` to get the total amount of physical memory in kb. **]**
 
 **SRS_JOB_OBJECT_HELPER_18_039: [** `job_object_helper_limit_memory` shall call `SetInformationJobObject`, passing `JobObjectExtendedLimitInformation` and a `JOBOBJECT_EXTENDED_LIMIT_INFORMATION` object with `JOB_OBJECT_LIMIT_JOB_MEMORY` set and `JobMemoryLimit` set to the `percent_physical_memory` percent of the physical memory in bytes. **]**
 

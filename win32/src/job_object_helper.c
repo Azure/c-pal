@@ -18,7 +18,6 @@
 
 typedef struct JOB_OBJECT_HELPER_TAG {
     HANDLE job_object;
-    DWORDLONG total_physical_memory;
 } JOB_OBJECT_HELPER;
 
 THANDLE_TYPE_DEFINE(JOB_OBJECT_HELPER);
@@ -46,56 +45,43 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_crea
     }
     else
     {
-        MEMORYSTATUSEX memory_status_ex;
-        memory_status_ex.dwLength = sizeof(memory_status_ex);
-        /*Codes_SRS_JOB_OBJECT_HELPER_18_023: [ job_object_helper_create shall call GlobalMemoryStatusEx to get the total amount of physical memory in kb. ]*/
-        if (!GlobalMemoryStatusEx(&memory_status_ex))
+        /*Codes_SRS_JOB_OBJECT_HELPER_18_024: [ job_object_helper_create shall call CreateJobObject to create a new job object passing NULL for both lpJobAttributes and lpName. ]*/
+        job_object_helper->job_object = CreateJobObject(NULL, NULL);
+        if (job_object_helper->job_object == NULL)
         {
             /*Codes_SRS_JOB_OBJECT_HELPER_18_018: [ If there are any failures, job_object_helper_create shall fail and return NULL. ]*/
-            LogLastError("failure in GlobalMemoryStatus(&memory_status_ex=%p)", &memory_status_ex);
+            LogLastError("failure in CreateJobObject(NULL, NULL)");
             result = NULL;
         }
         else
         {
-            job_object_helper->total_physical_memory = memory_status_ex.ullTotalPhys;
-            /*Codes_SRS_JOB_OBJECT_HELPER_18_024: [ job_object_helper_create shall call CreateJobObject to create a new job object passing NULL for both lpJobAttributes and lpName. ]*/
-            job_object_helper->job_object = CreateJobObject(NULL, NULL);
-            if (job_object_helper->job_object == NULL)
+            /*Codes_SRS_JOB_OBJECT_HELPER_18_025: [ job_object_helper_create shall call GetCurrentProcess to get the current process handle. ]*/
+            HANDLE current_process = GetCurrentProcess();
+
+            /*Codes_SRS_JOB_OBJECT_HELPER_18_026: [ job_object_helper_create shall call AssignProcessToJobObject to assign the current process to the new job object. ]*/
+            BOOL assign_process_to_job_object_result = AssignProcessToJobObject(job_object_helper->job_object, current_process);
+            /*Codes_SRS_JOB_OBJECT_HELPER_18_027: [ job_object_helper_create shall call CloseHandle to close the handle of the current process. ]*/
+            if (!CloseHandle(current_process))
+            {
+                LogLastError("failure in CloseHandle(current_process=%p)", current_process);
+            }
+
+            if (!assign_process_to_job_object_result)
             {
                 /*Codes_SRS_JOB_OBJECT_HELPER_18_018: [ If there are any failures, job_object_helper_create shall fail and return NULL. ]*/
-                LogLastError("failure in CreateJobObject(NULL, NULL)");
+                LogLastError("failure in AssignProcessToJobObject(job_object=%p, current_process=%p)", job_object_helper->job_object, current_process);
                 result = NULL;
             }
             else
             {
-                /*Codes_SRS_JOB_OBJECT_HELPER_18_025: [ job_object_helper_create shall call GetCurrentProcess to get the current process handle. ]*/
-                HANDLE current_process = GetCurrentProcess();
+                /*Codes_SRS_JOB_OBJECT_HELPER_18_019: [ job_object_helper_create shall succeed and return the JOB_OBJECT_HELPER object. ]*/
+                result = job_object_helper;
+                goto all_ok;
+            }
 
-                /*Codes_SRS_JOB_OBJECT_HELPER_18_026: [ job_object_helper_create shall call AssignProcessToJobObject to assign the current process to the new job object. ]*/
-                BOOL assign_process_to_job_object_result = AssignProcessToJobObject(job_object_helper->job_object, current_process);
-                /*Codes_SRS_JOB_OBJECT_HELPER_18_027: [ job_object_helper_create shall call CloseHandle to close the handle of the current process. ]*/
-                if (!CloseHandle(current_process))
-                {
-                    LogLastError("failure in CloseHandle(current_process=%p)", current_process);
-                }
-
-                if (!assign_process_to_job_object_result)
-                {
-                    /*Codes_SRS_JOB_OBJECT_HELPER_18_018: [ If there are any failures, job_object_helper_create shall fail and return NULL. ]*/
-                    LogLastError("failure in AssignProcessToJobObject(job_object=%p, current_process=%p)", job_object_helper->job_object, current_process);
-                    result = NULL;
-                }
-                else
-                {
-                    /*Codes_SRS_JOB_OBJECT_HELPER_18_019: [ job_object_helper_create shall succeed and return the JOB_OBJECT_HELPER object. ]*/
-                    result = job_object_helper;
-                    goto all_ok;
-                }
-
-                if (!CloseHandle(job_object_helper->job_object))
-                {
-                    LogLastError("failure in CloseHandle(job_object_helper->job_object=%p)", job_object_helper->job_object);
-                }
+            if (!CloseHandle(job_object_helper->job_object))
+            {
+                LogLastError("failure in CloseHandle(job_object_helper->job_object=%p)", job_object_helper->job_object);
             }
         }
         THANDLE_FREE(JOB_OBJECT_HELPER)(job_object_helper);
@@ -119,21 +105,33 @@ IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_limit_memory, THANDLE(JOB_O
     }
     else
     {
-        /*Codes_SRS_JOB_OBJECT_HELPER_18_039: [ job_object_helper_limit_memory shall call SetInformationJobObject, passing JobObjectExtendedLimitInformation and a JOBOBJECT_EXTENDED_LIMIT_INFORMATION object with JOB_OBJECT_LIMIT_JOB_MEMORY set and JobMemoryLimit set to the percent_physical_memory percent of the physical memory in bytes. ]*/
-        JOBOBJECT_EXTENDED_LIMIT_INFORMATION extended_limit_information = {0};
-        extended_limit_information.BasicLimitInformation.LimitFlags  = JOB_OBJECT_LIMIT_JOB_MEMORY;
-        extended_limit_information.JobMemoryLimit = percent_physical_memory * job_object_helper->total_physical_memory / 100;
-        if (!SetInformationJobObject(job_object_helper->job_object, JobObjectExtendedLimitInformation, &extended_limit_information, sizeof(extended_limit_information)))
+        MEMORYSTATUSEX memory_status_ex;
+        memory_status_ex.dwLength = sizeof(memory_status_ex);
+        /*Codes_SRS_JOB_OBJECT_HELPER_18_023: [ job_object_helper_limit_memory shall call GlobalMemoryStatusEx to get the total amount of physical memory in kb. ]*/
+        if (!GlobalMemoryStatusEx(&memory_status_ex))
         {
-            /*Codes_SRS_JOB_OBJECT_HELPER_18_041: [ If there are any failures, job_object_helper_limit_memory shall fail and return a non-zero value. ]*/
-            LogLastError("failure in SetInformationJobObject(job_object_helper->job_object=%p, JobObjectExtendedLimitInformation, &extended_limit_information=%p, sizeof(extended_limit_information)=%zu)",
-                job_object_helper->job_object, &extended_limit_information, sizeof(extended_limit_information));
+            /*Codes_SRS_JOB_OBJECT_HELPER_18_018: [ If there are any failures, job_object_helper_create shall fail and return NULL. ]*/
+            LogLastError("failure in GlobalMemoryStatus(&memory_status_ex=%p)", &memory_status_ex);
             result = MU_FAILURE;
         }
         else
         {
-            /*Codes_SRS_JOB_OBJECT_HELPER_18_042: [ job_object_helper_limit_memory shall succeed and return 0. ]*/
-            result = 0;
+            /*Codes_SRS_JOB_OBJECT_HELPER_18_039: [ job_object_helper_limit_memory shall call SetInformationJobObject, passing JobObjectExtendedLimitInformation and a JOBOBJECT_EXTENDED_LIMIT_INFORMATION object with JOB_OBJECT_LIMIT_JOB_MEMORY set and JobMemoryLimit set to the percent_physical_memory percent of the physical memory in bytes. ]*/
+            JOBOBJECT_EXTENDED_LIMIT_INFORMATION extended_limit_information = {0};
+            extended_limit_information.BasicLimitInformation.LimitFlags  = JOB_OBJECT_LIMIT_JOB_MEMORY;
+            extended_limit_information.JobMemoryLimit = percent_physical_memory * memory_status_ex.ullTotalPhys / 100;
+            if (!SetInformationJobObject(job_object_helper->job_object, JobObjectExtendedLimitInformation, &extended_limit_information, sizeof(extended_limit_information)))
+            {
+                /*Codes_SRS_JOB_OBJECT_HELPER_18_041: [ If there are any failures, job_object_helper_limit_memory shall fail and return a non-zero value. ]*/
+                LogLastError("failure in SetInformationJobObject(job_object_helper->job_object=%p, JobObjectExtendedLimitInformation, &extended_limit_information=%p, sizeof(extended_limit_information)=%zu)",
+                    job_object_helper->job_object, &extended_limit_information, sizeof(extended_limit_information));
+                result = MU_FAILURE;
+            }
+            else
+            {
+                /*Codes_SRS_JOB_OBJECT_HELPER_18_042: [ job_object_helper_limit_memory shall succeed and return 0. ]*/
+                result = 0;
+            }
         }
     }
 
