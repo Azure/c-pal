@@ -82,7 +82,7 @@ void* gballoc_ll_malloc_flex(size_t base, size_t nmemb, size_t size)
         /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_012: [ gballoc_ll_malloc_flex shall return what malloc(base + nmemb * size) returns. ]*/
         result = gballoc_ll_malloc_internal(base + nmemb * size);
     }
-    
+
     return result;
 }
 
