@@ -7,7 +7,7 @@
 
 #include "file_int_helpers.h"
 
-void delete_all_txt_files()
+void delete_all_txt_files(void)
 {
     system("rm *.txt");
 }

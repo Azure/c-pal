@@ -176,12 +176,12 @@ static int on_socket_recv(void* context, ASYNC_SOCKET_HANDLE async_socket, void*
 
 #ifdef TEST_SUITE_NAME_FROM_CMAKE
 
-ON_ASYNC_SOCKET_SEND get_async_socket_send_callback()
+ON_ASYNC_SOCKET_SEND get_async_socket_send_callback(void)
 {
     return on_socket_send;
 }
 
-ON_ASYNC_SOCKET_RECV get_async_socket_recv_callback()
+ON_ASYNC_SOCKET_RECV get_async_socket_recv_callback(void)
 {
     return on_socket_recv;
 }
