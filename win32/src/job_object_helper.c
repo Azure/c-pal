@@ -28,7 +28,7 @@ static void job_object_helper_dispose(JOB_OBJECT_HELPER* job_object_helper)
     /*Codes_SRS_JOB_OBJECT_HELPER_18_033: [ job_object_helper_dispose shall call CloseHandle to close the handle to the job object. ]*/
     if (!CloseHandle(job_object_helper->job_object))
     {
-        LogLastError("CloseHandle(job_object_helper->job_object = %p) failed", job_object_helper->job_object);
+        LogLastError("failure in CloseHandle(job_object_helper->job_object=%p)", job_object_helper->job_object);
     }
 }
 
@@ -41,7 +41,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_crea
     if (job_object_helper == NULL)
     {
         /*Codes_SRS_JOB_OBJECT_HELPER_18_018: [ If there are any failures, job_object_helper_create shall fail and return NULL. ]*/
-        LogError("THANDLE_MALLOC(JOB_OBJECT_HELPER) failed");
+        LogError("failure in THANDLE_MALLOC(JOB_OBJECT_HELPER)(job_object_helper_dispose=%p)", job_object_helper_dispose);
         result = NULL;
     }
     else
@@ -52,7 +52,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_crea
         if (!GlobalMemoryStatusEx(&memory_status_ex))
         {
             /*Codes_SRS_JOB_OBJECT_HELPER_18_018: [ If there are any failures, job_object_helper_create shall fail and return NULL. ]*/
-            LogLastError("GlobalMemoryStatus(&memory_status_ex = %p) failed", &memory_status_ex);
+            LogLastError("failure in GlobalMemoryStatus(&memory_status_ex=%p)", &memory_status_ex);
             result = NULL;
         }
         else
@@ -63,7 +63,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_crea
             if (job_object_helper->job_object == NULL)
             {
                 /*Codes_SRS_JOB_OBJECT_HELPER_18_018: [ If there are any failures, job_object_helper_create shall fail and return NULL. ]*/
-                LogLastError("CreateJobObject(NULL, NULL) failed");
+                LogLastError("failure in CreateJobObject(NULL, NULL)");
                 result = NULL;
             }
             else
@@ -76,13 +76,13 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_crea
                 /*Codes_SRS_JOB_OBJECT_HELPER_18_027: [ job_object_helper_create shall call CloseHandle to close the handle of the current process. ]*/
                 if (!CloseHandle(current_process))
                 {
-                    LogLastError("CloseHandle(current_process = %p) failed", current_process);
+                    LogLastError("failure in CloseHandle(current_process=%p)", current_process);
                 }
 
                 if (!assign_process_to_job_object_result)
                 {
                     /*Codes_SRS_JOB_OBJECT_HELPER_18_018: [ If there are any failures, job_object_helper_create shall fail and return NULL. ]*/
-                    LogLastError("AssignProcessToJobObject(HANDLE job_object = %p, HANDLE current_process = %p) failed", job_object_helper->job_object, current_process);
+                    LogLastError("failure in AssignProcessToJobObject(job_object=%p, current_process=%p)", job_object_helper->job_object, current_process);
                     result = NULL;
                 }
                 else
@@ -94,7 +94,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_crea
 
                 if (!CloseHandle(job_object_helper->job_object))
                 {
-                    LogLastError("CloseHandle(job_object_helper->job_object = %p) failed", job_object_helper->job_object);
+                    LogLastError("failure in CloseHandle(job_object_helper->job_object=%p)", job_object_helper->job_object);
                 }
             }
         }
@@ -114,7 +114,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_limit_memory, THANDLE(JOB_O
     /*Codes_SRS_JOB_OBJECT_HELPER_18_037: [ If percent_physical_memory is greater than 100, job_object_helper_limit_memory shall fail and return a non-zero value. ]*/
     if (job_object_helper == NULL || percent_physical_memory == 0 || percent_physical_memory > 100)
     {
-        LogError("Invalid arguments: job_object_helper = %p, percent_physical_memory = %" PRIu32 "", job_object_helper, percent_physical_memory);
+        LogError("Invalid arguments: job_object_helper=%p, percent_physical_memory=%" PRIu32 "", job_object_helper, percent_physical_memory);
         result = MU_FAILURE;
     }
     else
@@ -126,7 +126,8 @@ IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_limit_memory, THANDLE(JOB_O
         if (!SetInformationJobObject(job_object_helper->job_object, JobObjectExtendedLimitInformation, &extended_limit_information, sizeof(extended_limit_information)))
         {
             /*Codes_SRS_JOB_OBJECT_HELPER_18_041: [ If there are any failures, job_object_helper_limit_memory shall fail and return a non-zero value. ]*/
-            LogLastError("SetInformationJobObject failed");
+            LogLastError("failure in SetInformationJobObject(job_object_helper->job_object=%p, JobObjectExtendedLimitInformation, &extended_limit_information=%p, sizeof(extended_limit_information)=%zu)",
+                job_object_helper->job_object, &extended_limit_information, sizeof(extended_limit_information));
             result = MU_FAILURE;
         }
         else
@@ -148,7 +149,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_limit_cpu, THANDLE(JOB_OBJE
     /*Codes_SRS_JOB_OBJECT_HELPER_18_045: [ If percent_cpu is greater than 100, job_object_helper_limit_cpu shall fail and return a non-zero value. ]*/
     if (job_object_helper == NULL || percent_cpu == 0 || percent_cpu > 100)
     {
-        LogError("Invalid arguments: job_object_helper = %p, percent_cpu = %" PRIu32 "", job_object_helper, percent_cpu);
+        LogError("Invalid arguments: job_object_helper=%p, percent_cpu=%" PRIu32 "", job_object_helper, percent_cpu);
         result = MU_FAILURE;
     }
     else
@@ -160,7 +161,8 @@ IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_limit_cpu, THANDLE(JOB_OBJE
         if (!SetInformationJobObject(job_object_helper->job_object, JobObjectCpuRateControlInformation, &cpu_rate_control_information, sizeof(cpu_rate_control_information)))
         {
             /*Codes_SRS_JOB_OBJECT_HELPER_18_049: [ If there are any failures, job_object_helper_limit_cpu shall fail and return a non-zero value. ]*/
-            LogLastError("SetInformationJobObject failed");
+            LogLastError("failure in SetInformationJobObject(job_object_helper->job_object=%p, JobObjectCpuRateControlInformation, &cpu_rate_control_information=%p, sizeof(cpu_rate_control_information)=%zu)",
+                job_object_helper->job_object, &cpu_rate_control_information, sizeof(cpu_rate_control_information));
             result = MU_FAILURE;
         }
         else
