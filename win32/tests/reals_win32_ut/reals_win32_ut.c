@@ -18,6 +18,7 @@
 #include "c_pal/uuid.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/thandle_log_context_handle.h"
+#include "c_pal/socket_transport.h"
 
 #include "macro_utils/macro_utils.h"
 
@@ -43,6 +44,7 @@
 #include "real_uuid.h"
 #include "real_execution_engine.h"
 #include "real_thandle_log_context_handle.h"
+#include "real_socket_transport.h"
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
@@ -68,6 +70,7 @@ TEST_FUNCTION(check_all_c_pal_reals)
     REGISTER_UUID_GLOBAL_MOCK_HOOK();
     REGISTER_EXECUTION_ENGINE_GLOBAL_MOCK_HOOK();
     REGISTER_THANDLE_LOG_CONTEXT_HANDLE_GLOBAL_MOCK_HOOK();
+    REGISTER_SOCKET_TRANSPORT_GLOBAL_MOCK_HOOK();
 
     // assert
     // no explicit assert, if it builds it works
