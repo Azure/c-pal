@@ -7,6 +7,7 @@ set(linux_reals_c_files
     real_gballoc_ll_${gballoc_ll_type_lower}.c
     real_gballoc_hl_${gballoc_hl_type_lower}.c
     real_pipe.c
+    real_socket_transport_linux.c
     real_string_utils_linux.c
     real_srw_lock.c
     real_srw_lock_ll_linux.c
@@ -18,7 +19,7 @@ set(linux_reals_c_files
     ../../common/reals/real_sm.c
     ../../common/reals/real_interlocked_hl.c
     ../../common/reals/real_thandle_log_context_handle.c
-    
+
 )
 
 set(linux_reals_h_files
@@ -41,6 +42,8 @@ set(linux_reals_h_files
     ../../common/reals/real_sm_renames.h
     ../../common/reals/real_interlocked_hl.h
     ../../common/reals/real_interlocked_hl_renames.h
+    ../../common/reals/real_socket_transport.h
+    ../../common/reals/real_socket_transport_renames.h
     ../../common/reals/real_thandle_helper.h
     ../../interfaces/reals/real_timer.h
     ../../interfaces/reals/real_timer_renames.h
