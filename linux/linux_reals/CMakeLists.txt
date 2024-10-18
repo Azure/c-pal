@@ -2,6 +2,7 @@
 #Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 set(linux_reals_c_files
+    real_async_socket.c
     real_execution_engine.c
     real_execution_engine_linux.c #note:empty file
     real_gballoc_ll_${gballoc_ll_type_lower}.c
@@ -23,6 +24,8 @@ set(linux_reals_c_files
 )
 
 set(linux_reals_h_files
+    real_async_socket.h
+    real_async_socket_renames.h
     real_execution_engine.h
     real_execution_engine_renames.h
     real_execution_engine_linux.h
