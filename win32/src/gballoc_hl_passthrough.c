@@ -48,7 +48,7 @@ int gballoc_hl_init(void* gballoc_hl_init_params, void* gballoc_ll_init_params)
         result = MU_FAILURE;
     }
     else
-    { 
+    {
         /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_002: [ gballoc_hl_init shall succeed and return 0. ]*/
         result = 0;
     }
@@ -315,7 +315,7 @@ const GBALLOC_LATENCY_BUCKET_METADATA* gballoc_hl_get_latency_bucket_metadata(vo
     return latency_buckets_metadata;
 }
 
-void gballoc_hl_print_stats()
+void gballoc_hl_print_stats(void)
 {
     /* Codes_SRS_GBALLOC_HL_PASSTHROUGH_01_001: [ gballoc_hl_print_stats shall call into gballoc_ll_print_stats to print the memory allocator statistics. ]*/
     gballoc_ll_print_stats();
