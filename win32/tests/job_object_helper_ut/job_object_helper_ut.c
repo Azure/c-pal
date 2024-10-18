@@ -12,9 +12,10 @@
 #include "umock_c/umock_c_negative_tests.h"
 #include "umock_c/umocktypes_windows.h"
 
+#include "c_pal/interlocked.h"
+#include "c_pal/interlocked_hl.h"
+
 #define ENABLE_MOCKS
-    #include "c_pal/interlocked.h"
-    #include "c_pal/interlocked_hl.h"
     #include "c_pal/gballoc_hl.h"
     #include "c_pal/gballoc_hl_redirect.h"
 
@@ -74,8 +75,6 @@ MOCK_FUNCTION_END(TRUE)
 static void setup_job_object_helper_create_expectations()
 {
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1))
-        .CallCannotFail();
     STRICT_EXPECTED_CALL(mocked_GlobalMemoryStatusEx(IGNORED_ARG))
         .SetReturn(TRUE)
         .SetFailReturn(FALSE);
@@ -93,14 +92,14 @@ static void setup_job_object_helper_create_expectations()
         .CallCannotFail();
 }
 
-static void setup_job_object_helper_limit_memory_expectations()
+static void setup_job_object_helper_limit_memory_expectations(void)
 {
     STRICT_EXPECTED_CALL(mocked_SetInformationJobObject(test_job_object, JobObjectExtendedLimitInformation, IGNORED_ARG, sizeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION)))
         .SetReturn(TRUE)
         .SetFailReturn(FALSE);
 }
 
-static void setup_job_object_helper_limit_cpu_expectations()
+static void setup_job_object_helper_limit_cpu_expectations(void)
 {
     STRICT_EXPECTED_CALL(mocked_SetInformationJobObject(test_job_object, JobObjectCpuRateControlInformation, IGNORED_ARG, sizeof(JOBOBJECT_CPU_RATE_CONTROL_INFORMATION)))
         .SetReturn(TRUE)
@@ -195,7 +194,6 @@ TEST_FUNCTION(job_object_helper_dispose_succeeds)
     THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_create();
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_CloseHandle(test_job_object));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
@@ -230,7 +228,7 @@ TEST_FUNCTION(job_object_helper_limit_memory_with_invalid_percent_physical_memor
 
     uint32_t invalid_values[] = {0, 101, 143};
 
-    for (int i=0; i < _countof(invalid_values); i++)
+    for (int i=0; i < sizeof(invalid_values)/sizeof(invalid_values[0]); i++)
     {
         // act
         int result = job_object_helper_limit_memory(job_object_helper, invalid_values[i]);
@@ -318,7 +316,7 @@ TEST_FUNCTION(job_object_helper_limit_cpu_with_invalid_percent_cpu)
 
     uint32_t invalid_values[] = {0, 101, 143};
 
-    for (int i=0; i < _countof(invalid_values); i++)
+    for (int i=0; i < sizeof(invalid_values)/sizeof(invalid_values[0]); i++)
     {
         // act
         int result = job_object_helper_limit_cpu(job_object_helper, invalid_values[i]);

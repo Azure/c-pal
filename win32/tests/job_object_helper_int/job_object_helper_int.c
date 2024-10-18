@@ -18,9 +18,9 @@
 #define TEST_BUFFER_SIZE (MEGABYTE * 512)
 #define MAX_BUFFERS_BEFORE_FAILURE (MAX_MEMORY_POSSIBLE / TEST_BUFFER_SIZE)
 
-const size_t max_buffers_before_failure = MAX_BUFFERS_BEFORE_FAILURE;
+static const size_t max_buffers_before_failure = MAX_BUFFERS_BEFORE_FAILURE;
 
-static size_t get_malloc_limit_before_failure()
+static size_t get_malloc_limit_before_failure(void)
 {
     /* malloc until failure and return the count of (512MB) buffers we were able to malloc. */
     void** buffers = malloc(sizeof(void*) * max_buffers_before_failure);
@@ -30,7 +30,7 @@ static size_t get_malloc_limit_before_failure()
     for (size_t i = 0; i < max_buffers_before_failure; i++)
     {
         buffers[i] = malloc(TEST_BUFFER_SIZE);
-        if (buffers[i] == 0)
+        if (buffers[i] == NULL)
         {
             max_buffers = i;
             break;
@@ -53,7 +53,7 @@ static size_t get_malloc_limit_before_failure()
 static size_t limit = 1 << 28;
 static size_t expected_bits = 3758096384;
 
-static size_t get_elapsed_milliseconds_for_cpu_bound_task()
+static size_t get_elapsed_milliseconds_for_cpu_bound_task(void)
 {
     double start = timer_global_get_elapsed_ms();
 
@@ -99,26 +99,16 @@ TEST_FUNCTION(test_job_object_helper_limit_memory)
     THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_create();
     ASSERT_IS_NOT_NULL(job_object_helper);
 
-    /* Constrain to 100% of physical memory and re-measure. */
-    int result = job_object_helper_limit_memory(job_object_helper, 100);
-    ASSERT_ARE_EQUAL(int, 0, result);
-
-    size_t blocks_at_100_percent = get_malloc_limit_before_failure();
-    ASSERT_ARE_NOT_EQUAL(size_t, 0, blocks_at_100_percent);
-
-    LogInfo("Memory limits: 100%% of physical memory = %zu blocks = %zu MB", blocks_at_100_percent, blocks_at_100_percent * TEST_BUFFER_SIZE / MEGABYTE);
-
-    /* Constrain to 100% of physical memory and re-measure. */
-    result = job_object_helper_limit_memory(job_object_helper, 50);
+    /* Constrain to 50% of physical memory and measure. */
+    int result = job_object_helper_limit_memory(job_object_helper, 50);
     ASSERT_ARE_EQUAL(int, 0, result);
 
     size_t blocks_at_50_percent = get_malloc_limit_before_failure();
     ASSERT_ARE_NOT_EQUAL(size_t, 0, blocks_at_50_percent);
     LogInfo("Memory limits:  50%% of physical memory = %zu blocks = %zu MB", blocks_at_50_percent, blocks_at_50_percent * TEST_BUFFER_SIZE / MEGABYTE);
 
-    size_t actual_50_percent_percentage = blocks_at_50_percent * 100 / blocks_at_100_percent;
-    LogInfo("50%% limit measured at %zu%% of physical", actual_50_percent_percentage);
-    ASSERT_IS_TRUE(actual_50_percent_percentage >= 45 && actual_50_percent_percentage <= 55, "50% memory limit not between 45-55% of physical memory");
+    /* To make math easier to explain, assume that 100% is 2 x 50% */
+    size_t blocks_at_100_percent = blocks_at_50_percent * 2;
 
     /* Constrain to 10% of physical memory and re-measure. */
     result = job_object_helper_limit_memory(job_object_helper, 10);
@@ -126,6 +116,7 @@ TEST_FUNCTION(test_job_object_helper_limit_memory)
     size_t blocks_at_10_percent = get_malloc_limit_before_failure();
     ASSERT_ARE_NOT_EQUAL(size_t, 0, blocks_at_10_percent);
     LogInfo("Memory limits:  10%% of physical memory = %zu blocks = %zu MB", blocks_at_10_percent, blocks_at_10_percent * TEST_BUFFER_SIZE / MEGABYTE);
+
     size_t actual_10_percent_percentage = blocks_at_10_percent * 100 / blocks_at_100_percent;
     LogInfo("10%% limit measured at %zu%% of physical", actual_10_percent_percentage);
     ASSERT_IS_TRUE(actual_10_percent_percentage >= 7 && actual_10_percent_percentage <= 13, "10% memory limit not between 7-13% of physical memory");

@@ -9,6 +9,7 @@ set(${theseTestsName}_test_files
 
 set(${theseTestsName}_c_files
     job_object_helper_mocked.c
+    ../../../c_pal_ll/win32/src/interlocked_win32.c
 )
 
 set(${theseTestsName}_h_files
