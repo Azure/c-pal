@@ -23,14 +23,13 @@ typedef struct JOB_OBJECT_HELPER_TAG {
 
 THANDLE_TYPE_DEFINE(JOB_OBJECT_HELPER);
 
-
-
-
-
 static void job_object_helper_dispose(JOB_OBJECT_HELPER* job_object_helper)
 {
     /*Codes_SRS_JOB_OBJECT_HELPER_18_033: [ job_object_helper_dispose shall call CloseHandle to close the handle to the job object. ]*/
-    CloseHandle(job_object_helper->job_object);
+    if (!CloseHandle(job_object_helper->job_object))
+    {
+        LogLastError("CloseHandle(job_object_helper->job_object = %p) failed", job_object_helper->job_object);
+    }
 }
 
 IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_create)
@@ -73,7 +72,14 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_crea
                 HANDLE current_process = GetCurrentProcess();
 
                 /*Codes_SRS_JOB_OBJECT_HELPER_18_026: [ job_object_helper_create shall call AssignProcessToJobObject to assign the current process to the new job object. ]*/
-                if (!AssignProcessToJobObject(job_object_helper->job_object, current_process))
+                BOOL assign_process_to_job_object_result = AssignProcessToJobObject(job_object_helper->job_object, current_process);
+                /*Codes_SRS_JOB_OBJECT_HELPER_18_027: [ job_object_helper_create shall call CloseHandle to close the handle of the current process. ]*/
+                if (!CloseHandle(current_process))
+                {
+                    LogLastError("CloseHandle(current_process = %p) failed", current_process);
+                }
+
+                if (!assign_process_to_job_object_result)
                 {
                     /*Codes_SRS_JOB_OBJECT_HELPER_18_018: [ If there are any failures, job_object_helper_create shall fail and return NULL. ]*/
                     LogLastError("AssignProcessToJobObject(HANDLE job_object = %p, HANDLE current_process = %p) failed", job_object_helper->job_object, current_process);
@@ -83,23 +89,19 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_crea
                 {
                     /*Codes_SRS_JOB_OBJECT_HELPER_18_019: [ job_object_helper_create shall succeed and return the JOB_OBJECT_HELPER object. ]*/
                     result = job_object_helper;
-                    job_object_helper = NULL;
+                    goto all_ok;
                 }
 
-                /*Codes_SRS_JOB_OBJECT_HELPER_18_027: [ job_object_helper_create shall call CloseHandle to close the handle of the current process. ]*/
-                if (!CloseHandle(current_process))
+                if (!CloseHandle(job_object_helper->job_object))
                 {
-                    LogLastError("CloseHandle(current_process = %p) failed", current_process);
+                    LogLastError("CloseHandle(job_object_helper->job_object = %p) failed", job_object_helper->job_object);
                 }
             }
         }
-        // Free on failure
-        if (job_object_helper != NULL)
-        {
-            THANDLE_FREE(JOB_OBJECT_HELPER)(job_object_helper);
-        }
-    }
+        THANDLE_FREE(JOB_OBJECT_HELPER)(job_object_helper);
 
+    }
+all_ok:
     return result;
 }
 

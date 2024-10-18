@@ -19,10 +19,7 @@
     #include "c_pal/gballoc_hl.h"
     #include "c_pal/gballoc_hl_redirect.h"
 
-    MOCKABLE_FUNCTION(, HANDLE, mocked_CreateJobObject, LPSECURITY_ATTRIBUTES, lpJobAttributes, LPCSTR, lpName);
-    MOCKABLE_FUNCTION(, HANDLE, mocked_GetCurrentProcess)
     MOCKABLE_FUNCTION(, BOOL, mocked_AssignProcessToJobObject, HANDLE, hJob, HANDLE, hProcess);
-    MOCKABLE_FUNCTION(, BOOL, mocked_CloseHandle, HANDLE, hObject);
 
 #undef ENABLE_MOCKS
 
@@ -38,9 +35,20 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 
 #define test_percent_cpu 42
 #define test_percent_physical_memory 89
-#define test_job_object (HANDLE)0x42001
-#define test_process_handle (HANDLE)0x42002
 #define test_total_physical_memory 20480
+
+MOCK_FUNCTION_WITH_CODE(, HANDLE, mocked_CreateJobObject, LPSECURITY_ATTRIBUTES, lpJobAttributes, LPCSTR, lpName)
+MOCK_FUNCTION_END(real_gballoc_hl_malloc(1))
+
+MOCK_FUNCTION_WITH_CODE(, HANDLE, mocked_GetCurrentProcess)
+MOCK_FUNCTION_END(real_gballoc_hl_malloc(1))
+
+MOCK_FUNCTION_WITH_CODE(, BOOL, mocked_CloseHandle, HANDLE, hObject)
+{
+    real_gballoc_hl_free(hObject);
+}
+MOCK_FUNCTION_END(TRUE)
+
 
 MOCK_FUNCTION_WITH_CODE(, BOOL, mocked_GlobalMemoryStatusEx, LPMEMORYSTATUSEX, lpBuffer)
 {
@@ -79,29 +87,27 @@ static void setup_job_object_helper_create_expectations()
         .SetReturn(TRUE)
         .SetFailReturn(FALSE);
     STRICT_EXPECTED_CALL(mocked_CreateJobObject(NULL, NULL))
-        .SetReturn(test_job_object)
         .SetFailReturn(NULL);
     STRICT_EXPECTED_CALL(mocked_GetCurrentProcess())
-        .SetReturn(test_process_handle)
         .CallCannotFail();
-    STRICT_EXPECTED_CALL(mocked_AssignProcessToJobObject(test_job_object, test_process_handle))
+    STRICT_EXPECTED_CALL(mocked_AssignProcessToJobObject(IGNORED_ARG, IGNORED_ARG))
         .SetReturn(TRUE)
         .SetFailReturn(FALSE);
-    STRICT_EXPECTED_CALL(mocked_CloseHandle(test_process_handle))
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
         .SetReturn(TRUE)
         .CallCannotFail();
 }
 
 static void setup_job_object_helper_limit_memory_expectations(void)
 {
-    STRICT_EXPECTED_CALL(mocked_SetInformationJobObject(test_job_object, JobObjectExtendedLimitInformation, IGNORED_ARG, sizeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION)))
+    STRICT_EXPECTED_CALL(mocked_SetInformationJobObject(IGNORED_ARG, JobObjectExtendedLimitInformation, IGNORED_ARG, sizeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION)))
         .SetReturn(TRUE)
         .SetFailReturn(FALSE);
 }
 
 static void setup_job_object_helper_limit_cpu_expectations(void)
 {
-    STRICT_EXPECTED_CALL(mocked_SetInformationJobObject(test_job_object, JobObjectCpuRateControlInformation, IGNORED_ARG, sizeof(JOBOBJECT_CPU_RATE_CONTROL_INFORMATION)))
+    STRICT_EXPECTED_CALL(mocked_SetInformationJobObject(IGNORED_ARG, JobObjectCpuRateControlInformation, IGNORED_ARG, sizeof(JOBOBJECT_CPU_RATE_CONTROL_INFORMATION)))
         .SetReturn(TRUE)
         .SetFailReturn(FALSE);
 }
@@ -194,7 +200,7 @@ TEST_FUNCTION(job_object_helper_dispose_succeeds)
     THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_create();
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(mocked_CloseHandle(test_job_object));
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
     // act
@@ -258,6 +264,7 @@ TEST_FUNCTION(job_object_helper_limit_memory_succeeds)
 
     // assert
     ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
@@ -338,7 +345,6 @@ TEST_FUNCTION(job_object_helper_limit_cpu_succeeds)
     // arrange
     setup_job_object_helper_create_expectations();
     THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_create();
-    umock_c_reset_all_calls();
     setup_job_object_helper_limit_cpu_expectations();
 
     // act
@@ -346,6 +352,7 @@ TEST_FUNCTION(job_object_helper_limit_cpu_succeeds)
 
     // assert
     ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
