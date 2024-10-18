@@ -4,6 +4,7 @@
 #define REAL_SOCKET_TRANSPORT_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "macro_utils/macro_utils.h"
 
