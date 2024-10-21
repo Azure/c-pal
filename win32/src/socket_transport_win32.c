@@ -839,6 +839,7 @@ SOCKET_HANDLE socket_transport_get_underlying_socket(SOCKET_TRANSPORT_HANDLE soc
 bool socket_transport_is_valid_socket(SOCKET_TRANSPORT_HANDLE socket_transport_handle)
 {
     bool result;
+    // Codes_SOCKET_TRANSPORT_WIN32_09_093: [ If socket_transport_handle is NULL, socket_transport_is_valid_socket shall fail and return false. ]
     if (socket_transport_handle == NULL)
     {
         result = false;
@@ -846,13 +847,16 @@ bool socket_transport_is_valid_socket(SOCKET_TRANSPORT_HANDLE socket_transport_h
     }
     else
     {
+        // Codes_SOCKET_TRANSPORT_WIN32_09_092: [ socket_transport_is_valid_socket checks that the internal socket is valid. ]
         if (socket_transport_handle->socket == INVALID_SOCKET)
         {
+            // Codes_SOCKET_TRANSPORT_WIN32_09_094: [ If the socket inside socket_transport_handle is an INVALID_SOCKET, socket_transport_is_valid_socket shall fail and return false. ]
             result = false;
             LogError("Invalid socket in argument: SOCKET_TRANSPORT_HANDLE socket_transport_handle: %p", socket_transport_handle);
         }
         else
         {
+            // Codes_SOCKET_TRANSPORT_WIN32_09_095: [ On success, socket_transport_is_valid_socket shall return true. ]
             result = true;
         }
     }
