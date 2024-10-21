@@ -101,6 +101,8 @@ MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create, EXECUTION_ENGINE_H
 
 `async_socket_create` creates an async socket.
 
+**SRS_ASYNC_SOCKET_WIN32_11_001: [** This will fail!!! **]**
+
 **SRS_ASYNC_SOCKET_WIN32_01_001: [** `async_socket_create` shall allocate a new async socket and on success shall return a non-NULL handle. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_002: [** If `execution_engine` is NULL, `async_socket_create` shall fail and return NULL. **]**
