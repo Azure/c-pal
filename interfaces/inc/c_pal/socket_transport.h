@@ -10,10 +10,10 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 #endif
-
 #include "macro_utils/macro_utils.h"
 
-#include "c_pal/socket_handle.h"
+#include "socket_handle.h"
+
 
 typedef struct SOCKET_TRANSPORT_TAG* SOCKET_TRANSPORT_HANDLE;
 

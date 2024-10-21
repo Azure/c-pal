@@ -381,10 +381,18 @@ void socket_transport_disconnect(SOCKET_TRANSPORT_HANDLE socket_transport)
         SM_RESULT close_result = sm_close_begin(socket_transport->sm);
         if (close_result == SM_EXEC_GRANTED)
         {
-            // Codes_SOCKET_TRANSPORT_WIN32_09_030: [ socket_transport_disconnect shall call closesocket to disconnect the connected socket. ]
-            if (closesocket(socket_transport->socket) != 0)
+            // Codes_SOCKET_TRANSPORT_WIN32_09_083: [ If shutdown does not return 0 on a socket that is not a binding socket, the socket is not valid therefore socket_transport_disconnect shall not call close ]
+            if (socket_transport->type != SOCKET_BINDING && shutdown(socket_transport->socket, SD_BOTH) != 0)
             {
-                LogLastError("Failure in closesocket %" PRI_SOCKET "", socket_transport->socket);
+                LogLastError("shutdown failed on socket: %" PRI_SOCKET "", socket_transport->socket);
+            }
+            else
+            {
+                // Codes_SOCKET_TRANSPORT_WIN32_09_030: [ socket_transport_disconnect shall call closesocket to disconnect the connected socket. ]
+                if (closesocket(socket_transport->socket) != 0)
+                {
+                    LogLastError("Failure in closesocket %" PRI_SOCKET "", socket_transport->socket);
+                }
             }
             // Codes_SOCKET_TRANSPORT_WIN32_09_031: [ socket_transport_disconnect shall call sm_close_end. ]
             sm_close_end(socket_transport->sm);

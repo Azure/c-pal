@@ -686,6 +686,36 @@ TEST_FUNCTION(socket_transport_disconnect_invalid_arguments)
 
 }
 
+// Tests_SOCKET_TRANSPORT_WIN32_09_083: [ If shutdown does not return 0, the socket is not valid therefore socket_transport_disconnect shall not call close ]
+TEST_FUNCTION(socket_transport_disconnect_shutdown_fail)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
+    ASSERT_IS_NOT_NULL(socket_handle);
+    umock_c_reset_all_calls();
+
+    int dummy_socket = 100;
+    STRICT_EXPECTED_CALL(sm_open_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(socket(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(dummy_socket);
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(sm_close_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(shutdown(IGNORED_ARG, 2))
+        .SetReturn(MU_FAILURE);
+    STRICT_EXPECTED_CALL(sm_close_end(IGNORED_ARG));
+
+    //act
+    socket_transport_disconnect(socket_handle);
+
+    //assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    socket_transport_destroy(socket_handle);
+}
+
 // Tests_SOCKET_TRANSPORT_WIN32_09_030: [ socket_transport_disconnect shall call closesocket to disconnect the connected socket. ]
 TEST_FUNCTION(socket_transport_disconnect_failure_closesocket)
 {
@@ -703,6 +733,7 @@ TEST_FUNCTION(socket_transport_disconnect_failure_closesocket)
     umock_c_negative_tests_snapshot();
 
     STRICT_EXPECTED_CALL(sm_close_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(shutdown(IGNORED_ARG, SD_BOTH));
     STRICT_EXPECTED_CALL(closesocket(IGNORED_ARG))
         .SetReturn(1);
     STRICT_EXPECTED_CALL(sm_close_end(IGNORED_ARG));
@@ -717,6 +748,7 @@ TEST_FUNCTION(socket_transport_disconnect_failure_closesocket)
     socket_transport_destroy(socket_handle);
 }
 
+// Tests_SOCKET_TRANSPORT_WIN32_09_083: [ If shutdown does not return 0 on a socket that is not a binding socket, the socket is not valid therefore socket_transport_disconnect shall not call close ]
 TEST_FUNCTION(socket_transport_disconnect_binding_socket_closesocket)
 {
     //arrange
@@ -782,6 +814,7 @@ TEST_FUNCTION(socket_transport_disconnect_succeed)
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(sm_close_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(shutdown(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(closesocket(IGNORED_ARG));
     STRICT_EXPECTED_CALL(sm_close_end(IGNORED_ARG));
 
