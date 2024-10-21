@@ -22,6 +22,7 @@ if(${run_unittests})
 endif()
 
 if(${run_int_tests})
+    build_test_folder(async_socket_linux_int)
     build_test_folder(gballoc_ll_passthrough_int)
     build_test_folder(string_utils_int)
     build_test_folder(threadpool_linux_int)
