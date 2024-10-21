@@ -7,4 +7,6 @@
 
 #include "real_threadpool_renames.h" // IWYU pragma: keep
 
+#include "real_ps_util_renames.h" // IWYU pragma: keep
+
 #include "../src/threadpool_linux.c"

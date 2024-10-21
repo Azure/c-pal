@@ -11,4 +11,4 @@ set(${theseTestsName}_h_files
     ../../inc/c_pal/interlocked_macros.h
 )
 
-build_test_artifacts(${theseTestsName} "tests/c_pal_ll/int" ADDITIONAL_LIBS c_pal)
+build_test_artifacts(${theseTestsName} "tests/c_pal_ll/int" ADDITIONAL_LIBS pal_ll_interfaces c_pal)

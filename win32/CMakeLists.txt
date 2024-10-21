@@ -35,6 +35,7 @@ set(gballoc_hl_c gballoc_hl_${gballoc_hl_type_lower}.c)
 set(pal_win32_h_files
     ${pal_common_h_files}
     inc/c_pal/execution_engine_win32.h
+    inc/c_pal/job_object_helper.h
 )
 
 set(pal_win32_c_files
@@ -57,6 +58,7 @@ set(pal_win32_c_files
     src/uuid_win32.c
     src/${gballoc_ll_c}
     src/${gballoc_hl_c}
+    src/job_object_helper.c
 )
 
 FILE(GLOB pal_win32_md_files "devdoc/*.md")
@@ -69,7 +71,7 @@ include_directories(../c_pal_ll/interfaces/inc)
 
 add_library(pal_win32 ${pal_win32_h_files} ${pal_win32_c_files} ${pal_win32_md_files} ${pal_common_md_files})
 
-target_link_libraries(pal_win32 pal_interfaces ws2_32 synchronization rpcrt4 c_logging_v2)
+target_link_libraries(pal_win32 pal_interfaces c_logging_v2 umock_c ws2_32 synchronization rpcrt4 )
 if(${GBALLOC_LL_TYPE} STREQUAL "MIMALLOC")
     target_link_libraries(pal_win32 mimalloc-obj)
 endif()

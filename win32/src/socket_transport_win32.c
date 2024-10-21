@@ -23,6 +23,7 @@
 #include "c_pal/sm.h"
 #include "c_pal/sync.h"
 #include "c_pal/string_utils.h"
+#include "c_pal/timer.h"
 
 #include "c_pal/socket_transport.h"
 
@@ -30,11 +31,14 @@
     SOCKET_IO_TYPE_SEND, \
     SOCKET_IO_TYPE_RECEIVE
 
+#define MILLISECONDS_CONVERSION 1000
+
 MU_DEFINE_ENUM(SOCKET_IO_TYPE, SOCKET_IO_TYPE_VALUES)
 MU_DEFINE_ENUM_STRINGS(SOCKET_IO_TYPE, SOCKET_IO_TYPE_VALUES)
 
 MU_DEFINE_ENUM_STRINGS(SOCKET_SEND_RESULT, SOCKET_SEND_RESULT_VALUES)
 MU_DEFINE_ENUM_STRINGS(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_RESULT_VALUES)
+MU_DEFINE_ENUM_STRINGS(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_RESULT_VALUES)
 MU_DEFINE_ENUM_STRINGS(SOCKET_TYPE, SOCKET_TYPE_VALUES)
 
 typedef struct SOCKET_TRANSPORT_TAG
@@ -60,7 +64,7 @@ static int connect_to_endpoint(SOCKET client_socket, const ADDRINFO* addrInfo, u
 
             struct timeval tv;
             tv.tv_sec = 0;
-            tv.tv_usec = connection_timeout_ms * 100;
+            tv.tv_usec = connection_timeout_ms * MILLISECONDS_CONVERSION;
 
             // Codes_SOCKET_TRANSPORT_WIN32_09_021: [ On WSAEWOULDBLOCK connect_to_endpoint shall call the select API with the connection_timeout_ms and check the return value: ]
             int ret = select(0, NULL, &write_fds, NULL, &tv);
@@ -172,7 +176,7 @@ all_ok:
     return result;
 }
 
-SOCKET_TRANSPORT_HANDLE socket_transport_create_client()
+SOCKET_TRANSPORT_HANDLE socket_transport_create_client(void)
 {
     SOCKET_TRANSPORT* result;
 
@@ -204,7 +208,7 @@ all_ok:
     return result;
 }
 
-SOCKET_TRANSPORT_HANDLE socket_transport_create_server()
+SOCKET_TRANSPORT_HANDLE socket_transport_create_server(void)
 {
     SOCKET_TRANSPORT* result;
 
@@ -233,6 +237,58 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create_server()
     }
 all_ok:
     // Codes_SOCKET_TRANSPORT_WIN32_09_090: [ On success socket_transport_create_server shall return SOCKET_TRANSPORT_HANDLE. ]
+    return result;
+}
+
+SOCKET_TRANSPORT_HANDLE socket_transport_create_from_socket(SOCKET_HANDLE socket_handle)
+{
+    SOCKET_TRANSPORT* result;
+    // Codes_SOCKET_TRANSPORT_WIN32_09_096: [ If socket_handle is an INVALID_SOCKET, socket_transport_create_from_socket shall fail and return NULL. ]
+    if ((SOCKET)socket_handle == INVALID_SOCKET)
+    {
+        LogError("Invalid socket, unable to create socket_transport_handle.");
+    }
+    else
+    {
+        // Codes_SOCKET_TRANSPORT_WIN32_09_097: [ socket_transport_create_from_socket shall allocate a new SOCKET_TRANSPORT object. ]
+        result = malloc(sizeof(SOCKET_TRANSPORT));
+        if (result == NULL)
+        {
+            LogError("failure allocating SOCKET_TRANSPORT: %zu", sizeof(SOCKET_TRANSPORT));
+        }
+        else
+        {
+            // Codes_SOCKET_TRANSPORT_WIN32_09_098: [ socket_transport_create_from_socket shall call sm_create to create a sm_object with the type set to SOCKET_CLIENT. ]
+            result->sm = sm_create("Socket_transport_win32");
+            if (result->sm == NULL)
+            {
+                LogError("sm_create failed.");
+            }
+            else
+            {
+                // Codes_SOCKET_TRANSPORT_WIN32_09_014: [ If sm_open_begin does not return SM_EXEC_GRANTED, socket_transport_create_from_socket shall fail and return NULL. ]
+                SM_RESULT open_result = sm_open_begin(result->sm);
+                if (open_result == SM_EXEC_GRANTED)
+                {
+                    result->type = SOCKET_CLIENT;
+                    // Codes_SOCKET_TRANSPORT_WIN32_09_099: [ socket_transport_create_from_socket shall assign the socket_handle to the new allocated socket transport. ]
+                    result->socket = (SOCKET)socket_handle;
+                    sm_open_end(result->sm, true);
+                    // Codes_SOCKET_TRANSPORT_WIN32_09_101: [ On success socket_transport_create_from_socket shall return SOCKET_TRANSPORT_HANDLE. ]
+                    goto all_ok;
+                }
+                else
+                {
+                    LogError("sm_open_begin failed with %" PRI_MU_ENUM " in accept, closing incoming socket.", MU_ENUM_VALUE(SM_RESULT, open_result));
+                }
+                sm_destroy(result->sm);
+            }
+            free(result);
+        }
+    }
+    // Codes_SOCKET_TRANSPORT_WIN32_09_100: [ On any failure socket_transport_create_from_socket shall return NULL. ]
+    result = NULL;
+all_ok:
     return result;
 }
 
@@ -325,18 +381,10 @@ void socket_transport_disconnect(SOCKET_TRANSPORT_HANDLE socket_transport)
         SM_RESULT close_result = sm_close_begin(socket_transport->sm);
         if (close_result == SM_EXEC_GRANTED)
         {
-            // Codes_SOCKET_TRANSPORT_WIN32_09_083: [ If shutdown does not return 0 on a socket that is not a binding socket, the socket is not valid therefore socket_transport_disconnect shall not call close ]
-            if (socket_transport->type != SOCKET_BINDING && shutdown(socket_transport->socket, SD_BOTH) != 0)
+            // Codes_SOCKET_TRANSPORT_WIN32_09_030: [ socket_transport_disconnect shall call closesocket to disconnect the connected socket. ]
+            if (closesocket(socket_transport->socket) != 0)
             {
-                LogLastError("shutdown failed on socket: %" PRI_SOCKET "", socket_transport->socket);
-            }
-            else
-            {
-                // Codes_SOCKET_TRANSPORT_WIN32_09_030: [ socket_transport_disconnect shall call closesocket to disconnect the connected socket. ]
-                if (closesocket(socket_transport->socket) != 0)
-                {
-                    LogLastError("Failure in closesocket %" PRI_SOCKET "", socket_transport->socket);
-                }
+                LogLastError("Failure in closesocket %" PRI_SOCKET "", socket_transport->socket);
             }
             // Codes_SOCKET_TRANSPORT_WIN32_09_031: [ socket_transport_disconnect shall call sm_close_end. ]
             sm_close_end(socket_transport->sm);
@@ -587,55 +635,65 @@ all_ok:
     return result;
 }
 
-SOCKET_TRANSPORT_HANDLE socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_transport)
+SOCKET_ACCEPT_RESULT socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_transport, SOCKET_TRANSPORT_HANDLE* accepted_socket, uint32_t connection_timeout_ms)
 {
-    SOCKET_TRANSPORT* result;
+    SOCKET_TRANSPORT* accept_result;
+    SOCKET_ACCEPT_RESULT result;
 
-    // Codes_SOCKET_TRANSPORT_WIN32_09_067: [ If socket_transport is NULL, socket_transport_accept shall fail and return a non-zero value. ]
+    // Codes_SOCKET_TRANSPORT_WIN32_09_067: [ If socket_transport is NULL, socket_transport_accept shall fail and return SOCKET_ACCEPT_ERROR. ]
     if (socket_transport == NULL)
     {
         LogError("Invalid arguments: SOCKET_TRANSPORT_HANDLE socket_transport: %p",
             socket_transport);
-        result = NULL;
+        result = SOCKET_ACCEPT_ERROR;
     }
     else
     {
-        // Codes_SOCKET_TRANSPORT_WIN32_09_068: [ If the transport type is not SOCKET_BINDING, socket_transport_accept shall fail and return a non-zero value. ]
+        // Codes_SOCKET_TRANSPORT_WIN32_09_068: [ If the transport type is not SOCKET_BINDING, socket_transport_accept shall fail and return SOCKET_ACCEPT_ERROR. ]
         if (socket_transport->type != SOCKET_BINDING)
         {
             LogError("Invalid socket type for this API expected: SOCKET_BINDING, actual: %" PRI_MU_ENUM, MU_ENUM_VALUE(SOCKET_TYPE, socket_transport->type));
-            result = NULL;
+            result = SOCKET_ACCEPT_ERROR;
         }
         else
         {
             // Codes_SOCKET_TRANSPORT_WIN32_09_069: [ socket_transport_accept shall call sm_exec_begin. ]
             SM_RESULT sm_result = sm_exec_begin(socket_transport->sm);
 
-            // Codes_SOCKET_TRANSPORT_WIN32_09_070: [ If sm_exec_begin does not return SM_EXEC_GRANTED, socket_transport_accept shall fail and return SOCKET_SEND_ERROR. ]
+            // Codes_SOCKET_TRANSPORT_WIN32_09_070: [ If sm_exec_begin does not return SM_EXEC_GRANTED, socket_transport_accept shall fail and return SOCKET_ACCEPT_ERROR. ]
             if (sm_result != SM_EXEC_GRANTED)
             {
                 LogError("sm_exec_begin failed : %" PRI_MU_ENUM, MU_ENUM_VALUE(SM_RESULT, sm_result));
-                result = NULL;
+                result = SOCKET_ACCEPT_ERROR;
             }
             else
             {
                 fd_set read_fds;
                 int select_result;
                 struct timeval timeout;
-                bool is_error = false;
 
                 read_fds.fd_array[0] = socket_transport->socket;
                 read_fds.fd_count = 1;
-                timeout.tv_usec = 1000 * 100;
+                timeout.tv_usec = connection_timeout_ms * MILLISECONDS_CONVERSION;
                 timeout.tv_sec = 0;
 
-                // Codes_SOCKET_TRANSPORT_WIN32_09_071: [ socket_transport_accept shall call select determine if the socket is ready to be read passing a timeout of 10 milliseconds. ]
+                // Codes_SOCKET_TRANSPORT_WIN32_09_071: [ socket_transport_accept shall call select to determine if the socket is ready to be read passing connection_timeout_ms. ]
                 select_result = select(0, &read_fds, NULL, NULL, &timeout);
                 if (select_result == SOCKET_ERROR)
                 {
-                    LogLastError("Error waiting for socket connections %", select_result);
-                    is_error = true;
-                    result = NULL;
+                    // Codes_SOCKET_TRANSPORT_WIN32_11_001: [ If select returns SOCKET_ERROR and WSAGetLastError return WSAEINPROGRESS, socket_transport_accept shall return SOCKET_ACCEPT_INPROGRESS. ]
+                    DWORD last_error = WSAGetLastError();
+                    if (last_error == WSAEINPROGRESS)
+                    {
+                        LogLastError("socket is in progress");
+                        result = SOCKET_ACCEPT_INPROGRESS;
+                    }
+                    else
+                    {
+                        // Codes_SOCKET_TRANSPORT_WIN32_11_002: [ If select returns SOCKET_ERROR and WSAGetLastError does not return WSAEINPROGRESS, socket_transport_accept shall return SOCKET_ACCEPT_ERROR. ]
+                        LogLastError("Error waiting for socket connections %", select_result);
+                        result = SOCKET_ACCEPT_ERROR;
+                    }
                 }
                 else if (select_result > 0)
                 {
@@ -643,17 +701,28 @@ SOCKET_TRANSPORT_HANDLE socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_t
                     socklen_t client_len = sizeof(cli_addr);
 
                     // Codes_SOCKET_TRANSPORT_WIN32_09_072: [ socket_transport_accept shall call accept to accept the incoming socket connection. ]
-                    SOCKET accepted_socket = accept(socket_transport->socket, (struct sockaddr*)&cli_addr, &client_len);
+                    SOCKET accepting_socket = accept(socket_transport->socket, (struct sockaddr*)&cli_addr, &client_len);
 
-                    // Codes_SOCKET_TRANSPORT_WIN32_09_073: [ If accept returns an INVALID_SOCKET, socket_transport_accept shall fail and return Null. ]
-                    if (accepted_socket == INVALID_SOCKET)
+                    if (accepting_socket == INVALID_SOCKET)
                     {
-                        if (WSAGetLastError() != WSAEWOULDBLOCK)
+                        DWORD last_error = WSAGetLastError();
+                        // Codes_SOCKET_TRANSPORT_WIN32_11_003: [ If accept returns an INVALID_SOCKET and WSAGetLastError returns WSAENOBUFS, socket_transport_accept shall fail and return SOCKET_ACCEPT_PORT_EXHAUSTION. ]
+                        if (last_error == WSAENOBUFS)
                         {
-                            LogLastError("Error in accepting socket %" PRI_SOCKET "", accepted_socket);
-                            is_error = true;
+                            LogError("The server socket is experiencing port exhaustion");
+                            result = SOCKET_ACCEPT_PORT_EXHAUSTION;
                         }
-                        result = NULL;
+                        // Codes_SOCKET_TRANSPORT_WIN32_11_004: [ If accept returns an INVALID_SOCKET and WSAGetLastError returns WSAEWOULDBLOCK, socket_transport_accept shall fail and return SOCKET_ACCEPT_NO_CONNECTION. ]
+                        else if (last_error == WSAEWOULDBLOCK)
+                        {
+                            result = SOCKET_ACCEPT_NO_CONNECTION;
+                        }
+                        // Codes_SOCKET_TRANSPORT_WIN32_09_073: [ If accept returns an INVALID_SOCKET and WSAGetLastError does not return WSAEWOULDBLOCK, socket_transport_accept shall fail and return SOCKET_ACCEPT_ERROR. ]
+                        else
+                        {
+                            LogLastError("Error in accepting socket");
+                            result = SOCKET_ACCEPT_ERROR;
+                        }
                     }
                     else
                     {
@@ -662,51 +731,58 @@ SOCKET_TRANSPORT_HANDLE socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_t
                         (void)inet_ntop(AF_INET, (const void*)&cli_addr.sin_addr, hostname_addr, sizeof(hostname_addr));
 
                         // Create the socket handle
-                        // Codes_SOCKET_TRANSPORT_WIN32_09_084: [ If malloc fails, socket_transport_accept shall fail and return NULL. ]
-                        result = malloc(sizeof(SOCKET_TRANSPORT));
-                        if (result == NULL)
+                        // Codes_SOCKET_TRANSPORT_WIN32_09_084: [ If malloc fails, socket_transport_accept shall fail and return SOCKET_ACCEPT_ERROR. ]
+                        accept_result = malloc(sizeof(SOCKET_TRANSPORT));
+                        if (accept_result == NULL)
                         {
                             LogError("failure allocating SOCKET_TRANSPORT: %zu", sizeof(SOCKET_TRANSPORT));
+                            result = SOCKET_ACCEPT_ERROR;
                         }
                         else
                         {
-                            // Codes_SOCKET_TRANSPORT_WIN32_09_085: [ If sm_create fails, socket_transport_accept shall close the incoming socket, fail, and return NULL. ]
-                            result->sm = sm_create("Socket_transport_win32");
-                            if (result->sm == NULL)
+                            // Codes_SOCKET_TRANSPORT_WIN32_09_085: [ If sm_create fails, socket_transport_accept shall close the incoming socket, fail, and return SOCKET_ACCEPT_ERROR. ]
+                            accept_result->sm = sm_create("Socket_transport_win32");
+                            if (accept_result->sm == NULL)
                             {
                                 LogError("Failed calling sm_create in accept, closing incoming socket.");
-                                closesocket(accepted_socket);
-                                free(result);
-                                result = NULL;
+                                closesocket(accepting_socket);
+                                free(accept_result);
+                                result = SOCKET_ACCEPT_ERROR;
                             }
                             else
                             {
-                                // Codes_SOCKET_TRANSPORT_WIN32_09_086: [ If sm_open_begin fails, socket_transport_accept shall close the incoming socket, fail, and return NULL ]
-                                SM_RESULT open_result = sm_open_begin(result->sm);
+                                // Codes_SOCKET_TRANSPORT_WIN32_09_086: [ If sm_open_begin fails, socket_transport_accept shall close the incoming socket, fail, and return SOCKET_ACCEPT_ERROR ]
+                                SM_RESULT open_result = sm_open_begin(accept_result->sm);
                                 if (open_result == SM_EXEC_GRANTED)
                                 {
-                                    result->type = SOCKET_CLIENT;
-                                    result->socket = accepted_socket;
-                                    sm_open_end(result->sm, true);
+                                    accept_result->type = SOCKET_CLIENT;
+                                    accept_result->socket = accepting_socket;
+                                    sm_open_end(accept_result->sm, true);
+                                    *accepted_socket = accept_result;
+                                    result = SOCKET_ACCEPT_OK;
                                 }
                                 else
                                 {
                                     LogError("sm_open_begin failed with %" PRI_MU_ENUM " in accept, closing incoming socket.", MU_ENUM_VALUE(SM_RESULT, open_result));
-                                    closesocket(accepted_socket);
-                                    sm_destroy(result->sm);
-                                    free(result);
-                                    result = NULL;
+                                    closesocket(accepting_socket);
+                                    sm_destroy(accept_result->sm);
+                                    free(accept_result);
+                                    result = SOCKET_ACCEPT_ERROR;
                                 }
                             }
                         }
                     }
                 }
+                // Codes_SOCKET_TRANSPORT_WIN32_09_091: [ If select returns zero, socket_transport_accept shall set accepted_socket to NULL and return SOCKET_ACCEPT_NO_CONNECTION. ]
+                else if (select_result == 0)
+                {
+                    result = SOCKET_ACCEPT_NO_CONNECTION;
+                }
                 else
                 {
-                    // Codes_SOCKET_TRANSPORT_WIN32_09_076: [ If any failure is encountered, socket_transport_accept shall fail and return NULL. ]
+                    // Codes_SOCKET_TRANSPORT_WIN32_09_076: [ If any failure is encountered, socket_transport_accept shall fail and return SOCKET_ACCEPT_ERROR. ]
                     LogLastError("Failure accepting socket connection");
-                    is_error = true;
-                    result = NULL;
+                    result = SOCKET_ACCEPT_ERROR;
                 }
                 // Codes_SOCKET_TRANSPORT_WIN32_09_077: [ socket_transport_accept shall call sm_exec_end. ]
                 sm_exec_end(socket_transport->sm);
@@ -747,6 +823,29 @@ SOCKET_HANDLE socket_transport_get_underlying_socket(SOCKET_TRANSPORT_HANDLE soc
 
             // Codes_SOCKET_TRANSPORT_WIN32_09_082: [ socket_transport_get_underlying_socket shall call sm_exec_end. ]
             sm_exec_end(socket_transport->sm);
+        }
+    }
+    return result;
+}
+
+bool socket_transport_is_valid_socket(SOCKET_TRANSPORT_HANDLE socket_transport_handle)
+{
+    bool result;
+    if (socket_transport_handle == NULL)
+    {
+        result = false;
+        LogError("Invalid argument: SOCKET_TRANSPORT_HANDLE socket_transport_handle: %p", socket_transport_handle);
+    }
+    else
+    {
+        if (socket_transport_handle->socket == INVALID_SOCKET)
+        {
+            result = false;
+            LogError("Invalid socket in argument: SOCKET_TRANSPORT_HANDLE socket_transport_handle: %p", socket_transport_handle);
+        }
+        else
+        {
+            result = true;
         }
     }
     return result;

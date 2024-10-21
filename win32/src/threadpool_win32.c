@@ -11,6 +11,7 @@
 #include "c_pal/execution_engine_win32.h"
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h"
+#include "c_pal/log_critical_and_terminate.h"
 #include "c_pal/thandle.h"
 #include "c_pal/threadpool.h"
 
@@ -28,6 +29,13 @@ typedef struct WORK_ITEM_CONTEXT_TAG
     THREADPOOL_WORK_FUNCTION work_function;
     void* work_function_context;
 } WORK_ITEM_CONTEXT;
+
+typedef struct THREADPOOL_WORK_ITEM_TAG
+{
+    THREADPOOL_WORK_FUNCTION work_function;
+    void* work_function_context;
+    PTP_WORK ptp_work;
+} THREADPOOL_WORK_ITEM, *THREADPOOL_WORK_ITEM_HANDLE;
 
 typedef struct TIMER_INSTANCE_TAG
 {
@@ -78,6 +86,23 @@ static VOID CALLBACK on_work_callback(PTP_CALLBACK_INSTANCE instance, PVOID cont
     }
 }
 
+static VOID CALLBACK on_work_callback_v2(PTP_CALLBACK_INSTANCE instance, PVOID context, PTP_WORK work)
+{
+    if (context == NULL)
+    {
+        /* Codes_SRS_THREADPOOL_WIN32_05_001: [ If context is NULL, on_work_callback_v2 shall Log Message with severity CRITICAL and terminate. ]*/
+        LogCriticalAndTerminate("Invalid arguments: PTP_CALLBACK_INSTANCE instance=%p, PVOID context=%p, PTP_WORK work=%p",
+            instance, context, work);
+    }
+    else
+    {
+        /* Codes_SRS_THREADPOOL_WIN32_05_002: [ Otherwise context shall be used as the context created in threadpool_create_work_item. ]*/
+        THREADPOOL_WORK_ITEM_HANDLE work_item_context = (THREADPOOL_WORK_ITEM_HANDLE)context;
+        /* Codes_SRS_THREADPOOL_WIN32_05_003: [ The work_function callback passed to threadpool_create_work_item shall be called with the work_function_context as an argument. work_function_context was set inside the threadpool_create_work_item as an argument to CreateThreadpoolContext. ]*/
+        work_item_context->work_function(work_item_context->work_function_context);
+    }
+}
+
 static void internal_close(THREADPOOL* threadpool)
 {
     do
@@ -113,7 +138,7 @@ static void threadpool_dispose(THREADPOOL* threadpool)
         int32_t current_state = InterlockedCompareExchange(&threadpool->state, THREADPOOL_WIN32_STATE_CLOSING, THREADPOOL_WIN32_STATE_OPEN);
         if (current_state == THREADPOOL_WIN32_STATE_OPEN)
         {
-            /* Codes_SRS_THREADPOOL_WIN32_01_007: [ threadpool_destroy shall perform an implicit close if threadpool is OPEN. ]*/
+            /* Codes_SRS_THREADPOOL_WIN32_01_007: [ threadpool_dispose shall perform an implicit close if threadpool is OPEN. ]*/
             internal_close(threadpool);
             break;
         }
@@ -265,6 +290,135 @@ void threadpool_close(THANDLE(THREADPOOL) threadpool)
     }
 }
 
+THREADPOOL_WORK_ITEM_HANDLE threadpool_create_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, PVOID work_function_context)
+{
+    THREADPOOL_WORK_ITEM_HANDLE work_item_context = NULL;
+
+    /* Codes_SRS_THREADPOOL_WIN32_01_022: [ work_function_context shall be allowed to be NULL. ]*/
+
+    if (
+        /* Codes_SRS_THREADPOOL_WIN32_05_004: [ If threadpool is NULL, threadpool_create_work_item shall fail and return a NULL value. ]*/
+        (threadpool == NULL) ||
+        /* Codes_SRS_THREADPOOL_WIN32_05_005: [ If work_function is NULL, threadpool_create_work_item shall fail and return a NULL value. ]*/
+        (work_function == NULL)
+        )
+    {
+        LogError("Invalid arguments: THANDLE(THREADPOOL) threadpool=%p, THREADPOOL_WORK_FUNCTION work_function=%p, void* work_function_context=%p",
+            threadpool, work_function, work_function_context);
+    }
+    else
+    {
+        THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
+
+        (void)InterlockedIncrement(&threadpool_ptr->pending_api_calls);
+
+        THREADPOOL_WIN32_STATE state = InterlockedAdd(&threadpool_ptr->state, 0);
+        if (state != THREADPOOL_WIN32_STATE_OPEN)
+        {
+            LogWarning("Bad state: %" PRI_MU_ENUM, MU_ENUM_VALUE(THREADPOOL_WIN32_STATE, state));
+        }
+        else
+        {
+            /* Codes_SRS_THREADPOOL_WIN32_05_006: [ Otherwise threadpool_create_work_item shall allocate a context work_item_context of type THREADPOOL_WORK_ITEM_HANDLE where work_function, work_function_context, and ptp_work shall be saved. ]*/
+            work_item_context = malloc(sizeof(THREADPOOL_WORK_ITEM));
+            if (work_item_context == NULL)
+            {
+                /* Codes_SRS_THREADPOOL_WIN32_05_007: [ If any error occurs, threadpool_create_work_item shall fail and return a NULL value. ]*/
+                LogError("malloc failed");
+            }
+            else
+            {
+                work_item_context->work_function = work_function;
+                work_item_context->work_function_context = work_function_context;
+
+                /* Codes_SRS_THREADPOOL_WIN32_05_008: [ threadpool_create_work_item shall create work_item_context member variable ptp_work of type PTP_WORK by calling CreateThreadpoolWork to set the callback function as on_work_callback_v2. ]*/
+                work_item_context->ptp_work = CreateThreadpoolWork(on_work_callback_v2, work_item_context, &threadpool_ptr->tp_environment);
+                /* Codes_SRS_THREADPOOL_WIN32_05_009: [ If there are no errors then this work_item_context of type THREADPOOL_WORK_ITEM_HANDLE would be returned indicating a succcess to the caller. ]*/
+                if (work_item_context->ptp_work == NULL)
+                {
+                    /* Codes_SRS_THREADPOOL_WIN32_05_010: [ If any error occurs, threadpool_create_work_item shall fail, free the newly created context and return a NULL value. ]*/
+                    LogError("CreateThreadpoolWork failed");
+                    free(work_item_context);
+                    work_item_context = NULL;
+                }
+            }
+        }
+        (void)InterlockedDecrement(&threadpool_ptr->pending_api_calls);
+        WakeByAddressSingle((PVOID)&threadpool_ptr->pending_api_calls);
+    }
+    return work_item_context;
+}
+
+int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_ITEM_HANDLE work_item_context)
+{
+    int result = MU_FAILURE;
+
+    if (
+        /* Codes_SRS_THREADPOOL_WIN32_05_011: [ If threadpool is NULL, threadpool_schedule_work_item shall fail and return a non-zero value. ]*/
+        (threadpool == NULL) ||
+        /* Codes_SRS_THREADPOOL_WIN32_05_012: [ If work_item_context is NULL, threadpool_schedule_work_item shall fail and return a non-zero value. ]*/
+        (work_item_context == NULL)
+        )
+    {
+        LogError("Invalid arguments: THANDLE(THREADPOOL) threadpool=%p", threadpool);
+    }
+    else
+    {
+        THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
+
+        (void)InterlockedIncrement(&threadpool_ptr->pending_api_calls);
+
+        THREADPOOL_WIN32_STATE state = InterlockedAdd(&threadpool_ptr->state, 0);
+        if (state != THREADPOOL_WIN32_STATE_OPEN)
+        {
+            LogWarning("Bad state: %" PRI_MU_ENUM, MU_ENUM_VALUE(THREADPOOL_WIN32_STATE, state));
+        }
+        else
+        {
+            /* Codes_SRS_THREADPOOL_WIN32_05_013: [ threadpool_schedule_work_item shall call SubmitThreadpoolWork to submit the work item for execution. ]*/
+            SubmitThreadpoolWork(work_item_context->ptp_work);
+            result = 0;
+        }
+        (void)InterlockedDecrement(&threadpool_ptr->pending_api_calls);
+        WakeByAddressSingle((PVOID)&threadpool_ptr->pending_api_calls);
+    }
+    return result;
+}
+
+void threadpool_destroy_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_ITEM_HANDLE work_item_context)
+{
+    if (
+        /* Codes_SRS_THREADPOOL_WIN32_05_014: [ If threadpool is NULL, threadpool_destroy_work_item shall fail and return a non-zero value. ]*/
+        (threadpool == NULL) ||
+        /* Codes_SRS_THREADPOOL_WIN32_05_015: [ If work_item_context is NULL, threadpool_destroy_work_item shall fail and not do anything before returning. ]*/
+        (work_item_context == NULL)
+        )
+    {
+        LogError("Invalid arguments: Work Item Context is NULL.");
+    }
+    else
+    {
+        THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
+
+        (void)InterlockedIncrement(&threadpool_ptr->pending_api_calls);
+
+        THREADPOOL_WIN32_STATE state = InterlockedAdd(&threadpool_ptr->state, 0);
+        if (state != THREADPOOL_WIN32_STATE_OPEN)
+        {
+            LogWarning("Bad state: %" PRI_MU_ENUM, MU_ENUM_VALUE(THREADPOOL_WIN32_STATE, state));
+        }
+        else
+        {
+            /* Codes_SRS_THREADPOOL_WIN32_05_016: [ threadpool_destroy_work_item shall call CloseThreadpoolWork to close ptp_work. ]*/
+            CloseThreadpoolWork(work_item_context->ptp_work);
+        }
+        (void)InterlockedDecrement(&threadpool_ptr->pending_api_calls);
+        WakeByAddressSingle((PVOID)&threadpool_ptr->pending_api_calls);
+        /* Codes_SRS_THREADPOOL_WIN32_05_017: [ threadpool_destroy_work_item shall free the work_item_context. ]*/
+        free(work_item_context);
+    }
+}
+
 int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context)
 {
     int result;
@@ -289,7 +443,7 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
         (void)InterlockedIncrement(&threadpool_ptr->pending_api_calls);
 
         THREADPOOL_WIN32_STATE state = InterlockedAdd(&threadpool_ptr->state, 0);
-        if (state != (LONG)THREADPOOL_WIN32_STATE_OPEN)
+        if (state != THREADPOOL_WIN32_STATE_OPEN)
         {
             LogWarning("Bad state: %" PRI_MU_ENUM, MU_ENUM_VALUE(THREADPOOL_WIN32_STATE, state));
             result = MU_FAILURE;
@@ -401,7 +555,7 @@ int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_
         (void)InterlockedIncrement(&threadpool_ptr->pending_api_calls);
 
         THREADPOOL_WIN32_STATE state = InterlockedAdd(&threadpool_ptr->state, 0);
-        if (state != (LONG)THREADPOOL_WIN32_STATE_OPEN)
+        if (state != THREADPOOL_WIN32_STATE_OPEN)
         {
             LogWarning("Bad state: %" PRI_MU_ENUM, MU_ENUM_VALUE(THREADPOOL_WIN32_STATE, state));
             result = MU_FAILURE;

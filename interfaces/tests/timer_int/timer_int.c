@@ -253,6 +253,26 @@ TEST_FUNCTION(timer_get_elapsed_ms_with_start_succeeds)
 
 /* timer_global_get_elapsed_ms */
 
+/* Tests_SRS_TIMER_27_001: [ timer_global_get_elapsed_s shall return the elapsed time in seconds from a start time in the past. ]*/
+TEST_FUNCTION(timer_global_get_elapsed_s_measures_a_seconds)
+{
+    ///arrange
+
+    // sleep 1s
+    double start = timer_global_get_elapsed_s();
+    ThreadAPI_Sleep(1000);
+
+    ///act
+    double end = timer_global_get_elapsed_s();
+
+    ///assert
+    /// giving it a wide tolerance
+    ASSERT_IS_TRUE((end - start) > 0.5);
+    ASSERT_IS_TRUE((end - start) < 1.5);
+}
+
+/* timer_global_get_elapsed_ms */
+
 /* Tests_SRS_TIMER_01_010: [ timer_global_get_elapsed_ms shall return the elapsed time in milliseconds from a start time in the past. ]*/
 TEST_FUNCTION(timer_global_get_elapsed_ms_measures_a_seconds)
 {

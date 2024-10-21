@@ -140,7 +140,7 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create_client(void)
     else
     {
         // Codes_SOCKET_TRANSPORT_LINUX_11_003: [ socket_transport_create_client shall call sm_create to create a sm object with the type set to SOCKET_CLIENT. ]
-        result->sm = sm_create("Socket_transport_win32");
+        result->sm = sm_create("Socket_transport_linux");
         if (result->sm == NULL)
         {
             LogError("sm_create failed.");
@@ -172,7 +172,7 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create_server(void)
     else
     {
         // Codes_SOCKET_TRANSPORT_LINUX_11_080: [ socket_transport_create_server shall call sm_create to create a sm object with the type set to SOCKET_BINDING. ]
-        result->sm = sm_create("Socket_transport_win32");
+        result->sm = sm_create("Socket_transport_linux");
         if (result->sm == NULL)
         {
             LogError("sm_create failed.");
@@ -188,6 +188,59 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create_server(void)
     }
 all_ok:
     // Codes_SOCKET_TRANSPORT_WIN32_11_082: [ On success socket_transport_create shall return SOCKET_TRANSPORT_HANDLE. ]
+    return result;
+}
+
+SOCKET_TRANSPORT_HANDLE socket_transport_create_from_socket(SOCKET_HANDLE socket_handle)
+{
+    SOCKET_TRANSPORT* result;
+
+    // Codes_SOCKET_TRANSPORT_LINUX_11_086: [ If socket_handle is an INVALID_SOCKET, socket_transport_create_from_socket shall fail and return NULL. ]
+    if (socket_handle == INVALID_SOCKET)
+    {
+        LogError("Invalid socket, unable to create socket_transport_handle.");
+    }
+    else
+    {
+        // Codes_SOCKET_TRANSPORT_LINUX_11_087: [ socket_transport_create_from_socket shall allocate a new SOCKET_TRANSPORT object. ]
+        result = malloc(sizeof(SOCKET_TRANSPORT));
+        if (result == NULL)
+        {
+            LogError("failure allocating SOCKET_TRANSPORT: %zu", sizeof(SOCKET_TRANSPORT));
+        }
+        else
+        {
+            // Codes_SOCKET_TRANSPORT_LINUX_11_088: [ socket_transport_create_from_socket shall call sm_create to create a sm_object with the type set to SOCKET_CLIENT. ]
+            result->sm = sm_create("Socket_transport_win32");
+            if (result->sm == NULL)
+            {
+                LogError("sm_create failed.");
+            }
+            else
+            {
+                // Codes_SOCKET_TRANSPORT_WIN32_11_014: [ If sm_open_begin does not return SM_EXEC_GRANTED, socket_transport_create_from_socket shall fail and return NULL. ]
+                SM_RESULT open_result = sm_open_begin(result->sm);
+                if (open_result == SM_EXEC_GRANTED)
+                {
+                    result->type = SOCKET_CLIENT;
+                    // Codes_SOCKET_TRANSPORT_LINUX_11_096: [ socket_transport_create_from_socket shall assign the socket_handle to the new allocated socket transport. ]
+                    result->socket = socket_handle;
+                    sm_open_end(result->sm, true);
+                    // Codes_SOCKET_TRANSPORT_LINUX_11_091: [ On success socket_transport_create_from_socket shall return SOCKET_TRANSPORT_HANDLE. ]
+                    goto all_ok;
+                }
+                else
+                {
+                    LogError("sm_open_begin failed with %" PRI_MU_ENUM " in accept, closing incoming socket.", MU_ENUM_VALUE(SM_RESULT, open_result));
+                }
+                sm_destroy(result->sm);
+            }
+            free(result);
+        }
+    }
+    // Codes_SOCKET_TRANSPORT_LINUX_11_090: [ On any failure socket_transport_create_from_socket shall return NULL. ]
+    result = NULL;
+all_ok:
     return result;
 }
 
@@ -245,7 +298,7 @@ int socket_transport_connect(SOCKET_TRANSPORT_HANDLE socket_transport, const cha
                 if (socket_transport->socket == INVALID_SOCKET)
                 {
                     // Codes_SOCKET_TRANSPORT_LINUX_11_019: [ If any failure is encountered, socket_transport_connect shall call sm_open_end with false, fail and return a non-zero value. ]
-                    LogError("Failure conneting to client hostname: %s:%" PRIu16 "", hostname, port);
+                    LogError("Failure connecting to client hostname: %s:%" PRIu16 "", hostname, port);
                     result = MU_FAILURE;
                     sm_open_end(socket_transport->sm, false);
                 }
@@ -581,22 +634,24 @@ all_ok:
     return result;
 }
 
-SOCKET_TRANSPORT_HANDLE socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_transport)
+SOCKET_ACCEPT_RESULT socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_transport, SOCKET_TRANSPORT_HANDLE* accepting_socket, uint32_t connection_timeout_ms)
 {
-    SOCKET_TRANSPORT* result;
-    // Codes_SOCKET_TRANSPORT_LINUX_11_069: [ If socket_transport is NULL, socket_transport_accept shall fail and return NULL. ]
+    SOCKET_TRANSPORT* accept_result;
+    SOCKET_ACCEPT_RESULT result;
+    (void)connection_timeout_ms;
+    // Codes_SOCKET_TRANSPORT_LINUX_11_069: [ If socket_transport is NULL, socket_transport_accept shall fail and return SOCKET_ACCEPT_ERROR. ]
     if (socket_transport == NULL)
     {
         LogError("Invalid arguments: SOCKET_TRANSPORT_HANDLE socket_transport: %p", socket_transport);
-        result = NULL;
+        result = SOCKET_ACCEPT_ERROR;
     }
     else
     {
-        // Codes_SOCKET_TRANSPORT_LINUX_11_070: [ If the transport type is not SOCKET_BINDING, socket_transport_accept shall fail and return NULL. ]
+        // Codes_SOCKET_TRANSPORT_LINUX_11_070: [ If the transport type is not SOCKET_BINDING, socket_transport_accept shall fail and return SOCKET_ACCEPT_ERROR. ]
         if (socket_transport->type != SOCKET_BINDING)
         {
             LogError("Invalid socket type for this API expected: SOCKET_BINDING, actual: %" PRI_MU_ENUM, MU_ENUM_VALUE(SOCKET_TYPE, socket_transport->type));
-            result = NULL;
+            result = SOCKET_ACCEPT_ERROR;
         }
         else
         {
@@ -604,9 +659,9 @@ SOCKET_TRANSPORT_HANDLE socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_t
             SM_RESULT sm_result = sm_exec_begin(socket_transport->sm);
             if (sm_result != SM_EXEC_GRANTED)
             {
-                // Codes_SOCKET_TRANSPORT_LINUX_11_072: [ If sm_exec_begin does not return SM_EXEC_GRANTED, socket_transport_accept shall fail and return NULL. ]
+                // Codes_SOCKET_TRANSPORT_LINUX_11_072: [ If sm_exec_begin does not return SM_EXEC_GRANTED, socket_transport_accept shall fail and return SOCKET_ACCEPT_ERROR. ]
                 LogError("sm_exec_begin failed : %" PRI_MU_ENUM, MU_ENUM_VALUE(SM_RESULT, sm_result));
-                result = NULL;
+                result = SOCKET_ACCEPT_ERROR;
             }
             else
             {
@@ -618,8 +673,19 @@ SOCKET_TRANSPORT_HANDLE socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_t
                 accepted_socket = accept(socket_transport->socket, (struct sockaddr*)&cli_addr, &client_len);
                 if (accepted_socket == INVALID_SOCKET)
                 {
-                    LogErrorNo("Failure accepting socket");
-                    result = NULL;
+                    // Codes_SOCKET_TRANSPORT_LINUX_11_084: [ If errno is EAGAIN or EWOULDBLOCK, socket_transport_accept shall return SOCKET_ACCEPT_NO_CONNECTION. ]
+                    if(errno == EAGAIN || errno == EWOULDBLOCK)
+                    {
+                        LogErrorNo("The socket is nonblocking and no connections are present to be accepted.");
+                        result = SOCKET_ACCEPT_NO_CONNECTION;
+                        sm_exec_end(socket_transport->sm);
+                        goto all_ok;
+                    }
+                    else
+                    {
+                        LogErrorNo("Failure accepting socket.");
+                        result = SOCKET_ACCEPT_ERROR;
+                    }
                 }
                 else
                 {
@@ -627,7 +693,7 @@ SOCKET_TRANSPORT_HANDLE socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_t
                     if (set_nonblocking(accepted_socket) != 0)
                     {
                         LogError("Failure: setting socket to nonblocking.");
-                        result = NULL;
+                        result = SOCKET_ACCEPT_ERROR;
                     }
                     else
                     {
@@ -637,39 +703,41 @@ SOCKET_TRANSPORT_HANDLE socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_t
 
                         // Create the socket handle
                         // Codes_SOCKET_TRANSPORT_LINUX_11_075: [ socket_transport_accept shall allocate a SOCKET_TRANSPORT for the incoming connection and call sm_create and sm_open on the connection. ]
-                        result = malloc(sizeof(SOCKET_TRANSPORT));
-                        if (result == NULL)
+                        accept_result = malloc(sizeof(SOCKET_TRANSPORT));
+                        if (accept_result == NULL)
                         {
                             LogError("failure allocating SOCKET_TRANSPORT: %zu", sizeof(SOCKET_TRANSPORT));
                         }
                         else
                         {
-                            result->sm = sm_create("Socket_transport_win32");
-                            if (result->sm == NULL)
+                            accept_result->sm = sm_create("Socket_transport_linux");
+                            if (accept_result->sm == NULL)
                             {
                                 LogError("Failed calling sm_create in accept, closing incoming socket.");
                             }
                             else
                             {
-                                SM_RESULT open_result = sm_open_begin(result->sm);
+                                SM_RESULT open_result = sm_open_begin(accept_result->sm);
                                 if (open_result == SM_EXEC_GRANTED)
                                 {
-                                    // Codes_SOCKET_TRANSPORT_LINUX_11_076: [ If successful socket_transport_accept shall return the allocated SOCKET_TRANSPORT of type SOCKET_DATA. ]
-                                    result->type = SOCKET_CLIENT;
-                                    result->socket = accepted_socket;
-                                    sm_open_end(result->sm, true);
+                                    // Codes_SOCKET_TRANSPORT_LINUX_11_076: [ If successful socket_transport_accept shall assign accepted_socket to be the allocated incoming SOCKET_TRANSPORT and return SOCKET_ACCEPT_OK. ]
+                                    accept_result->type = SOCKET_CLIENT;
+                                    accept_result->socket = accepted_socket;
+                                    sm_open_end(accept_result->sm, true);
                                     sm_exec_end(socket_transport->sm);
+                                    result = SOCKET_ACCEPT_OK;
+                                    *accepting_socket = accept_result;
                                     goto all_ok;
                                 }
                                 else
                                 {
                                     LogError("sm_open_begin failed with %" PRI_MU_ENUM " in accept, closing incoming socket.", MU_ENUM_VALUE(SM_RESULT, open_result));
                                 }
-                                sm_destroy(result->sm);
+                                sm_destroy(accept_result->sm);
                             }
-                            // Codes_SOCKET_TRANSPORT_LINUX_11_077: [ If any failure is encountered, socket_transport_accept shall fail and return NULL. ]
-                            free(result);
-                            result = NULL;
+                            // Codes_SOCKET_TRANSPORT_LINUX_11_077: [ If any failure is encountered, socket_transport_accept shall fail and return SOCKET_ACCEPT_ERROR. ]
+                            free(accept_result);
+                            result = SOCKET_ACCEPT_ERROR;
                         }
                     }
                     close(accepted_socket);
@@ -678,7 +746,7 @@ SOCKET_TRANSPORT_HANDLE socket_transport_accept(SOCKET_TRANSPORT_HANDLE socket_t
                 sm_exec_end(socket_transport->sm);
             }
         }
-        result = NULL;
+        result = SOCKET_ACCEPT_ERROR;
     }
 all_ok:
     return result;
@@ -714,6 +782,30 @@ SOCKET_HANDLE socket_transport_get_underlying_socket(SOCKET_TRANSPORT_HANDLE soc
     }
     return result;
 }
+
+bool socket_transport_is_valid_socket(SOCKET_TRANSPORT_HANDLE socket_transport_handle)
+{
+    bool result;
+    if (socket_transport_handle == NULL)
+    {
+        result = false;
+        LogError("Invalid argument: SOCKET_TRANSPORT_HANDLE socket_transport_handle: %p", socket_transport_handle);
+    }
+    else
+    {
+        if (socket_transport_handle->socket == INVALID_SOCKET)
+        {
+            result = false;
+            LogError("Invalid socket in argument: SOCKET_TRANSPORT_HANDLE socket_transport_handle: %p", socket_transport_handle);
+        }
+        else
+        {
+            result = true;
+        }
+    }
+    return result;
+}
+
 
 int socket_transport_local_address(SOCKET_TRANSPORT_HANDLE socket_transport, char hostname[MAX_GET_HOST_NAME_LEN], LOCAL_ADDRESS** local_address_list, uint32_t* address_count)
 {

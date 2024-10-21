@@ -807,6 +807,7 @@ typedef struct CHAOS_TEST_DATA_TAG
     volatile LONG can_start_timers;
     volatile LONG timers_starting;
     CHAOS_TEST_TIMER_DATA timers[MAX_TIMER_COUNT];
+    THREADPOOL_WORK_ITEM_HANDLE work_item_context;
 } CHAOS_TEST_DATA;
 
 #define TIMER_START_DELAY_MIN 0
@@ -821,7 +822,7 @@ static DWORD WINAPI chaos_thread_func(LPVOID lpThreadParameter)
 
     while (InterlockedAdd(&chaos_test_data->chaos_test_done, 0) == 0)
     {
-        int which_action = rand() * 3 / (RAND_MAX + 1);
+        int which_action = rand() * 4 / (RAND_MAX + 1);
         switch (which_action)
         {
             case 0:
@@ -835,6 +836,12 @@ static DWORD WINAPI chaos_thread_func(LPVOID lpThreadParameter)
             case 2:
                 // perform a schedule item
                 if (threadpool_schedule_work(chaos_test_data->threadpool, work_function, (void*)&chaos_test_data->executed_work_functions) == 0)
+                {
+                    (void)InterlockedIncrement64(&chaos_test_data->expected_call_count);
+                }
+            case 3:
+                // perform a schedule work item
+                if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
                 {
                     (void)InterlockedIncrement64(&chaos_test_data->expected_call_count);
                 }
@@ -864,7 +871,7 @@ static DWORD WINAPI chaos_thread_with_timers_func(LPVOID lpThreadParameter)
 
     while (InterlockedAdd(&chaos_test_data->chaos_test_done, 0) == 0)
     {
-        int which_action = rand() * 7 / (RAND_MAX + 1);
+        int which_action = rand() * 8 / (RAND_MAX + 1);
         switch (which_action)
         {
         case 0:
@@ -978,6 +985,12 @@ static DWORD WINAPI chaos_thread_with_timers_func(LPVOID lpThreadParameter)
                 (void)InterlockedDecrement(&chaos_test_data->timers_starting);
                 WakeByAddressSingle((PVOID)&chaos_test_data->timers_starting);
             }
+        case 7:
+            // perform a schedule work item
+            if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
+            {
+                (void)InterlockedIncrement64(&chaos_test_data->expected_call_count);
+            }
             break;
         }
     }
@@ -1009,6 +1022,9 @@ TEST_FUNCTION(chaos_knight_test)
         InterlockedExchange(&chaos_test_data.timers[i].state, TIMER_STATE_NONE);
     }
 
+    // Create the Work Item Context once
+    chaos_test_data.work_item_context = threadpool_create_work_item(chaos_test_data.threadpool, work_function, (void*)&chaos_test_data.executed_work_functions);
+
     for (i = 0; i < CHAOS_THREAD_COUNT; i++)
     {
         thread_handles[i] = CreateThread(NULL, 0, chaos_thread_func, &chaos_test_data, 0, NULL);
@@ -1033,6 +1049,7 @@ TEST_FUNCTION(chaos_knight_test)
         InterlockedAdd64(&chaos_test_data.executed_work_functions, 0));
 
     // call close
+    threadpool_destroy_work_item(chaos_test_data.threadpool, chaos_test_data.work_item_context);
     threadpool_close(chaos_test_data.threadpool);
 
     // cleanup
@@ -1068,6 +1085,8 @@ TEST_FUNCTION(chaos_knight_test_with_timers)
         InterlockedExchange(&chaos_test_data.timers[i].state, TIMER_STATE_NONE);
     }
 
+    chaos_test_data.work_item_context = threadpool_create_work_item(chaos_test_data.threadpool, work_function, (void*)&chaos_test_data.executed_work_functions);
+
     for (i = 0; i < CHAOS_THREAD_COUNT; i++)
     {
         thread_handles[i] = CreateThread(NULL, 0, chaos_thread_with_timers_func, &chaos_test_data, 0, NULL);
@@ -1093,10 +1112,294 @@ TEST_FUNCTION(chaos_knight_test_with_timers)
 
     // call close
     chaos_cleanup_all_timers(&chaos_test_data);
+    threadpool_destroy_work_item(chaos_test_data.threadpool, chaos_test_data.work_item_context);
     threadpool_close(chaos_test_data.threadpool);
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL)(&chaos_test_data.threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+TEST_FUNCTION(one_work_item_schedule_works_v2)
+{
+    // assert
+    // create an execution engine
+    volatile LONG call_count;
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    // create the threadpool
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    // open
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
+
+    (void)InterlockedExchange(&call_count, 0);
+
+    // act (schedule one work item)
+    LogInfo("Create Work Item Context");
+    THREADPOOL_WORK_ITEM_HANDLE work_item_context = threadpool_create_work_item(threadpool, work_function, (void*)&call_count);
+    ASSERT_IS_NOT_NULL(work_item_context);
+    LogInfo("Scheduling work");
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(threadpool, work_item_context));
+
+    // assert
+    wait_for_equal(&call_count, 1, INFINITE);
+    LogInfo("Work completed");
+
+    // cleanup
+    threadpool_destroy_work_item(threadpool, work_item_context);
+    threadpool_close(threadpool);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work_v2)
+{
+    // arrange
+    // create an execution engine
+    volatile LONG call_count;
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    // create the threadpool
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    // this is safe because the threadpool has a reference
+    execution_engine_dec_ref(execution_engine);
+
+    // open
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
+
+    (void)InterlockedExchange(&call_count, 0);
+
+    // act (schedule one work item)
+    LogInfo("Create Work Item Context");
+    THREADPOOL_WORK_ITEM_HANDLE work_item_context = threadpool_create_work_item(threadpool, work_function, (void*)&call_count);
+    ASSERT_IS_NOT_NULL(work_item_context);
+    LogInfo("Scheduling work");
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, work_function, (void*)&call_count));
+
+    // assert
+    wait_for_equal(&call_count, 1, INFINITE);
+    LogInfo("Work completed");
+
+    // cleanup
+    threadpool_destroy_work_item(threadpool, work_item_context);
+    threadpool_close(threadpool);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_works_v2))
+{
+    // assert
+    // create an execution engine
+    volatile LONG call_count;
+    size_t i;
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    // create the threadpool
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    // open
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
+
+    (void)InterlockedExchange(&call_count, 0);
+
+    LogInfo("Scheduling work " MU_TOSTRING(N_WORK_TIMES) " times");
+    // act (schedule work items)
+    LogInfo("Create Work Item Context");
+    THREADPOOL_WORK_ITEM_HANDLE work_item_context = threadpool_create_work_item(threadpool, work_function, (void*)&call_count);
+    ASSERT_IS_NOT_NULL(work_item_context);
+    for (i = 0; i < N_WORK_ITEMS; i++)
+    {
+        ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(threadpool, work_item_context));
+    }
+
+    // assert
+    wait_for_equal(&call_count, N_WORK_ITEMS, INFINITE);
+    LogInfo("Work completed");
+
+    // cleanup
+    threadpool_destroy_work_item(threadpool, work_item_context);
+    threadpool_close(threadpool);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items_v2)
+{
+    // assert
+    // create an execution engine
+    WAIT_WORK_CONTEXT wait_work_context;
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 1, 1 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    // create the threadpool
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    // open
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
+
+    wait_work_context.wait_event = CreateEvent(NULL, FALSE, FALSE, NULL);
+    ASSERT_IS_NOT_NULL(wait_work_context.wait_event);
+
+    (void)InterlockedExchange(&wait_work_context.call_count, 0);
+
+    // schedule one item that waits
+    LogInfo("Create Work Item Context");
+    THREADPOOL_WORK_ITEM_HANDLE wait_work_item_context = threadpool_create_work_item(threadpool, wait_work_function, (void*)&wait_work_context);
+    ASSERT_IS_NOT_NULL(wait_work_item_context);
+    THREADPOOL_WORK_ITEM_HANDLE work_item_context = threadpool_create_work_item(threadpool, work_function, (void*)&wait_work_context.call_count);
+    ASSERT_IS_NOT_NULL(work_item_context);
+    LogInfo("Scheduling 2 work items");
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(threadpool, wait_work_item_context));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(threadpool, work_item_context));
+
+    // call close
+    LogInfo("Closing threadpool");
+    threadpool_close(threadpool);
+
+    // set the event, that would trigger a WAIT_OBJECT_0 if close would not wait for all items
+    SetEvent(wait_work_context.wait_event);
+
+    // assert
+    wait_for_equal(&wait_work_context.call_count, 2, INFINITE);
+
+    // cleanup
+    (void)CloseHandle(wait_work_context.wait_event);
+    threadpool_destroy_work_item(threadpool, wait_work_item_context);
+    threadpool_destroy_work_item(threadpool, work_item_context);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+TEST_FUNCTION(close_while_closing_still_executes_the_items_v2)
+{
+    // assert
+    // create an execution engine
+    WAIT_WORK_CONTEXT wait_work_context;
+    // force one thread
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 1, 1 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    CLOSE_WORK_CONTEXT close_work_context = { 0 };
+
+    // create the threadpool
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+    THANDLE_INITIALIZE_MOVE(THREADPOOL)(&close_work_context.threadpool, &threadpool);
+
+    // open
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(close_work_context.threadpool));
+    wait_work_context.wait_event = CreateEvent(NULL, FALSE, FALSE, NULL);
+    ASSERT_IS_NOT_NULL(wait_work_context.wait_event);
+
+    (void)InterlockedExchange(&wait_work_context.call_count, 0);
+    (void)InterlockedExchange(&close_work_context.call_count, 0);
+
+    // schedule one item that waits, one that calls close and one that does nothing
+    LogInfo("Create Work Item Context");
+    THREADPOOL_WORK_ITEM_HANDLE wait_work_item_context = threadpool_create_work_item(close_work_context.threadpool, wait_work_function, (void*)&wait_work_context);
+    ASSERT_IS_NOT_NULL(wait_work_item_context);
+    THREADPOOL_WORK_ITEM_HANDLE close_work_item_context = threadpool_create_work_item(close_work_context.threadpool, close_work_function, (void*)&close_work_context);
+    ASSERT_IS_NOT_NULL(close_work_item_context);
+    THREADPOOL_WORK_ITEM_HANDLE work_item_context = threadpool_create_work_item(close_work_context.threadpool, work_function, (void*)&wait_work_context.call_count);
+    ASSERT_IS_NOT_NULL(work_item_context);
+    LogInfo("Scheduling 3 work items");
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(close_work_context.threadpool, wait_work_item_context));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(close_work_context.threadpool, close_work_item_context));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(close_work_context.threadpool, work_item_context));
+
+    // call close
+    LogInfo("Closing threadpool");
+    threadpool_close(close_work_context.threadpool);
+
+    // set the event, that would trigger a WAIT_OBJECT_0 if close would not wait for all items
+    SetEvent(wait_work_context.wait_event);
+
+    // wait for all callbacks to complete
+    wait_for_equal(&close_work_context.call_count, 1, INFINITE);
+    wait_for_equal(&wait_work_context.call_count, 2, INFINITE);
+
+    // cleanup
+    (void)CloseHandle(wait_work_context.wait_event);
+    threadpool_destroy_work_item(close_work_context.threadpool, wait_work_item_context);
+    threadpool_destroy_work_item(close_work_context.threadpool, close_work_item_context);
+    threadpool_destroy_work_item(close_work_context.threadpool, work_item_context);
+    THANDLE_ASSIGN(THREADPOOL)(&close_work_context.threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+TEST_FUNCTION(open_while_closing_fails_v2)
+{
+    // assert
+    // create an execution engine
+    WAIT_WORK_CONTEXT wait_work_context;
+    // force one thread
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 1, 1 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    OPEN_WORK_CONTEXT open_work_context = { 0 };
+
+    // create the threadpool
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+    THANDLE_INITIALIZE_MOVE(THREADPOOL)(&open_work_context.threadpool, &threadpool);
+
+    // open
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(open_work_context.threadpool));
+
+    wait_work_context.wait_event = CreateEvent(NULL, FALSE, FALSE, NULL);
+    ASSERT_IS_NOT_NULL(wait_work_context.wait_event);
+
+    (void)InterlockedExchange(&wait_work_context.call_count, 0);
+    (void)InterlockedExchange(&open_work_context.call_count, 0);
+
+    // schedule one item that waits, one that calls close and one that does nothing
+    LogInfo("Create Work Item Context and Scheduling 3 work items");
+    THREADPOOL_WORK_ITEM_HANDLE wait_work_item_context = threadpool_create_work_item(open_work_context.threadpool, wait_work_function, (void*)&wait_work_context);
+    ASSERT_IS_NOT_NULL(wait_work_item_context);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(open_work_context.threadpool, wait_work_item_context));
+
+    THREADPOOL_WORK_ITEM_HANDLE open_work_item_context = threadpool_create_work_item(open_work_context.threadpool, open_work_function, (void*)&open_work_context);
+    ASSERT_IS_NOT_NULL(open_work_item_context);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(open_work_context.threadpool, open_work_item_context));
+
+    THREADPOOL_WORK_ITEM_HANDLE work_item_context = threadpool_create_work_item(open_work_context.threadpool, work_function, (void*)&wait_work_context.call_count);
+    ASSERT_IS_NOT_NULL(work_item_context);
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(open_work_context.threadpool, work_item_context));
+
+
+
+    // call close
+    LogInfo("Closing threadpool");
+    threadpool_close(open_work_context.threadpool);
+
+    // set the event, that would trigger a WAIT_OBJECT_0 if close would not wait for all items
+    SetEvent(wait_work_context.wait_event);
+
+    // wait for all callbacks to complete
+    wait_for_equal(&open_work_context.call_count, 1, INFINITE);
+    wait_for_equal(&wait_work_context.call_count, 2, INFINITE);
+
+    // cleanup
+    (void)CloseHandle(wait_work_context.wait_event);
+    threadpool_destroy_work_item(open_work_context.threadpool, wait_work_item_context);
+    threadpool_destroy_work_item(open_work_context.threadpool, open_work_item_context);
+    threadpool_destroy_work_item(open_work_context.threadpool, work_item_context);
+    THANDLE_ASSIGN(THREADPOOL)(&open_work_context.threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
 

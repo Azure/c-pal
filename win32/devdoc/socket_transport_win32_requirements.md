@@ -30,6 +30,13 @@ MU_DEFINE_ENUM(SOCKET_SEND_RESULT, SOCKET_SEND_RESULT_VALUES)
 
 MU_DEFINE_ENUM(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_RESULT_VALUES)
 
+#define SOCKET_ACCEPT_RESULT_VALUES \
+    SOCKET_ACCEPT_OK, \
+    SOCKET_ACCEPT_ERROR, \
+    SOCKET_ACCEPT_NO_CONNECTION
+
+MU_DEFINE_ENUM(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_RESULT_VALUES)
+
 #define SOCKET_TYPE_VALUES \
     SOCKET_CLIENT, \
     SOCKET_BINDING
@@ -50,18 +57,20 @@ typedef struct LOCAL_ADDRESS_TAG
 
 MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_client);
 MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_server);
+MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_from_socket, SOCKET_HANDLE, socket_handle);
 MOCKABLE_FUNCTION(, void, socket_transport_destroy, SOCKET_TRANSPORT_HANDLE, socket_transport);
 
 MOCKABLE_FUNCTION(, int, socket_transport_connect, SOCKET_TRANSPORT_HANDLE, socket_transport, const char*, hostname, uint16_t, port, uint32_t, connection_timeout_ms);
 MOCKABLE_FUNCTION(, int, socket_transport_listen, SOCKET_TRANSPORT_HANDLE, socket_transport, uint16_t, port);
 MOCKABLE_FUNCTION(, void, socket_transport_disconnect, SOCKET_TRANSPORT_HANDLE, socket_transport);
 
-MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_accept, SOCKET_TRANSPORT_HANDLE, socket_transport);
+MOCKABLE_FUNCTION(, SOCKET_ACCEPT_RESULT, socket_transport_accept, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_TRANSPORT_HANDLE*, accepted_socket);
 
 MOCKABLE_FUNCTION(, SOCKET_SEND_RESULT, socket_transport_send, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_BUFFER*, payload, uint32_t, buffer_count, uint32_t*, bytes_sent, uint32_t, flags, void*, data);
 MOCKABLE_FUNCTION(, SOCKET_RECEIVE_RESULT, socket_transport_receive, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_BUFFER*, payload, uint32_t, buffer_count, uint32_t*, bytes_recv, uint32_t, flags, void*, data);
 
 MOCKABLE_FUNCTION(, SOCKET_HANDLE, socket_transport_get_underlying_socket, SOCKET_TRANSPORT_HANDLE, socket_transport);
+MOCKABLE_FUNCTION(, bool, socket_transport_is_valid_socket, SOCKET_TRANSPORT_HANDLE, socket_transport_handle);
 MOCKABLE_FUNCTION(, int, socket_transport_get_local_address, SOCKET_TRANSPORT_HANDLE, socket_transport, char, hostname[MAX_GET_HOST_NAME_LEN], LOCAL_ADDRESS**, local_address_list, uint32_t*, address_count);
 ```
 
@@ -96,6 +105,28 @@ MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_server);
 **SOCKET_TRANSPORT_WIN32_09_089: [** On any failure `socket_transport_create_server` shall return `NULL`. **]**
 
 **SOCKET_TRANSPORT_WIN32_09_090: [** On success `socket_transport_create_server` shall return `SOCKET_TRANSPORT_HANDLE`. **]**
+
+### socket_transport_create_from_socket
+
+```c
+MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_from_socket, SOCKET_HANDLE, socket_handle);
+```
+
+`socket_transport_create_from_socket` creates a client socket transport from a given socket handle.
+
+**SOCKET_TRANSPORT_WIN32_09_096: [** If socket_handle is an INVALID_SOCKET, `socket_transport_create_from_socket` shall fail and return `NULL`. **]**
+
+**SOCKET_TRANSPORT_WIN32_09_097: [** `socket_transport_create_from_socket` shall allocate a new SOCKET_TRANSPORT object. **]**
+
+**SOCKET_TRANSPORT_WIN32_09_098: [** `socket_transport_create_from_socket` shall call sm_create to create a sm_object with the type set to SOCKET_CLIENT. **]**
+
+**SOCKET_TRANSPORT_WIN32_09_014: [** If `sm_open_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_create_from_socket` shall fail and return `NULL`. **]**
+
+**SOCKET_TRANSPORT_WIN32_09_099: [** `socket_transport_create_from_socket` shall assign the socket_handle to the new allocated socket transport. **]**
+
+**SOCKET_TRANSPORT_WIN32_09_100: [** On any failure `socket_transport_create_from_socket` shall return `NULL`. **]**
+
+**SOCKET_TRANSPORT_WIN32_09_101: [** On success `socket_transport_create_from_socket` shall return SOCKET_TRANSPORT_HANDLE. **]**
 
 
 ### socket_transport_destroy
@@ -177,8 +208,6 @@ MOCKABLE_FUNCTION(, void, socket_transport_disconnect, SOCKET_TRANSPORT_HANDLE, 
 **SOCKET_TRANSPORT_WIN32_09_028: [** `socket_transport_disconnect` shall call `sm_close_begin` to begin the closing process. **]**
 
 **SOCKET_TRANSPORT_WIN32_09_029: [** If `sm_close_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_disconnect` shall fail and return. **]**
-
-**SOCKET_TRANSPORT_WIN32_09_083: [** If `shutdown` does not return 0 on a socket that is not a binding socket, the socket is not valid therefore `socket_transport_disconnect` shall not call `close` **]**
 
 **SOCKET_TRANSPORT_WIN32_09_030: [** `socket_transport_disconnect` shall call `closesocket` to disconnect the connected socket. **]**
 
@@ -277,36 +306,46 @@ MOCKABLE_FUNCTION(, int, socket_transport_listen, SOCKET_TRANSPORT_HANDLE, socke
 ### socket_transport_accept
 
 ```c
-MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_accept, SOCKET_TRANSPORT_HANDLE, socket_transport);
+MOCKABLE_FUNCTION(, SOCKET_ACCEPT_RESULT, socket_transport_accept, SOCKET_TRANSPORT_HANDLE, socket_transport, SOCKET_TRANSPORT_HANDLE*, accepted_socket, uint32_t, connection_timeout_ms);
 ```
 
 `socket_transport_accept` accepts the incoming connections.
 
-**SOCKET_TRANSPORT_WIN32_09_067: [** If `socket_transport` is `NULL`, `socket_transport_accept` shall fail and return a non-zero value. **]**
+**SOCKET_TRANSPORT_WIN32_09_067: [** If `socket_transport` is `NULL`, `socket_transport_accept` shall fail and return `SOCKET_ACCEPT_ERROR`. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_068: [** If the transport type is not `SOCKET_BINDING`, `socket_transport_accept` shall fail and return a non-zero value. **]**
+**SOCKET_TRANSPORT_WIN32_09_068: [** If the transport type is not `SOCKET_BINDING`, `socket_transport_accept` shall fail and return `SOCKET_ACCEPT_ERROR`. **]**
 
 **SOCKET_TRANSPORT_WIN32_09_069: [** `socket_transport_accept` shall call `sm_exec_begin`. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_070: [** If `sm_exec_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_accept` shall fail and return `SOCKET_SEND_ERROR`. **]**
+**SOCKET_TRANSPORT_WIN32_09_070: [** If `sm_exec_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_accept` shall fail and return `SOCKET_ACCEPT_ERROR`. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_071: [** `socket_transport_accept` shall call `select` determine if the socket is ready to be read passing a timeout of 10 milliseconds. **]**
+**SOCKET_TRANSPORT_WIN32_09_071: [** `socket_transport_accept` shall call `select` to determine if the socket is ready to be read passing `connection_timeout_ms`. **]**
+
+**SOCKET_TRANSPORT_WIN32_11_001: [** If `select` returns `SOCKET_ERROR` and `WSAGetLastError` return `WSAEINPROGRESS`, `socket_transport_accept` shall return `SOCKET_ACCEPT_INPROGRESS`. **]**
+
+**SOCKET_TRANSPORT_WIN32_11_002: [** If `select` returns `SOCKET_ERROR` and `WSAGetLastError` does not return `WSAEINPROGRESS`, `socket_transport_accept` shall return `SOCKET_ACCEPT_ERROR`. **]**
+
+**SOCKET_TRANSPORT_WIN32_09_091: [** If `select` returns zero, `socket_transport_accept` shall set accepted_socket to `NULL` and return `SOCKET_ACCEPT_NO_CONNECTION`. **]**
 
 **SOCKET_TRANSPORT_WIN32_09_072: [** `socket_transport_accept` shall call `accept` to accept the incoming socket connection. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_073: [** If `accept` returns an INVALID_SOCKET, `socket_transport_accept` shall fail and return `Null`. **]**
+**SOCKET_TRANSPORT_WIN32_09_073: [** If `accept` returns an `INVALID_SOCKET` and `WSAGetLastError` does not return `WSAEWOULDBLOCK`, `socket_transport_accept` shall fail and return `SOCKET_ACCEPT_ERROR`. **]**
+
+**SOCKET_TRANSPORT_WIN32_11_003: [** If `accept` returns an `INVALID_SOCKET` and `WSAGetLastError` returns `WSAENOBUFS`, `socket_transport_accept` shall fail and return `SOCKET_ACCEPT_PORT_EXHAUSTION`. **]**
+
+**SOCKET_TRANSPORT_WIN32_11_004: [** If `accept` returns an `INVALID_SOCKET` and `WSAGetLastError` returns `WSAEWOULDBLOCK`, `socket_transport_accept` shall fail and return `SOCKET_ACCEPT_NO_CONNECTION`. **]**
 
 **SOCKET_TRANSPORT_WIN32_09_074: [** `socket_transport_accept` shall allocate a `SOCKET_TRANSPORT` for the incoming connection and call `sm_create` and `sm_open` on the connection. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_084: [** If `malloc` fails, `socket_transport_accept` shall fail and return `NULL`. **]**
+**SOCKET_TRANSPORT_WIN32_09_084: [** If `malloc` fails, `socket_transport_accept` shall fail and return `SOCKET_ACCEPT_ERROR`. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_085: [** If `sm_create` fails, `socket_transport_accept` shall close the incoming socket, fail, and return `NULL`. **]**
+**SOCKET_TRANSPORT_WIN32_09_085: [** If `sm_create` fails, `socket_transport_accept` shall close the incoming socket, fail, and return `SOCKET_ACCEPT_ERROR`. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_086: [** If `sm_open_begin` fails, `socket_transport_accept` shall close the incoming socket, fail, and return `NULL` **]**
+**SOCKET_TRANSPORT_WIN32_09_086: [** If `sm_open_begin` fails, `socket_transport_accept` shall close the incoming socket, fail, and return `SOCKET_ACCEPT_ERROR` **]**
 
-**SOCKET_TRANSPORT_WIN32_09_075: [** If successful `socket_transport_accept` shall return the allocated `SOCKET_TRANSPORT`. **]**
+**SOCKET_TRANSPORT_WIN32_09_075: [** If successful `socket_transport_accept` shall return `SOCKET_ACCEPT_OK`. **]**
 
-**SOCKET_TRANSPORT_WIN32_09_076: [** If any failure is encountered, `socket_transport_accept` shall fail and return `NULL`. **]**
+**SOCKET_TRANSPORT_WIN32_09_076: [** If any failure is encountered, `socket_transport_accept` shall fail and return `SOCKET_ACCEPT_ERROR`. **]**
 
 **SOCKET_TRANSPORT_WIN32_09_077: [** `socket_transport_accept` shall call `sm_exec_end`. **]**
 
@@ -327,6 +366,20 @@ MOCKABLE_FUNCTION(, SOCKET_HANDLE, socket_transport_get_underlying_socket, SOCKE
 **SOCKET_TRANSPORT_WIN32_09_081: [** `socket_transport_get_underlying_socket` shall return the SOCKET_TRANSPORT socket value. **]**
 
 **SOCKET_TRANSPORT_WIN32_09_082: [** `socket_transport_get_underlying_socket` shall call `sm_exec_end`. **]**
+
+### socket_transport_is_valid_socket
+
+```c
+MOCKABLE_FUNCTION(, bool, socket_transport_is_valid_socket, SOCKET_TRANSPORT_HANDLE, socket_transport_handle);
+```
+
+**SOCKET_TRANSPORT_WIN32_09_092: [** `socket_transport_is_valid_socket` checks that the internal socket is valid. **]**
+
+**SOCKET_TRANSPORT_WIN32_09_093: [** If `socket_transport_handle` is `NULL`, `socket_transport_is_valid_socket` shall fail and return false. **]**
+
+**SOCKET_TRANSPORT_WIN32_09_094: [** If the socket inside `socket_transport_handle` is an `INVALID_SOCKET`, `socket_transport_is_valid_socket` shall fail and return false. **]**
+
+**SOCKET_TRANSPORT_WIN32_09_095: [** On success, `socket_transport_is_valid_socket` shall return true. **]**
 
 ### socket_transport_get_local_address
 
