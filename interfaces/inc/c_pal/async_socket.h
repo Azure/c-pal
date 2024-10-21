@@ -3,16 +3,15 @@
 #ifndef ASYNC_SOCKET_H
 #define ASYNC_SOCKET_H
 
-#include "macro_utils/macro_utils.h"
-#include "c_pal/execution_engine.h"
-#include "socket_handle.h"
-#include "umock_c/umock_c_prod.h"
-
 #ifdef __cplusplus
 #include <cstdint>
 #else
 #include <stdint.h>
 #endif
+
+#include "macro_utils/macro_utils.h"
+#include "c_pal/execution_engine.h"
+#include "socket_handle.h"
 
 /* Note : At some point this API should be extended with connect/listen in order to fully encapsulate the underlying SOCKET,
 so that no other module cares how the underlying SOCKET is obtained and what its lifetime is. */
@@ -74,9 +73,11 @@ typedef struct ASYNC_SOCKET_BUFFER_TAG
 } ASYNC_SOCKET_BUFFER;
 
 #include "umock_c/umock_c_prod.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create, EXECUTION_ENGINE_HANDLE, execution_engine);
 MOCKABLE_FUNCTION(, ASYNC_SOCKET_HANDLE, async_socket_create_with_transport, EXECUTION_ENGINE_HANDLE, execution_engine, ON_ASYNC_SOCKET_SEND, on_send, void*, on_send_context, ON_ASYNC_SOCKET_RECV, on_recv, void*, on_recv_context);
 MOCKABLE_FUNCTION(, void, async_socket_destroy, ASYNC_SOCKET_HANDLE, async_socket);
