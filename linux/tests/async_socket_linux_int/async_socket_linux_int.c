@@ -1,27 +1,29 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#include <stdlib.h>
 #include <inttypes.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "testrunnerswitcher.h"
 
-#include "macro_utils/macro_utils.h"
+#include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
 #include "c_pal/async_socket.h"
 #include "c_pal/execution_engine.h"
-#include "c_pal/interlocked.h"
 #include "c_pal/gballoc_hl.h"
-#include "c_pal/platform.h"
-#include "c_pal/socket_transport.h"
-#include "c_pal/socket_handle.h"
+#include "c_pal/interlocked.h"
 #include "c_pal/sync.h"
+#include "c_pal/socket_handle.h"
+#include "c_pal/platform.h"
 
-#define XTEST_FUNCTION(x) void x(void)
-
-#define TEST_PORT           4466
-#define TEST_CONN_TIMEOUT   10000
-
-static uint16_t g_port_num = TEST_PORT;
+#define TEST_PORT 2244
+static int g_port_num = TEST_PORT;
 
 TEST_DEFINE_ENUM_TYPE(ASYNC_SOCKET_OPEN_RESULT, ASYNC_SOCKET_OPEN_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_RESULT_VALUES)
@@ -48,7 +50,6 @@ static void on_send_complete(void* context, ASYNC_SOCKET_SEND_RESULT send_result
 
 static void on_receive_complete(void* context, ASYNC_SOCKET_RECEIVE_RESULT receive_result, uint32_t bytes_received)
 {
-    (void)bytes_received;
     volatile_atomic int32_t* thread_counter = (volatile_atomic int32_t*)context;
 
     ASSERT_ARE_EQUAL(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_OK, receive_result);
@@ -58,8 +59,6 @@ static void on_receive_complete(void* context, ASYNC_SOCKET_RECEIVE_RESULT recei
 
 static void on_receive_abandoned_complete(void* context, ASYNC_SOCKET_RECEIVE_RESULT receive_result, uint32_t bytes_received)
 {
-    (void)context;
-    (void)bytes_received;
     ASSERT_ARE_EQUAL(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_ABANDONED, receive_result);
 }
 
@@ -74,12 +73,83 @@ static void on_receive_and_accumulate_complete(void* context, ASYNC_SOCKET_RECEI
 
 static void on_receive_complete_with_error(void* context, ASYNC_SOCKET_RECEIVE_RESULT receive_result, uint32_t bytes_received)
 {
-    (void)bytes_received;
     volatile_atomic int32_t* thread_counter = (volatile_atomic int32_t*)context;
 
     ASSERT_ARE_EQUAL(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_ABANDONED, receive_result);
     (void)interlocked_increment(thread_counter);
     wake_by_address_single(thread_counter);
+}
+
+static void set_nonblocking(SOCKET_HANDLE socket)
+{
+    int opts = fcntl(socket, F_GETFL);
+    ASSERT_IS_TRUE(opts >= 0, "Failure getting socket option");
+
+    opts = fcntl(socket, F_SETFL, opts|O_NONBLOCK);
+    ASSERT_IS_TRUE(opts >= 0, "Failure setting socket option");
+}
+
+static void setup_server_socket(SOCKET_HANDLE* listen_socket)
+{
+    // create a listening socket
+    *listen_socket = socket(AF_INET, SOCK_STREAM, 0);
+    ASSERT_ARE_NOT_EQUAL(int, INVALID_SOCKET, *listen_socket);
+
+    const int enable = 1;
+    ASSERT_ARE_EQUAL(int, 0, setsockopt(*listen_socket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)));
+
+    int bind_res;
+    uint32_t counter = 0;
+    // The gate machines fails on bind due to 3 different
+    // Process running, so we have to figure out the proper
+    // address to bind to by going through ports looking for an open one
+    do
+    {
+        struct sockaddr_in service;
+
+        service.sin_family = AF_INET;
+        service.sin_port = htons(g_port_num);
+        service.sin_addr.s_addr = htonl(INADDR_ANY);
+
+        bind_res = bind(*listen_socket, (struct sockaddr*)&service, sizeof(service));
+        if (bind_res != 0)
+        {
+            g_port_num++;
+        }
+        counter++;
+    } while (bind_res != 0 && counter < 10);
+    ASSERT_ARE_EQUAL(int, 0, bind_res, "Failure attempting to bind (%d) to socket %d error (%d): %s", bind_res, g_port_num, errno, strerror(errno));
+
+    // set it to async IO
+    set_nonblocking(*listen_socket);
+
+    // start listening
+    ASSERT_ARE_EQUAL(int, 0, listen(*listen_socket, SOMAXCONN), "Failure on listen socket error (%d): port: %d", errno, g_port_num);
+}
+
+static void setup_test_socket(int port_num, SOCKET_HANDLE* client_socket, SOCKET_HANDLE* listen_socket, SOCKET_HANDLE* accept_socket)
+{
+    // create a client socket
+    *client_socket = socket(AF_INET, SOCK_STREAM, 0);
+    ASSERT_ARE_NOT_EQUAL(int, INVALID_SOCKET, *client_socket);
+
+    struct sockaddr_in  serv_addr;
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port   = htons(port_num);
+    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    ASSERT_ARE_NOT_EQUAL(int, INVALID_SOCKET, connect(*client_socket, (struct sockaddr*)&serv_addr, sizeof(struct sockaddr)), "Unable to connect client");
+
+    // set it to async IO
+    set_nonblocking(*client_socket);
+
+    do
+    {
+        *accept_socket = accept(*listen_socket, NULL, NULL);
+    } while (*accept_socket == INVALID_SOCKET && errno == 11);
+    ASSERT_ARE_NOT_EQUAL(int, INVALID_SOCKET, *accept_socket, "Failure accepting socket.  Error No: %s", strerror(errno));
+
+    set_nonblocking(*accept_socket);
 }
 
 static void wait_for_value(volatile_atomic int32_t* counter, int32_t target_value)
@@ -91,23 +161,13 @@ static void wait_for_value(volatile_atomic int32_t* counter, int32_t target_valu
     }
 }
 
-static void open_async_handle(ASYNC_SOCKET_HANDLE handle, SOCKET_TRANSPORT_HANDLE socket)
+static void open_async_handle(ASYNC_SOCKET_HANDLE handle, SOCKET_HANDLE socket)
 {
     volatile_atomic int32_t counter = 0;
 
     ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(handle, socket, on_open_complete, (void*)&counter), "Failure opening async socket");
 
     wait_for_value(&counter, 1);
-}
-
-void set_up_listen_socket(SOCKET_TRANSPORT_HANDLE listen_socket)
-{
-    int result = socket_transport_listen(listen_socket, g_port_num);
-    if(result != 0)
-    {
-        g_port_num++;
-        ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num), "failed listening on port %" PRIu16 "", g_port_num);
-    }
 }
 
 static void dump_bytes(const char* msg, uint8_t data_payload[], uint32_t length)
@@ -153,23 +213,12 @@ TEST_FUNCTION(connect_no_send_succeeds)
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
-    SOCKET_TRANSPORT_HANDLE client_socket;
-    SOCKET_TRANSPORT_HANDLE server_socket;
-    SOCKET_TRANSPORT_HANDLE listen_socket;
+    SOCKET_HANDLE client_socket;
+    SOCKET_HANDLE accept_socket;
+    SOCKET_HANDLE listen_socket;
 
-    listen_socket = socket_transport_create_server();
-    ASSERT_IS_NOT_NULL(listen_socket);
-
-    set_up_listen_socket(listen_socket);
-
-    // create the async socket object
-    client_socket = socket_transport_create_client();
-    ASSERT_IS_NOT_NULL(client_socket);
-
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
-
-    socket_transport_accept(listen_socket, &server_socket, TEST_CONN_TIMEOUT);
-    ASSERT_IS_NOT_NULL(server_socket);
+    setup_server_socket(&listen_socket);
+    setup_test_socket(g_port_num, &client_socket, &listen_socket, &accept_socket);
 
     // create the async socket object
     ASYNC_SOCKET_HANDLE server_async_socket = async_socket_create(execution_engine);
@@ -178,7 +227,7 @@ TEST_FUNCTION(connect_no_send_succeeds)
     ASSERT_IS_NOT_NULL(client_async_socket);
 
     // wait for open to complete
-    open_async_handle(server_async_socket, server_socket);
+    open_async_handle(server_async_socket, accept_socket);
     open_async_handle(client_async_socket, client_socket);
 
     uint8_t receive_buffer[2];
@@ -189,26 +238,12 @@ TEST_FUNCTION(connect_no_send_succeeds)
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(client_async_socket, receive_payload_buffers, 1, on_receive_abandoned_complete, NULL));
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(server_async_socket, receive_payload_buffers, 1, on_receive_abandoned_complete, NULL));
 
-#ifdef _MSC_VER // only for windows
-    socket_transport_disconnect(server_socket);
     async_socket_close(server_async_socket);
-    socket_transport_disconnect(client_socket);
     async_socket_close(client_async_socket);
-#else
-    async_socket_close(server_async_socket);
-    socket_transport_disconnect(server_socket);
-    async_socket_close(client_async_socket);
-    socket_transport_disconnect(client_socket);
-#endif
-
-    socket_transport_disconnect(listen_socket);
-    socket_transport_destroy(listen_socket);
-
-    socket_transport_destroy(server_socket);
-    socket_transport_destroy(client_socket);
     async_socket_destroy(server_async_socket);
     async_socket_destroy(client_async_socket);
     execution_engine_dec_ref(execution_engine);
+    close(listen_socket);
 }
 
 TEST_FUNCTION(send_and_receive_1_byte_succeeds)
@@ -219,24 +254,12 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
-    SOCKET_TRANSPORT_HANDLE client_socket;
-    // server socket is same as accept socket
-    SOCKET_TRANSPORT_HANDLE server_socket;
-    SOCKET_TRANSPORT_HANDLE listen_socket;
+    SOCKET_HANDLE client_socket;
+    SOCKET_HANDLE accept_socket;
+    SOCKET_HANDLE listen_socket;
 
-    listen_socket = socket_transport_create_server();
-    ASSERT_IS_NOT_NULL(listen_socket);
-
-    set_up_listen_socket(listen_socket);
-
-    // create the async socket object
-    client_socket = socket_transport_create_client();
-    ASSERT_IS_NOT_NULL(client_socket);
-
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
-
-    socket_transport_accept(listen_socket, &server_socket, TEST_CONN_TIMEOUT);
-    ASSERT_IS_NOT_NULL(server_socket);
+    setup_server_socket(&listen_socket);
+    setup_test_socket(g_port_num, &client_socket, &listen_socket, &accept_socket);
 
     // create the async socket object
     ASYNC_SOCKET_HANDLE server_async_socket = async_socket_create(execution_engine);
@@ -245,7 +268,7 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
     ASSERT_IS_NOT_NULL(client_async_socket);
 
     // wait for open to complete
-    open_async_handle(server_async_socket, server_socket);
+    open_async_handle(server_async_socket, accept_socket);
     open_async_handle(client_async_socket, client_socket);
 
     uint8_t data_payload[] = { 0x42, 0x43 };
@@ -273,21 +296,9 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
 
     ASSERT_ARE_EQUAL(int, 0, memcmp(receive_payload_buffers[0].buffer, send_payload_buffers[0].buffer, sizeof(data_payload)));
 
-#ifdef _MSC_VER // only for windows
-    socket_transport_disconnect(server_socket);
     async_socket_close(server_async_socket);
-    socket_transport_disconnect(client_socket);
     async_socket_close(client_async_socket);
-#else
-    async_socket_close(server_async_socket);
-    socket_transport_disconnect(server_socket);
-    async_socket_close(client_async_socket);
-    socket_transport_disconnect(client_socket);
-#endif
-    socket_transport_disconnect(listen_socket);
-    socket_transport_destroy(listen_socket);
-    socket_transport_destroy(server_socket);
-    socket_transport_destroy(client_socket);
+    close(listen_socket);
     async_socket_destroy(server_async_socket);
     async_socket_destroy(client_async_socket);
     execution_engine_dec_ref(execution_engine);
@@ -301,24 +312,12 @@ TEST_FUNCTION(receive_and_send_2_buffers_succeeds)
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
-    SOCKET_TRANSPORT_HANDLE client_socket;
-    // server socket is same as accept socket
-    SOCKET_TRANSPORT_HANDLE server_socket;
-    SOCKET_TRANSPORT_HANDLE listen_socket;
+    SOCKET_HANDLE client_socket;
+    SOCKET_HANDLE accept_socket;
+    SOCKET_HANDLE listen_socket;
 
-    listen_socket = socket_transport_create_server();
-    ASSERT_IS_NOT_NULL(listen_socket);
-
-    set_up_listen_socket(listen_socket);
-
-    // create the async socket object
-    client_socket = socket_transport_create_client();
-    ASSERT_IS_NOT_NULL(client_socket);
-
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
-
-    socket_transport_accept(listen_socket, &server_socket, TEST_CONN_TIMEOUT);
-    ASSERT_IS_NOT_NULL(server_socket);
+    setup_server_socket(&listen_socket);
+    setup_test_socket(g_port_num, &client_socket, &listen_socket, &accept_socket);
 
     // create the async socket object
     ASYNC_SOCKET_HANDLE server_async_socket = async_socket_create(execution_engine);
@@ -327,7 +326,7 @@ TEST_FUNCTION(receive_and_send_2_buffers_succeeds)
     ASSERT_IS_NOT_NULL(client_async_socket);
 
     // wait for open to complete
-    open_async_handle(server_async_socket, server_socket);
+    open_async_handle(server_async_socket, accept_socket);
     open_async_handle(client_async_socket, client_socket);
 
     uint8_t data_payload_1[] = { 0x42, 0x43 };
@@ -360,21 +359,9 @@ TEST_FUNCTION(receive_and_send_2_buffers_succeeds)
     wait_for_value(&recv_counter, 1);
 
     // cleanup
-#ifdef _MSC_VER // only for windows
-    socket_transport_disconnect(server_socket);
     async_socket_close(server_async_socket);
-    socket_transport_disconnect(client_socket);
     async_socket_close(client_async_socket);
-#else
-    async_socket_close(server_async_socket);
-    socket_transport_disconnect(server_socket);
-    async_socket_close(client_async_socket);
-    socket_transport_disconnect(client_socket);
-#endif
-    socket_transport_disconnect(listen_socket);
-    socket_transport_destroy(listen_socket);
-    socket_transport_destroy(server_socket);
-    socket_transport_destroy(client_socket);
+    close(listen_socket);
     async_socket_destroy(server_async_socket);
     async_socket_destroy(client_async_socket);
     execution_engine_dec_ref(execution_engine);
@@ -388,24 +375,12 @@ TEST_FUNCTION(when_server_socket_is_closed_receive_errors_on_client_side)
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
-    SOCKET_TRANSPORT_HANDLE client_socket;
-    // server socket is same as accept socket
-    SOCKET_TRANSPORT_HANDLE server_socket;
-    SOCKET_TRANSPORT_HANDLE listen_socket;
+    SOCKET_HANDLE client_socket;
+    SOCKET_HANDLE accept_socket;
+    SOCKET_HANDLE listen_socket;
 
-    listen_socket = socket_transport_create_server();
-    ASSERT_IS_NOT_NULL(listen_socket);
-
-    set_up_listen_socket(listen_socket);
-
-    // create the async socket object
-    client_socket = socket_transport_create_client();
-    ASSERT_IS_NOT_NULL(client_socket);
-
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
-
-    socket_transport_accept(listen_socket, &server_socket, TEST_CONN_TIMEOUT);
-    ASSERT_IS_NOT_NULL(server_socket);
+    setup_server_socket(&listen_socket);
+    setup_test_socket(g_port_num, &client_socket, &listen_socket, &accept_socket);
 
     // create the async socket object
     ASYNC_SOCKET_HANDLE client_async_socket = async_socket_create(execution_engine);
@@ -422,7 +397,7 @@ TEST_FUNCTION(when_server_socket_is_closed_receive_errors_on_client_side)
     volatile_atomic int32_t recv_counter;
     interlocked_exchange(&recv_counter, 0);
 
-    socket_transport_disconnect(server_socket);
+    close(accept_socket);
 
     // act (send one byte and receive it)
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(client_async_socket, receive_payload_buffers, 1, on_receive_complete_with_error, (void*)&recv_counter));
@@ -431,19 +406,8 @@ TEST_FUNCTION(when_server_socket_is_closed_receive_errors_on_client_side)
     wait_for_value(&recv_counter, 1);
 
     // cleanup
-#ifdef _MSC_VER // only for windows
-    socket_transport_disconnect(client_socket);
     async_socket_close(client_async_socket);
-#else
-    async_socket_close(client_async_socket);
-    socket_transport_disconnect(client_socket);
-#endif
-
-    async_socket_close(client_async_socket);
-    socket_transport_destroy(client_socket);
-    socket_transport_destroy(server_socket);
-    socket_transport_disconnect(listen_socket);
-    socket_transport_destroy(listen_socket);
+    close(listen_socket);
     async_socket_destroy(client_async_socket);
     execution_engine_dec_ref(execution_engine);
 }
@@ -456,23 +420,12 @@ TEST_FUNCTION(multiple_sends_and_receives_succeeds)
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
-    SOCKET_TRANSPORT_HANDLE client_socket;
-    SOCKET_TRANSPORT_HANDLE server_socket;
-    SOCKET_TRANSPORT_HANDLE listen_socket;
+    SOCKET_HANDLE client_socket;
+    SOCKET_HANDLE accept_socket;
+    SOCKET_HANDLE listen_socket;
 
-    listen_socket = socket_transport_create_server();
-    ASSERT_IS_NOT_NULL(listen_socket);
-
-    set_up_listen_socket(listen_socket);
-
-    // create the async socket object
-    client_socket = socket_transport_create_client();
-    ASSERT_IS_NOT_NULL(client_socket);
-
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
-
-    socket_transport_accept(listen_socket, &server_socket, TEST_CONN_TIMEOUT);
-    ASSERT_IS_NOT_NULL(server_socket);
+    setup_server_socket(&listen_socket);
+    setup_test_socket(g_port_num, &client_socket, &listen_socket, &accept_socket);
 
     // create the async socket object
     ASYNC_SOCKET_HANDLE server_async_socket = async_socket_create(execution_engine);
@@ -481,7 +434,7 @@ TEST_FUNCTION(multiple_sends_and_receives_succeeds)
     ASSERT_IS_NOT_NULL(client_async_socket);
 
     // wait for open to complete
-    open_async_handle(server_async_socket, server_socket);
+    open_async_handle(server_async_socket, accept_socket);
     open_async_handle(client_async_socket, client_socket);
 
     uint8_t data_payload[] = { 0x42, 0x43, 0x44, 0x45 };
@@ -516,27 +469,15 @@ TEST_FUNCTION(multiple_sends_and_receives_succeeds)
     wait_for_value(&send_counter, 3);
     wait_for_value(&recv_counter, expected_recv_size);
 
-#ifdef _MSC_VER // only for windows
-    socket_transport_disconnect(server_socket);
     async_socket_close(server_async_socket);
-    socket_transport_disconnect(client_socket);
     async_socket_close(client_async_socket);
-#else
-    async_socket_close(server_async_socket);
-    socket_transport_disconnect(server_socket);
-    async_socket_close(client_async_socket);
-    socket_transport_disconnect(client_socket);
-#endif
-    socket_transport_disconnect(listen_socket);
-    socket_transport_destroy(listen_socket);
-    socket_transport_destroy(server_socket);
-    socket_transport_destroy(client_socket);
+    close(listen_socket);
     async_socket_destroy(server_async_socket);
     async_socket_destroy(client_async_socket);
     execution_engine_dec_ref(execution_engine);
 }
 
-#define N_WORK_ITEMS 100
+#define N_WORK_ITEMS 1000
 
 TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _sockets_items))
 {
@@ -545,39 +486,27 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _sockets_items))
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
-    SOCKET_TRANSPORT_HANDLE listen_socket;
-    listen_socket = socket_transport_create_server();
-    ASSERT_IS_NOT_NULL(listen_socket);
-
-    set_up_listen_socket(listen_socket);
-
+    SOCKET_HANDLE listen_socket;
     ASYNC_SOCKET_HANDLE server_async_socket[N_WORK_ITEMS];
     ASYNC_SOCKET_HANDLE client_async_socket[N_WORK_ITEMS];
 
-    SOCKET_TRANSPORT_HANDLE client_socket[N_WORK_ITEMS];
-    SOCKET_TRANSPORT_HANDLE server_socket[N_WORK_ITEMS];
+    setup_server_socket(&listen_socket);
 
     uint32_t socket_count = N_WORK_ITEMS;
 
     for (uint32_t index = 0; index < socket_count; index++)
     {
-
-        client_socket[index] = socket_transport_create_client();
-        ASSERT_IS_NOT_NULL(client_socket[index]);
-
-        ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket[index], "localhost", g_port_num, TEST_CONN_TIMEOUT));
-
-        socket_transport_accept(listen_socket, &server_socket[index], TEST_CONN_TIMEOUT);
-        ASSERT_IS_NOT_NULL(server_socket[index]);
+        SOCKET_HANDLE accept_socket;
+        SOCKET_HANDLE client_socket;
+        setup_test_socket(g_port_num, &client_socket, &listen_socket, &accept_socket);
 
         // create the async socket object
         ASSERT_IS_NOT_NULL(server_async_socket[index] = async_socket_create(execution_engine));
         ASSERT_IS_NOT_NULL(client_async_socket[index] = async_socket_create(execution_engine));
 
         // wait for open to complete
-        open_async_handle(server_async_socket[index], server_socket[index]);
-        open_async_handle(client_async_socket[index], client_socket[index]);
-
+        open_async_handle(server_async_socket[index], accept_socket);
+        open_async_handle(client_async_socket[index], client_socket);
     }
 
     uint8_t data_payload[] = { 0x42, 0x43, 0x44, 0x45 };
@@ -608,25 +537,11 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _sockets_items))
     wait_for_value(&send_counter, socket_count);
     wait_for_value(&recv_size, expected_recv_size);
 
-    socket_transport_disconnect(listen_socket);
-    socket_transport_destroy(listen_socket);
-
+    close(listen_socket);
     for (uint32_t index = 0; index < socket_count; index++)
     {
-#ifdef _MSC_VER // only for windows
-        socket_transport_disconnect(server_socket[index]);
         async_socket_close(server_async_socket[index]);
-        socket_transport_disconnect(client_socket[index]);
         async_socket_close(client_async_socket[index]);
-#else
-        async_socket_close(server_async_socket[index]);
-        socket_transport_disconnect(server_socket[index]);
-        async_socket_close(client_async_socket[index]);
-        socket_transport_disconnect(client_socket[index]);
-#endif
-
-        socket_transport_destroy(client_socket[index]);
-        socket_transport_destroy(server_socket[index]);
         async_socket_destroy(server_async_socket[index]);
         async_socket_destroy(client_async_socket[index]);
     }

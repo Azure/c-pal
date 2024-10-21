@@ -9,7 +9,7 @@
 `async_socket_win32` is using the WSA Windows functions with a `PTP_POOL` in order to perform asynchronous socket send and receives.
 `async_socket_win32` creates its own threadpool environment.
 
-The `async_socket_win32` takes ownership of the provided `SOCKET_TRANSPORT_HANDLE` and is responsible for closing it. For that reason, it is not possible to re-open the `async_socket` after closing it. This is due to the fact that the socket is created by some external event, such as accepting an incoming connection and closing the underlying socket is not reversible.
+The `async_socket_win32` takes ownership of the provided `SOCKET_HANDLE` and is responsible for closing it. For that reason, it is not possible to re-open the `async_socket` after closing it. This is due to the fact that the socket is created by some external event, such as accepting an incoming connection and closing the underlying socket is not reversible.
 
 ## Exposed API
 
@@ -155,7 +155,7 @@ MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_soc
 
 **SRS_ASYNC_SOCKET_WIN32_01_036: [** `async_socket_open_async` shall set the thread pool for the environment to the pool obtained from the execution engine by calling `SetThreadpoolCallbackPool`. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_058: [** `async_socket_open_async` shall create a threadpool IO by calling `CreateThreadpoolIo` and passing `socket_transport_get_underlying_socket`, the callback environment to it and `on_io_complete` as callback. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_058: [** `async_socket_open_async` shall create a threadpool IO by calling `CreateThreadpoolIo` and passing `socket_handle`, the callback environment to it and `on_io_complete` as callback. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_094: [** `async_socket_open_async` shall set the state to OPEN. **]**
 
@@ -174,6 +174,8 @@ MOCKABLE_FUNCTION(, void, async_socket_close, ASYNC_SOCKET_HANDLE, async_socket)
 **SRS_ASYNC_SOCKET_WIN32_01_018: [** If `async_socket` is NULL, `async_socket_close` shall return. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_019: [** Otherwise, `async_socket_close` shall switch the state to CLOSING. **]**
+
+**SRS_ASYNC_SOCKET_WIN32_42_006: [** `async_socket_close` shall call `closesocket` on the underlying socket. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_020: [** `async_socket_close` shall wait for all executing `async_socket_send_async` and `async_socket_receive_async` APIs. **]**
 
@@ -225,7 +227,7 @@ MOCKABLE_FUNCTION(, ASYNC_SOCKET_SEND_SYNC_RESULT, async_socket_send_async, ASYN
 
 **SRS_ASYNC_SOCKET_WIN32_01_060: [** An asynchronous IO shall be started by calling `StartThreadpoolIo`. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_061: [** The `SOCKET_BUFFER` array associated with the context shall be sent by calling `socket_transport_send` and passing to it the `OVERLAPPED` structure with the event that was just created, `flags` set to 0, and `bytes_sent` set to NULL. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_061: [** The `SOCKET_BUFFER` array associated with the context shall be sent by calling `socket_transport_send` and passing to it the `OVERLAPPED` structure with the event that was just created, `dwFlags` set to 0, `lpNumberOfBytesSent` set to NULL and `lpCompletionRoutine` set to NULL. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_062: [** If `socket_transport_send` fails, `async_socket_send_async` shall call `WSAGetLastError`. **]**
 
@@ -277,7 +279,7 @@ MOCKABLE_FUNCTION(, int, async_socket_receive_async, ASYNC_SOCKET_HANDLE, async_
 
 **SRS_ASYNC_SOCKET_WIN32_01_081: [** An asynchronous IO shall be started by calling `StartThreadpoolIo`. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_082: [** A receive shall be started for the `WSABUF` array associated with the context calling `socket_transport_receive` and passing to it the `OVERLAPPED` structure with the event that was just created, `flags` set to 0, and `bytes_sent` set to NULL. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_082: [** A receive shall be started for the `WSABUF` array associated with the context calling `socket_transport_receive` and passing to it the `OVERLAPPED` structure with the event that was just created, `dwFlags` set to 0, `lpNumberOfBytesSent` set to NULL and `lpCompletionRoutine` set to NULL.. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_054: [** If `socket_transport_receive` fails with `SOCKET_RECEIVE_ERROR`, `async_socket_receive_async` shall call `WSAGetLastError`. **]**
 

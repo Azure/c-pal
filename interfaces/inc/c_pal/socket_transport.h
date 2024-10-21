@@ -10,10 +10,10 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 #endif
-
 #include "macro_utils/macro_utils.h"
 
-#include "c_pal/socket_handle.h"
+#include "socket_handle.h"
+
 
 #define MAX_GET_HOST_NAME_LEN       256
 #define MAX_LOCAL_ADDRESS_LEN       22
