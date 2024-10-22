@@ -870,6 +870,7 @@ int socket_transport_get_local_address(SOCKET_TRANSPORT_HANDLE socket_transport,
     if (socket_transport == NULL ||
         // Codes_SOCKET_TRANSPORT_WIN32_11_002: [ If hostname is NULL, socket_transport_get_local_address shall fail and return a non-zero value. ]
         hostname == NULL ||
+        // Codes_SOCKET_TRANSPORT_WIN32_11_003: [ If local_address_list is not NULL and address_count is NULL, socket_transport_get_local_address shall fail and return a non-zero value. ]
         (local_address_list != NULL && address_count == NULL)
     )
     {
@@ -879,16 +880,20 @@ int socket_transport_get_local_address(SOCKET_TRANSPORT_HANDLE socket_transport,
     }
     else
     {
+        // Codes_SOCKET_TRANSPORT_WIN32_11_004: [ socket_transport_get_local_address shall call sm_exec_begin ]
         SM_RESULT sm_result = sm_exec_begin(socket_transport->sm);
         if (sm_result != SM_EXEC_GRANTED)
         {
+            // Codes_SOCKET_TRANSPORT_WIN32_11_011: [ If any failure is encountered, socket_transport_get_local_address shall fail and return a non-zero value. ]
             LogError("sm_exec_begin failed : %" PRI_MU_ENUM, MU_ENUM_VALUE(SM_RESULT, sm_result));
             result = MU_FAILURE;
         }
         else
         {
+            // Codes_SOCKET_TRANSPORT_WIN32_11_005: [ socket_transport_get_local_address shall call get the hostname by calling gethostname. ]
             if (gethostname(hostname, MAX_GET_HOST_NAME_LEN) == SOCKET_ERROR)
             {
+                // Codes_SOCKET_TRANSPORT_WIN32_11_011: [ If any failure is encountered, socket_transport_get_local_address shall fail and return a non-zero value. ]
                 LogLastError("Unable to get hostname");
                 result = MU_FAILURE;
             }
@@ -896,9 +901,11 @@ int socket_transport_get_local_address(SOCKET_TRANSPORT_HANDLE socket_transport,
             {
                 if (local_address_list != NULL)
                 {
+                    // Codes_SOCKET_TRANSPORT_WIN32_11_006: [ If local_address_list is not NULL, socket_transport_get_local_address shall call gethostbyname to get the addresses in a hostent object. ]
                     struct hostent* host_info = gethostbyname(hostname);
                     if (host_info == NULL)
                     {
+                        // Codes_SOCKET_TRANSPORT_WIN32_11_011: [ If any failure is encountered, socket_transport_get_local_address shall fail and return a non-zero value. ]
                         LogLastError("Failure in call to gethostbyname %s", hostname);
                         result = MU_FAILURE;
                     }
@@ -917,15 +924,18 @@ int socket_transport_get_local_address(SOCKET_TRANSPORT_HANDLE socket_transport,
                             }
 
                             // Allocate the array
+                            // Codes_SOCKET_TRANSPORT_WIN32_11_007: [ socket_transport_get_local_address shall allocate the LOCAL_ADDRESS array. ]
                             LOCAL_ADDRESS* temp_list = malloc_2(sizeof(LOCAL_ADDRESS), total_count);
                             if (temp_list == NULL)
                             {
+                                // Codes_SOCKET_TRANSPORT_WIN32_11_011: [ If any failure is encountered, socket_transport_get_local_address shall fail and return a non-zero value. ]
                                 LogError("failure in malloc_2(total_count: %" PRIu32 ", MAX_LOCAL_ADDRESS_LEN: %d)", total_count, MAX_LOCAL_ADDRESS_LEN);
                                 result = MU_FAILURE;
                             }
                             else
                             {
                                 bool failure = false;
+                                // Codes_SOCKET_TRANSPORT_WIN32_11_008: [ For each IP in the hostent object, socket_transport_get_local_address shall copy the value into the LOCAL_ADDRESS address by calling inet_ntop. ]
                                 while (host_info->h_addr_list[address_index] != 0)
                                 {
                                     temp_list[address_index].address_type = ADDRESS_INET;
@@ -946,6 +956,7 @@ int socket_transport_get_local_address(SOCKET_TRANSPORT_HANDLE socket_transport,
 
                                 if (failure)
                                 {
+                                    // Codes_SOCKET_TRANSPORT_WIN32_11_011: [ If any failure is encountered, socket_transport_get_local_address shall fail and return a non-zero value. ]
                                     free(temp_list);
                                     result = MU_FAILURE;
                                 }
@@ -969,6 +980,7 @@ int socket_transport_get_local_address(SOCKET_TRANSPORT_HANDLE socket_transport,
                         }
                         else
                         {
+                            // Codes_SOCKET_TRANSPORT_WIN32_11_011: [ If any failure is encountered, socket_transport_get_local_address shall fail and return a non-zero value. ]
                             LogError("Unknown address type h_addrtype: %d", host_info->h_addrtype);
                             result = MU_FAILURE;
                         }
@@ -976,9 +988,11 @@ int socket_transport_get_local_address(SOCKET_TRANSPORT_HANDLE socket_transport,
                 }
                 else
                 {
+                    // Codes_SOCKET_TRANSPORT_WIN32_11_010: [ On success socket_transport_get_local_address shall return 0. ]
                     result = 0;
                 }
             }
+            // Codes_SOCKET_TRANSPORT_WIN32_11_009: [ socket_transport_get_local_address shall call sm_exec_end. ]
             sm_exec_end(socket_transport->sm);
         }
     }

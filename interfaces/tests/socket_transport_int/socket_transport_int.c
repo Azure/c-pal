@@ -66,6 +66,7 @@ TEST_SUITE_CLEANUP(suite_cleanup)
 
 TEST_FUNCTION_INITIALIZE(method_init)
 {
+    g_port_num++;
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
@@ -428,6 +429,12 @@ TEST_FUNCTION(get_local_socket_address_test)
     SOCKET_TRANSPORT_HANDLE client_socket = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(client_socket);
 
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
+
+    SOCKET_TRANSPORT_HANDLE incoming_socket;
+    ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_OK, socket_transport_accept(listen_socket, &incoming_socket, TEST_CONN_TIMEOUT));
+    ASSERT_IS_NOT_NULL(incoming_socket);
+
     char client_hostname[MAX_GET_HOST_NAME_LEN] = { 0 };
     char server_hostname[MAX_GET_HOST_NAME_LEN] = { 0 };
 
@@ -435,14 +442,28 @@ TEST_FUNCTION(get_local_socket_address_test)
     LOCAL_ADDRESS* client_local_address_list;
     uint32_t server_list_count;
     uint32_t client_list_count;
-    ASSERT_ARE_EQUAL(int, 0, socket_transport_get_local_address(listen_socket, server_hostname, &server_local_address_list, &server_list_count));
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_get_local_address(incoming_socket, server_hostname, &server_local_address_list, &server_list_count));
     ASSERT_ARE_EQUAL(int, 0, socket_transport_get_local_address(client_socket, client_hostname, &client_local_address_list, &client_list_count));
+
+    LogVerbose("Client Address:");
+    for (uint32_t index = 0; index < client_list_count; index++)
+    {
+        LogVerbose("\tType: %" PRI_MU_ENUM ", Address: %s", MU_ENUM_VALUE(ADDRESS_TYPE, client_local_address_list[0].address_type), client_local_address_list[0].address);
+    }
+    LogVerbose("Incoming Address:");
+    for (uint32_t index = 0; index < server_list_count; index++)
+    {
+        LogVerbose("\tType: %" PRI_MU_ENUM ", Address: %s", MU_ENUM_VALUE(ADDRESS_TYPE, server_local_address_list[0].address_type), server_local_address_list[0].address);
+    }
 
     ASSERT_ARE_EQUAL(char_ptr, server_hostname, client_hostname);
     ASSERT_ARE_EQUAL(uint32_t, server_list_count, client_list_count);
 
     socket_transport_disconnect(client_socket);
     socket_transport_destroy(client_socket);
+
+    socket_transport_disconnect(incoming_socket);
+    socket_transport_destroy(incoming_socket);
 
     socket_transport_disconnect(listen_socket);
     socket_transport_destroy(listen_socket);

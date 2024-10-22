@@ -807,7 +807,7 @@ bool socket_transport_is_valid_socket(SOCKET_TRANSPORT_HANDLE socket_transport_h
 }
 
 
-int socket_transport_local_address(SOCKET_TRANSPORT_HANDLE socket_transport, char hostname[MAX_GET_HOST_NAME_LEN], LOCAL_ADDRESS** local_address_list, uint32_t* address_count)
+int socket_transport_get_local_address(SOCKET_TRANSPORT_HANDLE socket_transport, char hostname[MAX_GET_HOST_NAME_LEN], LOCAL_ADDRESS** local_address_list, uint32_t* address_count)
 {
     int result;
     if (socket_transport == NULL ||
@@ -821,80 +821,91 @@ int socket_transport_local_address(SOCKET_TRANSPORT_HANDLE socket_transport, cha
     }
     else
     {
-        if (gethostname(hostname, MAX_GET_HOST_NAME_LEN) == SOCKET_ERROR)
+        SM_RESULT sm_result = sm_exec_begin(socket_transport->sm);
+        if (sm_result != SM_EXEC_GRANTED)
         {
-            LogLastError("Unable to get hostname");
+            // Codes_SOCKET_TRANSPORT_WIN32_11_011: [ If any failure is encountered, socket_transport_get_local_address shall fail and return a non-zero value. ]
+            LogError("sm_exec_begin failed : %" PRI_MU_ENUM, MU_ENUM_VALUE(SM_RESULT, sm_result));
             result = MU_FAILURE;
         }
         else
         {
-            if (local_address_list != NULL)
+            if (gethostname(hostname, MAX_GET_HOST_NAME_LEN) == INVALID_SOCKET)
             {
-                struct hostent* host_info = gethostbyname(hostname);
-                if (host_info == NULL)
+                LogErrorNo("Unable to get hostname");
+                result = MU_FAILURE;
+            }
+            else
+            {
+                if (local_address_list != NULL)
                 {
-                    LogLastError("Failure in call to gethostbyname %s", hostname);
-                    result = MU_FAILURE;
-                }
-                else
-                {
-                    if (host_info->h_addrtype == AF_INET)
+                    struct ifaddrs *ifaddr, *ifa;
+                    if (getifaddrs(&ifaddr) == -1)
+                    {
+                        LogErrorNo("Failure getting interface addresses");
+                        result = MU_FAILURE;
+                    }
+                    else
                     {
                         uint32_t total_count = 0;
-                        uint32_t address_index = 0;
-                        struct in_addr addr;
-
-                        // Count the address returned
-                        while (host_info->h_addr_list[total_count] != 0)
+                        for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
                         {
                             total_count++;
                         }
 
-                        // Allocate the array
                         LOCAL_ADDRESS* temp_list = malloc_2(sizeof(LOCAL_ADDRESS), total_count);
                         if (temp_list == NULL)
                         {
+                            // Codes_SOCKET_TRANSPORT_WIN32_11_011: [ If any failure is encountered, socket_transport_get_local_address shall fail and return a non-zero value. ]
                             LogError("failure in malloc_2(total_count: %" PRIu32 ", MAX_LOCAL_ADDRESS_LEN: %d)", total_count, MAX_LOCAL_ADDRESS_LEN);
                             result = MU_FAILURE;
                         }
                         else
                         {
-                            while (host_info->h_addr_list[address_index] != 0)
+                            bool failure = false;
+                            uint32_t address_index = 0;
+
+                            for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
                             {
-                                temp_list[address_index].address_type = ADDRESS_INET;
+                                if (ifa->ifa_addr != NULL)
+                                {
+                                    int family = ifa->ifa_addr->sa_family;
 
-                                addr.s_addr = *(u_long*)host_info->h_addr_list[address_index];
-                                inet_ntop(AF_INET, &(addr.s_addr), temp_list[address_index].address, MAX_LOCAL_ADDRESS_LEN);
+                                    temp_list[address_index].address_type = ADDRESS_INET;
 
-                                LogInfo("IPv4 Address #: %s", temp_list[address_index].address);
-                                address_index++;
+                                    if (getnameinfo( ifa->ifa_addr, (family == AF_INET) ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6), temp_list[address_index].address, MAX_LOCAL_ADDRESS_LEN, NULL, 0, NI_NUMERICHOST) != 0)
+                                    {
+                                        //LogLastError("failure in retreiving network name");
+                                        failure = true;
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        printf("flag: %u\n", ifa->ifa_flags);
+                                        printf("type: %s\n", ifa->ifa_name);
+                                        printf("Name: %s\n", temp_list[address_index].address);
+                                        address_index++;
+                                    }
+                                }
                             }
-                            *address_count = total_count;
-                            *local_address_list = temp_list;
-                            result = 0;
+
+                            if (failure)
+                            {
+                                // Codes_SOCKET_TRANSPORT_WIN32_11_011: [ If any failure is encountered, socket_transport_get_local_address shall fail and return a non-zero value. ]
+                                free(temp_list);
+                                result = MU_FAILURE;
+                            }
+                            else
+                            {
+                                *address_count = total_count;
+                                *local_address_list = temp_list;
+                                result = 0;
+                            }
                         }
-                    }
-                    else if (host_info->h_addrtype == AF_INET6)
-                    {
-                        address_count = 0;
-                        result = 0;
-                    }
-                    else if (host_info->h_addrtype == AF_NETBIOS)
-                    {
-                        address_count = 0;
-                        result = 0;
-                    }
-                    else
-                    {
-                        LogError("Unknown address type h_addrtype: %d", host_info->h_addrtype);
-                        result = MU_FAILURE;
                     }
                 }
             }
-            else
-            {
-                result = 0;
-            }
+            sm_exec_end(socket_transport->sm);
         }
     }
     return result;
