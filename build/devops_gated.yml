@@ -12,6 +12,7 @@ resources:
 jobs:
 - template: /pipeline_templates/build_all_flavors.yml@c_build_tools
   parameters:
+    cmake_options: -Drun_unittests:BOOL=ON -Drun_e2e_tests:BOOL=ON -Drun_int_tests:BOOL=ON -Drun_perf_tests:BOOL=ON -Drun_traceability:BOOL=ON -Duse_cppunittest:BOOL=ON -Drun_reals_check:BOOL=ON
     GBALLOC_LL_TYPE_VALUES: ["PASSTHROUGH", "JEMALLOC"]
 
 - template: /pipeline_templates/run_master_check.yml@c_build_tools
@@ -119,4 +120,3 @@ jobs:
 #      filePath: './build/linux/build_linux_iwyu.sh'
 #      arguments: '$(Build.Repository.LocalPath)'
 #      workingDirectory: '$(Build.Repository.LocalPath)'
-
