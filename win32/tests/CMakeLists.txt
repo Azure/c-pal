@@ -33,12 +33,14 @@ if(${run_unittests})
     endif()
 
     build_test_folder(gballoc_hl_passthrough_ut)
+    build_test_folder(job_object_helper_ut)
 endif()
 
 if(${run_int_tests})
     build_test_folder(malloc_multi_flex_int)
     build_test_folder(threadpool_win32_int)
     build_test_folder(string_utils_int)
+    build_test_folder(job_object_helper_int)
 
     if((${GBALLOC_LL_TYPE} STREQUAL "MIMALLOC"))
         build_test_folder(gballoc_ll_mimalloc_int)
