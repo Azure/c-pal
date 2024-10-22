@@ -237,7 +237,7 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpo
 
 **SRS_THREADPOOL_LINUX_07_048: [** If reallocating the task array fails, `threadpool_schedule_work` shall fail and return a non-zero value. **]**
 
-**SRS_THREADPOOL_LINUX_07_049: [** `threadpool_schedule_work` shall initialize `pending_work_item_count_ptr` with `NULL` then copy the work function and work function context into insert position in the task array and assign `0` to the return variable to indicate success. **]**
+**SRS_THREADPOOL_LINUX_07_049: [** `threadpool_schedule_work` shall copy the work function and work function context into insert position in the task array and assign `0` to the return variable to indicate success. **]**
 
 **SRS_THREADPOOL_LINUX_07_050: [** `threadpool_schedule_work` shall set the `task_state` to `TASK_WAITING` and then release the shared SRW lock. **]**
 
