@@ -215,7 +215,7 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_restart, TIMER_INSTANCE_HANDLE, timer,
 
 **SRS_THREADPOOL_WIN32_42_019: [** If `timer` is `NULL`, `threadpool_timer_restart` shall fail and return a non-zero value. **]**
 
-If timer is `DESTROYING`, `threadpool_timer_restart` shall fail and return a non-zero value.
+If timer state is `DESTROYING`, `threadpool_timer_restart` shall fail and return a non-zero value.
 
 **SRS_THREADPOOL_WIN32_42_022: [** `threadpool_timer_restart` shall call `SetThreadpoolTimer`, passing negative `start_delay_ms` as `pftDueTime`, `timer_period_ms` as `msPeriod`, and 0 as `msWindowLength`. **]**
 
