@@ -215,6 +215,8 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_restart, TIMER_INSTANCE_HANDLE, timer,
 
 **SRS_THREADPOOL_WIN32_42_019: [** If `timer` is `NULL`, `threadpool_timer_restart` shall fail and return a non-zero value. **]**
 
+If timer state is `DESTROYING`, `threadpool_timer_restart` shall fail and return a non-zero value.
+
 **SRS_THREADPOOL_WIN32_42_022: [** `threadpool_timer_restart` shall call `SetThreadpoolTimer`, passing negative `start_delay_ms` as `pftDueTime`, `timer_period_ms` as `msPeriod`, and 0 as `msWindowLength`. **]**
 
 **SRS_THREADPOOL_WIN32_42_023: [** `threadpool_timer_restart` shall succeed and return 0. **]**
@@ -243,11 +245,15 @@ MOCKABLE_FUNCTION(, void, threadpool_timer_destroy, TIMER_INSTANCE_HANDLE, timer
 
 **SRS_THREADPOOL_WIN32_42_011: [** If `timer` is `NULL`, `threadpool_timer_destroy` shall fail and return. **]**
 
+`threadpool_timer_destroy` shall switch the state to `DESTROYING`.
+
 **SRS_THREADPOOL_WIN32_42_012: [** `threadpool_timer_destroy` shall call `SetThreadpoolTimer` with `NULL` for `pftDueTime` and 0 for `msPeriod` and `msWindowLength` to cancel ongoing timers. **]**
 
 **SRS_THREADPOOL_WIN32_42_013: [** `threadpool_timer_destroy` shall call `WaitForThreadpoolTimerCallbacks`. **]**
 
 **SRS_THREADPOOL_WIN32_42_014: [** `threadpool_timer_destroy` shall call `CloseThreadpoolTimer`. **]**
+
+`threadpool_timer_destroy` shall switch the state to `DESTROYED`.
 
 **SRS_THREADPOOL_WIN32_42_015: [** `threadpool_timer_destroy` shall free all resources in `timer`. **]**
 
