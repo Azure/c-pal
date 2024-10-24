@@ -66,6 +66,7 @@ MOCKABLE_FUNCTION(, SOCKET_RECEIVE_RESULT, socket_transport_receive, SOCKET_TRAN
 
 MOCKABLE_FUNCTION(, SOCKET_HANDLE, socket_transport_get_underlying_socket, SOCKET_TRANSPORT_HANDLE, socket_transport);
 MOCKABLE_FUNCTION(, bool, socket_transport_is_valid_socket, SOCKET_TRANSPORT_HANDLE, socket_transport_handle);
+MOCKABLE_FUNCTION(, int, socket_transport_get_local_address, SOCKET_TRANSPORT_HANDLE, socket_transport, char, hostname[MAX_GET_HOST_NAME_LEN], LOCAL_ADDRESS**, local_address_list, uint32_t*, address_count);
 ```
 
 ### socket_transport_create_client
@@ -345,3 +346,33 @@ MOCKABLE_FUNCTION(, bool, socket_transport_is_valid_socket, SOCKET_TRANSPORT_HAN
 **SOCKET_TRANSPORT_LINUX_11_094: [** If the socket inside `socket_transport_handle` is an `INVALID_SOCKET`, `socket_transport_is_valid_socket` shall fail and return `false`. **]**
 
 **SOCKET_TRANSPORT_LINUX_11_095: [** On success, `socket_transport_is_valid_socket` shall return `true`. **]**
+
+### socket_transport_get_local_address
+
+```c
+MOCKABLE_FUNCTION(, int, socket_transport_get_local_address, SOCKET_TRANSPORT_HANDLE, socket_transport, char, hostname[MAX_GET_HOST_NAME_LEN], LOCAL_ADDRESS**, local_address_list, uint32_t*, address_count);
+```
+
+`socket_transport_get_local_address` gets the interface addresses and hostname of the current machine.
+
+**SOCKET_TRANSPORT_LINUX_11_098: [** If `socket_transport` is `NULL`, `socket_transport_get_local_address` shall fail and return a non-zero value. **]**
+
+**SOCKET_TRANSPORT_LINUX_11_099: [** If `hostname` is `NULL`, `socket_transport_get_local_address` shall fail and return a non-zero value. **]**
+
+**SOCKET_TRANSPORT_LINUX_11_100: [** If `local_address_list` is not `NULL` and `address_count` is `NULL`, `socket_transport_get_local_address` shall fail and return a non-zero value. **]**
+
+**SOCKET_TRANSPORT_LINUX_11_101: [** `socket_transport_get_local_address` shall call `sm_exec_begin`. **]**
+
+**SOCKET_TRANSPORT_LINUX_11_102: [** `socket_transport_get_local_address` shall call get the `hostname` by calling `gethostname`. **]**
+
+**SOCKET_TRANSPORT_LINUX_11_103: [** If `local_address_list` is not `NULL`, `socket_transport_get_local_address` shall call `getifaddrs` to get the link list of ifaddrs. **]**
+
+**SOCKET_TRANSPORT_LINUX_11_104: [** `socket_transport_get_local_address` shall allocate the `LOCAL_ADDRESS` array for each ifaddrs with a `sa_family` of `AF_INET` and the interface is up and running. **]**
+
+**SOCKET_TRANSPORT_LINUX_11_105: [** For each IP in the `ifaddr` object if the `sa_family` is `AF_INET` and the interface is up and running and it's not a loopback, `socket_transport_get_local_address` shall retrieve the name of the address by calling `getnameinfo`. **]**
+
+**SOCKET_TRANSPORT_LINUX_11_106: [** `socket_transport_get_local_address` shall call `sm_exec_end`. **]**
+
+**SOCKET_TRANSPORT_LINUX_11_107: [** On success `socket_transport_get_local_address` shall return 0. **]**
+
+**SOCKET_TRANSPORT_LINUX_11_108: [** If any failure is encountered, `socket_transport_get_local_address` shall fail and return a non-zero value. **]**

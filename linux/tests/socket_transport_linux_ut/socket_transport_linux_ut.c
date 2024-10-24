@@ -10,6 +10,9 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <errno.h>
+#include <ifaddrs.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
@@ -139,6 +142,13 @@ static ssize_t my_recv(SOCKET_HANDLE sockfd, void* buf, size_t len, int flags)
     return TEST_BYTES_RECV;
 }
 
+static int my_gethostname(char* name, size_t namelen)
+{
+    (void)namelen;
+    strcpy(name, TEST_INCOMING_HOSTNAME);
+    return 0;
+}
+
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
@@ -150,7 +160,9 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_SM_GLOBAL_MOCK_HOOK();
 
     REGISTER_GLOBAL_MOCK_HOOK(malloc, real_gballoc_ll_malloc);
+    REGISTER_GLOBAL_MOCK_HOOK(malloc_2, real_gballoc_ll_malloc_2);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(malloc, NULL);
+    REGISTER_GLOBAL_MOCK_FAIL_RETURN(malloc_2, NULL);
     REGISTER_GLOBAL_MOCK_HOOK(free, real_gballoc_ll_free);
 
     REGISTER_GLOBAL_MOCK_HOOK(socket, my_socket);
@@ -170,6 +182,10 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(send, INVALID_SOCKET);
     REGISTER_GLOBAL_MOCK_HOOK(recv, my_recv);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(recv, INVALID_SOCKET);
+    REGISTER_GLOBAL_MOCK_HOOK(gethostname, my_gethostname);
+    REGISTER_GLOBAL_MOCK_FAIL_RETURN(gethostname, -1);
+    REGISTER_GLOBAL_MOCK_FAIL_RETURN(getnameinfo, EAI_SYSTEM);
+    REGISTER_GLOBAL_MOCK_FAIL_RETURN(getifaddrs, -1);
 
     REGISTER_TYPE(SM_RESULT, SM_RESULT);
 
@@ -1706,6 +1722,267 @@ TEST_FUNCTION(socket_transport_is_valid_socket_INVALID_SOCKET)
     //cleanup
     socket_transport_disconnect(test_socket_transport);
     socket_transport_destroy(test_socket_transport);
+}
+
+// socket_transport_get_local_address
+
+// Tests_SOCKET_TRANSPORT_LINUX_11_098: [ If socket_transport is NULL, socket_transport_get_local_address shall fail and return a non-zero value. ]
+TEST_FUNCTION(socket_transport_get_local_address_handle_NULL_fail)
+{
+    //arrange
+    char hostname[MAX_GET_HOST_NAME_LEN];
+    LOCAL_ADDRESS* local_address_list;
+    uint32_t address_count;
+
+    //act
+    int result = socket_transport_get_local_address(NULL, hostname, &local_address_list, &address_count);
+
+    //assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // Cleanup
+}
+
+// Tests_SOCKET_TRANSPORT_LINUX_11_099: [ If hostname is NULL, socket_transport_get_local_address shall fail and return a non-zero value. ]
+TEST_FUNCTION(socket_transport_get_local_address_hostname_NULL_fail)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
+    ASSERT_IS_NOT_NULL(socket_handle);
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
+    umock_c_reset_all_calls();
+
+    LOCAL_ADDRESS* local_address_list;
+    uint32_t address_count;
+
+    //act
+    int result = socket_transport_get_local_address(socket_handle, NULL, &local_address_list, &address_count);
+
+    //assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // Cleanup
+    socket_transport_disconnect(socket_handle);
+    socket_transport_destroy(socket_handle);
+}
+
+// Tests_SOCKET_TRANSPORT_LINUX_11_100: [ If local_address_list is not NULL and address_count is NULL, socket_transport_get_local_address shall fail and return a non-zero value. ]
+TEST_FUNCTION(socket_transport_get_local_address_address_count_NULL_fail)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
+    ASSERT_IS_NOT_NULL(socket_handle);
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
+    umock_c_reset_all_calls();
+
+    char hostname[MAX_GET_HOST_NAME_LEN];
+    LOCAL_ADDRESS* local_address_list;
+
+    //act
+    int result = socket_transport_get_local_address(socket_handle, hostname, &local_address_list, NULL);
+
+    //assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // Cleanup
+    socket_transport_disconnect(socket_handle);
+    socket_transport_destroy(socket_handle);
+}
+
+// Tests_SOCKET_TRANSPORT_LINUX_11_101: [ socket_transport_get_local_address shall call sm_exec_begin. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_102: [ socket_transport_get_local_address shall call get the hostname by calling gethostname. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_103: [ If local_address_list is not NULL, socket_transport_get_local_address shall call getifaddrs to get the link list of ifaddrs. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_104: [ socket_transport_get_local_address shall allocate the LOCAL_ADDRESS array for each ifaddrs with a sa_family of AF_INET and the interface is up and running. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_105: [ For each IP in the ifaddr object if the sa_family is AF_INET and the interface is up and running and it's not a loopback, socket_transport_get_local_address shall retrieve the name of the address by calling getnameinfo. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_106: [ socket_transport_get_local_address shall call sm_exec_end. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_107: [ On success socket_transport_get_local_address shall return 0. ]
+TEST_FUNCTION(socket_transport_get_local_address_success)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
+    ASSERT_IS_NOT_NULL(socket_handle);
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
+    umock_c_reset_all_calls();
+
+    char hostname[MAX_GET_HOST_NAME_LEN];
+    LOCAL_ADDRESS* local_address_list;
+    uint32_t address_count;
+
+    struct ifaddrs address_info_1 = {0};
+    struct sockaddr ifa_addr_1 = {0};
+    struct ifaddrs address_info_2;
+
+    ifa_addr_1.sa_family = AF_INET;
+
+    address_info_1.ifa_next = &address_info_2;
+    address_info_1.ifa_name = "lo";
+    address_info_1.ifa_flags = IFF_LOOPBACK | IFF_UP | IFF_RUNNING | IFF_POINTOPOINT;
+    address_info_1.ifa_addr = &ifa_addr_1;
+
+    address_info_2.ifa_next = NULL;
+    address_info_2.ifa_name = "enp0s31f6";
+    address_info_2.ifa_flags = IFF_UP | IFF_RUNNING | IFF_POINTOPOINT;
+    address_info_2.ifa_addr = &ifa_addr_1;
+    const char* actual_address = "192.168.1.21";
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(gethostname(IGNORED_ARG, MAX_GET_HOST_NAME_LEN));
+    STRICT_EXPECTED_CALL(getifaddrs(IGNORED_ARG))
+        .CopyOutArgumentBuffer_ifap(&address_info_1, sizeof(struct ifaddrs));
+    STRICT_EXPECTED_CALL(malloc_2(IGNORED_ARG, IGNORED_ARG));
+
+    STRICT_EXPECTED_CALL(getnameinfo(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, NULL, 0, IGNORED_ARG))
+        .CopyOutArgumentBuffer_host(actual_address, sizeof(actual_address));
+
+    STRICT_EXPECTED_CALL(freeifaddrs(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
+
+    //act
+    int result = socket_transport_get_local_address(socket_handle, hostname, &local_address_list, &address_count);
+
+    //assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(int, 1, address_count);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // Cleanup
+    socket_transport_disconnect(socket_handle);
+    socket_transport_destroy(socket_handle);
+    free(local_address_list);
+}
+
+// Tests_SOCKET_TRANSPORT_LINUX_11_108: [ If any failure is encountered, socket_transport_get_local_address shall fail and return a non-zero value. ]
+TEST_FUNCTION(socket_transport_get_local_address_invalid_address_list_fail)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
+    ASSERT_IS_NOT_NULL(socket_handle);
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
+    umock_c_reset_all_calls();
+
+    char hostname[MAX_GET_HOST_NAME_LEN];
+    const char* ip_address_list[] = {
+        "10.0.0.1",
+        NULL
+    };
+    (void)ip_address_list;
+
+    LOCAL_ADDRESS* local_address_list;
+    uint32_t address_count;
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(gethostname(IGNORED_ARG, MAX_GET_HOST_NAME_LEN));
+    STRICT_EXPECTED_CALL(getifaddrs(IGNORED_ARG))
+        .SetReturn(-1);
+    STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
+
+    //act
+    int result = socket_transport_get_local_address(socket_handle, hostname, &local_address_list, &address_count);
+
+    //assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // Cleanup
+    socket_transport_disconnect(socket_handle);
+    socket_transport_destroy(socket_handle);
+}
+
+// Tests_SOCKET_TRANSPORT_LINUX_11_101: [ socket_transport_get_local_address shall call sm_exec_begin. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_102: [ socket_transport_get_local_address shall call get the hostname by calling gethostname. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_106: [ socket_transport_get_local_address shall call sm_exec_end. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_107: [ On success socket_transport_get_local_address shall return 0. ]
+TEST_FUNCTION(socket_transport_get_local_address_no_address_list_success)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
+    ASSERT_IS_NOT_NULL(socket_handle);
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
+    umock_c_reset_all_calls();
+
+    char hostname[MAX_GET_HOST_NAME_LEN];
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(gethostname(IGNORED_ARG, MAX_GET_HOST_NAME_LEN));
+    STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
+
+    //act
+    int result = socket_transport_get_local_address(socket_handle, hostname, NULL, NULL);
+
+    //assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // Cleanup
+    socket_transport_disconnect(socket_handle);
+    socket_transport_destroy(socket_handle);
+}
+
+// Tests_SOCKET_TRANSPORT_LINUX_11_108: [ If any failure is encountered, socket_transport_get_local_address shall fail and return a non-zero value. ]
+TEST_FUNCTION(socket_transport_get_local_address_fail)
+{
+    //arrange
+    SOCKET_TRANSPORT_HANDLE socket_handle = socket_transport_create_client();
+    ASSERT_IS_NOT_NULL(socket_handle);
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(socket_handle, TEST_HOSTNAME, TEST_PORT, TEST_CONNECTION_TIMEOUT));
+    umock_c_reset_all_calls();
+
+    char hostname[MAX_GET_HOST_NAME_LEN];
+    LOCAL_ADDRESS* local_address_list;
+    uint32_t address_count;
+
+    struct ifaddrs address_info_1 = {0};
+    struct sockaddr ifa_addr_1 = {0};
+    struct ifaddrs address_info_2;
+
+    ifa_addr_1.sa_family = AF_INET;
+
+    address_info_1.ifa_next = &address_info_2;
+    address_info_1.ifa_name = "lo";
+    address_info_1.ifa_flags = IFF_LOOPBACK | IFF_UP | IFF_RUNNING | IFF_POINTOPOINT;
+    address_info_1.ifa_addr = &ifa_addr_1;
+
+    address_info_2.ifa_next = NULL;
+    address_info_2.ifa_name = "enp0s31f6";
+    address_info_2.ifa_flags = IFF_UP | IFF_RUNNING | IFF_POINTOPOINT;
+    address_info_2.ifa_addr = &ifa_addr_1;
+    const char* actual_address = "192.168.1.21";
+
+    STRICT_EXPECTED_CALL(sm_exec_begin(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(gethostname(IGNORED_ARG, MAX_GET_HOST_NAME_LEN));
+    STRICT_EXPECTED_CALL(getifaddrs(IGNORED_ARG))
+        .CopyOutArgumentBuffer_ifap(&address_info_1, sizeof(struct ifaddrs));
+    STRICT_EXPECTED_CALL(malloc_2(IGNORED_ARG, IGNORED_ARG));
+
+    STRICT_EXPECTED_CALL(getnameinfo(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, NULL, 0, IGNORED_ARG))
+        .CopyOutArgumentBuffer_host(actual_address, sizeof(actual_address));
+
+    STRICT_EXPECTED_CALL(freeifaddrs(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
+
+    umock_c_negative_tests_snapshot();
+
+    for (size_t index = 0; index < umock_c_negative_tests_call_count(); index++)
+    {
+        if (umock_c_negative_tests_can_call_fail(index))
+        {
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(index);
+
+            //act
+            int result = socket_transport_get_local_address(socket_handle, hostname, &local_address_list, &address_count);
+
+            //assert
+            ASSERT_ARE_NOT_EQUAL(int, 0, result, "On failed call %zu", index);
+        }
+    }
+
+    // Cleanup
+    socket_transport_disconnect(socket_handle);
+    socket_transport_destroy(socket_handle);
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
