@@ -20,6 +20,7 @@
 #include "c_pal/thandle_log_context_handle.h"
 #include "c_pal/socket_transport.h"
 #include "c_pal/async_socket.h"
+#include "c_pal/job_object_helper.h"
 
 #include "macro_utils/macro_utils.h"
 
@@ -47,6 +48,7 @@
 #include "real_thandle_log_context_handle.h"
 #include "real_socket_transport.h"
 #include "real_async_socket.h"
+#include "real_job_object_helper.h"
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
@@ -74,6 +76,7 @@ TEST_FUNCTION(check_all_c_pal_reals)
     REGISTER_THANDLE_LOG_CONTEXT_HANDLE_GLOBAL_MOCK_HOOK();
     REGISTER_SOCKET_TRANSPORT_GLOBAL_MOCK_HOOK();
     REGISTER_ASYNC_SOCKET_GLOBAL_MOCK_HOOK();
+    REGISTER_JOB_OBJECT_HELPER_GLOBAL_MOCK_HOOK();
 
     // assert
     // no explicit assert, if it builds it works
