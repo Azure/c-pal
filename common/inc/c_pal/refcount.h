@@ -108,6 +108,7 @@ static type* REFCOUNT_TYPE_DECLARE_CREATE_FLEX(type)(size_t nmemb, size_t size) 
     }                                                                                                                                                                               \
     return result;                                                                                                                                                                  \
 }                                                                                                                                                                                   \
+MU_UNSUPPRESS_WARNING(4505)                                                                                                                                                         \
 
 /* Codes_SRS_REFCOUNT_01_002: [ REFCOUNT_TYPE_CREATE shall allocate memory for the type that is ref counted. ]*/
 /* Codes_SRS_REFCOUNT_01_003: [ On success it shall return a non-NULL handle to the allocated ref counted type type. ]*/
