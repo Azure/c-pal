@@ -123,7 +123,7 @@ MU_UNSUPPRESS_WARNING(4505)                                                     
 /* Codes_SRS_REFCOUNT_01_008: [ REFCOUNT_TYPE_DESTROY shall free the memory allocated by REFCOUNT_TYPE_CREATE or REFCOUNT_TYPE_CREATE_WITH_EXTRA_SIZE. ]*/
 /* Codes_SRS_REFCOUNT_01_009: [ If counted_type is NULL, REFCOUNT_TYPE_DESTROY shall return. ]*/
 #define DEFINE_DESTROY(type, free_func)                                                                                                                                                                 \
-MU_SUPPRESS_WARNING(4505) /*/*warning C4505: 'type_Destroy': unreferenced function with internal linkage has been removed*/*/                                                                           \
+MU_SUPPRESS_WARNING(4505) /*warning C4505: 'type_Destroy': unreferenced function with internal linkage has been removed*/                                                                               \
 static void REFCOUNT_TYPE_DECLARE_DESTROY(type)(type* counted_type)                                                                                                                                     \
 {                                                                                                                                                                                                       \
     void* ref_counted = (void*)((unsigned char*)counted_type - offsetof(REFCOUNT_TYPE(type), counted));                                                                                                 \
