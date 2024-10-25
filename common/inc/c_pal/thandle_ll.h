@@ -152,8 +152,9 @@ INITIALIZE_MOVE assumes that destination is not initialized and thus it does not
 #define THANDLE_GET_T(T) MU_C2(T,_GET_T)
 
 /*THANDLE_MALLOC_WITH_MALLOC_FUNCTIONS returns a new T* using malloc_function (if not NULL) or THANDLE_LL_TYPE_STRUCT_VAR.malloc (if not NULL) or malloc*/
-#define THANDLE_LL_MALLOC_WITH_MALLOC_FUNCTIONS_MACRO(C, T) \
-static T* THANDLE_MALLOC_WITH_MALLOC_FUNCTIONS(C)(void(*dispose)(T*), THANDLE_LL_MALLOC_FUNCTION_POINTER_T malloc_function, THANDLE_LL_FREE_FUNCTION_POINTER_T free_function) \
+#define THANDLE_LL_MALLOC_WITH_MALLOC_FUNCTIONS_MACRO(C, T)                                                                                                                     \
+MU_SUPPRESS_WARNING(4505) /*warning C4505: 'function': unreferenced function with internal linkage has been removed*/                                                           \
+static T* THANDLE_MALLOC_WITH_MALLOC_FUNCTIONS(C)(void(*dispose)(T*), THANDLE_LL_MALLOC_FUNCTION_POINTER_T malloc_function, THANDLE_LL_FREE_FUNCTION_POINTER_T free_function)   \
 {                                                                                                                                                                   \
     T* result;                                                                                                                                                      \
     THANDLE_LL_MALLOC_FUNCTION_POINTER_T malloc_function_used;                                                                                                      \
@@ -197,13 +198,16 @@ static T* THANDLE_MALLOC_WITH_MALLOC_FUNCTIONS(C)(void(*dispose)(T*), THANDLE_LL
     }                                                                                                                                                               \
     return result;                                                                                                                                                  \
 }                                                                                                                                                                   \
+MU_UNSUPPRESS_WARNING(4505)                                                                                                                                         \
 
 /*given a previous type T, this introduces THANDLE_MALLOC macro to create its wrapper, initialize refCount to 1, and remember the dispose function*/
-#define THANDLE_LL_MALLOC_MACRO(C, T) \
+#define THANDLE_LL_MALLOC_MACRO(C, T)                                                                                                                               \
+MU_SUPPRESS_WARNING(4505) /*warning C4505: 'function': unreferenced function with internal linkage has been removed*/                                               \
 static T* THANDLE_MALLOC(C)(void(*dispose)(T*))                                                                                                                     \
 {                                                                                                                                                                   \
     return THANDLE_MALLOC_WITH_MALLOC_FUNCTIONS(C)(dispose, NULL, NULL);                                                                                            \
 }                                                                                                                                                                   \
+MU_UNSUPPRESS_WARNING(4505)                                                                                                                                         \
 
 /*this is only useful during debugging: from a THANDLE(T) it returns THANDLE_WRAPPER_TYPE_NAME(T) - which can be viewed in debugger - useful for seeing refCount.
 Example: write REAL_BSDL_LOG_STRUCTURE_INSPECT(temp) in the Visual Studio watch window, where REAL_BSDL_LOG_STRUCTURE is a previously THANDLE'd type               */
@@ -216,7 +220,8 @@ const THANDLE_WRAPPER_TYPE_NAME(T)* const THANDLE_INSPECT(C)(THANDLE(T) t)      
 #define THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS(C) MU_C2(THANDLE_LL_MALLOC_WITH_EXTRA_SIZE_MACRO_WITH_MALLOC_FUNCTIONS_, C)
 
 /*THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS returns a new T* with flex semantics using malloc_flex_function (if not NULL) or THANDLE_LL_TYPE_STRUCT_VAR.malloc_flex (if not NULL) or malloc_flex*/
-#define THANDLE_LL_MALLOC_WITH_EXTRA_SIZE_WITH_MALLOC_FUNCTIONS_MACRO(C, T)                                                     \
+#define THANDLE_LL_MALLOC_WITH_EXTRA_SIZE_WITH_MALLOC_FUNCTIONS_MACRO(C, T)                                                                                         \
+MU_SUPPRESS_WARNING(4505) /*warning C4505: 'function': unreferenced function with internal linkage has been removed*/                                               \
 static T* THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS(C)(void(*dispose)(T*), size_t nmemb, size_t size, THANDLE_LL_MALLOC_FLEX_FUNCTION_POINTER_T malloc_flex_function, THANDLE_LL_FREE_FUNCTION_POINTER_T free_function)        \
 {                                                                                                                                                                   \
     T* result;                                                                                                                                                      \
@@ -261,17 +266,21 @@ static T* THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS(C)(void(*dispose)(T*), size_
     }                                                                                                                                                               \
     return result;                                                                                                                                                  \
 }                                                                                                                                                                   \
+MU_UNSUPPRESS_WARNING(4505)                                                                                                                                         \
 
 #define THANDLE_LL_MALLOC_WITH_EXTRA_SIZE_MACRO(C, T)                                                                                                               \
-static T* THANDLE_MALLOC_FLEX(C)(void(*dispose)(T*), size_t nmemb, size_t size)                                                                                  \
+MU_SUPPRESS_WARNING(4505) /*warning C4505: 'function': unreferenced function with internal linkage has been removed*/                                               \
+static T* THANDLE_MALLOC_FLEX(C)(void(*dispose)(T*), size_t nmemb, size_t size)                                                                                     \
 {                                                                                                                                                                   \
-    return THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS(C)(dispose, nmemb, size, NULL, NULL);                                                                \
+    return THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS(C)(dispose, nmemb, size, NULL, NULL);                                                                          \
 }                                                                                                                                                                   \
+MU_UNSUPPRESS_WARNING(4505)                                                                                                                                         \
 
 #define THANDLE_CREATE_FROM_CONTENT_FLEX_WITH_MALLOC_FUNCTIONS(C) MU_C2(THANDLE_CREATE_FROM_CONTENT_FLEX_WITH_MALLOC_FUNCTIONS_, C)
 
 /*THANDLE_CREATE_FROM_CONTENT_FLEX_WITH_MALLOC_FUNCTIONS returns a new T* from some content using malloc_flex_function (if not NULL) or THANDLE_LL_TYPE_STRUCT_VAR.malloc_flex (if not NULL) or malloc_flex*/
-#define THANDLE_LL_CREATE_FROM_CONTENT_FLEX_WITH_MALLOC_FUNCTIONS_MACRO(C, T)                                                                                                                   \
+#define THANDLE_LL_CREATE_FROM_CONTENT_FLEX_WITH_MALLOC_FUNCTIONS_MACRO(C, T)                                                                                       \
+MU_SUPPRESS_WARNING(4505) /*warning C4505: 'function': unreferenced function with internal linkage has been removed*/                                               \
 static T* THANDLE_CREATE_FROM_CONTENT_FLEX_WITH_MALLOC_FUNCTIONS(C)(const T* source, void(*dispose)(T*), int(*copy)(T* destination, const T* source), size_t(*get_sizeof)(const T* source), THANDLE_LL_MALLOC_FLEX_FUNCTION_POINTER_T malloc_flex_function, THANDLE_LL_FREE_FUNCTION_POINTER_T free_function) \
 {                                                                                                                                                                   \
     T* result;                                                                                                                                                      \
@@ -354,27 +363,33 @@ static T* THANDLE_CREATE_FROM_CONTENT_FLEX_WITH_MALLOC_FUNCTIONS(C)(const T* sou
         }                                                                                                                                                               \
     }                                                                                                                                                                   \
     return result;                                                                                                                                                      \
-}
+}                                                                                                                                                                       \
+MU_UNSUPPRESS_WARNING(4505)                                                                                                                                             \
 
 #define THANDLE_LL_CREATE_FROM_CONTENT_FLEX_MACRO(C, T)                                                                                                                         \
-static T* THANDLE_CREATE_FROM_CONTENT_FLEX(C)(const T* source, void(*dispose)(T*), int(*copy)(T* destination, const T* source), size_t(*get_sizeof)(const T* source))   \
+MU_SUPPRESS_WARNING(4505) /*warning C4505: 'function': unreferenced function with internal linkage has been removed*/                                                           \
+static T* THANDLE_CREATE_FROM_CONTENT_FLEX(C)(const T* source, void(*dispose)(T*), int(*copy)(T* destination, const T* source), size_t(*get_sizeof)(const T* source))           \
 {                                                                                                                                                                               \
     return THANDLE_CREATE_FROM_CONTENT_FLEX_WITH_MALLOC_FUNCTIONS(C)(source, dispose, copy, get_sizeof, NULL, NULL);                                                            \
-}
+}                                                                                                                                                                               \
+MU_UNSUPPRESS_WARNING(4505)                                                                                                                                                     \
 
 #define THANDLE_LL_CREATE_FROM_CONTENT_MACRO(C, T)                                                                                                                  \
+MU_SUPPRESS_WARNING(4505) /*warning C4505: 'function': unreferenced function with internal linkage has been removed*/                                               \
 static size_t THANDLE_GET_SIZEOF(C)(const T* t)                                                                                                                     \
 {                                                                                                                                                                   \
     return sizeof(*t);                                                                                                                                              \
 }                                                                                                                                                                   \
-static T* THANDLE_CREATE_FROM_CONTENT(C)(const T* source, void(*dispose)(T*), int(*copy)(T* destination, const T* source))                                  \
+static T* THANDLE_CREATE_FROM_CONTENT(C)(const T* source, void(*dispose)(T*), int(*copy)(T* destination, const T* source))                                          \
 {                                                                                                                                                                   \
     /*Codes_SRS_THANDLE_02_032: [ THANDLE_CREATE_FROM_CONTENT_FLEX returns what THANDLE_CREATE_FROM_CONTENT_FLEX(T)(source, dispose, copy, THANDLE_GET_SIZEOF(T)); returns. ]*/ \
     return THANDLE_CREATE_FROM_CONTENT_FLEX(C)(source, dispose, copy, THANDLE_GET_SIZEOF(C));                                                                       \
 }                                                                                                                                                                   \
+MU_UNSUPPRESS_WARNING(4505)                                                                                                                                         \
 
 /*given a previous type T, this introduces THANDLE_FREE macro to free all used resources*/
-#define THANDLE_LL_FREE_MACRO(C, T) \
+#define THANDLE_LL_FREE_MACRO(C, T)                                                                                                                                 \
+MU_SUPPRESS_WARNING(4505) /*warning C4505: 'function': unreferenced function with internal linkage has been removed*/                                               \
 static void THANDLE_FREE(C)(T* t)                                                                                                                                   \
 {                                                                                                                                                                   \
     /*Codes_SRS_THANDLE_02_016: [ If t is NULL then THANDLE_FREE shall return. ]*/                                                                                  \
@@ -389,11 +404,13 @@ static void THANDLE_FREE(C)(T* t)                                               
         handle_impl->free_function(handle_impl);                                                                                                                    \
     }                                                                                                                                                               \
 }                                                                                                                                                                   \
+MU_UNSUPPRESS_WARNING(4505)                                                                                                                                         \
 
 /*given a previous type T, this introduces THANDLE_DEC_REF macro to decrement the reference count*/
-#define THANDLE_LL_DEC_REF_MACRO(C, T) \
-static void THANDLE_DEC_REF(C)(THANDLE(T) t)                                                                                                                               \
-{                                                                                                                                                                   \
+#define THANDLE_LL_DEC_REF_MACRO(C, T)                                                                                                                          \
+MU_SUPPRESS_WARNING(4505) /*warning C4505: 'function': unreferenced function with internal linkage has been removed*/                                           \
+static void THANDLE_DEC_REF(C)(THANDLE(T) t)                                                                                                                    \
+{                                                                                                                                                               \
     THANDLE_WRAPPER_TYPE_NAME(T)* handle_impl = CONTAINING_RECORD(t, THANDLE_WRAPPER_TYPE_NAME(T), data);                                                       \
     if (interlocked_decrement(&handle_impl->refCount) == 0)                                                                                                     \
     {                                                                                                                                                           \
@@ -403,15 +420,18 @@ static void THANDLE_DEC_REF(C)(THANDLE(T) t)                                    
         }                                                                                                                                                       \
         handle_impl->free_function(handle_impl);                                                                                                                \
     }                                                                                                                                                           \
-}                                                                                                                                                                   \
+}                                                                                                                                                               \
+MU_UNSUPPRESS_WARNING(4505)                                                                                                                                     \
 
 /*given a previous type T, this introduces THANDLE_INC_REF macro to increment the reference count*/
 #define THANDLE_LL_INC_REF_MACRO(C, T)                                                                                                                              \
-static void THANDLE_INC_REF(C)(THANDLE(T) t)                                                                                                                               \
+MU_SUPPRESS_WARNING(4505) /*warning C4505: 'function': unreferenced function with internal linkage has been removed*/                                               \
+static void THANDLE_INC_REF(C)(THANDLE(T) t)                                                                                                                        \
 {                                                                                                                                                                   \
-    THANDLE_WRAPPER_TYPE_NAME(T)* handle_impl = CONTAINING_RECORD(t, THANDLE_WRAPPER_TYPE_NAME(T), data);                                                       \
-    (void)interlocked_increment(&handle_impl->refCount);                                                                                                        \
+    THANDLE_WRAPPER_TYPE_NAME(T)* handle_impl = CONTAINING_RECORD(t, THANDLE_WRAPPER_TYPE_NAME(T), data);                                                           \
+    (void)interlocked_increment(&handle_impl->refCount);                                                                                                            \
 }                                                                                                                                                                   \
+MU_UNSUPPRESS_WARNING(4505)                                                                                                                                         \
 
 /*given a previous type T, this introduces THANDLE_ASSIGN macro to assign a handle to another handle*/
 #define THANDLE_LL_ASSIGN_MACRO(C, T)                                                                                                                               \
@@ -483,12 +503,14 @@ void THANDLE_INITIALIZE(C)(THANDLE(T) * lvalue, THANDLE(T) rvalue)              
 
 /*if THANDLE(T) is previously defined, then this macro returns the T* from under the THANDLE(T) */
 #define THANDLE_LL_GET_T_MACRO(C, T)                                                                                                                                \
+MU_SUPPRESS_WARNING(4505) /*warning C4505: 'function': unreferenced function with internal linkage has been removed*/                                               \
 static T* THANDLE_GET_T(C)(THANDLE(T) t)                                                                                                                            \
 {                                                                                                                                                                   \
     /*Codes_SRS_THANDLE_02_023: [ If t is NULL then THANDLE_GET_T(T) shall return NULL. ]*/                                                                         \
-    /*Codes_SRS_THANDLE_02_024: [ THANDLE_GET_T(T) shall return the same pointer as THANDLE_MALLOC/THANDLE_MALLOC_FLEX returned at the handle creation time. ]*/ \
+    /*Codes_SRS_THANDLE_02_024: [ THANDLE_GET_T(T) shall return the same pointer as THANDLE_MALLOC/THANDLE_MALLOC_FLEX returned at the handle creation time. ]*/    \
     return (T*)t;                                                                                                                                                   \
-}
+}                                                                                                                                                                   \
+MU_UNSUPPRESS_WARNING(4505)                                                                                                                                         \
 
 /*given a previous type T, this introduces THANDLE_MOVE macro to move a handle (*t1=t2, *t2=NULL)*/
 #define THANDLE_LL_MOVE_MACRO(C, T)                                                                                                                                 \
