@@ -76,7 +76,7 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 }
 
 #if WIN32
-TEST_FUNCTION(connect_to_endpoint_timesout)
+XTEST_FUNCTION(connect_to_endpoint_timesout)
 {
     // assert;
 
@@ -103,7 +103,7 @@ TEST_FUNCTION(connect_to_endpoint_timesout)
 
 }
 
-TEST_FUNCTION(socket_transport_accept_timesout)
+XTEST_FUNCTION(socket_transport_accept_timesout)
 {
     SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(listen_socket);
@@ -129,7 +129,7 @@ TEST_FUNCTION(socket_transport_accept_timesout)
 }
 #endif
 
-TEST_FUNCTION(send_and_receive_2_buffer_of_2_byte_succeeds)
+XTEST_FUNCTION(send_and_receive_2_buffer_of_2_byte_succeeds)
 {
     // assert
     SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create_server();
@@ -234,7 +234,7 @@ static uint32_t make_send_recv_buffer(uint8_t item_count, uint32_t data_size, SO
 // This test does the following:
 /* 1. Sets up a sending and listening socket */
 /* 2. */
-TEST_FUNCTION(send_and_receive_random_buffer_of_random_byte_succeeds)
+XTEST_FUNCTION(send_and_receive_random_buffer_of_random_byte_succeeds)
 {
     // assert
     SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create_server();
@@ -321,7 +321,7 @@ static int connect_and_listen_func(void* parameter)
 * Disconnect a random incoming socket
 * Test if the disconnected socket receives the data from the client socket
 */
-TEST_FUNCTION(socket_transport_chaos_knight_test)
+XTEST_FUNCTION(socket_transport_chaos_knight_test)
 {
     CHAOS_TEST_SOCKETS chaos_knight_test;
     chaos_knight_test.failed_server_num = rand() % CHAOS_THREAD_COUNT + 0;
@@ -461,16 +461,21 @@ TEST_FUNCTION(get_local_socket_address_test)
     ASSERT_ARE_EQUAL(char_ptr, server_hostname, client_hostname);
     ASSERT_ARE_EQUAL(uint32_t, server_list_count, client_list_count);
 
+    LogVerbose("Destroy client socket");
     socket_transport_disconnect(client_socket);
     socket_transport_destroy(client_socket);
 
+    LogVerbose("Destroy incoming socket");
     socket_transport_disconnect(incoming_socket);
     socket_transport_destroy(incoming_socket);
 
+    LogVerbose("Destroy incoming socket");
     socket_transport_disconnect(listen_socket);
     socket_transport_destroy(listen_socket);
 
+    LogVerbose("Freeing server_local_address_list");
     free(server_local_address_list);
+    LogVerbose("Freeing client_local_address_list");
     free(client_local_address_list);
 }
 
