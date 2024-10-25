@@ -935,6 +935,11 @@ int socket_transport_get_local_address(SOCKET_TRANSPORT_HANDLE socket_transport,
                         freeifaddrs(ifaddr);
                     }
                 }
+                else
+                {
+                    // Codes_SOCKET_TRANSPORT_LINUX_11_107: [ On success socket_transport_get_local_address shall return 0. ]
+                    result = 0;
+                }
             }
             // Codes_SOCKET_TRANSPORT_LINUX_11_106: [ socket_transport_get_local_address shall call sm_exec_end. ]
             sm_exec_end(socket_transport->sm);
