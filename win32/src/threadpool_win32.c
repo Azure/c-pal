@@ -584,7 +584,7 @@ int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_
                 }
                 else
                 {
-                    timer_temp->is_destroying = 0;
+                    (void)interlocked_exchange(&timer_temp->is_destroying, 0);
                     timer_temp->timer = tp_timer;
                     timer_temp->work_function = work_function;
                     timer_temp->work_function_context = work_function_context;

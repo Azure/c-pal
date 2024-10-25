@@ -990,6 +990,7 @@ TEST_FUNCTION(threadpool_timer_start_succeeds)
         .CaptureArgumentValue_pfnti(&test_timer_callback)
         .CaptureArgumentValue_pv(&test_timer_callback_context)
         .CaptureReturn(&ptp_timer);
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(IGNORED_ARG, &filetime_expected, 2000, 0))
         .ValidateArgumentValue_pti(&ptp_timer);
 
@@ -1030,6 +1031,7 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_context_succeeds)
         .CaptureArgumentValue_pfnti(&test_timer_callback)
         .CaptureArgumentValue_pv(&test_timer_callback_context)
         .CaptureReturn(&ptp_timer);
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(IGNORED_ARG, &filetime_expected, 2000, 0))
         .ValidateArgumentValue_pti(&ptp_timer);
 
