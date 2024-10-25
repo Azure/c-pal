@@ -680,9 +680,10 @@ void threadpool_timer_destroy(TIMER_INSTANCE_HANDLE timer)
         /* Codes_SRS_THREADPOOL_WIN32_42_014: [ threadpool_timer_destroy shall call CloseThreadpoolTimer. ]*/
         CloseThreadpoolTimer(timer->timer);
 
-        /* Codes_SRS_THREADPOOL_WIN32_07_003: [ threadpool_timer_destroy shall indicate the timer is destroyed. ]*/
-        (void)interlocked_exchange(&timer->is_destroying, 0);
         /* Codes_SRS_THREADPOOL_WIN32_42_015: [ threadpool_timer_destroy shall free all resources in timer. ]*/
         free(timer);
+
+        /* Codes_SRS_THREADPOOL_WIN32_07_003: [ threadpool_timer_destroy shall indicate the timer is destroyed. ]*/
+        (void)interlocked_exchange(&timer->is_destroying, 0);
     }
 }

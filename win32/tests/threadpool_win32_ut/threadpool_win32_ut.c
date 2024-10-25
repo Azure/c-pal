@@ -1241,8 +1241,8 @@ TEST_FUNCTION(threadpool_timer_destroy_succeeds)
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(ptp_timer, NULL, 0, 0));
     STRICT_EXPECTED_CALL(mocked_WaitForThreadpoolTimerCallbacks(ptp_timer, TRUE));
     STRICT_EXPECTED_CALL(mocked_CloseThreadpoolTimer(ptp_timer));
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
 
     // act
     threadpool_timer_destroy(timer_instance);
