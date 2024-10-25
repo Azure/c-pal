@@ -42,6 +42,7 @@ typedef struct TIMER_INSTANCE_TAG
     PTP_TIMER timer;
     THREADPOOL_WORK_FUNCTION work_function;
     void* work_function_context;
+    volatile_atomic int32_t is_destroying;
 } TIMER_INSTANCE;
 
 typedef struct THREADPOOL_TAG
@@ -583,6 +584,7 @@ int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_
                 }
                 else
                 {
+                    timer_temp->is_destroying = 0;
                     timer_temp->timer = tp_timer;
                     timer_temp->work_function = work_function;
                     timer_temp->work_function_context = work_function_context;
@@ -625,6 +627,14 @@ int threadpool_timer_restart(TIMER_INSTANCE_HANDLE timer, uint32_t start_delay_m
             timer, start_delay_ms, timer_period_ms);
         result = MU_FAILURE;
     }
+    else if(
+        /* Codes_SRS_THREADPOOL_WIN32_07_001: [ If timer state is in destroying state, threadpool_timer_restart shall fail and return a non - zero value. ]*/
+        interlocked_add(&timer->is_destroying, 0) == 1
+        )
+    {
+        LogError("timer is in closing state");
+        result = MU_FAILURE;
+    }
     else
     {
         /* Codes_SRS_THREADPOOL_WIN32_42_022: [ threadpool_timer_restart shall call SetThreadpoolTimer, passing negative start_delay_ms as pftDueTime, timer_period_ms as msPeriod, and 0 as msWindowLength. ]*/
@@ -661,6 +671,8 @@ void threadpool_timer_destroy(TIMER_INSTANCE_HANDLE timer)
     }
     else
     {
+        /* Codes_SRS_THREADPOOL_WIN32_07_002: [ threadpool_timer_destroy shall indicate the timer is in destroying state. ]*/
+        (void)interlocked_exchange(&timer->is_destroying, 1);
         /* Codes_SRS_THREADPOOL_WIN32_42_012: [ threadpool_timer_destroy shall call SetThreadpoolTimer with NULL for pftDueTime and 0 for msPeriod and msWindowLength to cancel ongoing timers. ]*/
         /* Codes_SRS_THREADPOOL_WIN32_42_013: [ threadpool_timer_destroy shall call WaitForThreadpoolTimerCallbacks. ]*/
         threadpool_internal_cancel_timer_and_wait(timer->timer);
@@ -668,6 +680,8 @@ void threadpool_timer_destroy(TIMER_INSTANCE_HANDLE timer)
         /* Codes_SRS_THREADPOOL_WIN32_42_014: [ threadpool_timer_destroy shall call CloseThreadpoolTimer. ]*/
         CloseThreadpoolTimer(timer->timer);
 
+        /* Codes_SRS_THREADPOOL_WIN32_07_003: [ threadpool_timer_destroy shall indicate the timer is destroyed. ]*/
+        (void)interlocked_exchange(&timer->is_destroying, 0);
         /* Codes_SRS_THREADPOOL_WIN32_42_015: [ threadpool_timer_destroy shall free all resources in timer. ]*/
         free(timer);
     }

@@ -1110,6 +1110,27 @@ TEST_FUNCTION(threadpool_timer_restart_with_NULL_timer_fails)
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
 }
 
+/* Tests_SRS_THREADPOOL_WIN32_07_001: [ If timer state is in destroying state, threadpool_timer_restart shall fail and return a non - zero value. ]*/
+TEST_FUNCTION(threadpool_timer_restart_with_timer_is_closing_fails)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = NULL;
+    PTP_TIMER_CALLBACK test_timer_callback;
+    PVOID test_timer_callback_context;
+    PTP_TIMER ptp_timer;
+    TIMER_INSTANCE_HANDLE timer_instance;
+    test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &ptp_timer, &test_timer_callback, &test_timer_callback_context, &timer_instance);
+
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0)).SetReturn(1);
+
+    // act
+    int result = threadpool_timer_restart(timer_instance, 43, 1000);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+}
+
 /* Tests_SRS_THREADPOOL_WIN32_42_022: [ threadpool_timer_restart shall call SetThreadpoolTimer, passing negative start_delay_ms as pftDueTime, timer_period_ms as msPeriod, and 0 as msWindowLength. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_42_023: [ threadpool_timer_restart shall succeed and return 0. ]*/
 TEST_FUNCTION(threadpool_timer_restart_succeeds)
@@ -1128,6 +1149,7 @@ TEST_FUNCTION(threadpool_timer_restart_succeeds)
     filetime_expected.dwHighDateTime = ularge_due_time.HighPart;
     filetime_expected.dwLowDateTime = ularge_due_time.LowPart;
 
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(IGNORED_ARG, &filetime_expected, 1000, 0))
         .ValidateArgumentValue_pti(&ptp_timer);
 
@@ -1201,6 +1223,8 @@ TEST_FUNCTION(threadpool_timer_destroy_with_NULL_timer_fails)
 /* Tests_SRS_THREADPOOL_WIN32_42_013: [ threadpool_timer_destroy shall call WaitForThreadpoolTimerCallbacks. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_42_014: [ threadpool_timer_destroy shall call CloseThreadpoolTimer. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_42_015: [ threadpool_timer_destroy shall free all resources in timer. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_07_002: [ threadpool_timer_destroy shall indicate the timer is in destroying state. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_07_003: [ threadpool_timer_destroy shall indicate the timer is destroyed. ]*/
 TEST_FUNCTION(threadpool_timer_destroy_succeeds)
 {
     // arrange
@@ -1211,9 +1235,11 @@ TEST_FUNCTION(threadpool_timer_destroy_succeeds)
     TIMER_INSTANCE_HANDLE timer_instance;
     test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &ptp_timer, &test_timer_callback, &test_timer_callback_context, &timer_instance);
 
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(ptp_timer, NULL, 0, 0));
     STRICT_EXPECTED_CALL(mocked_WaitForThreadpoolTimerCallbacks(ptp_timer, TRUE));
     STRICT_EXPECTED_CALL(mocked_CloseThreadpoolTimer(ptp_timer));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
     // act
