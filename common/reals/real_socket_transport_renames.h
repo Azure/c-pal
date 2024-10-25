@@ -19,3 +19,4 @@
 #define SOCKET_ACCEPT_RESULT                       real_SOCKET_ACCEPT_RESULT
 #define SOCKET_TYPE                                real_SOCKET_TYPE
 #define SOCKET_IO_TYPE                             real_SOCKET_IO_TYPE
+#define ADDRESS_TYPE                               real_ADDRESS_TYPE
