@@ -4,6 +4,12 @@
 #ifndef _REAL_JOB_OBJECT_HELPER_H
 #define _REAL_JOB_OBJECT_HELPER_H
 
+#ifdef __cplusplus
+#include <cstdint>
+#else
+#include <stdint.h>
+#endif
+
 #include "macro_utils/macro_utils.h"
 
 #include "c_pal/thandle.h"
