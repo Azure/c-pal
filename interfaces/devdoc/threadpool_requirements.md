@@ -35,6 +35,8 @@ MOCKABLE_FUNCTION(, THREADPOOL_WORK_ITEM_HANDLE, threadpool_create_work_item, TH
 
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_ITEM_HANDLE, work_item_context);
 
+MOCKABLE_FUNCTION(, void, threadpool_dispose, THREADPOOL_HANDLE, threadpool);
+
 MOCKABLE_FUNCTION(, void, threadpool_destroy_work_item, THREADPOOL_WORK_ITEM_HANDLE, work_item_context);
 
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
@@ -60,35 +62,45 @@ MOCKABLE_FUNCTION(, THREADPOOL_HANDLE, threadpool_create, EXECUTION_ENGINE_HANDL
 
 **NON_THREADPOOL_01_002: [** If `execution_engine` is `NULL`, `threadpool_create` shall fail and return `NULL`. **]**
 
+[Will be moved from threadpool_open.]
+**N_O_N_THREADPOOL_01_011: [** `threadpool_open` shall switch the state to OPENING and perform any actions needed to open the `threadpool` object. **]**
+
 **NON_THREADPOOL_01_003: [** If any error occurs, `threadpool_create` shall fail and return `NULL`. **]**
 
 ### threadpool_destroy
 
 ```c
-MOCKABLE_FUNCTION(, void, threadpool_destroy, THREADPOOL_HANDLE, threadpool);
+MOCKABLE_FUNCTION(, void, threadpool_dispose, THREADPOOL_HANDLE, threadpool);
 ```
 
-`threadpool_destroy` frees all resources associated with `threadpool`.
+`threadpool_dispose` frees all resources associated with `threadpool`.
 
-**NON_THREADPOOL_01_004: [** If `threadpool` is `NULL`, `threadpool_destroy` shall return. **]**
+**NON_THREADPOOL_01_004: [** If `threadpool` is `NULL`, `threadpool_dispose` shall return. **]**
 
-**NON_THREADPOOL_01_005: [** Otherwise, `threadpool_destroy` shall free all resources associated with `threadpool`. **]**
+**NON_THREADPOOL_01_005: [** Otherwise, `threadpool_dispose` shall free all resources associated with `threadpool`. **]**
 
-**NON_THREADPOOL_01_006: [** While `threadpool` is OPENING, `threadpool_destroy` shall wait for the open to complete either successfully or with error. **]**
+**NON_THREADPOOL_01_006: [** While `threadpool` is OPENING, `threadpool_dispose` shall wait for the open to complete either successfully or with error. **]**
 
-**NON_THREADPOOL_01_007: [** `threadpool_destroy` shall perform an implicit close if `threadpool` is OPEN. **]**
+[Will be moved from threadpool_close.]
+**N_O_N_THREADPOOL_01_017: [** Otherwise, `threadpool_dispose` shall switch the state to CLOSING. **]**
+
+[Will be moved from threadpool_close.]
+**N_O_N_THREADPOOL_01_018: [** Then `threadpool_dispose` shall close the threadpool. **]**
+
+**NON_THREADPOOL_01_007: [** `threadpool_dispose` shall perform an implicit close if `threadpool` is OPEN. **]**
 
 ### threadpool_open
 
 ```c
 MOCKABLE_FUNCTION(, int, threadpool_open, THREADPOOL_HANDLE, threadpool);
 ```
-
+Note: threadpool_open will be deprecated and threadpool_create will perform additional tasks of threadpool_open. This function will exist until all the libraries calling this API are modified to use only threadpool_create.
 `threadpool_open` opens the threadpool object so that subsequent calls to `threadpool_schedule_work` can be made.
 
 **NON_THREADPOOL_01_008: [** If `threadpool` is `NULL`, `threadpool_open` shall fail and return a non-zero value. **]**
 
-**NON_THREADPOOL_01_011: [** `threadpool_open` shall switch the state to OPENING and perform any actions needed to open the `threadpool` object. **]**
+[Will be moved to threadpool_create.]
+**N_O_N_THREADPOOL_01_011: [** `threadpool_open` shall switch the state to OPENING and perform any actions needed to open the `threadpool` object. **]**
 
 **NON_THREADPOOL_01_012: [** On success, `threadpool_open` shall return 0. **]**
 
@@ -99,13 +111,15 @@ MOCKABLE_FUNCTION(, int, threadpool_open, THREADPOOL_HANDLE, threadpool);
 ```c
 MOCKABLE_FUNCTION(, void, threadpool_close, THREADPOOL_HANDLE, threadpool);
 ```
-
+Note: threadpool_close will be deprecated and threadpool_dispose will perform additional tasks of threadpool_close. This function will exist until all the libraries calling this API are modified to use only threadpool_create.
 `threadpool_close` closes an open `threadpool`.
 
 **NON_THREADPOOL_01_016: [** If `threadpool` is `NULL`, `threadpool_close` shall return. **]**
 
+[Will be moved to threadpool_dispose.]
 **NON_THREADPOOL_01_017: [** Otherwise, `threadpool_close` shall switch the state to CLOSING. **]**
 
+[Will be moved to threadpool_dispose]
 **NON_THREADPOOL_01_018: [** Then `threadpool_close` shall close the threadpool, leaving it in a state where an `threadpool_open` can be performed. **]**
 
 **NON_THREADPOOL_01_019: [** If `threadpool` is not OPEN, `threadpool_close` shall return. **]**

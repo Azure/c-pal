@@ -129,6 +129,15 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HAN
 
 **SRS_THREADPOOL_LINUX_07_010: [** `insert_idx` and `consume_idx` for the task array shall be initialized to 0. **]**
 
+[Will be moved from threadpool_open]
+**S_R_S_THREADPOOL_LINUX_11_001: [** `threadpool_create` shall initialize internal threapool data items **]**
+
+[Will be moved from threadpool_open]
+**S_R_S_THREADPOOL_LINUX_07_020: [** `threadpool_create` shall create number of `min_thread_count` threads for `threadpool` using `ThreadAPI_Create`. **]**
+
+[Will be moved from threadpool_open]
+**S_R_S_THREADPOOL_LINUX_07_022: [** If one of the thread creation fails, `threadpool_create` shall fail and return a non-zero value, terminate all threads already created. **]**
+
 **SRS_THREADPOOL_LINUX_07_011: [** If any error occurs, `threadpool_create` shall fail and return `NULL`. **]**
 
 ### threadpool_dispose
@@ -145,6 +154,12 @@ static void threadpool_dispose(THREADPOOL* threadpool)
 
 **SRS_THREADPOOL_LINUX_07_015: [** `threadpool_destroy` shall destroy the SRW lock by calling `srw_lock_destroy`. **]**
 
+[Will be moved from threadpool_close.]
+**S_R_S_THREADPOOL_LINUX_07_089: [** `threadpool_close` shall signal all threads `threadpool` is closing by calling `InterlockedHL_SetAndWakeAll`.  **]**
+
+[Will be moved from threadpool_close.]
+**S_R_S_THREADPOOL_LINUX_07_027: [** `threadpool_close` shall join all threads in the `threadpool`. **]**
+
 **SRS_THREADPOOL_LINUX_07_016: [** `threadpool_destroy` shall free the memory allocated in `threadpool_create`. **]**
 
 ### threadpool_open
@@ -152,23 +167,30 @@ static void threadpool_dispose(THREADPOOL* threadpool)
 ```C
 MOCKABLE_FUNCTION(, int, threadpool_open, THANDLE(THREADPOOL), threadpool);
 ```
-
+Note: threadpool_open will be deprecated and threadpool_create will perform additional tasks of threadpool_open. This function will exist until all the libraries calling this API are modified to use only threadpool_create.
 `threadpool_open` opens the threadpool.
 
 **SRS_THREADPOOL_LINUX_07_017: [** If `threadpool` is `NULL`, `threadpool_open` shall fail and return a non-zero value. **]**
 
+[Will be deprecated.]
 **SRS_THREADPOOL_LINUX_07_018: [** `threadpool_open` shall call `sm_open_begin`. **]**
 
+[Will be deprecated.]
 **SRS_THREADPOOL_LINUX_07_019: [** If `sm_open_begin` indicates the open cannot be performed, `threadpool_open` shall fail and return a non-zero value. **]**
 
+[Will be moved to threadpool_create]
 **SRS_THREADPOOL_LINUX_11_001: [** `threadpool_open` shall initialize internal threapool data items **]**
 
+[Will be moved to threadpool_create]
 **SRS_THREADPOOL_LINUX_07_020: [** `threadpool_open` shall create number of `min_thread_count` threads for `threadpool` using `ThreadAPI_Create`. **]**
 
+[Will be deprecated.]
 **SRS_THREADPOOL_LINUX_07_021: [** If any error occurs, `threadpool_open` shall fail and return a non-zero value. **]**
 
+[Will be moved to threadpool_create]
 **SRS_THREADPOOL_LINUX_07_022: [** If one of the thread creation fails, `threadpool_open` shall fail and return a non-zero value, terminate all threads already created. **]**
 
+[Will be deprecated.]
 **SRS_THREADPOOL_LINUX_07_023: [** Otherwise, `threadpool_open` shall shall call `sm_open_end` with true for success. **]**
 
 **SRS_THREADPOOL_LINUX_07_024: [** `threadpool_open` shall return zero. **]**
@@ -178,7 +200,7 @@ MOCKABLE_FUNCTION(, int, threadpool_open, THANDLE(THREADPOOL), threadpool);
 ```C
 MOCKABLE_FUNCTION(, void, threadpool_close, THANDLE(THREADPOOL), threadpool);
 ```
-
+Note: threadpool_close will be deprecated and threadpool_dispose will perform additional tasks of threadpool_close. This function will exist until all the libraries calling this API are modified to use only threadpool_create.
 `threadpool_close` closes the threadpool.
 
 **SRS_THREADPOOL_LINUX_07_025: [** If `threadpool` is `NULL`, `threadpool_close` shall fail and return. **]**
