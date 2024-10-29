@@ -78,6 +78,8 @@ static void threadpool_dispose(THREADPOOL* threadpool)
 
 **S_R_S_THREADPOOL_WIN32_01_016: [** If `threadpool` is `NULL`, `threadpool_deprecated` shall return. **]**
 
+**SRS_THREADPOOL_WIN32_01_006: [** While `threadpool` is OPENING or CLOSING, `threadpool_dispose` shall wait for the open to complete either successfully or with error. **]**
+
 **SRS_THREADPOOL_WIN32_01_007: [** `threadpool_dispose` shall perform an implicit close. **]**
 
 - **S_R_S_THREADPOOL_WIN32_01_030: [** `threadpool_dispose` shall wait for any executing callbacks by calling `CloseThreadpoolCleanupGroupMembers`, passing `FALSE` as `fCancelPendingCallbacks`. **]**
