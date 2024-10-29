@@ -131,7 +131,7 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HAN
 
 **S_R_S_THREADPOOL_LINUX_11_001: [** `threadpool_create` shall initialize internal threapool data items **]**
 
-**S_R_S_THREADPOOL_LINUX_07_020: [** `threadpool_create` shall create number of `min_thread_count` threads for `threadpool` using `ThreadAPI_Create`. **]**
+**S_R_S_THREADPOOL_LINUX_07_020: [** `threadpool_create` shall create `min_thread_count` number of threads for `threadpool` using `ThreadAPI_Create`. **]**
 
 **S_R_S_THREADPOOL_LINUX_07_022: [** If one of the thread creation fails, `threadpool_create` shall fail and return a non-zero value, terminate all threads already created. **]**
 
@@ -162,7 +162,7 @@ static void threadpool_dispose(THREADPOOL* threadpool)
 ```C
 MOCKABLE_FUNCTION(, int, threadpool_open, THANDLE(THREADPOOL), threadpool);
 ```
-Note: `threadpool_open` will be deprecated and threadpool_create will perform additional tasks of `threadpool_open`. This function will exist until all the libraries calling this API are modified to use only `threadpool_create`.
+Note: `threadpool_open` will be deprecated and `threadpool_create` will perform additional tasks of `threadpool_open`. This function will exist until all the libraries calling this API are modified to use only `threadpool_create`.
 `threadpool_open` opens the threadpool.
 
 **SRS_THREADPOOL_LINUX_07_017: [** If `threadpool` is `NULL`, `threadpool_open` shall fail and return a non-zero value. **]**

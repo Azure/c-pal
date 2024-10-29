@@ -95,7 +95,7 @@ static void threadpool_dispose(THREADPOOL* threadpool)
 ```c
 MOCKABLE_FUNCTION(, int, threadpool_open, THANDLE(THREADPOOL), threadpool);
 ```
-Note: threadpool_open will be deprecated and threadpool_create will perform additional tasks of threadpool_open. This function will exist until all the libraries calling this API are modified to use only threadpool_create.
+Note: `threadpool_open` will be deprecated and threadpool_create will perform additional tasks of `threadpool_open`. This function will exist until all the libraries calling this API are modified to use only `threadpool_create`.
 `threadpool_open` opens the threadpool object so that subsequent calls to `threadpool_schedule_work` can be made.
 
 **SRS_THREADPOOL_WIN32_01_008: [** If `threadpool` is `NULL`, `threadpool_open` shall fail and return a non-zero value. **]**
