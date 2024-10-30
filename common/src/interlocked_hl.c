@@ -107,10 +107,19 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue,
 
             /* Codes_SRS_INTERLOCKED_HL_01_004: [ If the value at address is not equal to value, InterlockedHL_WaitForValue shall wait until the value at address changes in order to compare it again to value by using wait_on_address. ]*/
             /* Codes_SRS_INTERLOCKED_HL_01_005: [ When waiting for the value at address to change, the milliseconds argument value shall be used as timeout. ]*/
-            if (wait_on_address(address, current_value, milliseconds) != WAIT_ON_ADDRESS_OK)
+            WAIT_ON_ADDRESS_RESULT wait_result = wait_on_address(address, current_value, milliseconds);
+            if (wait_result != WAIT_ON_ADDRESS_OK)
             {
-                /* Codes_SRS_INTERLOCKED_HL_01_006: [ If wait_on_address fails, InterlockedHL_WaitForValue shall fail and return INTERLOCKED_HL_ERROR. ]*/
-                result = INTERLOCKED_HL_ERROR;
+                if (wait_result == WAIT_ON_ADDRESS_TIMEOUT)
+                {
+                    /* Codes_SRS_INTERLOCKED_HL_11_001: [ If wait_on_address timesout, InterlockedHL_WaitForValue shall fail and return INTERLOCKED_HL_TIMEOUT. ] */
+                    result = INTERLOCKED_HL_TIMEOUT;
+                }
+                else
+                {
+                    /* Codes_SRS_INTERLOCKED_HL_01_006: [ If wait_on_address fails, InterlockedHL_WaitForValue shall fail and return INTERLOCKED_HL_ERROR. ]*/
+                    result = INTERLOCKED_HL_ERROR;
+                }
                 break;
             }
         } while (1);
@@ -149,12 +158,21 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotVal
 
             /* Codes_SRS_INTERLOCKED_HL_42_003: [ If the value at address is equal to value, InterlockedHL_WaitForNotValue shall wait until the value at address changes in order to compare it again to value by using wait_on_address. ]*/
             /* Codes_SRS_INTERLOCKED_HL_42_004: [ When waiting for the value at address to change, the milliseconds argument value shall be used as timeout. ]*/
-            if (wait_on_address(address, current_value, milliseconds) != WAIT_ON_ADDRESS_OK)
+            WAIT_ON_ADDRESS_RESULT wait_result = wait_on_address(address, current_value, milliseconds);
+            if (wait_result != WAIT_ON_ADDRESS_OK)
             {
-                LogError("failure in wait_on_address(address=%p, &current_value=%p, milliseconds=%" PRIu32 ")",
-                    address, &current_value, milliseconds);
-                /* Codes_SRS_INTERLOCKED_HL_42_007: [ If wait_on_address fails, InterlockedHL_WaitForNotValue shall fail and return INTERLOCKED_HL_ERROR. ]*/
-                result = INTERLOCKED_HL_ERROR;
+                if (wait_result == WAIT_ON_ADDRESS_TIMEOUT)
+                {
+                    /* Codes_SRS_INTERLOCKED_HL_11_002: [ If wait_on_address timesout, InterlockedHL_WaitForNotValue shall fail and return INTERLOCKED_HL_TIMEOUT. ] */
+                    result = INTERLOCKED_HL_TIMEOUT;
+                }
+                else
+                {
+                    LogError("failure in wait_on_address(address=%p, &current_value=%p, milliseconds=%" PRIu32 ")",
+                        address, &current_value, milliseconds);
+                    /* Codes_SRS_INTERLOCKED_HL_42_007: [ If wait_on_address fails, InterlockedHL_WaitForNotValue shall fail and return INTERLOCKED_HL_ERROR. ]*/
+                    result = INTERLOCKED_HL_ERROR;
+                }
                 break;
             }
         } while (1);

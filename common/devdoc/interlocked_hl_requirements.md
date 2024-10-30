@@ -33,7 +33,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_Add64WithC
 ```
 
 `InterlockedHL_Add64WithCeiling` computes the sum of `Addend` and `Value` updates `Addend` with it and writes in `originalAddend` the original value of `Addend`.
-If `Addend` + `Value` would result in a undefined behavior or if the result would be greater than `Ceiling` 
+If `Addend` + `Value` would result in a undefined behavior or if the result would be greater than `Ceiling`
 then `InterlockedHL_Add64WithCeiling` fails and returns `INTERLOCKED_HL_ERROR`.
 
 **SRS_INTERLOCKED_HL_02_001: [** If `Addend` is `NULL` then `InterlockedHL_Add64WithCeiling` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
@@ -70,6 +70,8 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForVal
 
 **SRS_INTERLOCKED_HL_01_008: [** If the value at `address` does not match, `InterlockedHL_WaitForValue` shall issue another call to `wait_on_address`. **]**
 
+**SRS_INTERLOCKED_HL_11_001: [** If `wait_on_address` timesout, `InterlockedHL_WaitForValue` shall fail and return `INTERLOCKED_HL_TIMEOUT`. **]**
+
 **SRS_INTERLOCKED_HL_01_006: [** If `wait_on_address` fails, `InterlockedHL_WaitForValue` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
 ### InterlockedHL_WaitForNotValue
@@ -91,6 +93,8 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNot
 **SRS_INTERLOCKED_HL_42_005: [** When `wait_on_address` succeeds, the value at address shall be compared to the target value passed in `value` by using `interlocked_add`. **]**
 
 **SRS_INTERLOCKED_HL_42_006: [** If the value at `address` matches, `InterlockedHL_WaitForNotValue` shall issue another call to `wait_on_address`. **]**
+
+**SRS_INTERLOCKED_HL_11_002: [** If `wait_on_address` timesout, `InterlockedHL_WaitForNotValue` shall fail and return `INTERLOCKED_HL_TIMEOUT`. **]**
 
 **SRS_INTERLOCKED_HL_42_007: [** If `wait_on_address` fails, `InterlockedHL_WaitForNotValue` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 

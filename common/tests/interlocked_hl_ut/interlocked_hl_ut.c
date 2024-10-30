@@ -401,6 +401,27 @@ TEST_FUNCTION(when_the_wait_on_address_fails_InterlockedHL_WaitForValue_also_fai
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_ERROR, result);
 }
 
+/* Tests_SRS_INTERLOCKED_HL_11_001: [ If wait_on_address timesout, InterlockedHL_WaitForValue shall fail and return INTERLOCKED_HL_TIMEOUT. ] */
+TEST_FUNCTION(when_the_wait_on_address_timesout_InterlockedHL_WaitForValue_also_timesout)
+{
+    // arrange
+    INTERLOCKED_HL_RESULT result;
+    volatile_atomic int32_t value = 0x40;
+    int32_t intermediate_value = 0x41;
+
+    STRICT_EXPECTED_CALL(interlocked_add(&value, 0));
+    STRICT_EXPECTED_CALL(wait_on_address(&value, IGNORED_ARG, UINT32_MAX))
+        .CopyOutArgumentBuffer_address(&intermediate_value, sizeof(int32_t))
+        .SetReturn(WAIT_ON_ADDRESS_TIMEOUT);
+
+    // act
+    result = InterlockedHL_WaitForValue(&value, 0x42, UINT32_MAX);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_TIMEOUT, result);
+}
+
 /* InterlockedHL_WaitForNotValue */
 
 /* Tests_SRS_INTERLOCKED_HL_42_001: [ If address is NULL, InterlockedHL_WaitForNotValue shall fail and return INTERLOCKED_HL_ERROR. ]*/
@@ -502,6 +523,25 @@ TEST_FUNCTION(when_the_wait_on_address_fails_InterlockedHL_WaitForNotValue_also_
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_ERROR, result);
+}
+
+/* Tests_SRS_INTERLOCKED_HL_11_002: [ If wait_on_address timesout, InterlockedHL_WaitForNotValue shall fail and return INTERLOCKED_HL_TIMEOUT. ] */
+TEST_FUNCTION(when_the_wait_on_address_timesout_InterlockedHL_WaitForNotValue_also_timesout)
+{
+    // arrange
+    INTERLOCKED_HL_RESULT result;
+    volatile_atomic int32_t value = 0x42;
+
+    STRICT_EXPECTED_CALL(interlocked_add(&value, 0));
+    STRICT_EXPECTED_CALL(wait_on_address(&value, IGNORED_ARG, UINT32_MAX))
+        .SetReturn(WAIT_ON_ADDRESS_TIMEOUT);
+
+    // act
+    result = InterlockedHL_WaitForNotValue(&value, 0x42, UINT32_MAX);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_TIMEOUT, result);
 }
 
 /* InterlockedHL_CompareExchangeIf */
