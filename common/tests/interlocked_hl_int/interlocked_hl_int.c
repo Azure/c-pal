@@ -178,6 +178,38 @@ TEST_FUNCTION(interlocked_hl_wait_for_not_value_operates_successfully)
 
 /*
 Tests:
+InterlockedHL_WaitForNotValue
+*/
+TEST_FUNCTION(interlocked_hl_wait_for_not_value_times_out_returns_time_out)
+{
+    // + ensure that when the InterlockedHL_WaitForNotValue call times out it returns the correct time out value
+    globalValue = 25;
+
+    // act and assert
+    // Wait a second for the value to time out and make sure it returns the correct value
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_TIMEOUT, InterlockedHL_WaitForNotValue(&globalValue, 25, 1000));
+
+    // cleanup
+}
+
+/*
+Tests:
+InterlockedHL_WaitForValue
+*/
+TEST_FUNCTION(interlocked_hl_wait_for_value_times_out_returns_time_out)
+{
+    // + ensure that when the InterlockedHL_WaitForValue call times out it returns the correct time out value
+    globalValue = 25;
+
+    // act and assert
+    // Wait a second for the value to time out and make sure it returns the correct value
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_TIMEOUT, InterlockedHL_WaitForValue(&globalValue, 1, 1000));
+
+    // cleanup
+}
+
+/*
+Tests:
 InterlockedHL_Add64WithCeiling
 */
 TEST_FUNCTION(interlocked_hl_add64_with_ceiling_operates_successfully)
