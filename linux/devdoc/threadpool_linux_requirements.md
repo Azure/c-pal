@@ -129,8 +129,6 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HAN
 
 **SRS_THREADPOOL_LINUX_07_010: [** `insert_idx` and `consume_idx` for the task array shall be initialized to 0. **]**
 
-**S_R_S_THREADPOOL_LINUX_11_001: [** `threadpool_create` shall initialize internal threapool data items **]**
-
 **S_R_S_THREADPOOL_LINUX_07_020: [** `threadpool_create` shall create `min_thread_count` number of threads for `threadpool` using `ThreadAPI_Create`. **]**
 
 **S_R_S_THREADPOOL_LINUX_07_022: [** If one of the thread creation fails, `threadpool_create` shall fail and return a non-zero value, terminate all threads already created. **]**
@@ -145,17 +143,17 @@ static void threadpool_dispose(THREADPOOL* threadpool)
 
 `threadpool_dispose` frees the resouces associated with `threadpool`.
 
-**SRS_THREADPOOL_LINUX_07_013: [** `threadpool_destroy` shall perform an implicit close if `threadpool` is open. **]**
+**SRS_THREADPOOL_LINUX_07_013: [** `threadpool_dispose` shall perform an implicit close if `threadpool` is open. **]**
 
-**SRS_THREADPOOL_LINUX_07_014: [** `threadpool_destroy` shall destroy the semphore by calling `sem_destroy`. **]**
+**SRS_THREADPOOL_LINUX_07_014: [** `threadpool_dispose` shall destroy the semphore by calling `sem_destroy`. **]**
 
-**SRS_THREADPOOL_LINUX_07_015: [** `threadpool_destroy` shall destroy the SRW lock by calling `srw_lock_destroy`. **]**
+**SRS_THREADPOOL_LINUX_07_015: [** `threadpool_dispose` shall destroy the SRW lock by calling `srw_lock_destroy`. **]**
 
-**S_R_S_THREADPOOL_LINUX_07_089: [** `threadpool_close` shall signal all the threads that `threadpool` is closing by calling `InterlockedHL_SetAndWakeAll`.  **]**
+**S_R_S_THREADPOOL_LINUX_07_089: [** `threadpool_dispose` shall signal all the threads that `threadpool` is closing by calling `InterlockedHL_SetAndWakeAll`.  **]**
 
-**S_R_S_THREADPOOL_LINUX_07_027: [** `threadpool_close` shall join all threads in the `threadpool`. **]**
+**S_R_S_THREADPOOL_LINUX_07_027: [** `threadpool_dispose` shall join all threads in the `threadpool`. **]**
 
-**SRS_THREADPOOL_LINUX_07_016: [** `threadpool_destroy` shall free the memory allocated in `threadpool_create`. **]**
+**SRS_THREADPOOL_LINUX_07_016: [** `threadpool_dispose` shall free the memory allocated in `threadpool_create`. **]**
 
 ### threadpool_open
 
