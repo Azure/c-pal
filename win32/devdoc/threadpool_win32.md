@@ -56,6 +56,14 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HAN
 
 **SRS_THREADPOOL_WIN32_01_025: [** `threadpool_create` shall obtain the PTP_POOL from the execution engine by calling `execution_engine_win32_get_threadpool`. **]**
 
+**S_R_S_THREADPOOL_WIN32_01_026: [** `threadpool_create` shall initialize a thread pool environment by calling `InitializeThreadpoolEnvironment`. **]**
+
+**S_R_S_THREADPOOL_WIN32_01_027: [** `threadpool_create` shall set the thread pool for the environment to the pool obtained from the execution engine by calling `SetThreadpoolCallbackPool`. **]**
+
+**S_R_S_THREADPOOL_WIN32_01_028: [** `threadpool_create` shall create a threadpool cleanup group by calling `CreateThreadpoolCleanupGroup`. **]**
+
+**S_R_S_THREADPOOL_WIN32_01_029: [** `threadpool_create` shall associate the cleanup group with the just created environment by calling `SetThreadpoolCallbackCleanupGroup`. **]**
+
 **SRS_THREADPOOL_WIN32_01_003: [** If any error occurs, `threadpool_create` shall fail and return `NULL`. **]**
 
 ### threadpool_dispose
@@ -64,13 +72,21 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HAN
 static void threadpool_dispose(THREADPOOL* threadpool)
 ```
 
-`threadpool_dispose` frees all resources associated with `threadpool`.
+`threadpool_dispose` frees all resources associated with threadpool.
 
 **SRS_THREADPOOL_WIN32_01_005: [** `threadpool_dispose` shall free all resources associated with `threadpool`. **]**
 
+**S_R_S_THREADPOOL_WIN32_01_016: [** If `threadpool` is `NULL`, `threadpool_dispose` shall return. **]**
+
 **SRS_THREADPOOL_WIN32_01_006: [** While `threadpool` is OPENING or CLOSING, `threadpool_dispose` shall wait for the open to complete either successfully or with error. **]**
 
-**SRS_THREADPOOL_WIN32_01_007: [** `threadpool_dispose` shall perform an implicit close if `threadpool` is OPEN. **]**
+**SRS_THREADPOOL_WIN32_01_007: [** `threadpool_dispose` shall perform an implicit close. **]**
+
+- **S_R_S_THREADPOOL_WIN32_01_030: [** `threadpool_dispose` shall wait for any executing callbacks by calling `CloseThreadpoolCleanupGroupMembers`, passing `FALSE` as `fCancelPendingCallbacks`. **]**
+
+- **S_R_S_THREADPOOL_WIN32_01_032: [** `threadpool_dispose` shall close the threadpool cleanup group by calling `CloseThreadpoolCleanupGroup`. **]**
+
+- **S_R_S_THREADPOOL_WIN32_01_033: [** `threadpool_dispose` shall destroy the thread pool environment created in `threadpool_create`. **]**
 
 **SRS_THREADPOOL_WIN32_42_028: [** `threadpool_dispose` shall decrement the reference count on the `execution_engine`. **]**
 
@@ -79,7 +95,7 @@ static void threadpool_dispose(THREADPOOL* threadpool)
 ```c
 MOCKABLE_FUNCTION(, int, threadpool_open, THANDLE(THREADPOOL), threadpool);
 ```
-
+Note: `threadpool_open` will be deprecated and threadpool_create will perform additional tasks of `threadpool_open`. This function will exist until all the libraries calling this API are modified to use only `threadpool_create`.
 `threadpool_open` opens the threadpool object so that subsequent calls to `threadpool_schedule_work` can be made.
 
 **SRS_THREADPOOL_WIN32_01_008: [** If `threadpool` is `NULL`, `threadpool_open` shall fail and return a non-zero value. **]**
@@ -107,8 +123,8 @@ MOCKABLE_FUNCTION(, int, threadpool_open, THANDLE(THREADPOOL), threadpool);
 ```c
 MOCKABLE_FUNCTION(, void, threadpool_close, THANDLE(THREADPOOL), threadpool);
 ```
-
-`threadpool_close` closes an open `threadpool`.
+Note: `threadpool_close` will be deprecated and threadpool_dispose will perform additional tasks of `threadpool_close`. This function will exist until all the libraries calling this API are modified to use only `threadpool_create`.
+`threadpool_close` closes an open threadpool.
 
 **SRS_THREADPOOL_WIN32_01_016: [** If `threadpool` is `NULL`, `threadpool_close` shall return. **]**
 
@@ -118,7 +134,7 @@ MOCKABLE_FUNCTION(, void, threadpool_close, THANDLE(THREADPOOL), threadpool);
 
 **SRS_THREADPOOL_WIN32_01_032: [** `threadpool_close` shall close the threadpool cleanup group by calling `CloseThreadpoolCleanupGroup`. **]**
 
-**SRS_THREADPOOL_WIN32_01_033: [** `threadpool_close` shall destroy the thread pool environment created in `threadpool_open`. **]**
+**SRS_THREADPOOL_WIN32_01_033: [** `threadpool_close` shall destroy the thread pool environment created in `threadpool_create`. **]**
 
 **SRS_THREADPOOL_WIN32_01_019: [** If `threadpool` is not OPEN, `threadpool_close` shall return. **]**
 
@@ -302,9 +318,9 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), thr
 
 `threadpool_schedule_work_item` schedules a work item to be executed by the threadpool.
 
-**SRS_THREADPOOL_WIN32_05_011: [** If `threadpool` is NULL, `threadpool_schedule_work_item` shall fail and return a `non-zero` value. **]**
+**SRS_THREADPOOL_WIN32_05_011: [** If `threadpool` is NULL, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
 
-**SRS_THREADPOOL_WIN32_05_012: [** If `work_item_context` is NULL, `threadpool_schedule_work_item` shall fail and return a `non-zero` value. **]**
+**SRS_THREADPOOL_WIN32_05_012: [** If `work_item_context` is NULL, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
 
 **SRS_THREADPOOL_WIN32_05_013: [** `threadpool_schedule_work_item` shall call `SubmitThreadpoolWork` to submit the work item for execution. **]**
 
@@ -316,7 +332,7 @@ MOCKABLE_FUNCTION(, void, threadpool_destroy_work_item, THANDLE(THREADPOOL), thr
 
 `threadpool_destroy_work_item` closes the `ptp_work` member variable in `work_item_context`and then frees the `work_item_context`
 
-**SRS_THREADPOOL_WIN32_05_014: [ ** If `threadpool` is `NULL`, `threadpool_destroy_work_item` shall fail and return a `non-zero` value. **]**
+**SRS_THREADPOOL_WIN32_05_014: [ ** If `threadpool` is `NULL`, `threadpool_destroy_work_item` shall fail and return a non-zero value. **]**
 
 **SRS_THREADPOOL_WIN32_05_015: [** If `work_item_context` is `NULL`, `threadpool_destroy_work_item` shall fail and not do anything before returning. **]**
 
