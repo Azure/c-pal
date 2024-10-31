@@ -24,6 +24,8 @@
 #include "real_gballoc_hl.h"
 #include "c_pal/interlocked_hl.h"
 
+MU_DEFINE_ENUM_STRINGS(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES)
+
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {
@@ -70,6 +72,7 @@ static WAIT_ON_ADDRESS_RESULT hook_wait_on_address(volatile_atomic int32_t* addr
 TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
 IMPLEMENT_UMOCK_C_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
 
+TEST_DEFINE_ENUM_TYPE(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES);
 IMPLEMENT_UMOCK_C_ENUM_TYPE(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES);
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
@@ -407,15 +410,13 @@ TEST_FUNCTION(when_the_wait_on_address_timesout_InterlockedHL_WaitForValue_also_
     // arrange
     INTERLOCKED_HL_RESULT result;
     volatile_atomic int32_t value = 0x40;
-    int32_t intermediate_value = 0x41;
 
     STRICT_EXPECTED_CALL(interlocked_add(&value, 0));
-    STRICT_EXPECTED_CALL(wait_on_address(&value, IGNORED_ARG, UINT32_MAX))
-        .CopyOutArgumentBuffer_address(&intermediate_value, sizeof(int32_t))
+    STRICT_EXPECTED_CALL(wait_on_address(&value, IGNORED_ARG, 1000))
         .SetReturn(WAIT_ON_ADDRESS_TIMEOUT);
 
     // act
-    result = InterlockedHL_WaitForValue(&value, 0x42, UINT32_MAX);
+    result = InterlockedHL_WaitForValue(&value, 0x42, 1000);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
