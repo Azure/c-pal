@@ -54,7 +54,7 @@ MOCKABLE_FUNCTION(, void, threadpool_timer_destroy, TIMER_INSTANCE_HANDLE, timer
 MOCKABLE_FUNCTION(, THREADPOOL_HANDLE, threadpool_create, EXECUTION_ENGINE_HANDLE, execution_engine);
 ```
 
-`threadpool_create` creates a `threadpool` object that can execute work items.
+`threadpool_create` creates a threadpool object that can execute work items.
 
 **NON_THREADPOOL_01_001: [** `threadpool_create` shall allocate a new `threadpool` object and on success shall return a non-`NULL` handle. **]**
 
@@ -70,7 +70,7 @@ MOCKABLE_FUNCTION(, THREADPOOL_HANDLE, threadpool_create, EXECUTION_ENGINE_HANDL
 MOCKABLE_FUNCTION(, void, threadpool_dispose, THREADPOOL_HANDLE, threadpool);
 ```
 
-`threadpool_dispose` frees all resources associated with `threadpool`.
+`threadpool_dispose` frees all resources associated with threadpool.
 
 **NON_THREADPOOL_01_004: [** If `threadpool` is `NULL`, `threadpool_dispose` shall return. **]**
 
@@ -88,13 +88,13 @@ MOCKABLE_FUNCTION(, int, threadpool_open, THREADPOOL_HANDLE, threadpool);
 Note: `threadpool_open` will be deprecated and `threadpool_create` will perform additional tasks of `threadpool_open`. This function will exist until all the libraries calling this API are modified to use only `threadpool_create`.
 `threadpool_open` opens the `threadpool` object so that subsequent calls to `threadpool_schedule_work` can be made.
 
-**NON_THREADPOOL_01_008: [** If `threadpool` is `NULL`, `threadpool_open` shall fail and return a `non-zero` value. **]**
+**NON_THREADPOOL_01_008: [** If `threadpool` is `NULL`, `threadpool_open` shall fail and return a non-zero value. **]**
 
 **NON_THREADPOOL_01_011: [** `threadpool_open` shall switch the state to OPENING and perform any actions needed to open the `threadpool` object. **]**
 
 **NON_THREADPOOL_01_012: [** On success, `threadpool_open` shall return 0. **]**
 
-**NON_THREADPOOL_01_013: [** If `threadpool` is already OPEN or OPENING, `threadpool_open` shall fail and return a `non-zero` value. **]**
+**NON_THREADPOOL_01_013: [** If `threadpool` is already OPEN or OPENING, `threadpool_open` shall fail and return a non-zero value. **]**
 
 ### threadpool_close
 
@@ -102,7 +102,7 @@ Note: `threadpool_open` will be deprecated and `threadpool_create` will perform 
 MOCKABLE_FUNCTION(, void, threadpool_close, THREADPOOL_HANDLE, threadpool);
 ```
 Note: `threadpool_close` will be deprecated and `threadpool_dispose` will perform additional tasks of `threadpool_close`. This function will exist until all the libraries calling this API are modified to use only `threadpool_create`.
-`threadpool_close` closes an open `threadpool`.
+`threadpool_close` closes an open threadpool.
 
 **NON_THREADPOOL_01_016: [** If `threadpool` is `NULL`, `threadpool_close` shall return. **]**
 
@@ -118,7 +118,7 @@ Note: `threadpool_close` will be deprecated and `threadpool_dispose` will perfor
 MOCKABLE_FUNCTION(, THREADPOOL_WORK_ITEM_HANDLE, threadpool_create_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 ```
 
-`threadpool_create_work_item` creates a work item to be executed by the `threadpool`. This function separates the creation of the work item from scheduling it so that `threadpool_schedule_work_item` can be called later and cannot fail.
+`threadpool_create_work_item` creates a work item to be executed by the threadpool. This function separates the creation of the work item from scheduling it so that `threadpool_schedule_work_item` can be called later and cannot fail.
 
 **NON_THREADPOOL_05_001: [** If `threadpool` is `NULL`, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
 
@@ -140,11 +140,11 @@ MOCKABLE_FUNCTION(, THREADPOOL_WORK_ITEM_HANDLE, threadpool_create_work_item, TH
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_ITEM_HANDLE, work_item_context);
 ```
 
-`threadpool_schedule_work_item` schedules a work item to be executed by the `threadpool`. This API can be called multiple times on the same `THREADPOOL_WORK_ITEM_HANDLE` and fails only if the arguments are passed `NULL`.
+`threadpool_schedule_work_item` schedules a work item to be executed by the threadpool. This API can be called multiple times on the same `THREADPOOL_WORK_ITEM_HANDLE` and fails only if the arguments are passed `NULL`.
 
-**NON_THREADPOOL_05_008: [** If `threadpool` is NULL, `threadpool_schedule_work_item` shall fail and return a `non-zero` value. **]**
+**NON_THREADPOOL_05_008: [** If `threadpool` is NULL, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
 
-**NON_THREADPOOL_05_009: [** If `work_item_context` is NULL, `threadpool_schedule_work_item` shall fail and return a `non-zero` value. **]**
+**NON_THREADPOOL_05_009: [** If `work_item_context` is NULL, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
 
 **NON_THREADPOOL_05_010: [** `threadpool_schedule_work_item` shall submit the `threadpool` work item for execution. **]**
 
@@ -156,7 +156,7 @@ MOCKABLE_FUNCTION(, void, threadpool_destroy_work_item, THANDLE(THREADPOOL), thr
 
 `threadpool_destroy_work_item` closes and frees all the member variables in the context of type `THREADPOOL_WORK_ITEM_HANDLE` and then frees the context
 
-**NON_THREADPOOL_05_011: [ ** If `threadpool` is `NULL`, `threadpool_destroy_work_item` shall fail and return a `non-zero` value. **]**
+**NON_THREADPOOL_05_011: [ ** If `threadpool` is `NULL`, `threadpool_destroy_work_item` shall fail and return a non-zero value. **]**
 
 **NON_THREADPOOL_05_012: [** If `work_item_context` is `NULL`, `threadpool_destroy_work_item` shall fail and not do anything before returning. **]**
 
@@ -170,11 +170,11 @@ MOCKABLE_FUNCTION(, void, threadpool_destroy_work_item, THANDLE(THREADPOOL), thr
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THREADPOOL_HANDLE, threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 ```
 
-`threadpool_schedule_work` schedules a work item to be executed by the `threadpool`.
+`threadpool_schedule_work` schedules a work item to be executed by the threadpool.
 
-**NON_THREADPOOL_01_020: [** If `threadpool` is `NULL`, `threadpool_schedule_work` shall fail and return a `non-zero` value. **]**
+**NON_THREADPOOL_01_020: [** If `threadpool` is `NULL`, `threadpool_schedule_work` shall fail and return a non-zero value. **]**
 
-**NON_THREADPOOL_01_021: [** If `work_function` is `NULL`, `threadpool_schedule_work` shall fail and return a `non-zero` value. **]**
+**NON_THREADPOOL_01_021: [** If `work_function` is `NULL`, `threadpool_schedule_work` shall fail and return a non-zero value. **]**
 
 **NON_THREADPOOL_01_022: [** `work_function_context` shall be allowed to be `NULL`. **]**
 
@@ -182,7 +182,7 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THREADPOOL_HANDLE, threadpool
 
 Note: There are no guarantees regarding the order of execution for the `work_function` callbacks.
 
-**NON_THREADPOOL_01_024: [** If any error occurs, `threadpool_schedule_work` shall fail and return a `non-zero` value. **]**
+**NON_THREADPOOL_01_024: [** If any error occurs, `threadpool_schedule_work` shall fail and return a non-zero value. **]**
 
 ### threadpool_timer_start
 
@@ -190,13 +190,13 @@ Note: There are no guarantees regarding the order of execution for the `work_fun
 MOCKABLE_FUNCTION(, int, threadpool_timer_start, THREADPOOL_HANDLE, threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, TIMER_INSTANCE_HANDLE*, timer_handle);
 ```
 
-`threadpool_timer_start` starts a `threadpool` timer which runs after `start_delay_ms` milliseconds and then runs again every `timer_period_ms` milliseconds until `threadpool_timer_destroy` is called. The `timer_handle` must be stopped before closing/destroying the `threadpool`.
+`threadpool_timer_start` starts a threadpool timer which runs after `start_delay_ms` milliseconds and then runs again every `timer_period_ms` milliseconds until `threadpool_timer_destroy` is called. The `timer_handle` must be stopped before closing/destroying the threadpool.
 
-**NON_THREADPOOL_42_001: [** If `threadpool` is `NULL`, `threadpool_schedule_work` shall fail and return a `non-zero` value. **]**
+**NON_THREADPOOL_42_001: [** If `threadpool` is `NULL`, `threadpool_schedule_work` shall fail and return a non-zero value. **]**
 
-**NON_THREADPOOL_42_002: [** If `work_function` is `NULL`, `threadpool_schedule_work` shall fail and return a `non-zero` value. **]**
+**NON_THREADPOOL_42_002: [** If `work_function` is `NULL`, `threadpool_schedule_work` shall fail and return a non-zero value. **]**
 
-**NON_THREADPOOL_42_003: [** If `timer_handle` is `NULL`, `threadpool_schedule_work` shall fail and return a `non-zero` value. **]**
+**NON_THREADPOOL_42_003: [** If `timer_handle` is `NULL`, `threadpool_schedule_work` shall fail and return a non-zero value. **]**
 
 **NON_THREADPOOL_42_004: [** `work_function_context` shall be allowed to be `NULL`. **]**
 
@@ -206,7 +206,7 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_start, THREADPOOL_HANDLE, threadpool, 
 
 **NON_THREADPOOL_42_008: [** Otherwise `threadpool_timer_start` shall queue for execution the function `work_function` to be executed after `start_delay_ms` and every `timer_period_ms` thereafter and pass `context` to it when it executes. **]**
 
-**NON_THREADPOOL_42_009: [** If any error occurs, `threadpool_timer_start` shall fail and return a `non-zero` value. **]**
+**NON_THREADPOOL_42_009: [** If any error occurs, `threadpool_timer_start` shall fail and return a non-zero value. **]**
 
 **NON_THREADPOOL_42_010: [** `threadpool_timer_start` shall return the allocated handle in `timer_handle`. **]**
 
@@ -220,7 +220,7 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_restart, TIMER_INSTANCE_HANDLE, timer,
 
 `threadpool_timer_restart` changes the delay and period of an existing timer.
 
-**NON_THREADPOOL_42_015: [** If `timer` is `NULL`, `threadpool_timer_restart` shall fail and return a `non-zero` value. **]**
+**NON_THREADPOOL_42_015: [** If `timer` is `NULL`, `threadpool_timer_restart` shall fail and return a non-zero value. **]**
 
 **NON_THREADPOOL_42_016: [** `threadpool_timer_restart` shall stop execution of the existing timer and wait for any current executions to complete. **]**
 

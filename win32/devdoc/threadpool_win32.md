@@ -72,7 +72,7 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HAN
 static void threadpool_dispose(THREADPOOL* threadpool)
 ```
 
-`threadpool_dispose` frees all resources associated with `threadpool`.
+`threadpool_dispose` frees all resources associated with threadpool.
 
 **SRS_THREADPOOL_WIN32_01_005: [** `threadpool_dispose` shall free all resources associated with `threadpool`. **]**
 
@@ -124,7 +124,7 @@ Note: `threadpool_open` will be deprecated and threadpool_create will perform ad
 MOCKABLE_FUNCTION(, void, threadpool_close, THANDLE(THREADPOOL), threadpool);
 ```
 Note: `threadpool_close` will be deprecated and threadpool_dispose will perform additional tasks of `threadpool_close`. This function will exist until all the libraries calling this API are modified to use only `threadpool_create`.
-`threadpool_close` closes an open `threadpool`.
+`threadpool_close` closes an open threadpool.
 
 **SRS_THREADPOOL_WIN32_01_016: [** If `threadpool` is `NULL`, `threadpool_close` shall return. **]**
 
@@ -318,9 +318,9 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), thr
 
 `threadpool_schedule_work_item` schedules a work item to be executed by the threadpool.
 
-**SRS_THREADPOOL_WIN32_05_011: [** If `threadpool` is NULL, `threadpool_schedule_work_item` shall fail and return a `non-zero` value. **]**
+**SRS_THREADPOOL_WIN32_05_011: [** If `threadpool` is NULL, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
 
-**SRS_THREADPOOL_WIN32_05_012: [** If `work_item_context` is NULL, `threadpool_schedule_work_item` shall fail and return a `non-zero` value. **]**
+**SRS_THREADPOOL_WIN32_05_012: [** If `work_item_context` is NULL, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
 
 **SRS_THREADPOOL_WIN32_05_013: [** `threadpool_schedule_work_item` shall call `SubmitThreadpoolWork` to submit the work item for execution. **]**
 
@@ -332,7 +332,7 @@ MOCKABLE_FUNCTION(, void, threadpool_destroy_work_item, THANDLE(THREADPOOL), thr
 
 `threadpool_destroy_work_item` closes the `ptp_work` member variable in `work_item_context`and then frees the `work_item_context`
 
-**SRS_THREADPOOL_WIN32_05_014: [ ** If `threadpool` is `NULL`, `threadpool_destroy_work_item` shall fail and return a `non-zero` value. **]**
+**SRS_THREADPOOL_WIN32_05_014: [ ** If `threadpool` is `NULL`, `threadpool_destroy_work_item` shall fail and return a non-zero value. **]**
 
 **SRS_THREADPOOL_WIN32_05_015: [** If `work_item_context` is `NULL`, `threadpool_destroy_work_item` shall fail and not do anything before returning. **]**
 

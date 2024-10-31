@@ -141,7 +141,7 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HAN
 static void threadpool_dispose(THREADPOOL* threadpool)
 ```
 
-`threadpool_dispose` frees the resouces associated with `threadpool`.
+`threadpool_dispose` frees the resouces associated with threadpool.
 
 **SRS_THREADPOOL_LINUX_07_013: [** `threadpool_dispose` shall perform an implicit close if `threadpool` is open. **]**
 
@@ -447,13 +447,13 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), thr
 
 `threadpool_schedule_work_item` schedules a work item to be executed by the threadpool.
 
-**SRS_THREADPOOL_LINUX_05_010: [** If `threadpool` is `NULL`, `threadpool_schedule_work_item` shall fail and set the return variable with a `non-zero` value. **]**
+**SRS_THREADPOOL_LINUX_05_010: [** If `threadpool` is `NULL`, `threadpool_schedule_work_item` shall fail and set the return variable with a non-zero value. **]**
 
-**SRS_THREADPOOL_LINUX_05_011: [** If `threadpool_work_item` is `NULL`,  `threadpool_schedule_work_item` shall fail and set the return variable with a `non-zero` value. **]**
+**SRS_THREADPOOL_LINUX_05_011: [** If `threadpool_work_item` is `NULL`,  `threadpool_schedule_work_item` shall fail and set the return variable with a non-zero value. **]**
 
 **SRS_THREADPOOL_LINUX_05_012: [** `threadpool_schedule_work_item` shall call `sm_exec_begin`. **]**
 
-**SRS_THREADPOOL_LINUX_05_013: [** If `sm_exec_begin` returns `SM_EXEC_REFUSED`, `threadpool_schedule_work_item` shall fail and set the return variable a `non-zero` value. **]**
+**SRS_THREADPOOL_LINUX_05_013: [** If `sm_exec_begin` returns `SM_EXEC_REFUSED`, `threadpool_schedule_work_item` shall fail and set the return variable a non-zero value. **]**
 
 **SRS_THREADPOOL_LINUX_05_014: [** `threadpool_schedule_work_item` shall acquire the `SRW lock` in shared mode by calling `srw_lock_acquire_shared`. **]**
 
@@ -465,7 +465,7 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), thr
 
 **SRS_THREADPOOL_LINUX_05_018: [** If the previous task state is not `TASK_NOT_USED` then `threadpool_schedule_work_item` shall increase `task_array` capacity **]**
 
-- **SRS_THREADPOOL_LINUX_05_019: [** If reallocating the task array fails, `threadpool_schedule_work_item` shall fail by setting the return variable a `non-zero` value and break. **]**
+- **SRS_THREADPOOL_LINUX_05_019: [** If reallocating the task array fails, `threadpool_schedule_work_item` shall fail by setting the return variable a non-zero value and break. **]**
 
 - **SRS_THREADPOOL_LINUX_05_020: [ Otherwise, `threadpool_schedule_work_item` shall acquire the SRW lock in exclusive mode by calling srw_lock_acquire_exclusive. ]*/
 
