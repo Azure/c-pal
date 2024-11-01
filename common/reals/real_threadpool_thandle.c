@@ -11,6 +11,7 @@
 
 #include "real_threadpool_thandle.h"
 
+#include "real_interlocked.h"
 #include "real_interlocked_renames.h"
 REAL_THANDLE_DEFINE(THREADPOOL)
 
