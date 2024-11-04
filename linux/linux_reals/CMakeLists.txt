@@ -20,6 +20,7 @@ set(linux_reals_c_files
     ../../common/reals/real_sm.c
     ../../common/reals/real_interlocked_hl.c
     ../../common/reals/real_thandle_log_context_handle.c
+    ../../common/reals/real_threadpool_thandle.c
 
 )
 
@@ -48,6 +49,7 @@ set(linux_reals_h_files
     ../../common/reals/real_socket_transport.h
     ../../common/reals/real_socket_transport_renames.h
     ../../common/reals/real_thandle_helper.h
+    ../../common/reals/real_threadpool_thandle.h
     ../../interfaces/reals/real_timer.h
     ../../interfaces/reals/real_timer_renames.h
 )
