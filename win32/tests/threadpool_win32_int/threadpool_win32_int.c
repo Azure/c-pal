@@ -1257,7 +1257,7 @@ TEST_FUNCTION(chaos_knight_test)
 TEST_FUNCTION(chaos_knight_test_with_timers)
 {
     // start a number of threads and each of them will do a random action on the threadpool
-    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 100, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     HANDLE thread_handles[CHAOS_THREAD_COUNT];
     size_t i;
