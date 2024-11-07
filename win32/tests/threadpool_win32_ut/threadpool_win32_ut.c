@@ -210,24 +210,21 @@ MOCK_FUNCTION_END()
 MOCK_FUNCTION_WITH_CODE(, void, test_work_function, void*, context)
 MOCK_FUNCTION_END()
 
-static THANDLE(THREADPOOL) test_create_and_open_threadpool(PTP_CALLBACK_ENVIRON* cbe)
+static THANDLE(THREADPOOL) test_create_threadpool(PTP_CALLBACK_ENVIRON* cbe)
 {
+    STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG))
+        .CaptureArgumentValue_pcbe(cbe);
     THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
     umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG))
-        .CaptureArgumentValue_pcbe(cbe);
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
-    umock_c_reset_all_calls();
-
     return threadpool;
 }
 
 static void test_create_threadpool_and_start_timer(uint32_t start_delay_ms, uint32_t timer_period_ms, void* work_function_context, THANDLE(THREADPOOL)* threadpool, PTP_TIMER* ptp_timer, PTP_TIMER_CALLBACK* test_timer_callback, PVOID* test_timer_callback_context, TIMER_INSTANCE_HANDLE* timer_instance)
 {
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) test_result = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) test_result = test_create_threadpool(&cbe);
+    umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, cbe))
@@ -300,16 +297,29 @@ TEST_FUNCTION(threadpool_create_with_NULL_execution_engine_fails)
 }
 
 /* Tests_SRS_THREADPOOL_WIN32_01_001: [ threadpool_create shall allocate a new threadpool object and on success shall return a non-NULL handle. ]*/
-/* Tests_SRS_THREADPOOL_WIN32_42_027: [ threadpool_create shall increment the reference count on the execution_engine. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_01_025: [ threadpool_create shall obtain the PTP_POOL from the execution engine by calling execution_engine_win32_get_threadpool. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_01_026: [ threadpool_open shall initialize a thread pool environment by calling InitializeThreadpoolEnvironment. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_01_027: [ threadpool_open shall set the thread pool for the environment to the pool obtained from the execution engine by calling SetThreadpoolCallbackPool. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_01_028: [ threadpool_open shall create a threadpool cleanup group by calling CreateThreadpoolCleanupGroup. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_01_029: [ threadpool_open shall associate the cleanup group with the just created environment by calling SetThreadpoolCallbackCleanupGroup. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_42_027: [ threadpool_create shall increment the reference count on the execution_engine. ]*/
 TEST_FUNCTION(threadpool_create_succeeds)
 {
     // arrange
-
+    PTP_CALLBACK_ENVIRON cbe;
+    PTP_CLEANUP_GROUP test_cleanup_group;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(execution_engine_win32_get_threadpool(test_execution_engine));
+    STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG))
+        .CaptureArgumentValue_pcbe(&cbe);
+    STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool))
+        .ValidateArgumentValue_pcbe(&cbe);
+    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup())
+        .CaptureReturn(&test_cleanup_group);
+    STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackCleanupGroup(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .ValidateArgumentValue_ptpcg(&test_cleanup_group);
     STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
 
     // act
@@ -333,6 +343,10 @@ TEST_FUNCTION(when_underlying_calls_fail_threadpool_create_fails)
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(execution_engine_win32_get_threadpool(test_execution_engine));
+    STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup());
+    STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackCleanupGroup(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
 
     umock_c_negative_tests_snapshot();
@@ -356,7 +370,6 @@ TEST_FUNCTION(when_underlying_calls_fail_threadpool_create_fails)
 /* threadpool_dispose */
 
 
-/* Tests_SRS_THREADPOOL_WIN32_01_005: [ threadpool_dispose shall free all resources associated with threadpool. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_42_028: [ threadpool_dispose shall decrement the reference count on the execution_engine. ]*/
 TEST_FUNCTION(threadpool_dispose_frees_resources)
 {
@@ -365,6 +378,11 @@ TEST_FUNCTION(threadpool_dispose_frees_resources)
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_CloseThreadpoolCleanupGroupMembers(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_CloseThreadpoolCleanupGroup(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_DestroyThreadpoolEnvironment(IGNORED_ARG));
+
+    // destroy calls
     STRICT_EXPECTED_CALL(execution_engine_dec_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
@@ -375,23 +393,28 @@ TEST_FUNCTION(threadpool_dispose_frees_resources)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/* Tests_SRS_THREADPOOL_WIN32_01_006: [ While threadpool is OPENING or CLOSING, threadpool_dispose shall wait for the open to complete either successfully or with error. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_01_007: [ threadpool_dispose shall perform an implicit close if threadpool is OPEN. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_01_030: [ threadpool_close shall wait for any executing callbacks by calling CloseThreadpoolCleanupGroupMembers, passing FALSE as fCancelPendingCallbacks. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_01_032: [ threadpool_close shall close the threadpool cleanup group by calling CloseThreadpoolCleanupGroup. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_01_033: [ threadpool_close shall destroy the thread pool environment created in threadpool_create. ]*/
 TEST_FUNCTION(threadpool_dispose_performs_an_implicit_close)
 {
     // arrange
-    THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
     PTP_CALLBACK_ENVIRON cbe;
     PTP_CLEANUP_GROUP test_cleanup_group;
-    umock_c_reset_all_calls();
-
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(execution_engine_win32_get_threadpool(test_execution_engine));
     STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG))
         .CaptureArgumentValue_pcbe(&cbe);
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool))
         .ValidateArgumentValue_pcbe(&cbe);
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup())
         .CaptureReturn(&test_cleanup_group);
-    (void)threadpool_open(threadpool);
+    STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackCleanupGroup(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .ValidateArgumentValue_ptpcg(&test_cleanup_group);
+    STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
+    THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
     umock_c_reset_all_calls();
 
     // close
@@ -427,30 +450,14 @@ TEST_FUNCTION(threadpool_open_with_NULL_threadpool_fails)
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
 }
 
-/* Tests_SRS_THREADPOOL_WIN32_01_011: [ Otherwise, threadpool_open shall switch the state to OPENING. ]*/
-/* Tests_SRS_THREADPOOL_WIN32_01_026: [ threadpool_open shall initialize a thread pool environment by calling InitializeThreadpoolEnvironment. ]*/
-/* Tests_SRS_THREADPOOL_WIN32_01_027: [ threadpool_open shall set the thread pool for the environment to the pool obtained from the execution engine by calling SetThreadpoolCallbackPool. ]*/
-/* Tests_SRS_THREADPOOL_WIN32_01_028: [ threadpool_open shall create a threadpool cleanup group by calling CreateThreadpoolCleanupGroup. ]*/
-/* Tests_SRS_THREADPOOL_WIN32_01_029: [ threadpool_open shall associate the cleanup group with the just created environment by calling SetThreadpoolCallbackCleanupGroup. ]*/
-/* Tests_SRS_THREADPOOL_WIN32_01_015: [ threadpool_open shall set the state to OPEN. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_01_012: [ On success, threadpool_open shall return 0. ]*/
 TEST_FUNCTION(threadpool_open_succeeds)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
-    PTP_CALLBACK_ENVIRON cbe;
-    PTP_CLEANUP_GROUP test_cleanup_group;
+    ASSERT_IS_NOT_NULL(threadpool);
     int result;
     umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG))
-        .CaptureArgumentValue_pcbe(&cbe);
-    STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool))
-        .ValidateArgumentValue_pcbe(&cbe);
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup())
-        .CaptureReturn(&test_cleanup_group);
-    STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackCleanupGroup(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .ValidateArgumentValue_ptpcg(&test_cleanup_group);
 
     // act
     result = threadpool_open(threadpool);
@@ -463,71 +470,10 @@ TEST_FUNCTION(threadpool_open_succeeds)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-/* Tests_SRS_THREADPOOL_WIN32_01_040: [ If any error occurrs, threadpool_open shall fail and return a non-zero value. ]*/
-TEST_FUNCTION(when_underlying_calls_fail_threadpool_open_fails)
-{
-    // arrange
-    THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
-    PTP_CALLBACK_ENVIRON cbe;
-    PTP_CLEANUP_GROUP test_cleanup_group;
-    int result;
-    size_t i;
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG))
-        .CaptureArgumentValue_pcbe(&cbe);
-    STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool))
-        .ValidateArgumentValue_pcbe(&cbe);
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup())
-        .CaptureReturn(&test_cleanup_group);
-    STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackCleanupGroup(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .ValidateArgumentValue_ptpcg(&test_cleanup_group);
-
-    umock_c_negative_tests_snapshot();
-
-    for (i = 0; i < umock_c_negative_tests_call_count(); i++)
-    {
-        if (umock_c_negative_tests_can_call_fail(i))
-        {
-            umock_c_negative_tests_reset();
-            umock_c_negative_tests_fail_call(i);
-
-            // act
-            result = threadpool_open(threadpool);
-
-            // assert
-            ASSERT_ARE_NOT_EQUAL(int, 0, result, "On failed call %zu", i);
-        }
-    }
-
-    // cleanup
-    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
-}
-
-/* Tests_SRS_THREADPOOL_WIN32_01_013: [ If threadpool is already OPEN or OPENING, threadpool_open shall fail and return a non-zero value. ]*/
-TEST_FUNCTION(threadpool_open_after_open_fails)
-{
-    // arrange
-    THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
-
-    int result;
-    umock_c_reset_all_calls();
-
-    // act
-    result = threadpool_open(threadpool);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
-
-    // cleanup
-    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
-}
 
 /* threadpool_close */
 
-/* Tests_SRS_THREADPOOL_WIN32_01_016: [ If threadpool is NULL, threadpool_close shall return. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_05_018: [ If threadpool is NULL, threadpool_close shall return. ]*/
 TEST_FUNCTION(threadpool_close_with_NULL_handle_returns)
 {
     // arrange
@@ -537,77 +483,6 @@ TEST_FUNCTION(threadpool_close_with_NULL_handle_returns)
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* Tests_SRS_THREADPOOL_WIN32_01_017: [ Otherwise, threadpool_close shall switch the state to CLOSING. ]*/
-/* Tests_SRS_THREADPOOL_WIN32_01_030: [ threadpool_close shall wait for any executing callbacks by calling CloseThreadpoolCleanupGroupMembers, passing FALSE as fCancelPendingCallbacks. ]*/
-/* Tests_SRS_THREADPOOL_WIN32_01_032: [ threadpool_close shall close the threadpool cleanup group by calling CloseThreadpoolCleanupGroup. ]*/
-/* Tests_SRS_THREADPOOL_WIN32_01_033: [ threadpool_close shall destroy the thread pool environment created in threadpool_open. ]*/
-TEST_FUNCTION(threadpool_close_reverses_the_open_actions)
-{
-    // arrange
-    THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
-    PTP_CALLBACK_ENVIRON cbe;
-    PTP_CLEANUP_GROUP test_cleanup_group;
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(mocked_InitializeThreadpoolEnvironment(IGNORED_ARG))
-        .CaptureArgumentValue_pcbe(&cbe);
-    STRICT_EXPECTED_CALL(mocked_SetThreadpoolCallbackPool(IGNORED_ARG, test_pool))
-        .ValidateArgumentValue_pcbe(&cbe);
-    STRICT_EXPECTED_CALL(mocked_CreateThreadpoolCleanupGroup())
-        .CaptureReturn(&test_cleanup_group);
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(mocked_CloseThreadpoolCleanupGroupMembers(test_cleanup_group, FALSE, NULL));
-    STRICT_EXPECTED_CALL(mocked_CloseThreadpoolCleanupGroup(test_cleanup_group));
-    STRICT_EXPECTED_CALL(mocked_DestroyThreadpoolEnvironment(cbe));
-
-    // act
-    threadpool_close(threadpool);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    // cleanup
-    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
-}
-
-/* Tests_SRS_THREADPOOL_WIN32_01_019: [ If threadpool is not OPEN, threadpool_close shall return. ]*/
-TEST_FUNCTION(threadpool_close_when_not_open_returns)
-{
-    // arrange
-    THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
-    umock_c_reset_all_calls();
-
-    // act
-    threadpool_close(threadpool);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    // cleanup
-    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
-}
-
-/* Tests_SRS_THREADPOOL_WIN32_01_019: [ If threadpool is not OPEN, threadpool_close shall return. ]*/
-TEST_FUNCTION(threadpool_close_after_close_returns)
-{
-    // arrange
-    PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
-    threadpool_close(threadpool);
-    umock_c_reset_all_calls();
-
-    // act
-    threadpool_close(threadpool);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    // cleanup
-    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
 /* threadpool_schedule_work */
@@ -631,7 +506,7 @@ TEST_FUNCTION(threadpool_schedule_work_with_NULL_work_function_fails)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
     int result;
 
     // act
@@ -652,7 +527,7 @@ TEST_FUNCTION(threadpool_schedule_work_succeeds)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     int result;
     PTP_WORK_CALLBACK test_work_callback;
@@ -684,7 +559,7 @@ TEST_FUNCTION(threadpool_schedule_work_succeeds_with_NULL_work_function_context)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     int result;
     PTP_WORK_CALLBACK test_work_callback;
@@ -716,7 +591,7 @@ TEST_FUNCTION(when_underlying_calls_fail_threadpool_schedule_work_fails)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     int result;
     size_t i;
@@ -756,7 +631,7 @@ TEST_FUNCTION(on_work_callback_with_NULL_context_returns)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     PTP_WORK_CALLBACK test_work_callback;
     PVOID test_work_callback_context;
@@ -789,7 +664,7 @@ TEST_FUNCTION(on_work_callback_triggers_the_user_work_function)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     PTP_WORK_CALLBACK test_work_callback;
     PVOID test_work_callback_context;
@@ -825,7 +700,7 @@ TEST_FUNCTION(on_work_callback_triggers_2_user_work_functions)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     PTP_WORK_CALLBACK test_work_callback;
     PVOID test_work_callback_context_1;
@@ -880,7 +755,7 @@ TEST_FUNCTION(on_work_callback_triggers_the_user_work_function_with_NULL_work_fu
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     PTP_WORK_CALLBACK test_work_callback;
     PVOID test_work_callback_context;
@@ -929,7 +804,7 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_fails)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     TIMER_INSTANCE_HANDLE timer_instance;
 
@@ -949,7 +824,7 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_timer_handle_fails)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     // act
     int result = threadpool_timer_start(threadpool, 42, 2000, test_work_function, (void*)0x4243, NULL);
@@ -971,7 +846,7 @@ TEST_FUNCTION(threadpool_timer_start_succeeds)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     PTP_TIMER_CALLBACK test_timer_callback;
     PVOID test_timer_callback_context;
@@ -1011,7 +886,7 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_context_succeeds)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     PTP_TIMER_CALLBACK test_timer_callback;
     PVOID test_timer_callback_context;
@@ -1051,7 +926,7 @@ TEST_FUNCTION(threadpool_timer_start_fails_when_underlying_functions_fail)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     PTP_TIMER_CALLBACK test_timer_callback;
     PVOID test_timer_callback_context;
@@ -1315,7 +1190,7 @@ TEST_FUNCTION(on_work_callback_v2_with_NULL_context_returns)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     THREADPOOL_WORK_ITEM_HANDLE test_work_item_context;
     PTP_WORK_CALLBACK test_work_callback_v2;
@@ -1357,7 +1232,7 @@ TEST_FUNCTION(on_work_callback_v2_triggers_the_user_work_function)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     THREADPOOL_WORK_ITEM_HANDLE test_work_item_context;
     PTP_WORK_CALLBACK test_work_callback_v2;
@@ -1401,7 +1276,7 @@ TEST_FUNCTION(on_work_callback_v2_triggers_2_user_work_functions)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     THREADPOOL_WORK_ITEM_HANDLE test_work_item_context_1;
     PTP_WORK_CALLBACK test_work_callback_v2;
@@ -1461,7 +1336,7 @@ TEST_FUNCTION(on_work_callback_v2_triggers_the_user_work_function_with_NULL_work
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     THREADPOOL_WORK_ITEM_HANDLE test_work_item_context;
     PTP_WORK_CALLBACK test_work_callback_v2;
@@ -1522,7 +1397,7 @@ TEST_FUNCTION(threadpool_create_work_item_fails_for_NULL_test_work_function)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
     THREADPOOL_WORK_ITEM_HANDLE return_work_item_context;
 
     // act
@@ -1543,7 +1418,7 @@ TEST_FUNCTION(when_underlying_calls_fail_threadpool_create_work_item_fails)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     THREADPOOL_WORK_ITEM_HANDLE result;
     size_t i;
@@ -1581,7 +1456,7 @@ TEST_FUNCTION(threadpool_create_work_item_succeeds)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     THREADPOOL_WORK_ITEM_HANDLE test_work_item_context;
     PTP_WORK_CALLBACK test_work_callback_v2;
@@ -1632,7 +1507,7 @@ TEST_FUNCTION(threadpool_schedule_work_item_fails_for_NULL_work_item_context)
     // arrange
     int schedule_return_status;
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     // act
     schedule_return_status = threadpool_schedule_work_item(threadpool, NULL);
@@ -1652,7 +1527,7 @@ TEST_FUNCTION(threadpool_schedule_work_item_succeeds)
     // arrange
     int schedule_return_status = 0;
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     THREADPOOL_WORK_ITEM_HANDLE test_work_item_context;
     PTP_WORK_CALLBACK test_work_callback_v2;
@@ -1703,7 +1578,7 @@ TEST_FUNCTION(threadpool_destroy_work_item_fails_for_NULL_work_item_context)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     // act
     threadpool_destroy_work_item(threadpool, NULL);
@@ -1723,7 +1598,7 @@ TEST_FUNCTION(threadpool_destroy_work_item_succeeds)
     // arrange
     int schedule_return_status = 0;
     PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     THREADPOOL_WORK_ITEM_HANDLE test_work_item_context;
     PTP_WORK_CALLBACK test_work_callback_v2;

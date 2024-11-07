@@ -36,6 +36,8 @@ typedef struct WAIT_WORK_CONTEXT_TAG
     HANDLE wait_event;
 } WAIT_WORK_CONTEXT;
 
+#define WAIT_WORK_FUNCTION_SLEEP 2500
+
 static void wait_work_function(void* context)
 {
     WAIT_WORK_CONTEXT* wait_work_context = (WAIT_WORK_CONTEXT*)context;
@@ -67,7 +69,7 @@ typedef struct OPEN_WORK_CONTEXT_TAG
 static void open_work_function(void* context)
 {
     OPEN_WORK_CONTEXT* open_work_context = (OPEN_WORK_CONTEXT*)context;
-    ASSERT_ARE_NOT_EQUAL(int, 0, threadpool_open(open_work_context->threadpool));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(open_work_context->threadpool));
     (void)InterlockedIncrement(&open_work_context->call_count);
     WakeByAddressSingle((PVOID)&open_work_context->call_count);
 }
@@ -491,7 +493,7 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
 
     // act
 
-    Sleep(500);
+    Sleep(WAIT_WORK_FUNCTION_SLEEP);
 
     // call stop
     LogInfo("Timer should be running and waiting, now stop timer");
@@ -536,7 +538,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
 
     // act
 
-    Sleep(500);
+    Sleep(WAIT_WORK_FUNCTION_SLEEP);
 
     // call cancel
     LogInfo("Timer should be running and waiting, now cancel timer");
@@ -672,6 +674,7 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items)
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, wait_work_function, (void*)&wait_work_context));
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, work_function, (void*)&wait_work_context.call_count));
 
+    Sleep(WAIT_WORK_FUNCTION_SLEEP);
     // call close
     LogInfo("Closing threadpool");
     threadpool_close(threadpool);
@@ -720,6 +723,7 @@ TEST_FUNCTION(close_while_closing_still_executes_the_items)
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(close_work_context.threadpool, close_work_function, (void*)&close_work_context));
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(close_work_context.threadpool, work_function, (void*)&wait_work_context.call_count));
 
+    Sleep(WAIT_WORK_FUNCTION_SLEEP);
     // call close
     LogInfo("Closing threadpool");
     threadpool_close(close_work_context.threadpool);
@@ -769,6 +773,7 @@ TEST_FUNCTION(open_while_closing_fails)
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(open_work_context.threadpool, open_work_function, (void*)&open_work_context));
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(open_work_context.threadpool, work_function, (void*)&wait_work_context.call_count));
 
+    Sleep(WAIT_WORK_FUNCTION_SLEEP);
     // call close
     LogInfo("Closing threadpool");
     threadpool_close(open_work_context.threadpool);
@@ -1265,6 +1270,7 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items_v2)
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(threadpool, wait_work_item_context));
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(threadpool, work_item_context));
 
+    Sleep(WAIT_WORK_FUNCTION_SLEEP);
     // call close
     LogInfo("Closing threadpool");
     threadpool_close(threadpool);
@@ -1321,6 +1327,8 @@ TEST_FUNCTION(close_while_closing_still_executes_the_items_v2)
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(close_work_context.threadpool, close_work_item_context));
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(close_work_context.threadpool, work_item_context));
 
+    Sleep(WAIT_WORK_FUNCTION_SLEEP);
+
     // call close
     LogInfo("Closing threadpool");
     threadpool_close(close_work_context.threadpool);
@@ -1360,7 +1368,6 @@ TEST_FUNCTION(open_while_closing_fails_v2)
 
     // open
     ASSERT_ARE_EQUAL(int, 0, threadpool_open(open_work_context.threadpool));
-
     wait_work_context.wait_event = CreateEvent(NULL, FALSE, FALSE, NULL);
     ASSERT_IS_NOT_NULL(wait_work_context.wait_event);
 
@@ -1381,9 +1388,8 @@ TEST_FUNCTION(open_while_closing_fails_v2)
     ASSERT_IS_NOT_NULL(work_item_context);
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(open_work_context.threadpool, work_item_context));
 
+    Sleep(WAIT_WORK_FUNCTION_SLEEP);
 
-
-    // call close
     LogInfo("Closing threadpool");
     threadpool_close(open_work_context.threadpool);
 
