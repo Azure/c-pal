@@ -36,7 +36,7 @@ typedef struct WAIT_WORK_CONTEXT_TAG
     HANDLE wait_event;
 } WAIT_WORK_CONTEXT;
 
-#define WAIT_WORK_FUNCTION_SLEEP 2500
+#define WAIT_WORK_FUNCTION_SLEEP 3000
 
 static void wait_work_function(void* context)
 {
