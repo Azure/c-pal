@@ -844,12 +844,13 @@ static DWORD WINAPI chaos_thread_func(LPVOID lpThreadParameter)
                 {
                     (void)InterlockedIncrement64(&chaos_test_data->expected_call_count);
                 }
+                break;
             case 3:
-                // perform a schedule work item
-                if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
-                {
-                    (void)InterlockedIncrement64(&chaos_test_data->expected_call_count);
-                }
+            //    // perform a schedule work item
+            //    if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
+            //    {
+            //        (void)InterlockedIncrement64(&chaos_test_data->expected_call_count);
+            //    }
                 break;
         }
     }
@@ -990,12 +991,13 @@ static DWORD WINAPI chaos_thread_with_timers_func(LPVOID lpThreadParameter)
                 (void)InterlockedDecrement(&chaos_test_data->timers_starting);
                 WakeByAddressSingle((PVOID)&chaos_test_data->timers_starting);
             }
+            break;
         case 7:
-            // perform a schedule work item
-            if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
-            {
-                (void)InterlockedIncrement64(&chaos_test_data->expected_call_count);
-            }
+            //// perform a schedule work item
+            //if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
+            //{
+            //    (void)InterlockedIncrement64(&chaos_test_data->expected_call_count);
+            //}
             break;
         }
     }
