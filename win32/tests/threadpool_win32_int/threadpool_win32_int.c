@@ -683,7 +683,7 @@ static void chaos_delay()
     // would ensure delay less than 1 milliseconds, enough to allow Windows Threadpool to handle this chaos test scenarios for threadpool_schedule_work_item. For threadpool_schedule_work there are
     // already extra operations than threadpool_schedule_work_item like malloc and free (in its callback) that would create more delay than this function. Hence threadpool_schedule_work would pass in
     // chaos test even after threadpool_open and threadpool_close have reduced functionality.
-    for (int i = 0; i < CHAOS_THREAD_COUNT * CHAOS_THREAD_COUNT; i++)
+    for (int i = 0; i < 50; i++)
     {
         // The loop and randomized data count around malloc avoids compiler optimizaton where consecutive malloc and free are not removed by the compiler optimization.
         int random_count = (rand() * (i+1) * 4) / (RAND_MAX + 1);
