@@ -821,6 +821,20 @@ typedef struct CHAOS_TEST_DATA_TAG
 #define TIMER_PERIOD_MIN 50
 #define TIMER_PERIOD_MAX 400
 
+static void chaos_delay()
+{
+    // Earlier, the threadpool_open and threadpool_close would start and stop threadpool threads whereby there would be some limit on number of times work would be scheduled
+    // on Windows Threadpool using threadpool_schedule_work and threadpool_schedule_work_item because both functions would test for threadpool open condition and return if threadpool is not open.
+    // With threadpool_open and threadpool_close now only there for backward compatibility and doing nothing, the chaos test for optimized threadpool_schedule_work_item
+    // would create a very large number of work items compared to the previous version of threadpool_schedule_work. The tests would fail because expected_call_count would be very high than the
+    // executed_work_functions count because Windows Threadpool is unable to schedule that many work items. Adding Sleep(1) would significantly slow the tests. So adding following malloc and free
+    // would ensure delay less than 1 milliseconds, enough to allow Windows Threadpool to handle this chaos test scenarios for threadpool_schedule_work_item. For threadpool_schedule_work there are
+    // already extra operations than threadpool_schedule_work_item like malloc and free (in its callback) that would create more delay than this function. Hence threadpool_schedule_work would pass in
+    // chaos test even after threadpool_open and threadpool_close have reduced functionality.
+    CHAOS_TEST_DATA* temp = (CHAOS_TEST_DATA*)malloc(sizeof(CHAOS_TEST_DATA));
+    free(temp);
+}
+
 static DWORD WINAPI chaos_thread_func(LPVOID lpThreadParameter)
 {
     CHAOS_TEST_DATA* chaos_test_data = (CHAOS_TEST_DATA*)lpThreadParameter;
@@ -846,11 +860,12 @@ static DWORD WINAPI chaos_thread_func(LPVOID lpThreadParameter)
                 }
                 break;
             case 3:
-            //    // perform a schedule work item
-            //    if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
-            //    {
-            //        (void)InterlockedIncrement64(&chaos_test_data->expected_call_count);
-            //    }
+                // perform a schedule work item
+                if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
+                {
+                    (void)InterlockedIncrement64(&chaos_test_data->expected_call_count);
+                    chaos_delay();
+                }
                 break;
         }
     }
@@ -993,11 +1008,12 @@ static DWORD WINAPI chaos_thread_with_timers_func(LPVOID lpThreadParameter)
             }
             break;
         case 7:
-            //// perform a schedule work item
-            //if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
-            //{
-            //    (void)InterlockedIncrement64(&chaos_test_data->expected_call_count);
-            //}
+            // perform a schedule work item
+            if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
+            {
+                (void)InterlockedIncrement64(&chaos_test_data->expected_call_count);
+                chaos_delay();
+            }
             break;
         }
     }
