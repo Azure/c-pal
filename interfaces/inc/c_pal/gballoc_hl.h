@@ -63,6 +63,8 @@ extern "C" {
 
     MOCKABLE_FUNCTION(, void, gballoc_hl_print_stats);
 
+    MOCKABLE_FUNCTION(, int, gballoc_hl_set_decay, int64_t, decay_milliseconds);
+
 #ifdef __cplusplus
 }
 #endif

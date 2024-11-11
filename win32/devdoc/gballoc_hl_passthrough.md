@@ -55,6 +55,8 @@ gballoc_hl_passthrough is a module that delegates all call of its APIs to the on
     MOCKABLE_FUNCTION(, const GBALLOC_LATENCY_BUCKET_METADATA*, gballoc_hl_get_latency_bucket_metadata);
 
     MOCKABLE_FUNCTION(, void, gballoc_hl_print_stats);
+
+    MOCKABLE_FUNCTION(, int, gballoc_hl_set_decay, int64_t, decay_milliseconds);
 ```
 
 
@@ -292,3 +294,12 @@ MOCKABLE_FUNCTION(, void, gballoc_hl_print_stats);
 `gballoc_hl_print_stats` prints the memory allocation statistics.
 
 **SRS_GBALLOC_HL_PASSTHROUGH_01_001: [** `gballoc_hl_print_stats` shall call into `gballoc_ll_print_stats` to print the memory allocator statistics. **]**
+
+### gballoc_hl_set_decay
+```c
+MOCKABLE_FUNCTION(, int, gballoc_hl_set_decay, int64_t, decay_milliseconds);
+```
+
+`gballoc_hl_set_decay` sets the decay time for the jemalloc dirty and muzzy pages.
+
+**SRS_GBALLOC_HL_PASSTHROUGH_28_001: [** `gballoc_hl_set_decay` shall call `gballoc_ll_set_decay` with `decay_milliseconds` as argument. **]**

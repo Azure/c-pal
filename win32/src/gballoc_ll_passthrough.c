@@ -9,6 +9,8 @@
 
 #include "c_pal/gballoc_ll.h"
 
+#include "macro_utils/macro_utils.h" // for MU_FAILURE
+
 int gballoc_ll_init(void* params)
 {
     /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_001: [ gballoc_ll_init shall return 0. ]*/
@@ -193,4 +195,12 @@ size_t gballoc_ll_size(void* ptr)
 void gballoc_ll_print_stats(void)
 {
     /* Codes_SRS_GBALLOC_LL_PASSTHROUGH_01_001: [ gballoc_ll_print_stats shall return without printing any statistics. ]*/
+}
+
+int gballoc_ll_set_decay(int64_t decay_milliseconds)
+{
+    (void)decay_milliseconds;
+
+    /* Codes_SRS_GBALLOC_LL_PASSTHROUGH_28_001: [ gballoc_ll_set_decay shall do nothing and return a non-zero value. ]*/
+    return MU_FAILURE;
 }

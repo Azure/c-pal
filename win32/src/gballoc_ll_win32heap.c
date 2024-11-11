@@ -11,6 +11,8 @@
 
 #include "c_pal/gballoc_ll.h"
 
+#include "macro_utils/macro_utils.h" // for MU_FAILURE
+
 static call_once_t g_lazy = LAZY_INIT_NOT_DONE;
 static HANDLE the_heap = NULL;
 
@@ -343,4 +345,12 @@ size_t gballoc_ll_size(void* ptr)
 void gballoc_ll_print_stats(void)
 {
     /* Codes_SRS_GBALLOC_LL_WIN32HEAP_01_001: [ gballoc_ll_print_stats shall return without printing any statistics. ]*/
+}
+
+int gballoc_ll_set_decay(int64_t decay_milliseconds)
+{
+    (void)decay_milliseconds;
+
+    /* Codes_SRS_GBALLOC_LL_WIN32HEAP_28_001: [ gballoc_ll_set_decay shall do nothing and return a non-zero value. ]*/
+    return MU_FAILURE;
 }

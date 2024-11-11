@@ -184,3 +184,11 @@ size_t gballoc_ll_size(void* ptr)
 
     return result;
 }
+
+int gballoc_ll_set_decay(int64_t decay_milliseconds)
+{
+    (void)decay_milliseconds;
+
+    /* Codes_SRS_GBALLOC_LL_PASSTHROUGH_28_001: [ gballoc_ll_set_decay shall do nothing and return a non-zero value. ]*/
+    return MU_FAILURE;
+}

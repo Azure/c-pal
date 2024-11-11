@@ -2383,6 +2383,21 @@ TEST_FUNCTION(gballoc_hl_print_stats_calls_gballoc_ll_print_stats)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
+/* gballoc_hl_set_decay */
+
+/* Codes_SRS_GBALLOC_HL_METRICS_28_001: [ gballoc_hl_set_decay shall call gballoc_ll_set_decay with decay_milliseconds as argument. ]*/
+TEST_FUNCTION(gballoc_hl_set_decay_calls_gballoc_ll_set_decay)
+{
+    ///arrange
+    STRICT_EXPECTED_CALL(gballoc_ll_set_decay(42));
+
+    ///act
+    gballoc_hl_set_decay(42);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
 /* gballoc_hl_size */
 
 /* Tests_SRS_GBALLOC_HL_METRICS_01_074: [ If the module was not initialized, gballoc_hl_size shall return 0. ]*/

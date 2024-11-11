@@ -12,6 +12,7 @@ static void* TEST_CALLOC_RESULT = (void*)0x2;
 static void* TEST_REALLOC_RESULT = (void*)0x3;
 
 #include "umock_c/umock_c.h"
+#include "umock_c/umock_c_negative_tests.h"
 
 typedef void (*JEMALLOC_WRITE_CB)(void*, const char*);
 
@@ -25,6 +26,7 @@ typedef struct PRINT_FUNCTION_CB_DATA_TAG
 static size_t g_call_print_cb_count = 0;
 static PRINT_FUNCTION_CB_DATA g_call_print_cb[MAX_PRINT_FUNCTION_CB];
 
+#define NUM_ARENAS 2
 
 #define ENABLE_MOCKS
 #include "umock_c/umock_c_prod.h"
@@ -41,6 +43,7 @@ static PRINT_FUNCTION_CB_DATA g_call_print_cb[MAX_PRINT_FUNCTION_CB];
             write_cb(cbopaque, g_call_print_cb[i].text_to_print);
         }
     MOCKABLE_FUNCTION_END()
+    MOCKABLE_FUNCTION(, int, mock_je_mallctl, const char*, name, void*, oldp, size_t*, oldlenp, void*, newp, size_t, newlen);
 
 #undef ENABLE_MOCKS
 
@@ -74,10 +77,12 @@ TEST_SUITE_CLEANUP(TestClassCleanup)
 TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
 {
     umock_c_reset_all_calls();
+    umock_c_negative_tests_init();
 }
 
 TEST_FUNCTION_CLEANUP(TestMethodCleanup)
 {
+    umock_c_negative_tests_deinit();
 }
 
 /* gballoc_ll_init */
@@ -626,6 +631,102 @@ TEST_FUNCTION(gballoc_ll_print_stats_calls_the_print_function_with_NULL_does_not
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/* gballoc_ll_set_decay */
+
+/* Tests_SRS_GBALLOC_LL_JEMALLOC_28_001: [ gballoc_ll_set_decay shall advance jemalloc's internal epoch counter. ]*/
+/* Tests_SRS_GBALLOC_LL_JEMALLOC_28_002: [ gballoc_ll_set_decay shall set the dirty decay time for new arenas to decay_milliseconds milliseconds. ]*/
+/* Tests_SRS_GBALLOC_LL_JEMALLOC_28_003: [ gballoc_ll_set_decay shall set the muzzy decay time for new arenas to decay_milliseconds milliseconds. ]*/
+/* Tests_SRS_GBALLOC_LL_JEMALLOC_28_004: [ gballoc_ll_set_decay shall fetch the number of existing jemalloc arenas. ]*/
+/* Tests_SRS_GBALLOC_LL_JEMALLOC_28_005: [ For each existing arena: ]*/
+/* Tests_SRS_GBALLOC_LL_JEMALLOC_28_006: [ gballoc_ll_set_decay shall set the dirty decay time for the arena to decay_milliseconds milliseconds. ]*/
+/* Tests_SRS_GBALLOC_LL_JEMALLOC_28_007: [ gballoc_ll_set_decay shall set the muzzy decay time for the arena to decay_milliseconds milliseconds. ]*/
+TEST_FUNCTION(gballoc_ll_set_decay_succeeds)
+{
+    ///arrange
+    uint64_t num_arenas = NUM_ARENAS;
+
+    char* epoch;
+    char* dirty_decay_ms;
+    char* muzzy_decay_ms;
+    char* narenas;
+
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, NULL, 0))
+        .CaptureArgumentValue_name(&epoch)
+        .SetReturn(0);
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
+        .CaptureArgumentValue_name(&dirty_decay_ms)
+        .SetReturn(0);
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
+        .CaptureArgumentValue_name(&muzzy_decay_ms)
+        .SetReturn(0);
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CaptureArgumentValue_name(&narenas)
+        .CopyOutArgumentBuffer_oldp(&num_arenas, sizeof(num_arenas))
+        .SetReturn(0);
+    for (uint64_t i = 0; i < NUM_ARENAS; i++)
+    {
+        STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
+            .SetReturn(0);
+        STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
+            .SetReturn(0);
+    }
+
+    ///act
+    int result = gballoc_ll_set_decay(42);
+
+    ///assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, "epoch", epoch);
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.dirty_decay_ms", dirty_decay_ms);
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.muzzy_decay_ms", muzzy_decay_ms);
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.narenas", narenas);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/* Tests_SRS_GBALLOC_LL_JEMALLOC_28_008: [ If there are any errors, gballoc_ll_set_decay shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(gballoc_ll_set_decay_fails_when_underlying_calls_fail)
+{
+    ///arrange
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, NULL, 0))
+        .SetReturn(0)
+        .SetFailReturn(1);
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(0)
+        .SetFailReturn(1);
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(0)
+        .SetFailReturn(1);
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(0)
+        .SetFailReturn(1);
+    for (uint64_t i = 0; i < NUM_ARENAS; i++)
+    {
+        STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
+            .SetReturn(0)
+            .SetFailReturn(1);
+
+        STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
+            .SetReturn(0)
+            .SetFailReturn(1);
+    }
+
+    umock_c_negative_tests_snapshot();
+    for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
+    {
+        if (umock_c_negative_tests_can_call_fail(i))
+        {
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(i);
+
+            ///act
+            int result = gballoc_ll_set_decay(42);
+
+            ///assert
+            ASSERT_ARE_NOT_EQUAL(int, 0, result, "On failed call %zu", i);
+        }
+    }
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

@@ -26,6 +26,8 @@ gballoc_ll_jemalloc is a module that delegates all call of its APIs to the ones 
     MOCKABLE_FUNCTION(, size_t, gballoc_ll_size, void*, ptr);
 
     MOCKABLE_FUNCTION(, void, gballoc_ll_print_stats);
+
+    MOCKABLE_FUNCTION(, int, gballoc_ll_set_decay, int64_t, decay_milliseconds);
 ```
 
 ### gballoc_ll_init
@@ -166,3 +168,27 @@ static void jemalloc_print_stats_callback(void* context, const char* text)
 **SRS_GBALLOC_LL_JEMALLOC_01_009: [** If `text` is NULL, `jemalloc_print_stats_callback` shall return. **]**
 
 **SRS_GBALLOC_LL_JEMALLOC_01_010: [** Otherwise, `jemalloc_print_stats_callback` shall print (log) `text`, breaking it does in chunks of `LOG_MAX_MESSAGE_LENGTH / 2`. **]**
+
+### gballoc_ll_set_decay
+
+```c
+MOCKABLE_FUNCTION(, int, gballoc_ll_set_decay, int64_t, decay_milliseconds);
+```
+
+`gballoc_ll_set_decay` sets the dirty and muzzy pages decay time to `decay_milliseconds` milliseconds.
+
+**SRS_GBALLOC_LL_JEMALLOC_28_001: [** `gballoc_ll_set_decay` shall advance jemalloc's internal epoch counter. **]**
+
+**SRS_GBALLOC_LL_JEMALLOC_28_002: [** `gballoc_ll_set_decay` shall set the dirty decay time for new arenas to `decay_milliseconds` milliseconds. **]**
+
+**SRS_GBALLOC_LL_JEMALLOC_28_003: [** `gballoc_ll_set_decay` shall set the muzzy decay time for new arenas to `decay_milliseconds` milliseconds. **]**
+
+**SRS_GBALLOC_LL_JEMALLOC_28_004: [** `gballoc_ll_set_decay` shall fetch the number of existing jemalloc arenas. **]**
+
+**SRS_GBALLOC_LL_JEMALLOC_28_005: [** For each existing arena: **]**
+
+- **SRS_GBALLOC_LL_JEMALLOC_28_006: [** `gballoc_ll_set_decay` shall set the dirty decay time for the arena to `decay_milliseconds` milliseconds. **]**
+
+- **SRS_GBALLOC_LL_JEMALLOC_28_007: [** `gballoc_ll_set_decay` shall set the muzzy decay time for the arena to `decay_milliseconds` milliseconds. **]**
+
+**SRS_GBALLOC_LL_JEMALLOC_28_008: [** If there are any errors, `gballoc_ll_set_decay` shall fail and return a non-zero value. **]**

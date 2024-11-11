@@ -999,4 +999,17 @@ TEST_FUNCTION(gballoc_ll_print_stats_returns)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
+/* Tests_SRS_GBALLOC_LL_WIN32HEAP_28_001: [ gballoc_ll_set_decay shall do nothing and return a non-zero value. ]*/
+TEST_FUNCTION(gballoc_ll_set_decay_returns_non_zero)
+{
+    ///arrange
+
+    ///act
+    int result = gballoc_ll_set_decay(42);
+
+    ///assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
