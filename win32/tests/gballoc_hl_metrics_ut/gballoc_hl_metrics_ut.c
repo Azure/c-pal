@@ -2385,7 +2385,7 @@ TEST_FUNCTION(gballoc_hl_print_stats_calls_gballoc_ll_print_stats)
 
 /* gballoc_hl_set_decay */
 
-/* Codes_SRS_GBALLOC_HL_METRICS_28_001: [ gballoc_hl_set_decay shall call gballoc_ll_set_decay with decay_milliseconds as argument. ]*/
+/* Tests_SRS_GBALLOC_HL_METRICS_28_001: [ gballoc_hl_set_decay shall call gballoc_ll_set_decay with decay_milliseconds as argument. ]*/
 TEST_FUNCTION(gballoc_hl_set_decay_calls_gballoc_ll_set_decay)
 {
     ///arrange
