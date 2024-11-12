@@ -1124,10 +1124,10 @@ XTEST_FUNCTION(chaos_knight_test_with_timers_no_lock)
 
     (void)InterlockedExchange(&chaos_test_data.chaos_test_done, 1);
 
-    //will change to use InterlockedHL_waitforvalue_64 later, task:https://msazure.visualstudio.com/One/_workitems/edit/30197585
-    while ((int64_t)InterlockedAdd64(&chaos_test_data.expected_call_count, 0) != (int64_t)InterlockedAdd64(&chaos_test_data.executed_work_functions, 0))
+    //will change to use a future API: InterlockedHL_waitforvalue_64 later, task:https://msazure.visualstudio.com/One/_workitems/edit/30197585
+    while (InterlockedAdd64(&chaos_test_data.expected_call_count, 0) != InterlockedAdd64(&chaos_test_data.executed_work_functions, 0))
     {
-        continue;
+        Sleep(1);
     }
 
     // wait for all threads to complete
