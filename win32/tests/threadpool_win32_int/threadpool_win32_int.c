@@ -673,23 +673,85 @@ typedef struct CHAOS_TEST_DATA_TAG
 #define TIMER_PERIOD_MIN 50
 #define TIMER_PERIOD_MAX 400
 
-static void chaos_delay()
+// Note: Will be moved to code corresponding to sync.h
+static WAIT_ON_ADDRESS_RESULT wait_on_address_64(volatile_atomic int64_t* address, int64_t compare_value, uint32_t timeout_ms)
 {
-    // Earlier, the threadpool_open and threadpool_close would start and stop threadpool threads whereby there would be some limit on number of times work would be scheduled
-    // on Windows Threadpool using threadpool_schedule_work and threadpool_schedule_work_item because both functions would test for threadpool open condition and return if threadpool is not open.
-    // With threadpool_open and threadpool_close now only there for backward compatibility and doing nothing, the chaos test for optimized threadpool_schedule_work_item
-    // would create a very large number of work items compared to the previous version of threadpool_schedule_work. The tests would fail because expected_call_count would be very high than the
-    // executed_work_functions count because Windows Threadpool is unable to schedule that many work items. Adding Sleep(1) would significantly slow the tests. So adding following malloc and free
-    // would ensure delay less than 1 milliseconds, enough to allow Windows Threadpool to handle this chaos test scenarios for threadpool_schedule_work_item. For threadpool_schedule_work there are
-    // already extra operations than threadpool_schedule_work_item like malloc and free (in its callback) that would create more delay than this function. Hence threadpool_schedule_work would pass in
-    // chaos test even after threadpool_open and threadpool_close have reduced functionality.
-    for (int i = 0; i < 50; i++)
+    WAIT_ON_ADDRESS_RESULT result;
+    /*Codes_S_R_S_SYNC_WIN32_05_001: [ wait_on_address shall call WaitOnAddress from windows.h with address as Address, a pointer to the value compare_value as CompareAddress, 4 as AddressSize and timeout_ms as dwMilliseconds. ]*/
+    if (WaitOnAddress(address, &compare_value, sizeof(int64_t), timeout_ms) != TRUE)
     {
-        // The loop and randomized data count around malloc avoids compiler optimizaton where consecutive malloc and free are not removed by the compiler optimization.
-        int random_count = (rand() * (i+1) * 4) / (RAND_MAX + 1);
-        CHAOS_TEST_DATA* temp = (CHAOS_TEST_DATA*)malloc(random_count * sizeof(CHAOS_TEST_DATA));
-        free(temp);
+        if (GetLastError() == ERROR_TIMEOUT)
+        {
+            /* Codes_S_R_S_SYNC_WIN32_05_002: [ If WaitOnAddress fails due to timeout, wait_on_address shall fail and return WAIT_ON_ADDRESS_TIMEOUT. ]*/
+            result = WAIT_ON_ADDRESS_TIMEOUT;
+        }
+        else
+        {
+            LogLastError("failure in WaitOnAddress(address=%p, &compare_value=%p, address_size=%zu, timeout_ms=%" PRIu64 ")",
+                address, &compare_value, sizeof(int64_t), timeout_ms);
+            /* Codes_S_R_S_SYNC_WIN32_05_003: [ If WaitOnAddress fails due to any other reason, wait_on_address shall fail and return WAIT_ON_ADDRESS_ERROR. ]*/
+            result = WAIT_ON_ADDRESS_ERROR;
+        }
     }
+    else
+    {
+        /* Codes_S_R_S_SYNC_WIN32_05_004: [ If WaitOnAddress succeeds, wait_on_address shall return WAIT_ON_ADDRESS_OK. ]*/
+        result = WAIT_ON_ADDRESS_OK;
+    }
+    return result;
+}
+
+// Note: Will be moved to code corresponding to interlocked_hl.h
+static INTERLOCKED_HL_RESULT InterlockedHL_WaitForValue_64(int64_t volatile_atomic* address, int64_t value, uint32_t milliseconds)
+{
+    INTERLOCKED_HL_RESULT result;
+
+    /* Codes_S_R_S_INTERLOCKED_HL_05_001: [ If address is NULL, InterlockedHL_WaitForValue_64 shall fail and return INTERLOCKED_HL_ERROR. ]*/
+    if (address == NULL)
+    {
+        result = INTERLOCKED_HL_ERROR;
+    }
+    else
+    {
+        int64_t current_value;
+
+        do
+        {
+            /* Codes_S_R_S_INTERLOCKED_HL_05_002: [ When wait_on_address succeeds, the value at address shall be compared to the target value passed in value by using interlocked_add. ]*/
+            current_value = interlocked_add_64(address, 0);
+            if (current_value == value)
+            {
+                /* Codes_S_R_S_INTERLOCKED_HL_05_003: [ If the value at address is equal to value, InterlockedHL_WaitForValue_64 shall return INTERLOCKED_HL_OK. ]*/
+                result = INTERLOCKED_HL_OK;
+                break;
+            }
+
+            /* Codes_S_R_S_INTERLOCKED_HL_05_004: [ If the value at address does not match, InterlockedHL_WaitForValue_64 shall issue another call to wait_on_address. ]*/
+
+            /* Codes_S_R_S_INTERLOCKED_HL_05_005: [ If the value at address is not equal to value, InterlockedHL_WaitForValue_64 shall wait until the value at address changes in order to compare it again to value by using wait_on_address. ]*/
+            /* Codes_S_R_S_INTERLOCKED_HL_05_006: [ When waiting for the value at address to change, the milliseconds argument value shall be used as timeout. ]*/
+            WAIT_ON_ADDRESS_RESULT wait_result = wait_on_address_64(address, current_value, milliseconds);
+            if (wait_result == WAIT_ON_ADDRESS_OK)
+            {
+                result = INTERLOCKED_HL_OK;
+            }
+            else if (wait_result == WAIT_ON_ADDRESS_TIMEOUT)
+            {
+                /* Codes_S_R_S_INTERLOCKED_HL_05_008: [ If wait_on_address timesout, InterlockedHL_WaitForValue_64 shall fail and return INTERLOCKED_HL_TIMEOUT. ] */
+                result = INTERLOCKED_HL_TIMEOUT;
+                break;
+            }
+            else
+            {
+                LogError("failure in wait_on_address(address=%p, &current_value=%p, milliseconds=%" PRIu32 ") result: %" PRI_MU_ENUM "",
+                    address, &current_value, milliseconds, MU_ENUM_VALUE(WAIT_ON_ADDRESS_RESULT, wait_result));
+                /* Codes_S_R_S_INTERLOCKED_HL_05_007: [ If wait_on_address fails, InterlockedHL_WaitForValue_64 shall fail and return INTERLOCKED_HL_ERROR. ]*/
+                result = INTERLOCKED_HL_ERROR;
+                break;
+            }
+        } while (1);
+    }
+    return result;
 }
 
 static DWORD WINAPI chaos_thread_func(LPVOID lpThreadParameter)
