@@ -814,7 +814,7 @@ typedef struct CHAOS_TEST_DATA_TAG
 {
     volatile LONG64 expected_call_count;
     volatile LONG64 executed_work_functions;
-    volatile LONG executed_timer_functions;
+    volatile LONG64 executed_timer_functions;
     volatile LONG chaos_test_done;
     THANDLE(THREADPOOL) threadpool;
 
@@ -1100,7 +1100,7 @@ XTEST_FUNCTION(chaos_knight_test_with_timers_no_lock)
 
     (void)InterlockedExchange64(&chaos_test_data.expected_call_count, 0);
     (void)InterlockedExchange64(&chaos_test_data.executed_work_functions, 0);
-    (void)InterlockedExchange(&chaos_test_data.executed_timer_functions, 0);
+    (void)InterlockedExchange64(&chaos_test_data.executed_timer_functions, 0);
     (void)InterlockedExchange(&chaos_test_data.timers_starting, 0);
     (void)InterlockedExchange(&chaos_test_data.chaos_test_done, 0);
     (void)InterlockedExchange(&chaos_test_data.can_start_timers, 1);
@@ -1138,8 +1138,8 @@ XTEST_FUNCTION(chaos_knight_test_with_timers_no_lock)
     // assert that all scheduled items were executed
     ASSERT_ARE_EQUAL(int64_t, (int64_t)InterlockedAdd64(&chaos_test_data.expected_call_count, 0), (int64_t)InterlockedAdd64(&chaos_test_data.executed_work_functions, 0));
 
-    LogInfo("Chaos test executed %" PRIu64 " work items, %" PRIu32 " timers",
-        InterlockedAdd64(&chaos_test_data.executed_work_functions, 0), InterlockedAdd(&chaos_test_data.executed_timer_functions, 0));
+    LogInfo("Chaos test executed %" PRIu64 " work items, %" PRIu64 " timers",
+        InterlockedAdd64(&chaos_test_data.executed_work_functions, 0), InterlockedAdd64(&chaos_test_data.executed_timer_functions, 0));
 
     // call close
     chaos_cleanup_all_timers(&chaos_test_data);
