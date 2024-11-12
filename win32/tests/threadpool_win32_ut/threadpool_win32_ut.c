@@ -207,6 +207,9 @@ MOCK_FUNCTION_END()
 MOCK_FUNCTION_WITH_CODE(, void, mocked_WaitForThreadpoolTimerCallbacks, PTP_TIMER, pti, BOOL, fCancelPendingCallbacks)
 MOCK_FUNCTION_END()
 
+MOCK_FUNCTION_WITH_CODE(, void, mocked_WaitForThreadpoolWorkCallbacks, PTP_WORK, pwk, BOOL, fCancelPendingCallbacks)
+MOCK_FUNCTION_END()
+
 MOCK_FUNCTION_WITH_CODE(, void, test_work_function, void*, context)
 MOCK_FUNCTION_END()
 
@@ -298,10 +301,10 @@ TEST_FUNCTION(threadpool_create_with_NULL_execution_engine_fails)
 
 /* Tests_SRS_THREADPOOL_WIN32_01_001: [ threadpool_create shall allocate a new threadpool object and on success shall return a non-NULL handle. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_01_025: [ threadpool_create shall obtain the PTP_POOL from the execution engine by calling execution_engine_win32_get_threadpool. ]*/
-/* Tests_SRS_THREADPOOL_WIN32_01_026: [ threadpool_open shall initialize a thread pool environment by calling InitializeThreadpoolEnvironment. ]*/
-/* Tests_SRS_THREADPOOL_WIN32_01_027: [ threadpool_open shall set the thread pool for the environment to the pool obtained from the execution engine by calling SetThreadpoolCallbackPool. ]*/
-/* Tests_SRS_THREADPOOL_WIN32_01_028: [ threadpool_open shall create a threadpool cleanup group by calling CreateThreadpoolCleanupGroup. ]*/
-/* Tests_SRS_THREADPOOL_WIN32_01_029: [ threadpool_open shall associate the cleanup group with the just created environment by calling SetThreadpoolCallbackCleanupGroup. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_01_026: [ threadpool_create shall initialize a thread pool environment by calling InitializeThreadpoolEnvironment. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_01_027: [ threadpool_create shall set the thread pool for the environment to the pool obtained from the execution engine by calling SetThreadpoolCallbackPool. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_01_028: [ threadpool_create shall create a threadpool cleanup group by calling CreateThreadpoolCleanupGroup. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_01_029: [ threadpool_create shall associate the cleanup group with the just created environment by calling SetThreadpoolCallbackCleanupGroup. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_42_027: [ threadpool_create shall increment the reference count on the execution_engine. ]*/
 TEST_FUNCTION(threadpool_create_succeeds)
 {
@@ -375,6 +378,7 @@ TEST_FUNCTION(threadpool_dispose_frees_resources)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
@@ -415,6 +419,7 @@ TEST_FUNCTION(threadpool_dispose_performs_an_implicit_close)
         .ValidateArgumentValue_ptpcg(&test_cleanup_group);
     STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
     umock_c_reset_all_calls();
 
     // close
@@ -473,7 +478,7 @@ TEST_FUNCTION(threadpool_open_succeeds)
 
 /* threadpool_close */
 
-/* Tests_SRS_THREADPOOL_WIN32_05_018: [ If threadpool is NULL, threadpool_close shall return. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_05_019: [ If threadpool is NULL, threadpool_close shall return. ]*/
 TEST_FUNCTION(threadpool_close_with_NULL_handle_returns)
 {
     // arrange
@@ -1590,9 +1595,9 @@ TEST_FUNCTION(threadpool_destroy_work_item_fails_for_NULL_work_item_context)
 
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
-
-/* Tests_SRS_THREADPOOL_WIN32_05_016: [ threadpool_destroy_work_item shall call CloseThreadpoolWork to close ptp_work. ] */
-/* Tests_SRS_THREADPOOL_WIN32_05_017: [ threadpool_destroy_work_item shall free the work_item_context. ] */
+/* Tests_SRS_THREADPOOL_WIN32_05_016: [ threadpool_destroy_work_item shall call WaitForThreadpoolWorkCallbacks to wait on all outstanding tasks being scheduled on this ptp_work. ] * /
+/* Tests_SRS_THREADPOOL_WIN32_05_017: [ threadpool_destroy_work_item shall call CloseThreadpoolWork to close ptp_work. ] */
+/* Tests_SRS_THREADPOOL_WIN32_05_018: [ threadpool_destroy_work_item shall free the work_item_context. ] */
 TEST_FUNCTION(threadpool_destroy_work_item_succeeds)
 {
     // arrange
@@ -1621,6 +1626,7 @@ TEST_FUNCTION(threadpool_destroy_work_item_succeeds)
     ASSERT_ARE_EQUAL(int, 0, schedule_return_status);
     umock_c_reset_all_calls();
 
+    STRICT_EXPECTED_CALL(mocked_WaitForThreadpoolWorkCallbacks(ptp_work, false));
     STRICT_EXPECTED_CALL(mocked_CloseThreadpoolWork(ptp_work));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 

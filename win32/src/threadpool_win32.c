@@ -93,8 +93,9 @@ static VOID CALLBACK on_work_callback_v2(PTP_CALLBACK_INSTANCE instance, PVOID c
     }
 }
 
-static void internal_close(THREADPOOL* threadpool)
+static void threadpool_dispose(THREADPOOL* threadpool)
 {
+    /* Codes_SRS_THREADPOOL_WIN32_01_007: [ threadpool_dispose shall perform an implicit close if threadpool is OPEN. ]*/
     do
     {
         LONG current_pending_api_calls = InterlockedAdd(&threadpool->pending_api_calls, 0);
@@ -112,14 +113,8 @@ static void internal_close(THREADPOOL* threadpool)
     /* Codes_SRS_THREADPOOL_WIN32_01_032: [ threadpool_close shall close the threadpool cleanup group by calling CloseThreadpoolCleanupGroup. ]*/
     CloseThreadpoolCleanupGroup(threadpool->tp_cleanup_group);
 
-    /* Codes_SRS_THREADPOOL_WIN32_01_033: [ threadpool_close shall destroy the thread pool environment created in threadpool_open. ]*/
+    /* Codes_SRS_THREADPOOL_WIN32_01_033: [ threadpool_close shall destroy the thread pool environment created in threadpool_create. ]*/
     DestroyThreadpoolEnvironment(&threadpool->tp_environment);
-}
-
-static void threadpool_dispose(THREADPOOL* threadpool)
-{
-    /* Codes_SRS_THREADPOOL_WIN32_01_007: [ threadpool_dispose shall perform an implicit close if threadpool is OPEN. ]*/
-    internal_close(threadpool);
 
     /* Codes_SRS_THREADPOOL_WIN32_42_028: [ threadpool_dispose shall decrement the reference count on the execution_engine. ]*/
     execution_engine_dec_ref(threadpool->execution_engine);
@@ -153,13 +148,13 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
             }
             else
             {
-                /* Codes_SRS_THREADPOOL_WIN32_01_026: [ threadpool_open shall initialize a thread pool environment by calling InitializeThreadpoolEnvironment. ]*/
+                /* Codes_SRS_THREADPOOL_WIN32_01_026: [ threadpool_create shall initialize a thread pool environment by calling InitializeThreadpoolEnvironment. ]*/
                 InitializeThreadpoolEnvironment(&result->tp_environment);
 
-                /* Codes_SRS_THREADPOOL_WIN32_01_027: [ threadpool_open shall set the thread pool for the environment to the pool obtained from the execution engine by calling SetThreadpoolCallbackPool. ]*/
+                /* Codes_SRS_THREADPOOL_WIN32_01_027: [ threadpool_create shall set the thread pool for the environment to the pool obtained from the execution engine by calling SetThreadpoolCallbackPool. ]*/
                 SetThreadpoolCallbackPool(&result->tp_environment, result->pool);
 
-                /* Codes_SRS_THREADPOOL_WIN32_01_028: [ threadpool_open shall create a threadpool cleanup group by calling CreateThreadpoolCleanupGroup. ]*/
+                /* Codes_SRS_THREADPOOL_WIN32_01_028: [ threadpool_create shall create a threadpool cleanup group by calling CreateThreadpoolCleanupGroup. ]*/
                 result->tp_cleanup_group = CreateThreadpoolCleanupGroup();
                 if (result->tp_cleanup_group == NULL)
                 {
@@ -168,7 +163,7 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                 }
                 else
                 {
-                    /* Codes_SRS_THREADPOOL_WIN32_01_029: [ threadpool_open shall associate the cleanup group with the just created environment by calling SetThreadpoolCallbackCleanupGroup. ]*/
+                    /* Codes_SRS_THREADPOOL_WIN32_01_029: [ threadpool_create shall associate the cleanup group with the just created environment by calling SetThreadpoolCallbackCleanupGroup. ]*/
                     SetThreadpoolCallbackCleanupGroup(&result->tp_environment, result->tp_cleanup_group, on_io_cancelled);
 
                     /* Codes_SRS_THREADPOOL_WIN32_42_027: [ threadpool_create shall increment the reference count on the execution_engine. ]*/
@@ -211,8 +206,12 @@ void threadpool_close(THANDLE(THREADPOOL) threadpool)
 {
     if (threadpool == NULL)
     {
-        /* Codes_SRS_THREADPOOL_WIN32_05_018: [ If threadpool is NULL, threadpool_close shall return. ]*/
+        /* Codes_SRS_THREADPOOL_WIN32_05_019: [ If threadpool is NULL, threadpool_close shall return. ]*/
         LogError("Invalid arguments: THREADPOOL_HANDLE threadpool=%p", threadpool);
+    }
+    else
+    {
+        // do_nothing.
     }
 }
 
@@ -286,9 +285,11 @@ int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WOR
         THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
 
         (void)InterlockedIncrement(&threadpool_ptr->pending_api_calls);
+
         /* Codes_SRS_THREADPOOL_WIN32_05_013: [ threadpool_schedule_work_item shall call SubmitThreadpoolWork to submit the work item for execution. ]*/
         SubmitThreadpoolWork(work_item_context->ptp_work);
         result = 0;
+
         (void)InterlockedDecrement(&threadpool_ptr->pending_api_calls);
         WakeByAddressSingle((PVOID)&threadpool_ptr->pending_api_calls);
     }
@@ -311,11 +312,13 @@ void threadpool_destroy_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WOR
         THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
 
         (void)InterlockedIncrement(&threadpool_ptr->pending_api_calls);
-        /* Codes_SRS_THREADPOOL_WIN32_05_016: [ threadpool_destroy_work_item shall call CloseThreadpoolWork to close ptp_work. ]*/
+        /* Codes_SRS_THREADPOOL_WIN32_05_016: [ threadpool_destroy_work_item shall call WaitForThreadpoolWorkCallbacks to wait on all outstanding tasks being scheduled on this ptp_work. ]*/
+        WaitForThreadpoolWorkCallbacks(work_item_context->ptp_work, false);
+        /* Codes_SRS_THREADPOOL_WIN32_05_017: [ threadpool_destroy_work_item shall call CloseThreadpoolWork to close ptp_work. ]*/
         CloseThreadpoolWork(work_item_context->ptp_work);
         (void)InterlockedDecrement(&threadpool_ptr->pending_api_calls);
         WakeByAddressSingle((PVOID)&threadpool_ptr->pending_api_calls);
-        /* Codes_SRS_THREADPOOL_WIN32_05_017: [ threadpool_destroy_work_item shall free the work_item_context. ]*/
+        /* Codes_SRS_THREADPOOL_WIN32_05_018: [ threadpool_destroy_work_item shall free the work_item_context. ]*/
         free(work_item_context);
     }
 }

@@ -104,7 +104,7 @@ MOCKABLE_FUNCTION(, void, threadpool_close, THANDLE(THREADPOOL), threadpool);
 Note: `threadpool_close` will be deprecated and threadpool_dispose will perform additional tasks of `threadpool_close`. This function will exist until all the libraries calling this API are modified to use only `threadpool_create`.
 `threadpool_close` closes an open threadpool.
 
-**SRS_THREADPOOL_WIN32_05_018: [** If `threadpool` is `NULL`, `threadpool_close` shall return. **]**
+**SRS_THREADPOOL_WIN32_05_019: [** If `threadpool` is `NULL`, `threadpool_close` shall return. **]**
 
 ### threadpool_schedule_work
 
@@ -304,6 +304,8 @@ MOCKABLE_FUNCTION(, void, threadpool_destroy_work_item, THANDLE(THREADPOOL), thr
 
 **SRS_THREADPOOL_WIN32_05_015: [** If `work_item_context` is `NULL`, `threadpool_destroy_work_item` shall fail and not do anything before returning. **]**
 
-**SRS_THREADPOOL_WIN32_05_016: [** `threadpool_destroy_work_item` shall call `CloseThreadpoolWork` to close `ptp_work`. **]**
+**SRS_THREADPOOL_WIN32_05_016: [** `threadpool_destroy_work_item` shall call `WaitForThreadpoolWorkCallbacks` to wait on all outstanding tasks being scheduled on this `ptp_work`. **]**
 
-**SRS_THREADPOOL_WIN32_05_017: [** `threadpool_destroy_work_item` shall free the `work_item_context`. **]**
+**SRS_THREADPOOL_WIN32_05_017: [** `threadpool_destroy_work_item` shall call `CloseThreadpoolWork` to close `ptp_work`. **]**
+
+**SRS_THREADPOOL_WIN32_05_018: [** `threadpool_destroy_work_item` shall free the `work_item_context`. **]**
