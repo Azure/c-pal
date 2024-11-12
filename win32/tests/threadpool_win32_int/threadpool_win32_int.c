@@ -87,7 +87,7 @@ static void open_work_function(void* context)
     TEST_ACTION_DESTROY_TIMER, \
     TEST_ACTION_CANCEL_TIMER, \
     TEST_ACTION_RESTART_TIMER, \
-    TEST_ACTION_SCEDULE_WORK_ITEM
+    TEST_ACTION_SCHEDULE_WORK_ITEM
 
 MU_DEFINE_ENUM(TEST_ACTION, TEST_ACTION_VALUES)
 MU_DEFINE_ENUM_STRINGS(TEST_ACTION, TEST_ACTION_VALUES)
@@ -1006,7 +1006,7 @@ static DWORD WINAPI chaos_thread_with_timers_no_lock_func(LPVOID lpThreadParamet
             (void)InterlockedDecrement(&chaos_test_data->timers_starting);
             WakeByAddressSingle((PVOID)&chaos_test_data->timers_starting);
         }
-        case TEST_ACTION_SCEDULE_WORK_ITEM:
+        case TEST_ACTION_SCHEDULE_WORK_ITEM:
             // perform a schedule work item
             if (InterlockedAdd(&chaos_test_data->can_schedule_works, 0) != 0)
             {
