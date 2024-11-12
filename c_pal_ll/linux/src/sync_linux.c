@@ -18,6 +18,8 @@
 #include "c_pal/interlocked.h"     // for volatile_atomic
 #include "c_pal/sync.h"
 
+MU_DEFINE_ENUM_STRINGS(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES)
+
 IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_atomic int32_t*, address, int32_t, compare_value, uint32_t, timeout_ms)
 {
     WAIT_ON_ADDRESS_RESULT result;
