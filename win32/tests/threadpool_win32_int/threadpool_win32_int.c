@@ -702,7 +702,7 @@ static WAIT_ON_ADDRESS_RESULT wait_on_address_64(volatile_atomic int64_t* addres
 }
 
 // Note: Will be moved to code corresponding to interlocked_hl.h
-static INTERLOCKED_HL_RESULT InterlockedHL_WaitForValue_64(int64_t volatile_atomic* address, int64_t value, uint32_t milliseconds)
+static INTERLOCKED_HL_RESULT InterlockedHL_WaitForValue64(int64_t volatile_atomic* address, int64_t value, uint32_t milliseconds)
 {
     INTERLOCKED_HL_RESULT result;
 
@@ -753,6 +753,7 @@ static INTERLOCKED_HL_RESULT InterlockedHL_WaitForValue_64(int64_t volatile_atom
     }
     return result;
 }
+
 
 static DWORD WINAPI chaos_thread_func(LPVOID lpThreadParameter)
 {
