@@ -852,7 +852,7 @@ static WAIT_ON_ADDRESS_RESULT wait_on_address_64(volatile_atomic int64_t* addres
 }
 
 // Note: Will be moved to code corresponding to interlocked_hl.h
-static INTERLOCKED_HL_RESULT InterlockedHL_WaitForValue_64(int64_t volatile_atomic* address, int64_t value, uint32_t milliseconds)
+static INTERLOCKED_HL_RESULT InterlockedHL_WaitForValue64(int64_t volatile_atomic* address, int64_t value, uint32_t milliseconds)
 {
     INTERLOCKED_HL_RESULT result;
 
@@ -903,6 +903,7 @@ static INTERLOCKED_HL_RESULT InterlockedHL_WaitForValue_64(int64_t volatile_atom
     }
     return result;
 }
+
 
 static DWORD WINAPI chaos_thread_func(LPVOID lpThreadParameter)
 {
@@ -1134,7 +1135,7 @@ TEST_FUNCTION(chaos_knight_test)
 
     // assert that all scheduled items were executed
 
-    InterlockedHL_WaitForValue_64(&chaos_test_data.executed_work_functions, chaos_test_data.expected_call_count, UINT32_MAX);
+    InterlockedHL_WaitForValue64(&chaos_test_data.executed_work_functions, chaos_test_data.expected_call_count, UINT32_MAX);
 
     LogInfo("Chaos test executed %" PRIu64 " work items",
         InterlockedAdd64(&chaos_test_data.executed_work_functions, 0));
@@ -1196,7 +1197,7 @@ TEST_FUNCTION(chaos_knight_test_with_timers)
     }
 
     // assert that all scheduled items were executed
-    InterlockedHL_WaitForValue_64(&chaos_test_data.executed_work_functions, chaos_test_data.expected_call_count, UINT32_MAX);
+    InterlockedHL_WaitForValue64(&chaos_test_data.executed_work_functions, chaos_test_data.expected_call_count, UINT32_MAX);
 
     LogInfo("Chaos test executed %" PRIu64 " work items, %" PRIu64 " timers",
         InterlockedAdd64(&chaos_test_data.executed_work_functions, 0), InterlockedAdd64(&chaos_test_data.executed_timer_functions, 0));
