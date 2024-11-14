@@ -8,7 +8,7 @@
 
 ```c
 MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_atomic int32_t*, address, int32_t, compare_value, uint32_t, timeout_ms);
-MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address_64_, volatile_atomic int64_t*, address, int64_t, compare_value, uint32_t, timeout_ms);
+MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address_64, volatile_atomic int64_t*, address, int64_t, compare_value, uint32_t, timeout_ms);
 MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t*, address);
 MOCKABLE_FUNCTION(, void, wake_by_address_all_64_, volatile_atomic int64_t*, address);
 MOCKABLE_FUNCTION(, void, wake_by_address_single, volatile_atomic int32_t*, address);

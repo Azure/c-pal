@@ -218,13 +218,13 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWake
 
 `InterlockedHL_SetAndWake64` set the value at `address` to `value` and signals the change of value in `address`. This can be commonly used with `InterlockedHL_WaitForValue64` to signal a waiting thread.
 
-**SRS_INTERLOCKED_HL_05_013: [** If address is NULL then InterlockedHL_SetAndWake64 shall fail and return INTERLOCKED_HL_ERROR. **]**
+**SRS_INTERLOCKED_HL_05_013: [** If `address` is `NULL` then `InterlockedHL_SetAndWake64` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
-**SRS_INTERLOCKED_HL_05_014: [** InterlockedHL_SetAndWake64 shall set value at address. **]**
+**SRS_INTERLOCKED_HL_05_014: [** `InterlockedHL_SetAndWake64` shall set `value` at `address`. **]**
 
-**SRS_INTERLOCKED_HL_05_015: [** InterlockedHL_SetAndWake64 shall wake a single thread listening on address. **]**
+**SRS_INTERLOCKED_HL_05_015: [** `InterlockedHL_SetAndWake64` shall wake a single thread listening on `address`. **]**
 
-**SRS_INTERLOCKED_HL_05_016: [** InterlockedHL_SetAndWake64 shall succeed and return INTERLOCKED_HL_OK. **]**
+**SRS_INTERLOCKED_HL_05_016: [** `InterlockedHL_SetAndWake64` shall succeed and return `INTERLOCKED_HL_OK`. **]**
 
 ### InterlockedHL_SetAndWakeAll
 ```c
@@ -248,13 +248,13 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWake
 
 `InterlockedHL_SetAndWakeAll64` set the value at `address` to `value` and signals the change of value in `address` to all waiting threads. This can be commonly used with `InterlockedHL_WaitForValue64` to signal a waiting thread.
 
-**SRS_INTERLOCKED_HL_05_017: [** If address is NULL then InterlockedHL_SetAndWakeAll64 shall fail and return INTERLOCKED_HL_ERROR. **]**
+**SRS_INTERLOCKED_HL_05_017: [** If `address` is `NULL` then `InterlockedHL_SetAndWakeAll64` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
-**SRS_INTERLOCKED_HL_05_018: [** InterlockedHL_SetAndWakeAll64 shall set value at address. **]**
+**SRS_INTERLOCKED_HL_05_018: [** `InterlockedHL_SetAndWakeAll64` shall set `value` at `address`. **]**
 
-**SRS_INTERLOCKED_HL_05_019: [** InterlockedHL_SetAndWakeAll64 shall wake all threads listening on address. **]**
+**SRS_INTERLOCKED_HL_05_019: [** `InterlockedHL_SetAndWakeAll64` shall wake all threads listening on `address`. **]**
 
-**SRS_INTERLOCKED_HL_05_020: [** InterlockedHL_SetAndWakeAll64 shall succeed and return INTERLOCKED_HL_OK. **]**
+**SRS_INTERLOCKED_HL_05_020: [** `InterlockedHL_SetAndWakeAll64` shall succeed and return `INTERLOCKED_HL_OK`. **]**
 
 ### InterlockedHL_DecrementAndWake
 ```c
@@ -278,10 +278,10 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_DecrementA
 
 `InterlockedHL_DecrementAndWake64` decrements the value at `address` by 1 and signals the change of value in `address`. This can be commonly used with `InterlockedHL_WaitForValue64` to signal a waiting thread.
 
-**SRS_INTERLOCKED_HL_05_021: [** If address is NULL then InterlockedHL_DecrementAndWake64 shall fail and return INTERLOCKED_HL_ERROR. **]**
+**SRS_INTERLOCKED_HL_05_021: [** If `address` is `NULL` then `InterlockedHL_DecrementAndWake64` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
-**SRS_INTERLOCKED_HL_05_022: [** InterlockedHL_DecrementAndWake64 shall decrement the value at address by 1. **]**
+**SRS_INTERLOCKED_HL_05_022: [** `InterlockedHL_DecrementAndWake64` shall decrement the `value` at `address` by 1. **]**
 
-**SRS_INTERLOCKED_HL_05_023: [** InterlockedHL_DecrementAndWake64 shall wake a single thread listening on address. **]**
+**SRS_INTERLOCKED_HL_05_023: [** `InterlockedHL_DecrementAndWake64` shall wake a single thread listening on `address`. **]**
 
-**SRS_INTERLOCKED_HL_05_024: [** InterlockedHL_DecrementAndWake64 shall succeed and return INTERLOCKED_HL_OK. **]**
+**SRS_INTERLOCKED_HL_05_024: [** `InterlockedHL_DecrementAndWake64` shall succeed and return `INTERLOCKED_HL_OK`. **]**
