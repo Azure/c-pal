@@ -40,10 +40,9 @@ extern "C" {
     int real_threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_ITEM_HANDLE work_item_context);
     void real_threadpool_destroy_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_ITEM_HANDLE work_item_context);
     int real_threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context);
-    int real_threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context, TIMER_INSTANCE_HANDLE* timer_handle);
-    int real_threadpool_timer_restart(TIMER_INSTANCE_HANDLE timer, uint32_t start_delay_ms, uint32_t timer_period_ms);
-    void real_threadpool_timer_cancel(TIMER_INSTANCE_HANDLE timer);
-    void real_threadpool_timer_destroy(TIMER_INSTANCE_HANDLE timer);
+    int real_threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context, THANDLE(TIMER_INSTANCE)* timer_handle);
+    int real_threadpool_timer_restart(THANDLE(TIMER_INSTANCE) timer, uint32_t start_delay_ms, uint32_t timer_period_ms);
+    void real_threadpool_timer_cancel(THANDLE(TIMER_INSTANCE) timer);
 
 #ifdef __cplusplus
 }

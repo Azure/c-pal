@@ -21,9 +21,12 @@ extern "C" {
 #endif
 
 typedef struct THREADPOOL_TAG THREADPOOL;
-typedef struct TIMER_INSTANCE_TAG* TIMER_INSTANCE_HANDLE;
+typedef struct TIMER_INSTANCE_TAG TIMER_INSTANCE;
+typedef struct TIMER_INSTANCE_TAG* TIMER_INSTANCE_HANDLE; //todo: if this one is needed
 typedef struct THREADPOOL_WORK_ITEM_TAG* THREADPOOL_WORK_ITEM_HANDLE;
 typedef void (*THREADPOOL_WORK_FUNCTION)(void* context);
+
+THANDLE_TYPE_DECLARE(TIMER_INSTANCE);
 
 THANDLE_TYPE_DECLARE(THREADPOOL);
 
@@ -40,13 +43,11 @@ MOCKABLE_FUNCTION(, void, threadpool_destroy_work_item, THANDLE(THREADPOOL), thr
 
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 
-MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, TIMER_INSTANCE_HANDLE*, timer_handle);
+MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, THANDLE(TIMER_INSTANCE)*, timer_handle);
 
-MOCKABLE_FUNCTION(, int, threadpool_timer_restart, TIMER_INSTANCE_HANDLE, timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
+MOCKABLE_FUNCTION(, int, threadpool_timer_restart, THANDLE(TIMER_INSTANCE), timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
 
-MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, TIMER_INSTANCE_HANDLE, timer);
-
-MOCKABLE_FUNCTION(, void, threadpool_timer_destroy, TIMER_INSTANCE_HANDLE, timer);
+MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, THANDLE(TIMER_INSTANCE), timer);
 
 #ifdef __cplusplus
 }
