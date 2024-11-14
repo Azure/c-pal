@@ -34,13 +34,13 @@ MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_atomic int
 ```c
 MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address_64, volatile_atomic int64_t*, address, int64_t, compare_value, uint32_t, timeout_ms)
 ```
-**SRS_SYNC_WIN32_05_001: [** `wait_on_address_64` shall call `WaitOnAddress` from the Windows API **]**
+**S_R_S_SYNC_WIN32_05_001: [** `wait_on_address_64` shall call `WaitOnAddress` from the Windows API **]**
 
-**SRS_SYNC_WIN32_05_002: [** If the value at `address` does not change until the `timeout_ms` timeout is hit, `wait_on_address_64` shall fail and return `WAIT_ON_ADDRESS_TIMEOUT`. **]**
+**S_R_S_SYNC_WIN32_05_002: [** If the value at `address` does not change until the `timeout_ms` timeout is hit, `wait_on_address_64` shall fail and return `WAIT_ON_ADDRESS_TIMEOUT`. **]**
 
-**SRS_SYNC_WIN32_05_003: [** If `WaitOnAddress` fails due to any other reason, `wait_on_address_64` shall fail and return `WAIT_ON_ADDRESS_ERROR`. **]**
+**S_R_S_SYNC_WIN32_05_003: [** If `WaitOnAddress` fails due to any other reason, `wait_on_address_64` shall fail and return `WAIT_ON_ADDRESS_ERROR`. **]**
 
-**SRS_SYNC_WIN32_05_004: [** If `WaitOnAddress` detects a change in value at `address`, `wait_on_address_64` shall succeed and return `WAIT_ON_ADDRESS_OK`. **]**
+**S_R_S_SYNC_WIN32_05_004: [** If `WaitOnAddress` detects a change in value at `address`, `wait_on_address_64` shall succeed and return `WAIT_ON_ADDRESS_OK`. **]**
 
 ## wake_by_address_all
 
@@ -54,7 +54,7 @@ MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t*, address
 ```c
 MOCKABLE_FUNCTION(, void, wake_by_address_all_64, volatile_atomic int64_t*, address)
 ```
-**SRS_SYNC_WIN32_05_005: [** `wake_by_address_all_64` shall call `WakeByAddressAll` from the Windows API to notify all threads waiting on address. **]**
+**S_R_S_SYNC_WIN32_05_005: [** `wake_by_address_all_64` shall call `WakeByAddressAll` from the Windows API to notify all threads waiting on address. **]**
 
 ## wake_by_address_single
 
@@ -68,4 +68,4 @@ MOCKABLE_FUNCTION(, void, wake_by_address_single, volatile_atomic int32_t*, addr
 MOCKABLE_FUNCTION(, void, wake_by_address_single_64, volatile_atomic int64_t*, address)
 ```
 
-**SRS_SYNC_WIN32_05_006: [** `wake_by_address_single_64` shall call `WakeByAddressSingle` from the Windows API to notify a single thread waiting on address. **]**
+**S_R_S_SYNC_WIN32_05_006: [** `wake_by_address_single_64` shall call `WakeByAddressSingle` from the Windows API to notify a single thread waiting on address. **]**
