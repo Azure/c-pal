@@ -24,7 +24,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_Add64WithCeil
         (originalAddend == NULL)
         )
     {
-        LogError("invalid arguments int64_t volatile_atomic* Addend=%p, int64_t Ceiling=%" PRId64 ", int64_t Value=%" PRId64 ", int64_t* originalAddend=%p",
+        LogError("Invalid arguments int64_t volatile_atomic* Addend=%p, int64_t Ceiling=%" PRId64 ", int64_t Value=%" PRId64 ", int64_t* originalAddend=%p",
             Addend, Ceiling, Value, originalAddend);
         result = INTERLOCKED_HL_ERROR;
     }
@@ -89,6 +89,8 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue,
     if (address_to_check == NULL)
     {
         /* Codes_SRS_INTERLOCKED_HL_01_002: [ If address_to_check is NULL, InterlockedHL_WaitForValue shall fail and return INTERLOCKED_HL_ERROR. ] */
+        LogError("Invalid arguments InterlockedHL_WaitForValue(address=%p, value=%" PRId32 ", milliseconds=%" PRIu32 ")",
+            address_to_check, value_to_wait, timeout_ms);
         result = INTERLOCKED_HL_ERROR;
     }
     else
@@ -144,6 +146,8 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue6
     if (address_to_check == NULL)
     {
         /* Codes_SRS_INTERLOCKED_HL_05_001: [ If address_to_check is NULL, InterlockedHL_WaitForValue64 shall fail and return INTERLOCKED_HL_ERROR. ] */
+        LogError("Invalid arguments InterlockedHL_WaitForValue64(address=%p, value=%" PRId64 ", milliseconds=%" PRIu32 ")",
+            address_to_check, value_to_wait, timeout_ms);
         result = INTERLOCKED_HL_ERROR;
     }
     else
@@ -196,7 +200,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotVal
     if (address_to_check == NULL)
     {
         /* Codes_SRS_INTERLOCKED_HL_42_001: [ If address_to_check is NULL, InterlockedHL_WaitForNotValue shall fail and return INTERLOCKED_HL_ERROR. ]*/
-        LogError("invalid arguments int32_t volatile_atomic* address=%p, int32_t value=%d, uint32_t milliseconds=%u",
+        LogError("Invalid arguments InterlockedHL_WaitForNotValue(address=%p, value=%" PRId32 ", milliseconds=%" PRIu32 ")",
             address_to_check, value_to_wait, timeout_ms);
         result = INTERLOCKED_HL_ERROR;
     }
@@ -252,6 +256,8 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotVal
     if (address_to_check == NULL)
     {
         /* Codes_SRS_INTERLOCKED_HL_05_007: [ If address_to_check is NULL, InterlockedHL_WaitForNotValue64 shall fail and return INTERLOCKED_HL_ERROR. ] */
+        LogError("Invalid arguments InterlockedHL_WaitForNotValue64(address=%p, value=%" PRId64 ", milliseconds=%" PRIu32 ")",
+            address_to_check, value_to_wait, timeout_ms);
         result = INTERLOCKED_HL_ERROR;
     }
     else
