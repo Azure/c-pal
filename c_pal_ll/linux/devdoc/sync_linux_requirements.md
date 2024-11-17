@@ -51,6 +51,7 @@ MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address_64, volatile_atomic 
 
 **SRS_SYNC_LINUX_05_006: [** Otherwise, `wait_on_address_64` shall return `WAIT_ON_ADDRESS_ERROR`. **]**
 
+
 ## wake_by_address_all
 
 ```c
@@ -64,6 +65,7 @@ MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t*, address
 ```c
 MOCKABLE_FUNCTION(, void, wake_by_address_all_64, volatile_atomic int64_t*, address)
 ```
+
 **SRS_SYNC_LINUX_05_007: [** `wake_by_address_all_64` shall call `syscall` to wake all listeners listening on `address`. **]**
 
 ## wake_by_address_single

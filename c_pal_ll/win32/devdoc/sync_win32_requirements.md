@@ -34,6 +34,7 @@ MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_atomic int
 ```c
 MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address_64, volatile_atomic int64_t*, address, int64_t, compare_value, uint32_t, timeout_ms)
 ```
+
 **SRS_SYNC_WIN32_05_001: [** `wait_on_address_64` shall call `WaitOnAddress` to wait on the value at 64-bit `address` to be different than `compare_value` for `timeout_ms` milliseconds. **]**
 
 **SRS_SYNC_WIN32_05_002: [** If `WaitOnAddress` fails due to timeout, `wait_on_address_64` shall fail and return `WAIT_ON_ADDRESS_TIMEOUT`. **]**
@@ -47,6 +48,7 @@ MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address_64, volatile_atomic 
 ```c
 MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t*, address)
 ```
+
 **SRS_SYNC_WIN32_43_003: [** `wake_by_address_all` shall call `WakeByAddressAll` to notify all listeners waiting on the 32-bit `address`. **]**
 
 ## wake_by_address_all_64
@@ -54,6 +56,7 @@ MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t*, address
 ```c
 MOCKABLE_FUNCTION(, void, wake_by_address_all_64, volatile_atomic int64_t*, address)
 ```
+
 **SRS_SYNC_WIN32_05_005: [** `wake_by_address_all_64` shall call `WakeByAddressAll` to notify all listeners waiting on the 64-bit `address`. **]**
 
 ## wake_by_address_single
