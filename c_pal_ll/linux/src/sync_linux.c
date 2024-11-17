@@ -65,6 +65,45 @@ IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_
     return result;
 }
 
+IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address_64, volatile_atomic int64_t*, address, int64_t, compare_value, uint32_t, timeout_ms)
+{
+    WAIT_ON_ADDRESS_RESULT result;
+
+    /* Codes_SRS_SYNC_LINUX_05_001: [ wait_on_address_64 shall initialize a timespec struct with .tv_nsec equal to timeout_ms* 10^6. ] */
+    struct timespec timeout = {timeout_ms / 1000, (timeout_ms % 1000) * 1e6 };
+
+    /* Codes_SRS_SYNC_LINUX_05_002: [ wait_on_address_64 shall call syscall to wait on value at address to change than the one provided in compare_value. ] */
+    int syscall_result = syscall(SYS_futex, address, FUTEX_WAIT_PRIVATE, compare_value, &timeout, NULL, 0);
+    if (syscall_result == 0)
+    {
+        /* Codes_SRS_SYNC_LINUX_05_003: [ wait_on_address_64 shall return true if the value at address changes than value at compare_value. ] */
+        result = WAIT_ON_ADDRESS_OK;
+    }
+    else
+    {
+        if (errno == EAGAIN)
+        {
+            /* Codes_SRS_SYNC_LINUX_05_004: [ If syscall returns a non-zero value and errno is EAGAIN, wait_on_address_64 shall return WAIT_ON_ADDRESS_OK. ] */
+            result = WAIT_ON_ADDRESS_OK;
+        }
+        else if (errno == ETIMEDOUT)
+        {
+            /* Codes_SRS_SYNC_LINUX_05_005: [ If syscall returns a non-zero value and errno is ETIMEDOUT, wait_on_address_64 shall return WAIT_ON_ADDRESS_TIMEOUT. ] */
+            result = WAIT_ON_ADDRESS_TIMEOUT;
+        }
+        else
+        {
+            char err_msg[128];
+            (void)strerror_r(errno, err_msg, 128);
+            LogError("failure in syscall, Error: %d: (%s)", errno, err_msg);
+            /* Codes_SRS_SYNC_LINUX_05_006: [ Otherwise, wait_on_address_64 shall return WAIT_ON_ADDRESS_ERROR. ] */
+            result = WAIT_ON_ADDRESS_ERROR;
+        }
+    }
+
+    return result;
+}
+
 IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t*, address)
 {
     /*Codes_SRS_SYNC_43_004: [ wake_by_address_all shall cause all the thread(s) waiting on a call to wait_on_address with argument address to continue execution. ]*/
@@ -72,9 +111,21 @@ IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t
     syscall(SYS_futex, address, FUTEX_WAKE_PRIVATE, INT_MAX, NULL, NULL, 0);
 }
 
+IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_all_64, volatile_atomic int64_t*, address)
+{
+    /* Codes_SRS_SYNC_LINUX_05_007: [ wake_by_address_all_64 shall call syscall to wake all listeners listening on address. ] */
+    syscall(SYS_futex, address, FUTEX_WAKE_PRIVATE, INT_MAX, NULL, NULL, 0);
+}
+
 IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_single, volatile_atomic int32_t*, address)
 {
     /*Codes_SRS_SYNC_43_005: [ wake_by_address_single shall cause one thread waiting on a call to wait_on_address with argument address to continue execution. ]*/
     /*Codes_SRS_SYNC_LINUX_43_006: [ wake_by_address_single shall call syscall from sys/syscall.h with arguments SYS_futex, address, FUTEX_WAKE_PRIVATE, 1, NULL, NULL, 0. ]*/
+    syscall(SYS_futex, address, FUTEX_WAKE_PRIVATE, 1, NULL, NULL, 0);
+}
+
+IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_single_64, volatile_atomic int64_t*, address)
+{
+    /* Codes_SRS_SYNC_LINUX_05_008: [ wake_by_address_single_64 shall call syscall to wake any single listener listening on address. ] */
     syscall(SYS_futex, address, FUTEX_WAKE_PRIVATE, 1, NULL, NULL, 0);
 }

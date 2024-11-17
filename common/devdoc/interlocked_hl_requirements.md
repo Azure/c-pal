@@ -63,20 +63,17 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForVal
 ```
 
 `InterlockedHL_WaitForValue` waits for the value at a given address to be equal to a target value.
+[Note: `address_to_check` refers to `address`, `value_to_wait` refers to `value`, and `timeout_ms` refers to `milliseconds`]
 
-**SRS_INTERLOCKED_HL_01_002: [** If `address` is `NULL`, `InterlockedHL_WaitForValue` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
+**SRS_INTERLOCKED_HL_01_002: [** If `address_to_check` is `NULL`, `InterlockedHL_WaitForValue` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
-**SRS_INTERLOCKED_HL_01_003: [** If the value at `address` is equal to `value`, `InterlockedHL_WaitForValue` shall return `INTERLOCKED_HL_OK`. **]**
+**SRS_INTERLOCKED_HL_01_003: [** If the value at `address_to_check` is equal to `value_to_wait`, `InterlockedHL_WaitForValue` shall return `INTERLOCKED_HL_OK`. **]**
 
-**SRS_INTERLOCKED_HL_01_004: [** If the value at `address` is not equal to `value`, `InterlockedHL_WaitForValue` shall wait until the value at `address` changes in order to compare it again to `value` by using `wait_on_address`. **]**
+**SRS_INTERLOCKED_HL_01_004: [** If the value at `address_to_check` is not equal to `value_to_wait`, `InterlockedHL_WaitForValue` shall wait until the value at `address_to_check` changes using `wait_on_address`. **]**
 
-**SRS_INTERLOCKED_HL_01_005: [** When waiting for the value at address to change, the `milliseconds` argument value shall be used as timeout. **]**
+**SRS_INTERLOCKED_HL_01_007: [** When `wait_on_address` succeeds, `InterlockedHL_WaitForValue` shall again compare the value at `address_to_check` with `value_to_wait`. **]**
 
-**SRS_INTERLOCKED_HL_01_007: [** When `wait_on_address` succeeds, the value at address shall be compared to the target value passed in `value` by using `interlocked_add`. **]**
-
-**SRS_INTERLOCKED_HL_01_008: [** If the value at `address` does not match, `InterlockedHL_WaitForValue` shall issue another call to `wait_on_address`. **]**
-
-**SRS_INTERLOCKED_HL_11_001: [** If `wait_on_address` timesout, `InterlockedHL_WaitForValue` shall fail and return `INTERLOCKED_HL_TIMEOUT`. **]**
+**SRS_INTERLOCKED_HL_11_001: [** If `wait_on_address` hits the timeout specified in `timeout_ms`, `InterlockedHL_WaitForValue` shall fail and return `INTERLOCKED_HL_TIMEOUT`. **]**
 
 **SRS_INTERLOCKED_HL_01_006: [** If `wait_on_address` fails, `InterlockedHL_WaitForValue` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
@@ -87,19 +84,19 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForVal
 ```
 
 `InterlockedHL_WaitForValue64` waits for the value at a given address to be equal to a target value.
-[Note: address_to_check refers to address, value_to_wait refers to value, and timeout_ms refers to milliseconds]
+[Note: `address_to_check` refers to `address`, `value_to_wait` refers to `value`, and `timeout_ms` refers to `milliseconds`]
 
-**S_R_S_INTERLOCKED_HL_05_001: [** If `address_to_check` is `NULL`, `InterlockedHL_WaitForValue64` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
+**SRS_INTERLOCKED_HL_05_001: [** If `address_to_check` is `NULL`, `InterlockedHL_WaitForValue64` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
-**S_R_S_INTERLOCKED_HL_05_002: [** If the value at `address_to_check` is equal to `value_to_wait`, `InterlockedHL_WaitForValue64` shall return `INTERLOCKED_HL_OK`. **]**
+**SRS_INTERLOCKED_HL_05_002: [** If the value at `address_to_check` is equal to `value_to_wait`, `InterlockedHL_WaitForValue64` shall return `INTERLOCKED_HL_OK`. **]**
 
-**S_R_S_INTERLOCKED_HL_05_003: [** If the value at `address_to_check` is not equal to `value_to_wait`, `InterlockedHL_WaitForValue64` shall wait until the value at `address_to_check` changes using `wait_on_address_64`. **]**
+**SRS_INTERLOCKED_HL_05_003: [** If the value at `address_to_check` is not equal to `value_to_wait`, `InterlockedHL_WaitForValue64` shall wait until the value at `address_to_check` changes using `wait_on_address_64`. **]**
 
-**S_R_S_INTERLOCKED_HL_05_004: [** When `wait_on_address_64` succeeds, `InterlockedHL_WaitForValue64` shall again compare the value at `address_to_check` with `value_to_wait`. **]**
+**SRS_INTERLOCKED_HL_05_004: [** When `wait_on_address_64` succeeds, `InterlockedHL_WaitForValue64` shall again compare the value at `address_to_check` with `value_to_wait`. **]**
 
-**S_R_S_INTERLOCKED_HL_05_005: [** If `wait_on_address_64` hits the timeout specified in timeout_ms, `InterlockedHL_WaitForValue64` shall fail and return `INTERLOCKED_HL_TIMEOUT`. **]**
+**SRS_INTERLOCKED_HL_05_005: [** If `wait_on_address_64` hits the timeout specified in timeout_ms, `InterlockedHL_WaitForValue64` shall fail and return `INTERLOCKED_HL_TIMEOUT`. **]**
 
-**S_R_S_INTERLOCKED_HL_05_006: [** If `wait_on_address_64` fails, `InterlockedHL_WaitForValue64` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
+**SRS_INTERLOCKED_HL_05_006: [** If `wait_on_address_64` fails, `InterlockedHL_WaitForValue64` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
 ### InterlockedHL_WaitForNotValue
 
@@ -108,20 +105,17 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNot
 ```
 
 `InterlockedHL_WaitForNotValue` waits for the value at a given address to not be equal to a target value.
+[Note: address_to_check refers to address, value_to_wait refers to value, and timeout_ms refers to milliseconds]
 
-**SRS_INTERLOCKED_HL_42_001: [** If `address` is `NULL`, `InterlockedHL_WaitForNotValue` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
+**SRS_INTERLOCKED_HL_42_001: [** If `address_to_check` is `NULL`, `InterlockedHL_WaitForNotValue` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
-**SRS_INTERLOCKED_HL_42_002: [** If the value at `address` is not equal to `value`, `InterlockedHL_WaitForNotValue` shall return `INTERLOCKED_HL_OK`. **]**
+**SRS_INTERLOCKED_HL_42_002: [** If the value at `address_to_check` is not equal to `value_to_wait`, `InterlockedHL_WaitForNotValue` shall return `INTERLOCKED_HL_OK`. **]**
 
-**SRS_INTERLOCKED_HL_42_003: [** If the value at `address` is equal to `value`, `InterlockedHL_WaitForNotValue` shall wait until the value at `address` changes in order to compare it again to `value` by using `wait_on_address`. **]**
+**SRS_INTERLOCKED_HL_42_003: [** If the value at `address_to_check` is equal to `value_to_wait`, `InterlockedHL_WaitForNotValue` shall wait until the value at `address_to_check` changes by using `wait_on_address`. **]**
 
-**SRS_INTERLOCKED_HL_42_004: [** When waiting for the value at address to change, the `milliseconds` argument value shall be used as timeout. **]**
+**SRS_INTERLOCKED_HL_42_005: [** When `wait_on_address` succeeds, `InterlockedHL_WaitForNotValue64` shall again compare the value at `address_to_check` with `value_to_wait`. **]**
 
-**SRS_INTERLOCKED_HL_42_005: [** When `wait_on_address` succeeds, the value at address shall be compared to the target value passed in `value` by using `interlocked_add`. **]**
-
-**SRS_INTERLOCKED_HL_42_006: [** If the value at `address` matches, `InterlockedHL_WaitForNotValue` shall issue another call to `wait_on_address`. **]**
-
-**SRS_INTERLOCKED_HL_11_002: [** If `wait_on_address` timesout, `InterlockedHL_WaitForNotValue` shall fail and return `INTERLOCKED_HL_TIMEOUT`. **]**
+**SRS_INTERLOCKED_HL_11_002: [** If `wait_on_address` hits the timeout specified in timeout_ms, `InterlockedHL_WaitForNotValue` shall fail and return `INTERLOCKED_HL_TIMEOUT`. **]**
 
 **SRS_INTERLOCKED_HL_42_007: [** If `wait_on_address` fails, `InterlockedHL_WaitForNotValue` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
@@ -134,17 +128,17 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNot
 `InterlockedHL_WaitForValue64` waits for the value at a given address to be not equal to a target value.
 [Note: address_to_check refers to address, value_to_wait refers to value, and timeout_ms refers to milliseconds]
 
-**S_R_S_INTERLOCKED_HL_05_007: [** If `address_to_check` is `NULL`, `InterlockedHL_WaitForNotValue64` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
+**SRS_INTERLOCKED_HL_05_007: [** If `address_to_check` is `NULL`, `InterlockedHL_WaitForNotValue64` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
-**S_R_S_INTERLOCKED_HL_05_008: [** If the value at `address_to_check` is not equal to `value_to_wait`, `InterlockedHL_WaitForNotValue64` shall return `INTERLOCKED_HL_OK`. **]**
+**SRS_INTERLOCKED_HL_05_008: [** If the value at `address_to_check` is not equal to `value_to_wait`, `InterlockedHL_WaitForNotValue64` shall return `INTERLOCKED_HL_OK`. **]**
 
-**S_R_S_INTERLOCKED_HL_05_009: [** If the value at `address_to_check` is equal to `value_to_wait`, `InterlockedHL_WaitForNotValue64` shall wait until the value at `address_to_check` changes using `wait_on_address_64`. **]**
+**SRS_INTERLOCKED_HL_05_009: [** If the value at `address_to_check` is equal to `value_to_wait`, `InterlockedHL_WaitForNotValue64` shall wait until the value at `address_to_check` changes using `wait_on_address_64`. **]**
 
-**S_R_S_INTERLOCKED_HL_05_010: [** When `wait_on_address_64` succeeds, `InterlockedHL_WaitForNotValue64` shall again compare the value at `address_to_check` with `value_to_wait`. **]**
+**SRS_INTERLOCKED_HL_05_010: [** When `wait_on_address_64` succeeds, `InterlockedHL_WaitForNotValue64` shall again compare the value at `address_to_check` with `value_to_wait`. **]**
 
-**S_R_S_INTERLOCKED_HL_05_011: [** If `wait_on_address_64` hits the timeout specified in timeout_ms, `InterlockedHL_WaitForNotValue64` shall fail and return `INTERLOCKED_HL_TIMEOUT`. **]**
+**SRS_INTERLOCKED_HL_05_011: [** If `wait_on_address_64` hits the timeout specified in timeout_ms, `InterlockedHL_WaitForNotValue64` shall fail and return `INTERLOCKED_HL_TIMEOUT`. **]**
 
-**S_R_S_INTERLOCKED_HL_05_012: [** If `wait_on_address_64` fails, `InterlockedHL_WaitForNotValue64` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
+**SRS_INTERLOCKED_HL_05_012: [** If `wait_on_address_64` fails, `InterlockedHL_WaitForNotValue64` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
 ### InterlockedHL_CompareExchangeIf
 ```c
@@ -220,13 +214,13 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWake
 
 `InterlockedHL_SetAndWake64` set the value at `address` to `value` and signals the change of value in `address`. This can be commonly used with `InterlockedHL_WaitForValue64` to signal a waiting thread.
 
-**S_R_S_INTERLOCKED_HL_05_013: [** If `address` is `NULL` then `InterlockedHL_SetAndWake64` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
+**SRS_INTERLOCKED_HL_05_013: [** If `address` is `NULL` then `InterlockedHL_SetAndWake64` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
-**S_R_S_INTERLOCKED_HL_05_014: [** `InterlockedHL_SetAndWake64` shall set `value` at `address`. **]**
+**SRS_INTERLOCKED_HL_05_014: [** `InterlockedHL_SetAndWake64` shall set `value` at `address`. **]**
 
-**S_R_S_INTERLOCKED_HL_05_015: [** `InterlockedHL_SetAndWake64` shall wake a single thread listening on `address`. **]**
+**SRS_INTERLOCKED_HL_05_015: [** `InterlockedHL_SetAndWake64` shall wake a single thread listening on `address`. **]**
 
-**S_R_S_INTERLOCKED_HL_05_016: [** `InterlockedHL_SetAndWake64` shall succeed and return `INTERLOCKED_HL_OK`. **]**
+**SRS_INTERLOCKED_HL_05_016: [** `InterlockedHL_SetAndWake64` shall succeed and return `INTERLOCKED_HL_OK`. **]**
 
 ### InterlockedHL_SetAndWakeAll
 ```c
@@ -250,13 +244,13 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWake
 
 `InterlockedHL_SetAndWakeAll64` set the value at `address` to `value` and signals the change of value in `address` to all waiting threads. This can be commonly used with `InterlockedHL_WaitForValue64` to signal a waiting thread.
 
-**S_R_S_INTERLOCKED_HL_05_017: [** If `address` is `NULL` then `InterlockedHL_SetAndWakeAll64` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
+**SRS_INTERLOCKED_HL_05_017: [** If `address` is `NULL` then `InterlockedHL_SetAndWakeAll64` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
-**S_R_S_INTERLOCKED_HL_05_018: [** `InterlockedHL_SetAndWakeAll64` shall set `value` at `address`. **]**
+**SRS_INTERLOCKED_HL_05_018: [** `InterlockedHL_SetAndWakeAll64` shall set `value` at `address`. **]**
 
-**S_R_S_INTERLOCKED_HL_05_019: [** `InterlockedHL_SetAndWakeAll64` shall wake all threads listening on `address`. **]**
+**SRS_INTERLOCKED_HL_05_019: [** `InterlockedHL_SetAndWakeAll64` shall wake all threads listening on `address`. **]**
 
-**S_R_S_INTERLOCKED_HL_05_020: [** `InterlockedHL_SetAndWakeAll64` shall succeed and return `INTERLOCKED_HL_OK`. **]**
+**SRS_INTERLOCKED_HL_05_020: [** `InterlockedHL_SetAndWakeAll64` shall succeed and return `INTERLOCKED_HL_OK`. **]**
 
 ### InterlockedHL_DecrementAndWake
 ```c
@@ -280,10 +274,10 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_DecrementA
 
 `InterlockedHL_DecrementAndWake64` decrements the value at `address` by 1 and signals the change of value in `address`. This can be commonly used with `InterlockedHL_WaitForValue64` to signal a waiting thread.
 
-**S_R_S_INTERLOCKED_HL_05_021: [** If `address` is `NULL` then `InterlockedHL_DecrementAndWake64` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
+**SRS_INTERLOCKED_HL_05_021: [** If `address` is `NULL` then `InterlockedHL_DecrementAndWake64` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
-**S_R_S_INTERLOCKED_HL_05_022: [** `InterlockedHL_DecrementAndWake64` shall decrement the `value` at `address` by 1. **]**
+**SRS_INTERLOCKED_HL_05_022: [** `InterlockedHL_DecrementAndWake64` shall decrement the `value` at `address` by 1. **]**
 
-**S_R_S_INTERLOCKED_HL_05_023: [** `InterlockedHL_DecrementAndWake64` shall wake a single thread listening on `address`. **]**
+**SRS_INTERLOCKED_HL_05_023: [** `InterlockedHL_DecrementAndWake64` shall wake a single thread listening on `address`. **]**
 
-**S_R_S_INTERLOCKED_HL_05_024: [** `InterlockedHL_DecrementAndWake64` shall succeed and return `INTERLOCKED_HL_OK`. **]**
+**SRS_INTERLOCKED_HL_05_024: [** `InterlockedHL_DecrementAndWake64` shall succeed and return `INTERLOCKED_HL_OK`. **]**
