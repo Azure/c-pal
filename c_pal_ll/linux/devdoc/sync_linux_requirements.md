@@ -23,9 +23,9 @@ MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_atomic int
 
 **SRS_SYNC_LINUX_43_001: [** `wait_on_address` shall initialize a `timespec` struct with `.tv_nsec` equal to `timeout_ms* 10^6`. **]**
 
-**SRS_SYNC_LINUX_43_002: [** `wait_on_address` shall call `syscall` from `sys/syscall.h` with arguments `SYS_futex`, `address`, `FUTEX_WAIT_PRIVATE`, `compare_value`, `*timeout_struct`, `NULL`, `0`. **]**
+**SRS_SYNC_LINUX_43_002: [** `wait_on_address` shall call `syscall` to wait on value at `address` to change to a value different than the one provided in `compare_value`. **]**
 
-**SRS_SYNC_LINUX_43_003: [** `wait_on_address` shall return `WAIT_ON_ADDRESS_OK` if `syscall` returns `0`.**]**
+**SRS_SYNC_LINUX_43_003: [** If the value at `address` changes to a value different from `compare_value` then `wait_on_address` shall return `WAIT_ON_ADDRESS_OK`. **]**
 
 **SRS_SYNC_LINUX_01_001: [** if `syscall` returns a non-zero value and `errno` is `EAGAIN`, `wait_on_address` shall return `WAIT_ON_ADDRESS_OK`. **]**
 
@@ -41,9 +41,9 @@ MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address_64, volatile_atomic 
 
 **SRS_SYNC_LINUX_05_001: [** `wait_on_address_64` shall initialize a `timespec` struct with `.tv_nsec` equal to `timeout_ms* 10^6`. **]**
 
-**SRS_SYNC_LINUX_05_002: [** `wait_on_address_64` shall call `syscall` to wait on value at `address` to change than the one provided in `compare_value`. **]**
+**SRS_SYNC_LINUX_05_002: [** `wait_on_address_64` shall call `syscall` to wait on value at `address` to change to a value different than the one provided in `compare_value`. **]**
 
-**SRS_SYNC_LINUX_05_003: [** If the value at `address` changes to a value different from `compare_value` then `wait_on_address_64` shall return `WAIT_ON_ADDRESS_OK` . **]**
+**SRS_SYNC_LINUX_05_003: [** If the value at `address` changes to a value different from `compare_value` then `wait_on_address_64` shall return `WAIT_ON_ADDRESS_OK`. **]**
 
 **SRS_SYNC_LINUX_05_004: [** If `syscall` returns a non-zero value and `errno` is `EAGAIN`, `wait_on_address_64` shall return `WAIT_ON_ADDRESS_OK`. **]**
 
@@ -58,7 +58,7 @@ MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address_64, volatile_atomic 
 MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t*, address)
 ```
 
-**SRS_SYNC_LINUX_43_005: [** `wake_by_address_all` shall call `syscall` from `sys/syscall.h` with arguments `SYS_futex`, `address`, `FUTEX_WAKE_PRIVATE`, `INT_MAX`, `NULL`, `NULL`, `0`. **]**
+**SRS_SYNC_LINUX_43_005: [** `wake_by_address_all` shall call `syscall` to wake all listeners listening on `address`. **]**
 
 ## wake_by_address_all_64
 
@@ -74,7 +74,7 @@ MOCKABLE_FUNCTION(, void, wake_by_address_all_64, volatile_atomic int64_t*, addr
 MOCKABLE_FUNCTION(, void, wake_by_address_single, volatile_atomic int32_t*, address)
 ```
 
-**SRS_SYNC_LINUX_43_006: [** `wake_by_address_single` shall call `syscall` from `sys/syscall.h` with arguments `SYS_futex`, `address`, `FUTEX_WAKE_PRIVATE`, `1`, `NULL`, `NULL`, `0`. **]**
+**SRS_SYNC_LINUX_43_006: [** `wake_by_address_single` shall call `syscall` to wake any single listener listening on `address`. **]**
 
 ## wake_by_address_single_64
 

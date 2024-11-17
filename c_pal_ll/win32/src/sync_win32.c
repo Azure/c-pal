@@ -19,7 +19,7 @@ MU_DEFINE_ENUM_STRINGS(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES)
 IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_atomic int32_t*, address, int32_t, compare_value, uint32_t, timeout_ms)
 {
     WAIT_ON_ADDRESS_RESULT result;
-    /*Codes_SRS_SYNC_WIN32_43_001: [ wait_on_address shall call WaitOnAddress from windows.h with address as Address, a pointer to the value compare_value as CompareAddress, 4 as AddressSize and timeout_ms as dwMilliseconds. ]*/
+    /*Codes_SRS_SYNC_WIN32_43_001: [ wait_on_address shall call WaitOnAddress to wait on the value at 32-bit address to be different than compare_value for timeout_ms milliseconds. ]*/
     if (WaitOnAddress(address, &compare_value, sizeof(int32_t), timeout_ms) != TRUE)
     {
         if (GetLastError() == ERROR_TIMEOUT)
@@ -46,12 +46,12 @@ IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_
 IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address_64, volatile_atomic int64_t*, address, int64_t, compare_value, uint32_t, timeout_ms)
 {
     WAIT_ON_ADDRESS_RESULT result;
-    /* Codes_SRS_SYNC_WIN32_05_001: [ wait_on_address_64 shall call WaitOnAddress from the Windows API ] */
+    /* Codes_SRS_SYNC_WIN32_05_001: [ wait_on_address_64 shall call WaitOnAddress to wait on the value at 64-bit address to be different than compare_value for timeout_ms milliseconds. ] */
     if (WaitOnAddress(address, &compare_value, sizeof(int64_t), timeout_ms) != TRUE)
     {
         if (GetLastError() == ERROR_TIMEOUT)
         {
-            /* Codes_SRS_SYNC_WIN32_05_002: [ If the value at address does not change until the timeout_ms timeout is hit, wait_on_address_64 shall fail and return WAIT_ON_ADDRESS_TIMEOUT. ] */
+            /* Codes_SRS_SYNC_WIN32_05_002: [ If WaitOnAddress fails due to timeout, wait_on_address_64 shall fail and return WAIT_ON_ADDRESS_TIMEOUT. ] */
             result = WAIT_ON_ADDRESS_TIMEOUT;
         }
         else
@@ -64,7 +64,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address_64, volati
     }
     else
     {
-        /* Codes_SRS_SYNC_WIN32_05_004: [ If WaitOnAddress detects a change in value at address, wait_on_address_64 shall succeed and return WAIT_ON_ADDRESS_OK. ] */
+        /* Codes_SRS_SYNC_WIN32_05_004: [ If WaitOnAddress succeeds, wait_on_address_64 shall return WAIT_ON_ADDRESS_OK. ] */
         result = WAIT_ON_ADDRESS_OK;
     }
     return result;
@@ -72,25 +72,25 @@ IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address_64, volati
 
 IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t*, address)
 {
-    /* Codes_SRS_SYNC_WIN32_43_003: [ wake_by_address_all shall call WakeByAddressAll from windows.h with address as Address. ] */
+    /* Codes_SRS_SYNC_WIN32_43_003: [ wake_by_address_all shall call WakeByAddressAll to notify all listeners waiting on the 32-bit address. ] */
     WakeByAddressAll((PVOID)address);
 }
 
 IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_all_64, volatile_atomic int64_t*, address)
 {
-    /* Codes_SRS_SYNC_WIN32_05_005: [ wake_by_address_all_64 shall call WakeByAddressAll from the Windows API to notify all threads waiting on address. ] */
+    /* Codes_SRS_SYNC_WIN32_05_005: [ wake_by_address_all_64 shall call WakeByAddressAll to notify all listeners waiting on the 64-bit address. ] */
     WakeByAddressAll((PVOID)address);
 }
 
 IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_single, volatile_atomic int32_t*, address)
 {
-    /* Codes_SRS_SYNC_WIN32_43_004: [ wake_by_address_single shall call WakeByAddressSingle from windows.h with address as Address. ] */
+    /* Codes_SRS_SYNC_WIN32_43_004: [ wake_by_address_single shall call WakeByAddressSingle to notify a single listeners waiting on the 32-bit address. ] */
     WakeByAddressSingle((PVOID)address);
 }
 
 IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_single_64, volatile_atomic int64_t*, address)
 {
-    /* Codes_SRS_SYNC_WIN32_05_006: [ wake_by_address_single_64 shall call WakeByAddressSingle from the Windows API to notify a single thread waiting on address. ] */
+    /* Codes_SRS_SYNC_WIN32_05_006: [ wake_by_address_single_64 shall call WakeByAddressSingle to notify a single listeners waiting on the 64-bit address. ] */
     WakeByAddressSingle((PVOID)address);
 }
 
