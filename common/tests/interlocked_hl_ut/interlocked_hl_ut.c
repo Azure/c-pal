@@ -122,8 +122,8 @@ TEST_FUNCTION_CLEANUP(d)
 {
 }
 
-/*Tests_SRS_INTERLOCKED_HL_02_001: [ If Addend is NULL then InterlockedHL_Add64WithCeiling shall fail and return INTERLOCKED_HL_ERROR. ]*/
-/*Tests_SRS_INTERLOCKED_HL_02_007: [ In all failure cases InterlockedHL_Add64WithCeiling shall not modify Addend or originalAddend*/
+/* Tests_SRS_INTERLOCKED_HL_02_001: [ If Addend is NULL then InterlockedHL_Add64WithCeiling shall fail and return INTERLOCKED_HL_ERROR. ] */
+/* Tests_SRS_INTERLOCKED_HL_02_007: [ In all failure cases InterlockedHL_Add64WithCeiling shall not modify Addend or originalAddend*/
 TEST_FUNCTION(InterlockedHL_Add64WithCeiling_with_Addend_NULL_fails)
 {
     ///arrange
@@ -139,7 +139,7 @@ TEST_FUNCTION(InterlockedHL_Add64WithCeiling_with_Addend_NULL_fails)
     ///cleanup
 }
 
-/*Tests_SRS_INTERLOCKED_HL_02_006: [ If originalAddend is NULL then InterlockedHL_Add64WithCeiling shall fail and return INTERLOCKED_HL_ERROR. ]*/
+/* Tests_SRS_INTERLOCKED_HL_02_006: [ If originalAddend is NULL then InterlockedHL_Add64WithCeiling shall fail and return INTERLOCKED_HL_ERROR. ] */
 TEST_FUNCTION(InterlockedHL_Add64WithCeiling_with_originalAddend_NULL_fails)
 {
     ///arrange
@@ -155,7 +155,7 @@ TEST_FUNCTION(InterlockedHL_Add64WithCeiling_with_originalAddend_NULL_fails)
     ///cleanup
 }
 
-/*Tests_SRS_INTERLOCKED_HL_02_002: [ If Addend + Value would underflow then InterlockedHL_Add64WithCeiling shall fail and return INTERLOCKED_HL_ERROR. ]*/
+/* Tests_SRS_INTERLOCKED_HL_02_002: [ If Addend + Value would underflow then InterlockedHL_Add64WithCeiling shall fail and return INTERLOCKED_HL_ERROR. ] */
 TEST_FUNCTION(InterlockedHL_Add64WithCeiling_when_underflow_it_fails)
 {
     ///arrange
@@ -193,7 +193,7 @@ TEST_FUNCTION(InterlockedHL_Add64WithCeiling_when_underflow_it_fails)
     real_gballoc_hl_free(cloneOfInputValues);
 }
 
-/*Tests_SRS_INTERLOCKED_HL_02_003: [ If Addend + Value would overflow then InterlockedHL_Add64WithCeiling shall fail and return INTERLOCKED_HL_ERROR. ]*/
+/* Tests_SRS_INTERLOCKED_HL_02_003: [ If Addend + Value would overflow then InterlockedHL_Add64WithCeiling shall fail and return INTERLOCKED_HL_ERROR. ] */
 TEST_FUNCTION(InterlockedHL_Add64WithCeiling_when_overflow_it_fails)
 {
     ///arrange
@@ -230,7 +230,7 @@ TEST_FUNCTION(InterlockedHL_Add64WithCeiling_when_overflow_it_fails)
     real_gballoc_hl_free(cloneOfInputValues);
 }
 
-/*Tests_SRS_INTERLOCKED_HL_02_004: [ If Addend + Value would be greater than Ceiling then InterlockedHL_Add64WithCeiling shall fail and return INTERLOCKED_HL_ERROR. ]*/
+/* Tests_SRS_INTERLOCKED_HL_02_004: [ If Addend + Value would be greater than Ceiling then InterlockedHL_Add64WithCeiling shall fail and return INTERLOCKED_HL_ERROR. ] */
 TEST_FUNCTION(InterlockedHL_Add64WithCeiling_when_over_the_ceiling_it_fails)
 {
     ///arrange
@@ -271,7 +271,7 @@ TEST_FUNCTION(InterlockedHL_Add64WithCeiling_when_over_the_ceiling_it_fails)
     real_gballoc_hl_free(cloneOfInputValues);
 }
 
-/*Tests_SRS_INTERLOCKED_HL_02_005: [ Otherwise, InterlockedHL_Add64WithCeiling shall atomically write in Addend the sum of Addend and Value, succeed and return INTERLOCKED_HL_OK. ]*/
+/* Tests_SRS_INTERLOCKED_HL_02_005: [ Otherwise, InterlockedHL_Add64WithCeiling shall atomically write in Addend the sum of Addend and Value, succeed and return INTERLOCKED_HL_OK. ] */
 TEST_FUNCTION(InterlockedHL_Add64WithCeiling_succeeds)
 {
     ///arrange
@@ -316,7 +316,7 @@ TEST_FUNCTION(InterlockedHL_Add64WithCeiling_succeeds)
 
 /* InterlockedHL_WaitForValue */
 
-/* Tests_SRS_INTERLOCKED_HL_01_002: [ If address_to_check is NULL, InterlockedHL_WaitForValue shall fail and return INTERLOCKED_HL_ERROR. ]*/
+/* Tests_SRS_INTERLOCKED_HL_01_002: [ If address_to_check is NULL, InterlockedHL_WaitForValue shall fail and return INTERLOCKED_HL_ERROR. ] */
 TEST_FUNCTION(InterlockedHL_WaitForValue_with_NULL_address_fails)
 {
     // arrange
@@ -330,7 +330,7 @@ TEST_FUNCTION(InterlockedHL_WaitForValue_with_NULL_address_fails)
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_ERROR, result);
 }
 
-/* Tests_SRS_INTERLOCKED_HL_01_003: [ If the value at address_to_check is equal to value_to_wait, InterlockedHL_WaitForValue shall return INTERLOCKED_HL_OK. ]*/
+/* Tests_SRS_INTERLOCKED_HL_01_003: [ If the value at address_to_check is equal to value_to_wait, InterlockedHL_WaitForValue shall return INTERLOCKED_HL_OK. ] */
 TEST_FUNCTION(when_the_value_equals_target_value_InterlockedHL_WaitForValue_returns_OK)
 {
     // arrange
@@ -347,8 +347,8 @@ TEST_FUNCTION(when_the_value_equals_target_value_InterlockedHL_WaitForValue_retu
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, result);
 }
 
-/* Tests_SRS_INTERLOCKED_HL_01_004: [ If the value at address_to_check is not equal to value_to_wait, InterlockedHL_WaitForValue shall wait until the value at address_to_check changes using wait_on_address. ]*/
-/* Tests_SRS_INTERLOCKED_HL_01_007: [ When wait_on_address succeeds, InterlockedHL_WaitForValue shall again compare the value at address_to_check with value_to_wait. ]*/
+/* Tests_SRS_INTERLOCKED_HL_01_004: [ If the value at address_to_check is not equal to value_to_wait, InterlockedHL_WaitForValue shall wait until the value at address_to_check changes using wait_on_address. ] */
+/* Tests_SRS_INTERLOCKED_HL_01_007: [ When wait_on_address succeeds, InterlockedHL_WaitForValue shall again compare the value at address_to_check with value_to_wait. ] */
 TEST_FUNCTION(when_the_value_equals_target_value_after_waiting_InterlockedHL_WaitForValue_returns_OK)
 {
     // arrange
@@ -369,8 +369,8 @@ TEST_FUNCTION(when_the_value_equals_target_value_after_waiting_InterlockedHL_Wai
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, result);
 }
 
-/* Tests_SRS_INTERLOCKED_HL_01_003: [ If the value at address_to_check is equal to value_to_wait, InterlockedHL_WaitForValue shall return INTERLOCKED_HL_OK. ]*/
-/* Tests_SRS_INTERLOCKED_HL_01_007: [ When wait_on_address succeeds, the value at address shall be compared to the target value passed in value by using interlocked_add. ]*/
+/* Tests_SRS_INTERLOCKED_HL_01_003: [ If the value at address_to_check is equal to value_to_wait, InterlockedHL_WaitForValue shall return INTERLOCKED_HL_OK. ] */
+/* Tests_SRS_INTERLOCKED_HL_01_007: [ When wait_on_address succeeds, the value at address shall be compared to the target value passed in value by using interlocked_add. ] */
 TEST_FUNCTION(when_the_value_after_a_succesfull_wait_on_address_does_not_equal_target_a_new_wait_for_address_shall_be_issued)
 {
     // arrange
@@ -395,7 +395,7 @@ TEST_FUNCTION(when_the_value_after_a_succesfull_wait_on_address_does_not_equal_t
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, result);
 }
 
-/* Tests_SRS_INTERLOCKED_HL_01_006: [ If wait_on_address fails, InterlockedHL_WaitForValue shall fail and return INTERLOCKED_HL_ERROR. ]*/
+/* Tests_SRS_INTERLOCKED_HL_01_006: [ If wait_on_address fails, InterlockedHL_WaitForValue shall fail and return INTERLOCKED_HL_ERROR. ] */
 TEST_FUNCTION(when_the_wait_on_address_fails_InterlockedHL_WaitForValue_also_fails)
 {
     // arrange
@@ -563,7 +563,7 @@ TEST_FUNCTION(when_the_wait_on_address_64_timesout_InterlockedHL_WaitForValue64_
 
 /* InterlockedHL_WaitForNotValue */
 
-/* Tests_SRS_INTERLOCKED_HL_42_001: [ If address_to_check is NULL, InterlockedHL_WaitForNotValue shall fail and return INTERLOCKED_HL_ERROR. ]*/
+/* Tests_SRS_INTERLOCKED_HL_42_001: [ If address_to_check is NULL, InterlockedHL_WaitForNotValue shall fail and return INTERLOCKED_HL_ERROR. ] */
 TEST_FUNCTION(InterlockedHL_WaitForNotValue_with_NULL_address_fails)
 {
     // arrange
@@ -577,7 +577,7 @@ TEST_FUNCTION(InterlockedHL_WaitForNotValue_with_NULL_address_fails)
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_ERROR, result);
 }
 
-/* Tests_SRS_INTERLOCKED_HL_42_002: [ If the value at address_to_check is not equal to value_to_wait, InterlockedHL_WaitForNotValue shall return INTERLOCKED_HL_OK. ]*/
+/* Tests_SRS_INTERLOCKED_HL_42_002: [ If the value at address_to_check is not equal to value_to_wait, InterlockedHL_WaitForNotValue shall return INTERLOCKED_HL_OK. ] */
 TEST_FUNCTION(when_the_value_does_not_equal_target_value_InterlockedHL_WaitForNotValue_returns_OK)
 {
     // arrange
@@ -594,8 +594,8 @@ TEST_FUNCTION(when_the_value_does_not_equal_target_value_InterlockedHL_WaitForNo
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, result);
 }
 
-/* Tests_SRS_INTERLOCKED_HL_42_003: [ If the value at address_to_check is equal to value_to_wait, InterlockedHL_WaitForNotValue shall wait until the value at address_to_check changes by using wait_on_address. ]*/
-/* Tests_SRS_INTERLOCKED_HL_42_005: [ When wait_on_address succeeds, InterlockedHL_WaitForNotValue shall again compare the value at address_to_check with value_to_wait. ]*/
+/* Tests_SRS_INTERLOCKED_HL_42_003: [ If the value at address_to_check is equal to value_to_wait, InterlockedHL_WaitForNotValue shall wait until the value at address_to_check changes by using wait_on_address. ] */
+/* Tests_SRS_INTERLOCKED_HL_42_005: [ When wait_on_address succeeds, InterlockedHL_WaitForNotValue shall again compare the value at address_to_check with value_to_wait. ] */
 TEST_FUNCTION(when_the_value_does_not_equal_target_value_after_waiting_InterlockedHL_WaitForNotValue_returns_OK)
 {
     // arrange
@@ -616,8 +616,8 @@ TEST_FUNCTION(when_the_value_does_not_equal_target_value_after_waiting_Interlock
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, result);
 }
 
-/* Tests_SRS_INTERLOCKED_HL_42_002: [ If the value at address_to_check is not equal to value_to_wait, InterlockedHL_WaitForNotValue shall return INTERLOCKED_HL_OK. ]*/
-/* Tests_SRS_INTERLOCKED_HL_42_005: [ When wait_on_address succeeds, InterlockedHL_WaitForNotValue shall again compare the value at address_to_check with value_to_wait. ]*/
+/* Tests_SRS_INTERLOCKED_HL_42_002: [ If the value at address_to_check is not equal to value_to_wait, InterlockedHL_WaitForNotValue shall return INTERLOCKED_HL_OK. ] */
+/* Tests_SRS_INTERLOCKED_HL_42_005: [ When wait_on_address succeeds, InterlockedHL_WaitForNotValue shall again compare the value at address_to_check with value_to_wait. ] */
 TEST_FUNCTION(when_the_value_after_a_succesfull_wait_on_address_equals_target_a_new_wait_for_address_shall_be_issued)
 {
     // arrange
@@ -642,7 +642,7 @@ TEST_FUNCTION(when_the_value_after_a_succesfull_wait_on_address_equals_target_a_
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, result);
 }
 
-/* Tests_SRS_INTERLOCKED_HL_42_007: [ If wait_on_address fails, InterlockedHL_WaitForNotValue shall fail and return INTERLOCKED_HL_ERROR. ]*/
+/* Tests_SRS_INTERLOCKED_HL_42_007: [ If wait_on_address fails, InterlockedHL_WaitForNotValue shall fail and return INTERLOCKED_HL_ERROR. ] */
 TEST_FUNCTION(when_the_wait_on_address_fails_InterlockedHL_WaitForNotValue_also_fails)
 {
     // arrange
@@ -805,7 +805,7 @@ TEST_FUNCTION(when_the_wait_on_address_64_timesout_InterlockedHL_WaitForNotValue
 
 /* InterlockedHL_CompareExchangeIf */
 
-/* Tests_SRS_INTERLOCKED_HL_01_009: [ If target is NULL then InterlockedHL_CompareExchangeIf shall return fail and return INTERLOCKED_HL_ERROR. ]*/
+/* Tests_SRS_INTERLOCKED_HL_01_009: [ If target is NULL then InterlockedHL_CompareExchangeIf shall return fail and return INTERLOCKED_HL_ERROR. ] */
 TEST_FUNCTION(InterlockedHL_CompareExchangeIf_with_target_NULL_fails)
 {
     ///arrange
@@ -821,7 +821,7 @@ TEST_FUNCTION(InterlockedHL_CompareExchangeIf_with_target_NULL_fails)
     ///clean
 }
 
-/* Tests_SRS_INTERLOCKED_HL_01_010: [ If compare is NULL then InterlockedHL_CompareExchangeIf shall return fail and return INTERLOCKED_HL_ERROR. ]*/
+/* Tests_SRS_INTERLOCKED_HL_01_010: [ If compare is NULL then InterlockedHL_CompareExchangeIf shall return fail and return INTERLOCKED_HL_ERROR. ] */
 TEST_FUNCTION(InterlockedHL_CompareExchangeIf_with_compare_NULL_fails)
 {
     ///arrange
@@ -840,7 +840,7 @@ TEST_FUNCTION(InterlockedHL_CompareExchangeIf_with_compare_NULL_fails)
     ///clean
 }
 
-/* Tests_SRS_INTERLOCKED_HL_01_011: [ If original_target is NULL then InterlockedHL_CompareExchangeIf shall return fail and return INTERLOCKED_HL_ERROR. ]*/
+/* Tests_SRS_INTERLOCKED_HL_01_011: [ If original_target is NULL then InterlockedHL_CompareExchangeIf shall return fail and return INTERLOCKED_HL_ERROR. ] */
 TEST_FUNCTION(InterlockedHL_CompareExchangeIf_with_original_target_NULL_fails)
 {
     ///arrange
@@ -859,10 +859,10 @@ TEST_FUNCTION(InterlockedHL_CompareExchangeIf_with_original_target_NULL_fails)
     ///clean
 }
 
-/* Tests_SRS_INTERLOCKED_HL_01_012: [ InterlockedHL_CompareExchangeIf shall acquire the initial value of target. ]*/
-/* Tests_SRS_INTERLOCKED_HL_01_013: [ If compare(target, exchange) returns true then InterlockedHL_CompareExchangeIf shall exchange target with exchange. ]*/
-/* Tests_SRS_INTERLOCKED_HL_01_015: [ If target did not change meanwhile then InterlockedHL_CompareExchangeIf shall return INTERLOCKED_HL_OK and shall peform the exchange of values. ]*/
-/* Tests_SRS_INTERLOCKED_HL_01_016: [ original_target shall be set to the original value of target. ]*/
+/* Tests_SRS_INTERLOCKED_HL_01_012: [ InterlockedHL_CompareExchangeIf shall acquire the initial value of target. ] */
+/* Tests_SRS_INTERLOCKED_HL_01_013: [ If compare(target, exchange) returns true then InterlockedHL_CompareExchangeIf shall exchange target with exchange. ] */
+/* Tests_SRS_INTERLOCKED_HL_01_015: [ If target did not change meanwhile then InterlockedHL_CompareExchangeIf shall return INTERLOCKED_HL_OK and shall peform the exchange of values. ] */
+/* Tests_SRS_INTERLOCKED_HL_01_016: [ original_target shall be set to the original value of target. ] */
 TEST_FUNCTION(InterlockedHL_CompareExchangeIf_with_compare_true_changed_false_succeeds)
 {
     ///arrange
@@ -888,10 +888,10 @@ TEST_FUNCTION(InterlockedHL_CompareExchangeIf_with_compare_true_changed_false_su
     ///clean
 }
 
-/* Tests_SRS_INTERLOCKED_HL_01_012: [ InterlockedHL_CompareExchangeIf shall acquire the initial value of target. ]*/
-/* Tests_SRS_INTERLOCKED_HL_01_013: [ If compare(target, exchange) returns true then InterlockedHL_CompareExchangeIf shall exchange target with exchange. ]*/
-/* Tests_SRS_INTERLOCKED_HL_01_014: [ If target changed meanwhile then InterlockedHL_CompareExchangeIf shall return INTERLOCKED_HL_CHANGED and shall not peform any exchange of values. ]*/
-/* Tests_SRS_INTERLOCKED_HL_01_016: [ original_target shall be set to the original value of target. ]*/
+/* Tests_SRS_INTERLOCKED_HL_01_012: [ InterlockedHL_CompareExchangeIf shall acquire the initial value of target. ] */
+/* Tests_SRS_INTERLOCKED_HL_01_013: [ If compare(target, exchange) returns true then InterlockedHL_CompareExchangeIf shall exchange target with exchange. ] */
+/* Tests_SRS_INTERLOCKED_HL_01_014: [ If target changed meanwhile then InterlockedHL_CompareExchangeIf shall return INTERLOCKED_HL_CHANGED and shall not peform any exchange of values. ] */
+/* Tests_SRS_INTERLOCKED_HL_01_016: [ original_target shall be set to the original value of target. ] */
 TEST_FUNCTION(InterlockedHL_CompareExchangeIf_with_compare_true_changed_true_succeeds)
 {
     ///arrange
@@ -917,9 +917,9 @@ TEST_FUNCTION(InterlockedHL_CompareExchangeIf_with_compare_true_changed_true_suc
     ///clean
 }
 
-/* Tests_SRS_INTERLOCKED_HL_01_012: [ InterlockedHL_CompareExchangeIf shall acquire the initial value of target. ]*/
-/* Tests_SRS_INTERLOCKED_HL_01_017: [ If compare returns false then  InterlockedHL_CompareExchangeIf shall not perform any exchanges and return INTERLOCKED_HL_OK. ]*/
-/* Tests_SRS_INTERLOCKED_HL_01_016: [ original_target shall be set to the original value of target. ]*/
+/* Tests_SRS_INTERLOCKED_HL_01_012: [ InterlockedHL_CompareExchangeIf shall acquire the initial value of target. ] */
+/* Tests_SRS_INTERLOCKED_HL_01_017: [ If compare returns false then  InterlockedHL_CompareExchangeIf shall not perform any exchanges and return INTERLOCKED_HL_OK. ] */
+/* Tests_SRS_INTERLOCKED_HL_01_016: [ original_target shall be set to the original value of target. ] */
 TEST_FUNCTION(InterlockedHL_CompareExchangeIf_with_compare_false_succeeds)
 {
     ///arrange
@@ -946,7 +946,7 @@ TEST_FUNCTION(InterlockedHL_CompareExchangeIf_with_compare_false_succeeds)
 
 /* InterlockedHL_CompareExchange64If */
 
-/*Tests_SRS_INTERLOCKED_HL_02_008: [ If target is NULL then InterlockedHL_CompareExchange64If shall return fail and return INTERLOCKED_HL_ERROR. ]*/
+/* Tests_SRS_INTERLOCKED_HL_02_008: [ If target is NULL then InterlockedHL_CompareExchange64If shall return fail and return INTERLOCKED_HL_ERROR. ] */
 TEST_FUNCTION(InterlockedHL_CompareExchange64If_with_target_NULL_fails)
 {
     ///arrange
@@ -962,7 +962,7 @@ TEST_FUNCTION(InterlockedHL_CompareExchange64If_with_target_NULL_fails)
     ///clean
 }
 
-/*Tests_SRS_INTERLOCKED_HL_02_009: [ If compare is NULL then InterlockedHL_CompareExchange64If shall return fail and return INTERLOCKED_HL_ERROR. ]*/
+/* Tests_SRS_INTERLOCKED_HL_02_009: [ If compare is NULL then InterlockedHL_CompareExchange64If shall return fail and return INTERLOCKED_HL_ERROR. ] */
 TEST_FUNCTION(InterlockedHL_CompareExchange64If_with_compare_NULL_fails)
 {
     ///arrange
@@ -981,7 +981,7 @@ TEST_FUNCTION(InterlockedHL_CompareExchange64If_with_compare_NULL_fails)
     ///clean
 }
 
-/*Tests_SRS_INTERLOCKED_HL_02_010: [ If original_target is NULL then InterlockedHL_CompareExchange64If shall return fail and return INTERLOCKED_HL_ERROR. ]*/
+/* Tests_SRS_INTERLOCKED_HL_02_010: [ If original_target is NULL then InterlockedHL_CompareExchange64If shall return fail and return INTERLOCKED_HL_ERROR. ] */
 TEST_FUNCTION(InterlockedHL_CompareExchange64If_with_original_target_NULL_fails)
 {
     ///arrange
@@ -1000,10 +1000,10 @@ TEST_FUNCTION(InterlockedHL_CompareExchange64If_with_original_target_NULL_fails)
     ///clean
 }
 
-/*Tests_SRS_INTERLOCKED_HL_02_011: [ InterlockedHL_CompareExchange64If shall acquire the initial value of target. ]*/
-/*Tests_SRS_INTERLOCKED_HL_02_012: [ If compare(target, exchange) returns true then InterlockedHL_CompareExchange64If shall exchange target with exchange. ]*/
-/*Tests_SRS_INTERLOCKED_HL_02_014: [ If target did not change meanwhile then InterlockedHL_CompareExchange64If shall return INTERLOCKED_HL_OK and shall peform the exchange of values. ]*/
-/*Tests_SRS_INTERLOCKED_HL_02_016: [ original_target shall be set to the original value of target. ]*/
+/* Tests_SRS_INTERLOCKED_HL_02_011: [ InterlockedHL_CompareExchange64If shall acquire the initial value of target. ] */
+/* Tests_SRS_INTERLOCKED_HL_02_012: [ If compare(target, exchange) returns true then InterlockedHL_CompareExchange64If shall exchange target with exchange. ] */
+/* Tests_SRS_INTERLOCKED_HL_02_014: [ If target did not change meanwhile then InterlockedHL_CompareExchange64If shall return INTERLOCKED_HL_OK and shall peform the exchange of values. ] */
+/* Tests_SRS_INTERLOCKED_HL_02_016: [ original_target shall be set to the original value of target. ] */
 TEST_FUNCTION(InterlockedHL_CompareExchange64If_with_compare_true_changed_false_succeeds)
 {
     ///arrange
@@ -1029,10 +1029,10 @@ TEST_FUNCTION(InterlockedHL_CompareExchange64If_with_compare_true_changed_false_
     ///clean
 }
 
-/*Tests_SRS_INTERLOCKED_HL_02_011: [ InterlockedHL_CompareExchange64If shall acquire the initial value of target. ]*/
-/*Tests_SRS_INTERLOCKED_HL_02_012: [ If compare(target, exchange) returns true then InterlockedHL_CompareExchange64If shall exchange target with exchange. ]*/
-/*Tests_SRS_INTERLOCKED_HL_02_013: [ If target changed meanwhile then InterlockedHL_CompareExchange64If shall return INTERLOCKED_HL_CHANGED and shall not peform any exchange of values. ]*/
-/*Tests_SRS_INTERLOCKED_HL_02_016: [ original_target shall be set to the original value of target. ]*/
+/* Tests_SRS_INTERLOCKED_HL_02_011: [ InterlockedHL_CompareExchange64If shall acquire the initial value of target. ] */
+/* Tests_SRS_INTERLOCKED_HL_02_012: [ If compare(target, exchange) returns true then InterlockedHL_CompareExchange64If shall exchange target with exchange. ] */
+/* Tests_SRS_INTERLOCKED_HL_02_013: [ If target changed meanwhile then InterlockedHL_CompareExchange64If shall return INTERLOCKED_HL_CHANGED and shall not peform any exchange of values. ] */
+/* Tests_SRS_INTERLOCKED_HL_02_016: [ original_target shall be set to the original value of target. ] */
 TEST_FUNCTION(InterlockedHL_CompareExchange64If_with_compare_true_changed_true_succeeds)
 {
     ///arrange
@@ -1058,10 +1058,10 @@ TEST_FUNCTION(InterlockedHL_CompareExchange64If_with_compare_true_changed_true_s
     ///clean
 }
 
-/*Tests_SRS_INTERLOCKED_HL_02_011: [ InterlockedHL_CompareExchange64If shall acquire the initial value of target. ]*/
-/*Tests_SRS_INTERLOCKED_HL_02_015: [ If compare returns false then  InterlockedHL_CompareExchange64If shall not perform any exchanges and return INTERLOCKED_HL_OK. ]*/
-/*Tests_SRS_INTERLOCKED_HL_02_013: [ If target changed meanwhile then InterlockedHL_CompareExchange64If shall return INTERLOCKED_HL_CHANGED and shall not peform any exchange of values. ]*/
-/*Tests_SRS_INTERLOCKED_HL_02_016: [ original_target shall be set to the original value of target. ]*/
+/* Tests_SRS_INTERLOCKED_HL_02_011: [ InterlockedHL_CompareExchange64If shall acquire the initial value of target. ] */
+/* Tests_SRS_INTERLOCKED_HL_02_015: [ If compare returns false then  InterlockedHL_CompareExchange64If shall not perform any exchanges and return INTERLOCKED_HL_OK. ] */
+/* Tests_SRS_INTERLOCKED_HL_02_013: [ If target changed meanwhile then InterlockedHL_CompareExchange64If shall return INTERLOCKED_HL_CHANGED and shall not peform any exchange of values. ] */
+/* Tests_SRS_INTERLOCKED_HL_02_016: [ original_target shall be set to the original value of target. ] */
 TEST_FUNCTION(InterlockedHL_CompareExchange64If_with_compare_false_succeeds)
 {
     ///arrange
@@ -1089,7 +1089,7 @@ TEST_FUNCTION(InterlockedHL_CompareExchange64If_with_compare_false_succeeds)
 
 /* InterlockedHL_SetAndWake */
 
-/*Tests_SRS_INTERLOCKED_HL_02_020: [ If address is NULL then InterlockedHL_SetAndWake shall fail and return INTERLOCKED_HL_ERROR. ]*/
+/* Tests_SRS_INTERLOCKED_HL_02_020: [ If address is NULL then InterlockedHL_SetAndWake shall fail and return INTERLOCKED_HL_ERROR. ] */
 TEST_FUNCTION(InterlockedHL_SetAndWake_with_address_NULL_fails)
 {
     ///arrange
@@ -1102,9 +1102,9 @@ TEST_FUNCTION(InterlockedHL_SetAndWake_with_address_NULL_fails)
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_ERROR, result);
 }
 
-/*Tests_SRS_INTERLOCKED_HL_02_017: [ InterlockedHL_SetAndWake shall set address to value. ]*/
-/*Tests_SRS_INTERLOCKED_HL_02_018: [ InterlockedHL_SetAndWake shall call wake_by_address_single. ]*/
-/*Tests_SRS_INTERLOCKED_HL_02_019: [ InterlockedHL_SetAndWake shall succeed and return INTERLOCKED_HL_OK. ]*/
+/* Tests_SRS_INTERLOCKED_HL_02_017: [ InterlockedHL_SetAndWake shall set address to value. ] */
+/* Tests_SRS_INTERLOCKED_HL_02_018: [ InterlockedHL_SetAndWake shall call wake_by_address_single. ] */
+/* Tests_SRS_INTERLOCKED_HL_02_019: [ InterlockedHL_SetAndWake shall succeed and return INTERLOCKED_HL_OK. ] */
 TEST_FUNCTION(InterlockedHL_SetAndWake_succeeds)
 {
     ///arrange
@@ -1159,7 +1159,7 @@ TEST_FUNCTION(InterlockedHL_SetAndWake64_succeeds)
 
 /* InterlockedHL_SetAndWakeAll */
 
-/*Tests_SRS_INTERLOCKED_HL_02_028: [ If address is NULL then InterlockedHL_SetAndWakeAll shall fail and return INTERLOCKED_HL_ERROR. ]*/
+/* Tests_SRS_INTERLOCKED_HL_02_028: [ If address is NULL then InterlockedHL_SetAndWakeAll shall fail and return INTERLOCKED_HL_ERROR. ] */
 TEST_FUNCTION(InterlockedHL_SetAndWakeAll_with_address_NULL_fails)
 {
     ///arrange
@@ -1172,9 +1172,9 @@ TEST_FUNCTION(InterlockedHL_SetAndWakeAll_with_address_NULL_fails)
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_ERROR, result);
 }
 
-/*Tests_SRS_INTERLOCKED_HL_02_029: [ InterlockedHL_SetAndWakeAll shall set address to value. ]*/
-/*Tests_SRS_INTERLOCKED_HL_02_030: [ InterlockedHL_SetAndWakeAll shall call wake_by_address_all. ]*/
-/*Tests_SRS_INTERLOCKED_HL_02_031: [ InterlockedHL_SetAndWakeAll shall succeed and return INTERLOCKED_HL_OK. ]*/
+/* Tests_SRS_INTERLOCKED_HL_02_029: [ InterlockedHL_SetAndWakeAll shall set address to value. ] */
+/* Tests_SRS_INTERLOCKED_HL_02_030: [ InterlockedHL_SetAndWakeAll shall call wake_by_address_all. ] */
+/* Tests_SRS_INTERLOCKED_HL_02_031: [ InterlockedHL_SetAndWakeAll shall succeed and return INTERLOCKED_HL_OK. ] */
 TEST_FUNCTION(InterlockedHL_SetAndWakeAll_succeeds)
 {
     ///arrange
@@ -1229,7 +1229,7 @@ TEST_FUNCTION(InterlockedHL_SetAndWakeAll64_succeeds)
 
 /* InterlockedHL_DecrementAndWake */
 
-/*Tests_SRS_INTERLOCKED_HL_44_001: [ If address is NULL then InterlockedHL_DecrementAndWake shall fail and return INTERLOCKED_HL_ERROR. ]*/
+/* Tests_SRS_INTERLOCKED_HL_44_001: [ If address is NULL then InterlockedHL_DecrementAndWake shall fail and return INTERLOCKED_HL_ERROR. ] */
 TEST_FUNCTION(InterlockedHL_DecrementAndWake_with_NULL_address_fails)
 {
     // arrange
@@ -1242,9 +1242,9 @@ TEST_FUNCTION(InterlockedHL_DecrementAndWake_with_NULL_address_fails)
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_ERROR, result);
 }
 
-/*Tests_SRS_INTERLOCKED_HL_44_002: [ InterlockedHL_DecrementAndWake shall decrement the value at address by 1. ]*/
-/*Tests_SRS_INTERLOCKED_HL_44_003: [ InterlockedHL_DecrementAndWake shall call wake_by_address_single. ]*/
-/*Tests_SRS_INTERLOCKED_HL_44_004: [ InterlockedHL_DecrementAndWake shall succeed and return INTERLOCKED_HL_OK. ]*/
+/* Tests_SRS_INTERLOCKED_HL_44_002: [ InterlockedHL_DecrementAndWake shall decrement the value at address by 1. ] */
+/* Tests_SRS_INTERLOCKED_HL_44_003: [ InterlockedHL_DecrementAndWake shall call wake_by_address_single. ] */
+/* Tests_SRS_INTERLOCKED_HL_44_004: [ InterlockedHL_DecrementAndWake shall succeed and return INTERLOCKED_HL_OK. ] */
 TEST_FUNCTION(InterlockedHL_DecrementAndWake_with_Valid_Inputs_success)
 {
     ///arrange

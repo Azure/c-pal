@@ -19,25 +19,25 @@ MU_DEFINE_ENUM_STRINGS(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES)
 IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_atomic int32_t*, address, int32_t, compare_value, uint32_t, timeout_ms)
 {
     WAIT_ON_ADDRESS_RESULT result;
-    /*Codes_SRS_SYNC_WIN32_43_001: [ wait_on_address shall call WaitOnAddress to wait on the value at 32-bit address to be different than compare_value for timeout_ms milliseconds. ]*/
+    /* Codes_SRS_SYNC_WIN32_43_001: [ wait_on_address shall call WaitOnAddress to wait on the value at 32-bit address to be different than compare_value for timeout_ms milliseconds. ] */
     if (WaitOnAddress(address, &compare_value, sizeof(int32_t), timeout_ms) != TRUE)
     {
         if (GetLastError() == ERROR_TIMEOUT)
         {
-            /* Codes_SRS_SYNC_WIN32_24_001: [ If WaitOnAddress fails due to timeout, wait_on_address shall fail and return WAIT_ON_ADDRESS_TIMEOUT. ]*/
+            /* Codes_SRS_SYNC_WIN32_24_001: [ If WaitOnAddress fails due to timeout, wait_on_address shall fail and return WAIT_ON_ADDRESS_TIMEOUT. ] */
             result = WAIT_ON_ADDRESS_TIMEOUT;
         }
         else
         {
             LogLastError("failure in WaitOnAddress(address=%p, &compare_value=%p, address_size=%zu, timeout_ms=%" PRIu32 ")",
                 address, &compare_value, sizeof(int32_t), timeout_ms);
-            /* Codes_SRS_SYNC_WIN32_24_002: [ If WaitOnAddress fails due to any other reason, wait_on_address shall fail and return WAIT_ON_ADDRESS_ERROR. ]*/
+            /* Codes_SRS_SYNC_WIN32_24_002: [ If WaitOnAddress fails due to any other reason, wait_on_address shall fail and return WAIT_ON_ADDRESS_ERROR. ] */
             result = WAIT_ON_ADDRESS_ERROR;
         }
     }
     else
     {
-        /* Codes_SRS_SYNC_WIN32_24_003: [ If WaitOnAddress succeeds, wait_on_address shall return WAIT_ON_ADDRESS_OK. ]*/
+        /* Codes_SRS_SYNC_WIN32_24_003: [ If WaitOnAddress succeeds, wait_on_address shall return WAIT_ON_ADDRESS_OK. ] */
         result = WAIT_ON_ADDRESS_OK;
     }
     return result;
