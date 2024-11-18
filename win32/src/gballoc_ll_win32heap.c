@@ -11,8 +11,6 @@
 
 #include "c_pal/gballoc_ll.h"
 
-#include "macro_utils/macro_utils.h" // for MU_FAILURE
-
 static call_once_t g_lazy = LAZY_INIT_NOT_DONE;
 static HANDLE the_heap = NULL;
 

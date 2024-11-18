@@ -11,8 +11,6 @@
 
 #include "c_pal/gballoc_ll.h"
 
-#include "macro_utils/macro_utils.h" // for MU_FAILURE
-
 int gballoc_ll_init(void* params)
 {
     /*Codes_SRS_GBALLOC_LL_MIMALLOC_02_001: [ gballoc_ll_init shall return 0. ]*/
