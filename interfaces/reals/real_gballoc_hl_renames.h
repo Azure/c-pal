@@ -19,4 +19,4 @@
 #define gballoc_hl_get_free_latency_buckets      real_gballoc_hl_get_free_latency_buckets
 #define gballoc_hl_get_latency_bucket_metadata   real_gballoc_hl_get_latency_bucket_metadata
 #define gballoc_hl_print_stats                   real_gballoc_hl_print_stats
-#define gballoc_hl_set_decay                     real_gballoc_hl_set_decay
+#define gballoc_hl_set_option                    real_gballoc_hl_set_option

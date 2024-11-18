@@ -13,4 +13,4 @@
 #define gballoc_ll_realloc_flex     real_gballoc_ll_realloc_flex
 #define gballoc_ll_size             real_gballoc_ll_size
 #define gballoc_ll_print_stats      real_gballoc_ll_print_stats
-#define gballoc_ll_set_decay        real_gballoc_ll_set_decay
+#define gballoc_ll_set_option       real_gballoc_ll_set_option

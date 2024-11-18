@@ -633,84 +633,198 @@ TEST_FUNCTION(gballoc_ll_print_stats_calls_the_print_function_with_NULL_does_not
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/* gballoc_ll_set_decay */
+/* gballoc_ll_set_option */
 
-/* Tests_SRS_GBALLOC_LL_JEMALLOC_28_001: [ gballoc_ll_set_decay shall advance jemalloc's internal epoch counter. ]*/
-/* Tests_SRS_GBALLOC_LL_JEMALLOC_28_002: [ gballoc_ll_set_decay shall set the dirty decay time for new arenas to decay_milliseconds milliseconds. ]*/
-/* Tests_SRS_GBALLOC_LL_JEMALLOC_28_003: [ gballoc_ll_set_decay shall set the muzzy decay time for new arenas to decay_milliseconds milliseconds. ]*/
-/* Tests_SRS_GBALLOC_LL_JEMALLOC_28_004: [ gballoc_ll_set_decay shall fetch the number of existing jemalloc arenas. ]*/
-/* Tests_SRS_GBALLOC_LL_JEMALLOC_28_005: [ For each existing arena: ]*/
-/* Tests_SRS_GBALLOC_LL_JEMALLOC_28_006: [ gballoc_ll_set_decay shall set the dirty decay time for the arena to decay_milliseconds milliseconds. ]*/
-/* Tests_SRS_GBALLOC_LL_JEMALLOC_28_007: [ gballoc_ll_set_decay shall set the muzzy decay time for the arena to decay_milliseconds milliseconds. ]*/
-TEST_FUNCTION(gballoc_ll_set_decay_succeeds)
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_001: [ If option_name is NULL, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(gballoc_ll_set_option_with_NULL_option_name_fails)
 {
     ///arrange
-    uint64_t num_arenas = NUM_ARENAS;
-
-    char* epoch;
-    char* dirty_decay_ms;
-    char* muzzy_decay_ms;
-    char* narenas;
-
-    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, NULL, 0))
-        .CaptureArgumentValue_name(&epoch)
-        .SetReturn(0);
-    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
-        .CaptureArgumentValue_name(&dirty_decay_ms)
-        .SetReturn(0);
-    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
-        .CaptureArgumentValue_name(&muzzy_decay_ms)
-        .SetReturn(0);
-    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .CaptureArgumentValue_name(&narenas)
-        .CopyOutArgumentBuffer_oldp(&num_arenas, sizeof(num_arenas))
-        .SetReturn(0);
-    for (uint64_t i = 0; i < NUM_ARENAS; i++)
-    {
-        STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
-            .SetReturn(0);
-        STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
-            .SetReturn(0);
-    }
+    void* option_value = (void*)0x42;
 
     ///act
-    int result = gballoc_ll_set_decay(42);
+    int result = gballoc_ll_set_option(NULL, option_value);
+
+    ///assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_002: [ If option_value is NULL, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(gballoc_ll_set_option_with_NULL_option_value_fails)
+{
+    ///arrange
+
+    ///act
+    int result = gballoc_ll_set_option("dirty_decay", NULL);
+
+    ///assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_017: [ Otherwise gballoc_ll_set_option shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(gballoc_ll_set_option_with_unknown_option_name_fails)
+{
+    ///arrange
+    void* option_value = (void*)0x42;
+
+    ///act
+    int result = gballoc_ll_set_option("unknown_option", option_value);
+
+    ///assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_019: [ If decay_milliseconds is less than -1, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(gballoc_ll_set_option_with_dirty_decay_and_negative_decay_milliseconds_fails)
+{
+    ///arrange
+    int64_t decay_milliseconds = -2;
+
+    ///act
+    int result = gballoc_ll_set_option("dirty_decay", &decay_milliseconds);
+
+    ///assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_019: [ If decay_milliseconds is less than -1, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(gballoc_ll_set_option_with_muzzy_decay_and_negative_decay_milliseconds_fails)
+{
+    ///arrange
+    int64_t decay_milliseconds = -2;
+
+    ///act
+    int result = gballoc_ll_set_option("muzzy_decay", &decay_milliseconds);
+
+    ///assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+
+    ///clean
+}
+
+static void setup_decay_success_expectations(char** first_command, char** second_command, char** third_command, char** fourth_command, char** fifth_command, uint64_t* num_arenas, int64_t* decay_milliseconds)
+{
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, NULL, 0))
+        .CaptureArgumentValue_name(first_command)
+        .SetReturn(0)
+        .SetFailReturn(1);
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
+        .CaptureArgumentValue_name(second_command)
+        .ValidateArgumentBuffer(4, decay_milliseconds, sizeof(*decay_milliseconds))
+        .SetReturn(0)
+        .SetFailReturn(1);
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, NULL, 0))
+        .CaptureArgumentValue_name(third_command)
+        .CopyOutArgumentBuffer_oldp(num_arenas, sizeof(*num_arenas))
+        .SetReturn(0)
+        .SetFailReturn(1);
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
+        .ValidateArgumentBuffer(4, decay_milliseconds, sizeof(*decay_milliseconds))
+        .ValidateArgumentBuffer(1, fourth_command, sizeof(*fourth_command))
+        .SetReturn(0)
+        .SetFailReturn(1);
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
+        .ValidateArgumentBuffer(4, decay_milliseconds, sizeof(*decay_milliseconds))
+        .ValidateArgumentBuffer(1, fifth_command, sizeof(*fifth_command))
+        .SetReturn(0)
+        .SetFailReturn(1);
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_003: [ If option_name has value as dirty_decay: ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_004: [ gballoc_ll_set_option shall fetch the decay_milliseconds value by casting option_value to int64_t. ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_005: [ gballoc_ll_set_option shall retrieve the old value of dirty decay by calling je_mallctl with arenas.dirty_decay_ms as the command. ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_006: [ gballoc_ll_set_option shall set the dirty decay time for new arenas to decay_milliseconds milliseconds by calling je_mallctl with arenas.dirty_decay_ms as the command. ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_007: [ gballoc_ll_set_option shall fetch the number of existing jemalloc arenas by calling je_mallctl with arenas.narenas as the command. ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_008: [ For each existing arena ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_009: [ gballoc_ll_set_option shall set the dirty decay time for the arena to decay_milliseconds milliseconds by calling je_mallctl with arena.<i>.dirty_decay_ms as the command. ]*/
+TEST_FUNCTION(gballoc_ll_set_option_with_dirty_decay_succeeds)
+{
+    ///arrange
+    int64_t decay_milliseconds = 42;
+    uint64_t num_arenas = NUM_ARENAS;
+
+    char* first_command;
+    char* second_command;
+    char* third_command;
+    char fourth_command[32];
+    (void)sprintf(fourth_command, "arena.0.dirty_decay_ms");
+    char fifth_command[32];
+    (void)sprintf(fifth_command, "arena.1.dirty_decay_ms");
+
+    setup_decay_success_expectations(&first_command, &second_command, &third_command, (char**)&fourth_command, (char**)&fifth_command, &num_arenas, &decay_milliseconds);
+
+    ///act
+    int result = gballoc_ll_set_option("dirty_decay", &decay_milliseconds);
 
     ///assert
     ASSERT_ARE_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(char_ptr, "epoch", epoch);
-    ASSERT_ARE_EQUAL(char_ptr, "arenas.dirty_decay_ms", dirty_decay_ms);
-    ASSERT_ARE_EQUAL(char_ptr, "arenas.muzzy_decay_ms", muzzy_decay_ms);
-    ASSERT_ARE_EQUAL(char_ptr, "arenas.narenas", narenas);
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.dirty_decay_ms", first_command);
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.dirty_decay_ms", second_command);
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.narenas", third_command);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
 }
 
-/* Tests_SRS_GBALLOC_LL_JEMALLOC_28_008: [ If there are any errors, gballoc_ll_set_decay shall fail and return a non-zero value. ]*/
-TEST_FUNCTION(gballoc_ll_set_decay_fails_when_underlying_calls_fail)
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_010: [ Else if option_name has value as muzzy_decay: ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_011: [ gballoc_ll_set_option shall fetch the decay_milliseconds value by casting option_value to int64_t. ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_012: [ gballoc_ll_set_option shall retrieve the old value of muzzy decay by calling je_mallctl with arenas.muzzy_decay_ms as the command. ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_013: [ gballoc_ll_set_option shall set the muzzy decay time for new arenas to decay_milliseconds milliseconds by calling je_mallctl with arenas.muzzy_decay_ms as the command. ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_014: [ gballoc_ll_set_option shall fetch the number of existing jemalloc arenas by calling je_mallctl with arenas.narenas as the command. ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_015: [ For each existing arena ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_016: [ gballoc_ll_set_option shall set the muzzy decay time for the arena to decay_milliseconds milliseconds by calling je_mallctl with arena.<i>.muzzy_decay_ms as the command. ]*/
+TEST_FUNCTION(gballoc_ll_set_option_with_muzzy_decay_succeeds)
 {
     ///arrange
-    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, NULL, 0))
-        .SetReturn(0)
-        .SetFailReturn(1);
-    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
-        .SetReturn(0)
-        .SetFailReturn(1);
-    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
-        .SetReturn(0)
-        .SetFailReturn(1);
-    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .SetReturn(0)
-        .SetFailReturn(1);
-    for (uint64_t i = 0; i < NUM_ARENAS; i++)
-    {
-        STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
-            .SetReturn(0)
-            .SetFailReturn(1);
+    int64_t decay_milliseconds = 42;
+    uint64_t num_arenas = NUM_ARENAS;
 
-        STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
-            .SetReturn(0)
-            .SetFailReturn(1);
-    }
+    char* first_command;
+    char* second_command;
+    char* third_command;
+    char fourth_command[32];
+    (void)sprintf(fourth_command, "arena.0.muzzy_decay_ms");
+    char fifth_command[32];
+    (void)sprintf(fifth_command, "arena.1.muzzy_decay_ms");
+
+    setup_decay_success_expectations(&first_command, &second_command, &third_command, (char**)&fourth_command, (char**)&fifth_command, &num_arenas, &decay_milliseconds);
+
+    ///act
+    int result = gballoc_ll_set_option("muzzy_decay", &decay_milliseconds);
+
+    ///assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.muzzy_decay_ms", first_command);
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.muzzy_decay_ms", second_command);
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.narenas", third_command);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_018: [ If there are any errors, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(gballoc_ll_set_option_fails_when_underlying_calls_fail)
+{
+    ///arrange
+    int64_t decay_milliseconds = 42;
+    uint64_t num_arenas = NUM_ARENAS;
+
+    char* first_command;
+    char* second_command;
+    char* third_command;
+    char fourth_command[32];
+    (void)sprintf(fourth_command, "arena.0.dirty_decay_ms");
+    char fifth_command[32];
+    (void)sprintf(fifth_command, "arena.1.dirty_decay_ms");
+
+    setup_decay_success_expectations(&first_command, &second_command, &third_command, (char**)&fourth_command, (char**)&fifth_command, &num_arenas, &decay_milliseconds);
 
     umock_c_negative_tests_snapshot();
     for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
@@ -721,12 +835,218 @@ TEST_FUNCTION(gballoc_ll_set_decay_fails_when_underlying_calls_fail)
             umock_c_negative_tests_fail_call(i);
 
             ///act
-            int result = gballoc_ll_set_decay(42);
+            int result = gballoc_ll_set_option("dirty_decay", &decay_milliseconds);
 
             ///assert
             ASSERT_ARE_NOT_EQUAL(int, 0, result, "On failed call %zu", i);
         }
     }
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_018: [ If there are any errors, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(gballoc_ll_set_option_fails_when_underlying_calls_fail_2)
+{
+    ///arrange
+    int64_t decay_milliseconds = 42;
+    uint64_t num_arenas = NUM_ARENAS;
+
+    char* first_command;
+    char* second_command;
+    char* third_command;
+    char fourth_command[32];
+    (void)sprintf(fourth_command, "arena.0.muzzy_decay_ms");
+    char fifth_command[32];
+    (void)sprintf(fifth_command, "arena.1.muzzy_decay_ms");
+
+    setup_decay_success_expectations(&first_command, &second_command, &third_command, (char**)&fourth_command, (char**)&fifth_command, &num_arenas, &decay_milliseconds);
+
+    umock_c_negative_tests_snapshot();
+    for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
+    {
+        if (umock_c_negative_tests_can_call_fail(i))
+        {
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(i);
+
+            ///act
+            int result = gballoc_ll_set_option("muzzy_decay", &decay_milliseconds);
+
+            ///assert
+            ASSERT_ARE_NOT_EQUAL(int, 0, result, "On failed call %zu", i);
+        }
+    }
+}
+
+static void setup_failure_expectations_when_number_of_arenas_read_fails(char** first_command, char** second_command, char** third_command, char** fourth_command, int64_t* decay_milliseconds)
+{
+    int64_t old_decay_milliseconds = 24;
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, NULL, 0))
+        .CaptureArgumentValue_name(first_command)
+        .CopyOutArgumentBuffer_oldp(&old_decay_milliseconds, sizeof(old_decay_milliseconds))
+        .SetReturn(0);
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
+        .CaptureArgumentValue_name(second_command)
+        .ValidateArgumentBuffer(4, decay_milliseconds, sizeof(*decay_milliseconds))
+        .SetReturn(0);
+    // Reading the number of arenas fails
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, NULL, 0))
+        .CaptureArgumentValue_name(third_command)
+        .SetReturn(1);
+    // Set the decay back to original value
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
+        .CaptureArgumentValue_name(fourth_command)
+        .ValidateArgumentBuffer(4, &old_decay_milliseconds, sizeof(old_decay_milliseconds));
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_018: [ If there are any errors, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(gballoc_ll_set_option_fails_for_dirty_decay_if_number_of_arenas_read_fails)
+{
+    ///arrange
+    int64_t decay_milliseconds = 42;
+
+    char* first_command;
+    char* second_command;
+    char* third_command;
+    char* fourth_command;
+
+    setup_failure_expectations_when_number_of_arenas_read_fails(&first_command, &second_command, &third_command, &fourth_command, &decay_milliseconds);
+
+    ///act
+    int result = gballoc_ll_set_option("dirty_decay", &decay_milliseconds);
+
+    ///assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.dirty_decay_ms", first_command);
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.dirty_decay_ms", second_command);
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.narenas", third_command);
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.dirty_decay_ms", fourth_command);
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_018: [ If there are any errors, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(gballoc_ll_set_option_fails_for_muzzy_decay_if_number_of_arenas_read_fails)
+{
+    ///arrange
+    int64_t decay_milliseconds = 42;
+
+    char* first_command;
+    char* second_command;
+    char* third_command;
+    char* fourth_command;
+
+    setup_failure_expectations_when_number_of_arenas_read_fails(&first_command, &second_command, &third_command, &fourth_command, &decay_milliseconds);
+
+    ///act
+    int result = gballoc_ll_set_option("muzzy_decay", &decay_milliseconds);
+
+    ///assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.muzzy_decay_ms", first_command);
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.muzzy_decay_ms", second_command);
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.narenas", third_command);
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.muzzy_decay_ms", fourth_command);
+
+    ///clean
+}
+
+static void setup_failure_expectations_when_setting_decay_for_second_arenas_fails(char** first_command, char** second_command, char** third_command, char** fourth_command, char** fifth_command, char** sixth_command, int64_t* decay_milliseconds, uint64_t* num_arenas)
+{
+    int64_t old_decay_milliseconds = 24;
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, NULL, 0))
+        .CaptureArgumentValue_name(first_command)
+        .CopyOutArgumentBuffer_oldp(&old_decay_milliseconds, sizeof(old_decay_milliseconds))
+        .SetReturn(0);
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
+        .CaptureArgumentValue_name(second_command)
+        .ValidateArgumentBuffer(4, decay_milliseconds, sizeof(*decay_milliseconds))
+        .SetReturn(0);
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, NULL, 0))
+        .CaptureArgumentValue_name(third_command)
+        .CopyOutArgumentBuffer_oldp(num_arenas, sizeof(*num_arenas))
+        .SetReturn(0);
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
+        .ValidateArgumentBuffer(4, decay_milliseconds, sizeof(*decay_milliseconds))
+        .ValidateArgumentBuffer(1, fourth_command, sizeof(*fourth_command))
+        .SetReturn(0);
+    // Setting decay for the second arena fails
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
+        .ValidateArgumentBuffer(4, decay_milliseconds, sizeof(*decay_milliseconds))
+        .ValidateArgumentBuffer(1, fifth_command, sizeof(*fifth_command))
+        .SetReturn(1);
+    // Undo the decay for first arena
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
+        .ValidateArgumentBuffer(1, fourth_command, sizeof(*fourth_command));
+    // // Set the decay back to original value
+    STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, NULL, NULL, IGNORED_ARG, IGNORED_ARG))
+        .CaptureArgumentValue_name(sixth_command)
+        .ValidateArgumentBuffer(4, &old_decay_milliseconds, sizeof(old_decay_milliseconds));
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_018: [ If there are any errors, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(gballoc_ll_set_option_fails_for_dirty_decay_if_setting_dirty_decay_for_second_arena_fails)
+{
+    ///arrange
+    int64_t decay_milliseconds = 42;
+    uint64_t num_arenas = NUM_ARENAS;
+
+    char* first_command;
+    char* second_command;
+    char* third_command;
+    char fourth_command[32];
+    (void)sprintf(fourth_command, "arena.0.dirty_decay_ms");
+    char fifth_command[32];
+    (void)sprintf(fifth_command, "arena.1.dirty_decay_ms");
+    char* sixth_command;
+
+    setup_failure_expectations_when_setting_decay_for_second_arenas_fails(&first_command, &second_command, &third_command, (char**)&fourth_command, (char**)&fifth_command, &sixth_command, &decay_milliseconds, &num_arenas);    
+
+    ///act
+    int result = gballoc_ll_set_option("dirty_decay", &decay_milliseconds);
+
+    ///assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.dirty_decay_ms", first_command);
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.dirty_decay_ms", second_command);
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.narenas", third_command);
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.dirty_decay_ms", sixth_command);
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_018: [ If there are any errors, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(gballoc_ll_set_option_fails_for_muzzy_decay_if_setting_muzzy_decay_for_second_arena_fails)
+{
+    ///arrange
+    int64_t decay_milliseconds = 42;
+    uint64_t num_arenas = NUM_ARENAS;
+
+    char* first_command;
+    char* second_command;
+    char* third_command;
+    char fourth_command[32];
+    (void)sprintf(fourth_command, "arena.0.muzzy_decay_ms");
+    char fifth_command[32];
+    (void)sprintf(fifth_command, "arena.1.muzzy_decay_ms");
+    char* sixth_command;
+
+    setup_failure_expectations_when_setting_decay_for_second_arenas_fails(&first_command, &second_command, &third_command, (char**)&fourth_command, (char**)&fifth_command, &sixth_command, &decay_milliseconds, &num_arenas);    
+
+    ///act
+    int result = gballoc_ll_set_option("muzzy_decay", &decay_milliseconds);
+
+    ///assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.muzzy_decay_ms", first_command);
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.muzzy_decay_ms", second_command);
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.narenas", third_command);
+    ASSERT_ARE_EQUAL(char_ptr, "arenas.muzzy_decay_ms", sixth_command);
+
+    ///clean
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

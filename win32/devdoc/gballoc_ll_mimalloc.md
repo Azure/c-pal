@@ -27,7 +27,7 @@ gballoc_ll_mimalloc is a module that delegates all call of its APIs to the ones 
 
     MOCKABLE_FUNCTION(, void, gballoc_ll_print_stats);
 
-    MOCKABLE_FUNCTION(, int, gballoc_ll_set_decay, int64_t, decay_milliseconds);
+    MOCKABLE_FUNCTION(, int, gballoc_ll_set_option, char*, option_name, void*, option_value);
 ```
 
 ### gballoc_ll_init
@@ -155,12 +155,12 @@ MOCKABLE_FUNCTION(, void, gballoc_ll_print_stats);
 
 Note: printing of statistics is not implemented for `mimalloc`.
 
-### gballoc_ll_set_decay
+### gballoc_ll_set_option
 
 ```c
-MOCKABLE_FUNCTION(, int, gballoc_ll_set_decay, int64_t, decay_milliseconds);
+MOCKABLE_FUNCTION(, int, gballoc_ll_set_option, char*, option_name, void*, option_value);
 ```
 
-`gballoc_ll_set_decay` does nothing and returns a non-zero value.
+`gballoc_ll_set_option` does nothing and returns success.
 
-**SRS_GBALLOC_LL_MIMALLOC_28_001: [** `gballoc_ll_set_decay` shall do nothing and return a non-zero value. **]**
+**SRS_GBALLOC_LL_MIMALLOC_28_001: [** `gballoc_ll_set_option` shall do nothing and return 0. **]**

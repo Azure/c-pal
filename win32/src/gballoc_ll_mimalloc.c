@@ -189,10 +189,11 @@ void gballoc_ll_print_stats(void)
     /* Codes_SRS_GBALLOC_LL_MIMALLOC_01_001: [ gballoc_ll_print_stats shall return without printing any statistics. ]*/
 }
 
-int gballoc_ll_set_decay(int64_t decay_milliseconds)
+int gballoc_ll_set_option(char* option_name, void* option_value)
 {
-    (void)decay_milliseconds;
+    (void)option_name;
+    (void)option_value;
 
-    /* Codes_SRS_GBALLOC_LL_MIMALLOC_28_001: [ gballoc_ll_set_decay shall do nothing and return a non-zero value. ]*/
-    return MU_FAILURE;
+    /* Codes_SRS_GBALLOC_LL_MIMALLOC_28_001: [ gballoc_ll_set_option shall do nothing and return 0. ]*/
+    return 0;
 }

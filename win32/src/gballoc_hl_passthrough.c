@@ -340,8 +340,8 @@ size_t gballoc_hl_size(void* ptr)
     return result;
 }
 
-int gballoc_hl_set_decay(int64_t decay_milliseconds)
+int gballoc_hl_set_option(char* option_name, void* option_value)
 {
-    /* Codes_SRS_GBALLOC_HL_PASSTHROUGH_28_001: [ gballoc_hl_set_decay shall call gballoc_ll_set_decay with decay_milliseconds as argument. ]*/
-    return gballoc_ll_set_decay(decay_milliseconds);
+    /* Codes_SRS_GBALLOC_HL_PASSTHROUGH_28_001: [ gballoc_hl_set_option shall call gballoc_ll_set_option with option_name and option_value as arguments. ]*/
+    return gballoc_ll_set_option(option_name, option_value);
 }
