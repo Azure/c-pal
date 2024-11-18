@@ -31,10 +31,10 @@
 
 
     INTERLOCKED_HL_RESULT real_InterlockedHL_Add64WithCeiling(int64_t volatile_atomic* Addend, int64_t Ceiling, int64_t Value, int64_t* originalAddend);
-    INTERLOCKED_HL_RESULT real_InterlockedHL_WaitForValue(int32_t volatile_atomic* address, int32_t value, uint32_t milliseconds);
-    INTERLOCKED_HL_RESULT real_InterlockedHL_WaitForValue64(int64_t volatile_atomic* address, int64_t value, uint32_t milliseconds);
-    INTERLOCKED_HL_RESULT real_InterlockedHL_WaitForNotValue(int32_t volatile_atomic* address, int32_t value, uint32_t milliseconds);
-    INTERLOCKED_HL_RESULT real_InterlockedHL_WaitForNotValue64(int64_t volatile_atomic* address, int64_t value, uint32_t milliseconds);
+    INTERLOCKED_HL_RESULT real_InterlockedHL_WaitForValue(int32_t volatile_atomic* address_to_check, int32_t value_to_wait, uint32_t timeout_ms);
+    INTERLOCKED_HL_RESULT real_InterlockedHL_WaitForValue64(int64_t volatile_atomic* address_to_check, int64_t value_to_wait, uint32_t timeout_ms);
+    INTERLOCKED_HL_RESULT real_InterlockedHL_WaitForNotValue(int32_t volatile_atomic* address_to_check, int32_t value_to_wait, uint32_t timeout_ms);
+    INTERLOCKED_HL_RESULT real_InterlockedHL_WaitForNotValue64(int64_t volatile_atomic* address_to_check, int64_t value_to_wait, uint32_t timeout_ms);
     INTERLOCKED_HL_RESULT real_InterlockedHL_SetAndWake(int32_t volatile_atomic* address, int32_t value);
     INTERLOCKED_HL_RESULT real_InterlockedHL_SetAndWake64(int64_t volatile_atomic* address, int64_t value);
     INTERLOCKED_HL_RESULT real_InterlockedHL_SetAndWakeAll(int32_t volatile_atomic* address, int32_t value);

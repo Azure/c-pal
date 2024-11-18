@@ -79,11 +79,8 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_Add64WithCeil
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue, int32_t volatile_atomic*, address, int32_t, value, uint32_t, milliseconds)
+IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue, int32_t volatile_atomic*, address_to_check, int32_t, value_to_wait, uint32_t, timeout_ms)
 {
-    int32_t volatile_atomic* address_to_check = address;
-    int32_t value_to_wait = value;
-    uint32_t timeout_ms = milliseconds;
     INTERLOCKED_HL_RESULT result = INTERLOCKED_HL_ERROR;
 
     if (address_to_check == NULL)
@@ -136,11 +133,8 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue,
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue64, int64_t volatile_atomic*, address, int64_t, value, uint32_t, milliseconds)
+IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue64, int64_t volatile_atomic*, address_to_check, int64_t, value_to_wait, uint32_t, timeout_ms)
 {
-    int64_t volatile_atomic* address_to_check = address;
-    int64_t value_to_wait = value;
-    uint32_t timeout_ms = milliseconds;
     INTERLOCKED_HL_RESULT result = INTERLOCKED_HL_ERROR;
 
     if (address_to_check == NULL)
@@ -190,11 +184,8 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue6
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotValue, int32_t volatile_atomic*, address, int32_t, value, uint32_t, milliseconds)
+IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotValue, int32_t volatile_atomic*, address_to_check, int32_t, value_to_wait, uint32_t, timeout_ms)
 {
-    int32_t volatile_atomic* address_to_check = address;
-    int32_t value_to_wait = value;
-    uint32_t timeout_ms = milliseconds;
     INTERLOCKED_HL_RESULT result = INTERLOCKED_HL_ERROR;
 
     if (address_to_check == NULL)
@@ -210,8 +201,8 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotVal
 
         do
         {
-            current_value = interlocked_add(address, 0);
-            if (current_value != value)
+            current_value = interlocked_add(address_to_check, 0);
+            if (current_value != value_to_wait)
             {
                 /* Codes_SRS_INTERLOCKED_HL_42_002: [ If the value at address_to_check is not equal to value_to_wait, InterlockedHL_WaitForNotValue shall return INTERLOCKED_HL_OK. ]*/
                 result = INTERLOCKED_HL_OK;
@@ -219,7 +210,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotVal
             }
 
             /* Codes_SRS_INTERLOCKED_HL_42_003: [ If the value at address_to_check is equal to value_to_wait, InterlockedHL_WaitForNotValue shall wait until the value at address_to_check changes by using wait_on_address. ]*/
-            WAIT_ON_ADDRESS_RESULT wait_result = wait_on_address(address, current_value, milliseconds);
+            WAIT_ON_ADDRESS_RESULT wait_result = wait_on_address(address_to_check, current_value, timeout_ms);
             if (wait_result == WAIT_ON_ADDRESS_OK)
             {
                 /* Codes_SRS_INTERLOCKED_HL_42_005: [When wait_on_address succeeds, InterlockedHL_WaitForNotValue shall again compare the value at address_to_check with value_to_wait.]*/
@@ -246,11 +237,8 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotVal
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotValue64, int64_t volatile_atomic*, address, int64_t, value, uint32_t, milliseconds)
+IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotValue64, int64_t volatile_atomic*, address_to_check, int64_t, value_to_wait, uint32_t, timeout_ms)
 {
-    int64_t volatile_atomic* address_to_check = address;
-    int64_t value_to_wait = value;
-    uint32_t timeout_ms = milliseconds;
     INTERLOCKED_HL_RESULT result = INTERLOCKED_HL_ERROR;
 
     if (address_to_check == NULL)

@@ -44,7 +44,7 @@ TEST_FUNCTION(interlocked_hl_decrement_and_wake_operates_successfully)
     ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&helper_thread_handle, decrement_and_wake_helper_thread_function, NULL));
 
     // act and assert
-    //sleep so that the helper thread can go into wait mode
+    // sleep so that the helper thread can go into wait mode
     ThreadAPI_Sleep(5000);
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_DecrementAndWake(&globalValue));
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, 9, globalValue);
@@ -78,7 +78,7 @@ TEST_FUNCTION(interlocked_hl_decrement_and_wake_operates_successfully_64)
     ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&helper_thread_handle, decrement_and_wake_helper_thread_function_64, NULL));
 
     // act and assert
-    //sleep so that the helper thread can go into wait mode
+    // sleep so that the helper thread can go into wait mode
     ThreadAPI_Sleep(5000);
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_DecrementAndWake64(&globalValue64));
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, 9, globalValue64);
@@ -151,7 +151,7 @@ TEST_FUNCTION(interlocked_hl_set_and_wake_all_operates_successfully_64)
     // + main thread creates helper threads and sets value for the helper threads to wake up
     // + main thread joins on the helper threads and ensures that all threads wake up and terminate
     // arrange
-    globalValue64 = 10;
+    globalValue64 = INT64_MAX;
 
     enum { NUMBER_OF_HELPER_THREADS = 10 };
     THREAD_HANDLE helper_threads[NUMBER_OF_HELPER_THREADS];
@@ -354,13 +354,13 @@ TEST_FUNCTION(interlocked_hl_wait_for_not_value_64)
 {
     volatile_atomic int64_t localvalue = 0;
 
-    interlocked_exchange_64(&localvalue, 25);
+    (void)interlocked_exchange_64(&localvalue, 25);
 
     // act and assert
     // Wait a second for the value to time out and make sure it returns the correct value
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_TIMEOUT, InterlockedHL_WaitForNotValue64(&localvalue, 25, 1000));
 
-    interlocked_exchange_64(&localvalue, 100);
+    (void)interlocked_exchange_64(&localvalue, 100);
 
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForNotValue64(&localvalue, 25, 1000));
     // cleanup
@@ -390,13 +390,13 @@ TEST_FUNCTION(interlocked_hl_wait_for_value_timest)
 {
     volatile_atomic int64_t localvalue = 0;
 
-    interlocked_exchange_64(&localvalue, 25);
+    (void)interlocked_exchange_64(&localvalue, 25);
 
     // act and assert
     // Wait a second for the value to time out and make sure it returns the correct value
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_TIMEOUT, InterlockedHL_WaitForValue64(&localvalue, 1, 1000));
 
-    interlocked_exchange_64(&localvalue, 1);
+    (void)interlocked_exchange_64(&localvalue, 1);
 
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&localvalue, 1, 1000));
 
