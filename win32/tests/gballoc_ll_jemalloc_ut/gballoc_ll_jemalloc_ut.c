@@ -709,7 +709,7 @@ TEST_FUNCTION(gballoc_ll_set_option_with_muzzy_decay_and_negative_decay_millisec
     ///clean
 }
 
-static void setup_decay_success_expectations(char** first_command, char** second_command, char** third_command, char** fourth_command, char** fifth_command, uint64_t* num_arenas, int64_t* decay_milliseconds)
+static void setup_decay_success_expectations(char** first_command, char** second_command, char** third_command, char** fourth_command, char** fifth_command, uint32_t* num_arenas, int64_t* decay_milliseconds)
 {
     STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, NULL, 0))
         .CaptureArgumentValue_name(first_command)
@@ -748,7 +748,7 @@ TEST_FUNCTION(gballoc_ll_set_option_with_dirty_decay_succeeds)
 {
     ///arrange
     int64_t decay_milliseconds = 42;
-    uint64_t num_arenas = NUM_ARENAS;
+    uint32_t num_arenas = NUM_ARENAS;
 
     char* first_command;
     char* second_command;
@@ -784,7 +784,7 @@ TEST_FUNCTION(gballoc_ll_set_option_with_muzzy_decay_succeeds)
 {
     ///arrange
     int64_t decay_milliseconds = 42;
-    uint64_t num_arenas = NUM_ARENAS;
+    uint32_t num_arenas = NUM_ARENAS;
 
     char* first_command;
     char* second_command;
@@ -814,7 +814,7 @@ TEST_FUNCTION(gballoc_ll_set_option_fails_when_underlying_calls_fail)
 {
     ///arrange
     int64_t decay_milliseconds = 42;
-    uint64_t num_arenas = NUM_ARENAS;
+    uint32_t num_arenas = NUM_ARENAS;
 
     char* first_command;
     char* second_command;
@@ -848,7 +848,7 @@ TEST_FUNCTION(gballoc_ll_set_option_fails_when_underlying_calls_fail_2)
 {
     ///arrange
     int64_t decay_milliseconds = 42;
-    uint64_t num_arenas = NUM_ARENAS;
+    uint32_t num_arenas = NUM_ARENAS;
 
     char* first_command;
     char* second_command;
@@ -952,7 +952,7 @@ TEST_FUNCTION(gballoc_ll_set_option_fails_for_muzzy_decay_if_number_of_arenas_re
     ///clean
 }
 
-static void setup_failure_expectations_when_setting_decay_for_second_arenas_fails(char** first_command, char** second_command, char** third_command, char** fourth_command, char** fifth_command, char** sixth_command, int64_t* decay_milliseconds, uint64_t* num_arenas)
+static void setup_failure_expectations_when_setting_decay_for_second_arenas_fails(char** first_command, char** second_command, char** third_command, char** fourth_command, char** fifth_command, char** sixth_command, int64_t* decay_milliseconds, uint32_t* num_arenas)
 {
     int64_t old_decay_milliseconds = 24;
     STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, NULL, 0))
@@ -990,7 +990,7 @@ TEST_FUNCTION(gballoc_ll_set_option_fails_for_dirty_decay_if_setting_dirty_decay
 {
     ///arrange
     int64_t decay_milliseconds = 42;
-    uint64_t num_arenas = NUM_ARENAS;
+    uint32_t num_arenas = NUM_ARENAS;
 
     char* first_command;
     char* second_command;
@@ -1022,7 +1022,7 @@ TEST_FUNCTION(gballoc_ll_set_option_fails_for_muzzy_decay_if_setting_muzzy_decay
 {
     ///arrange
     int64_t decay_milliseconds = 42;
-    uint64_t num_arenas = NUM_ARENAS;
+    uint32_t num_arenas = NUM_ARENAS;
 
     char* first_command;
     char* second_command;

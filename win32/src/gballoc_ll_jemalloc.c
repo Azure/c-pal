@@ -252,8 +252,9 @@ static int gballoc_ll_set_dirty_decay(int64_t decay_milliseconds)
             }
             else
             {
-                uint64_t narenas;
+                uint32_t narenas;
                 size_t narenas_size = sizeof(narenas);
+                MU_STATIC_ASSERT(sizeof(uint32_t) == sizeof(unsigned));
 
                 /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_007: [ gballoc_ll_set_option shall fetch the number of existing jemalloc arenas by calling je_mallctl with arenas.narenas as the command. ]*/
                 if (je_mallctl("arenas.narenas", &narenas, &narenas_size, NULL, 0) != 0)
@@ -265,17 +266,17 @@ static int gballoc_ll_set_dirty_decay(int64_t decay_milliseconds)
                 else
                 {
                     char command[64];
-                    uint64_t i;
+                    uint32_t i;
 
                     /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_008: [ For each existing arena ]*/
                     for (i = 0; i < narenas; i++)
                     {
-                        int snprintf_result = snprintf(command, sizeof(command), "arena.%" PRIu64 ".dirty_decay_ms", i);
+                        int snprintf_result = snprintf(command, sizeof(command), "arena.%" PRIu32 ".dirty_decay_ms", i);
 
                         if (snprintf_result < 0 || (size_t)snprintf_result >= sizeof(command))
                         {
                             /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_018: [ If there are any errors, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
-                            LogError("snprintf(const char* buffer=%p, size_t size=%zu, const char* format=arena.<i>.dirty_decay_ms, i=%" PRIu64 ") failed %s", command, sizeof(command), i, (snprintf_result < 0) ? " with encoding error" : " due to insufficient buffer size");
+                            LogError("snprintf(const char* buffer=%p, size_t size=%zu, const char* format=arena.<i>.dirty_decay_ms, i=%" PRIu32 ") failed %s", command, sizeof(command), i, (snprintf_result < 0) ? " with encoding error" : " due to insufficient buffer size");
                             result = MU_FAILURE;
                             break;
                         }
@@ -294,9 +295,9 @@ static int gballoc_ll_set_dirty_decay(int64_t decay_milliseconds)
 
                     if (i < narenas)
                     {
-                        for (uint64_t j = 0; j < i; j++)
+                        for (uint32_t j = 0; j < i; j++)
                         {
-                            (void)snprintf(command, sizeof(command), "arena.%" PRIu64 ".dirty_decay_ms", j);
+                            (void)snprintf(command, sizeof(command), "arena.%" PRIu32 ".dirty_decay_ms", j);
                             (void)je_mallctl(command, NULL, NULL, &old_decay_milliseconds, sizeof(old_decay_milliseconds));
                         }
                         result = MU_FAILURE;
@@ -350,8 +351,9 @@ static int gballoc_ll_set_muzzy_decay(int64_t decay_milliseconds)
             }
             else
             {
-                uint64_t narenas;
+                uint32_t narenas;
                 size_t narenas_size = sizeof(narenas);
+                MU_STATIC_ASSERT(sizeof(uint32_t) == sizeof(unsigned));
 
                 /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_014: [ gballoc_ll_set_option shall fetch the number of existing jemalloc arenas by calling je_mallctl with arenas.narenas as the command. ]*/
                 if (je_mallctl("arenas.narenas", &narenas, &narenas_size, NULL, 0) != 0)
@@ -363,17 +365,17 @@ static int gballoc_ll_set_muzzy_decay(int64_t decay_milliseconds)
                 else
                 {
                     char command[64];
-                    uint64_t i;
+                    uint32_t i;
 
                     /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_015: [ For each existing arena ]*/
                     for (i = 0; i < narenas; i++)
                     {
-                        int snprintf_result = snprintf(command, sizeof(command), "arena.%" PRIu64 ".muzzy_decay_ms", i);
+                        int snprintf_result = snprintf(command, sizeof(command), "arena.%" PRIu32 ".muzzy_decay_ms", i);
 
                         if (snprintf_result < 0 || (size_t)snprintf_result >= sizeof(command))
                         {
                             /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_018: [ If there are any errors, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
-                            LogError("snprintf(const char* buffer=%p, size_t size=%zu, const char* format=arena.<i>.muzzy_decay_ms, i=%" PRIu64 ") failed %s", command, sizeof(command), i, (snprintf_result < 0) ? " with encoding error" : " due to insufficient buffer size");
+                            LogError("snprintf(const char* buffer=%p, size_t size=%zu, const char* format=arena.<i>.muzzy_decay_ms, i=%" PRIu32 ") failed %s", command, sizeof(command), i, (snprintf_result < 0) ? " with encoding error" : " due to insufficient buffer size");
                             result = MU_FAILURE;
                             break;
                         }
@@ -392,9 +394,9 @@ static int gballoc_ll_set_muzzy_decay(int64_t decay_milliseconds)
 
                     if (i < narenas)
                     {
-                        for (uint64_t j = 0; j < i; j++)
+                        for (uint32_t j = 0; j < i; j++)
                         {
-                            (void)snprintf(command, sizeof(command), "arena.%" PRIu64 ".muzzy_decay_ms", j);
+                            (void)snprintf(command, sizeof(command), "arena.%" PRIu32 ".muzzy_decay_ms", j);
                             (void)je_mallctl(command, NULL, NULL, &old_decay_milliseconds, sizeof(old_decay_milliseconds));
                         }
                         result = MU_FAILURE;
