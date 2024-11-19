@@ -59,10 +59,10 @@ then `InterlockedHL_Add64WithCeiling` fails and returns `INTERLOCKED_HL_ERROR`.
 ###  InterlockedHL_WaitForValue
 
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue, int32_t volatile_atomic*, address, int32_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue, int32_t volatile_atomic*, address_to_check, int32_t, value_to_wait, uint32_t, timeout_ms)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 ```
 
-`InterlockedHL_WaitForValue` waits for the value at a given address to be equal to a target value.
+`InterlockedHL_WaitForValue` waits for the value at a given address_to_check to be equal to the target value_to_wait.
 
 **SRS_INTERLOCKED_HL_01_002: [** If `address_to_check` is `NULL`, `InterlockedHL_WaitForValue` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
@@ -79,10 +79,10 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForVal
 ###  InterlockedHL_WaitForValue64
 
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue64, int64_t volatile_atomic*, address, int64_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue64, int64_t volatile_atomic*, address_to_check, int64_t, value_to_wait, uint32_t, timeout_ms)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 ```
 
-`InterlockedHL_WaitForValue64` waits for the value at a given address to be equal to a target value.
+`InterlockedHL_WaitForValue64` waits for the value at a given address_to_check to be equal to the target value_to_wait.
 
 **SRS_INTERLOCKED_HL_05_001: [** If `address_to_check` is `NULL`, `InterlockedHL_WaitForValue64` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
@@ -100,10 +100,10 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForVal
 ### InterlockedHL_WaitForNotValue
 
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotValue, int32_t volatile_atomic*, address, int32_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotValue, int32_t volatile_atomic*, address_to_check, int32_t, value_to_wait, uint32_t, timeout_ms)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 ```
 
-`InterlockedHL_WaitForNotValue` waits for the value at a given address to not be equal to a target value.
+`InterlockedHL_WaitForNotValue` waits for the value at a given address_to_check to not be equal to the target value_to_wait.
 
 **SRS_INTERLOCKED_HL_42_001: [** If `address_to_check` is `NULL`, `InterlockedHL_WaitForNotValue` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
@@ -120,10 +120,10 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNot
 ###  InterlockedHL_WaitForNotValue64
 
 ```c
-MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotValue64, int64_t volatile_atomic*, address, int64_t, value, uint32_t, milliseconds)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
+MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotValue64, int64_t volatile_atomic*, address_to_check, int64_t, value_to_wait, uint32_t, timeout_ms)(INTERLOCKED_HL_OK, INTERLOCKED_HL_ERROR);
 ```
 
-`InterlockedHL_WaitForValue64` waits for the value at a given address to be not equal to a target value.
+`InterlockedHL_WaitForValue64` waits for the value at a given address_to_check to not be equal to the target value_to_wait.
 
 **SRS_INTERLOCKED_HL_05_007: [** If `address_to_check` is `NULL`, `InterlockedHL_WaitForNotValue64` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
