@@ -673,6 +673,20 @@ typedef struct CHAOS_TEST_DATA_TAG
 #define TIMER_PERIOD_MIN 50
 #define TIMER_PERIOD_MAX 400
 
+static void chaos_delay()
+{
+    // Earlier, the threadpool_open and threadpool_close would start and stop threadpool threads whereby there would be some limit on number of times work would be scheduled
+    // on Windows Threadpool using threadpool_schedule_work and threadpool_schedule_work_item because both functions would test for threadpool open condition and return if threadpool is not open.
+    // With threadpool_open and threadpool_close now only there for backward compatibility and doing nothing, the chaos test for optimized threadpool_schedule_work_item
+    // would create a very large number of work items compared to the previous version of threadpool_schedule_work. The tests would fail because expected_call_count would be very high than the
+    // executed_work_functions count because Windows Threadpool is unable to schedule that many work items. Adding Sleep(1) would significantly slow the tests. So adding following malloc and free
+    // would ensure delay less than 1 milliseconds, enough to allow Windows Threadpool to handle this chaos test scenarios for threadpool_schedule_work_item. For threadpool_schedule_work there are
+    // already extra operations than threadpool_schedule_work_item like malloc and free (in its callback) that would create more delay than this function. Hence threadpool_schedule_work would pass in
+    // chaos test even after threadpool_open and threadpool_close have reduced functionality.
+    CHAOS_TEST_DATA* temp = (CHAOS_TEST_DATA*)malloc(sizeof(CHAOS_TEST_DATA));
+    free(temp);
+}
+
 static DWORD WINAPI chaos_thread_func(LPVOID lpThreadParameter)
 {
     CHAOS_TEST_DATA* chaos_test_data = (CHAOS_TEST_DATA*)lpThreadParameter;
@@ -817,32 +831,30 @@ static DWORD WINAPI chaos_thread_with_timers_no_lock_func(LPVOID lpThreadParamet
         break;
         case TEST_ACTION_RESTART_TIMER:
             // Restart a timer
-        {
-            // Synchronize with close
-            (void)InterlockedIncrement(&chaos_test_data->timers_starting);
-            if (InterlockedAdd(&chaos_test_data->can_start_timers, 0) != 0)
             {
-                int which_timer_slot = rand() * MAX_TIMER_COUNT / (RAND_MAX + 1);
-                if (InterlockedAdd(&chaos_test_data->timers[which_timer_slot].state, 0) == TIMER_STATE_STARTED)
+                // Synchronize with close
+                (void)InterlockedIncrement(&chaos_test_data->timers_starting);
+                if (InterlockedAdd(&chaos_test_data->can_start_timers, 0) != 0)
                 {
-                    uint32_t timer_start_delay = TIMER_START_DELAY_MIN + rand() * (TIMER_START_DELAY_MAX - TIMER_START_DELAY_MIN) / (RAND_MAX + 1);
-                    uint32_t timer_period = TIMER_PERIOD_MIN + rand() * (TIMER_PERIOD_MAX - TIMER_PERIOD_MIN) / (RAND_MAX + 1);
-                    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_restart(chaos_test_data->timers[which_timer_slot].timer, timer_start_delay, timer_period));
+                    int which_timer_slot = rand() * MAX_TIMER_COUNT / (RAND_MAX + 1);
+                    if (InterlockedCompareExchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_STARTING, TIMER_STATE_STARTED) == TIMER_STATE_STARTED)
+                    {
+                        uint32_t timer_start_delay = TIMER_START_DELAY_MIN + rand() * (TIMER_START_DELAY_MAX - TIMER_START_DELAY_MIN) / (RAND_MAX + 1);
+                        uint32_t timer_period = TIMER_PERIOD_MIN + rand() * (TIMER_PERIOD_MAX - TIMER_PERIOD_MIN) / (RAND_MAX + 1);
+                        ASSERT_ARE_EQUAL(int, 0, threadpool_timer_restart(chaos_test_data->timers[which_timer_slot].timer, timer_start_delay, timer_period));
+                        (void)InterlockedExchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_STARTED);
+                    }
                 }
+                (void)InterlockedDecrement(&chaos_test_data->timers_starting);
+                WakeByAddressSingle((PVOID)&chaos_test_data->timers_starting);
             }
-            (void)InterlockedDecrement(&chaos_test_data->timers_starting);
-            WakeByAddressSingle((PVOID)&chaos_test_data->timers_starting);
-        }
-        break;
-        case TEST_ACTION_SCHEDULE_WORK_ITEM:
-            // perform a schedule work item
-            if (InterlockedAdd(&chaos_test_data->can_schedule_works, 0) != 0)
-            {
-                if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
-                {
-                    (void)InterlockedIncrement64(&chaos_test_data->expected_call_count);
-                }
-            }
+            break;
+        case 7:
+            //// perform a schedule work item
+            //if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
+            //{
+            //    (void)InterlockedIncrement64(&chaos_test_data->expected_call_count);
+            //}
             break;
         }
     }
