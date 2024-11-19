@@ -60,12 +60,12 @@ TEST_FUNCTION_CLEANUP(cleans)
 {
 }
 
-/*Tests_SRS_SYNC_WIN32_43_001: [ wait_on_address shall call WaitOnAddress from windows.h with address as Address, a pointer to the value compare_value as CompareAddress, 4 as AddressSize and timeout_ms as dwMilliseconds. ]*/
-/*Tests_SRS_SYNC_WIN32_24_003: [ If WaitOnAddress succeeds, wait_on_address shall return WAIT_ON_ADDRESS_OK. ]*/
+/* Tests_SRS_SYNC_WIN32_43_001: [ wait_on_address shall call WaitOnAddress to wait on the value at 32-bit address to be different than compare_value for timeout_ms milliseconds. ] */
+/* Tests_SRS_SYNC_WIN32_24_003: [ If WaitOnAddress succeeds, wait_on_address shall return WAIT_ON_ADDRESS_OK. ] */
 TEST_FUNCTION(wait_on_address_calls_WaitOnAddress_successfully)
 {
     ///arrange
-    volatile int32_t var;
+    volatile int32_t var = 0;
     int32_t expected_val = INT32_MAX;
     (void)InterlockedExchange((volatile LONG*)&var, INT32_MAX);
     uint32_t timeout = 1000;
@@ -81,8 +81,29 @@ TEST_FUNCTION(wait_on_address_calls_WaitOnAddress_successfully)
     ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_OK, return_val, "wait_on_address should have returned ok");
 }
 
-/*Tests_SRS_SYNC_WIN32_43_001: [ wait_on_address shall call WaitOnAddress from windows.h with address as Address, a pointer to the value compare_value as CompareAddress, 4 as AddressSize and timeout_ms as dwMilliseconds. ]*/
-/*Tests_SRS_SYNC_WIN32_24_002: [ If WaitOnAddress fails due to any other reason, wait_on_address shall fail and return WAIT_ON_ADDRESS_ERROR. ]*/
+/* Tests_SRS_SYNC_WIN32_05_001: [ wait_on_address_64 shall call WaitOnAddress to wait on the value at 64-bit address to be different than compare_value for timeout_ms milliseconds. ] */
+/* Tests_SRS_SYNC_WIN32_05_004: [ If WaitOnAddress succeeds, wait_on_address_64 shall return WAIT_ON_ADDRESS_OK. ] */
+TEST_FUNCTION(wait_on_address_64_calls_WaitOnAddress_successfully)
+{
+    ///arrange
+    volatile int64_t var;
+    int64_t expected_val = INT64_MAX;
+    (void)InterlockedExchange64((volatile LONG64*)&var, INT64_MAX);
+    uint32_t timeout = 1000;
+    STRICT_EXPECTED_CALL(mock_WaitOnAddress((volatile VOID*)&var, IGNORED_ARG, (SIZE_T)8, (DWORD)timeout))
+        .ValidateArgumentBuffer(2, &expected_val, sizeof(expected_val))
+        .SetReturn(true);
+
+    ///act
+    WAIT_ON_ADDRESS_RESULT return_val = wait_on_address_64(&var, INT64_MAX, timeout);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
+    ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_OK, return_val, "wait_on_address_64 should have returned ok");
+}
+
+/* Tests_SRS_SYNC_WIN32_43_001: [ wait_on_address shall call WaitOnAddress to wait on the value at 32-bit address to be different than compare_value for timeout_ms milliseconds. ] */
+/* Tests_SRS_SYNC_WIN32_24_002: [ If WaitOnAddress fails due to any other reason, wait_on_address shall fail and return WAIT_ON_ADDRESS_ERROR. ] */
 TEST_FUNCTION(wait_on_address_calls_fails_when_WaitOnAddress_fails_due_to_timeout)
 {
     ///arrange
@@ -103,8 +124,30 @@ TEST_FUNCTION(wait_on_address_calls_fails_when_WaitOnAddress_fails_due_to_timeou
     ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_ERROR, return_val, "wait_on_address should have returned error");
 }
 
-/*Tests_SRS_SYNC_WIN32_43_001: [ wait_on_address shall call WaitOnAddress from windows.h with address as Address, a pointer to the value compare_value as CompareAddress, 4 as AddressSize and timeout_ms as dwMilliseconds. ]*/
-/*Tests_SRS_SYNC_WIN32_24_001: [ If WaitOnAddress fails due to timeout, wait_on_address shall fail and return WAIT_ON_ADDRESS_TIMEOUT. ]*/
+/* Tests_SRS_SYNC_WIN32_05_001: [ wait_on_address_64 shall call WaitOnAddress to wait on the value at 64-bit address to be different than compare_value for timeout_ms milliseconds. ] */
+/* Tests_SRS_SYNC_WIN32_05_002: [ If WaitOnAddress fails due to timeout, wait_on_address_64 shall fail and return WAIT_ON_ADDRESS_TIMEOUT. ] */
+TEST_FUNCTION(wait_on_address_64_calls_fails_when_WaitOnAddress_fails_due_to_timeout)
+{
+    ///arrange
+    volatile int64_t var;
+    int64_t expected_val = INT64_MAX;
+    (void)InterlockedExchange64((volatile LONG64*)&var, INT64_MAX);
+    uint32_t timeout = 1000;
+    STRICT_EXPECTED_CALL(mock_WaitOnAddress((volatile VOID*)&var, IGNORED_ARG, (SIZE_T)8, (DWORD)timeout))
+        .ValidateArgumentBuffer(2, &expected_val, sizeof(expected_val))
+        .SetReturn(false);
+    STRICT_EXPECTED_CALL(mock_GetLastError());
+
+    ///act
+    WAIT_ON_ADDRESS_RESULT return_val = wait_on_address_64(&var, INT64_MAX, timeout);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
+    ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_ERROR, return_val, "wait_on_address_64 should have returned error");
+}
+
+/* Tests_SRS_SYNC_WIN32_43_001: [ wait_on_address shall call WaitOnAddress to wait on the value at 32-bit address to be different than compare_value for timeout_ms milliseconds. ] */
+/* Tests_SRS_SYNC_WIN32_24_001: [ If WaitOnAddress fails due to timeout, wait_on_address shall fail and return WAIT_ON_ADDRESS_TIMEOUT. ] */
 TEST_FUNCTION(wait_on_address_calls_WaitOnAddress_unsuccessfully)
 {
     ///arrange
@@ -125,7 +168,29 @@ TEST_FUNCTION(wait_on_address_calls_WaitOnAddress_unsuccessfully)
     ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_TIMEOUT, return_val, "wait_on_address should have returned timeout");
 }
 
-/*Tests_SRS_SYNC_WIN32_43_003: [ wake_by_address_all shall call WakeByAddressAll from windows.h with address as Address. ]*/
+/* Tests_SRS_SYNC_WIN32_05_001: [ wait_on_address_64 shall call WaitOnAddress to wait on the value at 64-bit address to be different than compare_value for timeout_ms milliseconds. ] */
+/* Tests_SRS_SYNC_WIN32_05_003: [ If WaitOnAddress fails due to any other reason, wait_on_address_64 shall fail and return WAIT_ON_ADDRESS_ERROR. ] */
+TEST_FUNCTION(wait_on_address_64_calls_WaitOnAddress_unsuccessfully)
+{
+    ///arrange
+    volatile int64_t var = 0;
+    int64_t expected_val = INT64_MAX;
+    (void)InterlockedExchange64((volatile LONG64*)&var, INT64_MAX);
+    uint32_t timeout = 1000;
+    STRICT_EXPECTED_CALL(mock_WaitOnAddress((volatile VOID*)&var, IGNORED_ARG, (SIZE_T)8, (DWORD)timeout))
+        .ValidateArgumentBuffer(2, &expected_val, sizeof(expected_val))
+        .SetReturn(false);
+    STRICT_EXPECTED_CALL(mock_GetLastError()).SetReturn(ERROR_TIMEOUT);
+
+    ///act
+    WAIT_ON_ADDRESS_RESULT return_val = wait_on_address_64(&var, INT64_MAX, timeout);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
+    ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_TIMEOUT, return_val, "wait_on_address_64 should have returned timeout");
+}
+
+/* Tests_SRS_SYNC_WIN32_43_003: [ wake_by_address_all shall call WakeByAddressAll to notify all listeners waiting on the 32-bit address. ] */
 TEST_FUNCTION(wake_by_address_all_calls_WakeByAddressAll)
 {
     ///arrange
@@ -140,7 +205,22 @@ TEST_FUNCTION(wake_by_address_all_calls_WakeByAddressAll)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
 }
 
-/*Tests_SRS_SYNC_WIN32_43_004: [ wake_by_address_single shall call WakeByAddressSingle from windows.h with address as Address. ]*/
+/* Tests_SRS_SYNC_WIN32_05_005: [ wake_by_address_all_64 shall call WakeByAddressAll to notify all listeners waiting on the 64-bit address. ] */
+TEST_FUNCTION(wake_by_address_all_64_calls_WakeByAddressAll)
+{
+    ///arrange
+    volatile int64_t var;
+    int64_t val = INT64_MAX;
+    (void)InterlockedExchange64((volatile LONG64*)&var, val);
+    STRICT_EXPECTED_CALL(mock_WakeByAddressAll((PVOID)&var));
+    ///act
+    wake_by_address_all_64(&var);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
+}
+
+/* Tests_SRS_SYNC_WIN32_43_004: [ wake_by_address_single shall call WakeByAddressSingle to notify a single listeners waiting on the 32-bit address. ] */
 TEST_FUNCTION(wake_by_address_single_calls_WakeByAddressSingle)
 {
     ///arrange
@@ -150,6 +230,21 @@ TEST_FUNCTION(wake_by_address_single_calls_WakeByAddressSingle)
     STRICT_EXPECTED_CALL(mock_WakeByAddressSingle((PVOID)&var));
     ///act
     wake_by_address_single(&var);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
+}
+
+/* Tests_SRS_SYNC_WIN32_05_006: [ wake_by_address_single_64 shall call WakeByAddressSingle to notify a single listeners waiting on the 64-bit address. ] */
+TEST_FUNCTION(wake_by_address_single_64_calls_WakeByAddressSingle)
+{
+    ///arrange
+    volatile int64_t var;
+    int64_t val = INT32_MAX;
+    (void)InterlockedExchange64((volatile LONG64*)&var, val);
+    STRICT_EXPECTED_CALL(mock_WakeByAddressSingle((PVOID)&var));
+    ///act
+    wake_by_address_single_64(&var);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
