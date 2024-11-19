@@ -22,7 +22,7 @@ extern "C" {
 
 typedef struct THREADPOOL_TAG THREADPOOL;
 typedef struct TIMER_INSTANCE_TAG TIMER_INSTANCE;
-typedef struct TIMER_INSTANCE_TAG* TIMER_INSTANCE_HANDLE; //todo: if this one is needed
+typedef struct TIMER_INSTANCE_TAG* TIMER_INSTANCE_HANDLE;
 typedef struct THREADPOOL_WORK_ITEM_TAG* THREADPOOL_WORK_ITEM_HANDLE;
 typedef void (*THREADPOOL_WORK_FUNCTION)(void* context);
 

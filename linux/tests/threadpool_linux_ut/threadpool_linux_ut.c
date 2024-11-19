@@ -1378,7 +1378,6 @@ TEST_FUNCTION(on_timer_callback_calls_work_function)
 
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
     STRICT_EXPECTED_CALL(mocked_timer_create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
-    //STRICT_EXPECTED_CALL(mocked_timer_create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG)).CopyOutArgumentBuffer_sevp(&sigev, sizeof(struct sigevent));
     STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, 0, IGNORED_ARG, NULL));
     int result = threadpool_timer_start(threadpool, 42, 2000, test_work_function, (void*)0x4243, &timer_instance);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -1392,11 +1391,6 @@ TEST_FUNCTION(on_timer_callback_calls_work_function)
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 
     sigval_t timer_data = {0};
-    //LogInfo("sigev = %p", sigev);
-    //LogInfo("sigev_value = %p", sigev.sigev_value);
-    //TIMER_INSTANCE_HANDLE timer = THANDLE_GET_T(TIMER_INSTANCE)(timer_instance);
-    LogInfo("sival_ptr = %p", g_sigevent.sigev_value.sival_ptr);
-
     timer_data.sival_ptr = g_sigevent.sigev_value.sival_ptr;
 
     // act

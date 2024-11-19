@@ -623,7 +623,7 @@ int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_
                         threadpool_internal_set_timer(tp_timer, start_delay_ms, timer_period_ms);
 
                         /* Codes_SRS_THREADPOOL_WIN32_42_009: [ threadpool_timer_start shall return the allocated handle in timer_handle. ]*/
-                        THANDLE_MOVE(TIMER_INSTANCE)(timer_handle, &timer_temp);
+                        THANDLE_INITIALIZE_MOVE(TIMER_INSTANCE)(timer_handle, &timer_temp);
 
                         /* Codes_SRS_THREADPOOL_WIN32_42_010: [ threadpool_timer_start shall succeed and return 0. ]*/
                         result = 0;

@@ -17,8 +17,7 @@
         threadpool_schedule_work, \
         threadpool_timer_start, \
         threadpool_timer_restart, \
-        threadpool_timer_cancel, \
-        threadpool_timer_destroy \
+        threadpool_timer_cancel \
     ) \
     REGISTER_GLOBAL_MOCK_HOOK(THANDLE_MOVE(THREADPOOL), THANDLE_MOVE(real_THREADPOOL)) \
     REGISTER_GLOBAL_MOCK_HOOK(THANDLE_INITIALIZE(THREADPOOL), THANDLE_INITIALIZE(real_THREADPOOL)) \
