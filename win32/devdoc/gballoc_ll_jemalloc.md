@@ -195,6 +195,8 @@ MOCKABLE_FUNCTION(, int, gballoc_ll_set_option, char*, option_name, void*, optio
 
     - **SRS_GBALLOC_LL_JEMALLOC_28_009: [** `gballoc_ll_set_option` shall set the dirty decay time for the arena to `decay_milliseconds` milliseconds by calling `je_mallctl` with `arena.<i>.dirty_decay_ms` as the command. **]**
 
+    - **SRS_GBALLOC_LL_JEMALLOC_28_020: [** If `je_mallctl` returns `EFAULT`, `gballoc_ll_set_option` shall continue without failing as this error is expected when the arena is deleted or is a huge arena. **]**
+
 **SRS_GBALLOC_LL_JEMALLOC_28_010: [** Else if `option_name` has value as `muzzy_decay`: **]**
 
 - **SRS_GBALLOC_LL_JEMALLOC_28_011: [** `gballoc_ll_set_option` shall fetch the `decay_milliseconds` value by casting `option_value` to `int64_t`. **]**
@@ -208,6 +210,8 @@ MOCKABLE_FUNCTION(, int, gballoc_ll_set_option, char*, option_name, void*, optio
 - **SRS_GBALLOC_LL_JEMALLOC_28_015: [** For each existing arena **]**
 
     - **SRS_GBALLOC_LL_JEMALLOC_28_016: [** `gballoc_ll_set_option` shall set the muzzy decay time for the arena to `decay_milliseconds` milliseconds by calling `je_mallctl` with `arena.<i>.muzzy_decay_ms` as the command. **]**
+
+    - **SRS_GBALLOC_LL_JEMALLOC_28_020: [** If `je_mallctl` returns `EFAULT`, `gballoc_ll_set_option` shall continue without failing as this error is expected when the arena is deleted or is a huge arena. **]**
 
 **SRS_GBALLOC_LL_JEMALLOC_28_017: [** Otherwise `gballoc_ll_set_option` shall fail and return a non-zero value. **]**
 
