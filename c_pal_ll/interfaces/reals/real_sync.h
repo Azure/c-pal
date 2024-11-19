@@ -21,8 +21,11 @@
 #define REGISTER_SYNC_GLOBAL_MOCK_HOOK() \
     MU_FOR_EACH_1(R2, \
         wait_on_address, \
+        wait_on_address_64, \
         wake_by_address_all, \
-        wake_by_address_single \
+        wake_by_address_all_64, \
+        wake_by_address_single, \
+        wake_by_address_single_64 \
 )
 
 #ifdef __cplusplus
@@ -31,8 +34,11 @@ extern "C" {
 
 
 WAIT_ON_ADDRESS_RESULT real_wait_on_address(volatile_atomic int32_t* address, int32_t compare_value, uint32_t timeout_ms);
+WAIT_ON_ADDRESS_RESULT real_wait_on_address_64(volatile_atomic int64_t* address, int64_t compare_value, uint32_t timeout_ms);
 void real_wake_by_address_all(volatile_atomic int32_t* address);
+void real_wake_by_address_all_64(volatile_atomic int64_t* address);
 void real_wake_by_address_single(volatile_atomic int32_t* address);
+void real_wake_by_address_single_64(volatile_atomic int64_t* address);
 
 #ifdef __cplusplus
 }
