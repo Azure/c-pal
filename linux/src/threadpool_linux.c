@@ -722,7 +722,7 @@ int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_
                     /* Codes_SRS_THREADPOOL_LINUX_07_061: [ threadpool_timer_start shall return and allocated handle in timer_handle. ]*/
                     /* Codes_SRS_THREADPOOL_LINUX_07_062: [ threadpool_timer_start shall succeed and return 0. ]*/
                     timer_instance->time_id = time_id;
-                    THANDLE_MOVE(TIMER_INSTANCE)(timer_handle, &timer_temp);
+                    THANDLE_INITIALIZE_MOVE(TIMER_INSTANCE)(timer_handle, &timer_temp);
                     result = 0;
                     goto all_ok;
                 }
