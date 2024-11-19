@@ -18,8 +18,7 @@
         threadpool_schedule_work, \
         threadpool_timer_start, \
         threadpool_timer_restart, \
-        threadpool_timer_cancel, \
-        threadpool_timer_destroy \
+        threadpool_timer_cancel
     ) \
     REGISTER_GLOBAL_MOCK_HOOK(THANDLE_MOVE(THREADPOOL), THANDLE_MOVE(real_THREADPOOL)) \
     REGISTER_GLOBAL_MOCK_HOOK(THANDLE_INITIALIZE(THREADPOOL), THANDLE_INITIALIZE(real_THREADPOOL)) \
@@ -32,6 +31,9 @@ extern "C" {
 
     typedef struct THREADPOOL_TAG real_THREADPOOL;
     THANDLE_TYPE_DECLARE(real_THREADPOOL);
+
+    typedef struct TIMER_INSTANCE_TAG real_TIMER_INSTANCE;
+    THANDLE_TYPE_DECLARE(real_TIMER_INSTANCE);
 
     THANDLE(THREADPOOL) real_threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine);
     int real_threadpool_open(THANDLE(THREADPOOL) threadpool);

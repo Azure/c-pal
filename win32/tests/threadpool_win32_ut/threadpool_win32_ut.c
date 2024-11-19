@@ -916,7 +916,7 @@ TEST_FUNCTION(on_work_callback_triggers_the_user_work_function_with_NULL_work_fu
 TEST_FUNCTION(threadpool_timer_start_with_NULL_threadpool_fails)
 {
     // arrange
-    TIMER_INSTANCE_HANDLE timer_instance;
+    THANDLE(TIMER_INSTANCE) timer_instance = NULL;
 
     // act
     int result = threadpool_timer_start(NULL, 42, 2000, test_work_function, (void*)0x4243, &timer_instance);
@@ -933,7 +933,7 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_fails)
     PTP_CALLBACK_ENVIRON cbe;
     THANDLE(THREADPOOL) threadpool = test_create_and_open_threadpool(&cbe);
 
-    TIMER_INSTANCE_HANDLE timer_instance;
+    THANDLE(TIMER_INSTANCE) timer_instance = NULL;
 
     // act
     int result = threadpool_timer_start(threadpool, 42, 2000, NULL, (void*)0x4243, &timer_instance);

@@ -56,10 +56,10 @@ stateDiagram-v2
     [*] --> OK_TO_WORK: threadpool_timer_start
     OK_TO_WORK --> TIMER_WORKING : on_timer_callback
     TIMER_WORKING --> OK_TO_WORK : on_timer_callback complete
-    OK_TO_WORK --> TIMER_DELETING : threadpool_timer_destroy 
+    OK_TO_WORK --> TIMER_DELETING : threadpool_timer_destroy
 ```
 
-Even with this guard in place, during `threadpool_timer_delete` there is a small window where an event was triggered just before and a thread is being created. 
+Even with this guard in place, during `threadpool_timer_delete` there is a small window where an event was triggered just before and a thread is being created.
 The guard prevents any work from happening, but the event callback can still be called after the `timer_delete` call. A small wait before the free keeps the timer instance alive long enough for the callback to use it if we hit this window.
 
 ## Exposed API
@@ -85,13 +85,11 @@ MOCKABLE_FUNCTION(, void, threadpool_work_context_destroy, THREADPOOL_WORK_ITEM_
 
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 
-MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, TIMER_INSTANCE_HANDLE*, timer_handle);
+MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, THANDLE(TIMER_INSTANCE)*, timer_handle);
 
-MOCKABLE_FUNCTION(, int, threadpool_timer_restart, TIMER_INSTANCE_HANDLE, timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
+MOCKABLE_FUNCTION(, int, threadpool_timer_restart, THANDLE(TIMER_INSTANCE)*, timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
 
-MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, TIMER_INSTANCE_HANDLE, timer);
-
-MOCKABLE_FUNCTION(, void, threadpool_timer_destroy, TIMER_INSTANCE_HANDLE, timer);
+MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, THANDLE(TIMER_INSTANCE)*, timer);
 ```
 
 ## Static functions
@@ -258,7 +256,7 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpo
 ### threadpool_timer_start
 
 ```C
-MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_ctx, TIMER_INSTANCE_HANDLE*, timer_handle);
+MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_ctx, THANDLE(TIMER_INSTANCE)*, timer_handle);
 ```
 
 `threadpool_timer_start` starts a threadpool timer which runs after `start_delay_ms` milliseconds and then runs again every `timer_period_ms` milliseconds until `threadpool_timer_cancel` or `threadpool_timer_destroy` is called. The `timer_handle` must be stopped before closing/destroying the threadpool.
@@ -271,7 +269,7 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool
 
 **SRS_THREADPOOL_LINUX_07_057: [** `work_function_ctx` shall be allowed to be `NULL`. **]**
 
-**SRS_THREADPOOL_LINUX_07_058: [** `threadpool_timer_start` shall allocate a context for the timer being started and store `work_function` and `work_function_ctx` in it. **]**
+**SRS_THREADPOOL_LINUX_07_058: [** `threadpool_timer_start` shall allocate memory for `THANDLE_MALLOC(TIMER_INSTANCE)` and store `work_function` and `work_function_ctx` in it. **]**
 
 **SRS_THREADPOOL_LINUX_45_011: [** `threadpool_timer_start` shall call `interlocked_exchange` to set the `timer_work_guard` to `OK_TO_WORK`. **]**
 
@@ -288,7 +286,7 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool
 ### threadpool_timer_restart
 
 ```C
-MOCKABLE_FUNCTION(, int, threadpool_timer_restart, TIMER_INSTANCE_HANDLE, timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
+MOCKABLE_FUNCTION(, int, threadpool_timer_restart, THANDLE(TIMER_INSTANCE), timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
 ```
 
 `threadpool_timer_restart` changes the delay and period of an existing timer.
@@ -304,7 +302,7 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_restart, TIMER_INSTANCE_HANDLE, timer,
 ### threadpool_timer_cancel
 
 ```C
-MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, TIMER_INSTANCE_HANDLE, timer);
+MOCKABLE_FUNCTION(, void, THANDLE(TIMER_INSTANCE), TIMER_INSTANCE_HANDLE, timer);
 ```
 
 `threadpool_timer_cancel` shall stops the timer. Afterward, the timer may be resumed with a new time by calling `threadpool_timer_restart` or cleaned up by calling `threadpool_timer_destroy`.
@@ -314,15 +312,13 @@ MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, TIMER_INSTANCE_HANDLE, timer)
 **SRS_THREADPOOL_LINUX_07_069: [** `threadpool_timer_cancel` shall call `timer_settime` with 0 for `flags` and `NULL` for `old_value` and `{0}` for `new_value` to cancel the ongoing timers. **]**
 
 
-### threadpool_timer_destroy
+### threadpool_timer_dispose
 
 ```C
-MOCKABLE_FUNCTION(, void, threadpool_timer_destroy, TIMER_INSTANCE_HANDLE, timer);
+static void threadpool_timer_dispose(TIMER_INSTANCE_HANDLE timer);
 ```
 
 `threadpool_timer_destroy` stops the timer started by `threadpool_timer_start` and cleans up its resources.
-
-**SRS_THREADPOOL_LINUX_07_070: [** If `timer` is `NULL`, `threadpool_timer_destroy` shall fail and return. **]**
 
 **SRS_THREADPOOL_LINUX_45_007: [** Until `timer_work_guard` can be set to `TIMER_DELETING`. **]**
 
@@ -335,8 +331,6 @@ MOCKABLE_FUNCTION(, void, threadpool_timer_destroy, TIMER_INSTANCE_HANDLE, timer
 **SRS_THREADPOOL_LINUX_07_071: [** `threadpool_timer_cancel` shall call `timer_delete` to destroy the ongoing timers. **]**
 
 **SRS_THREADPOOL_LINUX_45_012: [** `threadpool_timer_cancel` shall call `ThreadAPI_Sleep` to allow timer resources to clean up. **]**
-
-**SRS_THREADPOOL_LINUX_07_072: [** `threadpool_timer_destroy` shall free all resources in `timer`. **]**
 
 ### static void on_timer_callback(sigval_t timer_data);
 
@@ -403,9 +397,9 @@ static int threadpool_work_func(void* param);
 - **SRS_THREADPOOL_LINUX_05_042: [** If the `is_pending_work_item_count_ptr_not_null` is `TRUE` then: **]**
 
   - **SRS_THREADPOOL_LINUX_05_043: [** `threadpool_work_func` shall acquire the exclusive `SRW lock` by calling `srw_lock_acquire_exclusive`. **]**
- 
+
   - **SRS_THREADPOOL_LINUX_05_044: [** `threadpool_work_func` shall decrement the `pending_work_item_count_ptr` by calling `interlocked_decrement`. **]**
-    
+
   - **SRS_THREADPOOL_LINUX_05_045: [** `threadpool_work_func` shall send wake up signal to single listener for the address in `pending_work_item_count_ptr`. **]**
 
   - **SRS_THREADPOOL_LINUX_05_046: [** `threadpool_work_func` shall release the shared `SRW lock` by calling `srw_lock_release_exclusive`. **]**
@@ -470,9 +464,9 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), thr
 - **SRS_THREADPOOL_LINUX_05_020: [ Otherwise, `threadpool_schedule_work_item` shall acquire the SRW lock in exclusive mode by calling srw_lock_acquire_exclusive. ]*/
 
 - **SRS_THREADPOOL_LINUX_05_021: [** `threadpool_schedule_work_item` shall increment the `pending_work_item_count` by calling `interlocked_increment` and copy its address to `pending_work_item_count_ptr` into insert position in the task array. **]**
-  
+
 - **SRS_THREADPOOL_LINUX_05_022: [** `threadpool_schedule_work_item` shall copy the `work_function` and `work_function_context` from `threadpool_work_item` into insert position in the task array. **]**
- 
+
 - **SRS_THREADPOOL_LINUX_05_023: [** `threadpool_schedule_work_item` shall set the `task_state` to `TASK_WAITING` and then release the exclusive SRW lock by calling srw_lock_release_exclusive. **]**
 
 - **SRS_THREADPOOL_LINUX_05_024: [** `threadpool_schedule_work_item` shall notify a single thread that is waiting for update of this value by a wake signal. **]**

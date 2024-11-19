@@ -66,6 +66,8 @@ typedef struct TIMER_INSTANCE_TAG
     INTERLOCKED_DEFINE_VOLATILE_STATE_ENUM(TIMER_GUARD, timer_work_guard);
 } TIMER_INSTANCE;
 
+THANDLE_TYPE_DEFINE(TIMER_INSTANCE);
+
 typedef struct THREADPOOL_TASK_TAG
 {
     volatile_atomic int32_t task_state;
@@ -614,7 +616,49 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
     return result;
 }
 
-int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_ctx, TIMER_INSTANCE_HANDLE* timer_handle)
+static void threadpool_timer_dispose(TIMER_INSTANCE_HANDLE timer)
+{
+    while (true)
+    {
+        /* Codes_SRS_THREADPOOL_LINUX_45_008: [ threadpool_timer_destroy shall call InterlockedHL_WaitForNotValue to wait until timer_work_guard is not TIMER_WORKING. ]*/
+        INTERLOCKED_HL_RESULT guard_result = InterlockedHL_WaitForNotValue(&timer->timer_work_guard, TIMER_WORKING, UINT32_MAX);
+        if (guard_result == INTERLOCKED_HL_OK)
+        {
+            /* Codes_SRS_THREADPOOL_LINUX_45_009: [ threadpool_timer_destroy shall call interlocked_add to add 0 to timer_work_guard to get current value of timer_work_guard. ]*/
+            TIMER_GUARD guard_value = interlocked_add(&timer->timer_work_guard, 0);
+            if (guard_value != TIMER_WORKING)
+            {
+                /* Codes_SRS_THREADPOOL_LINUX_45_010: [ threadpool_timer_destroy shall call interlocked_compare_exchange on timer_work_guard with the current value of timer_work_guard as the comparison and TIMER_DELETING as the exchange. ]*/
+                if (interlocked_compare_exchange(&timer->timer_work_guard, TIMER_DELETING, guard_value) == guard_value)
+                {
+                    /* Codes_SRS_THREADPOOL_LINUX_45_007: [ Until timer_work_guard can be set to TIMER_DELETING. ]*/
+                    break;
+                }
+            }
+        }
+    }
+    /* Codes_SRS_THREADPOOL_LINUX_07_071: [ threadpool_timer_cancel shall call timer_delete to destroy the ongoing timers. ]*/
+    if (timer_delete(timer->time_id) != 0)
+    {
+        LogErrorNo("Failure calling timer_delete.");
+    }
+    else
+    {
+        // Do Nothing
+    }
+    // Even though timer_delete does cancel any events, there is a small window where an event was triggered just before and a thread is being created.
+    // So the callback can still execute after the timer_delete call. A small wait here keeps the timer instance alive long enough for
+    // the callback to use it if we hit this window.
+    /* Codes_SRS_THREADPOOL_LINUX_45_012: [ threadpool_timer_cancel shall call ThreadAPI_Sleep to allow timer resources to clean up. ]*/
+    ThreadAPI_Sleep(10);
+    // This doesn't fix the problem, this won't 100% guarantee the thread will be executed before we free the timer data. There are a couple of
+    // options to fix the problem, but the way that fits this threadpool model best would be to keep a pool of timers in the threadpool,
+    // and manage each state as in-use or not. That way the timer data allocation is not dependent on threadpool_timer_start/destroy.
+    // To reproduce this problem, create a large number of threads that delete the timer at the same time it is due to expire and remove the pause
+    // above.
+}
+
+int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_ctx, THANDLE(TIMER_INSTANCE)* timer_handle)
 {
     int result;
 
@@ -633,14 +677,17 @@ int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_
     }
     else
     {
-        /* Codes_SRS_THREADPOOL_LINUX_07_058: [ threadpool_timer_start shall allocate a context for the timer being started and store work_function and work_function_ctx in it. ]*/
-        TIMER_INSTANCE* timer_instance = malloc(sizeof(TIMER_INSTANCE));
-        if (timer_instance == NULL)
+        /* Codes_SRS_THREADPOOL_LINUX_07_058: [ threadpool_timer_start shall allocate memory for THANDLE_MALLOC(TIMER_INSTANCE) and store work_function and work_function_ctx in it. ]*/
+        THANDLE(TIMER_INSTANCE) timer_temp = THANDLE_MALLOC(TIMER_INSTANCE)(threadpool_timer_dispose);
+        if (timer_temp == NULL)
         {
-            LogError("Failure allocating Timer Instance");
+            LogError("failure in THANDLE_MALLOC(TIMER_INSTANCE)(threadpool_timer_dispose=%p)",
+                        threadpool_timer_dispose);
         }
         else
         {
+            TIMER_INSTANCE_HANDLE timer_instance = THANDLE_GET_T(TIMER_INSTANCE)(timer_temp);
+
             timer_instance->work_function = work_function;
             /* Codes_SRS_THREADPOOL_LINUX_07_057: [ work_function_ctx shall be allowed to be NULL. ]*/
             timer_instance->work_function_ctx = work_function_ctx;
@@ -675,7 +722,7 @@ int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_
                     /* Codes_SRS_THREADPOOL_LINUX_07_061: [ threadpool_timer_start shall return and allocated handle in timer_handle. ]*/
                     /* Codes_SRS_THREADPOOL_LINUX_07_062: [ threadpool_timer_start shall succeed and return 0. ]*/
                     timer_instance->time_id = time_id;
-                    *timer_handle = timer_instance;
+                    THANDLE_MOVE(TIMER_INSTANCE)(timer_handle, &timer_temp);
                     result = 0;
                     goto all_ok;
                 }
@@ -685,7 +732,7 @@ int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_
                     LogErrorNo("Failure calling timer_delete.");
                 }
             }
-            free(timer_instance);
+            THANDLE_ASSIGN(TIMER_INSTANCE)(&timer_temp, NULL);
         }
         /* Codes_SRS_THREADPOOL_LINUX_07_060: [ If any error occurs, threadpool_timer_start shall fail and return a non-zero value. ]*/
         result = MU_FAILURE;
@@ -694,7 +741,7 @@ all_ok:
     return result;
 }
 
-int threadpool_timer_restart(TIMER_INSTANCE_HANDLE timer, uint32_t start_delay_ms, uint32_t timer_period_ms)
+int threadpool_timer_restart(THANDLE(TIMER_INSTANCE) timer, uint32_t start_delay_ms, uint32_t timer_period_ms)
 {
     int result;
     if (timer == NULL)
@@ -712,8 +759,10 @@ int threadpool_timer_restart(TIMER_INSTANCE_HANDLE timer, uint32_t start_delay_m
         its.it_interval.tv_sec = timer_period_ms / 1000;
         its.it_interval.tv_nsec = timer_period_ms * MILLISEC_TO_NANOSEC % 1000000000;
 
+        TIMER_INSTANCE_HANDLE timer_content = THANDLE_GET_T(TIMER_INSTANCE)(timer);
+
         /* Codes_SRS_THREADPOOL_LINUX_07_065: [ threadpool_timer_restart shall call timer_settime to change the delay and period. ]*/
-        if (timer_settime(timer->time_id, 0, &its, NULL) != 0)
+        if (timer_settime(timer_content->time_id, 0, &its, NULL) != 0)
         {
             /* Codes_SRS_THREADPOOL_LINUX_07_066: [ If timer_settime fails, threadpool_timer_restart shall fail and return a non-zero value. ]*/
             LogErrorNo("Failure calling timer_settime.");
@@ -728,7 +777,7 @@ int threadpool_timer_restart(TIMER_INSTANCE_HANDLE timer, uint32_t start_delay_m
     return result;
 }
 
-void threadpool_timer_cancel(TIMER_INSTANCE_HANDLE timer)
+void threadpool_timer_cancel(THANDLE(TIMER_INSTANCE) timer)
 {
     if (timer == NULL)
     {
@@ -737,9 +786,11 @@ void threadpool_timer_cancel(TIMER_INSTANCE_HANDLE timer)
     }
     else
     {
+        TIMER_INSTANCE_HANDLE timer_content = THANDLE_GET_T(TIMER_INSTANCE)(timer);
+
         struct itimerspec its = {0};
         /* Codes_SRS_THREADPOOL_LINUX_07_069: [ threadpool_timer_cancel shall call timer_settime with 0 for flags and NULL for old_value and {0} for new_value to cancel the ongoing timers. ]*/
-        if (timer_settime(timer->time_id, 0, &its, NULL) != 0)
+        if (timer_settime(timer_content->time_id, 0, &its, NULL) != 0)
         {
             LogErrorNo("Failure calling timer_settime");
         }
@@ -747,58 +798,6 @@ void threadpool_timer_cancel(TIMER_INSTANCE_HANDLE timer)
         {
             // Do Nothing
         }
-    }
-}
-
-void threadpool_timer_destroy(TIMER_INSTANCE_HANDLE timer)
-{
-    if (timer == NULL)
-    {
-        /* Codes_SRS_THREADPOOL_LINUX_07_070: [ If timer is NULL, threadpool_timer_destroy shall fail and return. ]*/
-        LogError("Invalid args: TIMER_INSTANCE_HANDLE timer = %p", timer);
-    }
-    else
-    {
-        while (true)
-        {
-            /* Codes_SRS_THREADPOOL_LINUX_45_008: [ threadpool_timer_destroy shall call InterlockedHL_WaitForNotValue to wait until timer_work_guard is not TIMER_WORKING. ]*/
-            INTERLOCKED_HL_RESULT guard_result = InterlockedHL_WaitForNotValue(&timer->timer_work_guard, TIMER_WORKING, UINT32_MAX);
-            if (guard_result == INTERLOCKED_HL_OK)
-            {
-                /* Codes_SRS_THREADPOOL_LINUX_45_009: [ threadpool_timer_destroy shall call interlocked_add to add 0 to timer_work_guard to get current value of timer_work_guard. ]*/
-                TIMER_GUARD guard_value = interlocked_add(&timer->timer_work_guard, 0);
-                if (guard_value != TIMER_WORKING)
-                {
-                    /* Codes_SRS_THREADPOOL_LINUX_45_010: [ threadpool_timer_destroy shall call interlocked_compare_exchange on timer_work_guard with the current value of timer_work_guard as the comparison and TIMER_DELETING as the exchange. ]*/
-                    if (interlocked_compare_exchange(&timer->timer_work_guard, TIMER_DELETING, guard_value) == guard_value)
-                    {
-                        /* Codes_SRS_THREADPOOL_LINUX_45_007: [ Until timer_work_guard can be set to TIMER_DELETING. ]*/
-                        break;
-                    }
-                }
-            }
-        }
-        /* Codes_SRS_THREADPOOL_LINUX_07_071: [ threadpool_timer_cancel shall call timer_delete to destroy the ongoing timers. ]*/
-        if (timer_delete(timer->time_id) != 0)
-        {
-            LogErrorNo("Failure calling timer_delete.");
-        }
-        else
-        {
-            // Do Nothing
-        }
-        // Even though timer_delete does cancel any events, there is a small window where an event was triggered just before and a thread is being created.
-        // So the callback can still execute after the timer_delete call. A small wait here keeps the timer instance alive long enough for
-        // the callback to use it if we hit this window.
-        /* Codes_SRS_THREADPOOL_LINUX_45_012: [ threadpool_timer_cancel shall call ThreadAPI_Sleep to allow timer resources to clean up. ]*/
-        ThreadAPI_Sleep(10);
-        // This doesn't fix the problem, this won't 100% guarantee the thread will be executed before we free the timer data. There are a couple of
-        // options to fix the problem, but the way that fits this threadpool model best would be to keep a pool of timers in the threadpool,
-        // and manage each state as in-use or not. That way the timer data allocation is not dependent on threadpool_timer_start/destroy.
-        // To reproduce this problem, create a large number of threads that delete the timer at the same time it is due to expire and remove the pause
-        // above.
-        /* Codes_SRS_THREADPOOL_LINUX_07_072: [ threadpool_timer_destroy shall free all resources in timer. ]*/
-        free(timer);
     }
 }
 

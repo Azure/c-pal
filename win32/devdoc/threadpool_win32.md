@@ -207,7 +207,7 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool
 
 **SRS_THREADPOOL_WIN32_42_004: [** `work_function_context` shall be allowed to be `NULL`. **]**
 
-**SRS_THREADPOOL_WIN32_42_005: [** `threadpool_timer_start` shall allocate memory for THANDLE_MALLOC(TIMER_INSTANCE) and store `work_function` and `work_function_context` in it. **]**
+**SRS_THREADPOOL_WIN32_42_005: [** `threadpool_timer_start` shall allocate memory for `THANDLE_MALLOC(TIMER_INSTANCE)` and store `work_function` and `work_function_context` in it. **]**
 
 **SRS_THREADPOOL_WIN32_42_006: [** `threadpool_timer_start` shall call `CreateThreadpoolTimer` to schedule execution the callback while passing to it the `on_timer_callback` function and the newly created context. **]**
 
@@ -260,7 +260,7 @@ MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, THANDLE(TIMER_INSTANCE), time
 ### threadpool_timer_dispose
 
 ```c
-MOCKABLE_FUNCTION(, void, threadpool_timer_destroy, TIMER_INSTANCE*, timer);
+static void threadpool_timer_dispose(TIMER_INSTANCE* timer);
 ```
 
 `threadpool_timer_dispose` stops the timer when thre reference count of the THANDLE(TIMER_INSTANCE) created by `threadpool_timer_start` reaches 0 and cleans up its resources.
