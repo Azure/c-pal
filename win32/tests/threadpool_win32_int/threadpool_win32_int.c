@@ -837,11 +837,13 @@ static DWORD WINAPI chaos_thread_with_timers_no_lock_func(LPVOID lpThreadParamet
             break;
         case TEST_ACTION_SCHEDULE_WORK_ITEM:
             // perform a schedule work item
-            if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
+            if (InterlockedAdd(&chaos_test_data->can_schedule_works, 0) != 0)
             {
-                (void)InterlockedIncrement64(&chaos_test_data->expected_call_count);
+                if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
+                {
+                    (void)InterlockedIncrement64(&chaos_test_data->expected_call_count);
+                }
             }
-            break;
         }
     }
 
