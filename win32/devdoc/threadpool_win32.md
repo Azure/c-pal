@@ -74,13 +74,11 @@ static void threadpool_dispose(THREADPOOL* threadpool)
 
 `threadpool_dispose` frees all resources associated with threadpool.
 
-**SRS_THREADPOOL_WIN32_01_007: [** `threadpool_dispose` shall perform an implicit close. **]**
+**SRS_THREADPOOL_WIN32_01_030: [** `threadpool_dispose` shall wait for any executing callbacks by calling `CloseThreadpoolCleanupGroupMembers`, passing `FALSE` as `fCancelPendingCallbacks`. **]**
 
-- **SRS_THREADPOOL_WIN32_01_030: [** `threadpool_dispose` shall wait for any executing callbacks by calling `CloseThreadpoolCleanupGroupMembers`, passing `FALSE` as `fCancelPendingCallbacks`. **]**
+**SRS_THREADPOOL_WIN32_01_032: [** `threadpool_dispose` shall close the threadpool cleanup group by calling `CloseThreadpoolCleanupGroup`. **]**
 
-- **SRS_THREADPOOL_WIN32_01_032: [** `threadpool_dispose` shall close the threadpool cleanup group by calling `CloseThreadpoolCleanupGroup`. **]**
-
-- **SRS_THREADPOOL_WIN32_01_033: [** `threadpool_dispose` shall destroy the thread pool environment created in `threadpool_create`. **]**
+**SRS_THREADPOOL_WIN32_01_033: [** `threadpool_dispose` shall destroy the thread pool environment created in `threadpool_create`. **]**
 
 **SRS_THREADPOOL_WIN32_42_028: [** `threadpool_dispose` shall decrement the reference count on the `execution_engine`. **]**
 

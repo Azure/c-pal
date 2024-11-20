@@ -397,7 +397,6 @@ TEST_FUNCTION(threadpool_dispose_frees_resources)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/* Tests_SRS_THREADPOOL_WIN32_01_007: [ threadpool_dispose shall perform an implicit close if threadpool is OPEN. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_01_030: [ threadpool_dispose shall wait for any executing callbacks by calling CloseThreadpoolCleanupGroupMembers, passing FALSE as fCancelPendingCallbacks. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_01_032: [ threadpool_dispose shall close the threadpool cleanup group by calling CloseThreadpoolCleanupGroup. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_01_033: [ threadpool_dispose shall destroy the thread pool environment created in threadpool_create. ]*/

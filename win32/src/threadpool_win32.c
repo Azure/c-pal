@@ -41,7 +41,6 @@ typedef struct THREADPOOL_TAG
     PTP_POOL pool;
     TP_CALLBACK_ENVIRON tp_environment;
     PTP_CLEANUP_GROUP tp_cleanup_group;
-    volatile LONG pending_api_calls;
 } THREADPOOL;
 
 THANDLE_TYPE_DEFINE(THREADPOOL);
@@ -95,18 +94,6 @@ static VOID CALLBACK on_work_callback_v2(PTP_CALLBACK_INSTANCE instance, PVOID c
 
 static void threadpool_dispose(THREADPOOL* threadpool)
 {
-    /* Codes_SRS_THREADPOOL_WIN32_01_007: [ threadpool_dispose shall perform an implicit close if threadpool is OPEN. ]*/
-    do
-    {
-        LONG current_pending_api_calls = InterlockedAdd(&threadpool->pending_api_calls, 0);
-        if (current_pending_api_calls == 0)
-        {
-            break;
-        }
-
-        (void)WaitOnAddress(&threadpool->pending_api_calls, &current_pending_api_calls, sizeof(current_pending_api_calls), INFINITE);
-    } while (1);
-
     /* Codes_SRS_THREADPOOL_WIN32_01_030: [ threadpool_close shall wait for any executing callbacks by calling CloseThreadpoolCleanupGroupMembers, passing FALSE as fCancelPendingCallbacks. ]*/
     CloseThreadpoolCleanupGroupMembers(threadpool->tp_cleanup_group, FALSE, NULL);
 
@@ -169,7 +156,6 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                     /* Codes_SRS_THREADPOOL_WIN32_42_027: [ threadpool_create shall increment the reference count on the execution_engine. ]*/
                     execution_engine_inc_ref(execution_engine);
                     result->execution_engine = execution_engine;
-                    (void)InterlockedExchange(&result->pending_api_calls, 0);
 
                     goto all_ok;
                 }
@@ -235,8 +221,6 @@ THREADPOOL_WORK_ITEM_HANDLE threadpool_create_work_item(THANDLE(THREADPOOL) thre
     {
         THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
 
-        (void)InterlockedIncrement(&threadpool_ptr->pending_api_calls);
-
         /* Codes_SRS_THREADPOOL_WIN32_05_006: [ Otherwise threadpool_create_work_item shall allocate a context work_item_context of type THREADPOOL_WORK_ITEM_HANDLE where work_function, work_function_context, and ptp_work shall be saved. ]*/
         work_item_context = malloc(sizeof(THREADPOOL_WORK_ITEM));
         if (work_item_context == NULL)
@@ -260,9 +244,6 @@ THREADPOOL_WORK_ITEM_HANDLE threadpool_create_work_item(THANDLE(THREADPOOL) thre
                 work_item_context = NULL;
             }
         }
-
-        (void)InterlockedDecrement(&threadpool_ptr->pending_api_calls);
-        WakeByAddressSingle((PVOID)&threadpool_ptr->pending_api_calls);
     }
     return work_item_context;
 }
@@ -282,16 +263,9 @@ int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WOR
     }
     else
     {
-        THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
-
-        (void)InterlockedIncrement(&threadpool_ptr->pending_api_calls);
-
         /* Codes_SRS_THREADPOOL_WIN32_05_013: [ threadpool_schedule_work_item shall call SubmitThreadpoolWork to submit the work item for execution. ]*/
         SubmitThreadpoolWork(work_item_context->ptp_work);
         result = 0;
-
-        (void)InterlockedDecrement(&threadpool_ptr->pending_api_calls);
-        WakeByAddressSingle((PVOID)&threadpool_ptr->pending_api_calls);
     }
     return result;
 }
@@ -309,15 +283,10 @@ void threadpool_destroy_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WOR
     }
     else
     {
-        THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
-
-        (void)InterlockedIncrement(&threadpool_ptr->pending_api_calls);
         /* Codes_SRS_THREADPOOL_WIN32_05_016: [ threadpool_destroy_work_item shall call WaitForThreadpoolWorkCallbacks to wait on all outstanding tasks being scheduled on this ptp_work. ]*/
         WaitForThreadpoolWorkCallbacks(work_item_context->ptp_work, false);
         /* Codes_SRS_THREADPOOL_WIN32_05_017: [ threadpool_destroy_work_item shall call CloseThreadpoolWork to close ptp_work. ]*/
         CloseThreadpoolWork(work_item_context->ptp_work);
-        (void)InterlockedDecrement(&threadpool_ptr->pending_api_calls);
-        WakeByAddressSingle((PVOID)&threadpool_ptr->pending_api_calls);
         /* Codes_SRS_THREADPOOL_WIN32_05_018: [ threadpool_destroy_work_item shall free the work_item_context. ]*/
         free(work_item_context);
     }
@@ -344,7 +313,6 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
     {
         THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
 
-        (void)InterlockedIncrement(&threadpool_ptr->pending_api_calls);
         /* Codes_SRS_THREADPOOL_WIN32_01_023: [ Otherwise threadpool_schedule_work shall allocate a context where work_function and context shall be saved. ]*/
         WORK_ITEM_CONTEXT* work_item_context = malloc(sizeof(WORK_ITEM_CONTEXT));
         if (work_item_context == NULL)
@@ -370,19 +338,12 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
             {
                 /* Codes_SRS_THREADPOOL_WIN32_01_041: [ threadpool_schedule_work shall call SubmitThreadpoolWork to submit the work item for execution. ]*/
                 SubmitThreadpoolWork(ptp_work);
-
-                (void)InterlockedDecrement(&threadpool_ptr->pending_api_calls);
-                WakeByAddressSingle((PVOID)&threadpool_ptr->pending_api_calls);
-
                 result = 0;
-
                 goto all_ok;
             }
 
             free(work_item_context);
         }
-        (void)InterlockedDecrement(&threadpool_ptr->pending_api_calls);
-        WakeByAddressSingle((PVOID)&threadpool_ptr->pending_api_calls);
     }
 
 all_ok:
@@ -445,7 +406,6 @@ int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_
     {
         THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
 
-        (void)InterlockedIncrement(&threadpool_ptr->pending_api_calls);
         /* Codes_SRS_THREADPOOL_WIN32_42_005: [ threadpool_timer_start shall allocate a context for the timer being started and store work_function and work_function_context in it. ]*/
         TIMER_INSTANCE_HANDLE timer_temp = malloc(sizeof(TIMER_INSTANCE));
 
@@ -487,8 +447,6 @@ int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_
                 free(timer_temp);
             }
         }
-        (void)InterlockedDecrement(&threadpool_ptr->pending_api_calls);
-        WakeByAddressSingle((PVOID)&threadpool_ptr->pending_api_calls);
     }
 
     return result;
