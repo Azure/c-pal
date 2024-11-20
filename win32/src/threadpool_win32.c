@@ -94,13 +94,13 @@ static VOID CALLBACK on_work_callback_v2(PTP_CALLBACK_INSTANCE instance, PVOID c
 
 static void threadpool_dispose(THREADPOOL* threadpool)
 {
-    /* Codes_SRS_THREADPOOL_WIN32_01_030: [ threadpool_close shall wait for any executing callbacks by calling CloseThreadpoolCleanupGroupMembers, passing FALSE as fCancelPendingCallbacks. ]*/
+    /* Codes_SRS_THREADPOOL_WIN32_01_030: [ threadpool_dispose shall wait for any executing callbacks by calling CloseThreadpoolCleanupGroupMembers, passing FALSE as fCancelPendingCallbacks. ]*/
     CloseThreadpoolCleanupGroupMembers(threadpool->tp_cleanup_group, FALSE, NULL);
 
-    /* Codes_SRS_THREADPOOL_WIN32_01_032: [ threadpool_close shall close the threadpool cleanup group by calling CloseThreadpoolCleanupGroup. ]*/
+    /* Codes_SRS_THREADPOOL_WIN32_01_032: [ threadpool_dispose shall close the threadpool cleanup group by calling CloseThreadpoolCleanupGroup. ]*/
     CloseThreadpoolCleanupGroup(threadpool->tp_cleanup_group);
 
-    /* Codes_SRS_THREADPOOL_WIN32_01_033: [ threadpool_close shall destroy the thread pool environment created in threadpool_create. ]*/
+    /* Codes_SRS_THREADPOOL_WIN32_01_033: [ threadpool_dispose shall destroy the thread pool environment created in threadpool_create. ]*/
     DestroyThreadpoolEnvironment(&threadpool->tp_environment);
 
     /* Codes_SRS_THREADPOOL_WIN32_42_028: [ threadpool_dispose shall decrement the reference count on the execution_engine. ]*/
