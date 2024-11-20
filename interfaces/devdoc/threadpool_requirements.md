@@ -60,7 +60,7 @@ MOCKABLE_FUNCTION(, THREADPOOL_HANDLE, threadpool_create, EXECUTION_ENGINE_HANDL
 
 **NON_THREADPOOL_01_002: [** If `execution_engine` is `NULL`, `threadpool_create` shall fail and return `NULL`. **]**
 
-**N_O_N_THREADPOOL_01_011: [** `threadpool_create` shall perform any actions needed to open the `threadpool` object. **]**
+**NON_THREADPOOL_01_011: [** `threadpool_create` shall perform any actions needed to open the `threadpool` object. **]**
 
 **NON_THREADPOOL_01_003: [** If any error occurs, `threadpool_create` shall fail and return `NULL`. **]**
 
@@ -74,11 +74,8 @@ MOCKABLE_FUNCTION(, void, threadpool_dispose, THREADPOOL_HANDLE, threadpool);
 
 **NON_THREADPOOL_01_004: [** If `threadpool` is `NULL`, `threadpool_dispose` shall return. **]**
 
-**NON_THREADPOOL_01_005: [** Otherwise, `threadpool_dispose` shall free all resources associated with `threadpool`. **]**
+**NON_THREADPOOL_01_007: [** `threadpool_dispose` shall free all resources associated with `threadpool`. **]**
 
-**N_O_N_THREADPOOL_01_018: [** Then `threadpool_dispose` shall close the `threadpool`. **]**
-
-**NON_THREADPOOL_01_007: [** `threadpool_dispose` shall perform an implicit close if `threadpool` is OPEN. **]**
 
 ### threadpool_open
 
@@ -90,11 +87,7 @@ Note: `threadpool_open` will be deprecated and `threadpool_create` will perform 
 
 **NON_THREADPOOL_01_008: [** If `threadpool` is `NULL`, `threadpool_open` shall fail and return a non-zero value. **]**
 
-**NON_THREADPOOL_01_011: [** `threadpool_open` shall switch the state to OPENING and perform any actions needed to open the `threadpool` object. **]**
-
 **NON_THREADPOOL_01_012: [** On success, `threadpool_open` shall return 0. **]**
-
-**NON_THREADPOOL_01_013: [** If `threadpool` is already OPEN or OPENING, `threadpool_open` shall fail and return a non-zero value. **]**
 
 ### threadpool_close
 
@@ -106,11 +99,6 @@ Note: `threadpool_close` will be deprecated and `threadpool_dispose` will perfor
 
 **NON_THREADPOOL_01_016: [** If `threadpool` is `NULL`, `threadpool_close` shall return. **]**
 
-**NON_THREADPOOL_01_017: [** Otherwise, `threadpool_close` shall switch the state to CLOSING. **]**
-
-**NON_THREADPOOL_01_018: [** Then `threadpool_close` shall close the `threadpool`, leaving it in a state where an `threadpool_open` can be performed. **]**
-
-**NON_THREADPOOL_01_019: [** If `threadpool` is not OPEN, `threadpool_close` shall return. **]**
 
 ### threadpool_create_work_item
 
