@@ -74,8 +74,6 @@ MOCKABLE_FUNCTION(, void, threadpool_dispose, THREADPOOL_HANDLE, threadpool);
 
 **NON_THREADPOOL_01_004: [** If `threadpool` is `NULL`, `threadpool_dispose` shall return. **]**
 
-**NON_THREADPOOL_01_005: [** `threadpool_dispose` shall perform an implicit close. **]**
-
 **NON_THREADPOOL_01_007: [** `threadpool_dispose` shall free all resources associated with `threadpool`. **]**
 
 
