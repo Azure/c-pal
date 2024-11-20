@@ -398,9 +398,9 @@ TEST_FUNCTION(threadpool_dispose_frees_resources)
 }
 
 /* Tests_SRS_THREADPOOL_WIN32_01_007: [ threadpool_dispose shall perform an implicit close if threadpool is OPEN. ]*/
-/* Tests_SRS_THREADPOOL_WIN32_01_030: [ threadpool_close shall wait for any executing callbacks by calling CloseThreadpoolCleanupGroupMembers, passing FALSE as fCancelPendingCallbacks. ]*/
-/* Tests_SRS_THREADPOOL_WIN32_01_032: [ threadpool_close shall close the threadpool cleanup group by calling CloseThreadpoolCleanupGroup. ]*/
-/* Tests_SRS_THREADPOOL_WIN32_01_033: [ threadpool_close shall destroy the thread pool environment created in threadpool_create. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_01_030: [ threadpool_dispose shall wait for any executing callbacks by calling CloseThreadpoolCleanupGroupMembers, passing FALSE as fCancelPendingCallbacks. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_01_032: [ threadpool_dispose shall close the threadpool cleanup group by calling CloseThreadpoolCleanupGroup. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_01_033: [ threadpool_dispose shall destroy the thread pool environment created in threadpool_create. ]*/
 TEST_FUNCTION(threadpool_dispose_performs_an_implicit_close)
 {
     // arrange
@@ -422,13 +422,11 @@ TEST_FUNCTION(threadpool_dispose_performs_an_implicit_close)
     ASSERT_IS_NOT_NULL(threadpool);
     umock_c_reset_all_calls();
 
-    // close
+    // destroy calls
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_CloseThreadpoolCleanupGroupMembers(test_cleanup_group, FALSE, NULL));
     STRICT_EXPECTED_CALL(mocked_CloseThreadpoolCleanupGroup(test_cleanup_group));
     STRICT_EXPECTED_CALL(mocked_DestroyThreadpoolEnvironment(cbe));
-
-    // destroy calls
     STRICT_EXPECTED_CALL(execution_engine_dec_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 

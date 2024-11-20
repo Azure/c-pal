@@ -38,12 +38,12 @@ typedef struct WAIT_WORK_CONTEXT_TAG
     HANDLE wait_event;
 } WAIT_WORK_CONTEXT;
 
-#define WAIT_WORK_FUNCTION_SLEEP_IN_MS 3000
+#define WAIT_WORK_FUNCTION_SLEEP_IN_MS 300
 
 static void wait_work_function(void* context)
 {
     WAIT_WORK_CONTEXT* wait_work_context = (WAIT_WORK_CONTEXT*)context;
-    ASSERT_IS_TRUE(WaitForSingleObject(wait_work_context->wait_event, 2000) == WAIT_TIMEOUT);
+    ASSERT_IS_TRUE(WaitForSingleObject(wait_work_context->wait_event, UINT_MAX) == WAIT_OBJECT_0);
     (void)InterlockedIncrement(&wait_work_context->call_count);
     WakeByAddressSingle((PVOID)&wait_work_context->call_count);
 }
@@ -81,6 +81,8 @@ MU_DEFINE_ENUM_STRINGS(TEST_ACTION, TEST_ACTION_VALUES)
 
 MU_DEFINE_ENUM(TIMER_STATE, TIMER_STATE_VALUES)
 MU_DEFINE_ENUM_STRINGS(TIMER_STATE, TIMER_STATE_VALUES)
+
+TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
 
 static void wait_for_greater_or_equal(volatile LONG* value, LONG expected, DWORD timeout)
 {
@@ -462,14 +464,14 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
 
     Sleep(WAIT_WORK_FUNCTION_SLEEP_IN_MS);
 
+    // set the event, that would send a WAIT_OBJECT_0 signal to wait_work_function after waiting for WAIT_WORK_FUNCTION_SLEEP_IN_MS time
+    SetEvent(wait_work_context.wait_event);
+
     // call stop
     LogInfo("Timer should be running and waiting, now stop timer");
     threadpool_timer_destroy(timer);
 
     LogInfo("Timer stopped");
-
-    // set the event, that would trigger a WAIT_OBJECT_0 if stop would not wait for all items
-    SetEvent(wait_work_context.wait_event);
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
@@ -503,14 +505,16 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
 
     Sleep(WAIT_WORK_FUNCTION_SLEEP_IN_MS);
 
+    // set the event, that would send a WAIT_OBJECT_0 signal to wait_work_function after waiting for WAIT_WORK_FUNCTION_SLEEP_IN_MS time
+    SetEvent(wait_work_context.wait_event);
+
     // call cancel
     LogInfo("Timer should be running and waiting, now cancel timer");
     threadpool_timer_cancel(timer);
 
     LogInfo("Timer canceled");
 
-    // set the event, that would trigger a WAIT_OBJECT_0 if stop would not wait for all items
-    SetEvent(wait_work_context.wait_event);
+
 
     // cleanup
     threadpool_timer_destroy(timer);
@@ -626,10 +630,8 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items)
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, work_function, (void*)&wait_work_context.call_count));
 
     Sleep(WAIT_WORK_FUNCTION_SLEEP_IN_MS);
-    // call close
-    LogInfo("Closing threadpool");
 
-    // set the event, that would trigger a WAIT_OBJECT_0 if close would not wait for all items
+    // set the event, that would send a WAIT_OBJECT_0 signal to wait_work_function after waiting for WAIT_WORK_FUNCTION_SLEEP_IN_MS time
     SetEvent(wait_work_context.wait_event);
 
     // assert
@@ -837,13 +839,16 @@ static DWORD WINAPI chaos_thread_with_timers_no_lock_func(LPVOID lpThreadParamet
             break;
         case TEST_ACTION_SCHEDULE_WORK_ITEM:
             // perform a schedule work item
-            if (InterlockedAdd(&chaos_test_data->can_schedule_works, 0) != 0)
             {
-                if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
+                if (InterlockedAdd(&chaos_test_data->can_schedule_works, 0) != 0)
                 {
-                    (void)InterlockedIncrement64(&chaos_test_data->expected_call_count);
+                    if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
+                    {
+                        (void)InterlockedIncrement64(&chaos_test_data->expected_call_count);
+                    }
                 }
             }
+            break;
         }
     }
 
@@ -895,8 +900,7 @@ TEST_FUNCTION(chaos_knight_test)
     }
 
     // assert that all scheduled items were executed
-
-    InterlockedHL_WaitForValue64(&chaos_test_data.executed_work_functions, chaos_test_data.expected_call_count, UINT32_MAX);
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&chaos_test_data.executed_work_functions, chaos_test_data.expected_call_count, UINT32_MAX));
 
     LogInfo("Chaos test executed %" PRIu64 " work items",
         InterlockedAdd64(&chaos_test_data.executed_work_functions, 0));
@@ -964,7 +968,7 @@ TEST_FUNCTION(chaos_knight_test_with_timers_no_lock)
     }
 
     // assert that all scheduled items were executed
-    InterlockedHL_WaitForValue64(&chaos_test_data.executed_work_functions, chaos_test_data.expected_call_count, UINT32_MAX);
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&chaos_test_data.executed_work_functions, chaos_test_data.expected_call_count, UINT32_MAX));
 
     LogInfo("Chaos test executed %" PRIu64 " work items, %" PRIu64 " timers",
         InterlockedAdd64(&chaos_test_data.executed_work_functions, 0), InterlockedAdd64(&chaos_test_data.executed_timer_functions, 0));
@@ -1109,10 +1113,8 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items_v2)
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(threadpool, work_item_context));
 
     Sleep(WAIT_WORK_FUNCTION_SLEEP_IN_MS);
-    // call close
-    LogInfo("Closing threadpool");
 
-    // set the event, that would trigger a WAIT_OBJECT_0 if close would not wait for all items
+    // set the event, that would send a WAIT_OBJECT_0 signal to wait_work_function after waiting for WAIT_WORK_FUNCTION_SLEEP_IN_MS time
     SetEvent(wait_work_context.wait_event);
 
     // assert
