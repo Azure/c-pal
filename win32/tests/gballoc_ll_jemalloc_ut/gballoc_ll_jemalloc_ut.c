@@ -1075,7 +1075,7 @@ TEST_FUNCTION(gballoc_ll_set_option_for_dirty_decay_succeeds_when_je_mallctl_ret
     ///clean
 }
 
-/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_020: [ If je_mallctl returns EFAULT, gballoc_ll_set_option shall continue without failing as this error is expected when the arena is deleted or is a huge arena. ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_021: [ If je_mallctl returns EFAULT, gballoc_ll_set_option shall continue without failing as this error is expected when the arena is deleted or is a huge arena. ]*/
 TEST_FUNCTION(gballoc_ll_set_option_for_muzzy_decay_succeeds_when_je_mallctl_returns_EFAULT)
 {
     ///arrange
