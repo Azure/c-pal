@@ -560,8 +560,6 @@ TEST_FUNCTION(gballoc_ll_print_stats_returns)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-// int gballoc_ll_set_option(char* option_name, void* option_value)
-
 /* Tests_SRS_GBALLOC_LL_PASSTHROUGH_28_001: [ gballoc_ll_set_option shall do nothing and return 0. ]*/
 TEST_FUNCTION(gballoc_ll_set_option_returns_zero)
 {
