@@ -26,7 +26,7 @@ typedef struct PRINT_FUNCTION_CB_DATA_TAG
 static size_t g_call_print_cb_count = 0;
 static PRINT_FUNCTION_CB_DATA g_call_print_cb[MAX_PRINT_FUNCTION_CB];
 
-#define NUM_ARENAS 2
+#define NUM_ARENAS 3
 
 #define ENABLE_MOCKS
 #include "umock_c/umock_c_prod.h"
@@ -737,10 +737,9 @@ static void setup_decay_success_expectations(char** first_command, char** second
 
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_28_003: [ If option_name has value as dirty_decay: ]*/
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_28_004: [ gballoc_ll_set_option shall fetch the decay_milliseconds value by casting option_value to int64_t. ]*/
-/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_005: [ gballoc_ll_set_option shall retrieve the old value of dirty decay by calling je_mallctl with arenas.dirty_decay_ms as the command. ]*/
-/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_006: [ gballoc_ll_set_option shall set the dirty decay time for new arenas to decay_milliseconds milliseconds by calling je_mallctl with arenas.dirty_decay_ms as the command. ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_005: [ gballoc_ll_set_option shall retrieve the old dirty decay value and set the new dirty decay value to decay_milliseconds for new arenas by calling je_mallctl with arenas.dirty_decay_ms as the command. ]*/
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_28_007: [ gballoc_ll_set_option shall fetch the number of existing jemalloc arenas by calling je_mallctl with arenas.narenas as the command. ]*/
-/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_008: [ For each existing arena ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_008: [ For each existing arena except last (since it is reserved for huge arena) ]*/
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_28_009: [ gballoc_ll_set_option shall set the dirty decay time for the arena to decay_milliseconds milliseconds by calling je_mallctl with arena.<i>.dirty_decay_ms as the command. ]*/
 TEST_FUNCTION(gballoc_ll_set_option_with_dirty_decay_succeeds)
 {
@@ -771,10 +770,9 @@ TEST_FUNCTION(gballoc_ll_set_option_with_dirty_decay_succeeds)
 
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_28_010: [ Else if option_name has value as muzzy_decay: ]*/
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_28_011: [ gballoc_ll_set_option shall fetch the decay_milliseconds value by casting option_value to int64_t. ]*/
-/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_012: [ gballoc_ll_set_option shall retrieve the old value of muzzy decay by calling je_mallctl with arenas.muzzy_decay_ms as the command. ]*/
-/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_013: [ gballoc_ll_set_option shall set the muzzy decay time for new arenas to decay_milliseconds milliseconds by calling je_mallctl with arenas.muzzy_decay_ms as the command. ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_012: [ gballoc_ll_set_option shall retrieve the old muzzy decay value and set the new muzzy decay value to decay_milliseconds for new arenas by calling je_mallctl with arenas.muzzy_decay_ms as the command. ]*/
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_28_014: [ gballoc_ll_set_option shall fetch the number of existing jemalloc arenas by calling je_mallctl with arenas.narenas as the command. ]*/
-/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_015: [ For each existing arena ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_015: [ For each existing arena except last (since it is reserved for huge arena) ]*/
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_28_016: [ gballoc_ll_set_option shall set the muzzy decay time for the arena to decay_milliseconds milliseconds by calling je_mallctl with arena.<i>.muzzy_decay_ms as the command. ]*/
 TEST_FUNCTION(gballoc_ll_set_option_with_muzzy_decay_succeeds)
 {

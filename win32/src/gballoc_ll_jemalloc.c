@@ -240,8 +240,7 @@ static int gballoc_ll_set_dirty_decay(int64_t decay_milliseconds)
         size_t old_decay_milliseconds_size = sizeof(old_decay_milliseconds);
         MU_STATIC_ASSERT(sizeof(int64_t) == sizeof(ssize_t));
 
-        /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_005: [ gballoc_ll_set_option shall retrieve the old value of dirty decay by calling je_mallctl with arenas.dirty_decay_ms as the command. ]*/
-        /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_006: [ gballoc_ll_set_option shall set the dirty decay time for new arenas to decay_milliseconds milliseconds by calling je_mallctl with arenas.dirty_decay_ms as the command. ]*/
+        /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_005: [ gballoc_ll_set_option shall retrieve the old dirty decay value and set the new dirty decay value to decay_milliseconds for new arenas by calling je_mallctl with arenas.dirty_decay_ms as the command. ]*/
         if (je_mallctl("arenas.dirty_decay_ms", &old_decay_milliseconds, &old_decay_milliseconds_size, &decay_milliseconds, sizeof(decay_milliseconds)) != 0)
         {
             /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_018: [ If there are any errors, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
@@ -266,8 +265,8 @@ static int gballoc_ll_set_dirty_decay(int64_t decay_milliseconds)
                 char command[64];
                 uint32_t i;
 
-                /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_008: [ For each existing arena ]*/
-                for (i = 0; i < narenas; i++)
+                /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_008: [ For each existing arena except last (since it is reserved for huge arena) ]*/
+                for (i = 0; i < (narenas - 1); i++)
                 {
                     int snprintf_result = snprintf(command, sizeof(command), "arena.%" PRIu32 ".dirty_decay_ms", i);
 
@@ -300,7 +299,7 @@ static int gballoc_ll_set_dirty_decay(int64_t decay_milliseconds)
                     }
                 }
 
-                if (i < narenas)
+                if (i < (narenas - 1))
                 {
                     for (uint32_t j = 0; j < i; j++)
                     {
@@ -340,8 +339,7 @@ static int gballoc_ll_set_muzzy_decay(int64_t decay_milliseconds)
         size_t old_decay_milliseconds_size = sizeof(old_decay_milliseconds);
         MU_STATIC_ASSERT(sizeof(int64_t) == sizeof(ssize_t));
 
-        /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_012: [ gballoc_ll_set_option shall retrieve the old value of muzzy decay by calling je_mallctl with arenas.muzzy_decay_ms as the command. ]*/
-        /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_013: [ gballoc_ll_set_option shall set the muzzy decay time for new arenas to decay_milliseconds milliseconds by calling je_mallctl with arenas.muzzy_decay_ms as the command. ]*/
+        /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_012: [ gballoc_ll_set_option shall retrieve the old muzzy decay value and set the new muzzy decay value to decay_milliseconds for new arenas by calling je_mallctl with arenas.muzzy_decay_ms as the command. ]*/
         if (je_mallctl("arenas.muzzy_decay_ms", &old_decay_milliseconds, &old_decay_milliseconds_size, &decay_milliseconds, sizeof(decay_milliseconds)) != 0)
         {
             /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_018: [ If there are any errors, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
@@ -367,8 +365,8 @@ static int gballoc_ll_set_muzzy_decay(int64_t decay_milliseconds)
                 char command[64];
                 uint32_t i;
 
-                /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_015: [ For each existing arena ]*/
-                for (i = 0; i < narenas; i++)
+                /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_015: [ For each existing arena except last (since it is reserved for huge arena) ]*/
+                for (i = 0; i < (narenas - 1); i++)
                 {
                     int snprintf_result = snprintf(command, sizeof(command), "arena.%" PRIu32 ".muzzy_decay_ms", i);
 
@@ -401,7 +399,7 @@ static int gballoc_ll_set_muzzy_decay(int64_t decay_milliseconds)
                     }
                 }
 
-                if (i < narenas)
+                if (i < (narenas - 1))
                 {
                     for (uint32_t j = 0; j < i; j++)
                     {
