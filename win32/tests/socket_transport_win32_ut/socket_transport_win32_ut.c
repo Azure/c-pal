@@ -120,6 +120,13 @@ static int my_shutdown(SOCKET s, int how)
     return 0;
 }
 
+static int my_gethostname(char* name, int namelen)
+{
+    (void)namelen;
+    strcpy(name, TEST_INCOMING_HOSTNAME);
+    return 0;
+}
+
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
@@ -132,7 +139,9 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_SM_GLOBAL_MOCK_HOOK();
 
     REGISTER_GLOBAL_MOCK_HOOK(malloc, real_gballoc_ll_malloc);
+    REGISTER_GLOBAL_MOCK_HOOK(malloc_2, real_gballoc_ll_malloc_2);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(malloc, NULL);
+    REGISTER_GLOBAL_MOCK_FAIL_RETURN(malloc_2, NULL);
     REGISTER_GLOBAL_MOCK_HOOK(free, real_gballoc_ll_free);
 
     REGISTER_UMOCK_ALIAS_TYPE(WORD, uint16_t);
@@ -159,6 +168,10 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(shutdown, 1);
 
     REGISTER_GLOBAL_MOCK_HOOK(inet_ntop, my_inet_ntop);
+    REGISTER_GLOBAL_MOCK_FAIL_RETURN(inet_ntop, NULL);
+    REGISTER_GLOBAL_MOCK_HOOK(gethostname, my_gethostname);
+    REGISTER_GLOBAL_MOCK_FAIL_RETURN(gethostname, SOCKET_ERROR);
+    REGISTER_GLOBAL_MOCK_FAIL_RETURN(gethostbyname, NULL);
 
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(select, SOCKET_ERROR);
     REGISTER_GLOBAL_MOCK_RETURNS(WSAGetLastError, WSAEALREADY, WSAEFAULT);
