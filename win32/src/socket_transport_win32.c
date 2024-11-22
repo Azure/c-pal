@@ -926,11 +926,11 @@ int socket_transport_get_local_address(SOCKET_TRANSPORT_HANDLE socket_transport,
 
                             // Allocate the array
                             // Codes_SOCKET_TRANSPORT_WIN32_11_007: [ socket_transport_get_local_address shall allocate the LOCAL_ADDRESS array. ]
-                            LOCAL_ADDRESS* temp_list = malloc_2(sizeof(LOCAL_ADDRESS), total_count);
+                            LOCAL_ADDRESS* temp_list = malloc_2(total_count, sizeof(LOCAL_ADDRESS));
                             if (temp_list == NULL)
                             {
                                 // Codes_SOCKET_TRANSPORT_WIN32_11_011: [ If any failure is encountered, socket_transport_get_local_address shall fail and return a non-zero value. ]
-                                LogError("failure in malloc_2(total_count: %" PRIu32 ", MAX_LOCAL_ADDRESS_LEN: %d)", total_count, MAX_LOCAL_ADDRESS_LEN);
+                                LogError("failure in malloc_2(total_count: %" PRIu32 ", sizeof(LOCAL_ADDRESS): %zu)", total_count, sizeof(LOCAL_ADDRESS));
                                 result = MU_FAILURE;
                             }
                             else

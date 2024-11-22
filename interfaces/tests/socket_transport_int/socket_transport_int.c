@@ -12,6 +12,9 @@
 
 #include "c_logging/logger.h"  // IWYU pragma: keep
 
+#include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"
+
 #include "c_pal/platform.h" // IWYU pragma: keep
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/socket_transport.h"
