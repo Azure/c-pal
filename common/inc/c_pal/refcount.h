@@ -59,34 +59,37 @@ MU_C2(REFCOUNT_, type)
 /* Codes_SRS_REFCOUNT_01_005: [ REFCOUNT_TYPE_CREATE_WITH_EXTRA_SIZE shall allocate memory for the type that is ref counted (type) plus extra memory enough to hold size bytes. ]*/
 /* Codes_SRS_REFCOUNT_01_006: [ On success it shall return a non-NULL handle to the allocated ref counted type type. ]*/
 /* Codes_SRS_REFCOUNT_01_007: [ If any error occurs, REFCOUNT_TYPE_CREATE_WITH_EXTRA_SIZE shall return NULL. ]*/
-#define DEFINE_CREATE_WITH_EXTRA_SIZE(type, malloc_func) /*going to be deprecated because Reason(1):it does malloc size verifications which could be done malloc_2/flex. Reason (2): in all the use cases this macro is called with size = number * sizeof(something). That multiplications in the calling code is rarely verified (if at all)... */\
-static type* REFCOUNT_TYPE_DECLARE_CREATE_WITH_EXTRA_SIZE(type)(size_t size) \
-{ \
-    type* result; \
-    /* Codes_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func, malloc_flex and free_func for memory allocation and free. ]*/ \
-    if(SIZE_MAX - sizeof(REFCOUNT_TYPE(type)) < size )  \
-    { \
-        /*Codes_SRS_REFCOUNT_01_004: [ If any error occurs, REFCOUNT_TYPE_CREATE shall return NULL. ]*/ \
-        LogError("overflow in computation: sizeof(REFCOUNT_TYPE(type))=%zu + size=%zu", sizeof(REFCOUNT_TYPE(type)), size); \
-        result = NULL; \
-    } \
-    else \
-    { \
-        REFCOUNT_TYPE(type)* ref_counted = (REFCOUNT_TYPE(type)*)malloc_func(sizeof(REFCOUNT_TYPE(type)) + size); \
-        if (ref_counted == NULL) \
-        { \
-            result = NULL; \
-        } \
-        else \
-        { \
-            result = &ref_counted->counted; \
-            INIT_REF(type, result); \
-        } \
-    } \
-    return result; \
-} \
+#define DEFINE_CREATE_WITH_EXTRA_SIZE(type, malloc_func) /*going to be deprecated because Reason(1):it does malloc size verifications which could be done malloc_2/flex. Reason (2): in all the use cases this macro is called with size = number * sizeof(something). That multiplications in the calling code is rarely verified (if at all)... */                    \
+MU_SUPPRESS_WARNING(4505) /*warning C4505: 'type_Create_With_Extra_Size': unreferenced function with internal linkage has been removed*/                                                                \
+static type* REFCOUNT_TYPE_DECLARE_CREATE_WITH_EXTRA_SIZE(type)(size_t size)                                                                                                                            \
+{                                                                                                                                                                                                       \
+    type* result;                                                                                                                                                                                       \
+    /* Codes_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func, malloc_flex and free_func for memory allocation and free. ]*/   \
+    if(SIZE_MAX - sizeof(REFCOUNT_TYPE(type)) < size )                                                                                                                                                  \
+    {                                                                                                                                                                                                   \
+        /*Codes_SRS_REFCOUNT_01_004: [ If any error occurs, REFCOUNT_TYPE_CREATE shall return NULL. ]*/                                                                                                 \
+        LogError("overflow in computation: sizeof(REFCOUNT_TYPE(type))=%zu + size=%zu", sizeof(REFCOUNT_TYPE(type)), size);                                                                             \
+        result = NULL;                                                                                                                                                                                  \
+    }                                                                                                                                                                                                   \
+    else                                                                                                                                                                                                \
+    {                                                                                                                                                                                                   \
+        REFCOUNT_TYPE(type)* ref_counted = (REFCOUNT_TYPE(type)*)malloc_func(sizeof(REFCOUNT_TYPE(type)) + size);                                                                                       \
+        if (ref_counted == NULL)                                                                                                                                                                        \
+        {                                                                                                                                                                                               \
+            result = NULL;                                                                                                                                                                              \
+        }                                                                                                                                                                                               \
+        else                                                                                                                                                                                            \
+        {                                                                                                                                                                                               \
+            result = &ref_counted->counted;                                                                                                                                                             \
+            INIT_REF(type, result);                                                                                                                                                                     \
+        }                                                                                                                                                                                               \
+    }                                                                                                                                                                                                   \
+    return result;                                                                                                                                                                                      \
+}                                                                                                                                                                                                       \
+MU_UNSUPPRESS_WARNING(4505)                                                                                                                                                                             \
 
 #define DEFINE_CREATE_FLEX(type, malloc_flex_func)                                                                                                                                  \
+MU_SUPPRESS_WARNING(4505) /*warning C4505: 'type_Create_Flex': unreferenced function with internal linkage has been removed*/                                                       \
 static type* REFCOUNT_TYPE_DECLARE_CREATE_FLEX(type)(size_t nmemb, size_t size)                                                                                                     \
 {                                                                                                                                                                                   \
     type* result;                                                                                                                                                                   \
@@ -105,37 +108,42 @@ static type* REFCOUNT_TYPE_DECLARE_CREATE_FLEX(type)(size_t nmemb, size_t size) 
     }                                                                                                                                                                               \
     return result;                                                                                                                                                                  \
 }                                                                                                                                                                                   \
+MU_UNSUPPRESS_WARNING(4505)                                                                                                                                                         \
 
 /* Codes_SRS_REFCOUNT_01_002: [ REFCOUNT_TYPE_CREATE shall allocate memory for the type that is ref counted. ]*/
 /* Codes_SRS_REFCOUNT_01_003: [ On success it shall return a non-NULL handle to the allocated ref counted type type. ]*/
 /* Codes_SRS_REFCOUNT_01_004: [ If any error occurs, REFCOUNT_TYPE_CREATE shall return NULL. ]*/
-#define DEFINE_CREATE(type, malloc_func) \
-static type* REFCOUNT_TYPE_DECLARE_CREATE(type) (void) \
-{ \
-    return REFCOUNT_TYPE_DECLARE_CREATE_FLEX(type)(0, 0); \
-} \
+#define DEFINE_CREATE(type, malloc_func)                                                                                                                        \
+MU_SUPPRESS_WARNING(4505) /*warning C4505: 'type_Create': unreferenced function with internal linkage has been removed*/                                        \
+static type* REFCOUNT_TYPE_DECLARE_CREATE(type) (void)                                                                                                          \
+{                                                                                                                                                               \
+    return REFCOUNT_TYPE_DECLARE_CREATE_FLEX(type)(0, 0);                                                                                                       \
+}                                                                                                                                                               \
+MU_UNSUPPRESS_WARNING(4505)                                                                                                                                     \
 
 /* Codes_SRS_REFCOUNT_01_008: [ REFCOUNT_TYPE_DESTROY shall free the memory allocated by REFCOUNT_TYPE_CREATE or REFCOUNT_TYPE_CREATE_WITH_EXTRA_SIZE. ]*/
 /* Codes_SRS_REFCOUNT_01_009: [ If counted_type is NULL, REFCOUNT_TYPE_DESTROY shall return. ]*/
-#define DEFINE_DESTROY(type, free_func) \
-static void REFCOUNT_TYPE_DECLARE_DESTROY(type)(type* counted_type) \
-{ \
-    void* ref_counted = (void*)((unsigned char*)counted_type - offsetof(REFCOUNT_TYPE(type), counted)); \
-    /* Codes_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func, malloc_flex and free_func for memory allocation and free. ]*/ \
-    free_func(ref_counted); \
-}
+#define DEFINE_DESTROY(type, free_func)                                                                                                                                                                 \
+MU_SUPPRESS_WARNING(4505) /*warning C4505: 'type_Destroy': unreferenced function with internal linkage has been removed*/                                                                               \
+static void REFCOUNT_TYPE_DECLARE_DESTROY(type)(type* counted_type)                                                                                                                                     \
+{                                                                                                                                                                                                       \
+    void* ref_counted = (void*)((unsigned char*)counted_type - offsetof(REFCOUNT_TYPE(type), counted));                                                                                                 \
+    /* Codes_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func, malloc_flex and free_func for memory allocation and free. ]*/   \
+    free_func(ref_counted);                                                                                                                                                                             \
+}                                                                                                                                                                                                       \
+MU_UNSUPPRESS_WARNING(4505)                                                                                                                                                                             \
 
 /* Codes_SRS_REFCOUNT_01_011: [ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC shall behave like DEFINE_REFCOUNT_TYPE, but use malloc_func, malloc_flex and free_func for memory allocation and free. ]*/ \
-#define DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC(type, malloc_func, malloc_flex_func, free_func) \
-REFCOUNT_TYPE(type) \
-{ \
-    volatile_atomic int32_t count; \
-    type counted; \
-}; \
-DEFINE_CREATE_WITH_EXTRA_SIZE(type, malloc_func) \
-DEFINE_CREATE_FLEX(type, malloc_flex_func) \
-DEFINE_CREATE(type, malloc_func) \
-DEFINE_DESTROY(type, free_func) \
+#define DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC(type, malloc_func, malloc_flex_func, free_func)  \
+REFCOUNT_TYPE(type)                                                                             \
+{                                                                                               \
+    volatile_atomic int32_t count;                                                              \
+    type counted;                                                                               \
+};                                                                                              \
+DEFINE_CREATE_WITH_EXTRA_SIZE(type, malloc_func)                                                \
+DEFINE_CREATE_FLEX(type, malloc_flex_func)                                                      \
+DEFINE_CREATE(type, malloc_func)                                                                \
+DEFINE_DESTROY(type, free_func)                                                                 \
 
 /* Codes_SRS_REFCOUNT_01_001: [ DEFINE_REFCOUNT_TYPE shall define the Create/Create_With_Extra_size/Create_Flex/Destroy functions for the type type. ]*/
 #define DEFINE_REFCOUNT_TYPE(type) \
