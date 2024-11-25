@@ -2088,7 +2088,7 @@ TEST_FUNCTION(socket_transport_get_local_address_handle_NULL_fail)
 
     // Cleanup
 }
-#if 0
+
 // Tests_SOCKET_TRANSPORT_WIN32_11_002: [ If hostname is NULL, socket_transport_get_local_address shall fail and return a non-zero value. ]
 TEST_FUNCTION(socket_transport_get_local_address_hostname_NULL_fail)
 {
@@ -2308,5 +2308,5 @@ TEST_FUNCTION(socket_transport_get_local_address_fail)
     socket_transport_disconnect(socket_handle);
     socket_transport_destroy(socket_handle);
 }
-#endif
+
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
