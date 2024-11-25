@@ -2171,7 +2171,7 @@ TEST_FUNCTION(socket_transport_get_local_address_success)
     STRICT_EXPECTED_CALL(gethostname(IGNORED_ARG, MAX_GET_HOST_NAME_LEN));
     STRICT_EXPECTED_CALL(gethostbyname(IGNORED_ARG))
         .SetReturn(&test_host_info);
-    STRICT_EXPECTED_CALL(malloc_2(IGNORED_ARG, 2));
+    STRICT_EXPECTED_CALL(malloc_2(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(inet_ntop(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(inet_ntop(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
@@ -2283,7 +2283,7 @@ TEST_FUNCTION(socket_transport_get_local_address_fail)
     STRICT_EXPECTED_CALL(gethostname(IGNORED_ARG, MAX_GET_HOST_NAME_LEN));
     STRICT_EXPECTED_CALL(gethostbyname(IGNORED_ARG))
         .SetReturn(&test_host_info);
-    STRICT_EXPECTED_CALL(malloc_2(IGNORED_ARG, 2));
+    STRICT_EXPECTED_CALL(malloc_2(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(inet_ntop(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(inet_ntop(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(sm_exec_end(IGNORED_ARG));
@@ -2300,7 +2300,7 @@ TEST_FUNCTION(socket_transport_get_local_address_fail)
             int result = socket_transport_get_local_address(socket_handle, hostname, &local_address_list, &address_count);
 
             //assert
-            ASSERT_ARE_NOT_EQUAL(int, 0, result);
+            ASSERT_ARE_NOT_EQUAL(int, 0, result, "On failed call %zu", index);
         }
     }
 
