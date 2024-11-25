@@ -363,7 +363,7 @@ MOCKABLE_FUNCTION(, int, socket_transport_get_local_address, SOCKET_TRANSPORT_HA
 
 **SOCKET_TRANSPORT_LINUX_11_101: [** `socket_transport_get_local_address` shall call `sm_exec_begin`. **]**
 
-**SOCKET_TRANSPORT_LINUX_11_102: [** `socket_transport_get_local_address` shall call get the `hostname` by calling `gethostname`. **]**
+**SOCKET_TRANSPORT_LINUX_11_102: [** `socket_transport_get_local_address` shall get the `hostname` by calling `gethostname`. **]**
 
 **SOCKET_TRANSPORT_LINUX_11_103: [** If `local_address_list` is not `NULL`, `socket_transport_get_local_address` shall call `getifaddrs` to get the link list of ifaddrs. **]**
 

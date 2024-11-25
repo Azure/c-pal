@@ -1793,7 +1793,7 @@ TEST_FUNCTION(socket_transport_get_local_address_address_count_NULL_fail)
 }
 
 // Tests_SOCKET_TRANSPORT_LINUX_11_101: [ socket_transport_get_local_address shall call sm_exec_begin. ]
-// Tests_SOCKET_TRANSPORT_LINUX_11_102: [ socket_transport_get_local_address shall call get the hostname by calling gethostname. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_102: [ socket_transport_get_local_address shall get the hostname by calling gethostname. ]
 // Tests_SOCKET_TRANSPORT_LINUX_11_103: [ If local_address_list is not NULL, socket_transport_get_local_address shall call getifaddrs to get the link list of ifaddrs. ]
 // Tests_SOCKET_TRANSPORT_LINUX_11_104: [ socket_transport_get_local_address shall allocate the LOCAL_ADDRESS array for each ifaddrs with a sa_family of AF_INET and the interface is up and running. ]
 // Tests_SOCKET_TRANSPORT_LINUX_11_105: [ For each IP in the ifaddr object if the sa_family is AF_INET and the interface is up and running and it's not a loopback, socket_transport_get_local_address shall retrieve the name of the address by calling getnameinfo. ]
@@ -1892,7 +1892,7 @@ TEST_FUNCTION(socket_transport_get_local_address_invalid_address_list_fail)
 }
 
 // Tests_SOCKET_TRANSPORT_LINUX_11_101: [ socket_transport_get_local_address shall call sm_exec_begin. ]
-// Tests_SOCKET_TRANSPORT_LINUX_11_102: [ socket_transport_get_local_address shall call get the hostname by calling gethostname. ]
+// Tests_SOCKET_TRANSPORT_LINUX_11_102: [ socket_transport_get_local_address shall get the hostname by calling gethostname. ]
 // Tests_SOCKET_TRANSPORT_LINUX_11_106: [ socket_transport_get_local_address shall call sm_exec_end. ]
 // Tests_SOCKET_TRANSPORT_LINUX_11_107: [ On success socket_transport_get_local_address shall return 0. ]
 TEST_FUNCTION(socket_transport_get_local_address_no_address_list_success)

@@ -399,11 +399,11 @@ MOCKABLE_FUNCTION(, int, socket_transport_get_local_address, SOCKET_TRANSPORT_HA
 
 **SOCKET_TRANSPORT_WIN32_11_004: [** `socket_transport_get_local_address` shall call `sm_exec_begin`. **]**
 
-**SOCKET_TRANSPORT_WIN32_11_005: [** `socket_transport_get_local_address` shall call get the `hostname` by calling `gethostname`. **]**
+**SOCKET_TRANSPORT_WIN32_11_005: [** `socket_transport_get_local_address` shall get the `hostname` by calling `gethostname`. **]**
 
-**SOCKET_TRANSPORT_WIN32_11_006: [** If `local_address_list` is not `NULL`, `socket_transport_get_local_address` shall call `gethostbyname` to get the addresses in a hostent object. **]**
+**SOCKET_TRANSPORT_WIN32_11_006: [** If `local_address_list` is not `NULL`, `socket_transport_get_local_address` shall call `gethostbyname` to get the addresses in a `hostent` object. **]**
 
-**SOCKET_TRANSPORT_WIN32_11_007: [** `socket_transport_get_local_address` shall allocate the `LOCAL_ADDRESS` array. **]**
+**SOCKET_TRANSPORT_WIN32_11_007: [** `socket_transport_get_local_address` shall allocate a `LOCAL_ADDRESS` array. **]**
 
 **SOCKET_TRANSPORT_WIN32_11_008: [** For each IP in the hostent object, `socket_transport_get_local_address` shall copy the value into the `LOCAL_ADDRESS` address by calling `inet_ntop`. **]**
 

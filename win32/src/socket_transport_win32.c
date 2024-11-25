@@ -891,7 +891,7 @@ int socket_transport_get_local_address(SOCKET_TRANSPORT_HANDLE socket_transport,
         }
         else
         {
-            // Codes_SOCKET_TRANSPORT_WIN32_11_005: [ socket_transport_get_local_address shall call get the hostname by calling gethostname. ]
+            // Codes_SOCKET_TRANSPORT_WIN32_11_005: [ socket_transport_get_local_address shall get the hostname by calling gethostname. ]
             if (gethostname(hostname, MAX_GET_HOST_NAME_LEN) == SOCKET_ERROR)
             {
                 // Codes_SOCKET_TRANSPORT_WIN32_11_011: [ If any failure is encountered, socket_transport_get_local_address shall fail and return a non-zero value. ]
@@ -925,7 +925,7 @@ int socket_transport_get_local_address(SOCKET_TRANSPORT_HANDLE socket_transport,
                             }
 
                             // Allocate the array
-                            // Codes_SOCKET_TRANSPORT_WIN32_11_007: [ socket_transport_get_local_address shall allocate the LOCAL_ADDRESS array. ]
+                            // Codes_SOCKET_TRANSPORT_WIN32_11_007: [ socket_transport_get_local_address shall allocate a LOCAL_ADDRESS array. ]
                             LOCAL_ADDRESS* temp_list = malloc_2(total_count, sizeof(LOCAL_ADDRESS));
                             if (temp_list == NULL)
                             {

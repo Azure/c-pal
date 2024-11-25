@@ -159,11 +159,11 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create_client(void)
             goto all_ok;
         }
         free(result);
-        // Codes_SOCKET_TRANSPORT_WIN32_11_004: [ On any failure socket_transport_create_client shall return NULL. ]
+        // Codes_SOCKET_TRANSPORT_LINUX_11_004: [ On any failure socket_transport_create_client shall return NULL. ]
         result = NULL;
     }
 all_ok:
-    // Codes_SOCKET_TRANSPORT_WIN32_11_005: [ On success socket_transport_create_client shall return SOCKET_TRANSPORT_HANDLE. ]
+    // Codes_SOCKET_TRANSPORT_LINUX_11_005: [ On success socket_transport_create_client shall return SOCKET_TRANSPORT_HANDLE. ]
     return result;
 }
 
@@ -841,7 +841,7 @@ int socket_transport_get_local_address(SOCKET_TRANSPORT_HANDLE socket_transport,
         }
         else
         {
-            // Codes_SOCKET_TRANSPORT_LINUX_11_102: [ socket_transport_get_local_address shall call get the hostname by calling gethostname. ]
+            // Codes_SOCKET_TRANSPORT_LINUX_11_102: [ socket_transport_get_local_address shall get the hostname by calling gethostname. ]
             if (gethostname(hostname, MAX_GET_HOST_NAME_LEN) == INVALID_SOCKET)
             {
                 // Codes_SOCKET_TRANSPORT_LINUX_11_108: [ If any failure is encountered, socket_transport_get_local_address shall fail and return a non-zero value. ]
