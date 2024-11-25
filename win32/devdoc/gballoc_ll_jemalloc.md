@@ -187,7 +187,7 @@ MOCKABLE_FUNCTION(, int, gballoc_ll_set_option, char*, option_name, void*, optio
 
 - **SRS_GBALLOC_LL_JEMALLOC_28_005: [** `gballoc_ll_set_option` shall retrieve the old dirty decay value and set the new dirty decay value to `decay_milliseconds` for new arenas by calling `je_mallctl` with `arenas.dirty_decay_ms` as the command. **]**
 
-- **SRS_GBALLOC_LL_JEMALLOC_28_007: [** `gballoc_ll_set_option` shall fetch the number of existing jemalloc arenas by calling `je_mallctl` with `arenas.narenas` as the command. **]**
+- **SRS_GBALLOC_LL_JEMALLOC_28_007: [** `gballoc_ll_set_option` shall fetch the number of existing jemalloc arenas by calling `je_mallctl` with `opt.narenas` as the command. **]**
 
 - **SRS_GBALLOC_LL_JEMALLOC_28_008: [** For each existing arena except last (since it is reserved for huge arena) **]**
 
@@ -201,7 +201,7 @@ MOCKABLE_FUNCTION(, int, gballoc_ll_set_option, char*, option_name, void*, optio
 
 - **SRS_GBALLOC_LL_JEMALLOC_28_012: [** `gballoc_ll_set_option` shall retrieve the old muzzy decay value and set the new muzzy decay value to `decay_milliseconds` for new arenas by calling `je_mallctl` with `arenas.muzzy_decay_ms` as the command. **]**
 
-- **SRS_GBALLOC_LL_JEMALLOC_28_014: [** `gballoc_ll_set_option` shall fetch the number of existing jemalloc arenas by calling `je_mallctl` with `arenas.narenas` as the command. **]**
+- **SRS_GBALLOC_LL_JEMALLOC_28_014: [** `gballoc_ll_set_option` shall fetch the number of existing jemalloc arenas by calling `je_mallctl` with `opt.narenas` as the command. **]**
 
 - **SRS_GBALLOC_LL_JEMALLOC_28_015: [** For each existing arena except last (since it is reserved for huge arena) **]**
 

@@ -26,7 +26,7 @@ typedef struct PRINT_FUNCTION_CB_DATA_TAG
 static size_t g_call_print_cb_count = 0;
 static PRINT_FUNCTION_CB_DATA g_call_print_cb[MAX_PRINT_FUNCTION_CB];
 
-#define NUM_ARENAS 3
+#define NUM_ARENAS 2
 
 #define ENABLE_MOCKS
 #include "umock_c/umock_c_prod.h"
@@ -709,7 +709,7 @@ TEST_FUNCTION(gballoc_ll_set_option_with_muzzy_decay_and_negative_decay_millisec
     ///clean
 }
 
-static void setup_decay_success_expectations(char** first_command, char** second_command, char** third_command, char** fourth_command, uint32_t* num_arenas, int64_t* decay_milliseconds)
+static void setup_option_success_expectations(char** first_command, char** second_command, char** third_command, char** fourth_command, uint32_t* num_arenas, int64_t* decay_milliseconds)
 {
     int64_t old_decay_milliseconds = 24;
     STRICT_EXPECTED_CALL(mock_je_mallctl(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
@@ -738,7 +738,7 @@ static void setup_decay_success_expectations(char** first_command, char** second
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_28_003: [ If option_name has value as dirty_decay: ]*/
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_28_004: [ gballoc_ll_set_option shall fetch the decay_milliseconds value by casting option_value to int64_t. ]*/
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_28_005: [ gballoc_ll_set_option shall retrieve the old dirty decay value and set the new dirty decay value to decay_milliseconds for new arenas by calling je_mallctl with arenas.dirty_decay_ms as the command. ]*/
-/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_007: [ gballoc_ll_set_option shall fetch the number of existing jemalloc arenas by calling je_mallctl with arenas.narenas as the command. ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_007: [ gballoc_ll_set_option shall fetch the number of existing jemalloc arenas by calling je_mallctl with opt.narenas as the command. ]*/
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_28_008: [ For each existing arena except last (since it is reserved for huge arena) ]*/
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_28_009: [ gballoc_ll_set_option shall set the dirty decay time for the arena to decay_milliseconds milliseconds by calling je_mallctl with arena.<i>.dirty_decay_ms as the command. ]*/
 TEST_FUNCTION(gballoc_ll_set_option_with_dirty_decay_succeeds)
@@ -754,7 +754,7 @@ TEST_FUNCTION(gballoc_ll_set_option_with_dirty_decay_succeeds)
     char fourth_command[32];
     (void)sprintf(fourth_command, "arena.1.dirty_decay_ms");
 
-    setup_decay_success_expectations(&first_command, &second_command, (char**)&third_command, (char**)&fourth_command, &num_arenas, &decay_milliseconds);
+    setup_option_success_expectations(&first_command, &second_command, (char**)&third_command, (char**)&fourth_command, &num_arenas, &decay_milliseconds);
 
     ///act
     int result = gballoc_ll_set_option("dirty_decay", &decay_milliseconds);
@@ -762,7 +762,7 @@ TEST_FUNCTION(gballoc_ll_set_option_with_dirty_decay_succeeds)
     ///assert
     ASSERT_ARE_EQUAL(int, 0, result);
     ASSERT_ARE_EQUAL(char_ptr, "arenas.dirty_decay_ms", first_command);
-    ASSERT_ARE_EQUAL(char_ptr, "arenas.narenas", second_command);
+    ASSERT_ARE_EQUAL(char_ptr, "opt.narenas", second_command);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
@@ -771,7 +771,7 @@ TEST_FUNCTION(gballoc_ll_set_option_with_dirty_decay_succeeds)
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_28_010: [ Else if option_name has value as muzzy_decay: ]*/
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_28_011: [ gballoc_ll_set_option shall fetch the decay_milliseconds value by casting option_value to int64_t. ]*/
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_28_012: [ gballoc_ll_set_option shall retrieve the old muzzy decay value and set the new muzzy decay value to decay_milliseconds for new arenas by calling je_mallctl with arenas.muzzy_decay_ms as the command. ]*/
-/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_014: [ gballoc_ll_set_option shall fetch the number of existing jemalloc arenas by calling je_mallctl with arenas.narenas as the command. ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_28_014: [ gballoc_ll_set_option shall fetch the number of existing jemalloc arenas by calling je_mallctl with opt.narenas as the command. ]*/
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_28_015: [ For each existing arena except last (since it is reserved for huge arena) ]*/
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_28_016: [ gballoc_ll_set_option shall set the muzzy decay time for the arena to decay_milliseconds milliseconds by calling je_mallctl with arena.<i>.muzzy_decay_ms as the command. ]*/
 TEST_FUNCTION(gballoc_ll_set_option_with_muzzy_decay_succeeds)
@@ -787,7 +787,7 @@ TEST_FUNCTION(gballoc_ll_set_option_with_muzzy_decay_succeeds)
     char fourth_command[32];
     (void)sprintf(fourth_command, "arena.1.muzzy_decay_ms");
 
-    setup_decay_success_expectations(&first_command, &second_command, (char**)&third_command, (char**)&fourth_command, &num_arenas, &decay_milliseconds);
+    setup_option_success_expectations(&first_command, &second_command, (char**)&third_command, (char**)&fourth_command, &num_arenas, &decay_milliseconds);
 
     ///act
     int result = gballoc_ll_set_option("muzzy_decay", &decay_milliseconds);
@@ -795,7 +795,7 @@ TEST_FUNCTION(gballoc_ll_set_option_with_muzzy_decay_succeeds)
     ///assert
     ASSERT_ARE_EQUAL(int, 0, result);
     ASSERT_ARE_EQUAL(char_ptr, "arenas.muzzy_decay_ms", first_command);
-    ASSERT_ARE_EQUAL(char_ptr, "arenas.narenas", second_command);
+    ASSERT_ARE_EQUAL(char_ptr, "opt.narenas", second_command);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
@@ -815,7 +815,7 @@ TEST_FUNCTION(gballoc_ll_set_option_fails_when_underlying_calls_fail)
     char fourth_command[32];
     (void)sprintf(fourth_command, "arena.1.dirty_decay_ms");
 
-    setup_decay_success_expectations(&first_command, &second_command, (char**)&third_command, (char**)&fourth_command, &num_arenas, &decay_milliseconds);
+    setup_option_success_expectations(&first_command, &second_command, (char**)&third_command, (char**)&fourth_command, &num_arenas, &decay_milliseconds);
 
     umock_c_negative_tests_snapshot();
     for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
@@ -848,7 +848,7 @@ TEST_FUNCTION(gballoc_ll_set_option_fails_when_underlying_calls_fail_2)
     char fourth_command[32];
     (void)sprintf(fourth_command, "arena.1.muzzy_decay_ms");
 
-    setup_decay_success_expectations(&first_command, &second_command, (char**)&third_command, (char**)&fourth_command, &num_arenas, &decay_milliseconds);
+    setup_option_success_expectations(&first_command, &second_command, (char**)&third_command, (char**)&fourth_command, &num_arenas, &decay_milliseconds);
 
     umock_c_negative_tests_snapshot();
     for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
@@ -904,7 +904,7 @@ TEST_FUNCTION(gballoc_ll_set_option_fails_for_dirty_decay_if_number_of_arenas_re
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_EQUAL(char_ptr, "arenas.dirty_decay_ms", first_command);
-    ASSERT_ARE_EQUAL(char_ptr, "arenas.narenas", second_command);
+    ASSERT_ARE_EQUAL(char_ptr, "opt.narenas", second_command);
     ASSERT_ARE_EQUAL(char_ptr, "arenas.dirty_decay_ms", third_command);
 
     ///clean
@@ -929,7 +929,7 @@ TEST_FUNCTION(gballoc_ll_set_option_fails_for_muzzy_decay_if_number_of_arenas_re
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_EQUAL(char_ptr, "arenas.muzzy_decay_ms", first_command);
-    ASSERT_ARE_EQUAL(char_ptr, "arenas.narenas", second_command);
+    ASSERT_ARE_EQUAL(char_ptr, "opt.narenas", second_command);
     ASSERT_ARE_EQUAL(char_ptr, "arenas.muzzy_decay_ms", third_command);
 
     ///clean
@@ -989,7 +989,7 @@ TEST_FUNCTION(gballoc_ll_set_option_fails_for_dirty_decay_if_setting_dirty_decay
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_EQUAL(char_ptr, "arenas.dirty_decay_ms", first_command);
-    ASSERT_ARE_EQUAL(char_ptr, "arenas.narenas", second_command);
+    ASSERT_ARE_EQUAL(char_ptr, "opt.narenas", second_command);
     ASSERT_ARE_EQUAL(char_ptr, "arenas.dirty_decay_ms", fifth_command);
 
     ///clean
@@ -1019,7 +1019,7 @@ TEST_FUNCTION(gballoc_ll_set_option_fails_for_muzzy_decay_if_setting_muzzy_decay
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_EQUAL(char_ptr, "arenas.muzzy_decay_ms", first_command);
-    ASSERT_ARE_EQUAL(char_ptr, "arenas.narenas", second_command);
+    ASSERT_ARE_EQUAL(char_ptr, "opt.narenas", second_command);
     ASSERT_ARE_EQUAL(char_ptr, "arenas.muzzy_decay_ms", fifth_command);
 
     ///clean
@@ -1069,7 +1069,7 @@ TEST_FUNCTION(gballoc_ll_set_option_for_dirty_decay_succeeds_when_je_mallctl_ret
     ///assert
     ASSERT_ARE_EQUAL(int, 0, result);
     ASSERT_ARE_EQUAL(char_ptr, "arenas.dirty_decay_ms", first_command);
-    ASSERT_ARE_EQUAL(char_ptr, "arenas.narenas", second_command);
+    ASSERT_ARE_EQUAL(char_ptr, "opt.narenas", second_command);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
@@ -1097,7 +1097,7 @@ TEST_FUNCTION(gballoc_ll_set_option_for_muzzy_decay_succeeds_when_je_mallctl_ret
     ///assert
     ASSERT_ARE_EQUAL(int, 0, result);
     ASSERT_ARE_EQUAL(char_ptr, "arenas.muzzy_decay_ms", first_command);
-    ASSERT_ARE_EQUAL(char_ptr, "arenas.narenas", second_command);
+    ASSERT_ARE_EQUAL(char_ptr, "opt.narenas", second_command);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean

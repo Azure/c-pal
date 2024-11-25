@@ -13,11 +13,6 @@
 
 #include "jemalloc/jemalloc.h"
 
-#ifdef _MSC_VER
-    #include <stdint.h> // For intptr_t
-    typedef intptr_t ssize_t;
-#endif
-
 int gballoc_ll_init(void* params)
 {
     /*Codes_SRS_GBALLOC_LL_JEMALLOC_01_001: [ gballoc_ll_init shall return 0. ]*/
@@ -238,7 +233,7 @@ static int gballoc_ll_set_dirty_decay(int64_t decay_milliseconds)
     {
         int64_t old_decay_milliseconds;
         size_t old_decay_milliseconds_size = sizeof(old_decay_milliseconds);
-        MU_STATIC_ASSERT(sizeof(int64_t) == sizeof(ssize_t));
+        MU_STATIC_ASSERT(sizeof(int64_t) == sizeof(size_t));
 
         /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_005: [ gballoc_ll_set_option shall retrieve the old dirty decay value and set the new dirty decay value to decay_milliseconds for new arenas by calling je_mallctl with arenas.dirty_decay_ms as the command. ]*/
         if (je_mallctl("arenas.dirty_decay_ms", &old_decay_milliseconds, &old_decay_milliseconds_size, &decay_milliseconds, sizeof(decay_milliseconds)) != 0)
@@ -253,11 +248,11 @@ static int gballoc_ll_set_dirty_decay(int64_t decay_milliseconds)
             size_t narenas_size = sizeof(narenas);
             MU_STATIC_ASSERT(sizeof(uint32_t) == sizeof(unsigned));
 
-            /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_007: [ gballoc_ll_set_option shall fetch the number of existing jemalloc arenas by calling je_mallctl with arenas.narenas as the command. ]*/
-            if (je_mallctl("arenas.narenas", &narenas, &narenas_size, NULL, 0) != 0)
+            /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_007: [ gballoc_ll_set_option shall fetch the number of existing jemalloc arenas by calling je_mallctl with opt.narenas as the command. ]*/
+            if (je_mallctl("opt.narenas", &narenas, &narenas_size, NULL, 0) != 0)
             {
                 /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_018: [ If there are any errors, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
-                LogError("je_mallctl(const char* name=arenas.narenas, void* oldp=%p, size_t* oldlenp=%p, void* newp=NULL, size_t newlen=0) failed", &narenas, &narenas_size);
+                LogError("je_mallctl(const char* name=opt.narenas, void* oldp=%p, size_t* oldlenp=%p, void* newp=NULL, size_t newlen=0) failed", &narenas, &narenas_size);
                 result = MU_FAILURE;
             }
             else
@@ -266,7 +261,7 @@ static int gballoc_ll_set_dirty_decay(int64_t decay_milliseconds)
                 uint32_t i;
 
                 /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_008: [ For each existing arena except last (since it is reserved for huge arena) ]*/
-                for (i = 0; i < (narenas - 1); i++)
+                for (i = 0; i < narenas; i++)
                 {
                     int snprintf_result = snprintf(command, sizeof(command), "arena.%" PRIu32 ".dirty_decay_ms", i);
 
@@ -299,7 +294,7 @@ static int gballoc_ll_set_dirty_decay(int64_t decay_milliseconds)
                     }
                 }
 
-                if (i < (narenas - 1))
+                if (i < narenas)
                 {
                     for (uint32_t j = 0; j < i; j++)
                     {
@@ -337,7 +332,7 @@ static int gballoc_ll_set_muzzy_decay(int64_t decay_milliseconds)
     {
         int64_t old_decay_milliseconds;
         size_t old_decay_milliseconds_size = sizeof(old_decay_milliseconds);
-        MU_STATIC_ASSERT(sizeof(int64_t) == sizeof(ssize_t));
+        MU_STATIC_ASSERT(sizeof(int64_t) == sizeof(size_t));
 
         /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_012: [ gballoc_ll_set_option shall retrieve the old muzzy decay value and set the new muzzy decay value to decay_milliseconds for new arenas by calling je_mallctl with arenas.muzzy_decay_ms as the command. ]*/
         if (je_mallctl("arenas.muzzy_decay_ms", &old_decay_milliseconds, &old_decay_milliseconds_size, &decay_milliseconds, sizeof(decay_milliseconds)) != 0)
@@ -348,16 +343,15 @@ static int gballoc_ll_set_muzzy_decay(int64_t decay_milliseconds)
         }
         else
         {
-            
             uint32_t narenas;
             size_t narenas_size = sizeof(narenas);
             MU_STATIC_ASSERT(sizeof(uint32_t) == sizeof(unsigned));
 
-            /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_014: [ gballoc_ll_set_option shall fetch the number of existing jemalloc arenas by calling je_mallctl with arenas.narenas as the command. ]*/
-            if (je_mallctl("arenas.narenas", &narenas, &narenas_size, NULL, 0) != 0)
+            /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_014: [ gballoc_ll_set_option shall fetch the number of existing jemalloc arenas by calling je_mallctl with opt.narenas as the command. ]*/
+            if (je_mallctl("opt.narenas", &narenas, &narenas_size, NULL, 0) != 0)
             {
                 /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_018: [ If there are any errors, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
-                LogError("je_mallctl(const char* name=arenas.narenas, void* oldp=%p, size_t* oldlenp=%p, void* newp=NULL, size_t newlen=0) failed", &narenas, &narenas_size);
+                LogError("je_mallctl(const char* name=opt.narenas, void* oldp=%p, size_t* oldlenp=%p, void* newp=NULL, size_t newlen=0) failed", &narenas, &narenas_size);
                 result = MU_FAILURE;
             }
             else
@@ -366,7 +360,7 @@ static int gballoc_ll_set_muzzy_decay(int64_t decay_milliseconds)
                 uint32_t i;
 
                 /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_015: [ For each existing arena except last (since it is reserved for huge arena) ]*/
-                for (i = 0; i < (narenas - 1); i++)
+                for (i = 0; i < narenas; i++)
                 {
                     int snprintf_result = snprintf(command, sizeof(command), "arena.%" PRIu32 ".muzzy_decay_ms", i);
 
@@ -399,7 +393,7 @@ static int gballoc_ll_set_muzzy_decay(int64_t decay_milliseconds)
                     }
                 }
 
-                if (i < (narenas - 1))
+                if (i < narenas)
                 {
                     for (uint32_t j = 0; j < i; j++)
                     {
