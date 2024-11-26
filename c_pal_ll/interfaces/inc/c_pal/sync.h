@@ -26,8 +26,11 @@ extern "C" {
 MU_DEFINE_ENUM(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES);
 
 MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_atomic int32_t*, address, int32_t, compare_value, uint32_t, timeout_ms);
+MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address_64, volatile_atomic int64_t*, address, int64_t, compare_value, uint32_t, timeout_ms);
 MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t*, address);
+MOCKABLE_FUNCTION(, void, wake_by_address_all_64, volatile_atomic int64_t*, address);
 MOCKABLE_FUNCTION(, void, wake_by_address_single, volatile_atomic int32_t*, address);
+MOCKABLE_FUNCTION(, void, wake_by_address_single_64, volatile_atomic int64_t*, address);
 
 #ifdef __cplusplus
 }
