@@ -20,7 +20,7 @@ The lifetime of the execution engine should supersede the lifetime of the `threa
 
 ```c
 typedef struct THREADPOOL_TAG THREADPOOL;
-typedef struct TIMER_INSTANCE_TAG* TIMER_INSTANCE_HANDLE;
+typedef struct TIMER_TAG* TIMER *;
 typedef struct THREADPOOL_WORK_ITEM_TAG* THREADPOOL_WORK_ITEM_HANDLE;
 typedef void (*THREADPOOL_WORK_FUNCTION)(void* context);
 
@@ -39,13 +39,13 @@ MOCKABLE_FUNCTION(, void, threadpool_destroy_work_item, THREADPOOL_WORK_ITEM_HAN
 
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 
-MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, TIMER_INSTANCE_HANDLE*, timer_handle);
+MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, TIMER **, timer_handle);
 
-MOCKABLE_FUNCTION(, int, threadpool_timer_restart, TIMER_INSTANCE_HANDLE, timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
+MOCKABLE_FUNCTION(, int, threadpool_timer_restart, TIMER *, timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
 
-MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, TIMER_INSTANCE_HANDLE, timer);
+MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, TIMER *, timer);
 
-MOCKABLE_FUNCTION(, void, threadpool_timer_destroy, TIMER_INSTANCE_HANDLE, timer);
+MOCKABLE_FUNCTION(, void, threadpool_timer_destroy, TIMER *, timer);
 ```
 
 ### threadpool_create
@@ -187,7 +187,7 @@ Note: There are no guarantees regarding the order of execution for the `work_fun
 ### threadpool_timer_start
 
 ```c
-MOCKABLE_FUNCTION(, int, threadpool_timer_start, THREADPOOL_HANDLE, threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, TIMER_INSTANCE_HANDLE*, timer_handle);
+MOCKABLE_FUNCTION(, int, threadpool_timer_start, THREADPOOL_HANDLE, threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, TIMER **, timer_handle);
 ```
 
 `threadpool_timer_start` starts a threadpool timer which runs after `start_delay_ms` milliseconds and then runs again every `timer_period_ms` milliseconds until `threadpool_timer_destroy` is called. The `timer_handle` must be stopped before closing/destroying the threadpool.
@@ -215,7 +215,7 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_start, THREADPOOL_HANDLE, threadpool, 
 ### threadpool_timer_restart
 
 ```c
-MOCKABLE_FUNCTION(, int, threadpool_timer_restart, TIMER_INSTANCE_HANDLE, timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
+MOCKABLE_FUNCTION(, int, threadpool_timer_restart, TIMER *, timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
 ```
 
 `threadpool_timer_restart` changes the delay and period of an existing timer.
@@ -233,7 +233,7 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_restart, TIMER_INSTANCE_HANDLE, timer,
 ### threadpool_timer_cancel
 
 ```c
-MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, TIMER_INSTANCE_HANDLE, timer);
+MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, TIMER *, timer);
 ```
 
 `threadpool_timer_cancel` stops the timer and waits for any pending callbacks. Afterward, the timer may be resumed with a new time by calling `threadpool_timer_restart` or cleaned up by calling `threadpool_timer_destroy`.
@@ -245,7 +245,7 @@ MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, TIMER_INSTANCE_HANDLE, timer)
 ### threadpool_timer_destroy
 
 ```c
-MOCKABLE_FUNCTION(, void, threadpool_timer_destroy, TIMER_INSTANCE_HANDLE, timer);
+MOCKABLE_FUNCTION(, void, threadpool_timer_destroy, TIMER *, timer);
 ```
 
 `threadpool_timer_destroy` stops the timer started by `threadpool_timer_start` and cleans up its resources.

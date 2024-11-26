@@ -12,7 +12,7 @@ It uses the PTP_POOL associated with the execution engine passed as argument to 
 
 ```c
 typedef struct THREADPOOL_TAG THREADPOOL;
-typedef struct TIMER_INSTANCE_TAG* TIMER_INSTANCE_HANDLE;
+typedef struct TIMER_TAG* TIMER *;
 typedef struct THREADPOOL_WORK_ITEM_TAG* THREADPOOL_WORK_ITEM_HANDLE;
 typedef void (*THREADPOOL_WORK_FUNCTION)(void* context);
 
@@ -31,11 +31,11 @@ MOCKABLE_FUNCTION(, void, threadpool_destroy_work_item, THANDLE(THREADPOOL), thr
 
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 
-MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, THANDLE(TIMER_INSTANCE)*, timer_handle);
+MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, THANDLE(TIMER)*, timer_handle);
 
-MOCKABLE_FUNCTION(, int, threadpool_timer_restart, THANDLE(TIMER_INSTANCE), timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
+MOCKABLE_FUNCTION(, int, threadpool_timer_restart, THANDLE(TIMER), timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
 
-MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, THANDLE(TIMER_INSTANCE), timer);
+MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, THANDLE(TIMER), timer);
 ```
 
 ### threadpool_create
@@ -194,7 +194,7 @@ static VOID CALLBACK on_work_callback_v2(PTP_CALLBACK_INSTANCE instance, void* c
 ### threadpool_timer_start
 
 ```c
-MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, THANDLE(TIMER_INSTANCE)*, timer_handle);
+MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context, THANDLE(TIMER)*, timer_handle);
 ```
 
 `threadpool_timer_start` starts a threadpool timer which runs after `start_delay_ms` milliseconds and then runs again every `timer_period_ms` milliseconds until `threadpool_timer_cancel` or `threadpool_timer_destroy` is called. The `timer_handle` must be stopped before closing/destroying the threadpool.
@@ -207,11 +207,11 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool
 
 **SRS_THREADPOOL_WIN32_42_004: [** `work_function_context` shall be allowed to be `NULL`. **]**
 
-**SRS_THREADPOOL_WIN32_42_005: [** `threadpool_timer_start` shall allocate memory for `THANDLE_MALLOC(TIMER_INSTANCE)` and store `work_function` and `work_function_context` in it. **]**
+**SRS_THREADPOOL_WIN32_42_005: [** `threadpool_timer_start` shall allocate memory for `THANDLE(TIMER)`, passing `threadpool_timer_dispose` as dispose function, and store `work_function` and `work_function_context` in it. **]**
 
 **SRS_THREADPOOL_WIN32_42_006: [** `threadpool_timer_start` shall call `CreateThreadpoolTimer` to schedule execution the callback while passing to it the `on_timer_callback` function and the newly created context. **]**
 
-**SRS_THREADPOOL_WIN32_07_002: [** `threadpool_timer_start` shall initialize the a lock by calling `srw_lock_ll_init`. **]**
+**SRS_THREADPOOL_WIN32_07_002: [** `threadpool_timer_start` shall initialize the lock guarding the timer state by calling `srw_lock_ll_init`. **]**
 
 **SRS_THREADPOOL_WIN32_42_007: [** `threadpool_timer_start` shall call `SetThreadpoolTimer`, passing negative `start_delay_ms` as `pftDueTime`, `timer_period_ms` as `msPeriod`, and 0 as `msWindowLength`. **]**
 
@@ -224,7 +224,7 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_start, THANDLE(THREADPOOL), threadpool
 ### threadpool_timer_restart
 
 ```c
-MOCKABLE_FUNCTION(, int, threadpool_timer_restart, THANDLE(TIMER_INSTANCE), timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
+MOCKABLE_FUNCTION(, int, threadpool_timer_restart, THANDLE(TIMER), timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
 ```
 
 `threadpool_timer_restart` changes the delay and period of an existing timer.
@@ -242,7 +242,7 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_restart, THANDLE(TIMER_INSTANCE), time
 ### threadpool_timer_cancel
 
 ```c
-MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, THANDLE(TIMER_INSTANCE), timer);
+MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, THANDLE(TIMER), timer);
 ```
 
 `threadpool_timer_cancel` stops the timer and waits for any pending callbacks. Afterward, the timer may be resumed with a new time by calling `threadpool_timer_restart` or cleaned up by calling `threadpool_timer_destroy`.
@@ -260,10 +260,10 @@ MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, THANDLE(TIMER_INSTANCE), time
 ### threadpool_timer_dispose
 
 ```c
-static void threadpool_timer_dispose(TIMER_INSTANCE* timer);
+static void threadpool_timer_dispose(TIMER* timer);
 ```
 
-`threadpool_timer_dispose` stops the timer when thre reference count of the THANDLE(TIMER_INSTANCE) created by `threadpool_timer_start` reaches 0 and cleans up its resources.
+`threadpool_timer_dispose` stops the timer when thre reference count of the THANDLE(TIMER) created by `threadpool_timer_start` reaches 0 and cleans up its resources.
 
 **SRS_THREADPOOL_WIN32_42_012: [** `threadpool_timer_dispose` shall call `SetThreadpoolTimer` with `NULL` for `pftDueTime` and 0 for `msPeriod` and `msWindowLength` to cancel ongoing timers. **]**
 

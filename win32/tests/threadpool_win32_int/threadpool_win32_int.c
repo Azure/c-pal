@@ -290,7 +290,7 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
         LogInfo("Starting timer");
 
         // act (start a timer to start delayed and then execute once)
-        THANDLE(TIMER_INSTANCE) timer = NULL;
+        THANDLE(TIMER) timer = NULL;
         ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 2000, 0, work_function, (void*)&call_count, &timer));
 
         // assert
@@ -317,7 +317,7 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
             need_to_retry = false;
         }
 
-        THANDLE_ASSIGN(TIMER_INSTANCE)(&timer, NULL);
+        THANDLE_ASSIGN(TIMER)(&timer, NULL);
     } while (need_to_retry);
 
     // cleanup
@@ -354,7 +354,7 @@ TEST_FUNCTION(restart_timer_works_runs_once)
         LogInfo("Starting timer");
 
         // start a timer to start delayed after 4 seconds (which would fail test)
-        THANDLE(TIMER_INSTANCE) timer = NULL;
+        THANDLE(TIMER) timer = NULL;
         ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 4000, 0, work_function, (void*)&call_count, &timer));
 
         // act (restart timer to start delayed instead after 2 seconds)
@@ -384,7 +384,7 @@ TEST_FUNCTION(restart_timer_works_runs_once)
             need_to_retry = false;
         }
 
-        THANDLE_ASSIGN(TIMER_INSTANCE)(&timer, NULL);
+        THANDLE_ASSIGN(TIMER)(&timer, NULL);
     } while (need_to_retry);
 
     // cleanup
@@ -413,7 +413,7 @@ TEST_FUNCTION(one_start_timer_works_runs_periodically)
 
     // act (start a timer to start delayed and then execute every 500ms)
     LogInfo("Starting timer");
-    THANDLE(TIMER_INSTANCE) timer = NULL;
+    THANDLE(TIMER) timer = NULL;
     ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&call_count, &timer));
 
     // assert
@@ -423,7 +423,7 @@ TEST_FUNCTION(one_start_timer_works_runs_periodically)
     LogInfo("Timer completed 4 times");
 
     // cleanup
-    THANDLE_ASSIGN(TIMER_INSTANCE)(&timer, NULL);
+    THANDLE_ASSIGN(TIMER)(&timer, NULL);
     threadpool_close(threadpool);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
@@ -449,7 +449,7 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
 
     // start a timer to start delayed and then execute every 500ms
     LogInfo("Starting timer");
-    THANDLE(TIMER_INSTANCE) timer = NULL;
+    THANDLE(TIMER) timer = NULL;
     ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&call_count, &timer));
 
     // Timer should run 4 times in about 2.1 seconds
@@ -469,7 +469,7 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
     LogInfo("Timer completed 2 more times");
 
     // cleanup
-    THANDLE_ASSIGN(TIMER_INSTANCE)(&timer, NULL);
+    THANDLE_ASSIGN(TIMER)(&timer, NULL);
     threadpool_close(threadpool);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
@@ -498,7 +498,7 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
 
     // schedule one timer that waits
     LogInfo("Starting timer");
-    THANDLE(TIMER_INSTANCE) timer = NULL;
+    THANDLE(TIMER) timer = NULL;
     ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 0, 5000, wait_work_function, (void*)&wait_work_context, &timer));
 
     // act
@@ -507,7 +507,7 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
 
     // call stop
     LogInfo("Timer should be running and waiting, now stop timer");
-    THANDLE_ASSIGN(TIMER_INSTANCE)(&timer, NULL);
+    THANDLE_ASSIGN(TIMER)(&timer, NULL);
 
     LogInfo("Timer stopped");
 
@@ -543,7 +543,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
 
     // schedule one timer that waits
     LogInfo("Starting timer");
-    THANDLE(TIMER_INSTANCE) timer = NULL;
+    THANDLE(TIMER) timer = NULL;
     ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 0, 5000, wait_work_function, (void*)&wait_work_context, &timer));
 
     // act
@@ -560,7 +560,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
     SetEvent(wait_work_context.wait_event);
 
     // cleanup
-    THANDLE_ASSIGN(TIMER_INSTANCE)(&timer, NULL);
+    THANDLE_ASSIGN(TIMER)(&timer, NULL);
     threadpool_close(threadpool);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
@@ -587,13 +587,14 @@ TEST_FUNCTION(MU_C3(starting_, N_TIMERS, _timer_start_runs_once))
     // open
     ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
-    THANDLE(TIMER_INSTANCE) timer_instance = NULL;
+    THANDLE(TIMER) timer_instance = NULL;
     ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool_1, 200, 200, work_function, (void*)&call_count, &timer_instance));
+    ASSERT_IS_NOT_NULL(timer_instance);
 
     Sleep(5000);
     LogInfo("Waiting for timer to execute after short delay of no execution");
 
-    THANDLE_ASSIGN(TIMER_INSTANCE)(&timer_instance, NULL);
+    THANDLE_ASSIGN(TIMER)(&timer_instance, NULL);
 
     THANDLE_ASSIGN(THREADPOOL)(&threadpool_1, NULL);
 
@@ -623,10 +624,10 @@ TEST_FUNCTION(MU_C3(starting_, N_TIMERS, _start_timers_work_and_run_periodically
 
     // act (start a timer to start delayed and then execute every 500ms)
     LogInfo("Starting " MU_TOSTRING(N_TIMERS) " timers");
-    THANDLE(TIMER_INSTANCE)* timers[N_TIMERS];
+    THANDLE(TIMER)* timers[N_TIMERS];
     for (uint32_t i = 0; i < N_TIMERS; i++)
     {
-        THANDLE_INITIALIZE(TIMER_INSTANCE)((void*) & timers[i], NULL);
+        THANDLE_INITIALIZE(TIMER)((void*)& timers[i], NULL);
         ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&call_count, (void*) & timers[i]));
     }
 
@@ -642,7 +643,7 @@ TEST_FUNCTION(MU_C3(starting_, N_TIMERS, _start_timers_work_and_run_periodically
 
     for (uint32_t i = 0; i < N_TIMERS; i++)
     {
-        THANDLE_ASSIGN(TIMER_INSTANCE)((void*)&timers[i], NULL);
+        THANDLE_ASSIGN(TIMER)((void*)&timers[i], NULL);
     }
 
     // cleanup
@@ -797,7 +798,7 @@ TEST_FUNCTION(open_while_closing_fails)
 typedef struct CHAOS_TEST_TIMER_DATA_TAG
 {
     volatile LONG state; // TIMER_STATE
-    THANDLE(TIMER_INSTANCE) timer;
+    THANDLE(TIMER) timer;
 } CHAOS_TEST_TIMER_DATA;
 
 #define MAX_TIMER_COUNT 10
@@ -865,7 +866,7 @@ static void chaos_cleanup_all_timers(CHAOS_TEST_DATA* chaos_test_data)
     {
         if (InterlockedCompareExchange(&chaos_test_data->timers[i].state, TIMER_STATE_STOPPING, TIMER_STATE_STARTED) == TIMER_STATE_STARTED)
         {
-            THANDLE_ASSIGN(TIMER_INSTANCE)(&chaos_test_data->timers[i].timer, NULL);
+            THANDLE_ASSIGN(TIMER)(&chaos_test_data->timers[i].timer, NULL);
             InterlockedExchange(&chaos_test_data->timers[i].state, TIMER_STATE_NONE);
         }
     }
@@ -941,8 +942,8 @@ static DWORD WINAPI chaos_thread_with_timers_no_lock_func(LPVOID lpThreadParamet
             }
             (void)InterlockedDecrement(&chaos_test_data->timers_starting);
             WakeByAddressSingle((PVOID)&chaos_test_data->timers_starting);
+            break;
         }
-        break;
         case TEST_ACTION_CANCEL_TIMER:
             // Cancel a timer
         {
@@ -958,8 +959,8 @@ static DWORD WINAPI chaos_thread_with_timers_no_lock_func(LPVOID lpThreadParamet
             }
             (void)InterlockedDecrement(&chaos_test_data->timers_starting);
             WakeByAddressSingle((PVOID)&chaos_test_data->timers_starting);
+            break;
         }
-        break;
         case TEST_ACTION_RESTART_TIMER:
             // Restart a timer
         {
@@ -977,6 +978,7 @@ static DWORD WINAPI chaos_thread_with_timers_no_lock_func(LPVOID lpThreadParamet
             }
             (void)InterlockedDecrement(&chaos_test_data->timers_starting);
             WakeByAddressSingle((PVOID)&chaos_test_data->timers_starting);
+            break;
         }
         case TEST_ACTION_SCHEDULE_WORK_ITEM:
             // perform a schedule work item
@@ -985,6 +987,10 @@ static DWORD WINAPI chaos_thread_with_timers_no_lock_func(LPVOID lpThreadParamet
                 if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
                 {
                     (void)InterlockedIncrement64(&chaos_test_data->expected_call_count);
+                }
+                else
+                {
+                    //don't care if it failed
                 }
             }
             break;
@@ -1060,8 +1066,8 @@ static DWORD WINAPI chaos_thread_with_timers_no_lock_and_null_work_item_func(LPV
             }
             (void)InterlockedDecrement(&chaos_test_data->timers_starting);
             WakeByAddressSingle((PVOID)&chaos_test_data->timers_starting);
+            break;
         }
-        break;
         case TEST_ACTION_CANCEL_TIMER:
             // Cancel a timer
         {
@@ -1077,8 +1083,8 @@ static DWORD WINAPI chaos_thread_with_timers_no_lock_and_null_work_item_func(LPV
             }
             (void)InterlockedDecrement(&chaos_test_data->timers_starting);
             WakeByAddressSingle((PVOID)&chaos_test_data->timers_starting);
+            break;
         }
-        break;
         case TEST_ACTION_RESTART_TIMER:
             // Restart a timer
         {
@@ -1096,6 +1102,7 @@ static DWORD WINAPI chaos_thread_with_timers_no_lock_and_null_work_item_func(LPV
             }
             (void)InterlockedDecrement(&chaos_test_data->timers_starting);
             WakeByAddressSingle((PVOID)&chaos_test_data->timers_starting);
+            break;
         }
         case TEST_ACTION_SCHEDULE_WORK_ITEM:
             // perform a schedule work item
@@ -1133,7 +1140,7 @@ TEST_FUNCTION(chaos_knight_test_with_timers_no_lock_and_null_work_item)
 
     for (i = 0; i < MAX_TIMER_COUNT; i++)
     {
-        THANDLE_INITIALIZE(TIMER_INSTANCE)(&chaos_test_data.timers[i].timer, NULL);
+        THANDLE_INITIALIZE(TIMER)(&chaos_test_data.timers[i].timer, NULL);
         (void)InterlockedExchange(&chaos_test_data.timers[i].state, TIMER_STATE_NONE);
     }
 
@@ -1159,7 +1166,7 @@ TEST_FUNCTION(chaos_knight_test_with_timers_no_lock_and_null_work_item)
     // assert that all scheduled items were executed
     ASSERT_ARE_EQUAL(int64_t, (int64_t)InterlockedAdd64(&chaos_test_data.expected_call_count, 0), (int64_t)InterlockedAdd64(&chaos_test_data.executed_work_functions, 0));
 
-    LogInfo("Chaos test executed %" PRIu64 " work items, %" PRIu64 " timers",
+    LogInfo("Chaos test executed %" PRId64 " work items, %" PRId64 " timers",
         InterlockedAdd64(&chaos_test_data.executed_work_functions, 0), InterlockedAdd64(&chaos_test_data.executed_timer_functions, 0));
 
     // call close
@@ -1193,7 +1200,7 @@ TEST_FUNCTION(chaos_knight_test)
 
     for (i = 0; i < MAX_TIMER_COUNT; i++)
     {
-        THANDLE_INITIALIZE(TIMER_INSTANCE)(&chaos_test_data.timers[i].timer, NULL);
+        THANDLE_INITIALIZE(TIMER)(&chaos_test_data.timers[i].timer, NULL);
         InterlockedExchange(&chaos_test_data.timers[i].state, TIMER_STATE_NONE);
     }
 
@@ -1220,7 +1227,7 @@ TEST_FUNCTION(chaos_knight_test)
     // assert that all scheduled items were executed
     ASSERT_ARE_EQUAL(int64_t, (int64_t)InterlockedAdd64(&chaos_test_data.expected_call_count, 0), (int64_t)InterlockedAdd64(&chaos_test_data.executed_work_functions, 0));
 
-    LogInfo("Chaos test executed %" PRIu64 " work items",
+    LogInfo("Chaos test executed %" PRId64 " work items",
         InterlockedAdd64(&chaos_test_data.executed_work_functions, 0));
 
     // call close
@@ -1258,7 +1265,7 @@ TEST_FUNCTION(chaos_knight_test_with_timers_no_lock)
 
     for (i = 0; i < MAX_TIMER_COUNT; i++)
     {
-        THANDLE_INITIALIZE(TIMER_INSTANCE)(&chaos_test_data.timers[i].timer, NULL);
+        THANDLE_INITIALIZE(TIMER)(&chaos_test_data.timers[i].timer, NULL);
         (void)InterlockedExchange(&chaos_test_data.timers[i].state, TIMER_STATE_NONE);
     }
 
@@ -1290,7 +1297,7 @@ TEST_FUNCTION(chaos_knight_test_with_timers_no_lock)
     // assert that all scheduled items were executed
     ASSERT_ARE_EQUAL(int64_t, (int64_t)InterlockedAdd64(&chaos_test_data.expected_call_count, 0), (int64_t)InterlockedAdd64(&chaos_test_data.executed_work_functions, 0));
 
-    LogInfo("Chaos test executed %" PRIu64 " work items, %" PRIu64 " timers",
+    LogInfo("Chaos test executed %" PRId64 " work items, %" PRId64 " timers",
         InterlockedAdd64(&chaos_test_data.executed_work_functions, 0), InterlockedAdd64(&chaos_test_data.executed_timer_functions, 0));
 
     // call close

@@ -552,7 +552,7 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
         LogInfo("Starting timer");
 
         // act (start a timer to start delayed and then execute once)
-        THANDLE(TIMER_INSTANCE) timer = NULL;
+        THANDLE(TIMER) timer = NULL;
         ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 2000, 0, work_function, NULL, &timer));
 
         // assert
@@ -579,7 +579,7 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
             need_to_retry = false;
         }
 
-        THANDLE_ASSIGN(TIMER_INSTANCE)(&timer, NULL);
+        THANDLE_ASSIGN(TIMER)(&timer, NULL);
     } while (need_to_retry);
 
     // cleanup
@@ -612,7 +612,7 @@ TEST_FUNCTION(restart_timer_works_runs_once)
         LogInfo("Starting timer");
 
         // start a timer to start delayed after 4 seconds (which would fail test)
-        THANDLE(TIMER_INSTANCE) timer = NULL;
+        THANDLE(TIMER) timer = NULL;
         ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 4000, 0, work_function, (void*)&g_call_count, &timer));
 
         // act (restart timer to start delayed instead after 2 seconds)
@@ -642,7 +642,7 @@ TEST_FUNCTION(restart_timer_works_runs_once)
             need_to_retry = false;
         }
 
-        THANDLE_ASSIGN(TIMER_INSTANCE)(&timer, NULL);
+        THANDLE_ASSIGN(TIMER)(&timer, NULL);
     } while (need_to_retry);
 
     // cleanup
@@ -667,7 +667,7 @@ TEST_FUNCTION(one_start_timer_works_runs_periodically)
 
     // act (start a timer to start delayed and then execute every 500ms)
     LogInfo("Starting timer");
-    THANDLE(TIMER_INSTANCE) timer = NULL;
+    THANDLE(TIMER) timer = NULL;
     ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&g_call_count, &timer));
 
     // assert
@@ -677,7 +677,7 @@ TEST_FUNCTION(one_start_timer_works_runs_periodically)
     LogInfo("Timer completed 4 times");
 
     // cleanup
-    THANDLE_ASSIGN(TIMER_INSTANCE)(&timer, NULL);
+    THANDLE_ASSIGN(TIMER)(&timer, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
@@ -699,7 +699,7 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
 
     // start a timer to start delayed and then execute every 500ms
     LogInfo("Starting timer");
-    THANDLE(TIMER_INSTANCE) timer = NULL;
+    THANDLE(TIMER) timer = NULL;
     ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&g_call_count, &timer));
 
     // Timer should run 4 times in about 2.1 seconds
@@ -719,7 +719,7 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
     LogInfo("Timer completed 2 more times");
 
     // cleanup
-    THANDLE_ASSIGN(TIMER_INSTANCE)(&timer, NULL);
+    THANDLE_ASSIGN(TIMER)(&timer, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
@@ -745,7 +745,7 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
 
     // schedule one timer that waits
     LogInfo("Starting timer");
-    THANDLE(TIMER_INSTANCE) timer = NULL;
+    THANDLE(TIMER) timer = NULL;
     ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 0, 5000, wait_work_function, (void*)&wait_work_context, &timer));
 
     // act
@@ -753,7 +753,7 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
 
     // call stop
     LogInfo("Timer should be running and waiting, now stop timer");
-    THANDLE_ASSIGN(TIMER_INSTANCE)(&timer, NULL);
+    THANDLE_ASSIGN(TIMER)(&timer, NULL);
 
     LogInfo("Timer stopped");
 
@@ -786,7 +786,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
 
     // schedule one timer that waits
     LogInfo("Starting timer");
-    THANDLE(TIMER_INSTANCE) timer = NULL;
+    THANDLE(TIMER) timer = NULL;
     ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 0, 5000, wait_work_function, (void*)&wait_work_context, &timer));
 
     // act
@@ -802,7 +802,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
     interlocked_increment(&wait_work_context.wait_event);
 
     // cleanup
-    THANDLE_ASSIGN(TIMER_INSTANCE)(&timer, NULL);
+    THANDLE_ASSIGN(TIMER)(&timer, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
