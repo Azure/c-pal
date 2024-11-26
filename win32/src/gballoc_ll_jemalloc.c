@@ -280,8 +280,8 @@ static int gballoc_ll_set_dirty_decay(int64_t decay_milliseconds)
                         {
                             if (arena_decay_result == EFAULT)
                             {
-                                /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_020: [ If je_mallctl returns EFAULT, gballoc_ll_set_option shall continue without failing as this error is expected when the arena is deleted or is a huge arena. ]*/
-                                LogError("je_mallctl(const char* name=%s, void* oldp=NULL, size_t* oldlenp=NULL, void* newp=%p, size_t newlen=%zu) failed, continuing without failure as the arena is either deleted or it is a huge arena, old_decay_milliseconds=%" PRId64 "", command, &decay_milliseconds, sizeof(decay_milliseconds), old_decay_milliseconds);
+                                /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_020: [ If je_mallctl returns EFAULT, gballoc_ll_set_option shall continue without failing as this error is expected when the arena doesn't exist. ]*/
+                                LogError("je_mallctl(const char* name=%s, void* oldp=NULL, size_t* oldlenp=NULL, void* newp=%p, size_t newlen=%zu) failed, continuing without failure as the arena doesn't exist, old_decay_milliseconds=%" PRId64 "", command, &decay_milliseconds, sizeof(decay_milliseconds), old_decay_milliseconds);
                             }
                             else
                             {
@@ -379,8 +379,8 @@ static int gballoc_ll_set_muzzy_decay(int64_t decay_milliseconds)
                         {
                             if (arena_decay_result == EFAULT)
                             {
-                                /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_021: [ If je_mallctl returns EFAULT, gballoc_ll_set_option shall continue without failing as this error is expected when the arena is deleted or is a huge arena. ]*/
-                                LogError("je_mallctl(const char* name=%s, void* oldp=NULL, size_t* oldlenp=NULL, void* newp=%p, size_t newlen=%zu) failed, continuing without failure as the arena is either deleted or it is a huge arena, old_decay_milliseconds=%" PRId64 "", command, &decay_milliseconds, sizeof(decay_milliseconds), old_decay_milliseconds);
+                                /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_021: [ If je_mallctl returns EFAULT, gballoc_ll_set_option shall continue without failing as this error is expected when the arena doesn't exist. ]*/
+                                LogError("je_mallctl(const char* name=%s, void* oldp=NULL, size_t* oldlenp=NULL, void* newp=%p, size_t newlen=%zu) failed, continuing without failure as the arena doesn't exist, old_decay_milliseconds=%" PRId64 "", command, &decay_milliseconds, sizeof(decay_milliseconds), old_decay_milliseconds);
                             }
                             else
                             {
