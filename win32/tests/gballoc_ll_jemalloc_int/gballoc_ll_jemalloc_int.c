@@ -399,6 +399,17 @@ TEST_FUNCTION(gballoc_ll_set_option_works_for_muzzy_decay)
     ASSERT_ARE_EQUAL(int, 0, gballoc_ll_set_option("muzzy_decay", &default_muzzy_decay_ms));
 }
 
+
+// This test performs the following steps:
+// 1. Allocates a lot of memory to dirty the pages
+// 2. Sets the decay time for dirty or muzzy pages
+// 3. Frees all the allocations to free the pages
+// 4. Sleeps for a while to let the decay time elapse
+// 5. Forces decay for all arenas
+// 6. Sleeps for a while to let the pages be purged
+// 7. Verifies that the dirty or muzzy pages have been purged according to the residual_pages_percent
+//    - if decay time is high, then the pages retained should be greater than the residual_pages_percent
+//    - if decay time is low, then the pages retained should be less than the residual_pages_percent due to fast purging
 static void gballoc_ll_set_option_decay_check_dirty_or_muzzy_pages(uint32_t num_allocations, size_t alloc_size, int64_t decay_ms, uint32_t expected_narenas, uint32_t residual_pages_percent, bool is_percent_max, uint32_t sleep_time_ms, bool is_dirty)
 {
     // do a lot of allocations to dirty the pages
@@ -439,6 +450,8 @@ static void gballoc_ll_set_option_decay_check_dirty_or_muzzy_pages(uint32_t num_
     ASSERT_ARE_EQUAL(int, 0, je_mallctl("epoch", NULL, NULL, &epoch, sizeof(epoch)));
 
     char command[64];
+
+    // Compute the number of dirty or muzzy pages before sleep
     size_t num_dirty;
     size_t num_muzzy;
     size_t num_dirty_total_before_sleep = 0;
@@ -481,8 +494,11 @@ static void gballoc_ll_set_option_decay_check_dirty_or_muzzy_pages(uint32_t num_
         }
     }
 
-    // sleep for a while to allow the decay to happen
-    ThreadAPI_Sleep(sleep_time_ms);
+    // sleep for a while for decay time to elapse
+    for (uint32_t i = 0; i < 10; i++)
+    {
+        ThreadAPI_Sleep(sleep_time_ms / 10);
+    }
 
     // force decay for all arenas, this will free all the dirty or muzzy pages that have been retained for longer than the decay time
     for (uint32_t i = 0; i < expected_narenas; i++)
@@ -491,14 +507,17 @@ static void gballoc_ll_set_option_decay_check_dirty_or_muzzy_pages(uint32_t num_
         ASSERT_ARE_EQUAL(int, 0, je_mallctl(command, NULL, NULL, NULL, 0));
     }
 
-    // advance the epoch multiple times to update stats and give time for the decay to happen
-    for (uint32_t i = 0; i < 5; i++)
+    // sleep for a while to let the pages be purged
+    for (uint32_t i = 0; i < 10; i++)
     {
-        epoch += 1;
-        ASSERT_ARE_EQUAL(int, 0, je_mallctl("epoch", NULL, NULL, &epoch, sizeof(epoch)));
-        ThreadAPI_Sleep(1000);
+        ThreadAPI_Sleep(sleep_time_ms / 10);
     }
 
+    // advance the epoch to update stats
+    epoch += 1;
+    ASSERT_ARE_EQUAL(int, 0, je_mallctl("epoch", NULL, NULL, &epoch, sizeof(epoch)));
+        
+    // Compute the number of dirty or muzzy pages after sleep
     size_t num_dirty_total_after_sleep = 0;
     size_t num_muzzy_total_after_sleep = 0;
     if (is_dirty)
@@ -561,7 +580,7 @@ static void gballoc_ll_set_option_decay_check_dirty_or_muzzy_pages(uint32_t num_
     }
 }
 
-TEST_FUNCTION(gballoc_ll_set_option_check_dirty_pages_with_decay_5_second)
+TEST_FUNCTION(gballoc_ll_set_option_check_dirty_pages_with_decay_10_seconds)
 {
     /// arrange
     uint32_t expected_narenas = MAX_ARENAS;
@@ -570,7 +589,7 @@ TEST_FUNCTION(gballoc_ll_set_option_check_dirty_pages_with_decay_5_second)
     uint32_t num_allocations = 2000000;
     size_t alloc_size = 1024;
 
-    int64_t decay_ms = 5000;
+    int64_t decay_ms = 10000;
 
     // decay takes some time to purge completely, hence the tolerance of 30%
     uint32_t residual_dirty_pages_percent = 30;
@@ -632,7 +651,7 @@ TEST_FUNCTION(gballoc_ll_set_option_check_dirty_pages_with_decay_minus_one)
     ASSERT_ARE_EQUAL(int, 0, gballoc_ll_set_option("dirty_decay", &default_dirty_decay_ms));
 }
 
-TEST_FUNCTION(gballoc_ll_set_option_check_muzzy_pages_with_decay_5_seconds)
+TEST_FUNCTION(gballoc_ll_set_option_check_muzzy_pages_with_decay_10_seconds)
 {
     /// arrange
     uint32_t expected_narenas = MAX_ARENAS;
@@ -641,7 +660,7 @@ TEST_FUNCTION(gballoc_ll_set_option_check_muzzy_pages_with_decay_5_seconds)
     uint32_t num_allocations = 2000000;
     size_t alloc_size = 1024;
 
-    int64_t decay_ms = 5000;
+    int64_t decay_ms = 10000;
 
     // decay takes some time to purge completely, hence the tolerance of 30%
     uint32_t residual_muzzy_pages_percent = 30;
