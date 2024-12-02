@@ -798,22 +798,19 @@ static DWORD WINAPI chaos_thread_with_timers_no_lock_func(LPVOID lpThreadParamet
         }
         case TEST_ACTION_RESTART_TIMER:
             // Restart a timer
+        {
+            // Synchronize with close
+            (void)InterlockedIncrement(&chaos_test_data->timers_starting);
+            if (InterlockedAdd(&chaos_test_data->can_start_timers, 0) != 0)
             {
-                // Synchronize with close
-                (void)InterlockedIncrement(&chaos_test_data->timers_starting);
-                if (InterlockedAdd(&chaos_test_data->can_start_timers, 0) != 0)
+                int which_timer_slot = rand() * MAX_TIMER_COUNT / (RAND_MAX + 1);
+                if (InterlockedCompareExchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_STARTING, TIMER_STATE_STARTED) == TIMER_STATE_STARTED)
                 {
-                    int which_timer_slot = rand() * MAX_TIMER_COUNT / (RAND_MAX + 1);
-                    if (InterlockedCompareExchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_STARTING, TIMER_STATE_STARTED) == TIMER_STATE_STARTED)
-                    {
-                        uint32_t timer_start_delay = TIMER_START_DELAY_MIN + rand() * (TIMER_START_DELAY_MAX - TIMER_START_DELAY_MIN) / (RAND_MAX + 1);
-                        uint32_t timer_period = TIMER_PERIOD_MIN + rand() * (TIMER_PERIOD_MAX - TIMER_PERIOD_MIN) / (RAND_MAX + 1);
-                        ASSERT_ARE_EQUAL(int, 0, threadpool_timer_restart(chaos_test_data->timers[which_timer_slot].timer, timer_start_delay, timer_period));
-                        (void)InterlockedExchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_STARTED);
-                    }
+                    uint32_t timer_start_delay = TIMER_START_DELAY_MIN + rand() * (TIMER_START_DELAY_MAX - TIMER_START_DELAY_MIN) / (RAND_MAX + 1);
+                    uint32_t timer_period = TIMER_PERIOD_MIN + rand() * (TIMER_PERIOD_MAX - TIMER_PERIOD_MIN) / (RAND_MAX + 1);
+                    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_restart(chaos_test_data->timers[which_timer_slot].timer, timer_start_delay, timer_period));
+                    (void)InterlockedExchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_STARTED);
                 }
-                (void)InterlockedDecrement(&chaos_test_data->timers_starting);
-                WakeByAddressSingle((PVOID)&chaos_test_data->timers_starting);
             }
             (void)InterlockedDecrement(&chaos_test_data->timers_starting);
             WakeByAddressSingle((PVOID)&chaos_test_data->timers_starting);
@@ -821,13 +818,11 @@ static DWORD WINAPI chaos_thread_with_timers_no_lock_func(LPVOID lpThreadParamet
         }
         case TEST_ACTION_SCHEDULE_WORK_ITEM:
             // perform a schedule work item
+            if (InterlockedAdd(&chaos_test_data->can_schedule_works, 0) != 0)
             {
-                if (InterlockedAdd(&chaos_test_data->can_schedule_works, 0) != 0)
+                if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
                 {
-                    if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
-                    {
-                        (void)InterlockedIncrement64(&chaos_test_data->expected_call_count);
-                    }
+                    (void)InterlockedIncrement64(&chaos_test_data->expected_call_count);
                 }
                 else
                 {
@@ -854,11 +849,7 @@ static DWORD WINAPI chaos_thread_with_timers_no_lock_and_null_work_item_func(LPV
         default:
             // do nothing
             break;
-        case TEST_ACTION_THREADPOOL_OPEN:
-            // perform an open
-            (void)threadpool_open(chaos_test_data->threadpool);
-            break;
-        case TEST_ACTION_THREADPOOL_CLOSE:
+        case TEST_ACTION_CLEANUP_TIMER:
             // perform a close
             // First prevent new timers, because we need to clean them all up (lock)
             if (InterlockedCompareExchange(&chaos_test_data->can_start_timers, 0, 1) == 1)
@@ -868,9 +859,6 @@ static DWORD WINAPI chaos_thread_with_timers_no_lock_and_null_work_item_func(LPV
 
                 // Cleanup all timers
                 chaos_cleanup_all_timers(chaos_test_data);
-
-                // Do the close
-                (void)threadpool_close(chaos_test_data->threadpool);
 
                 // Now back to normal
                 (void)InterlockedExchange(&chaos_test_data->can_start_timers, 1);
@@ -934,11 +922,12 @@ static DWORD WINAPI chaos_thread_with_timers_no_lock_and_null_work_item_func(LPV
             if (InterlockedAdd(&chaos_test_data->can_start_timers, 0) != 0)
             {
                 int which_timer_slot = rand() * MAX_TIMER_COUNT / (RAND_MAX + 1);
-                if (InterlockedAdd(&chaos_test_data->timers[which_timer_slot].state, 0) == TIMER_STATE_STARTED)
+                if (InterlockedCompareExchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_STARTING, TIMER_STATE_STARTED) == TIMER_STATE_STARTED)
                 {
                     uint32_t timer_start_delay = TIMER_START_DELAY_MIN + rand() * (TIMER_START_DELAY_MAX - TIMER_START_DELAY_MIN) / (RAND_MAX + 1);
                     uint32_t timer_period = TIMER_PERIOD_MIN + rand() * (TIMER_PERIOD_MAX - TIMER_PERIOD_MIN) / (RAND_MAX + 1);
                     ASSERT_ARE_EQUAL(int, 0, threadpool_timer_restart(chaos_test_data->timers[which_timer_slot].timer, timer_start_delay, timer_period));
+                    (void)InterlockedExchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_STARTED);
                 }
             }
             (void)InterlockedDecrement(&chaos_test_data->timers_starting);
