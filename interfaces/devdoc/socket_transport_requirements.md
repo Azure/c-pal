@@ -186,4 +186,4 @@ MOCKABLE_FUNCTION(, bool, socket_transport_is_valid_socket, SOCKET_TRANSPORT_HAN
 MOCKABLE_FUNCTION(, int, socket_transport_get_local_address, SOCKET_TRANSPORT_HANDLE, socket_transport, char, hostname[MAX_GET_HOST_NAME_LEN], LOCAL_ADDRESS**, local_address_list, uint32_t*, address_count);
 ```
 
-`socket_transport_get_local_address` shall return the hostname and IP address of the machine.
+`socket_transport_get_local_address` shall return the hostname and IP address of the local machine.
