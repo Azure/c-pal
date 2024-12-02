@@ -390,7 +390,6 @@ TEST_FUNCTION(one_start_timer_works_runs_periodically)
 
     // cleanup
     THANDLE_ASSIGN(TIMER)(&timer, NULL);
-    threadpool_close(threadpool);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
@@ -433,7 +432,6 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
 
     // cleanup
     THANDLE_ASSIGN(TIMER)(&timer, NULL);
-    threadpool_close(threadpool);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
@@ -519,7 +517,6 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
 
     // cleanup
     THANDLE_ASSIGN(TIMER)(&timer, NULL);
-    threadpool_close(threadpool);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
@@ -541,9 +538,6 @@ TEST_FUNCTION(MU_C3(starting_, N_TIMERS, _timer_start_runs_once))
 
     THANDLE(THREADPOOL) threadpool_1 = NULL;
     THANDLE_INITIALIZE(THREADPOOL)(&threadpool_1, threadpool);
-
-    // open
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     THANDLE(TIMER) timer_instance = NULL;
     ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool_1, 200, 200, work_function, (void*)&call_count, &timer_instance));
@@ -1002,7 +996,6 @@ TEST_FUNCTION(chaos_knight_test_with_timers_no_lock_and_null_work_item)
     // call close
     chaos_cleanup_all_timers(&chaos_test_data);
     threadpool_destroy_work_item(chaos_test_data.threadpool, chaos_test_data.work_item_context);
-    threadpool_close(chaos_test_data.threadpool);
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL)(&chaos_test_data.threadpool, NULL);
