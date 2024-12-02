@@ -140,7 +140,7 @@ static void threadpool_dispose(THREADPOOL* threadpool)
 
 `threadpool_dispose` frees the resouces associated with threadpool.
 
-**SRS_THREADPOOL_LINUX_07_089: [** `threadpool_dispose` shall signal all threads that the threadpool is closing by setting the flag to stop the threads to 1. **]**
+**SRS_THREADPOOL_LINUX_07_089: [** `threadpool_dispose` shall signal all threads to return. **]**
 
 **SRS_THREADPOOL_LINUX_07_027: [** `threadpool_dispose` shall join all threads in the `threadpool`. **]**
 

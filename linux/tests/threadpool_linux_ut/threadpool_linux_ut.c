@@ -660,7 +660,7 @@ TEST_FUNCTION(threadpool_close_with_NULL_handle_returns)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_07_089: [ threadpool_dispose shall signal all threads that threadpool is closing by setting the flag to stop the threads to 1. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_089: [ threadpool_dispose shall signal all threads to return. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_027: [ threadpool_dispose shall join all threads in the threadpool. ]*/
 TEST_FUNCTION(threadpool_close_succeeds)
 {

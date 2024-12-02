@@ -29,7 +29,6 @@
 #include "c_pal/srw_lock.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_linux.h"
-#include "c_pal/sm.h"
 #include "c_pal/log_critical_and_terminate.h"
 #include "c_pal/sync.h"
 #include "c_pal/thandle.h" // IWYU pragma: keep
@@ -297,7 +296,7 @@ static int reallocate_threadpool_array(THREADPOOL* threadpool)
 
 static void threadpool_dispose(THREADPOOL* threadpool)
 {
-    /* Codes_SRS_THREADPOOL_LINUX_07_089: [ threadpool_dispose shall signal all threads that the threadpool is closing by setting the flag to stop the threads to 1. ]*/
+    /* Codes_SRS_THREADPOOL_LINUX_07_089: [ threadpool_dispose shall signal all threads to return. ]*/
     (void)InterlockedHL_SetAndWakeAll(&threadpool->stop_thread, 1);
     for (int32_t index = 0; index < threadpool->used_thread_count; index++)
     {
