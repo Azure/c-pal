@@ -483,7 +483,7 @@ TEST_FUNCTION(gballoc_hl_set_option_calls_gballoc_ll_set_option_and_returns_0)
 {
     ///arrange
     void* value = (void*)0x42;
-    char* option_name;
+    const char* option_name;
 
     STRICT_EXPECTED_CALL(gballoc_ll_set_option(IGNORED_ARG, value))
         .CaptureArgumentValue_option_name(&option_name)
@@ -503,7 +503,7 @@ TEST_FUNCTION(gballoc_hl_set_option_calls_gballoc_ll_set_option_and_returns_non_
 {
     ///arrange
     void* value = (void*)0x42;
-    char* option_name;
+    const char* option_name;
 
     STRICT_EXPECTED_CALL(gballoc_ll_set_option(IGNORED_ARG, value))
         .CaptureArgumentValue_option_name(&option_name)

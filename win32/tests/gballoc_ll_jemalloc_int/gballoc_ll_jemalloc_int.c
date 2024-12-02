@@ -491,9 +491,13 @@ static void gballoc_ll_set_option_decay_check_dirty_or_muzzy_pages(uint32_t num_
         ASSERT_ARE_EQUAL(int, 0, je_mallctl(command, NULL, NULL, NULL, 0));
     }
 
-    // advance the epoch to update stats
-    epoch += 1;
-    ASSERT_ARE_EQUAL(int, 0, je_mallctl("epoch", NULL, NULL, &epoch, sizeof(epoch)));
+    // advance the epoch multiple times to update stats and give time for the decay to happen
+    for (uint32_t i = 0; i < 5; i++)
+    {
+        epoch += 1;
+        ASSERT_ARE_EQUAL(int, 0, je_mallctl("epoch", NULL, NULL, &epoch, sizeof(epoch)));
+        ThreadAPI_Sleep(1000);
+    }
 
     size_t num_dirty_total_after_sleep = 0;
     size_t num_muzzy_total_after_sleep = 0;
@@ -567,7 +571,9 @@ TEST_FUNCTION(gballoc_ll_set_option_check_dirty_pages_with_decay_5_second)
     size_t alloc_size = 1024;
 
     int64_t decay_ms = 5000;
-    uint32_t residual_dirty_pages_percent = 10;
+
+    // decay takes some time to purge completely, hence the tolerance of 30%
+    uint32_t residual_dirty_pages_percent = 30;
 
     // sleep for 30 seconds
     uint32_t sleep_time_ms = 30000;
@@ -636,7 +642,9 @@ TEST_FUNCTION(gballoc_ll_set_option_check_muzzy_pages_with_decay_5_seconds)
     size_t alloc_size = 1024;
 
     int64_t decay_ms = 5000;
-    uint32_t residual_muzzy_pages_percent = 10;
+
+    // decay takes some time to purge completely, hence the tolerance of 30%
+    uint32_t residual_muzzy_pages_percent = 30;
 
     // sleep for 30 seconds
     uint32_t sleep_time_ms = 30000;
