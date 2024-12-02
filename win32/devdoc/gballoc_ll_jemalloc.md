@@ -27,7 +27,7 @@ gballoc_ll_jemalloc is a module that delegates all call of its APIs to the ones 
 
     MOCKABLE_FUNCTION(, void, gballoc_ll_print_stats);
 
-    MOCKABLE_FUNCTION(, int, gballoc_ll_set_option, char*, option_name, void*, option_value);
+    MOCKABLE_FUNCTION(, int, gballoc_ll_set_option, const char*, option_name, void*, option_value);
 ```
 
 ### gballoc_ll_init
@@ -172,7 +172,7 @@ static void jemalloc_print_stats_callback(void* context, const char* text)
 ### gballoc_ll_set_option
 
 ```c
-MOCKABLE_FUNCTION(, int, gballoc_ll_set_option, char*, option_name, void*, option_value);
+MOCKABLE_FUNCTION(, int, gballoc_ll_set_option, const char*, option_name, void*, option_value);
 ```
 
 `gballoc_ll_set_option` sets the option `option_name` to `option_value`.

@@ -6,12 +6,18 @@
 #include <inttypes.h>
 #include <stdio.h>  // for snprintf
 
+#include "macro_utils/macro_utils.h" // for MU_FAILURE
+
 #include "c_logging/logger.h"
 #include "c_pal/gballoc_ll.h"
 
-#include "macro_utils/macro_utils.h" // for MU_FAILURE
-
 #include "jemalloc/jemalloc.h"
+
+// We use int64_t for decay ms, so we need to make sure it's the same size as size_t due to internal jemalloc code using ssize_t
+MU_STATIC_ASSERT(sizeof(int64_t) == sizeof(size_t));
+
+// We use uint32_t for number of arenas, so we need to make sure it's the same size as unsigned due to internal jemalloc code using unsigned
+MU_STATIC_ASSERT(sizeof(uint32_t) == sizeof(unsigned));
 
 int gballoc_ll_init(void* params)
 {
@@ -233,61 +239,61 @@ static int gballoc_ll_set_dirty_decay(int64_t decay_milliseconds)
     {
         int64_t old_decay_milliseconds;
         size_t old_decay_milliseconds_size = sizeof(old_decay_milliseconds);
-        MU_STATIC_ASSERT(sizeof(int64_t) == sizeof(size_t));
 
         /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_005: [ gballoc_ll_set_option shall retrieve the old dirty decay value and set the new dirty decay value to decay_milliseconds for new arenas by calling je_mallctl with arenas.dirty_decay_ms as the command. ]*/
         if (je_mallctl("arenas.dirty_decay_ms", &old_decay_milliseconds, &old_decay_milliseconds_size, &decay_milliseconds, sizeof(decay_milliseconds)) != 0)
         {
             /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_018: [ If there are any errors, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
-            LogError("je_mallctl(const char* name=arenas.dirty_decay_ms, void* oldp=%p, size_t* oldlenp=%p, void* newp=%p, size_t newlen=%zu) failed", &old_decay_milliseconds, &old_decay_milliseconds_size, &decay_milliseconds, sizeof(decay_milliseconds));
+            LogError("je_mallctl(arenas.dirty_decay_ms, &old_decay_milliseconds=%p, &old_decay_milliseconds_size=%p, &decay_milliseconds=%p, sizeof(decay_milliseconds)=%zu) failed", &old_decay_milliseconds, &old_decay_milliseconds_size, &decay_milliseconds, sizeof(decay_milliseconds));
             result = MU_FAILURE;
         }
         else
         {
+            LogInfo("jemalloc dirty_decay_ms set to %" PRId64 " for new arenas, old value was %" PRId64 "", decay_milliseconds, old_decay_milliseconds);
+
             uint32_t narenas;
             size_t narenas_size = sizeof(narenas);
-            MU_STATIC_ASSERT(sizeof(uint32_t) == sizeof(unsigned));
 
             /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_007: [ gballoc_ll_set_option shall fetch the number of existing jemalloc arenas by calling je_mallctl with opt.narenas as the command. ]*/
             if (je_mallctl("opt.narenas", &narenas, &narenas_size, NULL, 0) != 0)
             {
                 /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_018: [ If there are any errors, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
-                LogError("je_mallctl(const char* name=opt.narenas, void* oldp=%p, size_t* oldlenp=%p, void* newp=NULL, size_t newlen=0) failed", &narenas, &narenas_size);
+                LogError("je_mallctl(opt.narenas, &narenas=%p, &narenas_size=%p, NULL, 0) failed", &narenas, &narenas_size);
                 result = MU_FAILURE;
             }
             else
             {
                 char command[64];
                 uint32_t i;
+                int snprintf_result;
+                int arena_decay_result;
 
                 /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_008: [ For each existing arena except last (since it is reserved for huge arena) ]*/
                 for (i = 0; i < narenas; i++)
                 {
-                    int snprintf_result = snprintf(command, sizeof(command), "arena.%" PRIu32 ".dirty_decay_ms", i);
+                    snprintf_result = snprintf(command, sizeof(command), "arena.%" PRIu32 ".dirty_decay_ms", i);
 
                     if (snprintf_result < 0 || (size_t)snprintf_result >= sizeof(command))
                     {
                         /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_018: [ If there are any errors, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
-                        LogError("snprintf(const char* buffer=%p, size_t size=%zu, const char* format=arena.<i>.dirty_decay_ms, i=%" PRIu32 ") failed %s", command, sizeof(command), i, (snprintf_result < 0) ? " with encoding error" : " due to insufficient buffer size");
-                        result = MU_FAILURE;
+                        LogError("snprintf(command=%p, sizeof(command)=%zu, arena.<i>.dirty_decay_ms, i=%" PRIu32 ") failed %s", command, sizeof(command), i, (snprintf_result < 0) ? " with encoding error" : " due to insufficient buffer size");
                         break;
                     }
                     else
                     {
                         /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_009: [ gballoc_ll_set_option shall set the dirty decay time for the arena to decay_milliseconds milliseconds by calling je_mallctl with arena.<i>.dirty_decay_ms as the command. ]*/
-                        int arena_decay_result = je_mallctl(command, NULL, NULL, &decay_milliseconds, sizeof(decay_milliseconds));
+                        arena_decay_result = je_mallctl(command, NULL, NULL, &decay_milliseconds, sizeof(decay_milliseconds));
                         if (arena_decay_result != 0)
                         {
                             if (arena_decay_result == EFAULT)
                             {
                                 /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_020: [ If je_mallctl returns EFAULT, gballoc_ll_set_option shall continue without failing as this error is expected when the arena doesn't exist. ]*/
-                                LogError("je_mallctl(const char* name=%s, void* oldp=NULL, size_t* oldlenp=NULL, void* newp=%p, size_t newlen=%zu) failed, continuing without failure as the arena doesn't exist, old_decay_milliseconds=%" PRId64 "", command, &decay_milliseconds, sizeof(decay_milliseconds), old_decay_milliseconds);
+                                LogError("je_mallctl(command=%s, NULL, NULL, &decay_milliseconds=%p, sizeof(decay_milliseconds)=%zu) failed, continuing without failure as the arena doesn't exist, old_decay_milliseconds=%" PRId64 "", command, &decay_milliseconds, sizeof(decay_milliseconds), old_decay_milliseconds);
                             }
                             else
                             {
                                 /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_018: [ If there are any errors, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
-                                LogError("je_mallctl(const char* name=%s, void* oldp=NULL, size_t* oldlenp=NULL, void* newp=%p, size_t newlen=%zu) failed, old_decay_milliseconds=%" PRId64 "", command, &decay_milliseconds, sizeof(decay_milliseconds), old_decay_milliseconds);
-                                result = MU_FAILURE;
+                                LogError("je_mallctl(command=%s, NULL, NULL, &decay_milliseconds=%p, sizeof(decay_milliseconds)=%zu) failed, old_decay_milliseconds=%" PRId64 "", command, &decay_milliseconds, sizeof(decay_milliseconds), old_decay_milliseconds);
                                 break;
                             }
                         }
@@ -298,8 +304,26 @@ static int gballoc_ll_set_dirty_decay(int64_t decay_milliseconds)
                 {
                     for (uint32_t j = 0; j < i; j++)
                     {
-                        (void)snprintf(command, sizeof(command), "arena.%" PRIu32 ".dirty_decay_ms", j);
-                        (void)je_mallctl(command, NULL, NULL, &old_decay_milliseconds, sizeof(old_decay_milliseconds));
+                        snprintf_result = snprintf(command, sizeof(command), "arena.%" PRIu32 ".dirty_decay_ms", j);
+                        if (snprintf_result < 0 || (size_t)snprintf_result >= sizeof(command))
+                        {
+                            LogError("snprintf(command=%p, sizeof(command)=%zu, arena.<j>.dirty_decay_ms, j=%" PRIu32 ") failed %s during cleanup", command, sizeof(command), j, (snprintf_result < 0) ? " with encoding error" : " due to insufficient buffer size");
+                        }
+                        else
+                        {
+                            arena_decay_result = je_mallctl(command, NULL, NULL, &old_decay_milliseconds, sizeof(old_decay_milliseconds));
+                            if (arena_decay_result != 0)
+                            {
+                                if (arena_decay_result == EFAULT)
+                                {
+                                    LogError("je_mallctl(command=%s, NULL, NULL, &old_decay_milliseconds=%p, sizeof(old_decay_milliseconds)=%zu) failed during cleanup as the arenas doesn't exist", command, &old_decay_milliseconds, sizeof(old_decay_milliseconds));
+                                }
+                                else
+                                {
+                                    LogError("je_mallctl(command=%s, NULL, NULL, &old_decay_milliseconds=%p, sizeof(old_decay_milliseconds)=%zu) failed during cleanup", command, &old_decay_milliseconds, sizeof(old_decay_milliseconds));
+                                }
+                            }
+                        }
                     }
                     result = MU_FAILURE;
                 }
@@ -310,7 +334,11 @@ static int gballoc_ll_set_dirty_decay(int64_t decay_milliseconds)
                     goto all_ok;
                 }
             }
-            (void)je_mallctl("arenas.dirty_decay_ms", NULL, NULL, &old_decay_milliseconds, sizeof(old_decay_milliseconds));
+            
+            if (je_mallctl("arenas.dirty_decay_ms", NULL, NULL, &old_decay_milliseconds, sizeof(old_decay_milliseconds)) != 0)
+            {
+                LogError("je_mallctl(arenas.dirty_decay_ms, NULL, NULL, &old_decay_milliseconds=%p, sizeof(old_decay_milliseconds)=%zu) failed during cleanup", &old_decay_milliseconds, sizeof(old_decay_milliseconds));
+            }
         }
     }
 
@@ -332,61 +360,61 @@ static int gballoc_ll_set_muzzy_decay(int64_t decay_milliseconds)
     {
         int64_t old_decay_milliseconds;
         size_t old_decay_milliseconds_size = sizeof(old_decay_milliseconds);
-        MU_STATIC_ASSERT(sizeof(int64_t) == sizeof(size_t));
 
         /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_012: [ gballoc_ll_set_option shall retrieve the old muzzy decay value and set the new muzzy decay value to decay_milliseconds for new arenas by calling je_mallctl with arenas.muzzy_decay_ms as the command. ]*/
         if (je_mallctl("arenas.muzzy_decay_ms", &old_decay_milliseconds, &old_decay_milliseconds_size, &decay_milliseconds, sizeof(decay_milliseconds)) != 0)
         {
             /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_018: [ If there are any errors, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
-            LogError("je_mallctl(const char* name=arenas.muzzy_decay_ms, void* oldp=%p, size_t* oldlenp=%p, void* newp=%p, size_t newlen=%zu) failed", &old_decay_milliseconds, &old_decay_milliseconds_size, &decay_milliseconds, sizeof(decay_milliseconds));
+            LogError("je_mallctl(arenas.muzzy_decay_ms, ol&old_decay_millisecondsdp=%p, &old_decay_milliseconds_size=%p, &decay_milliseconds=%p, sizeof(decay_milliseconds)=%zu) failed", &old_decay_milliseconds, &old_decay_milliseconds_size, &decay_milliseconds, sizeof(decay_milliseconds));
             result = MU_FAILURE;
         }
         else
         {
+            LogInfo("jemalloc muzzy_decay_ms set to %" PRId64 " for new arenas, old value was %" PRId64 "", decay_milliseconds, old_decay_milliseconds);
+
             uint32_t narenas;
             size_t narenas_size = sizeof(narenas);
-            MU_STATIC_ASSERT(sizeof(uint32_t) == sizeof(unsigned));
 
             /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_014: [ gballoc_ll_set_option shall fetch the number of existing jemalloc arenas by calling je_mallctl with opt.narenas as the command. ]*/
             if (je_mallctl("opt.narenas", &narenas, &narenas_size, NULL, 0) != 0)
             {
                 /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_018: [ If there are any errors, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
-                LogError("je_mallctl(const char* name=opt.narenas, void* oldp=%p, size_t* oldlenp=%p, void* newp=NULL, size_t newlen=0) failed", &narenas, &narenas_size);
+                LogError("je_mallctl(opt.narenas, &narenas=%p, &narenas_size=%p, NULL, 0) failed", &narenas, &narenas_size);
                 result = MU_FAILURE;
             }
             else
             {
                 char command[64];
                 uint32_t i;
+                int snprintf_result;
+                int arena_decay_result;
 
                 /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_015: [ For each existing arena except last (since it is reserved for huge arena) ]*/
                 for (i = 0; i < narenas; i++)
                 {
-                    int snprintf_result = snprintf(command, sizeof(command), "arena.%" PRIu32 ".muzzy_decay_ms", i);
+                    snprintf_result = snprintf(command, sizeof(command), "arena.%" PRIu32 ".muzzy_decay_ms", i);
 
                     if (snprintf_result < 0 || (size_t)snprintf_result >= sizeof(command))
                     {
                         /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_018: [ If there are any errors, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
-                        LogError("snprintf(const char* buffer=%p, size_t size=%zu, const char* format=arena.<i>.muzzy_decay_ms, i=%" PRIu32 ") failed %s", command, sizeof(command), i, (snprintf_result < 0) ? " with encoding error" : " due to insufficient buffer size");
-                        result = MU_FAILURE;
+                        LogError("snprintf(command=%p, sizeof(command)=%zu, arena.<i>.muzzy_decay_ms, i=%" PRIu32 ") failed %s", command, sizeof(command), i, (snprintf_result < 0) ? " with encoding error" : " due to insufficient buffer size");
                         break;
                     }
                     else
                     {
                         /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_016: [ gballoc_ll_set_option shall set the muzzy decay time for the arena to decay_milliseconds milliseconds by calling je_mallctl with arena.<i>.muzzy_decay_ms as the command. ]*/
-                        int arena_decay_result = je_mallctl(command, NULL, NULL, &decay_milliseconds, sizeof(decay_milliseconds));
+                        arena_decay_result = je_mallctl(command, NULL, NULL, &decay_milliseconds, sizeof(decay_milliseconds));
                         if (arena_decay_result != 0)
                         {
                             if (arena_decay_result == EFAULT)
                             {
                                 /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_021: [ If je_mallctl returns EFAULT, gballoc_ll_set_option shall continue without failing as this error is expected when the arena doesn't exist. ]*/
-                                LogError("je_mallctl(const char* name=%s, void* oldp=NULL, size_t* oldlenp=NULL, void* newp=%p, size_t newlen=%zu) failed, continuing without failure as the arena doesn't exist, old_decay_milliseconds=%" PRId64 "", command, &decay_milliseconds, sizeof(decay_milliseconds), old_decay_milliseconds);
+                                LogError("je_mallctl(command=%s, NULL, NULL, &decay_milliseconds=%p, sizeof(decay_milliseconds)=%zu) failed, continuing without failure as the arena doesn't exist, old_decay_milliseconds=%" PRId64 "", command, &decay_milliseconds, sizeof(decay_milliseconds), old_decay_milliseconds);
                             }
                             else
                             {
                                 /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_018: [ If there are any errors, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
-                                LogError("je_mallctl(const char* name=%s, void* oldp=NULL, size_t* oldlenp=NULL, void* newp=%p, size_t newlen=%zu) failed, old_decay_milliseconds=%" PRId64 "", command, &decay_milliseconds, sizeof(decay_milliseconds), old_decay_milliseconds);
-                                result = MU_FAILURE;
+                                LogError("je_mallctl(command=%s, NULL, NULL, &decay_milliseconds=%p, sizeof(decay_milliseconds)=%zu) failed, old_decay_milliseconds=%" PRId64 "", command, &decay_milliseconds, sizeof(decay_milliseconds), old_decay_milliseconds);
                                 break;
                             }
                         }
@@ -397,8 +425,27 @@ static int gballoc_ll_set_muzzy_decay(int64_t decay_milliseconds)
                 {
                     for (uint32_t j = 0; j < i; j++)
                     {
-                        (void)snprintf(command, sizeof(command), "arena.%" PRIu32 ".muzzy_decay_ms", j);
-                        (void)je_mallctl(command, NULL, NULL, &old_decay_milliseconds, sizeof(old_decay_milliseconds));
+                        snprintf_result = snprintf(command, sizeof(command), "arena.%" PRIu32 ".muzzy_decay_ms", j);
+
+                        if (snprintf_result < 0 || (size_t)snprintf_result >= sizeof(command))
+                        {
+                            LogError("snprintf(command=%p, sizeof(command)=%zu, arena.<i>.muzzy_decay_ms, i=%" PRIu32 ") failed %s during cleanup", command, sizeof(command), j, (snprintf_result < 0) ? " with encoding error" : " due to insufficient buffer size");
+                        }
+                        else
+                        {
+                            arena_decay_result = je_mallctl(command, NULL, NULL, &old_decay_milliseconds, sizeof(old_decay_milliseconds));
+                            if (arena_decay_result != 0)
+                            {
+                                if (arena_decay_result == EFAULT)
+                                {
+                                    LogError("je_mallctl(command=%s, NULL, NULL, &old_decay_milliseconds=%p, sizeof(old_decay_milliseconds)=%zu) failed during cleanup as the arenas doesn't exist", command, &old_decay_milliseconds, sizeof(old_decay_milliseconds));
+                                }
+                                else
+                                {
+                                    LogError("je_mallctl(command=%s, NULL, NULL, &old_decay_milliseconds=%p, sizeof(old_decay_milliseconds)=%zu) failed during cleanup", command, &old_decay_milliseconds, sizeof(old_decay_milliseconds));
+                                }
+                            }
+                        }
                     }
                     result = MU_FAILURE;
                 }
@@ -409,14 +456,18 @@ static int gballoc_ll_set_muzzy_decay(int64_t decay_milliseconds)
                     goto all_ok;
                 }
             }
-            (void)je_mallctl("arenas.muzzy_decay_ms", NULL, NULL, &old_decay_milliseconds, sizeof(old_decay_milliseconds));
+            
+            if (je_mallctl("arenas.muzzy_decay_ms", NULL, NULL, &old_decay_milliseconds, sizeof(old_decay_milliseconds)) != 0)
+            {
+                LogError("je_mallctl(arenas.muzzy_decay_ms, NULL, NULL, &old_decay_milliseconds=%p, sizeof(old_decay_milliseconds)=%zu) failed during cleanup", &old_decay_milliseconds, sizeof(old_decay_milliseconds));
+            }
         }
     }
 all_ok:
     return result;
 }
 
-int gballoc_ll_set_option(char* option_name, void* option_value)
+int gballoc_ll_set_option(const char* option_name, void* option_value)
 {
     int result;
 
@@ -425,8 +476,7 @@ int gballoc_ll_set_option(char* option_name, void* option_value)
         /*Codes_SRS_GBALLOC_LL_JEMALLOC_28_002: [ If option_value is NULL, gballoc_ll_set_option shall fail and return a non-zero value. ]*/
         option_value == NULL)
     {
-        LogError("Invalid args: char* option_name = %p, void* option_value = %p",
-            option_name, option_value);
+        LogError("Invalid args: const char* option_name = %s, void* option_value = %p", MU_P_OR_NULL(option_name), option_value);
         result = MU_FAILURE;
     }
     else

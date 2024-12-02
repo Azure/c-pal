@@ -63,7 +63,7 @@ extern "C" {
 
     MOCKABLE_FUNCTION(, void, gballoc_hl_print_stats);
 
-    MOCKABLE_FUNCTION(, int, gballoc_hl_set_option, char*, option_name, void*, option_value);
+    MOCKABLE_FUNCTION(, int, gballoc_hl_set_option, const char*, option_name, void*, option_value);
 
 #ifdef __cplusplus
 }

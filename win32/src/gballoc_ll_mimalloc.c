@@ -187,7 +187,7 @@ void gballoc_ll_print_stats(void)
     /* Codes_SRS_GBALLOC_LL_MIMALLOC_01_001: [ gballoc_ll_print_stats shall return without printing any statistics. ]*/
 }
 
-int gballoc_ll_set_option(char* option_name, void* option_value)
+int gballoc_ll_set_option(const char* option_name, void* option_value)
 {
     (void)option_name;
     (void)option_value;

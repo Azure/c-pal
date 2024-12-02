@@ -185,7 +185,7 @@ size_t gballoc_ll_size(void* ptr)
     return result;
 }
 
-int gballoc_ll_set_option(char* option_name, void* option_value)
+int gballoc_ll_set_option(const char* option_name, void* option_value)
 {
     (void)option_name;
     (void)option_value;

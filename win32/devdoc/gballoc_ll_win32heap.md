@@ -27,7 +27,7 @@ gballoc_ll_win32heap is a module that delegates all call of its APIs to the ones
 
     MOCKABLE_FUNCTION(, void, gballoc_ll_print_stats);
 
-    MOCKABLE_FUNCTION(, int, gballoc_ll_set_option, char*, option_name, void*, option_value);
+    MOCKABLE_FUNCTION(, int, gballoc_ll_set_option, const char*, option_name, void*, option_value);
 ```
 
 ### gballoc_ll_init
@@ -213,7 +213,7 @@ Note: printing of statistics is not implemented for `win32heap`.
 ### gballoc_ll_set_option
 
 ```c
-MOCKABLE_FUNCTION(, int, gballoc_ll_set_option, char*, option_name, void*, option_value);
+MOCKABLE_FUNCTION(, int, gballoc_ll_set_option, const char*, option_name, void*, option_value);
 ```
 
 `gballoc_ll_set_option` does nothing and returns success.

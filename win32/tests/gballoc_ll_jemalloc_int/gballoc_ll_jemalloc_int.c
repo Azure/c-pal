@@ -8,16 +8,26 @@
 #include "testrunnerswitcher.h"
 
 #include "c_pal/gballoc_ll.h"
+#include "c_pal/threadapi.h"
 
 #include "jemalloc/jemalloc.h"
 
 #define DECAY_MS 50000
 #define MAX_ARENAS 4
 
+static int64_t default_dirty_decay_ms;
+static int64_t default_muzzy_decay_ms;
+
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(TestClassInitialize)
 {
+    // Configure jemalloc to have 4 arenas(hence total max limit for number of arenas = 5, 4 normal + 1 huge)
+    je_malloc_conf = "narenas:4";
+
+    size_t decay_size = sizeof(int64_t);
+    ASSERT_ARE_EQUAL(int, 0, je_mallctl("arenas.dirty_decay_ms", &default_dirty_decay_ms, &decay_size, NULL, 0));
+    ASSERT_ARE_EQUAL(int, 0, je_mallctl("arenas.muzzy_decay_ms", &default_muzzy_decay_ms, &decay_size, NULL, 0));
 }
 
 TEST_SUITE_CLEANUP(TestClassCleanup)
@@ -310,14 +320,14 @@ static void setup_arenas_for_set_option(uint32_t expected_narenas, void* ptr[])
         ptr[i] = gballoc_ll_malloc(4); // this malloc will happen in the arena i
         ASSERT_IS_NOT_NULL(ptr[i]);
     }
+
+    arena_id = 0; // assign thread back to default arena
+    ASSERT_ARE_EQUAL(int, 0, je_mallctl("thread.arena", NULL, NULL, &arena_id, sizeof(arena_id)));
 }
 
 TEST_FUNCTION(gballoc_ll_set_option_works_for_dirty_decay)
 {
     /// arrange
-    // configure the max number of arenas to 4 (hence total max limit for number of arenas = 5, 4 normal + 1 huge)
-    je_malloc_conf = "narenas:4";
-
     uint32_t expected_narenas = MAX_ARENAS;
     void* ptr[MAX_ARENAS] = { NULL };
 
@@ -349,14 +359,12 @@ TEST_FUNCTION(gballoc_ll_set_option_works_for_dirty_decay)
     {
         gballoc_ll_free(ptr[i]);
     }
+    ASSERT_ARE_EQUAL(int, 0, gballoc_ll_set_option("dirty_decay", &default_dirty_decay_ms));
 }
 
 TEST_FUNCTION(gballoc_ll_set_option_works_for_muzzy_decay)
 {
     /// arrange
-    // configure the max number of arenas to 4 (hence total max limit for number of arenas = 5, 4 normal + 1 huge)
-    je_malloc_conf = "narenas:4";
-
     uint32_t expected_narenas = MAX_ARENAS;
     void* ptr[MAX_ARENAS] = { NULL };
 
@@ -388,6 +396,306 @@ TEST_FUNCTION(gballoc_ll_set_option_works_for_muzzy_decay)
     {
         gballoc_ll_free(ptr[i]);
     }
+    ASSERT_ARE_EQUAL(int, 0, gballoc_ll_set_option("muzzy_decay", &default_muzzy_decay_ms));
+}
+
+static void gballoc_ll_set_option_decay_check_dirty_or_muzzy_pages(uint32_t num_allocations, size_t alloc_size, int64_t decay_ms, uint32_t expected_narenas, uint32_t residual_pages_percent, bool is_percent_max, uint32_t sleep_time_ms, bool is_dirty)
+{
+    // do a lot of allocations to dirty the pages
+    void** ptr = gballoc_ll_malloc(num_allocations * sizeof(void*));
+    for (uint32_t i = 0; i < num_allocations; i++)
+    {
+        ptr[i] = gballoc_ll_malloc(alloc_size);
+        ASSERT_IS_NOT_NULL(ptr[i]);
+        memset(ptr[i], 0xA5, alloc_size);
+    }
+
+    int result;
+
+    // set the decay time
+    if (is_dirty)
+    {
+        result = gballoc_ll_set_option("dirty_decay", &decay_ms);
+    }
+    else
+    {
+        // set dirty decay to a low value so as to avoid retaining the dirty pages for long (this ensures that pages are moved to muzzy sooner)
+        int64_t low_dirty_decay_ms = 1;
+        result = gballoc_ll_set_option("dirty_decay", &low_dirty_decay_ms);
+        ASSERT_ARE_EQUAL(int, 0, result);
+        result = gballoc_ll_set_option("muzzy_decay", &decay_ms);
+    }
+    ASSERT_ARE_EQUAL(int, 0, result);
+
+    // free all the allocations
+    for (uint32_t i = 0; i < num_allocations; i++)
+    {
+        gballoc_ll_free(ptr[i]);
+    }
+    gballoc_ll_free(ptr);
+
+    // advance the epoch to update stats
+    size_t epoch = 1;
+    ASSERT_ARE_EQUAL(int, 0, je_mallctl("epoch", NULL, NULL, &epoch, sizeof(epoch)));
+
+    char command[64];
+    size_t num_dirty;
+    size_t num_muzzy;
+    size_t num_dirty_total_before_sleep = 0;
+    size_t num_muzzy_total_before_sleep = 0;
+    size_t sizet_size = sizeof(num_dirty);
+    if (is_dirty)
+    {
+        for (uint32_t i = 0; i < expected_narenas; i++)
+        {
+            snprintf(command, sizeof(command), "stats.arenas.%" PRIu32 ".pdirty", i);
+            result = je_mallctl(command, (void *)&num_dirty, &sizet_size, NULL,0);
+            if (result == 0)
+            {
+                LogInfo("Number of dirty pages for arena %d = %zu", i, num_dirty);
+                num_dirty_total_before_sleep += num_dirty;
+            }
+            else
+            {
+                // Arenas may not have been created yet
+                LogInfo("Fetching number of dirty pages failed for arena %d as it may not have been created yet", i);
+            }
+        }
+    }
+    else
+    {
+        for (uint32_t i = 0; i < expected_narenas; i++)
+        {
+            snprintf(command, sizeof(command), "stats.arenas.%" PRIu32 ".pmuzzy", i);
+            result = je_mallctl(command, (void *)&num_muzzy, &sizet_size, NULL,0);
+            if (result == 0)
+            {
+                LogInfo("Number of muzzy pages for arena %d = %zu", i, num_muzzy);
+                num_muzzy_total_before_sleep += num_muzzy;
+            }
+            else
+            {
+                // Arenas may not have been created yet
+                LogInfo("Fetching number of muzzy pages failed for arena %d as it may not have been created yet", i);
+            }
+        }
+    }
+
+    // sleep for a while to allow the decay to happen
+    ThreadAPI_Sleep(sleep_time_ms);
+
+    // force decay for all arenas, this will free all the dirty or muzzy pages that have been retained for longer than the decay time
+    for (uint32_t i = 0; i < expected_narenas; i++)
+    {
+        snprintf(command, sizeof(command), "arena.%" PRIu32 ".decay", i);
+        ASSERT_ARE_EQUAL(int, 0, je_mallctl(command, NULL, NULL, NULL, 0));
+    }
+
+    // advance the epoch to update stats
+    epoch += 1;
+    ASSERT_ARE_EQUAL(int, 0, je_mallctl("epoch", NULL, NULL, &epoch, sizeof(epoch)));
+
+    size_t num_dirty_total_after_sleep = 0;
+    size_t num_muzzy_total_after_sleep = 0;
+    if (is_dirty)
+    {
+        for (uint32_t i = 0; i < expected_narenas; i++)
+        {
+            snprintf(command, sizeof(command), "stats.arenas.%" PRIu32 ".pdirty", i);
+            result = je_mallctl(command, (void *)&num_dirty, &sizet_size, NULL,0);
+            if (result == 0)
+            {
+                LogInfo("Number of dirty pages for arena %d = %zu", i, num_dirty);
+                num_dirty_total_after_sleep += num_dirty;
+            }
+            else
+            {
+                // Arenas may not have been created yet
+                LogInfo("Fetching number of dirty pages failed for arena %d as it may not have been created yet", i);
+            }
+        }
+
+        if (is_percent_max)
+        {
+            // the number of dirty pages should be less than the residual dirty pages percent
+            ASSERT_IS_TRUE(num_dirty_total_after_sleep <= (num_dirty_total_before_sleep * residual_pages_percent / 100));
+        }
+        else
+        {
+            // the number of dirty pages should be more than the residual dirty pages percent
+            ASSERT_IS_TRUE(num_dirty_total_after_sleep >= (num_dirty_total_before_sleep * residual_pages_percent / 100));
+        }
+    }
+    else
+    {
+        for (uint32_t i = 0; i < expected_narenas; i++)
+        {
+            snprintf(command, sizeof(command), "stats.arenas.%" PRIu32 ".pmuzzy", i);
+            result = je_mallctl(command, (void *)&num_muzzy, &sizet_size, NULL,0);
+            if (result == 0)
+            {
+                LogInfo("Number of muzzy pages for arena %d = %zu", i, num_muzzy);
+                num_muzzy_total_after_sleep += num_muzzy;
+            }
+            else
+            {
+                // Arenas may not have been created yet
+                LogInfo("Fetching number of muzzy pages failed for arena %d as it may not have been created yet", i);
+            }
+        }
+
+        if (is_percent_max)
+        {
+            // the number of muzzy pages should be less than the residual dirty pages percent
+            ASSERT_IS_TRUE(num_muzzy_total_after_sleep <= (num_muzzy_total_before_sleep * residual_pages_percent / 100));
+        }
+        else
+        {
+            // the number of muzzy pages should be more than the residual dirty pages percent
+            ASSERT_IS_TRUE(num_muzzy_total_after_sleep >= (num_muzzy_total_before_sleep * residual_pages_percent / 100));
+        }
+    }
+}
+
+TEST_FUNCTION(gballoc_ll_set_option_check_dirty_pages_with_decay_5_second)
+{
+    /// arrange
+    uint32_t expected_narenas = MAX_ARENAS;
+
+    // we will do 2 GB of allocations
+    uint32_t num_allocations = 2000000;
+    size_t alloc_size = 1024;
+
+    int64_t decay_ms = 5000;
+    uint32_t residual_dirty_pages_percent = 10;
+
+    // sleep for 30 seconds
+    uint32_t sleep_time_ms = 30000;
+
+    ///act
+    ///assert
+    gballoc_ll_set_option_decay_check_dirty_or_muzzy_pages(num_allocations, alloc_size, decay_ms, expected_narenas, residual_dirty_pages_percent, true, sleep_time_ms, true);
+
+    ///clean
+    ASSERT_ARE_EQUAL(int, 0, gballoc_ll_set_option("dirty_decay", &default_dirty_decay_ms));
+}
+
+TEST_FUNCTION(gballoc_ll_set_option_check_dirty_pages_with_decay_5_minutes)
+{
+    /// arrange
+    uint32_t expected_narenas = MAX_ARENAS;
+
+    // we will do 2 GB of allocations
+    uint32_t num_allocations = 2000000;
+    size_t alloc_size = 1024;
+
+    int64_t decay_ms = 300000;
+    uint32_t residual_dirty_pages_percent = 90;
+
+    // sleep for 30 seconds
+    uint32_t sleep_time_ms = 30000;
+
+    ///act
+    ///assert
+    gballoc_ll_set_option_decay_check_dirty_or_muzzy_pages(num_allocations, alloc_size, decay_ms, expected_narenas, residual_dirty_pages_percent, false, sleep_time_ms, true);
+
+    ///clean
+    ASSERT_ARE_EQUAL(int, 0, gballoc_ll_set_option("dirty_decay", &default_dirty_decay_ms));
+}
+
+TEST_FUNCTION(gballoc_ll_set_option_check_dirty_pages_with_decay_minus_one)
+{
+    /// arrange
+    uint32_t expected_narenas = MAX_ARENAS;
+
+    // we will do 2 GB of allocations
+    uint32_t num_allocations = 2000000;
+    size_t alloc_size = 1024;
+
+    int64_t decay_ms = -1;
+    uint32_t residual_dirty_pages_percent = 95;
+
+    // sleep for 30 seconds
+    uint32_t sleep_time_ms = 30000;
+
+    ///act
+    ///assert
+    gballoc_ll_set_option_decay_check_dirty_or_muzzy_pages(num_allocations, alloc_size, decay_ms, expected_narenas, residual_dirty_pages_percent, false, sleep_time_ms, true);
+
+    ///clean
+    ASSERT_ARE_EQUAL(int, 0, gballoc_ll_set_option("dirty_decay", &default_dirty_decay_ms));
+}
+
+TEST_FUNCTION(gballoc_ll_set_option_check_muzzy_pages_with_decay_5_seconds)
+{
+    /// arrange
+    uint32_t expected_narenas = MAX_ARENAS;
+
+    // we will do 2 GB of allocations
+    uint32_t num_allocations = 2000000;
+    size_t alloc_size = 1024;
+
+    int64_t decay_ms = 5000;
+    uint32_t residual_muzzy_pages_percent = 10;
+
+    // sleep for 30 seconds
+    uint32_t sleep_time_ms = 30000;
+
+    ///act
+    ///assert
+    gballoc_ll_set_option_decay_check_dirty_or_muzzy_pages(num_allocations, alloc_size, decay_ms, expected_narenas, residual_muzzy_pages_percent, true, sleep_time_ms, false);
+
+    ///clean
+    ASSERT_ARE_EQUAL(int, 0, gballoc_ll_set_option("dirty_decay", &default_dirty_decay_ms));
+    ASSERT_ARE_EQUAL(int, 0, gballoc_ll_set_option("muzzy_decay", &default_muzzy_decay_ms));
+}
+
+TEST_FUNCTION(gballoc_ll_set_option_check_muzzy_pages_with_decay_5_minutes)
+{
+    /// arrange
+    uint32_t expected_narenas = MAX_ARENAS;
+
+    // we will do 2 GB of allocations
+    uint32_t num_allocations = 2000000;
+    size_t alloc_size = 1024;
+
+    int64_t decay_ms = 300000;
+    uint32_t residual_muzzy_pages_percent = 90;
+
+    // sleep for 30 seconds
+    uint32_t sleep_time_ms = 30000;
+
+    ///act
+    ///assert
+    gballoc_ll_set_option_decay_check_dirty_or_muzzy_pages(num_allocations, alloc_size, decay_ms, expected_narenas, residual_muzzy_pages_percent, false, sleep_time_ms, false);
+
+    ///clean
+    ASSERT_ARE_EQUAL(int, 0, gballoc_ll_set_option("dirty_decay", &default_dirty_decay_ms));
+    ASSERT_ARE_EQUAL(int, 0, gballoc_ll_set_option("muzzy_decay", &default_muzzy_decay_ms));
+}
+
+TEST_FUNCTION(gballoc_ll_set_option_check_muzzy_pages_with_decay_minus_one)
+{
+    /// arrange
+    uint32_t expected_narenas = MAX_ARENAS;
+
+    // we will do 2 GB of allocations
+    uint32_t num_allocations = 2000000;
+    size_t alloc_size = 1024;
+
+    int64_t decay_ms = -1;
+    uint32_t residual_muzzy_pages_percent = 95;
+
+    // sleep for 30 seconds
+    uint32_t sleep_time_ms = 30000;
+
+    ///act
+    ///assert
+    gballoc_ll_set_option_decay_check_dirty_or_muzzy_pages(num_allocations, alloc_size, decay_ms, expected_narenas, residual_muzzy_pages_percent, false, sleep_time_ms, false);
+
+    ///clean
+    ASSERT_ARE_EQUAL(int, 0, gballoc_ll_set_option("dirty_decay", &default_dirty_decay_ms));
+    ASSERT_ARE_EQUAL(int, 0, gballoc_ll_set_option("muzzy_decay", &default_muzzy_decay_ms));
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
