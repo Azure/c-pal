@@ -988,7 +988,7 @@ TEST_FUNCTION(chaos_knight_test_with_timers_no_lock_and_null_work_item)
     }
 
     // assert that all scheduled items were executed
-    ASSERT_ARE_EQUAL(int64_t, (int64_t)InterlockedAdd64(&chaos_test_data.expected_call_count, 0), (int64_t)InterlockedAdd64(&chaos_test_data.executed_work_functions, 0));
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&chaos_test_data.executed_work_functions, chaos_test_data.expected_call_count, UINT32_MAX));
 
     LogInfo("Chaos test executed %" PRId64 " work items, %" PRId64 " timers",
         InterlockedAdd64(&chaos_test_data.executed_work_functions, 0), InterlockedAdd64(&chaos_test_data.executed_timer_functions, 0));
@@ -1001,7 +1001,6 @@ TEST_FUNCTION(chaos_knight_test_with_timers_no_lock_and_null_work_item)
     THANDLE_ASSIGN(THREADPOOL)(&chaos_test_data.threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
-
 
 TEST_FUNCTION(chaos_knight_test)
 {
