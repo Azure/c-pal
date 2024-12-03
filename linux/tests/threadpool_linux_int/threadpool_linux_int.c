@@ -120,12 +120,13 @@ static void threadpool_long_task_v2(void* context)
 {
     WRAP_DATA* data = context;
     ASSERT_ARE_EQUAL(int, 0, strcmp(data->mem, "READY"));
-    srw_lock_acquire_exclusive(data->srw_lock);
+    srw_lock_acquire_shared(data->srw_lock);
     if (WRAP_TEST_WORK_ITEMS == interlocked_increment(data->counter)) 
     {
         wake_by_address_single(data->counter);
     }
-    srw_lock_release_exclusive(data->srw_lock);
+    srw_lock_release_shared(data->srw_lock);
+    ThreadAPI_Sleep(1);
 }
 
 static void work_function(void* context)
