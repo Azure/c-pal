@@ -467,15 +467,13 @@ static void gballoc_ll_set_option_decay_check_working_set_size(uint32_t num_allo
     }
     gballoc_ll_free(ptr);
 
-
-    char command[64];
-
     // sleep for a while for decay time to elapse
     for (uint32_t i = 0; i < 10; i++)
     {
         ThreadAPI_Sleep(sleep_time_ms / 10);
     }
 
+    char command[64];
     // force decay for all arenas, this will free all the dirty or muzzy pages that have been retained for longer than the decay time
     for (uint32_t i = 0; i < expected_narenas; i++)
     {
@@ -493,7 +491,6 @@ static void gballoc_ll_set_option_decay_check_working_set_size(uint32_t num_allo
     result = get_working_set_size(&working_set_after);
     ASSERT_ARE_EQUAL(int, 0, result);
     LogInfo("Working set size after freeing allocations and decay: %zu bytes\n", working_set_after);
-        
     
     if (is_percent_max)
     {
