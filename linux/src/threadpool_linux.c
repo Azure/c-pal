@@ -815,20 +815,23 @@ int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WOR
             }
             else
             {
-                /* Codes_SRS_THREADPOOL_LINUX_05_020: [ threadpool_schedule_work_item shall acquire the SRW lock in exclusive mode by calling srw_lock_acquire_exclusive. ]*/
-                srw_lock_acquire_exclusive(threadpool_ptr->srw_lock);
+                /* Codes_SRS_THREADPOOL_LINUX_05_020: [ threadpool_schedule_work_item shall acquire the SRW lock in shared mode by calling srw_lock_acquire_exclusive. ]*/
+                srw_lock_acquire_shared(threadpool_ptr->srw_lock);
                 THREADPOOL_TASK* task_item = &threadpool_ptr->task_array[insert_pos];
 
-                (void)interlocked_increment(&threadpool_work_item->pending_work_item_count);
-                task_item->pending_work_item_count_ptr = &threadpool_work_item->pending_work_item_count;
+                (void)interlocked_increment(&threadpool_work_item->pending_work_item_count);                
 
                 /* Codes_SRS_THREADPOOL_LINUX_05_022: [ threadpool_schedule_work_item shall copy the work_function and work_function_context from threadpool_work_item into insert position in the task array. ]*/
                 task_item->work_function_ctx = threadpool_work_item->work_function_ctx;
                 task_item->work_function = threadpool_work_item->work_function;
 
-                /* Codes_SRS_THREADPOOL_LINUX_05_023: [ threadpool_schedule_work_item shall set the task_state to TASK_WAITING and then release the exclusive SRW lock by calling srw_lock_release_exclusive. ]*/
+                /* Codes_SRS_THREADPOOL_LINUX_05_023: [ threadpool_schedule_work_item shall set the task_state to TASK_WAITING and then release the shared SRW lock by calling srw_lock_release_exclusive. ]*/
                 (void)interlocked_exchange(&task_item->task_state, TASK_WAITING);               
 
+                srw_lock_release_shared(threadpool_ptr->srw_lock);
+
+                srw_lock_acquire_exclusive(threadpool_ptr->srw_lock);
+                task_item->pending_work_item_count_ptr = &threadpool_work_item->pending_work_item_count;
                 srw_lock_release_exclusive(threadpool_ptr->srw_lock);
 
                 /* Codes_SRS_THREADPOOL_LINUX_05_025: [ threadpool_schedule_work_item shall unblock the threadpool semaphore by calling sem_post. ]*/

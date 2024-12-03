@@ -126,7 +126,6 @@ static void threadpool_long_task_v2(void* context)
         wake_by_address_single(data->counter);
     }
     srw_lock_release_shared(data->srw_lock);
-    ThreadAPI_Sleep(1);
 }
 
 static void work_function(void* context)

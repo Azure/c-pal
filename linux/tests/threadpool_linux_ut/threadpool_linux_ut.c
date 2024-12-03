@@ -1432,9 +1432,9 @@ TEST_FUNCTION(threadpool_schedule_work_item_with_NULL_work_function_fails)
 /* Tests_SRS_THREADPOOL_LINUX_05_016: [ If task state is TASK_NOT_USED, threadpool_schedule_work_item shall set the current task state to TASK_INITIALIZING. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_017: [ threadpool_schedule_work_item shall release the shared SRW lock by calling srw_lock_release_shared ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_018: [ If the previous task state is not `TASK_NOT_USED` then threadpool_schedule_work_item shall increase task_array capacity ]*/
-/* Tests_SRS_THREADPOOL_LINUX_05_020: [ threadpool_schedule_work_item shall acquire the SRW lock in exclusive mode by calling srw_lock_acquire_exclusive. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_020: [ threadpool_schedule_work_item shall acquire the SRW lock in shared mode by calling srw_lock_acquire_exclusive. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_022: [ threadpool_schedule_work_item shall copy the work_function and work_function_context from threadpool_work_item into insert position in the task array. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_05_023: [ threadpool_schedule_work_item shall set the task_state to TASK_WAITING and then release the exclusive SRW lock by calling srw_lock_release_exclusive. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_023: [ threadpool_schedule_work_item shall set the task_state to TASK_WAITING and then release the shared SRW lock by calling srw_lock_release_exclusive. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_025: [ threadpool_schedule_work_item shall unblock the threadpool semaphore by calling sem_post. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_026: [ threadpool_schedule_work_item shall succeed and return 0. ]*/
 
@@ -1457,9 +1457,11 @@ TEST_FUNCTION(threadpool_schedule_work_item_succeeds)
     STRICT_EXPECTED_CALL(interlocked_increment_64(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(srw_lock_acquire_exclusive(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(srw_lock_acquire_shared(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));    
+    STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(srw_lock_acquire_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(srw_lock_release_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_sem_post(IGNORED_ARG));
     
@@ -1484,9 +1486,9 @@ TEST_FUNCTION(threadpool_schedule_work_item_succeeds)
 /* Tests_SRS_THREADPOOL_LINUX_05_017: [ threadpool_schedule_work_item shall release the shared SRW lock by calling srw_lock_release_shared ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_018: [ If the previous task state is not `TASK_NOT_USED` then threadpool_schedule_work_item shall increase task_array capacity ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_019: [ If reallocating the task array fails, threadpool_schedule_work_item shall fail and return a non-zero value. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_05_020: [ threadpool_schedule_work_item shall acquire the SRW lock in exclusive mode by calling srw_lock_acquire_exclusive. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_020: [ threadpool_schedule_work_item shall acquire the SRW lock in shared mode by calling srw_lock_acquire_exclusive. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_022: [ threadpool_schedule_work_item shall copy the work_function and work_function_context from threadpool_work_item into insert position in the task array. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_05_023: [ threadpool_schedule_work_item shall set the task_state to TASK_WAITING and then release the exclusive SRW lock by calling srw_lock_release_exclusive. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_023: [ threadpool_schedule_work_item shall set the task_state to TASK_WAITING and then release the shared SRW lock by calling srw_lock_release_exclusive. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_025: [ threadpool_schedule_work_item shall unblock the threadpool semaphore by calling sem_post. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_026: [ threadpool_schedule_work_item shall succeed and return 0. ]*/
 
@@ -1527,8 +1529,10 @@ TEST_FUNCTION(threadpool_schedule_work_item_succeeds_realloc_array_with_no_empty
     STRICT_EXPECTED_CALL(interlocked_increment_64(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(srw_lock_acquire_exclusive(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(srw_lock_acquire_shared(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(srw_lock_acquire_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(srw_lock_release_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_sem_post(IGNORED_ARG));    
 
