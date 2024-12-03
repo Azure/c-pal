@@ -100,6 +100,7 @@ static void threadpool_task_wait_random(void* parameter)
     wake_by_address_single(thread_counter);
 }
 
+#define WRAP_TEST_WORK_ITEMS 10000
 
 static void threadpool_long_task(void* context)
 {
@@ -107,8 +108,10 @@ static void threadpool_long_task(void* context)
     ASSERT_ARE_EQUAL(int, 0, strcmp(data->mem, "READY"));
     strcpy(data->mem, "DONE");    
     srw_lock_acquire_shared(data->srw_lock);
-    (void)interlocked_increment(data->counter);
-    wake_by_address_single(data->counter);
+    if (WRAP_TEST_WORK_ITEMS == interlocked_increment(data->counter)) 
+    {
+        wake_by_address_single(data->counter);
+    }
     srw_lock_release_shared(data->srw_lock);
     free(data);
 }
@@ -116,11 +119,14 @@ static void threadpool_long_task(void* context)
 static void threadpool_long_task_v2(void* context)
 {
     WRAP_DATA* data = context;
-    ASSERT_ARE_EQUAL(int, 0, strcmp(data->mem, "READY"));    
+    ASSERT_ARE_EQUAL(int, 0, strcmp(data->mem, "READY"));
     srw_lock_acquire_shared(data->srw_lock);
-    (void)interlocked_increment(data->counter);
-    wake_by_address_single(data->counter);
+    if (WRAP_TEST_WORK_ITEMS == interlocked_increment(data->counter)) 
+    {
+        wake_by_address_single(data->counter);
+    }
     srw_lock_release_shared(data->srw_lock);
+    ThreadAPI_Sleep(1);
 }
 
 static void work_function(void* context)
@@ -429,8 +435,6 @@ TEST_FUNCTION(threadpool_chaos_knight_v2)
     execution_engine_dec_ref(execution_engine);
 }
 
-#define WRAP_TEST_WORK_ITEMS 10000
-
 TEST_FUNCTION(threadpool_force_wrap_around)
 {
     // arrange
@@ -438,7 +442,7 @@ TEST_FUNCTION(threadpool_force_wrap_around)
 
     EXECUTION_ENGINE_PARAMETERS params;
     params.min_thread_count = 1;
-    params.max_thread_count = num_threads;
+    params.max_thread_count = 16;
 
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&params);
 
@@ -476,7 +480,7 @@ TEST_FUNCTION(threadpool_force_wrap_around_v2)
     const uint32_t num_threads = WRAP_TEST_WORK_ITEMS;
     EXECUTION_ENGINE_PARAMETERS params;
     params.min_thread_count = 1;
-    params.max_thread_count = num_threads;
+    params.max_thread_count = 16;
 
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&params);
 
