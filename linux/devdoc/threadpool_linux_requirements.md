@@ -167,7 +167,7 @@ Note: `threadpool_open` will be deprecated and `threadpool_create` will perform 
 ```C
 MOCKABLE_FUNCTION(, void, threadpool_close, THANDLE(THREADPOOL), threadpool);
 ```
-Note: `threadpool_close` will be deprecated and threadpool_dispose will perform additional tasks of threadpool_close. This function will exist until all the libraries calling this API are modified to use only `threadpool_create`.
+Note: `threadpool_close` will be deprecated and `threadpool_dispose` will perform additional tasks of `threadpool_close`. This function will exist until all the libraries calling this API are modified to use only `threadpool_create`.
 `threadpool_close` closes the threadpool.
 
 **SRS_THREADPOOL_LINUX_07_025: [** If `threadpool` is `NULL`, `threadpool_close` shall fail and return. **]**

@@ -202,8 +202,10 @@ static int threadpool_work_func(void* param)
                         if (is_pending_work_item_count_ptr_not_null)
                         {                            
                             srw_lock_acquire_exclusive(threadpool->srw_lock);
-                            (void)interlocked_decrement(threadpool->task_array[current_index].pending_work_item_count_ptr);
-                            wake_by_address_single(threadpool->task_array[current_index].pending_work_item_count_ptr);                         
+                            if (interlocked_decrement(threadpool->task_array[current_index].pending_work_item_count_ptr) == 0)
+                            {
+                                wake_by_address_single(threadpool->task_array[current_index].pending_work_item_count_ptr);                         
+                            }
                             srw_lock_release_exclusive(threadpool->srw_lock);
                         }
                     }
@@ -248,7 +250,7 @@ static int reallocate_threadpool_array(THREADPOOL* threadpool)
             else
             {
                 /* Codes_SRS_THREADPOOL_LINUX_07_043: [ threadpool_schedule_work shall initialize every task item in the new task array with task_func and task_param set to NULL and task_state set to TASK_NOT_USED. ]*/
-                for (int32_t index = existing_count; index < new_task_array_size; index++)
+                for (uint32_t index = existing_count; index < new_task_array_size; index++)
                 {
                     temp_array[index].work_function = NULL;
                     temp_array[index].work_function_ctx = NULL;
@@ -298,13 +300,17 @@ static void threadpool_dispose(THREADPOOL* threadpool)
 {
     /* Codes_SRS_THREADPOOL_LINUX_07_089: [ threadpool_dispose shall signal all threads to return. ]*/
     (void)InterlockedHL_SetAndWakeAll(&threadpool->stop_thread, 1);
-    for (int32_t index = 0; index < threadpool->used_thread_count; index++)
+    for (uint32_t index = 0; index < threadpool->used_thread_count; index++)
     {
         int dont_care;
         /* Codes_SRS_THREADPOOL_LINUX_07_027: [ threadpool_dispose shall join all threads in the threadpool. ]*/
         if (ThreadAPI_Join(threadpool->thread_handle_array[index], &dont_care) != THREADAPI_OK)
         {
-            LogError("Failure joining thread number %" PRId32 "", index);
+            LogError("Failure joining thread number %" PRIu32 "", index);
+        }
+        else
+        {
+            // Everything Okay.
         }
     }  
 
@@ -365,7 +371,7 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                 {
                     result->task_array_size = DEFAULT_TASK_ARRAY_SIZE;
                     /* Codes_SRS_THREADPOOL_LINUX_07_007: [ threadpool_create shall initialize every task item in the tasks array with task_func and task_param set to NULL and task_state set to TASK_NOT_USED. ]*/
-                    for (int32_t index = 0; index < result->task_array_size; index++)
+                    for (uint32_t index = 0; index < result->task_array_size; index++)
                     {
                         result->task_array[index].work_function = NULL;
                         result->task_array[index].work_function_ctx = NULL;
@@ -398,14 +404,14 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                             (void)interlocked_exchange_64(&result->insert_idx, 0);
                             (void)interlocked_exchange_64(&result->consume_idx, 0);
 
-                            int32_t index;
+                            uint32_t index;
                             for (index = 0; index < result->used_thread_count; index++)
                             {
                                 /* Codes_SRS_THREADPOOL_LINUX_07_020: [ threadpool_create shall create number of min_thread_count threads for threadpool using ThreadAPI_Create. ]*/
                                 if (ThreadAPI_Create(&result->thread_handle_array[index], threadpool_work_func, result) != THREADAPI_OK)
                                 {
                                     /* Codes_SRS_THREADPOOL_LINUX_07_011: [ If any error occurs, threadpool_create shall fail and return NULL. ]*/
-                                    LogError("Failure creating thread %" PRId32 "", index);
+                                    LogError("Failure creating thread %" PRIu32 "", index);
                                     break;
                                 }
                             }
@@ -414,12 +420,12 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                             if (index < result->used_thread_count)
                             {
                                 (void)interlocked_exchange(&result->stop_thread, 1);
-                                for (int32_t inner = 0; inner < index; inner++)
+                                for (uint32_t inner = 0; inner < index; inner++)
                                 {
                                     int dont_care;
                                     if (ThreadAPI_Join(result->thread_handle_array[inner], &dont_care) != THREADAPI_OK)
                                     {
-                                        LogError("Failure joining thread number %" PRId32 "", inner);
+                                        LogError("Failure joining thread number %" PRIu32 "", inner);
                                     }
                                 }                                
                             }
@@ -442,6 +448,7 @@ all_ok:
     return result;
 }
 
+// threadpool_open will be deprecated and threadpool_create will perform additional tasks of threadpool_open. This function will exist until all the libraries calling this API are modified to use only threadpool_create.
 int threadpool_open(THANDLE(THREADPOOL) threadpool)
 {
     int result;
@@ -461,6 +468,7 @@ int threadpool_open(THANDLE(THREADPOOL) threadpool)
     return result;
 }
 
+// threadpool_close will be deprecated and threadpool_dispose will perform additional tasks of threadpool_close. This function will exist until all the libraries calling this API are modified to use only threadpool_create.
 void threadpool_close(THANDLE(THREADPOOL) threadpool)
 {
     /* Codes_SRS_THREADPOOL_LINUX_07_025: [ If threadpool is NULL, threadpool_close shall fail and return. ]*/
@@ -815,9 +823,7 @@ int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WOR
                 task_item->work_function = threadpool_work_item->work_function;
 
                 /* Codes_SRS_THREADPOOL_LINUX_05_023: [ threadpool_schedule_work_item shall set the task_state to TASK_WAITING and then release the exclusive SRW lock by calling srw_lock_release_exclusive. ]*/
-                (void)interlocked_exchange(&task_item->task_state, TASK_WAITING);
-
-                wake_by_address_single(task_item->pending_work_item_count_ptr);
+                (void)interlocked_exchange(&task_item->task_state, TASK_WAITING);               
 
                 srw_lock_release_exclusive(threadpool_ptr->srw_lock);
 

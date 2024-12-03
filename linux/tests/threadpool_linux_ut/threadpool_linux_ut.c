@@ -363,8 +363,7 @@ TEST_FUNCTION(creating_2_threadpool_succeeds)
 TEST_FUNCTION(threadpool_dispose_frees_resources)
 {
     // arrange
-    THANDLE(THREADPOOL) threadpool = test_create_threadpool();
-    umock_c_reset_all_calls();
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool();    
 
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
     STRICT_EXPECTED_CALL(InterlockedHL_SetAndWakeAll(IGNORED_ARG, IGNORED_ARG));
@@ -392,8 +391,7 @@ TEST_FUNCTION(threadpool_dispose_performs_an_implicit_close)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
-    umock_c_reset_all_calls();
+    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));    
 
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));    
     STRICT_EXPECTED_CALL(InterlockedHL_SetAndWakeAll(IGNORED_ARG, 1));
@@ -419,8 +417,7 @@ TEST_FUNCTION(threadpool_dispose_performs_an_implicit_close)
 TEST_FUNCTION(threadpool_create_fails_when_threadAPI_create_fails)
 {
     // arrange    
-    umock_c_reset_all_calls();
-    
+        
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));    
     STRICT_EXPECTED_CALL(execution_engine_linux_get_parameters(test_execution_engine));
@@ -476,8 +473,7 @@ TEST_FUNCTION(threadpool_open_with_NULL_threadpool_fails)
 TEST_FUNCTION(threadpool_open_succeeds)
 {
     // arrange
-    int result;
-    umock_c_reset_all_calls();
+    int result;    
 
     threadpool_create_succeed_expectations();    
 
@@ -500,8 +496,7 @@ TEST_FUNCTION(threadpool_open_succeeds)
 TEST_FUNCTION(threadpool_work_func_parameter_NULL_succeeds)
 {
     //arrange
-    THANDLE(THREADPOOL) threadpool = test_create_threadpool();
-    umock_c_reset_all_calls();
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool();   
 
     //act
     g_saved_worker_thread_func(NULL);
@@ -519,8 +514,7 @@ TEST_FUNCTION(threadpool_work_func_succeeds_when_clock_gettime_fails)
 {
     //arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
-    umock_c_reset_all_calls();
-
+    
     STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_REALTIME, IGNORED_ARG)).SetReturn(-1);
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0)).SetReturn(1);
 
@@ -538,8 +532,7 @@ TEST_FUNCTION(threadpool_work_func_succeeds_when_clock_gettime_fails)
 TEST_FUNCTION(threadpool_work_func_succeeds_when_sem_timedwait_fails)
 {
     //arrange
-    THANDLE(THREADPOOL) threadpool = test_create_threadpool();  
-    umock_c_reset_all_calls();
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool();    
 
     STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_REALTIME, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_sem_timedwait(IGNORED_ARG, IGNORED_ARG)).SetReturn(1);
@@ -666,16 +659,13 @@ TEST_FUNCTION(threadpool_close_succeeds)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
-    umock_c_reset_all_calls();
-
+    
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
-
     STRICT_EXPECTED_CALL(InterlockedHL_SetAndWakeAll(IGNORED_ARG, IGNORED_ARG));
     for(size_t i = 0; i < MIN_THREAD_COUNT; i++)
     {
         STRICT_EXPECTED_CALL(ThreadAPI_Join(IGNORED_ARG, IGNORED_ARG));
-    }
-     
+    }     
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
     STRICT_EXPECTED_CALL(srw_lock_destroy(IGNORED_ARG));
@@ -710,8 +700,7 @@ TEST_FUNCTION(threadpool_schedule_work_with_NULL_work_function_fails)
     // arrange
     THANDLE(THREADPOOL) threadpool =test_create_threadpool();
     int result;
-    umock_c_reset_all_calls();
-
+    
     // act
     result = threadpool_schedule_work(threadpool, NULL, (void*)0x4243);
 
@@ -1312,8 +1301,7 @@ TEST_FUNCTION(threadpool_create_work_item_with_NULL_work_function_fails)
     // arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
     THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item;
-    umock_c_reset_all_calls();
-
+    
     // act
     threadpool_work_item = threadpool_create_work_item(threadpool, NULL, (void*)0x4243);
 
@@ -1332,7 +1320,7 @@ TEST_FUNCTION(threadpool_create_work_item_succeeds)
     // arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
     THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item;
-    umock_c_reset_all_calls();
+    
     threadpool_create_work_item_success_expectations();
 
     // act
@@ -1358,7 +1346,7 @@ TEST_FUNCTION(threadpool_create_work_item_succeeds_with_NULL_work_function_conte
     // arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
     THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item;
-    umock_c_reset_all_calls();
+    
     threadpool_create_work_item_success_expectations();
 
     // act
@@ -1428,8 +1416,7 @@ TEST_FUNCTION(threadpool_schedule_work_item_with_NULL_work_function_fails)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
-    int work_item_schedule_result;
-    umock_c_reset_all_calls();
+    int work_item_schedule_result;    
 
     // act
     work_item_schedule_result = threadpool_schedule_work_item(threadpool, NULL);
@@ -1456,8 +1443,7 @@ TEST_FUNCTION(threadpool_schedule_work_item_with_NULL_work_function_fails)
 TEST_FUNCTION(threadpool_schedule_work_item_succeeds)
 {
     // arrange
-    THANDLE(THREADPOOL) threadpool = test_create_threadpool();
-    umock_c_reset_all_calls();
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool();    
 
     THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item;
     threadpool_create_work_item_success_expectations();
@@ -1475,8 +1461,7 @@ TEST_FUNCTION(threadpool_schedule_work_item_succeeds)
     STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
     STRICT_EXPECTED_CALL(srw_lock_acquire_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));    
     STRICT_EXPECTED_CALL(srw_lock_release_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_sem_post(IGNORED_ARG));
     
@@ -1511,8 +1496,7 @@ TEST_FUNCTION(threadpool_schedule_work_item_succeeds_realloc_array_with_no_empty
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
-    umock_c_reset_all_calls();
-
+    
     THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item;
     threadpool_create_work_item_success_expectations();
     threadpool_work_item = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
@@ -1547,7 +1531,6 @@ TEST_FUNCTION(threadpool_schedule_work_item_succeeds_realloc_array_with_no_empty
     STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
     STRICT_EXPECTED_CALL(srw_lock_acquire_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
     STRICT_EXPECTED_CALL(srw_lock_release_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_sem_post(IGNORED_ARG));    
 
@@ -1577,8 +1560,7 @@ TEST_FUNCTION(threadpool_schedule_work_item_fails_when_new_array_size_overflows)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
-    umock_c_reset_all_calls();
-
+    
     THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item;
     threadpool_create_work_item_success_expectations();
     threadpool_work_item = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
@@ -1624,8 +1606,7 @@ TEST_FUNCTION(threadpool_schedule_work_item_fails_when_realloc_array_fails)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
-    umock_c_reset_all_calls();
-
+    
     THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item;
     threadpool_create_work_item_success_expectations();
     threadpool_work_item = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
@@ -1681,8 +1662,7 @@ TEST_FUNCTION(threadpool_destroy_work_item_with_NULL_threadpool_work_item_fails)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
-    umock_c_reset_all_calls();
-
+    
     // call
     threadpool_destroy_work_item(threadpool, NULL);
 
@@ -1699,8 +1679,7 @@ TEST_FUNCTION(threadpool_destroy_work_item_with_NULL_threadpool_work_item_fails)
 TEST_FUNCTION(threadpool_destroy_work_item_fails_for_InterlockedHL_WaitForValue_returns_INTERLOCKED_HL_ERROR)
 {
     // arrange
-    THANDLE(THREADPOOL) threadpool = test_create_threadpool();
-    umock_c_reset_all_calls();
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool();    
 
     THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item;
     threadpool_create_work_item_success_expectations();
@@ -1733,8 +1712,7 @@ TEST_FUNCTION(threadpool_destroy_work_item_fails_for_InterlockedHL_WaitForValue_
 TEST_FUNCTION(threadpool_destroy_work_item_succeeds)
 {
     // arrange
-    THANDLE(THREADPOOL) threadpool = test_create_threadpool();
-    umock_c_reset_all_calls();
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool();    
 
     THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item;
     threadpool_create_work_item_success_expectations();
