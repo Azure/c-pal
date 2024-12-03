@@ -7,6 +7,10 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/types.h>
+#include <ifaddrs.h>
+#include <netdb.h>
+#include <unistd.h>
 
 #include "umock_c/umock_c_prod.h"
 
@@ -29,6 +33,10 @@ struct addrinfo;
 #define accept mocked_accept
 #define close mocked_close
 #define shutdown mocked_shutdown
+#define gethostname mocked_gethostname
+#define getifaddrs mocked_getifaddrs
+#define freeifaddrs mocked_freeifaddrs
+#define getnameinfo mocked_getnameinfo
 #define fcntl mocked_fcntl
 
 MOCKABLE_FUNCTION(, const char*, mocked_inet_ntop, int, af, const void*, cp, char*, buf, socklen_t, len);
@@ -46,6 +54,10 @@ MOCKABLE_FUNCTION(, ssize_t, mocked_recv, SOCKET_HANDLE, sockfd, void*, buf, siz
 MOCKABLE_FUNCTION(, SOCKET_HANDLE, mocked_accept, SOCKET_HANDLE, s, struct sockaddr*, addr, socklen_t*, addrlen);
 MOCKABLE_FUNCTION(, int, mocked_close, SOCKET_HANDLE, s);
 MOCKABLE_FUNCTION(, int, mocked_shutdown, SOCKET_HANDLE, __fd, int, __how);
+MOCKABLE_FUNCTION(, int, mocked_gethostname, char*, name, size_t, namelen);
+MOCKABLE_FUNCTION(, int, mocked_getifaddrs, struct ifaddrs**, ifap);
+MOCKABLE_FUNCTION(, void, mocked_freeifaddrs, struct ifaddrs*, ifap);
+MOCKABLE_FUNCTION(, int, mocked_getnameinfo, const struct sockaddr*, addr, socklen_t, addrlen, char*, host, socklen_t, hostlen, char*, serv, socklen_t, servlen, int, flags);
 extern int mocked_fcntl(int __fd, int __cmd, ...);
 
 #endif // SOCKET_MOCKED_H

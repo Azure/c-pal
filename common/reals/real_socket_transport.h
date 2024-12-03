@@ -23,7 +23,8 @@
         socket_transport_send,                         \
         socket_transport_receive,                      \
         socket_transport_get_underlying_socket,        \
-        socket_transport_is_valid_socket               \
+        socket_transport_is_valid_socket,              \
+        socket_transport_get_local_address             \
     )
 
 #ifdef __cplusplus
@@ -42,6 +43,7 @@ SOCKET_SEND_RESULT real_socket_transport_send(SOCKET_TRANSPORT_HANDLE socket_tra
 SOCKET_RECEIVE_RESULT real_socket_transport_receive(SOCKET_TRANSPORT_HANDLE socket_transport, SOCKET_BUFFER* payload, uint32_t buffer_count, uint32_t* bytes_recv, uint32_t flags, void* data);
 SOCKET_HANDLE real_socket_transport_get_underlying_socket(SOCKET_TRANSPORT_HANDLE socket_transport);
 bool real_socket_transport_is_valid_socket(SOCKET_TRANSPORT_HANDLE socket_transport_handle);
+int real_socket_transport_get_local_address(SOCKET_TRANSPORT_HANDLE socket_transport, char hostname[MAX_GET_HOST_NAME_LEN], LOCAL_ADDRESS** local_address_list, uint32_t* address_count);
 
 #ifdef __cplusplus
 }
