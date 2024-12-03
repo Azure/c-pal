@@ -211,7 +211,7 @@ static int threadpool_work_func(void* param)
                     }
                 }
             }
-        /* Codes_SRS_THREADPOOL_LINUX_07_085: [ threadpool_work_func shall loop until the flag to stop the threadss is not set to 1. ]*/
+        /* Codes_SRS_THREADPOOL_LINUX_07_085: [ threadpool_work_func shall loop until the flag to stop the threads is not set to 1. ]*/
         } while (interlocked_add(&threadpool->stop_thread, 0) != 1);
     }
     return 0;
@@ -855,18 +855,12 @@ void threadpool_destroy_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WOR
         LogError("Invalid arguments: THANDLE(THREADPOOL) threadpool: %p, THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item: %p", threadpool, threadpool_work_item);
     }
     else
-    {
-        THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
-        
+    {   
         /* Codes_SRS_THREADPOOL_LINUX_05_033: [ threadpool_destroy_work_item shall wait for all pending work items to finish execution. ]*/
         if (InterlockedHL_WaitForValue(&threadpool_work_item->pending_work_item_count, 0, UINT32_MAX) == INTERLOCKED_HL_OK)
         {
-            /* Codes_SRS_THREADPOOL_LINUX_05_034: [ When all pending work items finish execution, threadpool_destroy_work_item shall acquire the SRW lock in shared mode by calling srw_lock_acquire_shared. ]*/
-            srw_lock_acquire_shared(threadpool_ptr->srw_lock);
             /* Codes_SRS_THREADPOOL_LINUX_05_035: [ threadpool_destroy_work_item shall free the memory allocated to the work item of type THREADPOOL_WORK_ITEM_HANDLE created in threadpool_create_work_item. ]*/
             free(threadpool_work_item);
-            /* Codes_SRS_THREADPOOL_LINUX_05_036: [ threadpool_destroy_work_item shall release the shared SRW lock. ]*/
-            srw_lock_release_shared(threadpool_ptr->srw_lock);
         }
         else
         {

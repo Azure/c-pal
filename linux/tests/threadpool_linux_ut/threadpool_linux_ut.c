@@ -158,9 +158,7 @@ static void threadpool_create_work_item_success_expectations(void)
 static void threadpool_destroy_work_item_succeed_expectations(void)
 {    
     STRICT_EXPECTED_CALL(InterlockedHL_WaitForValue(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG)).SetReturn(INTERLOCKED_HL_OK);
-    STRICT_EXPECTED_CALL(srw_lock_acquire_shared(IGNORED_ARG));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
 }
 
 static void threadpool_task(void* parameter)
@@ -1705,10 +1703,7 @@ TEST_FUNCTION(threadpool_destroy_work_item_fails_for_InterlockedHL_WaitForValue_
 }
 
 /* Tests_SRS_THREADPOOL_LINUX_05_033: [ threadpool_destroy_work_item shall wait for all pending work items to finish execution. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_05_034: [ When all pending work items finish execution, threadpool_destroy_work_item shall acquire the SRW lock in shared mode by calling srw_lock_acquire_shared. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_035: [ threadpool_destroy_work_item shall free the memory allocated to the work item of type THREADPOOL_WORK_ITEM_HANDLE created in threadpool_create_work_item. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_05_036: [ threadpool_destroy_work_item shall release the shared SRW lock. ]*/
-
 TEST_FUNCTION(threadpool_destroy_work_item_succeeds)
 {
     // arrange

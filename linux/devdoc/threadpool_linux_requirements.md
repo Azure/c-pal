@@ -429,10 +429,6 @@ MOCKABLE_FUNCTION(, void, threadpool_destroy_work_item, THANDLE(THREADPOOL), thr
 
 **SRS_THREADPOOL_LINUX_05_033: [** `threadpool_destroy_work_item` shall wait for all pending work items to finish execution. **]**
 
-  - **SRS_THREADPOOL_LINUX_05_034: [** When all pending work items finish execution, `threadpool_destroy_work_item` shall acquire the `SRW lock` in shared mode by calling `srw_lock_acquire_shared`. **]**
-
   - **SRS_THREADPOOL_LINUX_05_035: [** `threadpool_destroy_work_item` shall free the memory allocated to the work item of type `THREADPOOL_WORK_ITEM_HANDLE` created in `threadpool_create_work_item`. **]**
-
-  - **SRS_THREADPOOL_LINUX_05_036: [** `threadpool_destroy_work_item` shall release the shared `SRW lock`. **]**
 
   - **SRS_THREADPOOL_LINUX_05_037: [** If `InterlockedHL_WaitForValue` does not return `INTERLOCKED_HL_OK` then Log Message with severity `CRITICAL` and `terminate`. **]**
