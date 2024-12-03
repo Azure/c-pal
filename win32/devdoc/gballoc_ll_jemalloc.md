@@ -181,33 +181,19 @@ MOCKABLE_FUNCTION(, int, gballoc_ll_set_option, const char*, option_name, void*,
 
 **SRS_GBALLOC_LL_JEMALLOC_28_002: [** If `option_value` is `NULL`, `gballoc_ll_set_option` shall fail and return a non-zero value. **]**
 
-**SRS_GBALLOC_LL_JEMALLOC_28_003: [** If `option_name` has value as `dirty_decay`: **]**
+**SRS_GBALLOC_LL_JEMALLOC_28_003: [** If `option_name` has value as `dirty_decay` or `muzzy_decay`: **]**
 
 - **SRS_GBALLOC_LL_JEMALLOC_28_004: [** `gballoc_ll_set_option` shall fetch the `decay_milliseconds` value by casting `option_value` to `int64_t`. **]**
 
-- **SRS_GBALLOC_LL_JEMALLOC_28_005: [** `gballoc_ll_set_option` shall retrieve the old dirty decay value and set the new dirty decay value to `decay_milliseconds` for new arenas by calling `je_mallctl` with `arenas.dirty_decay_ms` as the command. **]**
+- **SRS_GBALLOC_LL_JEMALLOC_28_005: [** `gballoc_ll_set_option` shall retrieve the old decay value and set the new decay value to `decay_milliseconds` for new arenas by calling `je_mallctl` with `arenas.dirty_decay_ms` if `option_name` is `dirty_decay` or `arenas.muzzy_decay_ms` if `option_name` is `muzzy_decay` as the command. **]**
 
 - **SRS_GBALLOC_LL_JEMALLOC_28_007: [** `gballoc_ll_set_option` shall fetch the number of existing jemalloc arenas by calling `je_mallctl` with `opt.narenas` as the command. **]**
 
 - **SRS_GBALLOC_LL_JEMALLOC_28_008: [** For each existing arena except last (since it is reserved for huge arena) **]**
 
-    - **SRS_GBALLOC_LL_JEMALLOC_28_009: [** `gballoc_ll_set_option` shall set the dirty decay time for the arena to `decay_milliseconds` milliseconds by calling `je_mallctl` with `arena.<i>.dirty_decay_ms` as the command. **]**
+    - **SRS_GBALLOC_LL_JEMALLOC_28_009: [** `gballoc_ll_set_option` shall set the decay time for the arena to `decay_milliseconds` milliseconds by calling `je_mallctl` with `arena.<i>.dirty_decay_ms` if `option_name` is `dirty_decay` or `arena.<i>.muzzy_decay_ms` if `option_name` is `muzzy_decay` as the command. **]**
 
     - **SRS_GBALLOC_LL_JEMALLOC_28_020: [** If `je_mallctl` returns `EFAULT`, `gballoc_ll_set_option` shall continue without failing as this error is expected when the arena doesn't exist. **]**
-
-**SRS_GBALLOC_LL_JEMALLOC_28_010: [** Else if `option_name` has value as `muzzy_decay`: **]**
-
-- **SRS_GBALLOC_LL_JEMALLOC_28_011: [** `gballoc_ll_set_option` shall fetch the `decay_milliseconds` value by casting `option_value` to `int64_t`. **]**
-
-- **SRS_GBALLOC_LL_JEMALLOC_28_012: [** `gballoc_ll_set_option` shall retrieve the old muzzy decay value and set the new muzzy decay value to `decay_milliseconds` for new arenas by calling `je_mallctl` with `arenas.muzzy_decay_ms` as the command. **]**
-
-- **SRS_GBALLOC_LL_JEMALLOC_28_014: [** `gballoc_ll_set_option` shall fetch the number of existing jemalloc arenas by calling `je_mallctl` with `opt.narenas` as the command. **]**
-
-- **SRS_GBALLOC_LL_JEMALLOC_28_015: [** For each existing arena except last (since it is reserved for huge arena) **]**
-
-    - **SRS_GBALLOC_LL_JEMALLOC_28_016: [** `gballoc_ll_set_option` shall set the muzzy decay time for the arena to `decay_milliseconds` milliseconds by calling `je_mallctl` with `arena.<i>.muzzy_decay_ms` as the command. **]**
-
-    - **SRS_GBALLOC_LL_JEMALLOC_28_021: [** If `je_mallctl` returns `EFAULT`, `gballoc_ll_set_option` shall continue without failing as this error is expected when the arena doesn't exist. **]**
 
 **SRS_GBALLOC_LL_JEMALLOC_28_017: [** Otherwise `gballoc_ll_set_option` shall fail and return a non-zero value. **]**
 
