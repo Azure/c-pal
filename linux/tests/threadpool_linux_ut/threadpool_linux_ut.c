@@ -698,7 +698,7 @@ TEST_FUNCTION(threadpool_schedule_work_with_NULL_threadpool_fails)
 TEST_FUNCTION(threadpool_schedule_work_with_NULL_work_function_fails)
 {
     // arrange
-    THANDLE(THREADPOOL) threadpool =test_create_threadpool();
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool();
     int result;
     
     // act

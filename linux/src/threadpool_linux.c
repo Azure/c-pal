@@ -427,6 +427,10 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                                     {
                                         LogError("Failure joining thread number %" PRIu32 "", inner);
                                     }
+                                    else
+                                    {
+                                        // Everything Okay.
+                                    }
                                 }                                
                             }
                             else
