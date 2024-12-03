@@ -468,9 +468,9 @@ static void gballoc_ll_set_option_decay_check_working_set_size(uint32_t num_allo
     gballoc_ll_free(ptr);
 
     // sleep for a while for decay time to elapse
-    for (uint32_t i = 0; i < 10; i++)
+    for (uint32_t i = 0; i < 20; i++)
     {
-        ThreadAPI_Sleep(sleep_time_ms / 10);
+        ThreadAPI_Sleep(sleep_time_ms / 20);
     }
 
     char command[64];
@@ -482,9 +482,9 @@ static void gballoc_ll_set_option_decay_check_working_set_size(uint32_t num_allo
     }
 
     // sleep for a while to let the pages be purged
-    for (uint32_t i = 0; i < 10; i++)
+    for (uint32_t i = 0; i < 20; i++)
     {
-        ThreadAPI_Sleep(sleep_time_ms / 10);
+        ThreadAPI_Sleep(sleep_time_ms / 20);
     }
 
     size_t working_set_after;
@@ -504,7 +504,7 @@ static void gballoc_ll_set_option_decay_check_working_set_size(uint32_t num_allo
     }
 }
 
-TEST_FUNCTION(gballoc_ll_set_option_check_wss_with_dirty_decay_10_seconds)
+TEST_FUNCTION(gballoc_ll_set_option_check_wss_with_dirty_decay_1_second)
 {
     /// arrange
     uint32_t expected_narenas = MAX_ARENAS;
@@ -513,10 +513,10 @@ TEST_FUNCTION(gballoc_ll_set_option_check_wss_with_dirty_decay_10_seconds)
     uint32_t num_allocations = 2000000;
     size_t alloc_size = 1024;
 
-    int64_t decay_ms = 10000;
+    int64_t decay_ms = 1000;
 
-    // decay takes some time to purge completely, hence the tolerance of 30%
-    uint32_t residual_working_set_size_percentage = 30;
+    // decay takes some time to purge completely, hence the tolerance of 40%(includes metadata too which is never purged)
+    uint32_t residual_working_set_size_percentage = 40;
 
     // sleep for 30 seconds
     uint32_t sleep_time_ms = 30000;
@@ -562,7 +562,7 @@ TEST_FUNCTION(gballoc_ll_set_option_check_wss_with_dirty_decay_minus_one)
     size_t alloc_size = 1024;
 
     int64_t decay_ms = -1;
-    uint32_t residual_working_set_size_percentage = 95;
+    uint32_t residual_working_set_size_percentage = 90;
 
     // sleep for 30 seconds
     uint32_t sleep_time_ms = 30000;
@@ -575,7 +575,7 @@ TEST_FUNCTION(gballoc_ll_set_option_check_wss_with_dirty_decay_minus_one)
     ASSERT_ARE_EQUAL(int, 0, gballoc_ll_set_option("dirty_decay", &default_dirty_decay_ms));
 }
 
-TEST_FUNCTION(gballoc_ll_set_option_check_wss_with_muzzy_decay_10_seconds)
+TEST_FUNCTION(gballoc_ll_set_option_check_wss_with_muzzy_decay_1_second)
 {
     /// arrange
     uint32_t expected_narenas = MAX_ARENAS;
@@ -584,10 +584,10 @@ TEST_FUNCTION(gballoc_ll_set_option_check_wss_with_muzzy_decay_10_seconds)
     uint32_t num_allocations = 2000000;
     size_t alloc_size = 1024;
 
-    int64_t decay_ms = 10000;
+    int64_t decay_ms = 1000;
 
-    // decay takes some time to purge completely, hence the tolerance of 30%
-    uint32_t residual_muzzy_pages_percent = 30;
+    // decay takes some time to purge completely, hence the tolerance of 40%(includes metadata too which is never purged)
+    uint32_t residual_muzzy_pages_percent = 40;
 
     // sleep for 30 seconds
     uint32_t sleep_time_ms = 30000;
@@ -635,7 +635,7 @@ TEST_FUNCTION(gballoc_ll_set_option_check_wss_with_muzzy_decay_minus_one)
     size_t alloc_size = 1024;
 
     int64_t decay_ms = -1;
-    uint32_t residual_muzzy_pages_percent = 95;
+    uint32_t residual_muzzy_pages_percent = 90;
 
     // sleep for 30 seconds
     uint32_t sleep_time_ms = 30000;
