@@ -38,7 +38,6 @@ typedef struct WAIT_WORK_CONTEXT_TAG
 typedef struct WRAP_DATA_TAG
 {
     volatile_atomic int32_t* counter;
-    SRW_LOCK_HANDLE srw_lock;
     char mem[10];
 } WRAP_DATA;
 
@@ -106,27 +105,20 @@ static void threadpool_long_task(void* context)
 {
     WRAP_DATA* data = context;
     ASSERT_ARE_EQUAL(int, 0, strcmp(data->mem, "READY"));
-    strcpy(data->mem, "DONE");    
-    srw_lock_acquire_shared(data->srw_lock);
-    if (WRAP_TEST_WORK_ITEMS == interlocked_increment(data->counter)) 
-    {
-        wake_by_address_single(data->counter);
-    }
-    srw_lock_release_shared(data->srw_lock);
+    strcpy(data->mem, "DONE");
+    ThreadAPI_Sleep(1);
+    interlocked_increment(data->counter);
+    wake_by_address_single(data->counter);
     free(data);
 }
 
 static void threadpool_long_task_v2(void* context)
 {
     WRAP_DATA* data = context;
-    ASSERT_ARE_EQUAL(int, 0, strcmp(data->mem, "READY"));
+    ASSERT_ARE_EQUAL(int, 0, strcmp(data->mem, "READY"));    
     ThreadAPI_Sleep(1);
-    srw_lock_acquire_exclusive(data->srw_lock);
-    if (WRAP_TEST_WORK_ITEMS == interlocked_increment(data->counter)) 
-    {
-        wake_by_address_single(data->counter);
-    }
-    srw_lock_release_exclusive(data->srw_lock);
+    interlocked_increment(data->counter);    
+    wake_by_address_single(data->counter);
 }
 
 static void work_function(void* context)
@@ -452,14 +444,10 @@ TEST_FUNCTION(threadpool_force_wrap_around)
     volatile_atomic int32_t thread_counter;
     interlocked_exchange(&thread_counter, 0);
 
-    SRW_LOCK_HANDLE local_srw_lock = srw_lock_create(false, "threadpool_force_wrap_around");
-    ASSERT_IS_NOT_NULL(local_srw_lock);
-
     for (uint32_t index = 0; index < num_threads; index++)
     {
         WRAP_DATA* data = malloc(sizeof(WRAP_DATA));
         data->counter = &thread_counter;
-        data->srw_lock = local_srw_lock;
         strcpy(data->mem, "READY");
         ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_long_task, data));
     }
@@ -469,8 +457,7 @@ TEST_FUNCTION(threadpool_force_wrap_around)
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
-    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
-    srw_lock_destroy(local_srw_lock);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);    
     execution_engine_dec_ref(execution_engine);
 }
 
@@ -491,9 +478,8 @@ TEST_FUNCTION(threadpool_force_wrap_around_v2)
     interlocked_exchange(&thread_counter, 0);
 
     WRAP_DATA* data = malloc(sizeof(WRAP_DATA));
-    data->counter = &thread_counter;
-    data->srw_lock = srw_lock_create(false, "threadpool_force_wrap_around_v2");
-    ASSERT_IS_NOT_NULL(data->srw_lock);
+    data->counter = &thread_counter;    
+    
     strcpy(data->mem, "READY");
     // Create Work Items
     THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item = threadpool_create_work_item(threadpool, threadpool_long_task_v2, data);
@@ -510,8 +496,7 @@ TEST_FUNCTION(threadpool_force_wrap_around_v2)
 
     // cleanup
 
-    threadpool_destroy_work_item(threadpool, threadpool_work_item);
-    srw_lock_destroy(data->srw_lock);
+    threadpool_destroy_work_item(threadpool, threadpool_work_item);    
     free(data);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);

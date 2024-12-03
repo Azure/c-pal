@@ -195,19 +195,15 @@ static int threadpool_work_func(void* param)
                     {
                         work_function(work_function_ctx);
 
-                        srw_lock_acquire_shared(threadpool->srw_lock);
-                        bool is_pending_work_item_count_ptr_not_null = (NULL != threadpool->task_array[current_index].pending_work_item_count_ptr);
-                        srw_lock_release_shared(threadpool->srw_lock);
-
-                        if (is_pending_work_item_count_ptr_not_null)
+                        srw_lock_acquire_exclusive(threadpool->srw_lock);
+                        if (NULL != threadpool->task_array[current_index].pending_work_item_count_ptr)
                         {                            
-                            srw_lock_acquire_exclusive(threadpool->srw_lock);
                             if (interlocked_decrement(threadpool->task_array[current_index].pending_work_item_count_ptr) == 0)
                             {
                                 wake_by_address_single(threadpool->task_array[current_index].pending_work_item_count_ptr);                         
-                            }
-                            srw_lock_release_exclusive(threadpool->srw_lock);
+                            }                            
                         }
+                        srw_lock_release_exclusive(threadpool->srw_lock);
                     }
                 }
             }
