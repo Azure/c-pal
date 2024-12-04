@@ -1645,7 +1645,7 @@ TEST_FUNCTION(threadpool_schedule_work_item_fails_when_realloc_array_fails)
 
 /* threadpool_destroy_work_item */
 
-/* Tests_SRS_THREADPOOL_LINUX_05_029: [ If threadpool is NULL, threadpool_destroy_work_item shall fail. ]*/
+/* Tests_S_R_S_THREADPOOL_LINUX_05_029: [ If threadpool is NULL, threadpool_destroy_work_item shall fail. ]*/
 
 TEST_FUNCTION(threadpool_destroy_work_item_with_NULL_threadpool_fails)
 {
@@ -1656,7 +1656,7 @@ TEST_FUNCTION(threadpool_destroy_work_item_with_NULL_threadpool_fails)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_05_030: [ If threadpool_work_item is NULL, threadpool_destroy_work_item shall fail. ]*/
+/* Tests_S_R_S_THREADPOOL_LINUX_05_030: [ If threadpool_work_item is NULL, threadpool_destroy_work_item shall fail. ]*/
 
 TEST_FUNCTION(threadpool_destroy_work_item_with_NULL_threadpool_work_item_fails)
 {
@@ -1673,8 +1673,8 @@ TEST_FUNCTION(threadpool_destroy_work_item_with_NULL_threadpool_work_item_fails)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_05_033: [ threadpool_destroy_work_item shall wait for all pending work items to finish execution. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_05_037: [ If InterlockedHL_WaitForValue does not return INTERLOCKED_HL_OK then Log Message with severity CRITICAL and terminate. ]*/
+/* Tests_S_R_S_THREADPOOL_LINUX_05_033: [ threadpool_destroy_work_item shall wait for all pending work items to finish execution. ]*/
+/* Tests_S_R_S_THREADPOOL_LINUX_05_037: [ If InterlockedHL_WaitForValue does not return INTERLOCKED_HL_OK then Log Message with severity CRITICAL and terminate. ]*/
 
 TEST_FUNCTION(threadpool_destroy_work_item_fails_for_InterlockedHL_WaitForValue_returns_INTERLOCKED_HL_ERROR)
 {
@@ -1704,8 +1704,8 @@ TEST_FUNCTION(threadpool_destroy_work_item_fails_for_InterlockedHL_WaitForValue_
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_05_033: [ threadpool_destroy_work_item shall wait for all pending work items to finish execution. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_05_035: [ threadpool_destroy_work_item shall free the memory allocated to the work item of type THREADPOOL_WORK_ITEM_HANDLE created in threadpool_create_work_item. ]*/
+/* Tests_S_R_S_THREADPOOL_LINUX_05_033: [ threadpool_destroy_work_item shall wait for all pending work items to finish execution. ]*/
+/* Tests_S_R_S_THREADPOOL_LINUX_05_035: [ threadpool_destroy_work_item shall free the memory allocated to the work item of type THREADPOOL_WORK_ITEM_HANDLE created in threadpool_create_work_item. ]*/
 TEST_FUNCTION(threadpool_destroy_work_item_succeeds)
 {
     // arrange
