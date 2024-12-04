@@ -265,7 +265,7 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_WORK_ITEM), threadpool_create_work_item, 
 
 **SRS_THREADPOOL_WIN32_05_005: [** If `work_function` is `NULL`, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
 
-**SRS_THREADPOOL_WIN32_05_006: [** Otherwise `threadpool_create_work_item` shall allocate a context `threadpool_work_item` of type `THANDLE(THREADPOOL_WORK_ITEM)` where `work_function`, `work_function_context`, and `ptp_work` shall be saved. **]**
+**SRS_THREADPOOL_WIN32_05_006: [** Otherwise `threadpool_create_work_item` shall allocate a context of type `THANDLE(THREADPOOL_WORK_ITEM)` with the dispose function being `threadpool_dispose_work_item`. **]**
 
 **SRS_THREADPOOL_WIN32_05_007: [** If any error occurs, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
 
