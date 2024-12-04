@@ -184,3 +184,12 @@ size_t gballoc_ll_size(void* ptr)
 
     return result;
 }
+
+int gballoc_ll_set_option(const char* option_name, void* option_value)
+{
+    (void)option_name;
+    (void)option_value;
+
+    /* Codes_SRS_GBALLOC_LL_PASSTHROUGH_28_001: [ gballoc_ll_set_option shall do nothing and return 0. ]*/
+    return 0;
+}
