@@ -413,7 +413,7 @@ static int get_working_set_size(size_t* working_set_size)
     }
     else
     {
-        LogError("GetProcessMemoryInfo failed with error %d", GetLastError());
+        LogLastError("GetProcessMemoryInfo failed");
         return -1;
     }
 }
