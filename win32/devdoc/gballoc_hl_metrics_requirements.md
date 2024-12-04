@@ -52,6 +52,8 @@
     MOCKABLE_FUNCTION(, const GBALLOC_LATENCY_BUCKET_METADATA*, gballoc_hl_get_latency_bucket_metadata);
 
     MOCKABLE_FUNCTION(, void, gballoc_hl_print_stats);
+
+    MOCKABLE_FUNCTION(, int, gballoc_hl_set_option, const char*, option_name, void*, option_value);
 ```
 
 ### gballoc_hl_init
@@ -391,3 +393,12 @@ MOCKABLE_FUNCTION(, void, gballoc_hl_print_stats);
 `gballoc_hl_print_stats` prints the memory allocation statistics.
 
 **SRS_GBALLOC_HL_METRICS_01_040: [** `gballoc_hl_print_stats` shall call into `gballoc_ll_print_stats` to print the memory allocator statistics. **]**
+
+### gballoc_hl_set_option
+```c
+MOCKABLE_FUNCTION(, int, gballoc_hl_set_option, const char*, option_name, void*, option_value);
+```
+
+`gballoc_hl_set_option` sets the option `option_name` to `option_value`.
+
+**SRS_GBALLOC_HL_METRICS_28_001: [** `gballoc_hl_set_option` shall call `gballoc_ll_set_option` with `option_name` and `option_value` as arguments. **]**

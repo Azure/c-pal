@@ -229,4 +229,10 @@ const GBALLOC_LATENCY_BUCKET_METADATA* gballoc_hl_get_latency_bucket_metadata(vo
     /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_016: [ Each consecutive bucket shall be [1 << n, (1 << (n + 1)) - 1], where n starts at 9. ]*/
     return latency_buckets_metadata;
 }
+
+int gballoc_hl_set_option(const char* option_name, void* option_value)
+{
+    /* Codes_SRS_GBALLOC_HL_PASSTHROUGH_28_001: [ gballoc_hl_set_option shall call gballoc_ll_set_option with option_name and option_value as arguments. ]*/
+    return gballoc_ll_set_option(option_name, option_value);
+}
  

@@ -868,6 +868,48 @@ TEST_FUNCTION(gballoc_hl_print_stats_calls_gballoc_ll_print_stats)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
+/* gballoc_hl_set_option */
+
+/* Tests_SRS_GBALLOC_HL_PASSTHROUGH_28_001: [ gballoc_hl_set_option shall call gballoc_ll_set_option with option_name and option_value as arguments. ]*/
+TEST_FUNCTION(gballoc_hl_set_option_calls_gballoc_ll_set_option_and_returns_0)
+{
+    ///arrange
+    void* value = (void*)0x42;
+    char* option_name;
+
+    STRICT_EXPECTED_CALL(gballoc_ll_set_option(IGNORED_ARG, value))
+        .CaptureArgumentValue_option_name(&option_name)
+        .SetReturn(0);
+
+    ///act
+    int result = gballoc_hl_set_option("dirty_decay", value);
+
+    ///assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, option_name, "dirty_decay");
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/* Tests_SRS_GBALLOC_HL_PASSTHROUGH_28_001: [ gballoc_hl_set_option shall call gballoc_ll_set_option with option_name and option_value as arguments. ]*/
+TEST_FUNCTION(gballoc_hl_set_option_calls_gballoc_ll_set_option_and_returns_non_zero)
+{
+    ///arrange
+    void* value = (void*)0x42;
+    char* option_name;
+
+    STRICT_EXPECTED_CALL(gballoc_ll_set_option(IGNORED_ARG, value))
+        .CaptureArgumentValue_option_name(&option_name)
+        .SetReturn(1);
+
+    ///act
+    int result = gballoc_hl_set_option("dirty_decay", value);
+
+    ///assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, option_name, "dirty_decay");
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
 /* gballoc_hl_size */
 
 /* Tests_SRS_GBALLOC_HL_PASSTHROUGH_01_002: [ If the module was not initialized, gballoc_hl_size shall return 0. ]*/
