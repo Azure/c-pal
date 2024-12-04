@@ -66,21 +66,21 @@ The guard prevents any work from happening, but the event callback can still be 
 ```C
 typedef struct THREADPOOL_TAG THREADPOOL;
 typedef struct TIMER_INSTANCE_TAG* TIMER_INSTANCE_HANDLE;
+typedef struct THREADPOOL_WORK_ITEM_TAG THREADPOOL_WORK_ITEM;
 typedef struct THREADPOOL_WORK_ITEM_TAG* THREADPOOL_WORK_ITEM_HANDLE;
 typedef void (*THREADPOOL_WORK_FUNCTION)(void* context);
 
 THANDLE_TYPE_DECLARE(THREADPOOL);
+THANDLE_TYPE_DECLARE(THREADPOOL_WORK_ITEM);
 
 MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HANDLE, execution_engine);
 
 MOCKABLE_FUNCTION(, int, threadpool_open, THANDLE(THREADPOOL), threadpool);
 MOCKABLE_FUNCTION(, void, threadpool_close, THANDLE(THREADPOOL), threadpool);
 
-MOCKABLE_FUNCTION(, THREADPOOL_WORK_ITEM_HANDLE, threadpool_create_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
+MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_WORK_ITEM), threadpool_create_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 
-MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_ITEM_HANDLE, work_item_context);
-
-MOCKABLE_FUNCTION(, void, threadpool_work_context_destroy, THREADPOOL_WORK_ITEM_HANDLE, work_item_context);
+MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THANDLE(THREADPOOL_WORK_ITEM), work_item_context);
 
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 
@@ -366,7 +366,7 @@ static int threadpool_work_func(void* param);
 ### threadpool_create_work_item
 
 ```c
-MOCKABLE_FUNCTION(, THREADPOOL_WORK_ITEM_HANDLE, threadpool_create_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
+MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_WORK_ITEM), threadpool_create_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 ```
 
 `threadpool_create_work_item` creates a work item to be executed by the threadpool.
@@ -375,7 +375,7 @@ MOCKABLE_FUNCTION(, THREADPOOL_WORK_ITEM_HANDLE, threadpool_create_work_item, TH
 
 **SRS_THREADPOOL_LINUX_05_002: [** If `work_function` is `NULL`, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
 
-**SRS_THREADPOOL_LINUX_05_005: [** `threadpool_create_work_item` shall allocate memory for `threadpool_work_item` of type `THREADPOOL_WORK_ITEM_HANDLE`. **]**
+**SRS_THREADPOOL_LINUX_05_005: [** `threadpool_create_work_item` shall allocate memory for `threadpool_work_item` of type `THANDLE(THREADPOOL_WORK_ITEM)`. **]**
 
 **SRS_THREADPOOL_LINUX_05_006: [** If during the initialization of `threadpool_work_item`, `malloc` fails then `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
 
@@ -384,7 +384,7 @@ MOCKABLE_FUNCTION(, THREADPOOL_WORK_ITEM_HANDLE, threadpool_create_work_item, TH
 ### threadpool_schedule_work_item
 
 ```c
-MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_ITEM_HANDLE, threadpool_work_item);
+MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THANDLE(THREADPOOL_WORK_ITEM), threadpool_work_item);
 ```
 
 `threadpool_schedule_work_item` schedules a work item to be executed by the threadpool.
@@ -418,17 +418,17 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), thr
 ### threadpool_destroy_work_item
 
 ```c
-MOCKABLE_FUNCTION(, void, threadpool_destroy_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_ITEM_HANDLE, threadpool_work_item);
+static void threadpool_destroy_work_item(THANDLE(THREADPOOL_WORK_ITEM), threadpool_work_item);
 ```
 
 `threadpool_destroy_work_item` Waits for completion of scheduled work items before freeing the context.
 
-**SRS_THREADPOOL_LINUX_05_029: [** If `threadpool` is `NULL`, `threadpool_destroy_work_item` shall fail. **]**
+**SRS_THREADPOOL_LINUX_05_029: [** [Deprecated] If `threadpool` is `NULL`, `threadpool_destroy_work_item` shall fail. **]**
 
 **SRS_THREADPOOL_LINUX_05_030: [** If `threadpool_work_item` is `NULL`, `threadpool_destroy_work_item` shall fail. **]**
 
-**SRS_THREADPOOL_LINUX_05_033: [** `threadpool_destroy_work_item` shall wait for all pending work items to finish execution. **]**
+**SRS_THREADPOOL_LINUX_05_033: [** [Deprecated] `threadpool_destroy_work_item` shall wait for all pending work items to finish execution. **]**
 
-  - **SRS_THREADPOOL_LINUX_05_035: [** `threadpool_destroy_work_item` shall free the memory allocated to the work item of type `THREADPOOL_WORK_ITEM_HANDLE` created in `threadpool_create_work_item`. **]**
+  - **SRS_THREADPOOL_LINUX_05_035: [** `threadpool_destroy_work_item` shall free the memory allocated to the work item of type `THANDLE(THREADPOOL_WORK_ITEM)` created in `threadpool_create_work_item`. **]**
 
-  - **SRS_THREADPOOL_LINUX_05_037: [** If `InterlockedHL_WaitForValue` does not return `INTERLOCKED_HL_OK` then Log Message with severity `CRITICAL` and `terminate`. **]**
+  - **SRS_THREADPOOL_LINUX_05_037: [** [Deprecated] If `InterlockedHL_WaitForValue` does not return `INTERLOCKED_HL_OK` then Log Message with severity `CRITICAL` and `terminate`. **]**
