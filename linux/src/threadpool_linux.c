@@ -845,9 +845,9 @@ int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WOR
 void threadpool_destroy_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item)
 {
     if (
-        /* Codes_SRS_THREADPOOL_LINUX_05_029: [ If threadpool is NULL, threadpool_destroy_work_item shall fail. ]*/
+        /* Codes_S_R_S_THREADPOOL_LINUX_05_029: [ If threadpool is NULL, threadpool_destroy_work_item shall fail. ]*/
         (threadpool == NULL) ||
-        /* Codes_SRS_THREADPOOL_LINUX_05_030: [ If threadpool_work_item is NULL, threadpool_destroy_work_item shall fail. ]*/
+        /* Codes_S_R_S_THREADPOOL_LINUX_05_030: [ If threadpool_work_item is NULL, threadpool_destroy_work_item shall fail. ]*/
         (threadpool_work_item == NULL)
         )
     {
@@ -855,15 +855,15 @@ void threadpool_destroy_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WOR
     }
     else
     {   
-        /* Codes_SRS_THREADPOOL_LINUX_05_033: [ threadpool_destroy_work_item shall wait for all pending work items to finish execution. ]*/
+        /* Codes_S_R_S_THREADPOOL_LINUX_05_033: [ threadpool_destroy_work_item shall wait for all pending work items to finish execution. ]*/
         if (InterlockedHL_WaitForValue(&threadpool_work_item->pending_work_item_count, 0, UINT32_MAX) == INTERLOCKED_HL_OK)
         {
-            /* Codes_SRS_THREADPOOL_LINUX_05_035: [ threadpool_destroy_work_item shall free the memory allocated to the work item of type THREADPOOL_WORK_ITEM_HANDLE created in threadpool_create_work_item. ]*/
+            /* Codes_S_R_S_THREADPOOL_LINUX_05_035: [ threadpool_destroy_work_item shall free the memory allocated to the work item of type THREADPOOL_WORK_ITEM_HANDLE created in threadpool_create_work_item. ]*/
             free(threadpool_work_item);
         }
         else
         {
-            /* Codes_SRS_THREADPOOL_LINUX_05_037: [ If InterlockedHL_WaitForValue returns error then log the error and terminate. ]*/
+            /* Codes_S_R_S_THREADPOOL_LINUX_05_037: [ If InterlockedHL_WaitForValue returns error then log the error and terminate. ]*/
             LogCriticalAndTerminate("Failure in InterlockedHL_WaitForValue(&threadpool_work_item->pending_work_item_count=%p, 0, UINT32_MAX), count was %d", &threadpool_work_item->pending_work_item_count, threadpool_work_item->pending_work_item_count);
         }
     }
