@@ -5,15 +5,16 @@
 #include <string.h>
 
 #include "testrunnerswitcher.h"
-#include "c_pal/threadapi.h"
-#include "c_pal/interlocked.h"
 
 #include "macro_utils/macro_utils.h"  // IWYU pragma: keep
 
 #include "c_logging/logger.h"  // IWYU pragma: keep
 
-#include "c_pal/platform.h" // IWYU pragma: keep
 #include "c_pal/gballoc_hl.h"
+#include "c_pal/gballoc_hl_redirect.h"  // IWYU pragma: keep
+#include "c_pal/platform.h" // IWYU pragma: keep
+#include "c_pal/threadapi.h"
+#include "c_pal/interlocked.h"
 #include "c_pal/socket_transport.h"
 #include "c_pal/timer.h" // IWYU pragma: keep
 
@@ -48,6 +49,8 @@ TEST_DEFINE_ENUM_TYPE(SOCKET_SEND_RESULT, SOCKET_SEND_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);
+TEST_DEFINE_ENUM_TYPE(SOCKET_TYPE, SOCKET_TYPE_VALUES);
+TEST_DEFINE_ENUM_TYPE(ADDRESS_TYPE, ADDRESS_TYPE_VALUES);
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
@@ -66,6 +69,7 @@ TEST_SUITE_CLEANUP(suite_cleanup)
 
 TEST_FUNCTION_INITIALIZE(method_init)
 {
+    g_port_num++;
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
@@ -414,6 +418,61 @@ TEST_FUNCTION(socket_transport_chaos_knight_test)
     socket_transport_disconnect(chaos_knight_test.listen_socket);
     socket_transport_destroy(chaos_knight_test.listen_socket);
 
+}
+
+TEST_FUNCTION(get_local_socket_address_test)
+{
+    // assert
+    SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create_server();
+    ASSERT_IS_NOT_NULL(listen_socket);
+
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_listen(listen_socket, g_port_num));
+
+    // create the async socket object
+    SOCKET_TRANSPORT_HANDLE client_socket = socket_transport_create_client();
+    ASSERT_IS_NOT_NULL(client_socket);
+
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
+
+    SOCKET_TRANSPORT_HANDLE incoming_socket;
+    ASSERT_ARE_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_OK, socket_transport_accept(listen_socket, &incoming_socket, TEST_CONN_TIMEOUT));
+    ASSERT_IS_NOT_NULL(incoming_socket);
+
+    char client_hostname[MAX_GET_HOST_NAME_LEN] = { 0 };
+    char server_hostname[MAX_GET_HOST_NAME_LEN] = { 0 };
+
+    LOCAL_ADDRESS* server_local_address_list;
+    LOCAL_ADDRESS* client_local_address_list;
+    uint32_t server_list_count;
+    uint32_t client_list_count;
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_get_local_address(incoming_socket, server_hostname, &server_local_address_list, &server_list_count));
+    ASSERT_ARE_EQUAL(int, 0, socket_transport_get_local_address(client_socket, client_hostname, &client_local_address_list, &client_list_count));
+
+    LogVerbose("Client Address:");
+    for (uint32_t index = 0; index < client_list_count; index++)
+    {
+        LogVerbose("\tType: %" PRI_MU_ENUM ", Address: %s", MU_ENUM_VALUE(ADDRESS_TYPE, client_local_address_list[0].address_type), client_local_address_list[0].address);
+    }
+    LogVerbose("Incoming Address:");
+    for (uint32_t index = 0; index < server_list_count; index++)
+    {
+        LogVerbose("\tType: %" PRI_MU_ENUM ", Address: %s", MU_ENUM_VALUE(ADDRESS_TYPE, server_local_address_list[0].address_type), server_local_address_list[0].address);
+    }
+
+    ASSERT_ARE_EQUAL(char_ptr, server_hostname, client_hostname);
+    ASSERT_ARE_EQUAL(uint32_t, server_list_count, client_list_count);
+
+    socket_transport_disconnect(client_socket);
+    socket_transport_destroy(client_socket);
+
+    socket_transport_disconnect(incoming_socket);
+    socket_transport_destroy(incoming_socket);
+
+    socket_transport_disconnect(listen_socket);
+    socket_transport_destroy(listen_socket);
+
+    free(server_local_address_list);
+    free(client_local_address_list);
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

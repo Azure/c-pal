@@ -1,5 +1,7 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 
+#include <sys/types.h>
+#include <ifaddrs.h>
 #include <fcntl.h>  // IWYU pragma: keep
 
 #include "socket_mocked.h"

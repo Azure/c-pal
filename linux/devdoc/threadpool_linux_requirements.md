@@ -9,20 +9,19 @@
 `threadpool_linux` provides the Linux implementation of the `threadpool` PAL API. The `threadpool` object starts a predefined number of threads that are used to execute the work items. The `threadpool` unit tracks all the work items which need to be executed in an task array. All incoming tasks are being added in `threadpool_schedule_work` and scheduled in `threadpool_work_func`.
 
 `threadpool_linux` maintains the following:
-1. `sm`: a SM handle to manage the state for `threadpool`.
-2. `max_thread_count`, `min_thread_count`, `used_thread_count` : static 32-bit counters for the `threadpool` thread limits.
-3. `semaphore` : a semaphore to ensure the number of waiting tasks changed atomically when a task is inserted or consumed in the array.
-4. `task_array` : a circular array of waiting tasks with default size 2048, initialized in `threadpool_create`. Insert index and consume index for the array is initialized to 0. Insert index is incremented every time when a new work item add to the array, and the consume index is incremented every time when a task gets executed. The insert index modulo the array size gives the actual insert position, and the consume index modulo the array size gives the actual consume position. Each array item contains a `THREADPOOL_TASK` object, which obtains the `task_state` and task function information.
+1. `max_thread_count`, `min_thread_count`, `used_thread_count` : static 32-bit counters for the `threadpool` thread limits.
+2. `semaphore` : a semaphore to ensure the number of waiting tasks changed atomically when a task is inserted or consumed in the array.
+3. `task_array` : a circular array of waiting tasks with default size 2048, initialized in `threadpool_create`. Insert index and consume index for the array is initialized to 0. Insert index is incremented every time when a new work item add to the array, and the consume index is incremented every time when a task gets executed. The insert index modulo the array size gives the actual insert position, and the consume index modulo the array size gives the actual consume position. Each array item contains a `THREADPOOL_TASK` object, which obtains the `task_state` and task function information.
     - `task_state` can be following:
        - `TASK_NOT_USED` : Entry is not used. Entered after a call to `threadpool_create`, new array items after a call to `reallocate_threadpool_array`, and a call to `threadpool_work_func`.
        - `TASK_INITIALIZING` : Start copying work item into the entry. Entered in the progress of a call to `threadpool_schedule_work`.
        - `TASK_WAITING` : Work item in the entry is waiting to be executed. Entered after a call to `threadpool_schedule_work` with a zero return value.
        - `TASK_WORKING` : Work item is executing. Entered in the progress of a call to `threadpool_work_func` by calling `threadpool_open`.
-5. `task_array_size` : a 32 bit variable represents the size of the task array.
-6. `insert_idx` : a 64 bit variable represents the next available insert position in the circular task array.
-7. `consume_idx` : a 64 bit variable represents the next available consume position in the circular task array.
-8. `srw_lock` : a SRW lock to ensure the progress of resize array will not be interupted as well as task array insert and consume get locked when task array resize happens.
-9. `thread_handle_array` : an array of threads in the `threadpool`, all intialized in `threadpool_open`.
+4. `task_array_size` : a 32 bit variable represents the size of the task array.
+5. `insert_idx` : a 64 bit variable represents the next available insert position in the circular task array.
+6. `consume_idx` : a 64 bit variable represents the next available consume position in the circular task array.
+7. `srw_lock` : a SRW lock to ensure the progress of resize array will not be interupted as well as task array insert and consume get locked when task array resize happens.
+8. `thread_handle_array` : an array of threads in the `threadpool`, all intialized in `threadpool_open`.
 
 ### Reallocating the Task Array
 
@@ -113,8 +112,6 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HAN
 
 **SRS_THREADPOOL_LINUX_07_002: [** If `execution_engine` is `NULL`, `threadpool_create` shall fail and return `NULL`. **]**
 
-**SRS_THREADPOOL_LINUX_07_003: [** `threadpool_create` shall create a `SM_HANDLE` by calling `sm_create`. **]**
-
 **SRS_THREADPOOL_LINUX_07_004: [** `threadpool_create` shall get the `min_thread_count` and `max_thread_count` thread parameters from the `execution_engine`. **]**
 
 **SRS_THREADPOOL_LINUX_07_005: [** `threadpool_create` shall allocate memory for an array of thread handles of size `min_thread_count` and on success return a non-`NULL` handle to it. **]**
@@ -129,9 +126,9 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HAN
 
 **SRS_THREADPOOL_LINUX_07_010: [** `insert_idx` and `consume_idx` for the task array shall be initialized to 0. **]**
 
-**S_R_S_THREADPOOL_LINUX_07_020: [** `threadpool_create` shall create `min_thread_count` number of threads for `threadpool` using `ThreadAPI_Create`. **]**
+**SRS_THREADPOOL_LINUX_07_020: [** `threadpool_create` shall create `min_thread_count` number of threads for `threadpool` using `ThreadAPI_Create`. **]**
 
-**S_R_S_THREADPOOL_LINUX_07_022: [** If one of the thread creation fails, `threadpool_create` shall fail and return a non-zero value, terminate all threads already created. **]**
+**SRS_THREADPOOL_LINUX_07_022: [** If one of the thread creation fails, `threadpool_create` shall fail and return a non-zero value, terminate all threads already created. **]**
 
 **SRS_THREADPOOL_LINUX_07_011: [** If any error occurs, `threadpool_create` shall fail and return `NULL`. **]**
 
@@ -143,15 +140,13 @@ static void threadpool_dispose(THREADPOOL* threadpool)
 
 `threadpool_dispose` frees the resouces associated with threadpool.
 
-**SRS_THREADPOOL_LINUX_07_013: [** `threadpool_dispose` shall perform an implicit close if `threadpool` is open. **]**
+**SRS_THREADPOOL_LINUX_07_089: [** `threadpool_dispose` shall signal all threads to return. **]**
+
+**SRS_THREADPOOL_LINUX_07_027: [** `threadpool_dispose` shall join all threads in the `threadpool`. **]**
 
 **SRS_THREADPOOL_LINUX_07_014: [** `threadpool_dispose` shall destroy the semphore by calling `sem_destroy`. **]**
 
 **SRS_THREADPOOL_LINUX_07_015: [** `threadpool_dispose` shall destroy the SRW lock by calling `srw_lock_destroy`. **]**
-
-**S_R_S_THREADPOOL_LINUX_07_089: [** `threadpool_dispose` shall signal all the threads that `threadpool` is closing by calling `InterlockedHL_SetAndWakeAll`.  **]**
-
-**S_R_S_THREADPOOL_LINUX_07_027: [** `threadpool_dispose` shall join all threads in the `threadpool`. **]**
 
 **SRS_THREADPOOL_LINUX_07_016: [** `threadpool_dispose` shall free the memory allocated in `threadpool_create`. **]**
 
@@ -165,39 +160,17 @@ Note: `threadpool_open` will be deprecated and `threadpool_create` will perform 
 
 **SRS_THREADPOOL_LINUX_07_017: [** If `threadpool` is `NULL`, `threadpool_open` shall fail and return a non-zero value. **]**
 
-**SRS_THREADPOOL_LINUX_07_018: [** `threadpool_open` shall call `sm_open_begin`. **]**
-
-**SRS_THREADPOOL_LINUX_07_019: [** If `sm_open_begin` indicates the open cannot be performed, `threadpool_open` shall fail and return a non-zero value. **]**
-
-**SRS_THREADPOOL_LINUX_11_001: [** `threadpool_open` shall initialize internal threapool data items **]**
-
-**SRS_THREADPOOL_LINUX_07_020: [** `threadpool_open` shall create `min_thread_count` number of threads for `threadpool` using `ThreadAPI_Create`. **]**
-
-**SRS_THREADPOOL_LINUX_07_021: [** If any error occurs, `threadpool_open` shall fail and return a non-zero value. **]**
-
-**SRS_THREADPOOL_LINUX_07_022: [** If one of the thread creation fails, `threadpool_open` shall fail and return a non-zero value, terminate all threads already created. **]**
-
-**SRS_THREADPOOL_LINUX_07_023: [** Otherwise, `threadpool_open` shall shall call `sm_open_end` with true for success. **]**
-
-**SRS_THREADPOOL_LINUX_07_024: [** `threadpool_open` shall return zero. **]**
+**SRS_THREADPOOL_LINUX_07_024: [** Otherwise, `threadpool_open` shall succeed and return 0. **]**
 
 ### threadpool_close
 
 ```C
 MOCKABLE_FUNCTION(, void, threadpool_close, THANDLE(THREADPOOL), threadpool);
 ```
-Note: `threadpool_close` will be deprecated and threadpool_dispose will perform additional tasks of threadpool_close. This function will exist until all the libraries calling this API are modified to use only `threadpool_create`.
+Note: `threadpool_close` will be deprecated and `threadpool_dispose` will perform additional tasks of `threadpool_close`. This function will exist until all the libraries calling this API are modified to use only `threadpool_create`.
 `threadpool_close` closes the threadpool.
 
 **SRS_THREADPOOL_LINUX_07_025: [** If `threadpool` is `NULL`, `threadpool_close` shall fail and return. **]**
-
-**SRS_THREADPOOL_LINUX_07_026: [** Otherwise, `threadpool_close` shall call `sm_close_begin`. **]**
-
-**SRS_THREADPOOL_LINUX_07_089: [** `threadpool_close` shall signal all threads `threadpool` is closing by calling `InterlockedHL_SetAndWakeAll`.  **]**
-
-**SRS_THREADPOOL_LINUX_07_027: [** `threadpool_close` shall join all threads in the `threadpool`. **]**
-
-**SRS_THREADPOOL_LINUX_07_028: [** `threadpool_close` shall call `sm_close_end`. **]**
 
 ### threadpool_schedule_work
 
@@ -210,10 +183,6 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpo
 **SRS_THREADPOOL_LINUX_07_029: [** If `threadpool` is `NULL`, `threadpool_schedule_work` shall fail and return a non-zero value. **]**
 
 **SRS_THREADPOOL_LINUX_07_030: [** If `work_function` is `NULL`, `threadpool_schedule_work` shall fail and return a non-zero value. **]**
-
-**SRS_THREADPOOL_LINUX_07_031: [** `threadpool_schedule_work` shall call `sm_exec_begin`. **]**
-
-**SRS_THREADPOOL_LINUX_07_032: [** If `sm_exec_begin` returns `SM_EXEC_REFUSED`, `threadpool_schedule_work` shall fail and return a non-zero value. **]**
 
 **SRS_THREADPOOL_LINUX_07_033: [** `threadpool_schedule_work` shall acquire the SRW lock in shared mode by calling `srw_lock_acquire_shared`. **]**
 
@@ -245,13 +214,11 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpo
 
 **SRS_THREADPOOL_LINUX_07_048: [** If reallocating the task array fails, `threadpool_schedule_work` shall fail and return a non-zero value. **]**
 
-**SRS_THREADPOOL_LINUX_07_049: [** `threadpool_schedule_work` shall initialize `pending_work_item_count_ptr` with `NULL` then copy the work function and work function context into insert position in the task array and assign `0` to the return variable to indicate success. **]**
+**SRS_THREADPOOL_LINUX_07_049: [** `threadpool_schedule_work` shall copy the work function and work function context into insert position in the task array and assign `0` to the return variable to indicate success. **]**
 
 **SRS_THREADPOOL_LINUX_07_050: [** `threadpool_schedule_work` shall set the `task_state` to `TASK_WAITING` and then release the shared SRW lock. **]**
 
 **SRS_THREADPOOL_LINUX_07_051: [** `threadpool_schedule_work` shall unblock the `threadpool` semaphore by calling `sem_post`. **]**
-
-**SRS_THREADPOOL_LINUX_07_053: [** `threadpool_schedule_work` shall call `sm_exec_end`. **]**
 
 **SRS_THREADPOOL_LINUX_07_047: [** `threadpool_schedule_work` shall return zero on success. **]**
 
@@ -394,23 +361,7 @@ static int threadpool_work_func(void* param);
 
 **SRS_THREADPOOL_LINUX_07_084: [** If the work item function is not `NULL`, `threadpool_work_func` shall execute it with `work_function_ctx`. **]**
 
-- **SRS_THREADPOOL_LINUX_05_039: [** `threadpool_work_func` shall acquire the shared `SRW lock` by calling `srw_lock_acquire_shared`. **]**
-
-- **SRS_THREADPOOL_LINUX_05_040: [** `threadpool_work_func` shall save `pending_work_item_count_ptr` is not `NULL` in `is_pending_work_item_count_ptr_not_null`. **]**
-
-- **SRS_THREADPOOL_LINUX_05_041: [** `threadpool_work_func` shall release the shared `SRW lock` by calling `srw_lock_release_shared`. **]**
-
-- **SRS_THREADPOOL_LINUX_05_042: [** If the `is_pending_work_item_count_ptr_not_null` is `TRUE` then: **]**
-
-  - **SRS_THREADPOOL_LINUX_05_043: [** `threadpool_work_func` shall acquire the exclusive `SRW lock` by calling `srw_lock_acquire_exclusive`. **]**
- 
-  - **SRS_THREADPOOL_LINUX_05_044: [** `threadpool_work_func` shall decrement the `pending_work_item_count_ptr` by calling `interlocked_decrement`. **]**
-    
-  - **SRS_THREADPOOL_LINUX_05_045: [** `threadpool_work_func` shall send wake up signal to single listener for the address in `pending_work_item_count_ptr`. **]**
-
-  - **SRS_THREADPOOL_LINUX_05_046: [** `threadpool_work_func` shall release the shared `SRW lock` by calling `srw_lock_release_exclusive`. **]**
-
-**SRS_THREADPOOL_LINUX_07_085: [** `threadpool_work_func` shall loop until `threadpool_close` or `threadpool_destroy` is called. **]**
+**SRS_THREADPOOL_LINUX_07_085: [** `threadpool_work_func` shall loop until the flag to stop the threads is not set to 1. **]**
 
 ### threadpool_create_work_item
 
@@ -420,24 +371,15 @@ MOCKABLE_FUNCTION(, THREADPOOL_WORK_ITEM_HANDLE, threadpool_create_work_item, TH
 
 `threadpool_create_work_item` creates a work item to be executed by the threadpool.
 
-**SRS_THREADPOOL_LINUX_05_001: [** If `threadpool` is `NULL`, `threadpool_create_work_item` shall fail and set the return variable `threadpool_work_item` a `NULL` value. **]**
+**SRS_THREADPOOL_LINUX_05_001: [** If `threadpool` is `NULL`, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
 
-**SRS_THREADPOOL_LINUX_05_002: [** If `work_function` is `NULL`, `threadpool_create_work_item` shall fail and set the return variable `threadpool_work_item` a `NULL` value. **]**
-
-**SRS_THREADPOOL_LINUX_05_003: [** `threadpool_create_work_item` shall call `sm_exec_begin`. **]**
-
-**SRS_THREADPOOL_LINUX_05_004: [** If `sm_exec_begin` returns `SM_EXEC_REFUSED`, `threadpool_create_work_item` shall fail and set the return variable `threadpool_work_item` a `NULL` value. **]**
+**SRS_THREADPOOL_LINUX_05_002: [** If `work_function` is `NULL`, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
 
 **SRS_THREADPOOL_LINUX_05_005: [** `threadpool_create_work_item` shall allocate memory for `threadpool_work_item` of type `THREADPOOL_WORK_ITEM_HANDLE`. **]**
 
-**SRS_THREADPOOL_LINUX_05_006: [** If during the initialization of `threadpool_work_item`, `malloc` fails then `threadpool_create_work_item` shall `fail`. **]**
+**SRS_THREADPOOL_LINUX_05_006: [** If during the initialization of `threadpool_work_item`, `malloc` fails then `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
 
-**SRS_THREADPOOL_LINUX_05_007: [** `threadpool_create_work_item` shall initialize `pending_work_item_count` to `0` then copy the `work_function` and `work_function_context` into the `threadpool_work_item`. An initialized `threadpool_work_item` when returned indicates `success`. **]**
-
-**SRS_THREADPOOL_LINUX_05_008: [** `threadpool_create_work_item` shall call `sm_exec_end`. **]**
-
-**SRS_THREADPOOL_LINUX_05_009: [** Return the value inside `threadpool_work_item` **]**
-
+**SRS_THREADPOOL_LINUX_05_007: [** `threadpool_create_work_item` shall copy the `work_function` and `work_function_context` into the threadpool work item. **]**
 
 ### threadpool_schedule_work_item
 
@@ -447,13 +389,9 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), thr
 
 `threadpool_schedule_work_item` schedules a work item to be executed by the threadpool.
 
-**SRS_THREADPOOL_LINUX_05_010: [** If `threadpool` is `NULL`, `threadpool_schedule_work_item` shall fail and set the return variable with a non-zero value. **]**
+**SRS_THREADPOOL_LINUX_05_010: [** If `threadpool` is `NULL`, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
 
 **SRS_THREADPOOL_LINUX_05_011: [** If `threadpool_work_item` is `NULL`,  `threadpool_schedule_work_item` shall fail and set the return variable with a non-zero value. **]**
-
-**SRS_THREADPOOL_LINUX_05_012: [** `threadpool_schedule_work_item` shall call `sm_exec_begin`. **]**
-
-**SRS_THREADPOOL_LINUX_05_013: [** If `sm_exec_begin` returns `SM_EXEC_REFUSED`, `threadpool_schedule_work_item` shall fail and set the return variable a non-zero value. **]**
 
 **SRS_THREADPOOL_LINUX_05_014: [** `threadpool_schedule_work_item` shall acquire the `SRW lock` in shared mode by calling `srw_lock_acquire_shared`. **]**
 
@@ -465,25 +403,17 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), thr
 
 **SRS_THREADPOOL_LINUX_05_018: [** If the previous task state is not `TASK_NOT_USED` then `threadpool_schedule_work_item` shall increase `task_array` capacity **]**
 
-- **SRS_THREADPOOL_LINUX_05_019: [** If reallocating the task array fails, `threadpool_schedule_work_item` shall fail by setting the return variable a non-zero value and break. **]**
+- **SRS_THREADPOOL_LINUX_05_019: [** If reallocating the task array fails, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
 
-- **SRS_THREADPOOL_LINUX_05_020: [ Otherwise, `threadpool_schedule_work_item` shall acquire the SRW lock in exclusive mode by calling srw_lock_acquire_exclusive. ]*/
+- **SRS_THREADPOOL_LINUX_05_020: [** Otherwise, `threadpool_schedule_work_item` shall acquire the SRW lock in shared mode by calling srw_lock_acquire_exclusive. **]**
 
-- **SRS_THREADPOOL_LINUX_05_021: [** `threadpool_schedule_work_item` shall increment the `pending_work_item_count` by calling `interlocked_increment` and copy its address to `pending_work_item_count_ptr` into insert position in the task array. **]**
-  
 - **SRS_THREADPOOL_LINUX_05_022: [** `threadpool_schedule_work_item` shall copy the `work_function` and `work_function_context` from `threadpool_work_item` into insert position in the task array. **]**
  
-- **SRS_THREADPOOL_LINUX_05_023: [** `threadpool_schedule_work_item` shall set the `task_state` to `TASK_WAITING` and then release the exclusive SRW lock by calling srw_lock_release_exclusive. **]**
-
-- **SRS_THREADPOOL_LINUX_05_024: [** `threadpool_schedule_work_item` shall notify a single thread that is waiting for update of this value by a wake signal. **]**
+- **SRS_THREADPOOL_LINUX_05_023: [** `threadpool_schedule_work_item` shall set the `task_state` to `TASK_WAITING` and then release the shared SRW lock by calling srw_lock_release_exclusive. **]**
 
 - **SRS_THREADPOOL_LINUX_05_025: [** `threadpool_schedule_work_item` shall unblock the `threadpool` semaphore by calling `sem_post`. **]**
 
-- **SRS_THREADPOOL_LINUX_05_026: [** `threadpool_schedule_work_item` shall set the return variable to `0` to indicate success. **]**
-
-**SRS_THREADPOOL_LINUX_05_027: [** `threadpool_schedule_work_item` shall call `sm_exec_end`. **]**
-
-**SRS_THREADPOOL_LINUX_05_028: [** `threadpool_schedule_work_item` shall return with the contents of the value of the return variable. **]**
+- **SRS_THREADPOOL_LINUX_05_026: [** `threadpool_schedule_work_item` shall succeed and return 0. **]**
 
 ### threadpool_destroy_work_item
 
@@ -497,18 +427,8 @@ MOCKABLE_FUNCTION(, void, threadpool_destroy_work_item, THANDLE(THREADPOOL), thr
 
 **SRS_THREADPOOL_LINUX_05_030: [** If `threadpool_work_item` is `NULL`, `threadpool_destroy_work_item` shall fail. **]**
 
-**SRS_THREADPOOL_LINUX_05_031: [** `threadpool_destroy_work_item` shall call `sm_exec_begin`. **]**
-
-- **SRS_THREADPOOL_LINUX_05_032: [** If `sm_exec_begin` returns `SM_EXEC_REFUSED`, `threadpool_destroy_work_item` shall fail. **]**
-
-- **SRS_THREADPOOL_LINUX_05_033: [** Otherwise, `threadpool_destroy_work_item` shall wait for `pending_work_item_count` to become `0`. **]**
-
-  - **SRS_THREADPOOL_LINUX_05_034: [** When `pending_work_item_count` becomes 0, `threadpool_destroy_work_item` shall acquire the `SRW lock` in shared mode by calling `srw_lock_acquire_shared`. **]**
+**SRS_THREADPOOL_LINUX_05_033: [** `threadpool_destroy_work_item` shall wait for all pending work items to finish execution. **]**
 
   - **SRS_THREADPOOL_LINUX_05_035: [** `threadpool_destroy_work_item` shall free the memory allocated to the work item of type `THREADPOOL_WORK_ITEM_HANDLE` created in `threadpool_create_work_item`. **]**
 
-  - **SRS_THREADPOOL_LINUX_05_036: [** `threadpool_destroy_work_item` shall release the shared `SRW lock`. **]**
-
   - **SRS_THREADPOOL_LINUX_05_037: [** If `InterlockedHL_WaitForValue` does not return `INTERLOCKED_HL_OK` then Log Message with severity `CRITICAL` and `terminate`. **]**
-
-**SRS_THREADPOOL_LINUX_05_038: [** `threadpool_destroy_work_item` shall call `sm_exec_end`. **]**

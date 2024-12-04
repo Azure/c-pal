@@ -18,6 +18,7 @@
 #define SubmitThreadpoolWork mocked_SubmitThreadpoolWork
 #define SetThreadpoolTimer mocked_SetThreadpoolTimer
 #define WaitForThreadpoolTimerCallbacks mocked_WaitForThreadpoolTimerCallbacks
+#define WaitForThreadpoolWorkCallbacks mocked_WaitForThreadpoolWorkCallbacks
 
 PTP_WORK mocked_CreateThreadpoolWork(PTP_WORK_CALLBACK pfnwk, PVOID pv, PTP_CALLBACK_ENVIRON pcbe);
 PTP_TIMER mocked_CreateThreadpoolTimer(PTP_TIMER_CALLBACK pfnti, PVOID pv, PTP_CALLBACK_ENVIRON pcbe);
@@ -33,5 +34,6 @@ void mocked_DestroyThreadpoolEnvironment(PTP_CALLBACK_ENVIRON pcbe);
 void mocked_SubmitThreadpoolWork(PTP_WORK pwk);
 void mocked_SetThreadpoolTimer(PTP_TIMER pti, PFILETIME pftDueTime, DWORD msPeriod, DWORD msWindowLength);
 void mocked_WaitForThreadpoolTimerCallbacks(PTP_TIMER pti, BOOL fCancelPendingCallbacks);
+void mocked_WaitForThreadpoolWorkCallbacks(PTP_WORK pwk, BOOL fCancelPendingCallbacks);
 
 #include "../../src/threadpool_win32.c"

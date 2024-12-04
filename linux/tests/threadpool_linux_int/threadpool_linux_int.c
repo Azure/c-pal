@@ -20,6 +20,7 @@
 #include "c_pal/threadpool.h"
 #include "c_pal/threadapi.h"
 #include "c_pal/interlocked.h"
+#include "c_pal/srw_lock.h"
 #include "c_pal/sync.h"
 #include "c_pal/interlocked_hl.h"
 #include "c_pal/execution_engine.h"
@@ -41,6 +42,7 @@ typedef struct WRAP_DATA_TAG
 } WRAP_DATA;
 
 #define TEST_TIMEOUT_VALUE      60000   // 60 seconds
+#define XTEST_FUNCTION(A) void A(void)
 
 TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
 
@@ -97,13 +99,15 @@ static void threadpool_task_wait_random(void* parameter)
     wake_by_address_single(thread_counter);
 }
 
+#define WRAP_TEST_WORK_ITEMS 10000
 
 static void threadpool_long_task(void* context)
 {
     WRAP_DATA* data = context;
     ASSERT_ARE_EQUAL(int, 0, strcmp(data->mem, "READY"));
     strcpy(data->mem, "DONE");
-    (void)interlocked_increment(data->counter);
+    ThreadAPI_Sleep(1);
+    interlocked_increment(data->counter);
     wake_by_address_single(data->counter);
     free(data);
 }
@@ -111,9 +115,9 @@ static void threadpool_long_task(void* context)
 static void threadpool_long_task_v2(void* context)
 {
     WRAP_DATA* data = context;
-    ASSERT_ARE_EQUAL(int, 0, strcmp(data->mem, "READY"));
+    ASSERT_ARE_EQUAL(int, 0, strcmp(data->mem, "READY"));    
     ThreadAPI_Sleep(1);
-    (void)interlocked_increment(data->counter);
+    interlocked_increment(data->counter);    
     wake_by_address_single(data->counter);
 }
 
@@ -165,9 +169,7 @@ TEST_FUNCTION(one_work_item_schedule_works)
     volatile_atomic int32_t thread_counter = 0;
 
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
-    ASSERT_IS_NOT_NULL(threadpool);
-
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
+    ASSERT_IS_NOT_NULL(threadpool);    
 
     // Create 1 thread pool
     LogInfo("Scheduling work item");
@@ -178,8 +180,7 @@ TEST_FUNCTION(one_work_item_schedule_works)
     ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
-    // cleanup
-    threadpool_close(threadpool);
+    // cleanup    
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
@@ -198,8 +199,6 @@ TEST_FUNCTION(one_work_item_schedule_work_item)
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
-
     LogInfo("Creating work item");
     THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item = threadpool_create_work_item(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter);
     ASSERT_IS_NOT_NULL(threadpool_work_item);
@@ -213,8 +212,7 @@ TEST_FUNCTION(one_work_item_schedule_work_item)
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
-    threadpool_destroy_work_item(threadpool, threadpool_work_item);
-    threadpool_close(threadpool);
+    threadpool_destroy_work_item(threadpool, threadpool_work_item);    
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
@@ -232,9 +230,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
     volatile_atomic int32_t thread_counter = 0;
 
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
-    ASSERT_IS_NOT_NULL(threadpool);
-
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
+    ASSERT_IS_NOT_NULL(threadpool);    
 
     // Create Work Items
     LogInfo("Creating work item once");
@@ -255,8 +251,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
-    threadpool_destroy_work_item(threadpool, threadpool_work_item);
-    threadpool_close(threadpool);
+    threadpool_destroy_work_item(threadpool, threadpool_work_item);    
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
@@ -274,8 +269,6 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work))
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
-
     // Create double the amount of threads that is the max
     LogInfo("Scheduling %" PRIu32 " work item", num_threads);
     for (uint32_t index = 0; index < num_threads; index++)
@@ -289,8 +282,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work))
     ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
-    // cleanup
-    threadpool_close(threadpool);
+    // cleanup    
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
@@ -309,8 +301,6 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
-
     // Create Work Items
     LogInfo("Creating work item once");
     THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item = threadpool_create_work_item(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter);
@@ -328,8 +318,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
-    threadpool_destroy_work_item(threadpool, threadpool_work_item);
-    threadpool_close(threadpool);
+    threadpool_destroy_work_item(threadpool, threadpool_work_item);    
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
@@ -348,8 +337,6 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_with_pool_threads))
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
-
     // Create double the amount of threads that is the max
     LogInfo("Scheduling %" PRIu32 " work item with 20 millisecons work", num_threads);
     for (uint32_t index = 0; index < num_threads; index++)
@@ -361,8 +348,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_with_pool_threads))
     ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
-    // cleanup
-    threadpool_close(threadpool);
+    // cleanup    
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
@@ -383,8 +369,6 @@ TEST_FUNCTION(threadpool_chaos_knight)
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
-
     // Create double the amount of threads that is the max
     LogInfo("Scheduling %" PRIu32 " work items", num_threads);
     for (uint32_t index = 0; index < num_threads; index++)
@@ -399,8 +383,7 @@ TEST_FUNCTION(threadpool_chaos_knight)
     ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
-    // cleanup
-    threadpool_close(threadpool);
+    // cleanup    
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
@@ -418,8 +401,6 @@ TEST_FUNCTION(threadpool_chaos_knight_v2)
 
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
-
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     // Create Work Items
     LogInfo("Creating work item once");
@@ -441,13 +422,10 @@ TEST_FUNCTION(threadpool_chaos_knight_v2)
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
-    threadpool_destroy_work_item(threadpool, threadpool_work_item);
-    threadpool_close(threadpool);
+    threadpool_destroy_work_item(threadpool, threadpool_work_item);    
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
-
-#define WRAP_TEST_WORK_ITEMS 10000
 
 TEST_FUNCTION(threadpool_force_wrap_around)
 {
@@ -456,14 +434,13 @@ TEST_FUNCTION(threadpool_force_wrap_around)
 
     EXECUTION_ENGINE_PARAMETERS params;
     params.min_thread_count = 1;
-    params.max_thread_count = num_threads;
+    params.max_thread_count = 16;
 
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&params);
 
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
-
+    
     volatile_atomic int32_t thread_counter;
     interlocked_exchange(&thread_counter, 0);
 
@@ -480,8 +457,7 @@ TEST_FUNCTION(threadpool_force_wrap_around)
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
-    threadpool_close(threadpool);
-    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);    
     execution_engine_dec_ref(execution_engine);
 }
 
@@ -491,19 +467,19 @@ TEST_FUNCTION(threadpool_force_wrap_around_v2)
     const uint32_t num_threads = WRAP_TEST_WORK_ITEMS;
     EXECUTION_ENGINE_PARAMETERS params;
     params.min_thread_count = 1;
-    params.max_thread_count = num_threads;
+    params.max_thread_count = 16;
 
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&params);
 
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
-
+    
     volatile_atomic int32_t thread_counter;
     interlocked_exchange(&thread_counter, 0);
 
     WRAP_DATA* data = malloc(sizeof(WRAP_DATA));
-    data->counter = &thread_counter;
+    data->counter = &thread_counter;    
+    
     strcpy(data->mem, "READY");
     // Create Work Items
     THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item = threadpool_create_work_item(threadpool, threadpool_long_task_v2, data);
@@ -520,9 +496,8 @@ TEST_FUNCTION(threadpool_force_wrap_around_v2)
 
     // cleanup
 
-    threadpool_destroy_work_item(threadpool, threadpool_work_item);
+    threadpool_destroy_work_item(threadpool, threadpool_work_item);    
     free(data);
-    threadpool_close(threadpool);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
@@ -807,7 +782,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(schedule_after_close_works)
+TEST_FUNCTION(schedule_work_two_times)
 {
     // assert
     EXECUTION_ENGINE_PARAMETERS params;
@@ -821,8 +796,6 @@ TEST_FUNCTION(schedule_after_close_works)
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
-
     THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item = threadpool_create_work_item(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter);
     ASSERT_IS_NOT_NULL(threadpool_work_item);
 
@@ -832,19 +805,12 @@ TEST_FUNCTION(schedule_after_close_works)
 
     // assert
     LogInfo("Waiting for task to complete");
-    do
-    {
-        (void)InterlockedHL_WaitForValue(&thread_counter, num_threads, TEST_TIMEOUT_VALUE);
-    } while (interlocked_add(&thread_counter, 0) != num_threads);
+    ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
 
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
-    threadpool_destroy_work_item(threadpool, threadpool_work_item);
-    threadpool_close(threadpool);
+    threadpool_destroy_work_item(threadpool, threadpool_work_item);    
 
     (void)interlocked_exchange(&thread_counter, 0);
-
-    // Reopen the threadpool
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     threadpool_work_item = threadpool_create_work_item(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter);
     ASSERT_IS_NOT_NULL(threadpool_work_item);
@@ -860,13 +826,12 @@ TEST_FUNCTION(schedule_after_close_works)
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
-    threadpool_destroy_work_item(threadpool, threadpool_work_item);
-    threadpool_close(threadpool);
+    threadpool_destroy_work_item(threadpool, threadpool_work_item);    
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(schedule_after_close_works_v2)
+TEST_FUNCTION(schedule_work_two_times_v2)
 {
     // assert
     EXECUTION_ENGINE_PARAMETERS params;
@@ -880,26 +845,17 @@ TEST_FUNCTION(schedule_after_close_works_v2)
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
-
     // Create 1 thread pool
     LogInfo("Scheduling work item");
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter));
 
     // assert
     LogInfo("Waiting for task to complete");
-    do
-    {
-        (void)InterlockedHL_WaitForValue(&thread_counter, num_threads, TEST_TIMEOUT_VALUE);
-    } while (interlocked_add(&thread_counter, 0) != num_threads);
+    ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
 
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
-    threadpool_close(threadpool);
 
     (void)interlocked_exchange(&thread_counter, 0);
-
-    // Reopen the threadpool
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     // Create 1 thread pool
     LogInfo("Scheduling work item");
@@ -912,7 +868,6 @@ TEST_FUNCTION(schedule_after_close_works_v2)
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
     // cleanup
-    threadpool_close(threadpool);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }

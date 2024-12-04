@@ -58,6 +58,12 @@ typedef struct SOCKET_BUFFER_TAG
     void* buffer;
 } SOCKET_BUFFER;
 
+typedef struct LOCAL_ADDRESS_TAG
+{
+    ADDRESS_TYPE address_type;
+    char address[MAX_LOCAL_ADDRESS_LEN];
+} LOCAL_ADDRESS;
+
 MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_client);
 MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_server);
 MOCKABLE_FUNCTION(, SOCKET_TRANSPORT_HANDLE, socket_transport_create_from_socket, SOCKET_HANDLE, socket_handle);
@@ -74,6 +80,7 @@ MOCKABLE_FUNCTION(, SOCKET_RECEIVE_RESULT, socket_transport_receive, SOCKET_TRAN
 
 MOCKABLE_FUNCTION(, SOCKET_HANDLE, socket_transport_get_underlying_socket, SOCKET_TRANSPORT_HANDLE, socket_transport);
 MOCKABLE_FUNCTION(, bool, socket_transport_is_valid_socket, SOCKET_TRANSPORT_HANDLE, socket_transport_handle);
+MOCKABLE_FUNCTION(, int, socket_transport_get_local_address, SOCKET_TRANSPORT_HANDLE, socket_transport, char, hostname[MAX_GET_HOST_NAME_LEN], LOCAL_ADDRESS**, local_address_list, uint32_t*, address_count);
 ```
 
 ### socket_transport_create_client
@@ -172,3 +179,11 @@ MOCKABLE_FUNCTION(, bool, socket_transport_is_valid_socket, SOCKET_TRANSPORT_HAN
 ```
 
 `socket_transport_check_valid_handle` checks that the internal socket is valid.
+
+### socket_transport_get_local_address
+
+```c
+MOCKABLE_FUNCTION(, int, socket_transport_get_local_address, SOCKET_TRANSPORT_HANDLE, socket_transport, char, hostname[MAX_GET_HOST_NAME_LEN], LOCAL_ADDRESS**, local_address_list, uint32_t*, address_count);
+```
+
+`socket_transport_get_local_address` shall return the hostname and IP addresses of the local machine.
