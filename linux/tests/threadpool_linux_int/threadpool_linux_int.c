@@ -26,11 +26,20 @@
 #include "c_pal/thandle.h" // IWYU pragma: keep
 #include "c_pal/thandle_ll.h"
 
-static volatile_atomic int32_t g_call_count;
+#define XTEST_FUNCTION(A) void A(void)
+
+static volatile_atomic int64_t g_call_count;
+
+//diff: LONG to int64_t, wait_event need to change type
+// typedef struct WAIT_WORK_CONTEXT_TAG
+// {
+//     volatile LONG call_count;
+//     HANDLE wait_event; ? should this be changed?
+// } WAIT_WORK_CONTEXT;
 
 typedef struct WAIT_WORK_CONTEXT_TAG
 {
-    volatile_atomic int32_t call_count;
+    volatile_atomic int64_t call_count;
     volatile_atomic int32_t wait_event;
 } WAIT_WORK_CONTEXT;
 
@@ -41,6 +50,8 @@ typedef struct WRAP_DATA_TAG
 } WRAP_DATA;
 
 #define TEST_TIMEOUT_VALUE      60000   // 60 seconds
+//diff: added this
+#define WAIT_WORK_FUNCTION_SLEEP_IN_MS 300
 
 TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
 
@@ -53,6 +64,8 @@ TEST_SUITE_INITIALIZE(suite_init)
     time_t seed = time(NULL);
     LogInfo("Test using random seed = %u", (unsigned int)seed);
     srand((unsigned int)seed);
+    //diff: if this is needed
+    //logger_set_config((LOGGER_CONFIG) { .log_sinks = NULL, .log_sink_count = 0 });
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
@@ -62,7 +75,7 @@ TEST_SUITE_CLEANUP(suite_cleanup)
 
 TEST_FUNCTION_INITIALIZE(method_init)
 {
-    (void)interlocked_exchange(&g_call_count, 0);
+    (void)interlocked_exchange_64(&g_call_count, 0);
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
@@ -117,23 +130,61 @@ static void threadpool_long_task_v2(void* context)
     wake_by_address_single(data->counter);
 }
 
+//diff: win32, need to make anywhere call work_function to use g_call_count;
+// static void work_function(void* context)
+// {
+//     volatile LONG64* call_count = (volatile LONG64*)context;
+//     (void)InterlockedIncrement64(call_count);
+//     WakeByAddressSingle((PVOID)call_count);
+// }
+
 static void work_function(void* context)
 {
-    (void)interlocked_increment(&g_call_count);
-    wake_by_address_single(&g_call_count);
+    (void)interlocked_increment_64(&g_call_count);
+    wake_by_address_single_64(&g_call_count);
 }
+
+//diff:wait for object need to be changed, should wait for infinite time?
+// static void wait_work_function(void* context)
+// {
+//     WAIT_WORK_CONTEXT* wait_work_context = (WAIT_WORK_CONTEXT*)context;
+//     ASSERT_IS_TRUE(WaitForSingleObject(wait_work_context->wait_event, UINT_MAX) == WAIT_OBJECT_0);
+//     (void)InterlockedIncrement(&wait_work_context->call_count);
+//     WakeByAddressSingle((PVOID)&wait_work_context->call_count);
+// }
 
 static void wait_work_function(void* context)
 {
     WAIT_WORK_CONTEXT* wait_work_context = (WAIT_WORK_CONTEXT*)context;
 
     int32_t current_value = interlocked_add(&wait_work_context->wait_event, 0);
-    ASSERT_IS_TRUE(wait_on_address(&wait_work_context->wait_event, current_value, 2000) == WAIT_ON_ADDRESS_TIMEOUT);
-    (void)interlocked_increment(&wait_work_context->call_count);
-    wake_by_address_single(&wait_work_context->call_count);
+    ASSERT_IS_TRUE(wait_on_address(&wait_work_context->wait_event, current_value, 2000) == WAIT_ON_ADDRESS_TIMEOUT); //todo: should this line be changed?
+    (void)interlocked_increment_64(&wait_work_context->call_count);
+    wake_by_address_single_64(&wait_work_context->call_count);
 }
 
-static void wait_for_equal(volatile_atomic int32_t* value, int32_t expected, uint32_t timeout)
+#define TIMER_STATE_VALUES \
+    TIMER_STATE_NONE, \
+    TIMER_STATE_STARTING, \
+    TIMER_STATE_STARTED, \
+    TIMER_STATE_CANCELING, \
+    TIMER_STATE_STOPPING
+
+#define TEST_ACTION_VALUES \
+    TEST_ACTION_CLEANUP_TIMER, \
+    TEST_ACTION_SCHEDULE_WORK, \
+    TEST_ACTION_START_TIMER, \
+    TEST_ACTION_CANCEL_TIMER, \
+    TEST_ACTION_RESTART_TIMER, \
+    TEST_ACTION_SCHEDULE_WORK_ITEM
+
+MU_DEFINE_ENUM(TEST_ACTION, TEST_ACTION_VALUES)
+MU_DEFINE_ENUM_STRINGS(TEST_ACTION, TEST_ACTION_VALUES)
+
+MU_DEFINE_ENUM(TIMER_STATE, TIMER_STATE_VALUES)
+MU_DEFINE_ENUM_STRINGS(TIMER_STATE, TIMER_STATE_VALUES)
+
+static void wait_for_greater_or_equal(volatile_atomic int64_t* value, int64_t expected, uint64_t timeout)
 {
     double start_time = timer_global_get_elapsed_ms();
     double current_time = timer_global_get_elapsed_ms();
@@ -144,12 +195,32 @@ static void wait_for_equal(volatile_atomic int32_t* value, int32_t expected, uin
             ASSERT_FAIL("Timeout waiting for value");
         }
 
-        int32_t current_value = interlocked_add(value, 0);
+        int64_t current_value = interlocked_add_64(value, 0);
+        if (current_value >= expected)
+        {
+            break;
+        }
+        (void)wait_on_address_64(value, current_value, timeout - (uint64_t)(current_time - start_time));
+    } while (1);
+}
+
+static void wait_for_equal(volatile_atomic int64_t* value, int64_t expected, uint64_t timeout)
+{
+    double start_time = timer_global_get_elapsed_ms();
+    double current_time = timer_global_get_elapsed_ms();
+    do
+    {
+        if (current_time - start_time >= timeout)
+        {
+            ASSERT_FAIL("Timeout waiting for value");
+        }
+
+        int64_t current_value = interlocked_add_64(value, 0);
         if (current_value == expected)
         {
             break;
         }
-        (void)wait_on_address(value, current_value, timeout - (uint32_t)(current_time - start_time));
+        (void)wait_on_address_64(value, current_value, timeout - (uint64_t)(current_time - start_time));
     } while (1);
 }
 
@@ -219,6 +290,64 @@ TEST_FUNCTION(one_work_item_schedule_work_item)
     execution_engine_dec_ref(execution_engine);
 }
 
+TEST_FUNCTION(one_work_item_schedule_works_1)
+{
+    // assert
+    // create an execution engine
+    volatile_atomic int64_t call_count;
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    // create the threadpool
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    (void)interlocked_exchange_64(&call_count, 0);
+
+    // act (schedule one work item)
+    LogInfo("Scheduling work");
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, work_function, (void*)&call_count));
+
+    // assert
+    wait_for_equal(&call_count, 1, UINT64_MAX);
+    LogInfo("Work completed");
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+#if 0
+TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work)
+{
+    // arrange
+    // create an execution engine
+    volatile_atomic int64_t call_count;
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    // create the threadpool
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    // this is safe because the threadpool has a reference
+    execution_engine_dec_ref(execution_engine);
+
+    (void)interlocked_exchange_64(&call_count, 0);
+
+    // act (schedule one work item)
+    LogInfo("Scheduling work");
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, work_function, (void*)&call_count));
+
+    // assert
+    wait_for_equal(&call_count, 1, UINT64_MAX);
+    LogInfo("Work completed");
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+#endif
 #define N_WORK_ITEMS 30
 
 TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
@@ -559,7 +688,7 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
 
         // Timer starts after 2 seconds, wait a bit and it should not yet have run
         ThreadAPI_Sleep(500);
-        if (interlocked_add(&g_call_count, 0) != 0)
+        if (interlocked_add_64(&g_call_count, 0) != 0)
         {
             LogWarning("Timer ran after sleeping 500ms, we just got unlucky, try test again");
         }
@@ -573,7 +702,7 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
 
             // And should not run again
             ThreadAPI_Sleep(5000);
-            ASSERT_ARE_EQUAL(uint32_t, 1, interlocked_add(&g_call_count, 0));
+            ASSERT_ARE_EQUAL(uint64_t, 1, interlocked_add_64(&g_call_count, 0));
             LogInfo("Done waiting for timer");
 
             need_to_retry = false;
@@ -622,7 +751,7 @@ TEST_FUNCTION(restart_timer_works_runs_once)
 
         // Timer starts after 2 seconds, wait a bit and it should not yet have run
         ThreadAPI_Sleep(500);
-        if (interlocked_add(&g_call_count, 0) != 0)
+        if (interlocked_add_64(&g_call_count, 0) != 0)
         {
             LogWarning("Timer ran after sleeping 500ms, we just got unlucky, try test again");
         }
@@ -636,7 +765,7 @@ TEST_FUNCTION(restart_timer_works_runs_once)
 
             // And should not run again
             ThreadAPI_Sleep(5000);
-            ASSERT_ARE_EQUAL(uint32_t, 1, interlocked_add(&g_call_count, 0));
+            ASSERT_ARE_EQUAL(uint32_t, 1, interlocked_add_64(&g_call_count, 0));
             LogInfo("Done waiting for timer");
 
             need_to_retry = false;
@@ -709,7 +838,7 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
     // act
     LogInfo("Cancel then restart timer");
     threadpool_timer_cancel(timer);
-    (void)interlocked_exchange(&g_call_count, 0);
+    (void)interlocked_exchange_64(&g_call_count, 0);
     ASSERT_ARE_EQUAL(int, 0, threadpool_timer_restart(timer, 100, 1000));
 
     // assert
@@ -740,7 +869,7 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
-    (void)interlocked_exchange(&wait_work_context.call_count, 0);
+    (void)interlocked_exchange_64(&wait_work_context.call_count, 0);
     (void)interlocked_exchange(&wait_work_context.wait_event, 0);
 
     // schedule one timer that waits
@@ -781,7 +910,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
-    (void)interlocked_exchange(&wait_work_context.call_count, 0);
+    (void)interlocked_exchange_64(&wait_work_context.call_count, 0);
     (void)interlocked_exchange(&wait_work_context.wait_event, 0);
 
     // schedule one timer that waits

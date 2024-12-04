@@ -48,18 +48,6 @@ static void wait_work_function(void* context)
     WakeByAddressSingle((PVOID)&wait_work_context->call_count);
 }
 
-typedef struct CLOSE_WORK_CONTEXT_TAG
-{
-    volatile LONG call_count;
-    THANDLE(THREADPOOL) threadpool;
-} CLOSE_WORK_CONTEXT;
-
-typedef struct OPEN_WORK_CONTEXT_TAG
-{
-    volatile LONG call_count;
-    THANDLE(THREADPOOL) threadpool;
-} OPEN_WORK_CONTEXT;
-
 #define TIMER_STATE_VALUES \
     TIMER_STATE_NONE, \
     TIMER_STATE_STARTING, \
