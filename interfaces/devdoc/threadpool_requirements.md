@@ -35,7 +35,7 @@ MOCKABLE_FUNCTION(, void, threadpool_close, THANDLE(THREADPOOL), threadpool);
 
 MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_WORK_ITEM), threadpool_create_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 
-MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THANDLE(THREADPOOL_WORK_ITEM), work_item_context);
+MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THANDLE(THREADPOOL_WORK_ITEM), threadpool_work_item);
 
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 
@@ -125,30 +125,30 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_WORK_ITEM), threadpool_create_work_item, 
 ### threadpool_schedule_work_item
 
 ```c
-MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THANDLE(THREADPOOL_WORK_ITEM), work_item_context);
+MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THANDLE(THREADPOOL_WORK_ITEM), threadpool_work_item);
 ```
 
-`threadpool_schedule_work_item` schedules a work item to be executed by the threadpool. This API can be called multiple times on the same `work_item_context` and fails only if the arguments are passed `NULL`.
+`threadpool_schedule_work_item` schedules a work item to be executed by the threadpool. This API can be called multiple times on the same `threadpool_work_item` and fails only if the arguments are passed `NULL`.
 
 **NON_THREADPOOL_05_008: [** If `threadpool` is NULL, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
 
-**NON_THREADPOOL_05_009: [** If `work_item_context` is NULL, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
+**NON_THREADPOOL_05_009: [** If `threadpool_work_item` is NULL, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
 
 **NON_THREADPOOL_05_010: [** `threadpool_schedule_work_item` shall submit the `threadpool` work item for execution. **]**
 
-### threadpool_destroy_work_item
+### threadpool_dispose_work_item
 
 ```c
-static void threadpool_destroy_work_item (THANDLE(THREADPOOL_WORK_ITEM) work_item_context);
+static void threadpool_dispose_work_item (THANDLE(THREADPOOL_WORK_ITEM) threadpool_work_item);
 ```
 
-`threadpool_destroy_work_item` frees the threadpool work item context.
+`threadpool_dispose_work_item` frees the threadpool work item context.
 
-**NON_THREADPOOL_05_011: [** If `work_item_context` is `NULL`, `threadpool_destroy_work_item` shall fail and not do anything before returning. **]**
+**NON_THREADPOOL_05_011: [** [Deprecated] If `threadpool_work_item` is `NULL`, `threadpool_dispose_work_item` shall fail and not do anything before returning. **]**
 
-**NON_THREADPOOL_05_012: [** `threadpool_destroy_work_item` shall perform cleanup and free all the members of `THREADPOOL_WORK_ITEM_HANDLE`. **]**
+**NON_THREADPOOL_05_012: [** `threadpool_dispose_work_item` shall perform cleanup and free all the members of `THREADPOOL_WORK_ITEM_HANDLE`. **]**
 
-**NON_THREADPOOL_05_013: [** `threadpool_destroy_work_item` shall free the `work_item_context` of type `THREADPOOL_WORK_ITEM_HANDLE`. **]**
+**NON_THREADPOOL_05_013: [** [Deprecated] `threadpool_dispose_work_item` shall free the `threadpool_work_item` of type `THREADPOOL_WORK_ITEM_HANDLE`. **]**
 
 ### threadpool_schedule_work
 

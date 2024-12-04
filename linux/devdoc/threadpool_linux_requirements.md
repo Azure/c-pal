@@ -80,7 +80,7 @@ MOCKABLE_FUNCTION(, void, threadpool_close, THANDLE(THREADPOOL), threadpool);
 
 MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_WORK_ITEM), threadpool_create_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 
-MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THANDLE(THREADPOOL_WORK_ITEM), work_item_context);
+MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THANDLE(THREADPOOL_WORK_ITEM), threadpool_work_item);
 
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 
@@ -415,20 +415,20 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), thr
 
 - **SRS_THREADPOOL_LINUX_05_026: [** `threadpool_schedule_work_item` shall succeed and return 0. **]**
 
-### threadpool_destroy_work_item
+### threadpool_dispose_work_item
 
 ```c
-static void threadpool_destroy_work_item(THANDLE(THREADPOOL_WORK_ITEM), threadpool_work_item);
+static void threadpool_dispose_work_item(THANDLE(THREADPOOL_WORK_ITEM), threadpool_work_item);
 ```
 
-`threadpool_destroy_work_item` Waits for completion of scheduled work items before freeing the context.
+`threadpool_dispose_work_item` Waits for completion of scheduled work items before freeing the context.
 
-**SRS_THREADPOOL_LINUX_05_029: [** [Deprecated] If `threadpool` is `NULL`, `threadpool_destroy_work_item` shall fail. **]**
+**SRS_THREADPOOL_LINUX_05_029: [** [Deprecated] If `threadpool` is `NULL`, `threadpool_dispose_work_item` shall fail. **]**
 
-**SRS_THREADPOOL_LINUX_05_030: [** If `threadpool_work_item` is `NULL`, `threadpool_destroy_work_item` shall fail. **]**
+**SRS_THREADPOOL_LINUX_05_030: [** [Deprecated] If `threadpool_work_item` is `NULL`, `threadpool_dispose_work_item` shall fail. **]**
 
-**SRS_THREADPOOL_LINUX_05_033: [** [Deprecated] `threadpool_destroy_work_item` shall wait for all pending work items to finish execution. **]**
+**SRS_THREADPOOL_LINUX_05_033: [** [Deprecated] `threadpool_dispose_work_item` shall wait for all pending work items to finish execution. **]**
 
-  - **SRS_THREADPOOL_LINUX_05_035: [** `threadpool_destroy_work_item` shall free the memory allocated to the work item of type `THANDLE(THREADPOOL_WORK_ITEM)` created in `threadpool_create_work_item`. **]**
+  - **SRS_THREADPOOL_LINUX_05_035: [** `threadpool_dispose_work_item` shall free the memory allocated to the work item of type `THANDLE(THREADPOOL_WORK_ITEM)` created in `threadpool_create_work_item`. **]**
 
   - **SRS_THREADPOOL_LINUX_05_037: [** [Deprecated] If `InterlockedHL_WaitForValue` does not return `INTERLOCKED_HL_OK` then Log Message with severity `CRITICAL` and `terminate`. **]**
