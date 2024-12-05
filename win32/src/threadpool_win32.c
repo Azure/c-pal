@@ -14,6 +14,7 @@
 #include "c_pal/log_critical_and_terminate.h"
 #include "c_pal/thandle.h"
 #include "c_pal/threadpool.h"
+#include "c_pal/srw_lock_ll.h"
 
 typedef struct WORK_ITEM_CONTEXT_TAG
 {
@@ -28,12 +29,15 @@ typedef struct THREADPOOL_WORK_ITEM_TAG
     PTP_WORK ptp_work;
 } THREADPOOL_WORK_ITEM, *THREADPOOL_WORK_ITEM_HANDLE;
 
-typedef struct TIMER_INSTANCE_TAG
+typedef struct TIMER_TAG
 {
     PTP_TIMER timer;
     THREADPOOL_WORK_FUNCTION work_function;
     void* work_function_context;
-} TIMER_INSTANCE;
+    SRW_LOCK_LL timer_lock;
+} TIMER;
+
+THANDLE_TYPE_DEFINE(TIMER);
 
 typedef struct THREADPOOL_TAG
 {
@@ -361,7 +365,7 @@ static VOID CALLBACK on_timer_callback(PTP_CALLBACK_INSTANCE instance, PVOID con
     else
     {
         /* Codes_SRS_THREADPOOL_WIN32_42_017: [ Otherwise context shall be used as the context created in threadpool_schedule_work. ]*/
-        TIMER_INSTANCE_HANDLE timer_instance = context;
+        TIMER * timer_instance = context;
 
         /* Codes_SRS_THREADPOOL_WIN32_42_018: [ The work_function callback passed to threadpool_schedule_work shall be called, passing to it the work_function_context argument passed to threadpool_schedule_work. ]*/
         timer_instance->work_function(timer_instance->work_function_context);
@@ -384,7 +388,22 @@ static void threadpool_internal_cancel_timer_and_wait(PTP_TIMER tp_timer)
     WaitForThreadpoolTimerCallbacks(tp_timer, TRUE);
 }
 
-int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context, TIMER_INSTANCE_HANDLE* timer_handle)
+static void threadpool_timer_dispose(TIMER* timer)
+{
+    if (timer->timer != NULL)
+    {
+        /* Codes_SRS_THREADPOOL_WIN32_42_012: [ threadpool_timer_dispose shall call SetThreadpoolTimer with NULL for pftDueTime and 0 for msPeriod and msWindowLength to cancel ongoing timers. ]*/
+        /* Codes_SRS_THREADPOOL_WIN32_42_013: [ threadpool_timer_dispose shall call WaitForThreadpoolTimerCallbacks. ]*/
+        threadpool_internal_cancel_timer_and_wait(timer->timer);
+        /* Codes_SRS_THREADPOOL_WIN32_42_014: [ threadpool_timer_destroy shall call CloseThreadpoolTimer. ]*/
+        CloseThreadpoolTimer(timer->timer);
+    }
+
+    /* Codes_SRS_THREADPOOL_WIN32_07_001: [ threadpool_timer_dispose shall call srw_lock_ll_deinit. ]*/
+    srw_lock_ll_deinit(&timer->timer_lock);
+}
+
+int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context, THANDLE(TIMER)* timer_handle)
 {
     int result;
 
@@ -398,7 +417,7 @@ int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_
         timer_handle == NULL
         )
     {
-        LogError("Invalid args: THANDLE(THREADPOOL) threadpool = %p, uint32_t start_delay_ms = %" PRIu32 ", uint32_t timer_period_ms = %" PRIu32 ", THREADPOOL_WORK_FUNCTION work_function = %p, void* work_function_context = %p, TIMER_INSTANCE_HANDLE* timer_handle = %p",
+        LogError("Invalid args: THANDLE(THREADPOOL) threadpool = %p, uint32_t start_delay_ms = %" PRIu32 ", uint32_t timer_period_ms = %" PRIu32 ", THREADPOOL_WORK_FUNCTION work_function = %p, void* work_function_context = %p, TIMER* timer_handle = %p",
             threadpool, start_delay_ms, timer_period_ms, work_function, work_function_context, timer_handle);
         result = MU_FAILURE;
     }
@@ -406,19 +425,22 @@ int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_
     {
         THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
 
-        /* Codes_SRS_THREADPOOL_WIN32_42_005: [ threadpool_timer_start shall allocate a context for the timer being started and store work_function and work_function_context in it. ]*/
-        TIMER_INSTANCE_HANDLE timer_temp = malloc(sizeof(TIMER_INSTANCE));
-
+        /* Codes_SRS_THREADPOOL_WIN32_42_005: [ threadpool_timer_start shall allocate memory for THANDLE(TIMER), passing threadpool_timer_dispose as dispose function, and store work_function and work_function_context in it. ]*/
+        THANDLE(TIMER) timer_temp = THANDLE_MALLOC(TIMER)(threadpool_timer_dispose);
         if (timer_temp == NULL)
         {
             /* Codes_SRS_THREADPOOL_WIN32_42_008: [ If any error occurs, threadpool_timer_start shall fail and return a non-zero value. ]*/
-            LogError("malloc(%zu) failed for TIMER_INSTANCE_HANDLE", sizeof(TIMER_INSTANCE));
+            LogError("failure in THANDLE_MALLOC(TIMER)(threadpool_timer_dispose=%p)",
+                    threadpool_timer_dispose);
             result = MU_FAILURE;
         }
         else
         {
+            TIMER * timer_ptr = THANDLE_GET_T(TIMER)(timer_temp);
+            timer_ptr->timer = NULL;
+
             /* Codes_SRS_THREADPOOL_WIN32_42_006: [ threadpool_timer_start shall call CreateThreadpoolTimer to schedule execution the callback while passing to it the on_timer_callback function and the newly created context. ]*/
-            PTP_TIMER tp_timer = CreateThreadpoolTimer(on_timer_callback, timer_temp, &threadpool_ptr->tp_environment);
+            PTP_TIMER tp_timer = CreateThreadpoolTimer(on_timer_callback, timer_ptr, &threadpool_ptr->tp_environment);
             if (tp_timer == NULL)
             {
                 /* Codes_SRS_THREADPOOL_WIN32_42_008: [ If any error occurs, threadpool_timer_start shall fail and return a non-zero value. ]*/
@@ -427,32 +449,43 @@ int threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_
             }
             else
             {
-                timer_temp->timer = tp_timer;
-                timer_temp->work_function = work_function;
-                timer_temp->work_function_context = work_function_context;
+                timer_ptr->timer = tp_timer;
 
-                /* Codes_SRS_THREADPOOL_WIN32_42_007: [ threadpool_timer_start shall call SetThreadpoolTimer, passing negative start_delay_ms as pftDueTime, timer_period_ms as msPeriod, and 0 as msWindowLength. ]*/
-                threadpool_internal_set_timer(tp_timer, start_delay_ms, timer_period_ms);
+                /* Codes_SRS_THREADPOOL_WIN32_07_002: [ threadpool_timer_start shall initialize the lock guarding the timer state by calling srw_lock_ll_init. ]*/
+                if (srw_lock_ll_init(&timer_ptr->timer_lock) != 0)
+                {
+                    /* Codes_SRS_THREADPOOL_WIN32_42_008: [ If any error occurs, threadpool_timer_start shall fail and return a non-zero value. ]*/
+                    LogError("srw_lock_ll_init failed");
+                    result = MU_FAILURE;
+                }
+                else
+                {
+                    timer_ptr->work_function = work_function;
+                    timer_ptr->work_function_context = work_function_context;
 
-                /* Codes_SRS_THREADPOOL_WIN32_42_009: [ threadpool_timer_start shall return the allocated handle in timer_handle. ]*/
-                *timer_handle = timer_temp;
-                timer_temp = NULL;
+                    /* Codes_SRS_THREADPOOL_WIN32_42_007: [ threadpool_timer_start shall call SetThreadpoolTimer, passing negative start_delay_ms as pftDueTime, timer_period_ms as msPeriod, and 0 as msWindowLength. ]*/
+                    threadpool_internal_set_timer(tp_timer, start_delay_ms, timer_period_ms);
 
-                /* Codes_SRS_THREADPOOL_WIN32_42_010: [ threadpool_timer_start shall succeed and return 0. ]*/
-                result = 0;
+                    /* Codes_SRS_THREADPOOL_WIN32_42_009: [ threadpool_timer_start shall return the allocated handle in timer_handle. ]*/
+                    THANDLE_INITIALIZE_MOVE(TIMER)(timer_handle, &timer_temp);
+
+                    /* Codes_SRS_THREADPOOL_WIN32_42_010: [ threadpool_timer_start shall succeed and return 0. ]*/
+                    result = 0;
+                    goto all_ok;
+                }
             }
 
-            if (timer_temp != NULL)
-            {
-                free(timer_temp);
-            }
+            THANDLE_ASSIGN(TIMER)(&timer_temp, NULL);
         }
+
+    all_ok:
+        ;
     }
 
     return result;
 }
 
-int threadpool_timer_restart(TIMER_INSTANCE_HANDLE timer, uint32_t start_delay_ms, uint32_t timer_period_ms)
+int threadpool_timer_restart(THANDLE(TIMER) timer, uint32_t start_delay_ms, uint32_t timer_period_ms)
 {
     int result;
 
@@ -461,14 +494,22 @@ int threadpool_timer_restart(TIMER_INSTANCE_HANDLE timer, uint32_t start_delay_m
         timer == NULL
         )
     {
-        LogError("Invalid args: TIMER_INSTANCE_HANDLE timer = %p, uint32_t start_delay_ms = %" PRIu32 ", uint32_t timer_period_ms = %" PRIu32 "",
+        LogError("Invalid args: TIMER * timer = %p, uint32_t start_delay_ms = %" PRIu32 ", uint32_t timer_period_ms = %" PRIu32 "",
             timer, start_delay_ms, timer_period_ms);
         result = MU_FAILURE;
     }
     else
     {
+        TIMER * timer_content = THANDLE_GET_T(TIMER)(timer);
+
+        /* Codes_SRS_THREADPOOL_WIN32_07_003: [ threadpool_timer_restart shall acquire an exclusive lock. ]*/
+        srw_lock_ll_acquire_exclusive(&timer_content->timer_lock);
+
         /* Codes_SRS_THREADPOOL_WIN32_42_022: [ threadpool_timer_restart shall call SetThreadpoolTimer, passing negative start_delay_ms as pftDueTime, timer_period_ms as msPeriod, and 0 as msWindowLength. ]*/
-        threadpool_internal_set_timer(timer->timer, start_delay_ms, timer_period_ms);
+        threadpool_internal_set_timer(timer_content->timer, start_delay_ms, timer_period_ms);
+
+        /* Codes_SRS_THREADPOOL_WIN32_07_004: [ threadpool_timer_restart shall release the exclusive lock. ]*/
+        srw_lock_ll_release_exclusive(&timer_content->timer_lock);
 
         /* Codes_SRS_THREADPOOL_WIN32_42_023: [ threadpool_timer_restart shall succeed and return 0. ]*/
         result = 0;
@@ -477,38 +518,25 @@ int threadpool_timer_restart(TIMER_INSTANCE_HANDLE timer, uint32_t start_delay_m
     return result;
 }
 
-void threadpool_timer_cancel(TIMER_INSTANCE_HANDLE timer)
+void threadpool_timer_cancel(THANDLE(TIMER) timer)
 {
     if (timer == NULL)
     {
         /* Codes_SRS_THREADPOOL_WIN32_42_024: [ If timer is NULL, threadpool_timer_cancel shall fail and return. ]*/
-        LogError("Invalid args: TIMER_INSTANCE_HANDLE timer = %p", timer);
+        LogError("Invalid args: TIMER *  timer = %p", timer);
     }
     else
     {
+        TIMER * timer_content = THANDLE_GET_T(TIMER)(timer);
+
+        /* Codes_SRS_THREADPOOL_WIN32_07_005: [ threadpool_timer_cancel shall acquire an exclusive lock. ]*/
+        srw_lock_ll_acquire_exclusive(&timer_content->timer_lock);
+
         /* Codes_SRS_THREADPOOL_WIN32_42_025: [ threadpool_timer_cancel shall call SetThreadpoolTimer with NULL for pftDueTime and 0 for msPeriod and msWindowLength to cancel ongoing timers. ]*/
         /* Codes_SRS_THREADPOOL_WIN32_42_026: [ threadpool_timer_cancel shall call WaitForThreadpoolTimerCallbacks. ]*/
-        threadpool_internal_cancel_timer_and_wait(timer->timer);
-    }
-}
+        threadpool_internal_cancel_timer_and_wait(timer_content->timer);
 
-void threadpool_timer_destroy(TIMER_INSTANCE_HANDLE timer)
-{
-    if (timer == NULL)
-    {
-        /* Codes_SRS_THREADPOOL_WIN32_42_011: [ If timer is NULL, threadpool_timer_destroy shall fail and return. ]*/
-        LogError("Invalid args: TIMER_INSTANCE_HANDLE timer = %p", timer);
-    }
-    else
-    {
-        /* Codes_SRS_THREADPOOL_WIN32_42_012: [ threadpool_timer_destroy shall call SetThreadpoolTimer with NULL for pftDueTime and 0 for msPeriod and msWindowLength to cancel ongoing timers. ]*/
-        /* Codes_SRS_THREADPOOL_WIN32_42_013: [ threadpool_timer_destroy shall call WaitForThreadpoolTimerCallbacks. ]*/
-        threadpool_internal_cancel_timer_and_wait(timer->timer);
-
-        /* Codes_SRS_THREADPOOL_WIN32_42_014: [ threadpool_timer_destroy shall call CloseThreadpoolTimer. ]*/
-        CloseThreadpoolTimer(timer->timer);
-
-        /* Codes_SRS_THREADPOOL_WIN32_42_015: [ threadpool_timer_destroy shall free all resources in timer. ]*/
-        free(timer);
+        /*Codes_SRS_THREADPOOL_WIN32_07_006: [ threadpool_timer_cancel shall release the exclusive lock. ]*/
+        srw_lock_ll_release_exclusive(&timer_content->timer_lock);
     }
 }
