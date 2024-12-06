@@ -90,7 +90,7 @@ static VOID CALLBACK on_work_callback_v2(PTP_CALLBACK_INSTANCE instance, PVOID c
         /* Codes_SRS_THREADPOOL_WIN32_05_002: [ Otherwise context shall be used as the context created in threadpool_create_work_item. ]*/
         THREADPOOL_WORK_ITEM_CONTEXT_HANDLE threadpool_work_item_context = (THREADPOOL_WORK_ITEM_CONTEXT_HANDLE)context;
         /* Codes_SRS_THREADPOOL_WIN32_05_003: [ The work_function callback passed to threadpool_create_work_item shall be called with the work_function_context as an argument. work_function_context was set inside the threadpool_create_work_item as an argument to CreateThreadpoolContext. ]*/
-        threadpool_work_item_context->work_function(work_item_context->work_function_context);
+        threadpool_work_item_context->work_function(threadpool_work_item_context->work_function_context);
     }
 }
 
