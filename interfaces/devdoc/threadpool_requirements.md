@@ -26,16 +26,16 @@ typedef struct THREADPOOL_WORK_ITEM_TAG* THREADPOOL_WORK_ITEM_HANDLE;
 typedef void (*THREADPOOL_WORK_FUNCTION)(void* context);
 
 THANDLE_TYPE_DECLARE(THREADPOOL);
-THANDLE_TYPE_DECLARE(THREADPOOL_WORK_ITEM);
+THANDLE_TYPE_DECLARE(THREADPOOL_WORK_ITEM_CONTEXT);
 
 MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HANDLE, execution_engine);
 
 MOCKABLE_FUNCTION(, int, threadpool_open, THANDLE(THREADPOOL), threadpool);
 MOCKABLE_FUNCTION(, void, threadpool_close, THANDLE(THREADPOOL), threadpool);
 
-MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_WORK_ITEM), threadpool_create_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
+MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_WORK_ITEM_CONTEXT), threadpool_create_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 
-MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THANDLE(THREADPOOL_WORK_ITEM), threadpool_work_item);
+MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THANDLE(THREADPOOL_WORK_ITEM_CONTEXT), threadpool_work_item_context);
 
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 
@@ -91,7 +91,7 @@ Note: `threadpool_close` will be deprecated and an internal callback will perfor
 ### threadpool_create_work_item
 
 ```c
-MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_WORK_ITEM), threadpool_create_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
+MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_WORK_ITEM_CONTEXT), threadpool_create_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 ```
 
 `threadpool_create_work_item` creates a work item to be executed by the threadpool. This function separates the creation of the work item from scheduling it so that `threadpool_schedule_work_item` can be called later and cannot fail.
@@ -111,16 +111,16 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_WORK_ITEM), threadpool_create_work_item, 
 ### threadpool_schedule_work_item
 
 ```c
-MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THANDLE(THREADPOOL_WORK_ITEM), threadpool_work_item);
+MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THANDLE(THREADPOOL_WORK_ITEM_CONTEXT), threadpool_work_item_context);
 ```
 
-`threadpool_schedule_work_item` schedules a work item to be executed by the threadpool. This API can be called multiple times on the same `threadpool_work_item` and fails only if the arguments are passed `NULL`.
+`threadpool_schedule_work_item` schedules a work item to be executed by the threadpool. This API can be called multiple times on the same `threadpool_work_item_context` and fails only if the arguments are passed `NULL`.
 
 **NON_THREADPOOL_05_008: [** If `threadpool` is NULL, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
 
-**NON_THREADPOOL_05_009: [** If `threadpool_work_item` is NULL, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
+**NON_THREADPOOL_05_009: [** If `threadpool_work_item_context` is NULL, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
 
-**NON_THREADPOOL_05_010: [** `threadpool_schedule_work_item` shall submit the `threadpool_work_item` for execution. **]**
+**NON_THREADPOOL_05_010: [** `threadpool_schedule_work_item` shall submit the `threadpool_work_item_context` for execution. **]**
 
 ### threadpool_schedule_work
 
