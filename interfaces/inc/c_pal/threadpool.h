@@ -22,20 +22,20 @@ extern "C" {
 
 typedef struct THREADPOOL_TAG THREADPOOL;
 typedef struct TIMER_INSTANCE_TAG* TIMER_INSTANCE_HANDLE;
-typedef struct THREADPOOL_WORK_ITEM_CONTEXT_TAG THREADPOOL_WORK_ITEM_CONTEXT;
+typedef struct THREADPOOL_WORK_ITEM_TAG THREADPOOL_WORK_ITEM;
 typedef void (*THREADPOOL_WORK_FUNCTION)(void* context);
 
 THANDLE_TYPE_DECLARE(THREADPOOL);
-THANDLE_TYPE_DECLARE(THREADPOOL_WORK_ITEM_CONTEXT);
+THANDLE_TYPE_DECLARE(THREADPOOL_WORK_ITEM);
 
 MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HANDLE, execution_engine);
 
 MOCKABLE_FUNCTION(, int, threadpool_open, THANDLE(THREADPOOL), threadpool);
 MOCKABLE_FUNCTION(, void, threadpool_close, THANDLE(THREADPOOL), threadpool);
 
-MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_WORK_ITEM_CONTEXT), threadpool_create_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
+MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_WORK_ITEM), threadpool_create_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 
-MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THANDLE(THREADPOOL_WORK_ITEM_CONTEXT), threadpool_work_item_context);
+MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THANDLE(THREADPOOL_WORK_ITEM), threadpool_work_item);
 
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 

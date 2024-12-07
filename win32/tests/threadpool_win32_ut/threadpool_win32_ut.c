@@ -3,8 +3,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
-#include "winsock2.h"
-#include "ws2tcpip.h"
 #include "windows.h"
 #include "macro_utils/macro_utils.h"
 #include "c_logging/logger.h"
@@ -1206,10 +1204,10 @@ TEST_FUNCTION(on_work_callback_v2_with_NULL_context_returns)
         .CaptureReturn(&ptp_work);
 
     // act
-    THANDLE(THREADPOOL_WORK_ITEM_CONTEXT) return_work_item_context = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
+    THANDLE(THREADPOOL_WORK_ITEM) return_work_item_context = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
     ASSERT_IS_NOT_NULL(return_work_item_context);
     // assert
-    ASSERT_ARE_EQUAL(void_ptr, return_work_item_context, (THANDLE(THREADPOOL_WORK_ITEM_CONTEXT))test_work_item_context);
+    ASSERT_ARE_EQUAL(void_ptr, return_work_item_context, (THANDLE(THREADPOOL_WORK_ITEM))test_work_item_context);
 
     umock_c_reset_all_calls();
 
@@ -1223,7 +1221,7 @@ TEST_FUNCTION(on_work_callback_v2_with_NULL_context_returns)
 
     // cleanup
     //TODO Needs to change, the cleanup park
-    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM_CONTEXT)(&return_work_item_context, NULL);
+    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&return_work_item_context, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
@@ -1249,11 +1247,11 @@ TEST_FUNCTION(on_work_callback_v2_triggers_the_user_work_function)
         .ValidateArgumentValue_pwk(&ptp_work);
 
     // act
-    THANDLE(THREADPOOL_WORK_ITEM_CONTEXT) return_work_item_context = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
+    THANDLE(THREADPOOL_WORK_ITEM) return_work_item_context = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
     threadpool_schedule_work_item(threadpool, return_work_item_context);
 
     // assert
-    ASSERT_ARE_EQUAL(void_ptr, return_work_item_context, (THANDLE(THREADPOOL_WORK_ITEM_CONTEXT))test_work_item_context);
+    ASSERT_ARE_EQUAL(void_ptr, return_work_item_context, (THANDLE(THREADPOOL_WORK_ITEM))test_work_item_context);
 
     umock_c_reset_all_calls();
 
@@ -1266,7 +1264,7 @@ TEST_FUNCTION(on_work_callback_v2_triggers_the_user_work_function)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
-    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM_CONTEXT)(&return_work_item_context, NULL);
+    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&return_work_item_context, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
@@ -1304,13 +1302,13 @@ TEST_FUNCTION(on_work_callback_v2_triggers_2_user_work_functions)
 
 
     // act
-    THANDLE(THREADPOOL_WORK_ITEM_CONTEXT) return_work_item_context_1 = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
+    THANDLE(THREADPOOL_WORK_ITEM) return_work_item_context_1 = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
     threadpool_schedule_work_item(threadpool, return_work_item_context_1);
-    ASSERT_ARE_EQUAL(void_ptr, return_work_item_context_1, (THANDLE(THREADPOOL_WORK_ITEM_CONTEXT))test_work_item_context_1);
+    ASSERT_ARE_EQUAL(void_ptr, return_work_item_context_1, (THANDLE(THREADPOOL_WORK_ITEM))test_work_item_context_1);
 
-    THANDLE(THREADPOOL_WORK_ITEM_CONTEXT) return_work_item_context_2 = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4244);
+    THANDLE(THREADPOOL_WORK_ITEM) return_work_item_context_2 = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4244);
     threadpool_schedule_work_item(threadpool, return_work_item_context_2);
-    ASSERT_ARE_EQUAL(void_ptr, return_work_item_context_2, (THANDLE(THREADPOOL_WORK_ITEM_CONTEXT))test_work_item_context_2);
+    ASSERT_ARE_EQUAL(void_ptr, return_work_item_context_2, (THANDLE(THREADPOOL_WORK_ITEM))test_work_item_context_2);
 
     umock_c_reset_all_calls();
 
@@ -1325,8 +1323,8 @@ TEST_FUNCTION(on_work_callback_v2_triggers_2_user_work_functions)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
-    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM_CONTEXT)(&return_work_item_context_1, NULL);
-    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM_CONTEXT)(&return_work_item_context_2, NULL);
+    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&return_work_item_context_1, NULL);
+    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&return_work_item_context_2, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
@@ -1352,11 +1350,11 @@ TEST_FUNCTION(on_work_callback_v2_triggers_the_user_work_function_with_NULL_work
         .ValidateArgumentValue_pwk(&ptp_work);
 
     // act
-    THANDLE(THREADPOOL_WORK_ITEM_CONTEXT) return_work_item_context = threadpool_create_work_item(threadpool, test_work_function, NULL);
+    THANDLE(THREADPOOL_WORK_ITEM) return_work_item_context = threadpool_create_work_item(threadpool, test_work_function, NULL);
     threadpool_schedule_work_item(threadpool, return_work_item_context);
 
     // assert
-    ASSERT_ARE_EQUAL(void_ptr, return_work_item_context, (THANDLE(THREADPOOL_WORK_ITEM_CONTEXT)) test_work_item_context);
+    ASSERT_ARE_EQUAL(void_ptr, return_work_item_context, (THANDLE(THREADPOOL_WORK_ITEM)) test_work_item_context);
 
     umock_c_reset_all_calls();
 
@@ -1369,7 +1367,7 @@ TEST_FUNCTION(on_work_callback_v2_triggers_the_user_work_function_with_NULL_work
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
-    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM_CONTEXT)(&return_work_item_context, NULL);
+    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&return_work_item_context, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
@@ -1379,8 +1377,10 @@ TEST_FUNCTION(on_work_callback_v2_triggers_the_user_work_function_with_NULL_work
 
 TEST_FUNCTION(threadpool_create_work_item_fails_for_NULL_threadpool)
 {
+    // arrange
+
     // act
-    THANDLE(THREADPOOL_WORK_ITEM_CONTEXT) return_work_item_context = threadpool_create_work_item(NULL, test_work_function, (void*)0x4243);
+    THANDLE(THREADPOOL_WORK_ITEM) return_work_item_context = threadpool_create_work_item(NULL, test_work_function, (void*)0x4243);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -1396,7 +1396,7 @@ TEST_FUNCTION(threadpool_create_work_item_fails_for_NULL_test_work_function)
     THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
     // act
-    THANDLE(THREADPOOL_WORK_ITEM_CONTEXT) return_work_item_context = threadpool_create_work_item(threadpool, NULL, (void*)0x4243);
+    THANDLE(THREADPOOL_WORK_ITEM) return_work_item_context = threadpool_create_work_item(threadpool, NULL, (void*)0x4243);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -1432,7 +1432,7 @@ TEST_FUNCTION(when_underlying_calls_fail_threadpool_create_work_item_fails)
             umock_c_negative_tests_fail_call(i);
 
             // act
-            THANDLE(THREADPOOL_WORK_ITEM_CONTEXT) result = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
+            THANDLE(THREADPOOL_WORK_ITEM) result = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
 
             // assert
             ASSERT_ARE_EQUAL(void_ptr, NULL, result, "On failed call %zu", i);
@@ -1464,16 +1464,16 @@ TEST_FUNCTION(threadpool_create_work_item_succeeds)
         .CaptureReturn(&ptp_work);
 
     // act
-    THANDLE(THREADPOOL_WORK_ITEM_CONTEXT) return_work_item_context = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
+    THANDLE(THREADPOOL_WORK_ITEM) return_work_item_context = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
 
     // assert
-    ASSERT_ARE_EQUAL(void_ptr, return_work_item_context, (THANDLE(THREADPOOL_WORK_ITEM_CONTEXT))test_work_item_context);
+    ASSERT_ARE_EQUAL(void_ptr, return_work_item_context, (THANDLE(THREADPOOL_WORK_ITEM))test_work_item_context);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
-    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM_CONTEXT)(&return_work_item_context, NULL);
+    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&return_work_item_context, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
@@ -1532,8 +1532,8 @@ TEST_FUNCTION(threadpool_schedule_work_item_succeeds)
         .CaptureArgumentValue_pv(&test_work_item_context)
         .CaptureReturn(&ptp_work);
 
-    THANDLE(THREADPOOL_WORK_ITEM_CONTEXT) return_work_item_context = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
-    ASSERT_ARE_EQUAL(void_ptr, return_work_item_context, (THANDLE(THREADPOOL_WORK_ITEM_CONTEXT))test_work_item_context);
+    THANDLE(THREADPOOL_WORK_ITEM) return_work_item_context = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
+    ASSERT_ARE_EQUAL(void_ptr, return_work_item_context, (THANDLE(THREADPOOL_WORK_ITEM))test_work_item_context);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(mocked_SubmitThreadpoolWork(IGNORED_ARG))
@@ -1549,7 +1549,7 @@ TEST_FUNCTION(threadpool_schedule_work_item_succeeds)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
-    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM_CONTEXT)(&return_work_item_context, NULL);
+    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&return_work_item_context, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
@@ -1575,8 +1575,8 @@ TEST_FUNCTION(threadpool_destroy_work_item_succeeds)
         .CaptureArgumentValue_pv(&test_work_item_context)
         .CaptureReturn(&ptp_work);
 
-    THANDLE(THREADPOOL_WORK_ITEM_CONTEXT) return_work_item_context = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
-    ASSERT_ARE_EQUAL(void_ptr, return_work_item_context, (THANDLE(THREADPOOL_WORK_ITEM_CONTEXT))test_work_item_context);
+    THANDLE(THREADPOOL_WORK_ITEM) return_work_item_context = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4243);
+    ASSERT_ARE_EQUAL(void_ptr, return_work_item_context, (THANDLE(THREADPOOL_WORK_ITEM))test_work_item_context);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(mocked_SubmitThreadpoolWork(IGNORED_ARG))
@@ -1593,7 +1593,7 @@ TEST_FUNCTION(threadpool_destroy_work_item_succeeds)
     STRICT_EXPECTED_CALL(mocked_CloseThreadpoolWork(ptp_work));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
-    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM_CONTEXT)(&return_work_item_context, NULL);
+    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&return_work_item_context, NULL);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());

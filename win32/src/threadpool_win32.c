@@ -21,14 +21,14 @@ typedef struct WORK_ITEM_CONTEXT_TAG
     void* work_function_context;
 } WORK_ITEM_CONTEXT;
 
-typedef struct THREADPOOL_WORK_ITEM_CONTEXT_TAG
+typedef struct THREADPOOL_WORK_ITEM_TAG
 {
     THREADPOOL_WORK_FUNCTION work_function;
     void* work_function_context;
     PTP_WORK ptp_work;
-} THREADPOOL_WORK_ITEM_CONTEXT, *THREADPOOL_WORK_ITEM_CONTEXT_HANDLE;
+} THREADPOOL_WORK_ITEM, *THREADPOOL_WORK_ITEM_HANDLE;
 
-THANDLE_TYPE_DEFINE(THREADPOOL_WORK_ITEM_CONTEXT);
+THANDLE_TYPE_DEFINE(THREADPOOL_WORK_ITEM);
 
 typedef struct TIMER_INSTANCE_TAG
 {
@@ -88,9 +88,9 @@ static VOID CALLBACK on_work_callback_v2(PTP_CALLBACK_INSTANCE instance, PVOID c
     else
     {
         /* Codes_SRS_THREADPOOL_WIN32_05_002: [ Otherwise context shall be used as the context created in threadpool_create_work_item. ]*/
-        THREADPOOL_WORK_ITEM_CONTEXT_HANDLE threadpool_work_item_context = (THREADPOOL_WORK_ITEM_CONTEXT_HANDLE)context;
+        THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item = (THREADPOOL_WORK_ITEM_HANDLE)context;
         /* Codes_SRS_THREADPOOL_WIN32_05_003: [ The work_function callback passed to threadpool_create_work_item shall be called with the work_function_context as an argument. work_function_context was set inside the threadpool_create_work_item as an argument to CreateThreadpoolContext. ]*/
-        threadpool_work_item_context->work_function(threadpool_work_item_context->work_function_context);
+        threadpool_work_item->work_function(threadpool_work_item->work_function_context);
     }
 }
 
@@ -109,13 +109,12 @@ static void threadpool_dispose(THREADPOOL* threadpool)
     execution_engine_dec_ref(threadpool->execution_engine);
 }
 
-static void threadpool_dispose_work_item(THREADPOOL_WORK_ITEM_CONTEXT_HANDLE threadpool_work_item_context)
+static void threadpool_dispose_work_item(THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item)
 {
-    THREADPOOL_WORK_ITEM_CONTEXT_HANDLE threadpool_work_item_context_ptr = THANDLE_GET_T(THREADPOOL_WORK_ITEM_CONTEXT)(threadpool_work_item_context);
     /* Codes_SRS_THREADPOOL_WIN32_05_016: [ threadpool_dispose_work_item shall call WaitForThreadpoolWorkCallbacks to wait on all outstanding tasks being scheduled on this ptp_work. ]*/
-    WaitForThreadpoolWorkCallbacks(threadpool_work_item_context_ptr->ptp_work, false);
+    WaitForThreadpoolWorkCallbacks(threadpool_work_item->ptp_work, false);
     /* Codes_SRS_THREADPOOL_WIN32_05_017: [ threadpool_dispose_work_item shall call CloseThreadpoolWork to close ptp_work. ]*/
-    CloseThreadpoolWork(threadpool_work_item_context_ptr->ptp_work);
+    CloseThreadpoolWork(threadpool_work_item->ptp_work);
 }
 
 
@@ -213,9 +212,9 @@ void threadpool_close(THANDLE(THREADPOOL) threadpool)
     }
 }
 
-THANDLE(THREADPOOL_WORK_ITEM_CONTEXT) threadpool_create_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, PVOID work_function_context)
+THANDLE(THREADPOOL_WORK_ITEM) threadpool_create_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, PVOID work_function_context)
 {
-    THREADPOOL_WORK_ITEM_CONTEXT_HANDLE threadpool_work_item_context_ptr = NULL;
+    THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item_ptr = NULL;
 
     /* Codes_SRS_THREADPOOL_WIN32_01_022: [ work_function_context shall be allowed to be NULL. ]*/
 
@@ -233,34 +232,38 @@ THANDLE(THREADPOOL_WORK_ITEM_CONTEXT) threadpool_create_work_item(THANDLE(THREAD
     {
         THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
 
-        /* Codes_SRS_THREADPOOL_WIN32_05_006: [ Otherwise threadpool_create_work_item shall allocate a context threadpool_work_item_context of type THREADPOOL_WORK_ITEM_CONTEXT_HANDLE where work_function, work_function_context, and ptp_work shall be saved. ]*/
-        threadpool_work_item_context_ptr = THANDLE_MALLOC(THREADPOOL_WORK_ITEM_CONTEXT)(threadpool_dispose_work_item);
-        if (threadpool_work_item_context_ptr == NULL)
+        /* Codes_SRS_THREADPOOL_WIN32_05_006: [ Otherwise threadpool_create_work_item shall allocate a context threadpool_work_item of type THREADPOOL_WORK_ITEM_HANDLE where work_function, work_function_context, and ptp_work shall be saved. ]*/
+        threadpool_work_item_ptr = THANDLE_MALLOC(THREADPOOL_WORK_ITEM)(threadpool_dispose_work_item);
+        if (threadpool_work_item_ptr == NULL)
         {
             /* Codes_SRS_THREADPOOL_WIN32_05_007: [ If any error occurs, threadpool_create_work_item shall fail and return a NULL value. ]*/
             LogError("malloc failed");
         }
         else
         {
-            threadpool_work_item_context_ptr->work_function = work_function;
-            threadpool_work_item_context_ptr->work_function_context = work_function_context;
+            threadpool_work_item_ptr->work_function = work_function;
+            threadpool_work_item_ptr->work_function_context = work_function_context;
 
-            /* Codes_SRS_THREADPOOL_WIN32_05_008: [ threadpool_create_work_item shall create threadpool_work_item_context member variable ptp_work of type PTP_WORK by calling CreateThreadpoolWork to set the callback function as on_work_callback_v2. ]*/
-            threadpool_work_item_context_ptr->ptp_work = CreateThreadpoolWork(on_work_callback_v2, threadpool_work_item_context_ptr, &threadpool_ptr->tp_environment);
-            /* Codes_SRS_THREADPOOL_WIN32_05_009: [ If there are no errors then this threadpool_work_item_context of type THREADPOOL_WORK_ITEM_CONTEXT_HANDLE would be returned indicating a succcess to the caller. ]*/
-            if (threadpool_work_item_context_ptr->ptp_work == NULL)
+            /* Codes_SRS_THREADPOOL_WIN32_05_008: [ threadpool_create_work_item shall create threadpool_work_item member variable ptp_work of type PTP_WORK by calling CreateThreadpoolWork to set the callback function as on_work_callback_v2. ]*/
+            threadpool_work_item_ptr->ptp_work = CreateThreadpoolWork(on_work_callback_v2, threadpool_work_item_ptr, &threadpool_ptr->tp_environment);
+            /* Codes_SRS_THREADPOOL_WIN32_05_009: [ If there are no errors then this threadpool_work_item of type THREADPOOL_WORK_ITEM_HANDLE would be returned indicating a succcess to the caller. ]*/
+            if (threadpool_work_item_ptr->ptp_work == NULL)
             {
                 /* Codes_SRS_THREADPOOL_WIN32_05_010: [ If any error occurs, threadpool_create_work_item shall fail, free the newly created context and return a NULL value. ]*/
                 LogError("CreateThreadpoolWork failed");
-                THANDLE_FREE(THREADPOOL_WORK_ITEM_CONTEXT)(threadpool_work_item_context_ptr);
-                threadpool_work_item_context_ptr = NULL;
+                THANDLE_FREE(THREADPOOL_WORK_ITEM)(threadpool_work_item_ptr);
+                threadpool_work_item_ptr = NULL;
+            }
+            else
+            {
+                // Everything Ok.
             }
         }
     }
-    return threadpool_work_item_context_ptr;
+    return threadpool_work_item_ptr;
 }
 
-int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THANDLE(THREADPOOL_WORK_ITEM_CONTEXT) threadpool_work_item_context)
+int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THANDLE(THREADPOOL_WORK_ITEM) threadpool_work_item)
 {
     int result = MU_FAILURE;
 
@@ -268,16 +271,16 @@ int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THANDLE(THREAD
         /* Codes_SRS_THREADPOOL_WIN32_05_011: [ If threadpool is NULL, threadpool_schedule_work_item shall fail and return a non-zero value. ]*/
         (threadpool == NULL) ||
         /* Codes_SRS_THREADPOOL_WIN32_05_012: [ If work_item_context is NULL, threadpool_schedule_work_item shall fail and return a non-zero value. ]*/
-        (threadpool_work_item_context == NULL)
+        (threadpool_work_item == NULL)
         )
     {
         LogError("Invalid arguments: THANDLE(THREADPOOL) threadpool=%p", threadpool);
     }
     else
     {
-        THREADPOOL_WORK_ITEM_CONTEXT_HANDLE threadpool_work_item_context_ptr = THANDLE_GET_T(THREADPOOL_WORK_ITEM_CONTEXT)(threadpool_work_item_context);
+        THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item_ptr = THANDLE_GET_T(THREADPOOL_WORK_ITEM)(threadpool_work_item);
         /* Codes_SRS_THREADPOOL_WIN32_05_013: [ threadpool_schedule_work_item shall call SubmitThreadpoolWork to submit the work item for execution. ]*/
-        SubmitThreadpoolWork(threadpool_work_item_context_ptr->ptp_work);
+        SubmitThreadpoolWork(threadpool_work_item_ptr->ptp_work);
         result = 0;
     }
     return result;
