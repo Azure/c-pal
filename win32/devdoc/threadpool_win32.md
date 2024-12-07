@@ -296,14 +296,8 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), thr
 static void threadpool_dispose_work_item(THANDLE(THREADPOOL_WORK_ITEM) threadpool_work_item);
 ```
 
-`threadpool_dispose_work_item` closes the `ptp_work` member variable in `threadpool_work_item`and then frees the `threadpool_work_item`
-
-**SRS_THREADPOOL_WIN32_05_014: [ ** [Deprecated] If `threadpool` is `NULL`, `threadpool_dispose_work_item` shall fail and return a non-zero value. **]**
-
-**SRS_THREADPOOL_WIN32_05_015: [** [Deprecated] If `threadpool_work_item` is `NULL`, `threadpool_dispose_work_item` shall fail and not do anything before returning. **]**
+`threadpool_dispose_work_item` closes the `ptp_work` member variable in `threadpool_work_item`.
 
 **SRS_THREADPOOL_WIN32_05_016: [** `threadpool_dispose_work_item` shall call `WaitForThreadpoolWorkCallbacks` to wait on all outstanding tasks being scheduled on this `ptp_work`. **]**
 
 **SRS_THREADPOOL_WIN32_05_017: [** `threadpool_dispose_work_item` shall call `CloseThreadpoolWork` to close `ptp_work`. **]**
-
-**SRS_THREADPOOL_WIN32_05_018: [** [Deprecated] `threadpool_dispose_work_item` shall free the `threadpool_work_item`. **]**

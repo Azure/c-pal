@@ -55,10 +55,10 @@ stateDiagram-v2
     [*] --> OK_TO_WORK: threadpool_timer_start
     OK_TO_WORK --> TIMER_WORKING : on_timer_callback
     TIMER_WORKING --> OK_TO_WORK : on_timer_callback complete
-    OK_TO_WORK --> TIMER_DELETING : threadpool_timer_destroy 
+    OK_TO_WORK --> TIMER_DELETING : threadpool_timer_destroy
 ```
 
-Even with this guard in place, during `threadpool_timer_delete` there is a small window where an event was triggered just before and a thread is being created. 
+Even with this guard in place, during `threadpool_timer_delete` there is a small window where an event was triggered just before and a thread is being created.
 The guard prevents any work from happening, but the event callback can still be called after the `timer_delete` call. A small wait before the free keeps the timer instance alive long enough for the callback to use it if we hit this window.
 
 ## Exposed API
