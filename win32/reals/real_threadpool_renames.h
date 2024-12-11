@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #define THREADPOOL                      real_THREADPOOL
-#define THREADPOOL_WORK_ITEM    real_THREADPOOL_WORK_ITEM
+#define THREADPOOL_WORK_ITEM            real_THREADPOOL_WORK_ITEM
 
 #define threadpool_create               real_threadpool_create
 #define threadpool_open                 real_threadpool_open
