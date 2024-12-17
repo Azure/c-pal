@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #define THREADPOOL                      real_THREADPOOL
+#define THREADPOOL_WORK_ITEM            real_THREADPOOL_WORK_ITEM
 
 #define threadpool_create               real_threadpool_create
 #define threadpool_open                 real_threadpool_open
