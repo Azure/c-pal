@@ -86,7 +86,7 @@ typedef struct THREADPOOL_TAG
 
     sem_t semaphore;
     SRW_LOCK_HANDLE srw_lock;
-    uint32_t list_index;    
+    uint32_t list_index;
 
     THREADPOOL_TASK* task_array;
     volatile_atomic int32_t task_array_size;
@@ -182,11 +182,11 @@ static int threadpool_work_func(void* param)
 
                         srw_lock_acquire_exclusive(threadpool->srw_lock);
                         if (NULL != threadpool->task_array[current_index].pending_work_item_count_ptr)
-                        {                            
+                        {
                             if (interlocked_decrement(threadpool->task_array[current_index].pending_work_item_count_ptr) == 0)
                             {
-                                wake_by_address_single(threadpool->task_array[current_index].pending_work_item_count_ptr);                         
-                            }                            
+                                wake_by_address_single(threadpool->task_array[current_index].pending_work_item_count_ptr);
+                            }
                         }
                         srw_lock_release_exclusive(threadpool->srw_lock);
                     }
@@ -293,7 +293,7 @@ static void threadpool_dispose(THREADPOOL* threadpool)
         {
             // Everything Okay.
         }
-    }  
+    }
 
     /* Codes_SRS_THREADPOOL_LINUX_07_016: [ threadpool_dispose shall free the memory allocated in threadpool_create. ]*/
     free(threadpool->task_array);
@@ -302,7 +302,7 @@ static void threadpool_dispose(THREADPOOL* threadpool)
     /* Codes_SRS_THREADPOOL_LINUX_07_014: [ threadpool_dispose shall destroy the semphore by calling sem_destroy. ]*/
     sem_destroy(&threadpool->semaphore);
     /* Codes_SRS_THREADPOOL_LINUX_07_015: [ threadpool_dispose shall destroy the SRW lock by calling srw_lock_destroy. ]*/
-    srw_lock_destroy(threadpool->srw_lock);    
+    srw_lock_destroy(threadpool->srw_lock);
 }
 
 THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
@@ -412,7 +412,7 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                                     {
                                         // Everything Okay.
                                     }
-                                }                                
+                                }
                             }
                             else
                             {
@@ -448,7 +448,7 @@ int threadpool_open(THANDLE(THREADPOOL) threadpool)
     else
     {
         /* Codes_SRS_THREADPOOL_LINUX_07_024: [ Otherwise, threadpool_open shall succeed and return 0. ]*/
-        result = 0;        
+        result = 0;
     }
     return result;
 }
@@ -479,7 +479,7 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
     {
         THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
 
-        
+
         do
         {
             /* Codes_SRS_THREADPOOL_LINUX_07_033: [ threadpool_schedule_work shall acquire the SRW lock in shared mode by calling srw_lock_acquire_shared. ]*/
@@ -722,7 +722,7 @@ THREADPOOL_WORK_ITEM_HANDLE threadpool_create_work_item(THANDLE(THREADPOOL) thre
     }
     else
     {
-        /* Codes_SRS_THREADPOOL_LINUX_05_005: [ threadpool_create_work_item shall allocate memory for threadpool_work_item of type THREADPOOL_WORK_ITEM_HANDLE. ] */        
+        /* Codes_SRS_THREADPOOL_LINUX_05_005: [ threadpool_create_work_item shall allocate memory for threadpool_work_item of type THREADPOOL_WORK_ITEM_HANDLE. ] */
         threadpool_work_item = (THREADPOOL_WORK_ITEM_HANDLE)malloc(sizeof(THREADPOOL_WORK_ITEM));
 
         if (threadpool_work_item == NULL)
@@ -736,7 +736,7 @@ THREADPOOL_WORK_ITEM_HANDLE threadpool_create_work_item(THANDLE(THREADPOOL) thre
             (void)interlocked_exchange(&threadpool_work_item->pending_work_item_count, 0);
             threadpool_work_item->work_function_ctx = work_function_context;
             threadpool_work_item->work_function = work_function;
-        }        
+        }
     }
     return threadpool_work_item;
 }
@@ -787,21 +787,18 @@ int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WOR
             else
             {
                 /* Codes_SRS_THREADPOOL_LINUX_05_020: [ threadpool_schedule_work_item shall acquire the SRW lock in shared mode by calling srw_lock_acquire_exclusive. ]*/
-                srw_lock_acquire_shared(threadpool_ptr->srw_lock);
+                srw_lock_acquire_exclusive(threadpool_ptr->srw_lock);
                 THREADPOOL_TASK* task_item = &threadpool_ptr->task_array[insert_pos];
 
-                (void)interlocked_increment(&threadpool_work_item->pending_work_item_count);                
+                (void)interlocked_increment(&threadpool_work_item->pending_work_item_count);
 
                 /* Codes_SRS_THREADPOOL_LINUX_05_022: [ threadpool_schedule_work_item shall copy the work_function and work_function_context from threadpool_work_item into insert position in the task array. ]*/
                 task_item->work_function_ctx = threadpool_work_item->work_function_ctx;
                 task_item->work_function = threadpool_work_item->work_function;
 
                 /* Codes_SRS_THREADPOOL_LINUX_05_023: [ threadpool_schedule_work_item shall set the task_state to TASK_WAITING and then release the shared SRW lock by calling srw_lock_release_exclusive. ]*/
-                (void)interlocked_exchange(&task_item->task_state, TASK_WAITING);               
+                (void)interlocked_exchange(&task_item->task_state, TASK_WAITING);
 
-                srw_lock_release_shared(threadpool_ptr->srw_lock);
-
-                srw_lock_acquire_exclusive(threadpool_ptr->srw_lock);
                 task_item->pending_work_item_count_ptr = &threadpool_work_item->pending_work_item_count;
                 srw_lock_release_exclusive(threadpool_ptr->srw_lock);
 
@@ -812,7 +809,7 @@ int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WOR
                 result = 0;
                 break;
             }
-        } while (true);        
+        } while (true);
     }
     return result;
 }
@@ -829,7 +826,7 @@ void threadpool_destroy_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WOR
         LogError("Invalid arguments: THANDLE(THREADPOOL) threadpool: %p, THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item: %p", threadpool, threadpool_work_item);
     }
     else
-    {   
+    {
         /* Codes_S_R_S_THREADPOOL_LINUX_05_033: [ threadpool_destroy_work_item shall wait for all pending work items to finish execution. ]*/
         if (InterlockedHL_WaitForValue(&threadpool_work_item->pending_work_item_count, 0, UINT32_MAX) == INTERLOCKED_HL_OK)
         {

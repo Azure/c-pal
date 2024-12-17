@@ -56,6 +56,7 @@ typedef struct WRAP_DATA_TAG
 #define WAIT_WORK_FUNCTION_SLEEP_IN_MS 300
 
 TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
+TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
@@ -86,10 +87,10 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 
 static void threadpool_task_wait_20_millisec(void* parameter)
 {
-    volatile_atomic int32_t* thread_counter = (volatile_atomic int32_t*)parameter;
+    volatile_atomic int64_t* thread_counter = (volatile_atomic int64_t*)parameter;
     ThreadAPI_Sleep(20);
-    (void)interlocked_increment(thread_counter);
-    wake_by_address_single(thread_counter);
+    (void)interlocked_increment_64(thread_counter);
+    wake_by_address_single_64(thread_counter);
 }
 
 static void threadpool_task_wait_60_millisec(void* parameter)
@@ -138,7 +139,7 @@ static void threadpool_long_task_v2(void* context)
 // static void work_function(void* context)
 // {
 //     volatile LONG64* call_count = (volatile LONG64*)context;
-//     (void)InterlockedIncrement64(call_count);
+//     (void)interlocked_increment_64(call_count);
 //     WakeByAddressSingle((PVOID)call_count);
 // }
 
@@ -148,12 +149,12 @@ static void work_function(void* context)
     wake_by_address_single_64(&g_call_count);
 }
 
-//diff:wait for object need to be changed, should wait for infinite time?
+//diff:wait for object need to be changed,
 // static void wait_work_function(void* context)
 // {
 //     WAIT_WORK_CONTEXT* wait_work_context = (WAIT_WORK_CONTEXT*)context;
 //     ASSERT_IS_TRUE(WaitForSingleObject(wait_work_context->wait_event, UINT_MAX) == WAIT_OBJECT_0);
-//     (void)InterlockedIncrement(&wait_work_context->call_count);
+//     (void)interlocked_increment(&wait_work_context->call_count);
 //     WakeByAddressSingle((PVOID)&wait_work_context->call_count);
 // }
 
@@ -288,39 +289,12 @@ TEST_FUNCTION(one_work_item_schedule_work_item)
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(one_work_item_schedule_works_1)
-{
-    // assert
-    // create an execution engine
-    volatile_atomic int64_t call_count;
-    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
-    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
-    ASSERT_IS_NOT_NULL(execution_engine);
-
-    // create the threadpool
-    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
-    ASSERT_IS_NOT_NULL(threadpool);
-
-    (void)interlocked_exchange_64(&call_count, 0);
-
-    // act (schedule one work item)
-    LogInfo("Scheduling work");
-    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, work_function, (void*)&call_count));
-
-    // assert
-    wait_for_equal(&call_count, 1, UINT64_MAX);
-    LogInfo("Work completed");
-
-    // cleanup
-    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
-    execution_engine_dec_ref(execution_engine);
-}
-#if 0
 TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work)
 {
     // arrange
     // create an execution engine
-    volatile_atomic int64_t call_count;
+    volatile_atomic int32_t thread_counter = 0;
+
     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
@@ -332,20 +306,18 @@ TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work)
     // this is safe because the threadpool has a reference
     execution_engine_dec_ref(execution_engine);
 
-    (void)interlocked_exchange_64(&call_count, 0);
-
     // act (schedule one work item)
     LogInfo("Scheduling work");
-    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, work_function, (void*)&call_count));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter));
 
     // assert
-    wait_for_equal(&call_count, 1, UINT64_MAX);
+    ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, 1, UINT32_MAX));
     LogInfo("Work completed");
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
-#endif
+
 #define N_WORK_ITEMS 30
 
 TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
@@ -482,6 +454,116 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_with_pool_threads))
     execution_engine_dec_ref(execution_engine);
 }
 
+#define N_TIMERS 100
+
+TEST_FUNCTION(MU_C3(starting_, N_TIMERS, _timer_start_runs_once))
+{
+    // assert
+    // create an execution engine
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    // create the threadpool
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    THANDLE(THREADPOOL) threadpool_1 = NULL;
+    THANDLE_INITIALIZE(THREADPOOL)(&threadpool_1, threadpool);
+
+    THANDLE(TIMER) timer_instance = NULL;
+    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool_1, 200, 200, work_function, (void*)&g_call_count, &timer_instance));
+    ASSERT_IS_NOT_NULL(timer_instance);
+
+    ThreadAPI_Sleep(5000);
+    LogInfo("Waiting for timer to execute after short delay of no execution");
+
+    THANDLE_ASSIGN(TIMER)(&timer_instance, NULL);
+
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool_1, NULL);
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+TEST_FUNCTION(MU_C3(starting_, N_TIMERS, _start_timers_work_and_run_periodically))
+{
+    // assert
+    // create an execution engine
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 16, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    // create the threadpool
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    // act (start a timer to start delayed and then execute every 500ms)
+    LogInfo("Starting " MU_TOSTRING(N_TIMERS) " timers");
+    THANDLE(TIMER)* timers[N_TIMERS];
+    for (uint32_t i = 0; i < N_TIMERS; i++)
+    {
+        THANDLE_INITIALIZE(TIMER)((void*)& timers[i], NULL);
+        ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&g_call_count, (void*) & timers[i]));
+    }
+
+    // assert
+
+    LogInfo("Waiting for " MU_TOSTRING(N_TIMERS) " timers to run at least 2 times each");
+
+    // Every timer should execute at least twice in less than 1 second
+    // Wait up to 2 seconds
+    wait_for_greater_or_equal(&g_call_count, (2 * N_TIMERS), 2000);
+
+    LogInfo("Timers completed, stopping all timers");
+
+    for (uint32_t i = 0; i < N_TIMERS; i++)
+    {
+        THANDLE_ASSIGN(TIMER)((void*)&timers[i], NULL);
+    }
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items)
+{
+    // assert
+    // create an execution engine
+    WAIT_WORK_CONTEXT wait_work_context;
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 1, 1 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    // create the threadpool
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    (void)interlocked_exchange(&wait_work_context.wait_event, 0);
+
+    (void)interlocked_exchange_64(&wait_work_context.call_count, 0);
+
+    // schedule one item that waits
+    LogInfo("Scheduling 2 work items");
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, wait_work_function, (void*)&wait_work_context));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, work_function, (void*)&g_call_count));
+
+    ThreadAPI_Sleep(WAIT_WORK_FUNCTION_SLEEP_IN_MS);
+
+    interlocked_increment(&wait_work_context.wait_event);
+
+    // assert
+    wait_for_equal(&g_call_count, 1, UINT32_MAX);
+    wait_for_equal(&wait_work_context.call_count, 1, UINT32_MAX);
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+#if 0
 #define N_CHAOS_WORK_ITEMS 50
 
 TEST_FUNCTION(threadpool_chaos_knight)
@@ -1000,5 +1082,648 @@ TEST_FUNCTION(schedule_work_two_times_v2)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
+#endif
 
+#define CHAOS_THREAD_COUNT 4
+#define TEST_RUN_TIME 10000 //ms
+
+typedef struct CHAOS_TEST_TIMER_DATA_TAG
+{
+    volatile_atomic int32_t state; // TIMER_STATE
+    THANDLE(TIMER) timer;
+} CHAOS_TEST_TIMER_DATA;
+
+#define MAX_TIMER_COUNT 10
+
+typedef struct CHAOS_TEST_DATA_TAG
+{
+    volatile_atomic int64_t expected_call_count;
+    volatile_atomic int64_t executed_work_functions;
+    volatile_atomic int64_t executed_timer_functions;
+    volatile_atomic int32_t chaos_test_done;
+    THANDLE(THREADPOOL) threadpool;
+
+    volatile_atomic int32_t can_start_timers;
+    volatile_atomic int32_t can_schedule_works;
+    volatile_atomic int64_t timers_starting;
+    CHAOS_TEST_TIMER_DATA timers[MAX_TIMER_COUNT];
+    THREADPOOL_WORK_ITEM_HANDLE work_item_context;
+} CHAOS_TEST_DATA;
+
+#define TIMER_START_DELAY_MIN 0
+#define TIMER_START_DELAY_MAX 100
+
+#define TIMER_PERIOD_MIN 50
+#define TIMER_PERIOD_MAX 400
+
+static int chaos_thread_func(void* context)
+{
+    CHAOS_TEST_DATA* chaos_test_data = (CHAOS_TEST_DATA*)context;
+
+    while (interlocked_add(&chaos_test_data->chaos_test_done, 0) == 0)
+    {
+        int which_action = rand() % 2;
+        switch (which_action)
+        {
+            case 0:
+                //perform a schedule item
+                if (threadpool_schedule_work(chaos_test_data->threadpool, threadpool_task_wait_20_millisec, (void*)&chaos_test_data->executed_work_functions) == 0)
+                {
+                    (void)interlocked_increment_64(&chaos_test_data->expected_call_count);
+                }
+                break;
+            case 1:
+                //perform a schedule work item
+                if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
+                {
+                    (void)interlocked_increment_64(&chaos_test_data->expected_call_count);
+                }
+                break;
+        }
+    }
+
+    return 0;
+}
+
+static void chaos_cleanup_all_timers(CHAOS_TEST_DATA* chaos_test_data)
+{
+    for (uint32_t i = 0; i < MAX_TIMER_COUNT; i++)
+    {
+        if (interlocked_compare_exchange(&chaos_test_data->timers[i].state, TIMER_STATE_STOPPING, TIMER_STATE_STARTED) == TIMER_STATE_STARTED)
+        {
+            THANDLE_ASSIGN(TIMER)(&chaos_test_data->timers[i].timer, NULL);
+            interlocked_exchange(&chaos_test_data->timers[i].state, TIMER_STATE_NONE);
+        }
+    }
+}
+
+static int chaos_thread_with_timers_no_lock_func(void* context)
+{
+    CHAOS_TEST_DATA* chaos_test_data = context;
+
+    while (interlocked_add(&chaos_test_data->chaos_test_done, 0) == 0)
+    {
+        int which_action = rand() * (MU_ENUM_VALUE_COUNT(TEST_ACTION_VALUES) - 2) / RAND_MAX + 1;
+        switch (which_action)
+        {
+        default:
+            ASSERT_FAIL("unexpected action type=%" PRI_MU_ENUM "", MU_ENUM_VALUE(TEST_ACTION, which_action));
+            break;
+        case TEST_ACTION_CLEANUP_TIMER:
+            // First prevent new timers, because we need to clean them all up (lock)
+            if (interlocked_compare_exchange(&chaos_test_data->can_start_timers, 0, 1) == 1 && interlocked_compare_exchange(&chaos_test_data->can_schedule_works, 0, 1) == 1)
+            {
+                // Wait for any threads that had been starting timers to complete
+                wait_for_equal(&chaos_test_data->timers_starting, 0, UINT32_MAX);
+
+                wait_for_equal((void*)(&chaos_test_data->executed_work_functions), chaos_test_data->expected_call_count, UINT32_MAX);
+                // Cleanup all timers
+                chaos_cleanup_all_timers(chaos_test_data);
+
+                // Now back to normal
+                (void)interlocked_exchange(&chaos_test_data->can_start_timers, 1);
+                (void)interlocked_exchange(&chaos_test_data->can_schedule_works, 1);
+            }
+            break;
+        case TEST_ACTION_SCHEDULE_WORK:
+            // perform a schedule item
+            if (interlocked_add(&chaos_test_data->can_schedule_works, 0) != 0)
+            {
+                if (threadpool_schedule_work(chaos_test_data->threadpool, work_function, (void*)&chaos_test_data->executed_work_functions) == 0)
+                {
+                    (void)interlocked_increment_64(&chaos_test_data->expected_call_count);
+                }
+            }
+            break;
+        case TEST_ACTION_START_TIMER:
+            // Start a timer
+        {
+            // Synchronize with close
+            (void)interlocked_increment_64(&chaos_test_data->timers_starting);
+            if (interlocked_add(&chaos_test_data->can_start_timers, 0) != 0)
+            {
+                int which_timer_slot = rand() % MAX_TIMER_COUNT;
+                if (interlocked_compare_exchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_STARTING, TIMER_STATE_NONE) == TIMER_STATE_NONE)
+                {
+                    uint32_t timer_start_delay = rand() % TIMER_START_DELAY_MAX;
+                    uint32_t timer_period = rand() % TIMER_PERIOD_MAX;
+                    if (threadpool_timer_start(chaos_test_data->threadpool, timer_start_delay, timer_period, work_function, (void*)&chaos_test_data->executed_timer_functions, &chaos_test_data->timers[which_timer_slot].timer) == 0)
+                    {
+                        interlocked_exchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_STARTED);
+                    }
+                    else
+                    {
+                        interlocked_exchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_NONE);
+                    }
+                }
+            }
+            (void)interlocked_decrement_64(&chaos_test_data->timers_starting);
+            wake_by_address_single_64(&chaos_test_data->timers_starting);
+            break;
+        }
+        case TEST_ACTION_CANCEL_TIMER:
+            // Cancel a timer
+        {
+            // Synchronize with close
+            (void)interlocked_increment_64(&chaos_test_data->timers_starting);
+            if (interlocked_add(&chaos_test_data->can_start_timers, 0) != 0)
+            {
+                int which_timer_slot = rand() % MAX_TIMER_COUNT;
+                if (interlocked_add(&chaos_test_data->timers[which_timer_slot].state, 0) == TIMER_STATE_STARTED)
+                {
+                    threadpool_timer_cancel(chaos_test_data->timers[which_timer_slot].timer);
+                }
+            }
+            (void)interlocked_decrement_64(&chaos_test_data->timers_starting);
+            wake_by_address_single_64(&chaos_test_data->timers_starting);
+            break;
+        }
+        case TEST_ACTION_RESTART_TIMER:
+            // Restart a timer
+        {
+            // Synchronize with close
+            (void)interlocked_increment_64(&chaos_test_data->timers_starting);
+            if (interlocked_add(&chaos_test_data->can_start_timers, 0) != 0)
+            {
+                int which_timer_slot = rand() % MAX_TIMER_COUNT;
+                if (interlocked_compare_exchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_STARTING, TIMER_STATE_STARTED) == TIMER_STATE_STARTED)
+                {
+                    uint32_t timer_start_delay = rand() % TIMER_START_DELAY_MAX;
+                    uint32_t timer_period = rand() % TIMER_PERIOD_MAX;
+                    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_restart(chaos_test_data->timers[which_timer_slot].timer, timer_start_delay, timer_period));
+                    (void)interlocked_exchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_STARTED);
+                }
+            }
+            (void)interlocked_decrement_64(&chaos_test_data->timers_starting);
+            wake_by_address_single_64(&chaos_test_data->timers_starting);
+            break;
+        }
+        case TEST_ACTION_SCHEDULE_WORK_ITEM:
+            // perform a schedule work item
+            if (interlocked_add(&chaos_test_data->can_schedule_works, 0) != 0)
+            {
+                if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
+                {
+                    (void)interlocked_increment_64(&chaos_test_data->expected_call_count);
+                }
+                else
+                {
+                    //don't care if it failed
+                }
+            }
+            break;
+        }
+    }
+
+    return 0;
+}
+
+//adding back a chaos test with threadpool_work_item context is null because this one reproduceed race condition between timers APIs more frequetly due to less wait on threadpool state transitions.
+static int chaos_thread_with_timers_no_lock_and_null_work_item_func(void* context)
+{
+    CHAOS_TEST_DATA* chaos_test_data = context;
+
+    while (interlocked_add(&chaos_test_data->chaos_test_done, 0) == 0)
+    {
+        int which_action = rand() * (MU_ENUM_VALUE_COUNT(TEST_ACTION_VALUES) - 1) / RAND_MAX + 1;
+        switch (which_action)
+        {
+        default:
+            // do nothing
+            break;
+        case TEST_ACTION_CLEANUP_TIMER:
+            // perform a close
+            // First prevent new timers, because we need to clean them all up (lock)
+            if (interlocked_compare_exchange(&chaos_test_data->can_start_timers, 0, 1) == 1)
+            {
+                // Wait for any threads that had been starting timers to complete
+                wait_for_equal(&chaos_test_data->timers_starting, 0, UINT32_MAX);
+
+                // Cleanup all timers
+                chaos_cleanup_all_timers(chaos_test_data);
+
+                // Now back to normal
+                (void)interlocked_exchange(&chaos_test_data->can_start_timers, 1);
+            }
+            break;
+        case TEST_ACTION_SCHEDULE_WORK:
+            // perform a schedule item
+            if (threadpool_schedule_work(chaos_test_data->threadpool, threadpool_task_wait_20_millisec, (void*)&chaos_test_data->executed_work_functions) == 0)
+            {
+                (void)interlocked_increment_64(&chaos_test_data->expected_call_count);
+            }
+            break;
+        case TEST_ACTION_START_TIMER:
+            // Start a timer
+        {
+            // Synchronize with close
+            (void)interlocked_increment_64(&chaos_test_data->timers_starting);
+            if (interlocked_add(&chaos_test_data->can_start_timers, 0) != 0)
+            {
+                int which_timer_slot = rand() % MAX_TIMER_COUNT;
+                if (interlocked_compare_exchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_STARTING, TIMER_STATE_NONE) == TIMER_STATE_NONE)
+                {
+                    uint32_t timer_start_delay = rand() % TIMER_START_DELAY_MAX;
+                    uint32_t timer_period = rand() % TIMER_PERIOD_MAX;
+                    if (threadpool_timer_start(chaos_test_data->threadpool, timer_start_delay, timer_period, work_function, (void*)&chaos_test_data->executed_timer_functions, &chaos_test_data->timers[which_timer_slot].timer) == 0)
+                    {
+                        interlocked_exchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_STARTED);
+                    }
+                    else
+                    {
+                        interlocked_exchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_NONE);
+                    }
+                }
+            }
+            (void)interlocked_decrement_64(&chaos_test_data->timers_starting);
+            wake_by_address_single_64(&chaos_test_data->timers_starting);
+            break;
+        }
+        case TEST_ACTION_CANCEL_TIMER:
+            // Cancel a timer
+        {
+            // Synchronize with close
+            (void)interlocked_increment_64(&chaos_test_data->timers_starting);
+            if (interlocked_add(&chaos_test_data->can_start_timers, 0) != 0)
+            {
+                int which_timer_slot = rand() % MAX_TIMER_COUNT;
+                if (interlocked_add(&chaos_test_data->timers[which_timer_slot].state, 0) == TIMER_STATE_STARTED)
+                {
+                    threadpool_timer_cancel(chaos_test_data->timers[which_timer_slot].timer);
+                }
+            }
+            (void)interlocked_decrement_64(&chaos_test_data->timers_starting);
+            wake_by_address_single_64(&chaos_test_data->timers_starting);
+            break;
+        }
+        case TEST_ACTION_RESTART_TIMER:
+            // Restart a timer
+        {
+            // Synchronize with close
+            (void)interlocked_increment_64(&chaos_test_data->timers_starting);
+            if (interlocked_add(&chaos_test_data->can_start_timers, 0) != 0)
+            {
+                int which_timer_slot = rand() % MAX_TIMER_COUNT;
+                if (interlocked_compare_exchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_STARTING, TIMER_STATE_STARTED) == TIMER_STATE_STARTED)
+                {
+                    uint32_t timer_start_delay = rand() % TIMER_START_DELAY_MAX;
+                    uint32_t timer_period = rand() % TIMER_PERIOD_MAX;
+                    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_restart(chaos_test_data->timers[which_timer_slot].timer, timer_start_delay, timer_period));
+                    (void)interlocked_exchange(&chaos_test_data->timers[which_timer_slot].state, TIMER_STATE_STARTED);
+                }
+            }
+            (void)interlocked_decrement_64(&chaos_test_data->timers_starting);
+            wake_by_address_single_64(&chaos_test_data->timers_starting);
+            break;
+        }
+        case TEST_ACTION_SCHEDULE_WORK_ITEM:
+            // perform a schedule work item
+            if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
+            {
+                (void)interlocked_increment_64(&chaos_test_data->expected_call_count);
+            }
+            break;
+        }
+    }
+
+    return 0;
+}
+#if 0
+TEST_FUNCTION(chaos_knight_test_with_timers_no_lock_and_null_work_item)
+{
+    // start a number of threads and each of them will do a random action on the threadpool
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+    THREAD_HANDLE thread_handles[CHAOS_THREAD_COUNT];
+    size_t i;
+    CHAOS_TEST_DATA chaos_test_data;
+
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+    THANDLE_INITIALIZE_MOVE(THREADPOOL)(&chaos_test_data.threadpool, &threadpool);
+
+    (void)interlocked_exchange_64(&chaos_test_data.expected_call_count, 0);
+    (void)interlocked_exchange_64(&chaos_test_data.executed_work_functions, 0);
+    (void)interlocked_exchange_64(&chaos_test_data.executed_timer_functions, 0);
+    (void)interlocked_exchange_64(&chaos_test_data.timers_starting, 0);
+    (void)interlocked_exchange(&chaos_test_data.chaos_test_done, 0);
+    (void)interlocked_exchange(&chaos_test_data.can_start_timers, 1);
+
+    for (i = 0; i < MAX_TIMER_COUNT; i++)
+    {
+        THANDLE_INITIALIZE(TIMER)(&chaos_test_data.timers[i].timer, NULL);
+        (void)interlocked_exchange(&chaos_test_data.timers[i].state, TIMER_STATE_NONE);
+    }
+
+    chaos_test_data.work_item_context = threadpool_create_work_item(chaos_test_data.threadpool, work_function, (void*)&chaos_test_data.executed_work_functions);
+
+    for (i = 0; i < CHAOS_THREAD_COUNT; i++)
+    {
+        //ThreadAPI_Create(&close_bsol_thread, async_close_bsol_thread, &test_objects);
+        ThreadAPI_Create(&thread_handles[i], chaos_thread_with_timers_no_lock_and_null_work_item_func, &chaos_test_data);
+        //thread_handles[i] = CreateThread(NULL, 0, chaos_thread_with_timers_no_lock_and_null_work_item_func, &chaos_test_data, 0, NULL);
+        ASSERT_IS_NOT_NULL(thread_handles[i], "thread %zu failed to start", i);
+    }
+
+    // wait for some time
+    ThreadAPI_Sleep(TEST_RUN_TIME);
+
+    (void)interlocked_exchange(&chaos_test_data.chaos_test_done, 1);
+
+    // wait for all threads to complete
+    for (i = 0; i < CHAOS_THREAD_COUNT; i++)
+    {
+        int dont_care;
+        ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(thread_handles[i], &dont_care));
+        //ASSERT_IS_TRUE(WaitForSingleObject(thread_handles[i], INFINITE) == WAIT_OBJECT_0);
+    }
+
+    // assert that all scheduled items were executed
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&chaos_test_data.executed_work_functions, chaos_test_data.expected_call_count, UINT32_MAX));
+
+    LogInfo("Chaos test executed %" PRId64 " work items, %" PRId64 " timers",
+        interlocked_add_64(&chaos_test_data.executed_work_functions, 0), interlocked_add_64(&chaos_test_data.executed_timer_functions, 0));
+
+    // call close
+    chaos_cleanup_all_timers(&chaos_test_data);
+    threadpool_destroy_work_item(chaos_test_data.threadpool, chaos_test_data.work_item_context);
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&chaos_test_data.threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+#endif
+TEST_FUNCTION(chaos_knight_test)
+{
+    // start a number of threads and each of them will do a random action on the threadpool
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 16, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    THREAD_HANDLE thread_handles[16];
+    size_t i;
+    CHAOS_TEST_DATA chaos_test_data;
+
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    THANDLE_INITIALIZE_MOVE(THREADPOOL)(&chaos_test_data.threadpool, &threadpool);
+
+    (void)interlocked_exchange_64(&chaos_test_data.expected_call_count, 0);
+    (void)interlocked_exchange_64(&chaos_test_data.executed_work_functions, 0);
+    (void)interlocked_exchange(&chaos_test_data.chaos_test_done, 0);
+
+    for (i = 0; i < MAX_TIMER_COUNT; i++)
+    {
+        THANDLE_INITIALIZE(TIMER)(&chaos_test_data.timers[i].timer, NULL);
+        interlocked_exchange(&chaos_test_data.timers[i].state, TIMER_STATE_NONE);
+    }
+
+    // Create the Work Item Context once
+    chaos_test_data.work_item_context = threadpool_create_work_item(chaos_test_data.threadpool, threadpool_task_wait_20_millisec, (void*)&chaos_test_data.executed_work_functions);
+
+    for (i = 0; i < 16; i++)
+    {
+        ThreadAPI_Create(&thread_handles[i], chaos_thread_func, &chaos_test_data);
+
+        //thread_handles[i] = CreateThread(NULL, 0, chaos_thread_func, &chaos_test_data, 0, NULL);
+        ASSERT_IS_NOT_NULL(thread_handles[i], "thread %zu failed to start", i);
+        LogInfo("\n here 1490 \n ");
+    }
+
+    LogInfo("\n here 1494 \n ");
+    // wait for some time
+    ThreadAPI_Sleep(250);
+
+    (void)interlocked_exchange(&chaos_test_data.chaos_test_done, 1);
+    LogInfo("\n here 1495 \n ");
+    // wait for all threads to complete
+    for (i = 0; i < 16; i++)
+    {
+        int dont_care;
+        ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(thread_handles[i], &dont_care));
+        //ASSERT_IS_TRUE(WaitForSingleObject(thread_handles[i], INFINITE) == WAIT_OBJECT_0);
+    }
+    LogInfo("\n here 1503 \n ");
+    LogInfo("executed_work_functions=%" PRIu64 ", expected_call_count=%" PRIu64 "", chaos_test_data.executed_work_functions, chaos_test_data.expected_call_count);
+    // assert that all scheduled items were executed
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&chaos_test_data.executed_work_functions, chaos_test_data.expected_call_count, UINT32_MAX));
+
+    LogInfo("Chaos test executed %" PRId64 " work items",
+        interlocked_add_64(&chaos_test_data.executed_work_functions, 0));
+
+    // call close
+    threadpool_destroy_work_item(chaos_test_data.threadpool, chaos_test_data.work_item_context);
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&chaos_test_data.threadpool, NULL);
+
+    execution_engine_dec_ref(execution_engine);
+}
+#if 0
+//test used for detect race condition between timer_restart/timer_cancel and timer destory, failed due to the race condition for the current code, will uncomment after the fix
+TEST_FUNCTION(chaos_knight_test_with_timers_no_lock)
+{
+    // start a number of threads and each of them will do a random action on the threadpool
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+    THREAD_HANDLE thread_handles[CHAOS_THREAD_COUNT];
+    size_t i;
+    CHAOS_TEST_DATA chaos_test_data;
+
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+    THANDLE_INITIALIZE_MOVE(THREADPOOL)(&chaos_test_data.threadpool, &threadpool);
+
+    (void)interlocked_exchange_64(&chaos_test_data.expected_call_count, 0);
+    (void)interlocked_exchange_64(&chaos_test_data.executed_work_functions, 0);
+    (void)interlocked_exchange_64(&chaos_test_data.executed_timer_functions, 0);
+    (void)interlocked_exchange_64(&chaos_test_data.timers_starting, 0);
+    (void)interlocked_exchange(&chaos_test_data.chaos_test_done, 0);
+    (void)interlocked_exchange(&chaos_test_data.can_start_timers, 1);
+
+    for (i = 0; i < MAX_TIMER_COUNT; i++)
+    {
+        THANDLE_INITIALIZE(TIMER)(&chaos_test_data.timers[i].timer, NULL);
+        (void)interlocked_exchange(&chaos_test_data.timers[i].state, TIMER_STATE_NONE);
+    }
+
+    chaos_test_data.work_item_context = threadpool_create_work_item(chaos_test_data.threadpool, work_function, (void*)&chaos_test_data.executed_work_functions);
+    ASSERT_IS_NOT_NULL(chaos_test_data.work_item_context);
+    for (i = 0; i < CHAOS_THREAD_COUNT; i++)
+    {
+        ThreadAPI_Create(&thread_handles[i], chaos_thread_with_timers_no_lock_func, &chaos_test_data);
+        //thread_handles[i] = CreateThread(NULL, 0, chaos_thread_with_timers_no_lock_func, &chaos_test_data, 0, NULL);
+        ASSERT_IS_NOT_NULL(thread_handles[i], "thread %zu failed to start", i);
+    }
+
+    // wait for some time
+    ThreadAPI_Sleep(TEST_RUN_TIME);
+
+    (void)interlocked_exchange(&chaos_test_data.chaos_test_done, 1);
+
+    //will change to use a future API: InterlockedHL_waitforvalue_64 later, task:https://msazure.visualstudio.com/One/_workitems/edit/30197585
+    while (interlocked_add_64(&chaos_test_data.expected_call_count, 0) != interlocked_add_64(&chaos_test_data.executed_work_functions, 0))
+    {
+        ThreadAPI_Sleep(1);
+    }
+
+    // wait for all threads to complete
+    for (i = 0; i < CHAOS_THREAD_COUNT; i++)
+    {
+        int dont_care;
+        ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(thread_handles[i], &dont_care));
+        //ASSERT_IS_TRUE(WaitForSingleObject(thread_handles[i], INFINITE) == WAIT_OBJECT_0);
+    }
+
+    // assert that all scheduled items were executed
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&chaos_test_data.executed_work_functions, chaos_test_data.expected_call_count, UINT32_MAX));
+
+    LogInfo("Chaos test executed %" PRId64 " work items, %" PRId64 " timers",
+        interlocked_add_64(&chaos_test_data.executed_work_functions, 0), interlocked_add_64(&chaos_test_data.executed_timer_functions, 0));
+
+    // call close
+    chaos_cleanup_all_timers(&chaos_test_data);
+    threadpool_destroy_work_item(chaos_test_data.threadpool, chaos_test_data.work_item_context);
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&chaos_test_data.threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+TEST_FUNCTION(one_work_item_schedule_works_v2)
+{
+    // assert
+    // create an execution engine
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    // create the threadpool
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    // act (schedule one work item)
+    LogInfo("Create Work Item Context");
+    THREADPOOL_WORK_ITEM_HANDLE work_item_context = threadpool_create_work_item(threadpool, work_function, (void*)&g_call_count);
+    ASSERT_IS_NOT_NULL(work_item_context);
+    LogInfo("Scheduling work");
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(threadpool, work_item_context));
+
+    // assert
+    wait_for_equal(&g_call_count, 1, UINT32_MAX);
+    LogInfo("Work completed");
+
+    // cleanup
+    threadpool_destroy_work_item(threadpool, work_item_context);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work_v2)
+{
+    // arrange
+    // create an execution engine
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    // create the threadpool
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    // this is safe because the threadpool has a reference
+    execution_engine_dec_ref(execution_engine);
+
+    // act (schedule one work item)
+    LogInfo("Create Work Item Context");
+    THREADPOOL_WORK_ITEM_HANDLE work_item_context = threadpool_create_work_item(threadpool, work_function, (void*)&g_call_count);
+    ASSERT_IS_NOT_NULL(work_item_context);
+    LogInfo("Scheduling work");
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, work_function, (void*)&g_call_count));
+
+    // assert
+    wait_for_equal(&g_call_count, 1, UINT32_MAX);
+    LogInfo("Work completed");
+
+    // cleanup
+    threadpool_destroy_work_item(threadpool, work_item_context);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_works_v2))
+{
+    // assert
+    // create an execution engine
+    size_t i;
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    // create the threadpool
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    LogInfo("Scheduling work " MU_TOSTRING(N_WORK_TIMES) " times");
+    // act (schedule work items)
+    LogInfo("Create Work Item Context");
+    THREADPOOL_WORK_ITEM_HANDLE work_item_context = threadpool_create_work_item(threadpool, work_function, (void*)&g_call_count);
+    ASSERT_IS_NOT_NULL(work_item_context);
+    for (i = 0; i < N_WORK_ITEMS; i++)
+    {
+        ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(threadpool, work_item_context));
+    }
+
+    // assert
+    wait_for_equal(&g_call_count, N_WORK_ITEMS, UINT32_MAX);
+    LogInfo("Work completed");
+
+    // cleanup
+    threadpool_destroy_work_item(threadpool, work_item_context);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items_v2)
+{
+    // assert
+    // create an execution engine
+    WAIT_WORK_CONTEXT wait_work_context;
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 1, 1 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    // create the threadpool
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    (void)interlocked_exchange(&wait_work_context.wait_event, 0);
+
+    (void)interlocked_exchange_64(&wait_work_context.call_count, 0);
+
+    // schedule one item that waits
+    LogInfo("Create Work Item Context");
+    THREADPOOL_WORK_ITEM_HANDLE wait_work_item_context = threadpool_create_work_item(threadpool, wait_work_function, (void*)&wait_work_context);
+    ASSERT_IS_NOT_NULL(wait_work_item_context);
+    THREADPOOL_WORK_ITEM_HANDLE work_item_context = threadpool_create_work_item(threadpool, work_function, (void*)&g_call_count);
+    ASSERT_IS_NOT_NULL(work_item_context);
+    LogInfo("Scheduling 2 work items");
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(threadpool, wait_work_item_context));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(threadpool, work_item_context));
+
+    ThreadAPI_Sleep(WAIT_WORK_FUNCTION_SLEEP_IN_MS);
+
+    interlocked_increment(&wait_work_context.wait_event);
+
+    // assert
+    wait_for_equal(&g_call_count, 1, UINT32_MAX);
+    wait_for_equal(&wait_work_context.call_count, 1, UINT32_MAX);
+
+    // cleanup
+    threadpool_destroy_work_item(threadpool, wait_work_item_context);
+    threadpool_destroy_work_item(threadpool, work_item_context);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+#endif
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
