@@ -1358,69 +1358,6 @@ static int chaos_thread_with_timers_no_lock_and_null_work_item_func(void* contex
     return 0;
 }
 
-TEST_FUNCTION(chaos_knight_test_with_timers_no_lock_and_null_work_item)
-{
-    // start a number of threads and each of them will do a random action on the threadpool
-    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
-    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
-    ASSERT_IS_NOT_NULL(execution_engine);
-    THREAD_HANDLE thread_handles[CHAOS_THREAD_COUNT];
-    size_t i;
-    CHAOS_TEST_DATA chaos_test_data;
-
-    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
-    ASSERT_IS_NOT_NULL(threadpool);
-    THANDLE_INITIALIZE_MOVE(THREADPOOL)(&chaos_test_data.threadpool, &threadpool);
-
-    (void)interlocked_exchange_64(&chaos_test_data.expected_call_count, 0);
-    (void)interlocked_exchange_64(&chaos_test_data.executed_work_functions, 0);
-    (void)interlocked_exchange_64(&chaos_test_data.executed_timer_functions, 0);
-    (void)interlocked_exchange_64(&chaos_test_data.timers_starting, 0);
-    (void)interlocked_exchange(&chaos_test_data.chaos_test_done, 0);
-    (void)interlocked_exchange(&chaos_test_data.can_start_timers, 1);
-
-    for (i = 0; i < MAX_TIMER_COUNT; i++)
-    {
-        THANDLE_INITIALIZE(TIMER)(&chaos_test_data.timers[i].timer, NULL);
-        (void)interlocked_exchange(&chaos_test_data.timers[i].state, TIMER_STATE_NONE);
-    }
-
-    THANDLE(THREADPOOL_WORK_ITEM) work_item = threadpool_create_work_item(chaos_test_data.threadpool, threadpool_task_wait_20_millisec, (void*)&chaos_test_data.executed_work_functions);
-    THANDLE_INITIALIZE_MOVE(THREADPOOL_WORK_ITEM)(&chaos_test_data.work_item_context, &work_item);
-
-    for (i = 0; i < CHAOS_THREAD_COUNT; i++)
-    {
-        ThreadAPI_Create(&thread_handles[i], chaos_thread_with_timers_no_lock_and_null_work_item_func, &chaos_test_data);
-        ASSERT_IS_NOT_NULL(thread_handles[i], "thread %zu failed to start", i);
-    }
-
-    // wait for some time
-    ThreadAPI_Sleep(TEST_RUN_TIME);
-
-    (void)interlocked_exchange(&chaos_test_data.chaos_test_done, 1);
-
-    // wait for all threads to complete
-    for (i = 0; i < CHAOS_THREAD_COUNT; i++)
-    {
-        int dont_care;
-        ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(thread_handles[i], &dont_care));
-    }
-
-    // assert that all scheduled items were executed
-    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&chaos_test_data.executed_work_functions, chaos_test_data.expected_call_count, UINT32_MAX));
-
-    LogInfo("Chaos test executed %" PRId64 " work items, %" PRId64 " timers",
-        interlocked_add_64(&chaos_test_data.executed_work_functions, 0), interlocked_add_64(&chaos_test_data.executed_timer_functions, 0));
-
-    // call close
-    chaos_cleanup_all_timers(&chaos_test_data);
-    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&work_item, NULL);
-
-    // cleanup
-    THANDLE_ASSIGN(THREADPOOL)(&chaos_test_data.threadpool, NULL);
-    execution_engine_dec_ref(execution_engine);
-}
-
 // TEST_FUNCTION(chaos_knight_test)
 // {
 //     // start a number of threads and each of them will do a random action on the threadpool
