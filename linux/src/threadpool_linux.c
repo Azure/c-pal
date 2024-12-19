@@ -76,6 +76,8 @@ typedef struct THREADPOOL_WORK_ITEM_TAG
     volatile_atomic int32_t pending_work_item_count;
 } THREADPOOL_WORK_ITEM, * THREADPOOL_WORK_ITEM_HANDLE;
 
+THANDLE_TYPE_DEFINE(THREADPOOL_WORK_ITEM);
+
 typedef struct THREADPOOL_TAG
 {
     volatile_atomic int32_t stop_thread;
@@ -707,9 +709,9 @@ void threadpool_timer_cancel(THANDLE(TIMER) timer)
     }
 }
 
-THREADPOOL_WORK_ITEM_HANDLE threadpool_create_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context)
+THANDLE(THREADPOOL_WORK_ITEM) threadpool_create_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context)
 {
-    THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item = NULL;
+    THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item_ptr = NULL;
 
     if (
         /* Codes_SRS_THREADPOOL_LINUX_05_001: [ If threadpool is NULL, threadpool_create_work_item shall fail and return a NULL value. ] */
@@ -723,9 +725,9 @@ THREADPOOL_WORK_ITEM_HANDLE threadpool_create_work_item(THANDLE(THREADPOOL) thre
     else
     {
         /* Codes_SRS_THREADPOOL_LINUX_05_005: [ threadpool_create_work_item shall allocate memory for threadpool_work_item of type THREADPOOL_WORK_ITEM_HANDLE. ] */
-        threadpool_work_item = (THREADPOOL_WORK_ITEM_HANDLE)malloc(sizeof(THREADPOOL_WORK_ITEM));
+        threadpool_work_item_ptr = THANDLE_MALLOC(THREADPOOL_WORK_ITEM)(NULL);
 
-        if (threadpool_work_item == NULL)
+        if (threadpool_work_item_ptr == NULL)
         {
             /* Codes_SRS_THREADPOOL_LINUX_05_006: [ If during the initialization of threadpool_work_item, malloc fails then threadpool_create_work_item shall fail and return a NULL value. ]*/
             LogError("Could not allocate memory for Work Item Context");
@@ -733,15 +735,14 @@ THREADPOOL_WORK_ITEM_HANDLE threadpool_create_work_item(THANDLE(THREADPOOL) thre
         else
         {
             /* Codes_SRS_THREADPOOL_LINUX_05_007: [ threadpool_create_work_item shall copy the work_function and work_function_context into the threadpool work item. ] */
-            (void)interlocked_exchange(&threadpool_work_item->pending_work_item_count, 0);
-            threadpool_work_item->work_function_ctx = work_function_context;
-            threadpool_work_item->work_function = work_function;
+            threadpool_work_item_ptr->work_function_ctx = work_function_context;
+            threadpool_work_item_ptr->work_function = work_function;
         }
     }
-    return threadpool_work_item;
+    return threadpool_work_item_ptr;
 }
 
-int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item)
+int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THANDLE(THREADPOOL_WORK_ITEM) threadpool_work_item)
 {
     int result;
     if (
@@ -786,21 +787,19 @@ int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WOR
             }
             else
             {
+                THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item_ptr = THANDLE_GET_T(THREADPOOL_WORK_ITEM)(threadpool_work_item);
                 /* Codes_SRS_THREADPOOL_LINUX_05_020: [ threadpool_schedule_work_item shall acquire the SRW lock in shared mode by calling srw_lock_acquire_exclusive. ]*/
-                srw_lock_acquire_exclusive(threadpool_ptr->srw_lock);
+                srw_lock_acquire_shared(threadpool_ptr->srw_lock);
                 THREADPOOL_TASK* task_item = &threadpool_ptr->task_array[insert_pos];
 
-                (void)interlocked_increment(&threadpool_work_item->pending_work_item_count);
-
                 /* Codes_SRS_THREADPOOL_LINUX_05_022: [ threadpool_schedule_work_item shall copy the work_function and work_function_context from threadpool_work_item into insert position in the task array. ]*/
-                task_item->work_function_ctx = threadpool_work_item->work_function_ctx;
-                task_item->work_function = threadpool_work_item->work_function;
+                task_item->work_function_ctx = threadpool_work_item_ptr->work_function_ctx;
+                task_item->work_function = threadpool_work_item_ptr->work_function;
 
                 /* Codes_SRS_THREADPOOL_LINUX_05_023: [ threadpool_schedule_work_item shall set the task_state to TASK_WAITING and then release the shared SRW lock by calling srw_lock_release_exclusive. ]*/
                 (void)interlocked_exchange(&task_item->task_state, TASK_WAITING);
 
-                task_item->pending_work_item_count_ptr = &threadpool_work_item->pending_work_item_count;
-                srw_lock_release_exclusive(threadpool_ptr->srw_lock);
+                srw_lock_release_shared(threadpool_ptr->srw_lock);
 
                 /* Codes_SRS_THREADPOOL_LINUX_05_025: [ threadpool_schedule_work_item shall unblock the threadpool semaphore by calling sem_post. ]*/
                 sem_post(&threadpool_ptr->semaphore);
@@ -812,31 +811,4 @@ int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WOR
         } while (true);
     }
     return result;
-}
-
-void threadpool_destroy_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item)
-{
-    if (
-        /* Codes_S_R_S_THREADPOOL_LINUX_05_029: [ If threadpool is NULL, threadpool_destroy_work_item shall fail. ]*/
-        (threadpool == NULL) ||
-        /* Codes_S_R_S_THREADPOOL_LINUX_05_030: [ If threadpool_work_item is NULL, threadpool_destroy_work_item shall fail. ]*/
-        (threadpool_work_item == NULL)
-        )
-    {
-        LogError("Invalid arguments: THANDLE(THREADPOOL) threadpool: %p, THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item: %p", threadpool, threadpool_work_item);
-    }
-    else
-    {
-        /* Codes_S_R_S_THREADPOOL_LINUX_05_033: [ threadpool_destroy_work_item shall wait for all pending work items to finish execution. ]*/
-        if (InterlockedHL_WaitForValue(&threadpool_work_item->pending_work_item_count, 0, UINT32_MAX) == INTERLOCKED_HL_OK)
-        {
-            /* Codes_S_R_S_THREADPOOL_LINUX_05_035: [ threadpool_destroy_work_item shall free the memory allocated to the work item of type THREADPOOL_WORK_ITEM_HANDLE created in threadpool_create_work_item. ]*/
-            free(threadpool_work_item);
-        }
-        else
-        {
-            /* Codes_S_R_S_THREADPOOL_LINUX_05_037: [ If InterlockedHL_WaitForValue returns error then log the error and terminate. ]*/
-            LogCriticalAndTerminate("Failure in InterlockedHL_WaitForValue(&threadpool_work_item->pending_work_item_count=%p, 0, UINT32_MAX), count was %d", &threadpool_work_item->pending_work_item_count, threadpool_work_item->pending_work_item_count);
-        }
-    }
 }
