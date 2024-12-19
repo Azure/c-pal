@@ -893,7 +893,7 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_fails)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
-    TIMER_INSTANCE_HANDLE timer_instance;
+    THANDLE(TIMER) timer_instance;
 
     // act
     int result = threadpool_timer_start(threadpool, 42, 2000, NULL, (void*)0x4243, &timer_instance);
@@ -1019,7 +1019,7 @@ TEST_FUNCTION(threadpool_timer_start_fails_when_underlying_functions_fail)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
-    TIMER_INSTANCE_HANDLE timer_instance;
+    THANDLE(TIMER) timer_instance;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1)).CallCannotFail();
