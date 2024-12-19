@@ -337,23 +337,6 @@ static int threadpool_work_func(void* param);
 
 **SRS_THREADPOOL_LINUX_07_084: [** If the work item function is not `NULL`, `threadpool_work_func` shall execute it with `work_function_ctx`. **]**
 
-- **SRS_THREADPOOL_LINUX_05_039: [** `threadpool_work_func` shall acquire the shared `SRW lock` by calling `srw_lock_acquire_shared`. **]**
-
-- **SRS_THREADPOOL_LINUX_05_040: [** `threadpool_work_func` shall save `pending_work_item_count_ptr` is not `NULL` in `is_pending_work_item_count_ptr_not_null`. **]**
-
-- **SRS_THREADPOOL_LINUX_05_041: [** `threadpool_work_func` shall release the shared `SRW lock` by calling `srw_lock_release_shared`. **]**
-
-- **SRS_THREADPOOL_LINUX_05_042: [** If the `is_pending_work_item_count_ptr_not_null` is `TRUE` then: **]**
-
-  - **SRS_THREADPOOL_LINUX_05_043: [** `threadpool_work_func` shall acquire the exclusive `SRW lock` by calling `srw_lock_acquire_exclusive`. **]**
-
-  - **SRS_THREADPOOL_LINUX_05_044: [** `threadpool_work_func` shall decrement the `pending_work_item_count_ptr` by calling `interlocked_decrement`. **]**
-
-  - **SRS_THREADPOOL_LINUX_05_045: [** `threadpool_work_func` shall send wake up signal to single listener for the address in `pending_work_item_count_ptr`. **]**
-
-  - **SRS_THREADPOOL_LINUX_05_046: [** `threadpool_work_func` shall release the shared `SRW lock` by calling `srw_lock_release_exclusive`. **]**
-
-**SRS_THREADPOOL_LINUX_07_085: [** `threadpool_work_func` shall loop until `threadpool_close` or `threadpool_destroy` is called. **]**
 **SRS_THREADPOOL_LINUX_07_085: [** `threadpool_work_func` shall loop until the flag to stop the threads is not set to 1. **]**
 
 ### threadpool_create_work_item
@@ -398,17 +381,9 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), thr
 
 - **SRS_THREADPOOL_LINUX_05_019: [** If reallocating the task array fails, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
 
-- **SRS_THREADPOOL_LINUX_05_020: [ Otherwise, `threadpool_schedule_work_item` shall acquire the SRW lock in exclusive mode by calling srw_lock_acquire_exclusive. ]*/
-
-- **SRS_THREADPOOL_LINUX_05_021: [** `threadpool_schedule_work_item` shall increment the `pending_work_item_count` by calling `interlocked_increment` and copy its address to `pending_work_item_count_ptr` into insert position in the task array. **]**
-
 - **SRS_THREADPOOL_LINUX_05_020: [** Otherwise, `threadpool_schedule_work_item` shall acquire the SRW lock in shared mode by calling srw_lock_acquire_exclusive. **]**
 
 - **SRS_THREADPOOL_LINUX_05_022: [** `threadpool_schedule_work_item` shall copy the `work_function` and `work_function_context` from `threadpool_work_item` into insert position in the task array. **]**
-
-- **SRS_THREADPOOL_LINUX_05_023: [** `threadpool_schedule_work_item` shall set the `task_state` to `TASK_WAITING` and then release the exclusive SRW lock by calling srw_lock_release_exclusive. **]**
-
-- **SRS_THREADPOOL_LINUX_05_024: [** `threadpool_schedule_work_item` shall notify a single thread that is waiting for update of this value by a wake signal. **]**
 
 - **SRS_THREADPOOL_LINUX_05_023: [** `threadpool_schedule_work_item` shall set the `task_state` to `TASK_WAITING` and then release the shared SRW lock by calling srw_lock_release_exclusive. **]**
 
