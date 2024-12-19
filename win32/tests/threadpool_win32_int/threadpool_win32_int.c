@@ -23,8 +23,6 @@
 
 #include "c_pal/execution_engine_win32.h"
 
-#define XTEST_FUNCTION(A) void A(void)
-
 static void work_function(void* context)
 {
     volatile LONG64* call_count = (volatile LONG64*)context;

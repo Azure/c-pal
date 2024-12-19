@@ -26,8 +26,6 @@
 
 #endif // !WIN32
 
-#define XTEST_FUNCTION(x) void x(void)
-
 #define TEST_PORT           4466
 #define TEST_CONN_TIMEOUT   10000
 
