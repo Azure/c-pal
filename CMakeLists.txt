@@ -63,8 +63,6 @@ if(index EQUAL -1)
     message(FATAL_ERROR "GBALLOC_LL_TYPE must be one of '${GBALLOC_LL_TYPE_VALUES}'. It was actually '${GBALLOC_LL_TYPE}'")
 endif()
 
-# target_compile_definitions(c_pal INTERFACE GBALLOC_LL_TYPE_${GBALLOC_LL_TYPE})
-
 #canon way of limiting an option to a predefined set of values
 set(GBALLOC_HL_TYPE_VALUES PASSTHROUGH METRICS) #the list of values which are allowed
 set(GBALLOC_HL_TYPE PASSTHROUGH CACHE STRING "Value of GBALLOC_HL_TYPE") #build a property that can have only the allowed values
@@ -235,3 +233,5 @@ include(CMakePackageConfigHelpers)
 
 #Insert vld in all executables if so required
 add_vld_if_defined(${CMAKE_CURRENT_SOURCE_DIR})
+
+target_compile_definitions(c_pal INTERFACE GBALLOC_LL_TYPE_${GBALLOC_LL_TYPE})
