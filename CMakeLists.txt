@@ -57,11 +57,12 @@ set(GBALLOC_LL_TYPE_VALUES PASSTHROUGH WIN32HEAP MIMALLOC JEMALLOC) #the list of
 set(GBALLOC_LL_TYPE PASSTHROUGH CACHE STRING "Value of GBALLOC_LL_TYPE") #setting the property's default value in case none is taken from the command line
 set_property(CACHE GBALLOC_LL_TYPE PROPERTY STRINGS ${GBALLOC_LL_TYPE_VALUES}) #build a property that can have only the allowed values
 
-
 list(FIND GBALLOC_LL_TYPE_VALUES ${GBALLOC_LL_TYPE} index) #check that the received value (either the default or the one from command line) matches one of the allowed values.
 if(index EQUAL -1)
     message(FATAL_ERROR "GBALLOC_LL_TYPE must be one of '${GBALLOC_LL_TYPE_VALUES}'. It was actually '${GBALLOC_LL_TYPE}'")
 endif()
+
+# target_compile_definitions(c_pal INTERFACE GBALLOC_LL_TYPE_${GBALLOC_LL_TYPE})
 
 #canon way of limiting an option to a predefined set of values
 set(GBALLOC_HL_TYPE_VALUES PASSTHROUGH METRICS) #the list of values which are allowed
