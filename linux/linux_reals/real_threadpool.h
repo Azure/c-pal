@@ -4,6 +4,8 @@
 #ifndef REAL_THREADPOOL_H
 #define REAL_THREADPOOL_H
 
+#include <stdint.h>
+
 #include "macro_utils/macro_utils.h"
 
 #include "c_pal/thandle.h"
@@ -40,8 +42,8 @@ extern "C" {
     typedef struct THREADPOOL_WORK_ITEM_TAG real_THREADPOOL_WORK_ITEM;
     THANDLE_TYPE_DECLARE(real_THREADPOOL_WORK_ITEM);
 
-    typedef struct TIMER_TAG real_TIMER;
-    THANDLE_TYPE_DECLARE(real_TIMER);
+    typedef struct THREADPOOL_TIMER_TAG real_THREADPOOL_TIMER;
+    THANDLE_TYPE_DECLARE(real_THREADPOOL_TIMER);
 
     THANDLE(THREADPOOL) real_threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine);
     int real_threadpool_open(THANDLE(THREADPOOL) threadpool);
@@ -49,9 +51,9 @@ extern "C" {
     THANDLE(THREADPOOL_WORK_ITEM) real_threadpool_create_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context);
     int real_threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THANDLE(THREADPOOL_WORK_ITEM) threadpool_work_item);
     int real_threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context);
-    int real_threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context, THANDLE(TIMER)* timer_handle);
-    int real_threadpool_timer_restart(THANDLE(TIMER) timer, uint32_t start_delay_ms, uint32_t timer_period_ms);
-    void real_threadpool_timer_cancel(THANDLE(TIMER) timer);
+    THANDLE(THREADPOOL_TIMER) real_threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context);
+    int real_threadpool_timer_restart(THANDLE(THREADPOOL_TIMER) timer, uint32_t start_delay_ms, uint32_t timer_period_ms);
+    void real_threadpool_timer_cancel(THANDLE(THREADPOOL_TIMER) timer);
 
 #ifdef __cplusplus
 }

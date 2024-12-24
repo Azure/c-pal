@@ -223,7 +223,7 @@ static THANDLE(THREADPOOL) test_create_threadpool(PTP_CALLBACK_ENVIRON* cbe)
     return threadpool;
 }
 
-static void test_create_threadpool_and_start_timer(uint32_t start_delay_ms, uint32_t timer_period_ms, void* work_function_context, THANDLE(THREADPOOL)* threadpool, PTP_TIMER* ptp_timer, PTP_TIMER_CALLBACK* test_timer_callback, PVOID* test_timer_callback_context, THANDLE(TIMER)* timer_instance)
+static THANDLE(THREADPOOL_TIMER) test_create_threadpool_and_start_timer(uint32_t start_delay_ms, uint32_t timer_period_ms, void* work_function_context, THANDLE(THREADPOOL)* threadpool, PTP_TIMER* ptp_timer, PTP_TIMER_CALLBACK* test_timer_callback, PVOID* test_timer_callback_context)
 {
     PTP_CALLBACK_ENVIRON cbe;
     THANDLE(THREADPOOL) test_result = test_create_threadpool(&cbe);
@@ -236,10 +236,12 @@ static void test_create_threadpool_and_start_timer(uint32_t start_delay_ms, uint
         .CaptureReturn(ptp_timer);
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, 2000, 0));
 
-    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_start(test_result, start_delay_ms, timer_period_ms, test_work_function, work_function_context, timer_instance));
+    THANDLE(THREADPOOL_TIMER) timer_instance = threadpool_timer_start(test_result, start_delay_ms, timer_period_ms, test_work_function, work_function_context);
+    ASSERT_IS_NOT_NULL(timer_instance);
 
     THANDLE_MOVE(THREADPOOL)(threadpool, &test_result);
     umock_c_reset_all_calls();
+    return timer_instance;
 }
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
@@ -787,64 +789,43 @@ TEST_FUNCTION(on_work_callback_triggers_the_user_work_function_with_NULL_work_fu
 
 /* threadpool_timer_start */
 
-/* Tests_SRS_THREADPOOL_WIN32_42_001: [ If threadpool is NULL, threadpool_schedule_work shall fail and return a non-zero value. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_42_001: [ If threadpool is NULL, threadpool_schedule_work shall fail and return NULL. ]*/
 TEST_FUNCTION(threadpool_timer_start_with_NULL_threadpool_fails)
 {
     // arrange
-    THANDLE(TIMER) timer_instance = NULL;
 
     // act
-    int result = threadpool_timer_start(NULL, 42, 2000, test_work_function, (void*)0x4243, &timer_instance);
+    THANDLE(THREADPOOL_TIMER) timer_instance = threadpool_timer_start(NULL, 42, 2000, test_work_function, (void*)0x4243);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_IS_NULL(timer_instance);
 }
 
-/* Tests_SRS_THREADPOOL_WIN32_42_002: [ If work_function is NULL, threadpool_schedule_work shall fail and return a non-zero value. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_42_002: [ If work_function is NULL, threadpool_schedule_work shall fail and return NULL. ]*/
 TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_fails)
 {
     // arrange
     PTP_CALLBACK_ENVIRON cbe;
     THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
 
-    THANDLE(TIMER) timer_instance = NULL;
-
     // act
-    int result = threadpool_timer_start(threadpool, 42, 2000, NULL, (void*)0x4243, &timer_instance);
+    THANDLE(THREADPOOL_TIMER) timer_instance = threadpool_timer_start(threadpool, 42, 2000, NULL, (void*)0x4243);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_IS_NULL(timer_instance);
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-/* Tests_SRS_THREADPOOL_WIN32_42_003: [ If timer_handle is NULL, threadpool_schedule_work shall fail and return a non-zero value. ]*/
-TEST_FUNCTION(threadpool_timer_start_with_NULL_timer_handle_fails)
-{
-    // arrange
-    PTP_CALLBACK_ENVIRON cbe;
-    THANDLE(THREADPOOL) threadpool = test_create_threadpool(&cbe);
-
-    // act
-    int result = threadpool_timer_start(threadpool, 42, 2000, test_work_function, (void*)0x4243, NULL);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
-
-    // cleanup
-    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
-}
-
-/* Tests_SRS_THREADPOOL_WIN32_42_005: [ threadpool_timer_start shall allocate memory for THANDLE(TIMER), passing threadpool_timer_dispose as dispose function, and store work_function and work_function_context in it. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_42_005: [ threadpool_timer_start shall allocate memory for THANDLE(THREADPOOL_TIMER), passing threadpool_timer_dispose as dispose function, and store work_function and work_function_context in it. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_42_006: [ threadpool_timer_start shall call CreateThreadpoolTimer to schedule execution the callback while passing to it the on_timer_callback function and the newly created context. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_07_002: [ threadpool_timer_start shall initialize the lock guarding the timer state by calling srw_lock_ll_init. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_42_007: [ threadpool_timer_start shall call SetThreadpoolTimer, passing negative start_delay_ms as pftDueTime, timer_period_ms as msPeriod, and 0 as msWindowLength. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_42_009: [ threadpool_timer_start shall return the allocated handle in timer_handle. ]*/
-/* Tests_SRS_THREADPOOL_WIN32_42_010: [ threadpool_timer_start shall succeed and return 0. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_42_010: [ threadpool_timer_start shall succeed and return a non-NULL handle. ]*/
 TEST_FUNCTION(threadpool_timer_start_succeeds)
 {
     // arrange
@@ -854,8 +835,6 @@ TEST_FUNCTION(threadpool_timer_start_succeeds)
     PTP_TIMER_CALLBACK test_timer_callback;
     PVOID test_timer_callback_context;
     PTP_TIMER ptp_timer;
-
-    THANDLE(TIMER) timer_instance = NULL;
 
     ULARGE_INTEGER ularge_due_time;
     ularge_due_time.QuadPart = (ULONGLONG)-((int64_t)42 * 10000);
@@ -875,15 +854,14 @@ TEST_FUNCTION(threadpool_timer_start_succeeds)
         .ValidateArgumentValue_pti(&ptp_timer);
 
     // act
-    int result = threadpool_timer_start(threadpool, 42, 2000, test_work_function, (void*)0x4243, &timer_instance);
+    THANDLE(THREADPOOL_TIMER) timer_instance = threadpool_timer_start(threadpool, 42, 2000, test_work_function, (void*)0x4243);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(int, 0, result);
     ASSERT_IS_NOT_NULL(timer_instance);
 
     // cleanup
-    THANDLE_ASSIGN(TIMER)(&timer_instance, NULL);
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_instance, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
@@ -898,8 +876,6 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_context_succeeds)
     PVOID test_timer_callback_context;
     PTP_TIMER ptp_timer;
 
-    THANDLE(TIMER) timer_instance = NULL;
-
     ULARGE_INTEGER ularge_due_time;
     ularge_due_time.QuadPart = (ULONGLONG)-((int64_t)42 * 10000);
     FILETIME filetime_expected;
@@ -918,19 +894,18 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_context_succeeds)
         .ValidateArgumentValue_pti(&ptp_timer);
 
     // act
-    int result = threadpool_timer_start(threadpool, 42, 2000, test_work_function, NULL, &timer_instance);
+    THANDLE(THREADPOOL_TIMER) timer_instance = threadpool_timer_start(threadpool, 42, 2000, test_work_function, NULL);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(int, 0, result);
     ASSERT_IS_NOT_NULL(timer_instance);
 
     // cleanup
-    THANDLE_ASSIGN(TIMER)(&timer_instance, NULL);
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_instance, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-/* Tests_SRS_THREADPOOL_WIN32_42_008: [ If any error occurs, threadpool_timer_start shall fail and return a non-zero value. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_42_008: [ If any error occurs, threadpool_timer_start shall fail and return NULL. ]*/
 TEST_FUNCTION(threadpool_timer_start_fails_when_underlying_functions_fail)
 {
     // arrange
@@ -940,8 +915,6 @@ TEST_FUNCTION(threadpool_timer_start_fails_when_underlying_functions_fail)
     PTP_TIMER_CALLBACK test_timer_callback;
     PVOID test_timer_callback_context;
     PTP_TIMER ptp_timer;
-
-    THANDLE(TIMER) timer_instance = NULL;
 
     ULARGE_INTEGER ularge_due_time;
     ularge_due_time.QuadPart = (ULONGLONG)-((int64_t)42 * 10000);
@@ -971,10 +944,10 @@ TEST_FUNCTION(threadpool_timer_start_fails_when_underlying_functions_fail)
             umock_c_negative_tests_fail_call(i);
 
             // act
-            int result = threadpool_timer_start(threadpool, 42, 2000, test_work_function, (void*)0x4243, &timer_instance);
+            THANDLE(THREADPOOL_TIMER) timer_instance = threadpool_timer_start(threadpool, 42, 2000, test_work_function, (void*)0x4243);
 
             // assert
-            ASSERT_ARE_NOT_EQUAL(int, 0, result, "On failed call %zu", i);
+            ASSERT_IS_NULL(timer_instance, "On failed call %zu", i);
         }
     }
 
@@ -1008,8 +981,7 @@ TEST_FUNCTION(threadpool_timer_restart_succeeds)
     PTP_TIMER_CALLBACK test_timer_callback;
     PVOID test_timer_callback_context;
     PTP_TIMER ptp_timer;
-    THANDLE(TIMER) timer_instance = NULL;
-    test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &ptp_timer, &test_timer_callback, &test_timer_callback_context, &timer_instance);
+    THANDLE(THREADPOOL_TIMER) timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &ptp_timer, &test_timer_callback, &test_timer_callback_context);
 
     ULARGE_INTEGER ularge_due_time;
     ularge_due_time.QuadPart = (ULONGLONG)-((int64_t)43 * 10000);
@@ -1030,7 +1002,7 @@ TEST_FUNCTION(threadpool_timer_restart_succeeds)
     ASSERT_ARE_EQUAL(int, 0, result);
 
     // cleanup
-    THANDLE_ASSIGN(TIMER)(&timer_instance, NULL);
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_instance, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
@@ -1059,8 +1031,7 @@ TEST_FUNCTION(threadpool_timer_cancel_succeeds)
     PTP_TIMER_CALLBACK test_timer_callback;
     PVOID test_timer_callback_context;
     PTP_TIMER ptp_timer;
-    THANDLE(TIMER) timer_instance = NULL;
-    test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &ptp_timer, &test_timer_callback, &test_timer_callback_context, &timer_instance);
+    THANDLE(THREADPOOL_TIMER) timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &ptp_timer, &test_timer_callback, &test_timer_callback_context);
 
     STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(ptp_timer, NULL, 0, 0));
@@ -1074,7 +1045,7 @@ TEST_FUNCTION(threadpool_timer_cancel_succeeds)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
-    THANDLE_ASSIGN(TIMER)(&timer_instance, NULL);
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_instance, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
@@ -1091,8 +1062,7 @@ TEST_FUNCTION(threadpool_timer_destroy_succeeds)
     PTP_TIMER_CALLBACK test_timer_callback;
     PVOID test_timer_callback_context;
     PTP_TIMER ptp_timer;
-    THANDLE(TIMER) timer_instance = NULL;
-    test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &ptp_timer, &test_timer_callback, &test_timer_callback_context, &timer_instance);
+    THANDLE(THREADPOOL_TIMER) timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &ptp_timer, &test_timer_callback, &test_timer_callback_context);
 
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(ptp_timer, NULL, 0, 0));
@@ -1102,7 +1072,7 @@ TEST_FUNCTION(threadpool_timer_destroy_succeeds)
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
     // act
-    THANDLE_ASSIGN(TIMER)(&timer_instance, NULL);
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_instance, NULL);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -1121,8 +1091,7 @@ TEST_FUNCTION(on_timer_callback_with_NULL_context_returns)
     PTP_TIMER_CALLBACK test_timer_callback;
     PVOID test_timer_callback_context;
     PTP_TIMER ptp_timer;
-    THANDLE(TIMER) timer_instance = NULL;
-    test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &ptp_timer, &test_timer_callback, &test_timer_callback_context, &timer_instance);
+    THANDLE(THREADPOOL_TIMER) timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &ptp_timer, &test_timer_callback, &test_timer_callback_context);
 
     // act
     test_timer_callback(NULL, NULL, ptp_timer);
@@ -1131,7 +1100,7 @@ TEST_FUNCTION(on_timer_callback_with_NULL_context_returns)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
-    THANDLE_ASSIGN(TIMER)(&timer_instance, NULL);
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_instance, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
@@ -1144,8 +1113,7 @@ TEST_FUNCTION(on_timer_callback_calls_user_callback)
     PTP_TIMER_CALLBACK test_timer_callback;
     PVOID test_timer_callback_context;
     PTP_TIMER ptp_timer;
-    THANDLE(TIMER) timer_instance = NULL;
-    test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &ptp_timer, &test_timer_callback, &test_timer_callback_context, &timer_instance);
+    THANDLE(THREADPOOL_TIMER) timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &ptp_timer, &test_timer_callback, &test_timer_callback_context);
 
     STRICT_EXPECTED_CALL(test_work_function((void*)0x4243));
 
@@ -1156,7 +1124,7 @@ TEST_FUNCTION(on_timer_callback_calls_user_callback)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
-    THANDLE_ASSIGN(TIMER)(&timer_instance, NULL);
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_instance, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
@@ -1169,8 +1137,7 @@ TEST_FUNCTION(on_timer_callback_calls_user_callback_multiple_times_as_timer_fire
     PTP_TIMER_CALLBACK test_timer_callback;
     PVOID test_timer_callback_context;
     PTP_TIMER ptp_timer;
-    THANDLE(TIMER) timer_instance = NULL;
-    test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &ptp_timer, &test_timer_callback, &test_timer_callback_context, &timer_instance);
+    THANDLE(THREADPOOL_TIMER) timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &ptp_timer, &test_timer_callback, &test_timer_callback_context);
 
     uint32_t timer_fire_count = 10;
 
@@ -1189,7 +1156,7 @@ TEST_FUNCTION(on_timer_callback_calls_user_callback_multiple_times_as_timer_fire
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
-    THANDLE_ASSIGN(TIMER)(&timer_instance, NULL);
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_instance, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
