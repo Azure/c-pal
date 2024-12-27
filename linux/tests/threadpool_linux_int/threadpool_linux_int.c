@@ -79,6 +79,7 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 static void threadpool_task_wait_20_millisec(void* parameter)
 {
     volatile_atomic int64_t* thread_counter = (volatile_atomic int64_t*)parameter;
+    ThreadAPI_Sleep(20);
     (void)interlocked_increment_64(thread_counter);
     wake_by_address_single_64(thread_counter);
 }
@@ -474,7 +475,7 @@ TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _start_timers_work_and_run_p
 
     // act (start a timer to start delayed and then execute every 500ms)
     LogInfo("Starting " MU_TOSTRING(N_THREADPOOL_TIMERS) " timers");
-    THANDLE(THREADPOOL_TIMER)* timers[N_THREADPOOL_TIMERS];
+    THANDLE(THREADPOOL_TIMER)* timers = malloc(N_THREADPOOL_TIMERS * sizeof(THANDLE(THREADPOOL_TIMER)));
     for (uint32_t i = 0; i < N_THREADPOOL_TIMERS; i++)
     {
         THANDLE(THREADPOOL_TIMER) timer_temp = threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&g_call_count);
@@ -499,6 +500,7 @@ TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _start_timers_work_and_run_p
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    free((void*)timers);
     execution_engine_dec_ref(execution_engine);
 }
 
