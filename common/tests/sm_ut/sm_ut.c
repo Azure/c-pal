@@ -772,8 +772,8 @@ TEST_FUNCTION(sm_close_end_switches_state_to_SM_CREATED) /*allows sm_open_begin 
     sm_destroy(sm);
 }
 
-/*Tests_SRS_SM_42_012: [ sm_close_end shall not reset the SM_FAULTED_BIT. ]*/
-TEST_FUNCTION(sm_close_end_switches_state_to_SM_CREATED_leaves_SM_FAULTED_BIT_set)
+/*Tests_SRS_SM_01_001: [ sm_close_end shall reset the SM_FAULTED_BIT. ]*/
+TEST_FUNCTION(sm_close_end_switches_state_to_SM_CREATED_resets_FAULTED_bit)
 {
     ///arrange
     SM_HANDLE sm = TEST_sm_create();
@@ -796,7 +796,7 @@ TEST_FUNCTION(sm_close_end_switches_state_to_SM_CREATED_leaves_SM_FAULTED_BIT_se
     sm_close_end(sm);
 
     ///assert
-    ASSERT_ARE_EQUAL(SM_RESULT, SM_EXEC_REFUSED, sm_open_begin(sm));
+    ASSERT_ARE_EQUAL(SM_RESULT, SM_EXEC_GRANTED, sm_open_begin(sm));
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
@@ -1278,7 +1278,8 @@ TEST_FUNCTION(sm_fault_in_SM_CREATED_disallows_open)
 }
 
 /*Tests_SRS_SM_42_007: [ sm_fault shall set SM_FAULTED_BIT to 1. ]*/
-TEST_FUNCTION(sm_fault_in_SM_CLOSING_prevents_open)
+/*Tests_SRS_SM_01_001: [ sm_close_end shall reset the SM_FAULTED_BIT. ]*/
+TEST_FUNCTION(sm_fault_in_SM_CLOSING_allows_reopen)
 {
     ///arrange
     SM_HANDLE sm = TEST_sm_create();
@@ -1299,8 +1300,7 @@ TEST_FUNCTION(sm_fault_in_SM_CLOSING_prevents_open)
 
     ///assert
     sm_close_end(sm);
-    ASSERT_ARE_EQUAL(SM_RESULT, SM_EXEC_REFUSED, sm_open_begin(sm));
-    ASSERT_ARE_EQUAL(SM_RESULT, SM_EXEC_REFUSED, sm_close_begin(sm));
+    ASSERT_ARE_EQUAL(SM_RESULT, SM_EXEC_GRANTED, sm_open_begin(sm));
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
