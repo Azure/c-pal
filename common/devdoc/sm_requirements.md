@@ -8,9 +8,9 @@
 
 2. The module's APIs are callable after _open has executed (_open being the exception - it can only be called after _create).
 
-3. The module may go into a "faulted" state which disallows all calls, other than closing the module. The "faulted" state means that something catastrophic happened so the module must be closed and destroyed. It is a terminal state and _open will fail.
+3. 3. The module may go into a "faulted" state which disallows all calls, other than closing the module (which resets the faulted state). The "faulted" state means that something catastrophic happened so the module must be closed and re-opened.
 
-4. The module has a _close function that reverts the effects of _open and allows calling _open again. Calling _close when the module is "faulted" cleans up the module but leaves it in a "faulted" state.
+4. The module has a _close function that reverts the effects of _open and allows calling _open again.
 
 5. the APIs that can be called in the _open state can be further divided into 3 categories
 
@@ -266,7 +266,7 @@ MOCKABLE_FUNCTION(, void, sm_close_end, SM_HANDLE, sm);
 
 **SRS_SM_02_044: [** `sm_close_end` shall switch the state to `SM_CREATED`. **]**
 
-**SRS_SM_42_012: [** `sm_close_end` shall not reset the `SM_FAULTED_BIT`. **]**
+**SRS_SM_01_001: [** `sm_close_end` shall reset the `SM_FAULTED_BIT`. **]**
 
 ### sm_exec_begin
 

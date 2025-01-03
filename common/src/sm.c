@@ -349,8 +349,13 @@ static void sm_close_end_internal(SM_HANDLE sm)
         else
         {
             /*Codes_SRS_SM_02_044: [ sm_close_end shall switch the state to SM_CREATED. ]*/
-            /*Codes_SRS_SM_42_012: [ sm_close_end shall not reset the SM_FAULTED_BIT. ]*/
-            if (interlocked_compare_exchange(&sm->state, state - SM_CLOSING + SM_CREATED + SM_STATE_INCREMENT, state) != state)
+            // History:
+            // Originally (before Feb 19, 2021) faulted was not a terminal.
+            // On Feb 19, 2021 we made it terminal - PR here: https://github.com/Azure/c-util/pull/106
+            // In Jan 2025, we make it again non-terminal.
+            // At some point in the future there is a strong possibility that we will argue about making it terminal again :-).
+            /*Codes_SRS_SM_01_001: [ sm_close_end shall reset the SM_FAULTED_BIT. ]*/
+            if (interlocked_compare_exchange(&sm->state, (state & ~(uint32_t)SM_FAULTED_BIT) - SM_CLOSING + SM_CREATED + SM_STATE_INCREMENT, state) != state)
             {
                 LogError("sm name=%s. state changed meanwhile (it was %" PRI_SM_STATE "), likely competing threads", sm->name, SM_STATE_VALUE(state));
                 // Retry (maybe a fault happened during the close but after we checked the state above?)
