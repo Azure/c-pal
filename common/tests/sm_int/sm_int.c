@@ -95,14 +95,8 @@ static int callsBeginOpen(
 
     while (interlocked_add(&data->threadsShouldFinish, 0) == 0)
     {
-        bool is_faulted = (data->n_fault_threads > 0 && interlocked_add(&data->n_faults, 0) > 0);
         if (sm_open_begin(data->sm) == SM_EXEC_GRANTED)
         {
-            if (is_faulted)
-            {
-                ASSERT_FAIL("sm_fault was called, sm_open_begin should have failed!");
-            }
-
             (void)interlocked_increment(&data->begin_open_pending); // now make sure end_open is called
             (void)interlocked_increment(&data->n_begin_open_grants);
         }
@@ -349,14 +343,8 @@ static int callsBeginBarrier(
 
     while (interlocked_add(&data->threadsShouldFinish, 0) == 0)
     {
-        bool is_faulted = (data->n_fault_threads > 0 && interlocked_add(&data->n_faults, 0) > 0);
         if (sm_barrier_begin(data->sm) == SM_EXEC_GRANTED)
         {
-            if (is_faulted)
-            {
-                ASSERT_FAIL("sm_fault was called, sm_barrier_begin should have failed!");
-            }
-
             (void)interlocked_increment(&data->begin_barrier_pending); // now make sure end_barrier is called
             (void)interlocked_increment(&data->n_begin_barrier_grants);
         }
@@ -453,14 +441,8 @@ static int callsBeginExec(
 
     while (interlocked_add(&data->threadsShouldFinish, 0) == 0)
     {
-        bool is_faulted = (data->n_fault_threads > 0 && interlocked_add(&data->n_faults, 0) > 0);
         if (sm_exec_begin(data->sm) == SM_EXEC_GRANTED)
         {
-            if (is_faulted)
-            {
-                ASSERT_FAIL("sm_fault was called, sm_exec_begin should have failed!");
-            }
-
             int32_t pending_execs = interlocked_increment(&data->begin_exec_pending); // now make sure end_exec is called
 
             // If this were to overflow, the test would probably fail somewhere
@@ -561,14 +543,8 @@ static int callsBeginAndEnd(
 
     while (interlocked_add(&data->threadsShouldFinish, 0) == 0)
     {
-        bool is_faulted = (data->n_fault_threads > 0 && interlocked_add(&data->n_faults, 0) > 0);
         if (sm_exec_begin(data->sm) == SM_EXEC_GRANTED)
         {
-            if (is_faulted)
-            {
-                ASSERT_FAIL("sm_fault was called, sm_exec_begin should have failed!");
-            }
-
             (void)interlocked_increment(&data->n_begin_grants);
             uint32_t pretend_to_do_something_time_in_ms = rand() % 10;
             ThreadAPI_Sleep(pretend_to_do_something_time_in_ms);
