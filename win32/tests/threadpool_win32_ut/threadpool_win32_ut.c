@@ -434,57 +434,6 @@ TEST_FUNCTION(threadpool_dispose_performs_an_implicit_close)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/* threadpool_open */
-
-/* Tests_SRS_THREADPOOL_WIN32_01_008: [ If threadpool is NULL, threadpool_open shall fail and return a non-zero value. ]*/
-TEST_FUNCTION(threadpool_open_with_NULL_threadpool_fails)
-{
-    // arrange
-    int result;
-
-    // act
-    result = threadpool_open(NULL);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
-}
-
-/* Tests_SRS_THREADPOOL_WIN32_01_012: [ On success, threadpool_open shall return 0. ]*/
-TEST_FUNCTION(threadpool_open_succeeds)
-{
-    // arrange
-    THANDLE(THREADPOOL) threadpool = threadpool_create(test_execution_engine);
-    ASSERT_IS_NOT_NULL(threadpool);
-    int result;
-    umock_c_reset_all_calls();
-
-    // act
-    result = threadpool_open(threadpool);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(int, 0, result);
-
-    // cleanup
-    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
-}
-
-
-/* threadpool_close */
-
-/* Tests_SRS_THREADPOOL_WIN32_05_019: [ If threadpool is NULL, threadpool_close shall return. ]*/
-TEST_FUNCTION(threadpool_close_with_NULL_handle_returns)
-{
-    // arrange
-
-    // act
-    threadpool_close(NULL);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
 /* threadpool_schedule_work */
 
 /* Tests_SRS_THREADPOOL_WIN32_01_020: [ If threadpool is NULL, threadpool_schedule_work shall fail and return a non-zero value. ]*/
