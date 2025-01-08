@@ -349,10 +349,11 @@ TEST_FUNCTION(creating_2_threadpool_succeeds)
 
 /* threadpool_dispose */
 
-
 /* Tests_SRS_THREADPOOL_LINUX_07_016: [ threadpool_dispose shall free the memory allocated in threadpool_create. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_014: [ threadpool_dispose shall destroy the semphore by calling sem_destroy. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_015: [ threadpool_dispose shall destroy the SRW lock by calling srw_lock_destroy. ]*/
+/* Codes_SRS_THREADPOOL_LINUX_07_027: [ threadpool_dispose shall join all threads in the threadpool. ]*/
+/* Codes_SRS_THREADPOOL_LINUX_07_089: [ threadpool_dispose shall signal all threads to return. ]*/
 TEST_FUNCTION(threadpool_dispose_frees_resources)
 {
     // arrange
@@ -380,6 +381,8 @@ TEST_FUNCTION(threadpool_dispose_frees_resources)
 /* Tests_SRS_THREADPOOL_LINUX_07_016: [ threadpool_dispose shall free the memory allocated in threadpool_create. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_014: [ threadpool_dispose shall destroy the semphore by calling sem_destroy. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_015: [ threadpool_dispose shall destroy the SRW lock by calling srw_lock_destroy. ]*/
+/* Codes_SRS_THREADPOOL_LINUX_07_027: [ threadpool_dispose shall join all threads in the threadpool. ]*/
+/* Codes_SRS_THREADPOOL_LINUX_07_089: [ threadpool_dispose shall signal all threads to return. ]*/
 TEST_FUNCTION(threadpool_dispose_performs_an_implicit_close)
 {
     // arrange
