@@ -180,38 +180,6 @@ all_ok:
     return result;
 }
 
-int threadpool_open(THANDLE(THREADPOOL) threadpool)
-{
-    int result;
-    if (
-        /* Codes_SRS_THREADPOOL_WIN32_01_008: [ If threadpool is NULL, threadpool_open shall fail and return a non-zero value. ]*/
-        threadpool == NULL
-    )
-    {
-        LogError("THREADPOOL_HANDLE threadpool=%p", threadpool);
-        result = MU_FAILURE;
-    }
-    else
-    {
-        /* Codes_SRS_THREADPOOL_WIN32_01_012: [ On success, threadpool_open shall return 0. ]*/
-        result = 0;
-    }
-    return result;
-}
-
-void threadpool_close(THANDLE(THREADPOOL) threadpool)
-{
-    if (threadpool == NULL)
-    {
-        /* Codes_SRS_THREADPOOL_WIN32_05_019: [ If threadpool is NULL, threadpool_close shall return. ]*/
-        LogError("Invalid arguments: THREADPOOL_HANDLE threadpool=%p", threadpool);
-    }
-    else
-    {
-        // do_nothing.
-    }
-}
-
 THANDLE(THREADPOOL_WORK_ITEM) threadpool_create_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, PVOID work_function_context)
 {
     THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item_ptr = NULL;

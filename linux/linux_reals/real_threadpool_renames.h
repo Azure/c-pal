@@ -5,8 +5,6 @@
 #define THREADPOOL_WORK_ITEM            real_THREADPOOL_WORK_ITEM
 
 #define threadpool_create               real_threadpool_create
-#define threadpool_open                 real_threadpool_open
-#define threadpool_close                real_threadpool_close
 #define threadpool_create_work_item     real_threadpool_create_work_item
 #define threadpool_schedule_work_item   real_threadpool_schedule_work_item
 #define threadpool_destroy_work_item    real_threadpool_destroy_work_item
