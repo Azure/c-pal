@@ -491,6 +491,7 @@ TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _start_timers_work_and_run_p
     // Wait up to 2 seconds
     wait_for_greater_or_equal(&g_call_count, (2 * N_THREADPOOL_TIMERS), 2000);
 
+    ThreadAPI_Sleep(50000);
     LogInfo("Timers completed, stopping all timers");
 
     for (uint32_t i = 0; i < N_THREADPOOL_TIMERS; i++)
