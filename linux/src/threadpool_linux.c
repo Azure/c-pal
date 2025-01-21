@@ -420,36 +420,6 @@ all_ok:
     return result;
 }
 
-// threadpool_open will be deprecated and threadpool_create will perform additional tasks of threadpool_open. This function will exist until all the libraries calling this API are modified to use only threadpool_create.
-int threadpool_open(THANDLE(THREADPOOL) threadpool)
-{
-    int result;
-    if (
-        /* Codes_SRS_THREADPOOL_LINUX_07_017: [ If threadpool is NULL, threadpool_open shall fail and return a non-zero value. ]*/
-        threadpool == NULL
-    )
-    {
-        LogError("THANDLE(THREADPOOL) threadpool=%p", threadpool);
-        result = MU_FAILURE;
-    }
-    else
-    {
-        /* Codes_SRS_THREADPOOL_LINUX_07_024: [ Otherwise, threadpool_open shall succeed and return 0. ]*/
-        result = 0;
-    }
-    return result;
-}
-
-// threadpool_close will be deprecated and threadpool_dispose will perform additional tasks of threadpool_close. This function will exist until all the libraries calling this API are modified to use only threadpool_create.
-void threadpool_close(THANDLE(THREADPOOL) threadpool)
-{
-    /* Codes_SRS_THREADPOOL_LINUX_07_025: [ If threadpool is NULL, threadpool_close shall fail and return. ]*/
-    if (threadpool == NULL)
-    {
-        LogError("THANDLE(THREADPOOL) threadpool=%p", threadpool);
-    }
-}
-
 int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_ctx)
 {
     int result;

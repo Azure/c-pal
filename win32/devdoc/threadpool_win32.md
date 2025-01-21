@@ -23,9 +23,6 @@ THANDLE_TYPE_DECLARE(THREADPOOL_WORK_ITEM);
 
 MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HANDLE, execution_engine);
 
-MOCKABLE_FUNCTION(, int, threadpool_open, THANDLE(THREADPOOL), threadpool);
-MOCKABLE_FUNCTION(, void, threadpool_close, THANDLE(THREADPOOL), threadpool);
-
 MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_WORK_ITEM), threadpool_create_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THANDLE(THREADPOOL_WORK_ITEM), threadpool_work_item);
@@ -81,27 +78,6 @@ static void threadpool_dispose(THREADPOOL* threadpool)
 
 **SRS_THREADPOOL_WIN32_42_028: [** `threadpool_dispose` shall decrement the reference count on the `execution_engine`. **]**
 
-### threadpool_open
-
-```c
-MOCKABLE_FUNCTION(, int, threadpool_open, THANDLE(THREADPOOL), threadpool);
-```
-Note: `threadpool_open` will be deprecated and threadpool_create will perform additional tasks of `threadpool_open`. This function will exist until all the libraries calling this API are modified to use only `threadpool_create`.
-`threadpool_open` opens the threadpool object so that subsequent calls to `threadpool_schedule_work` can be made.
-
-**SRS_THREADPOOL_WIN32_01_008: [** If `threadpool` is `NULL`, `threadpool_open` shall fail and return a non-zero value. **]**
-
-**SRS_THREADPOOL_WIN32_01_012: [** On success, `threadpool_open` shall return 0. **]**
-
-### threadpool_close
-
-```c
-MOCKABLE_FUNCTION(, void, threadpool_close, THANDLE(THREADPOOL), threadpool);
-```
-Note: `threadpool_close` will be deprecated and threadpool_dispose will perform additional tasks of `threadpool_close`. This function will exist until all the libraries calling this API are modified to use only `threadpool_create`.
-`threadpool_close` closes an open threadpool.
-
-**SRS_THREADPOOL_WIN32_05_019: [** If `threadpool` is `NULL`, `threadpool_close` shall return. **]**
 
 ### threadpool_schedule_work
 

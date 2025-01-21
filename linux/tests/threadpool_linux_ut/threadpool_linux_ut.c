@@ -353,10 +353,11 @@ TEST_FUNCTION(creating_2_threadpool_succeeds)
 
 /* threadpool_dispose */
 
-
 /* Tests_SRS_THREADPOOL_LINUX_07_016: [ threadpool_dispose shall free the memory allocated in threadpool_create. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_014: [ threadpool_dispose shall destroy the semphore by calling sem_destroy. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_015: [ threadpool_dispose shall destroy the SRW lock by calling srw_lock_destroy. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_027: [ threadpool_dispose shall join all threads in the threadpool. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_089: [ threadpool_dispose shall signal all threads to return. ]*/
 TEST_FUNCTION(threadpool_dispose_frees_resources)
 {
     // arrange
@@ -384,11 +385,12 @@ TEST_FUNCTION(threadpool_dispose_frees_resources)
 /* Tests_SRS_THREADPOOL_LINUX_07_016: [ threadpool_dispose shall free the memory allocated in threadpool_create. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_014: [ threadpool_dispose shall destroy the semphore by calling sem_destroy. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_015: [ threadpool_dispose shall destroy the SRW lock by calling srw_lock_destroy. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_027: [ threadpool_dispose shall join all threads in the threadpool. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_089: [ threadpool_dispose shall signal all threads to return. ]*/
 TEST_FUNCTION(threadpool_dispose_performs_an_implicit_close)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
-    ASSERT_ARE_EQUAL(int, 0, threadpool_open(threadpool));
 
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
     STRICT_EXPECTED_CALL(InterlockedHL_SetAndWakeAll(IGNORED_ARG, 1));
@@ -446,44 +448,6 @@ TEST_FUNCTION(threadpool_create_fails_when_threadAPI_create_fails)
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* threadpool_open */
-
-/* Tests_SRS_THREADPOOL_LINUX_07_017: [ If threadpool is NULL, threadpool_open shall fail and return a non-zero value. ]*/
-TEST_FUNCTION(threadpool_open_with_NULL_threadpool_fails)
-{
-    // arrange
-    int result;
-
-    // act
-    result = threadpool_open(NULL);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
-}
-
-/* Tests_SRS_THREADPOOL_LINUX_07_020: [ threadpool_create shall create number of min_thread_count threads for threadpool using ThreadAPI_Create. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_024: [ Otherwise, threadpool_open shall succeed and return 0. ]*/
-TEST_FUNCTION(threadpool_open_succeeds)
-{
-    // arrange
-    int result;
-
-    threadpool_create_succeed_expectations();
-
-    // act
-    THANDLE(THREADPOOL) threadpool = test_create_threadpool();
-
-    result = threadpool_open(threadpool);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(int, 0, result);
-
-    // cleanup
-    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
 /* threadpool_work_func */
@@ -625,45 +589,6 @@ TEST_FUNCTION(threadpool_work_func_succeeds_for_threadpool_schedule_work_item)
     // cleanup
     THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&threadpool_work_item, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
-}
-
-/* threadpool_close */
-
-/* Tests_SRS_THREADPOOL_LINUX_07_025: [ If threadpool is NULL, threadpool_close shall fail and return. ]*/
-TEST_FUNCTION(threadpool_close_with_NULL_handle_returns)
-{
-    // arrange
-
-    // act
-    threadpool_close(NULL);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* Tests_SRS_THREADPOOL_LINUX_07_089: [ threadpool_dispose shall signal all threads to return. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_027: [ threadpool_dispose shall join all threads in the threadpool. ]*/
-TEST_FUNCTION(threadpool_close_succeeds)
-{
-    // arrange
-    THANDLE(THREADPOOL) threadpool = test_create_threadpool();
-
-    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(InterlockedHL_SetAndWakeAll(IGNORED_ARG, IGNORED_ARG));
-    for(size_t i = 0; i < MIN_THREAD_COUNT; i++)
-    {
-        STRICT_EXPECTED_CALL(ThreadAPI_Join(IGNORED_ARG, IGNORED_ARG));
-    }
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(srw_lock_destroy(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-
-    // act
-    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 /* threadpool_schedule_work */

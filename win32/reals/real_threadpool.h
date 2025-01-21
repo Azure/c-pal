@@ -12,8 +12,6 @@
 #define REGISTER_THREADPOOL_GLOBAL_MOCK_HOOK()          \
     MU_FOR_EACH_1(R2,                                   \
         threadpool_create, \
-        threadpool_open, \
-        threadpool_close, \
         threadpool_create_work_item, \
         threadpool_schedule_work, \
         threadpool_schedule_work_item, \
@@ -40,9 +38,6 @@ extern "C" {
     THANDLE_TYPE_DECLARE(real_THREADPOOL_WORK_ITEM);
 
     THANDLE(THREADPOOL) real_threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine);
-
-    int real_threadpool_open(THANDLE(THREADPOOL) threadpool);
-    void real_threadpool_close(THANDLE(THREADPOOL) threadpool);
 
     THANDLE(THREADPOOL_WORK_ITEM) real_threadpool_create_work_item(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context);
 
