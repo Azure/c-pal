@@ -17,6 +17,7 @@
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umocktypes_charptr.h"
 #include "umock_c/umock_c_negative_tests.h"
+#include "c_logging/logger.h"
 
 #define ENABLE_MOCKS
 
@@ -28,6 +29,7 @@
 #include "c_pal/platform_linux.h"
 #include "c_pal/sync.h"
 #include "c_pal/socket_handle.h"
+#include "c_pal/socket_transport.h"
 
 #undef ENABLE_MOCKS
 
@@ -38,7 +40,12 @@
 
 #define TEST_MAX_EVENTS_NUM     64
 
-static SOCKET_HANDLE test_socket = (SOCKET_HANDLE)0x4242;
+static SOCKET_TRANSPORT_HANDLE test_socket = (SOCKET_TRANSPORT_HANDLE)0x4242;
+static SOCKET_HANDLE test_handle = (SOCKET_HANDLE)0x4242;
+
+#define TEST_PORT           4466
+#define TEST_CONN_TIMEOUT   10000
+
 static EXECUTION_ENGINE_HANDLE test_execution_engine = (EXECUTION_ENGINE_HANDLE)0x4243;
 static void* test_callback_ctx = (void*)0x4244;
 static void* test_send_ctx = (void*)0x4245;
@@ -67,6 +74,11 @@ IMPLEMENT_UMOCK_C_ENUM_TYPE(ASYNC_SOCKET_NOTIFY_IO_RESULT, ASYNC_SOCKET_NOTIFY_I
 
 MU_DEFINE_ENUM_STRINGS(COMPLETION_PORT_EPOLL_ACTION, COMPLETION_PORT_EPOLL_ACTION_VALUES)
 
+TEST_DEFINE_ENUM_TYPE(SOCKET_SEND_RESULT, SOCKET_SEND_RESULT_VALUES)
+IMPLEMENT_UMOCK_C_ENUM_TYPE(SOCKET_SEND_RESULT, SOCKET_SEND_RESULT_VALUES)
+TEST_DEFINE_ENUM_TYPE(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_RESULT_VALUES)
+IMPLEMENT_UMOCK_C_ENUM_TYPE(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_RESULT_VALUES)
+
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
@@ -82,14 +94,6 @@ static int my_completion_port_add(COMPLETION_PORT_HANDLE completion_port, int ep
     g_event_callback_ctx = event_callback_ctx;
     return 0;
 }
-
-MOCK_FUNCTION_WITH_CODE(, int, mocked_close, int, s)
-MOCK_FUNCTION_END(0)
-
-MOCK_FUNCTION_WITH_CODE(, ssize_t, mocked_send, int, fd, const void*, buf, size_t, n, int, flags)
-MOCK_FUNCTION_END(n)
-MOCK_FUNCTION_WITH_CODE(, ssize_t, mocked_recv, int, fd, void*, buf, size_t, n, int, flags)
-MOCK_FUNCTION_END(n)
 
 MOCK_FUNCTION_WITH_CODE(, int, mocked_on_send, void*, context, ASYNC_SOCKET_HANDLE, async_socket, const void*, buf, size_t, n)
     ASSERT_IS_NOT_NULL(context);
@@ -120,7 +124,6 @@ static void mock_internal_close_setup(void)
 {
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(mocked_close(test_socket));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
@@ -145,7 +148,9 @@ static void setup_async_socket_receive_async_mocks(void)
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(ASYNC_SOCKET_BUFFER)));
-    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLIN | EPOLLRDHUP | EPOLLONESHOT, test_socket, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(socket_transport_get_underlying_socket(test_socket))
+        .SetReturn((SOCKET_HANDLE)0x4242);
+    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLIN | EPOLLRDHUP | EPOLLONESHOT, test_handle, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG))
@@ -160,7 +165,9 @@ static void setup_async_socket_notify_io_async_mocks(ASYNC_SOCKET_NOTIFY_IO_TYPE
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, (io_type == ASYNC_SOCKET_NOTIFY_IO_TYPE_IN) ? EPOLLIN : EPOLLOUT, test_socket, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(socket_transport_get_underlying_socket(test_socket))
+        .SetReturn((SOCKET_HANDLE)0x4242);
+    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, (io_type == ASYNC_SOCKET_NOTIFY_IO_TYPE_IN) ? EPOLLIN : EPOLLOUT, test_handle, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG))
@@ -199,12 +206,15 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_UMOCK_ALIAS_TYPE(COMPLETION_PORT_HANDLE, void*);
     REGISTER_UMOCK_ALIAS_TYPE(ON_COMPLETION_PORT_EVENT_COMPLETE, void*);
     REGISTER_UMOCK_ALIAS_TYPE(ssize_t, long);
+    REGISTER_UMOCK_ALIAS_TYPE(SOCKET_TRANSPORT_HANDLE, void*);
     REGISTER_UMOCK_ALIAS_TYPE(SOCKET_HANDLE, int);
 
     REGISTER_TYPE(ASYNC_SOCKET_OPEN_RESULT, ASYNC_SOCKET_OPEN_RESULT);
     REGISTER_TYPE(ASYNC_SOCKET_SEND_RESULT, ASYNC_SOCKET_SEND_RESULT);
     REGISTER_TYPE(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_RESULT);
     REGISTER_TYPE(ASYNC_SOCKET_NOTIFY_IO_RESULT, ASYNC_SOCKET_NOTIFY_IO_RESULT);
+    REGISTER_TYPE(SOCKET_SEND_RESULT, SOCKET_SEND_RESULT);
+    REGISTER_TYPE(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_RESULT);
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
@@ -417,7 +427,7 @@ TEST_FUNCTION(async_socket_open_async_with_NULL_async_socket_fails)
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_open_async shall fail and return NULL. ]
-TEST_FUNCTION(async_socket_open_async_with_INVALID_SOCKET_fails)
+TEST_FUNCTION(async_socket_open_async_with_NULL_socket_fails)
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
@@ -425,7 +435,7 @@ TEST_FUNCTION(async_socket_open_async_with_INVALID_SOCKET_fails)
     umock_c_reset_all_calls();
 
     // act
-    int result = async_socket_open_async(async_socket, INVALID_SOCKET, test_on_open_complete, test_callback_ctx);
+    int result = async_socket_open_async(async_socket, NULL, test_on_open_complete, test_callback_ctx);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -584,7 +594,6 @@ TEST_FUNCTION(async_socket_close_with_NULL_returns)
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_036: [ Otherwise, async_socket_close shall switch the state to CLOSING. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_037: [ async_socket_close shall wait for all executing async_socket_send_async and async_socket_receive_async APIs. ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_039: [ async_socket_close shall call close on the underlying socket. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_041: [ async_socket_close shall set the state to closed. ]
 TEST_FUNCTION(async_socket_close_reverses_the_actions_from_open)
 {
@@ -649,7 +658,6 @@ TEST_FUNCTION(async_socket_close_after_close_returns)
     async_socket_destroy(async_socket);
 }
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_039: [ async_socket_close shall call close on the underlying socket. ]
 TEST_FUNCTION(async_socket_close_after_open_and_recv)
 {
     // arrange
@@ -667,8 +675,9 @@ TEST_FUNCTION(async_socket_close_after_open_and_recv)
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(socket_transport_get_underlying_socket(test_socket))
+        .SetReturn((SOCKET_HANDLE)0x4242);
     STRICT_EXPECTED_CALL(completion_port_remove(IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mocked_close(test_socket));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 
@@ -979,7 +988,7 @@ TEST_FUNCTION(async_socket_send_async_after_close_fails)
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_04_004: [ async_socket_send_async shall call the on_send callback to send the buffer. ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_052: [ on_socket_send shall attempt to send the data by calling send with the MSG_NOSIGNAL flag to ensure SIGPIPE is not generated on errors. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_052: [ on_socket_send shall attempt to send the data by calling socket_transport_send with the MSG_NOSIGNAL flag to ensure SIGPIPE is not generated on errors. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_053: [ async_socket_send_async shall continue to send the data until the payload length has been sent. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_062: [ On success, async_socket_send_async shall return ASYNC_SOCKET_SEND_SYNC_OK. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_061: [ If the send is successful, async_socket_send_async shall call the on_send_complete with on_send_complete_context and ASYNC_SOCKET_SEND_SYNC_OK. ]
@@ -995,19 +1004,21 @@ TEST_FUNCTION(async_socket_send_async_succeeds)
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
-
+    uint32_t send_amt = payload_buffers[0].length;
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL));
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t))
+        .SetReturn(SOCKET_SEND_OK);
     STRICT_EXPECTED_CALL(test_on_send_complete(test_callback_ctx, ASYNC_SOCKET_SEND_OK));
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 
     // act
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
-    result = async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, test_callback_ctx);
+    result = async_socket_send_async(async_socket, payload_buffers, 1, test_on_send_complete, test_callback_ctx);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -1018,7 +1029,7 @@ TEST_FUNCTION(async_socket_send_async_succeeds)
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_04_004: [ async_socket_send_async shall call the on_send callback to send the buffer. ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_052: [ on_socket_send shall attempt to send the data by calling send with the MSG_NOSIGNAL flag to ensure SIGPIPE is not generated on errors. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_052: [ on_socket_send shall attempt to send the data by calling socket_transport_send with the MSG_NOSIGNAL flag to ensure SIGPIPE is not generated on errors. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_053: [ async_socket_send_async shall continue to send the data until the payload length has been sent. ]
 TEST_FUNCTION(async_socket_send_async_multiple_sends_succeeds)
 {
@@ -1031,21 +1042,26 @@ TEST_FUNCTION(async_socket_send_async_multiple_sends_succeeds)
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
-    ssize_t send_amt = payload_buffers[0].length/2;
+    uint32_t send_amt = payload_buffers[0].length/2;
+    uint32_t other_amt = payload_buffers[0].length - send_amt;
+
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL))
-        .SetReturn(send_amt);
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL));
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t))
+        .SetReturn(SOCKET_SEND_OK);
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&other_amt, sizeof(uint32_t))
+        .SetReturn(SOCKET_SEND_OK);
     STRICT_EXPECTED_CALL(test_on_send_complete(test_callback_ctx, ASYNC_SOCKET_SEND_OK));
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 
     // act
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
-    result = async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, test_callback_ctx);
+    result = async_socket_send_async(async_socket, payload_buffers, 1, test_on_send_complete, test_callback_ctx);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -1056,7 +1072,7 @@ TEST_FUNCTION(async_socket_send_async_multiple_sends_succeeds)
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_04_004: [ async_socket_send_async shall call the on_send callback to send the buffer. ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_052: [ on_socket_send shall attempt to send the data by calling send with the MSG_NOSIGNAL flag to ensure SIGPIPE is not generated on errors. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_052: [ on_socket_send shall attempt to send the data by calling socket_transport_send with the MSG_NOSIGNAL flag to ensure SIGPIPE is not generated on errors. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_053: [ async_socket_send_async shall continue to send the data until the payload length has been sent. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_057: [ The context shall then be added to the epoll system by calling epoll_ctl with EPOLL_CTL_MOD and `event_complete_callback` as the callback. ]
 TEST_FUNCTION(async_socket_send_async_multiple_sends_WOULDBLOCK_succeeds)
@@ -1070,17 +1086,22 @@ TEST_FUNCTION(async_socket_send_async_multiple_sends_WOULDBLOCK_succeeds)
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
-    ssize_t send_amt = payload_buffers[0].length/2;
+    uint32_t send_amt = payload_buffers[0].length/2;
+    uint32_t other_amt = -1;
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, payload_buffers[0].buffer, payload_buffers[0].length, MSG_NOSIGNAL))
-        .SetReturn(send_amt);
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, payload_buffers[0].buffer + send_amt, payload_buffers[0].length - send_amt, MSG_NOSIGNAL))
-        .SetReturn(-1);
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t))
+        .SetReturn(SOCKET_SEND_OK);
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&other_amt, sizeof(uint32_t))
+        .SetReturn(SOCKET_SEND_FAILED);
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_socket, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(socket_transport_get_underlying_socket(IGNORED_ARG))
+        .SetReturn((SOCKET_HANDLE)0x4242);
+    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
@@ -1088,7 +1109,7 @@ TEST_FUNCTION(async_socket_send_async_multiple_sends_WOULDBLOCK_succeeds)
     // act
     errno = EWOULDBLOCK;
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
-    result = async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, test_callback_ctx);
+    result = async_socket_send_async(async_socket, payload_buffers, 1, test_on_send_complete, test_callback_ctx);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -1111,20 +1132,22 @@ TEST_FUNCTION(async_socket_send_async_with_NULL_on_send_complete_context_succeed
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
-
+    uint32_t send_amt = payload_buffers[0].length;
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL));
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t))
+        .SetReturn(SOCKET_SEND_OK);
     STRICT_EXPECTED_CALL(test_on_send_complete(NULL, ASYNC_SOCKET_SEND_OK));
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 
     // act
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
-    result = async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, NULL);
-
+    result = async_socket_send_async(async_socket, payload_buffers, 1, test_on_send_complete, NULL);
+    LogInfo("the result of socket send %d", result);
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, result);
@@ -1145,12 +1168,13 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_send_async_fails)
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
+    uint32_t send_amt = -1;
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL))
-        .SetReturn(-1);
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t));
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 
@@ -1166,7 +1190,7 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_send_async_fails)
     async_socket_destroy(async_socket);
 }
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_054: [ If the send fails to send the data, async_socket_send_async shall do the following: ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_054: [ If socket_transport_send fails to send the data, async_socket_send_async shall do the following: ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_055: [ If the errno value is EAGAIN or EWOULDBLOCK. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_056: [ async_socket_send_async shall create a context for the send where the payload, on_send_complete and on_send_complete_context shall be stored. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_057: [ The context shall then be added to the completion port system by calling completion_port_add with EPOLL_CTL_MOD and `event_complete_callback` as the callback. ]
@@ -1182,14 +1206,17 @@ TEST_FUNCTION(when_errno_for_send_returns_EWOULDBLOCK_it_uses_completion_port_tr
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
+    uint32_t send_amt = -1;
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL))
-        .SetReturn(-1);
+    STRICT_EXPECTED_CALL(socket_transport_send(test_socket, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t));
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_socket, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(socket_transport_get_underlying_socket(test_socket))
+        .SetReturn((SOCKET_HANDLE)0x4242);
+    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_handle, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
@@ -1219,12 +1246,13 @@ TEST_FUNCTION(when_errno_for_send_returns_ECONNRESET_async_socket_send_async_ret
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
+    uint32_t send_amt = -1;
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL))
-        .SetReturn(-1);
+    STRICT_EXPECTED_CALL(socket_transport_send(test_socket, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t));
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 
@@ -1253,12 +1281,13 @@ TEST_FUNCTION(when_errno_for_send_returns_error_async_socket_send_async_returns_
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
+    uint32_t send_amt = -1;
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL))
-        .SetReturn(-1);
+    STRICT_EXPECTED_CALL(socket_transport_send(test_socket, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t));
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 
@@ -1665,7 +1694,18 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_receive_async_fails)
     payload_buffers[0].length = sizeof(payload_bytes);
     umock_c_reset_all_calls();
 
-    setup_async_socket_receive_async_mocks();
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(malloc_flex(IGNORED_ARG, 1, sizeof(ASYNC_SOCKET_BUFFER)))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLIN | EPOLLRDHUP | EPOLLONESHOT, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG))
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 
     umock_c_negative_tests_snapshot();
     errno = 0;
@@ -1721,7 +1761,7 @@ TEST_FUNCTION(event_complete_func_context_NULL_fail)
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_082: [ If COMPLETION_PORT_EPOLL_ACTION is COMPLETION_PORT_EPOLL_EPOLLIN, event_complete_callback shall do the following: ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_083: [ Otherwise event_complete_callback shall call the on_recv callback with the recv_buffer buffer and length and do the following: ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_04_007: [ on_socket_recv shall attempt to receive data by calling the system recv socket API. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_04_007: [ on_socket_recv shall attempt to receive data by calling the socket_transport_receive API. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_088: [ If the recv size < 0, then: ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_092: [ If the recv size > 0, if we have another buffer to fill then we will attempt another read, otherwise we shall call on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_OK ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_093: [ event_complete_callback shall then free the io_context memory. ]
@@ -1741,8 +1781,9 @@ TEST_FUNCTION(event_complete_func_EPOLLIN_action)
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(async_socket, payload_buffers, payload_count, test_on_receive_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(mocked_recv(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .SetReturn(payload_size);
+    STRICT_EXPECTED_CALL(socket_transport_receive(test_socket, IGNORED_ARG, 1, IGNORED_ARG, 0, IGNORED_ARG))
+        .CopyOutArgumentBuffer_bytes_recv(&payload_size, sizeof(uint32_t))
+        .SetReturn(SOCKET_RECEIVE_OK);
     STRICT_EXPECTED_CALL(test_on_receive_complete(test_callback_ctx, ASYNC_SOCKET_RECEIVE_OK, payload_size));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
@@ -1770,11 +1811,12 @@ TEST_FUNCTION(event_complete_func_recv_returns_EWOULDBLOCK)
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
     uint32_t payload_count = sizeof(payload_buffers) / sizeof(payload_buffers[0]);
+    uint32_t payload_size = -1;
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(async_socket, payload_buffers, payload_count, test_on_receive_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(mocked_recv(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .SetReturn(-1);
+    STRICT_EXPECTED_CALL(socket_transport_receive(test_socket, IGNORED_ARG, 1, IGNORED_ARG, 0, IGNORED_ARG))
+        .CopyOutArgumentBuffer_bytes_recv(&payload_size, sizeof(uint32_t));
     STRICT_EXPECTED_CALL(test_on_receive_complete(test_callback_ctx, ASYNC_SOCKET_RECEIVE_OK, 0));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
@@ -1803,11 +1845,12 @@ TEST_FUNCTION(event_complete_func_recv_returns_ECONNRESET)
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
     uint32_t payload_count = sizeof(payload_buffers) / sizeof(payload_buffers[0]);
+    uint32_t payload_size = -1;
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(async_socket, payload_buffers, payload_count, test_on_receive_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(mocked_recv(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .SetReturn(-1);
+    STRICT_EXPECTED_CALL(socket_transport_receive(test_socket, IGNORED_ARG, 1, IGNORED_ARG, 0, IGNORED_ARG))
+        .CopyOutArgumentBuffer_bytes_recv(&payload_size, sizeof(uint32_t));
     STRICT_EXPECTED_CALL(test_on_receive_complete(test_callback_ctx, ASYNC_SOCKET_RECEIVE_ABANDONED, 0));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
@@ -1837,10 +1880,11 @@ TEST_FUNCTION(event_complete_callback_recv_returns_any_random_error_no)
     payload_buffers[0].length = sizeof(payload_bytes);
     uint32_t payload_count = sizeof(payload_buffers) / sizeof(payload_buffers[0]);
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(async_socket, payload_buffers, payload_count, test_on_receive_complete, test_callback_ctx));
+    uint32_t payload_size = -1;
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(mocked_recv(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .SetReturn(-1);
+    STRICT_EXPECTED_CALL(socket_transport_receive(test_socket, IGNORED_ARG, 1, IGNORED_ARG, 0, IGNORED_ARG))
+        .CopyOutArgumentBuffer_bytes_recv(&payload_size, sizeof(uint32_t));
     STRICT_EXPECTED_CALL(test_on_receive_complete(test_callback_ctx, ASYNC_SOCKET_RECEIVE_ERROR, 0));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
@@ -1870,10 +1914,12 @@ TEST_FUNCTION(event_complete_func_recv_returns_0_bytes_success)
     payload_buffers[0].length = sizeof(payload_bytes);
     uint32_t payload_count = sizeof(payload_buffers) / sizeof(payload_buffers[0]);
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(async_socket, payload_buffers, payload_count, test_on_receive_complete, test_callback_ctx));
+    uint32_t payload_size = 0;
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(mocked_recv(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
-        .SetReturn(0);
+    STRICT_EXPECTED_CALL(socket_transport_receive(test_socket, IGNORED_ARG, 1, IGNORED_ARG, 0, IGNORED_ARG))
+        .CopyOutArgumentBuffer_bytes_recv(&payload_size, sizeof(uint32_t))
+        .SetReturn(SOCKET_RECEIVE_OK);
     STRICT_EXPECTED_CALL(test_on_receive_complete(test_callback_ctx, ASYNC_SOCKET_RECEIVE_ABANDONED, 0));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
@@ -2141,14 +2187,15 @@ TEST_FUNCTION(event_complete_func_send_EPOLLRDHUP_and_abandons_the_connection)
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
+    uint32_t send_amt = -1;
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL))
-        .SetReturn(-1);
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t));
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_socket, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_handle, IGNORED_ARG, IGNORED_ARG));
     errno = EWOULDBLOCK;
     ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, test_callback_ctx));
     umock_c_reset_all_calls();
@@ -2213,14 +2260,15 @@ TEST_FUNCTION(event_complete_func_send_ABANDONED_and_abandons_the_connection)
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
+    uint32_t send_amt = -1;
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL))
-        .SetReturn(-1);
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t));
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_socket, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_handle, IGNORED_ARG, IGNORED_ARG));
     errno = EWOULDBLOCK;
     ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, test_callback_ctx));
     umock_c_reset_all_calls();
@@ -2253,19 +2301,24 @@ TEST_FUNCTION(event_complete_func_send_EPOLLOUT_success)
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
+    uint32_t send_amt = -1;
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL))
-        .SetReturn(-1);
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t))
+        .SetReturn(SOCKET_SEND_FAILED);
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_socket, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_handle, IGNORED_ARG, IGNORED_ARG));
     errno = EWOULDBLOCK;
-    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(async_socket, payload_buffers, 1, test_on_send_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL));
+    send_amt = 2;
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t))
+        .SetReturn(SOCKET_SEND_OK);
     STRICT_EXPECTED_CALL(test_on_send_complete(test_callback_ctx, ASYNC_SOCKET_SEND_OK));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
@@ -2293,20 +2346,23 @@ TEST_FUNCTION(event_complete_func_send_EPOLLOUT_abandoned)
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
+    uint32_t send_amt = -1;
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL))
-        .SetReturn(-1);
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t))
+        .SetReturn(SOCKET_SEND_FAILED);
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_socket, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_handle, IGNORED_ARG, IGNORED_ARG));
     errno = EWOULDBLOCK;
     ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL))
-        .SetReturn(-1);
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t))
+        .SetReturn(SOCKET_SEND_FAILED);
     STRICT_EXPECTED_CALL(test_on_send_complete(test_callback_ctx, ASYNC_SOCKET_SEND_ABANDONED));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
@@ -2334,20 +2390,23 @@ TEST_FUNCTION(event_complete_func_send_EPOLLOUT_error)
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
+    uint32_t send_amt = -1;
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL))
-        .SetReturn(-1);
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t))
+        .SetReturn(SOCKET_SEND_FAILED);
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_socket, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_handle, IGNORED_ARG, IGNORED_ARG));
     errno = EWOULDBLOCK;
     ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL))
-        .SetReturn(-1);
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t))
+        .SetReturn(SOCKET_SEND_FAILED);
     STRICT_EXPECTED_CALL(test_on_send_complete(test_callback_ctx, ASYNC_SOCKET_SEND_ERROR));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
@@ -2375,22 +2434,27 @@ TEST_FUNCTION(event_complete_func_EPOLLOUT_multiple_sends_success)
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
-    uint32_t payload_size = sizeof(payload_bytes) / sizeof(payload_bytes[0]);
+    uint32_t send_amt = -1;
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, payload_size, MSG_NOSIGNAL))
-        .SetReturn(-1);
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t))
+        .SetReturn(SOCKET_SEND_FAILED);
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_socket, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_handle, IGNORED_ARG, IGNORED_ARG));
     errno = EWOULDBLOCK;
     ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, test_callback_ctx));
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, payload_size, MSG_NOSIGNAL))
-        .SetReturn(2);
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, payload_size-2, MSG_NOSIGNAL));
+    send_amt = 2;
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t))
+        .SetReturn(SOCKET_SEND_OK);
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t))
+        .SetReturn(SOCKET_SEND_OK);
     STRICT_EXPECTED_CALL(test_on_send_complete(test_callback_ctx, ASYNC_SOCKET_SEND_OK));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
@@ -2449,14 +2513,15 @@ TEST_FUNCTION(event_complete_func_send_ERROR_and_error_the_connection)
     ASYNC_SOCKET_BUFFER payload_buffers[1];
     payload_buffers[0].buffer = payload_bytes;
     payload_buffers[0].length = sizeof(payload_bytes);
+    uint32_t send_amt = -1;
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(mocked_send(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, MSG_NOSIGNAL))
-        .SetReturn(-1);
+    STRICT_EXPECTED_CALL(socket_transport_send(IGNORED_ARG, IGNORED_ARG, 1, IGNORED_ARG, MSG_NOSIGNAL, NULL))
+        .CopyOutArgumentBuffer_bytes_sent(&send_amt, sizeof(uint32_t));
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_socket, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_handle, IGNORED_ARG, IGNORED_ARG));
     errno = EWOULDBLOCK;
     ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, test_callback_ctx));
     umock_c_reset_all_calls();
@@ -2668,7 +2733,9 @@ TEST_FUNCTION(async_socket_notify_io_async_fails_when_completion_port_add_fails)
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_socket, IGNORED_ARG, IGNORED_ARG))
+    STRICT_EXPECTED_CALL(socket_transport_get_underlying_socket(test_socket))
+        .SetReturn((SOCKET_HANDLE)0x4242);
+    STRICT_EXPECTED_CALL(completion_port_add(test_completion_port, EPOLLOUT, test_handle, IGNORED_ARG, IGNORED_ARG))
         .SetReturn(-1);
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
