@@ -17,8 +17,7 @@
         threadpool_schedule_work_item, \
         threadpool_timer_start, \
         threadpool_timer_restart, \
-        threadpool_timer_cancel, \
-        threadpool_timer_destroy \
+        threadpool_timer_cancel \
     ) \
     REGISTER_GLOBAL_MOCK_HOOK(THANDLE_MOVE(THREADPOOL), THANDLE_MOVE(real_THREADPOOL)) \
     REGISTER_GLOBAL_MOCK_HOOK(THANDLE_INITIALIZE(THREADPOOL), THANDLE_INITIALIZE(real_THREADPOOL)) \
@@ -46,13 +45,11 @@ extern "C" {
 
     int real_threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context);
 
-    int real_threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context, TIMER_INSTANCE_HANDLE* timer_handle);
+    THANDLE(THREADPOOL_TIMER) real_threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context);
 
-    int real_threadpool_timer_restart(TIMER_INSTANCE_HANDLE timer, uint32_t start_delay_ms, uint32_t timer_period_ms);
+    int real_threadpool_timer_restart(THANDLE(THREADPOOL_TIMER) timer, uint32_t start_delay_ms, uint32_t timer_period_ms);
 
-    void real_threadpool_timer_cancel(TIMER_INSTANCE_HANDLE timer);
-
-    void real_threadpool_timer_destroy(TIMER_INSTANCE_HANDLE timer);
+    void real_threadpool_timer_cancel(THANDLE(THREADPOOL_TIMER) timer);
 
 #ifdef __cplusplus
 }
