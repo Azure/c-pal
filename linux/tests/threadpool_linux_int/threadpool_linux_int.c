@@ -479,6 +479,7 @@ TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _start_timers_work_and_run_p
     for (uint32_t i = 0; i < N_THREADPOOL_TIMERS; i++)
     {
         THANDLE(THREADPOOL_TIMER) timer_temp = threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&g_call_count);
+
         THANDLE_MOVE(THREADPOOL_TIMER)((void *) & timers[i], &timer_temp);
         ASSERT_IS_NOT_NULL(timers[i]);
     }

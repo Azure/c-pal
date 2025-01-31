@@ -110,6 +110,7 @@ static void on_timer_callback(sigval_t timer_data)
     {
         /* Codes_SRS_THREADPOOL_LINUX_45_004: [ on_timer_callback shall call the timer's work_function with work_function_ctx. ]*/
         timer_instance->work_function(timer_instance->work_function_ctx);
+        THANDLE_DEC_REF(THREADPOOL_TIMER)(timer_instance);
     }
 }
 
@@ -544,6 +545,7 @@ THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool,
                 sigev.sigev_notify          = SIGEV_THREAD;
                 sigev.sigev_notify_function = on_timer_callback;
                 sigev.sigev_value.sival_ptr = result;
+                THANDLE_INC_REF(THREADPOOL_TIMER)(result);
 
                 /* Codes_SRS_THREADPOOL_LINUX_07_059: [ threadpool_timer_start shall call timer_create and timer_settime to schedule execution. ]*/
                 if (timer_create(CLOCK_REALTIME, &sigev, &time_id) != 0)
