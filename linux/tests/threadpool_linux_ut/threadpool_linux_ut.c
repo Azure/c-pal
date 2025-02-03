@@ -1097,7 +1097,9 @@ TEST_FUNCTION(on_timer_callback_calls_work_function)
     ASSERT_IS_NOT_NULL(timer_instance);
     umock_c_reset_all_calls();
 
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
     STRICT_EXPECTED_CALL(test_work_function((void*)0x4243));
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
 
     sigval_t timer_data = {0};
     timer_data.sival_ptr = g_sigevent.sigev_value.sival_ptr;

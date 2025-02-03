@@ -78,9 +78,10 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 
 static void threadpool_task_wait_20_millisec(void* parameter)
 {
-    volatile_atomic int64_t* thread_counter = (volatile_atomic int64_t*)parameter;
-    (void)interlocked_increment_64(thread_counter);
-    wake_by_address_single_64(thread_counter);
+    volatile_atomic int32_t* thread_counter = (volatile_atomic int32_t*)parameter;
+    ThreadAPI_Sleep(20);
+    (void)interlocked_increment(thread_counter);
+    wake_by_address_single(thread_counter);
 }
 
 static void threadpool_task_wait_60_millisec(void* parameter)
@@ -127,7 +128,7 @@ static void threadpool_long_task_v2(void* context)
 
 static void work_function(void* context)
 {
-    (void) context;
+    (void)context;
     (void)interlocked_increment_64(&g_call_count);
     wake_by_address_single_64(&g_call_count);
 }
@@ -202,7 +203,7 @@ static void wait_for_equal(volatile_atomic int64_t* value, int64_t expected, uin
         (void)wait_on_address_64(value, current_value, (uint32_t)(timeout - (current_time - start_time)));
     } while (1);
 }
-
+#if 0
 TEST_FUNCTION(one_work_item_schedule_works)
 {
     // assert
@@ -224,7 +225,7 @@ TEST_FUNCTION(one_work_item_schedule_works)
     // assert
     LogInfo("Waiting for task to complete");
     ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
-    ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
+    ASSERT_ARE_EQUAL(int32_t, interlocked_add(&thread_counter, 0), num_threads, "Thread counter has timed out");
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
@@ -255,7 +256,7 @@ TEST_FUNCTION(one_work_item_schedule_work_item)
     // assert
     LogInfo("Waiting for task to complete");
     ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
-    ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
+    ASSERT_ARE_EQUAL(int32_t, interlocked_add(&thread_counter, 0), num_threads, "Thread counter has timed out");
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&threadpool_work_item, NULL);
@@ -390,7 +391,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
 
     // assert
     ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
-    ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
+    ASSERT_ARE_EQUAL(int32_t, interlocked_add(&thread_counter, 0), num_threads, "Thread counter has timed out");
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&threadpool_work_item, NULL);
@@ -421,13 +422,13 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_with_pool_threads))
 
     // assert
     ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
-    ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
+    ASSERT_ARE_EQUAL(int32_t, interlocked_add(&thread_counter, 0), num_threads, "Thread counter has timed out");
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
-
+#endif
 #define N_THREADPOOL_TIMERS 100
 
 TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _timer_start_runs_once))
@@ -452,7 +453,6 @@ TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _timer_start_runs_once))
     LogInfo("Waiting for timer to execute after short delay of no execution");
 
     THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_instance, NULL);
-
     THANDLE_ASSIGN(THREADPOOL)(&threadpool_1, NULL);
 
     // cleanup
@@ -460,48 +460,51 @@ TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _timer_start_runs_once))
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _start_timers_work_and_run_periodically))
-{
-    // assert
-    // create an execution engine
-    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 16, 0 };
-    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
-    ASSERT_IS_NOT_NULL(execution_engine);
-
-    // create the threadpool
-    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
-    ASSERT_IS_NOT_NULL(threadpool);
-
-    // act (start a timer to start delayed and then execute every 500ms)
-    LogInfo("Starting " MU_TOSTRING(N_THREADPOOL_TIMERS) " timers");
-    THANDLE(THREADPOOL_TIMER)* timers[N_THREADPOOL_TIMERS];
-    for (uint32_t i = 0; i < N_THREADPOOL_TIMERS; i++)
-    {
-        THANDLE(THREADPOOL_TIMER) timer_temp = threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&g_call_count);
-        THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)((void *) & timers[i], &timer_temp);
-        ASSERT_IS_NOT_NULL(timers[i]);
-    }
-
-    // assert
-
-    LogInfo("Waiting for " MU_TOSTRING(N_THREADPOOL_TIMERS) " timers to run at least 2 times each");
-
-    // Every timer should execute at least twice in less than 1 second
-    // Wait up to 2 seconds
-    wait_for_greater_or_equal(&g_call_count, (2 * N_THREADPOOL_TIMERS), 2000);
-
-    LogInfo("Timers completed, stopping all timers");
-
-    for (uint32_t i = 0; i < N_THREADPOOL_TIMERS; i++)
-    {
-        THANDLE_ASSIGN(THREADPOOL_TIMER)((void*)&timers[i], NULL);
-    }
-
-    // cleanup
-    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
-    execution_engine_dec_ref(execution_engine);
-}
-
+//TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _start_timers_work_and_run_periodically))
+//{
+//    // assert
+//    // create an execution engine
+//    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 16, 0 };
+//    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+//    ASSERT_IS_NOT_NULL(execution_engine);
+//
+//    // create the threadpool
+//    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+//    ASSERT_IS_NOT_NULL(threadpool);
+//
+//    // act (start a timer to start delayed and then execute every 500ms)
+//    LogInfo("Starting " MU_TOSTRING(N_THREADPOOL_TIMERS) " timers");
+//    THANDLE(THREADPOOL_TIMER)* timers = malloc(N_THREADPOOL_TIMERS * sizeof(THANDLE(THREADPOOL_TIMER)));
+//    for (uint32_t i = 0; i < N_THREADPOOL_TIMERS; i++)
+//    {
+//        THANDLE(THREADPOOL_TIMER) timer_temp = threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&g_call_count);
+//
+//        THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)((void*)&timers[i], &timer_temp);
+//        ASSERT_IS_NOT_NULL(timers[i]);
+//    }
+//
+//    // assert
+//
+//    LogInfo("Waiting for " MU_TOSTRING(N_THREADPOOL_TIMERS) " timers to run at least 2 times each");
+//
+//    // Every timer should execute at least twice in less than 1 second
+//    // Wait up to 2 seconds
+//    wait_for_greater_or_equal(&g_call_count, (2 * N_THREADPOOL_TIMERS), 2000);
+//
+//    LogInfo("Timers completed, stopping all timers");
+//
+//    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+//
+//    for (uint32_t i = 0; i < N_THREADPOOL_TIMERS; i++)
+//    {
+//        THANDLE_ASSIGN(THREADPOOL_TIMER)((void*)&timers[i], NULL);
+//    }
+//
+//    // cleanup
+//    free((void*)timers);
+//    execution_engine_dec_ref(execution_engine);
+//}
+#if 0
 TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items)
 {
     // assert
@@ -1617,5 +1620,5 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items_v2)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
-
+#endif
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

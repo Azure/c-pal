@@ -102,15 +102,18 @@ static void on_timer_callback(sigval_t timer_data)
     /* Codes_SRS_THREADPOOL_LINUX_45_002: [ on_timer_callback shall set the timer instance to timer_data.sival_ptr. ]*/
     /* Codes_SRS_THREADPOOL_LINUX_45_001: [ If timer instance is NULL, then on_timer_callback shall return. ]*/
     THREADPOOL_TIMER* timer_instance = timer_data.sival_ptr;
+
     if (timer_instance == NULL)
     {
         LogError("invalid timer_data.sival_ptr=%p", timer_instance);
     }
     else
     {
+        //THANDLE_INC_REF(THREADPOOL_TIMER)(timer_instance);
         /* Codes_SRS_THREADPOOL_LINUX_45_004: [ on_timer_callback shall call the timer's work_function with work_function_ctx. ]*/
         timer_instance->work_function(timer_instance->work_function_ctx);
-        THANDLE_DEC_REF(THREADPOOL_TIMER)(timer_instance);
+        //THANDLE_DEC_REF(THREADPOOL_TIMER)(timer_instance);
+
     }
 }
 
@@ -498,6 +501,7 @@ static void threadpool_timer_dispose(THREADPOOL_TIMER * timer)
     {
         // Do Nothing
     }
+    ThreadAPI_Sleep(10);
     /* Codes_SRS_THREADPOOL_LINUX_07_095: [ threadpool_timer_dispose shall call srw_lock_ll_deinit. ]*/
     srw_lock_ll_deinit(&timer->timer_lock);
 }
@@ -545,7 +549,6 @@ THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool,
                 sigev.sigev_notify          = SIGEV_THREAD;
                 sigev.sigev_notify_function = on_timer_callback;
                 sigev.sigev_value.sival_ptr = result;
-                THANDLE_INC_REF(THREADPOOL_TIMER)(result);
 
                 /* Codes_SRS_THREADPOOL_LINUX_07_059: [ threadpool_timer_start shall call timer_create and timer_settime to schedule execution. ]*/
                 if (timer_create(CLOCK_REALTIME, &sigev, &time_id) != 0)
