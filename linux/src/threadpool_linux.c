@@ -501,7 +501,7 @@ static void threadpool_timer_dispose(THREADPOOL_TIMER * timer)
     {
         // Do Nothing
     }
-    ThreadAPI_Sleep(10);
+    ThreadAPI_Sleep(20);
     /* Codes_SRS_THREADPOOL_LINUX_07_095: [ threadpool_timer_dispose shall call srw_lock_ll_deinit. ]*/
     srw_lock_ll_deinit(&timer->timer_lock);
 }
