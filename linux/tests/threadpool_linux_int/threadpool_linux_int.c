@@ -203,7 +203,7 @@ static void wait_for_equal(volatile_atomic int64_t* value, int64_t expected, uin
         (void)wait_on_address_64(value, current_value, (uint32_t)(timeout - (current_time - start_time)));
     } while (1);
 }
-#if 0
+
 TEST_FUNCTION(one_work_item_schedule_works)
 {
     // assert
@@ -428,7 +428,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_with_pool_threads))
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
-#endif
+
 #define N_THREADPOOL_TIMERS 100
 
 TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _timer_start_runs_once))
@@ -506,7 +506,7 @@ TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _start_timers_work_and_run_p
     free((void*)timers);
     execution_engine_dec_ref(execution_engine);
 }
-#if 0
+
 TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items)
 {
     // assert
@@ -1622,5 +1622,5 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items_v2)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
-#endif
+
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

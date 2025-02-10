@@ -271,6 +271,8 @@ static void threadpool_timer_dispose(THREADPOOL_TIMER * timer);
 
 **SRS_THREADPOOL_LINUX_07_071: [** `threadpool_timer_dispose` shall call `timer_delete` to destroy the ongoing timers. **]**
 
+**SRS_THREADPOOL_LINUX_07_096: [** `threadpool_timer_dispose` shall call ThreadAPI_Sleep to allow timer resources to clean up. **]**
+
 **SRS_THREADPOOL_LINUX_07_095: [** `threadpool_timer_dispose` shall call `srw_lock_ll_deinit`. **]**
 
 ### static void on_timer_callback(sigval_t timer_data);

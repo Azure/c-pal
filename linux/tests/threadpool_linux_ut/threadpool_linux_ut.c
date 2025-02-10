@@ -1058,7 +1058,8 @@ TEST_FUNCTION(threadpool_timer_cancel_succeeds)
 /* threadpool_timer_dispose */
 
 /* Tests_SRS_THREADPOOL_LINUX_07_095: [ threadpool_timer_dispose shall call srw_lock_ll_deinit. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_071: [ threadpool_timer_destroy shall call timer_delete to destroy the ongoing timers. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_071: [ threadpool_timer_dispose shall call timer_delete to destroy the ongoing timers. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_096: [ threadpool_timer_dispose shall call ThreadAPI_Sleep to allow timer resources to clean up. ]*/
 TEST_FUNCTION(threadpool_timer_dispose_succeeds)
 {
     // arrange
