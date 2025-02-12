@@ -506,7 +506,7 @@ static void threadpool_timer_dispose(THREADPOOL_TIMER * timer)
     // the callback to use it if we hit this window.
 
     /* Codes_SRS_THREADPOOL_LINUX_07_096: [ threadpool_timer_dispose shall call ThreadAPI_Sleep to allow timer resources to clean up. ]*/
-    ThreadAPI_Sleep(30);
+    ThreadAPI_Sleep(40);
     // This doesn't fix the problem, this won't 100% guarantee the thread will be executed before we free the timer data. There are a couple of
     // options to fix the problem, but the way that fits this threadpool model best would be to keep a pool of timers in the threadpool,
     // and manage each state as in-use or not. That way the timer data allocation is not dependent on threadpool_timer_start/destroy.
