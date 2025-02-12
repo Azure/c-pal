@@ -12,8 +12,6 @@
 #define threadpool_timer_start          real_threadpool_timer_start
 #define threadpool_timer_restart        real_threadpool_timer_restart
 #define threadpool_timer_cancel         real_threadpool_timer_cancel
-#define threadpool_timer_destroy        real_threadpool_timer_destroy
 
 #define TASK_RESULT                     real_TASK_RESULT
 #define THREADPOOL_STATE                real_THREADPOOL_STATE
-#define TIMER_GUARD                     real_TIMER_GUARD

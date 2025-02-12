@@ -30,6 +30,7 @@ if(${run_int_tests})
     build_test_folder(lazy_init_int)
     build_test_folder(sm_int)
     build_test_folder(thandle_ptr_int)
+    build_test_folder(threadpool_int)
 endif()
 
 
