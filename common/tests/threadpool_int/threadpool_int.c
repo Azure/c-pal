@@ -112,7 +112,7 @@ static void threadpool_long_task(void* context)
     ASSERT_ARE_EQUAL(int, 0, strcmp(data->mem, "READY"));
     strcpy(data->mem, "DONE");
     ThreadAPI_Sleep(1);
-    interlocked_increment(data->counter);
+    (void)interlocked_increment(data->counter);
     wake_by_address_single(data->counter);
     free(data);
 }
@@ -122,7 +122,7 @@ static void threadpool_long_task_v2(void* context)
     WRAP_DATA* data = context;
     ASSERT_ARE_EQUAL(int, 0, strcmp(data->mem, "READY"));
     ThreadAPI_Sleep(1);
-    interlocked_increment(data->counter);
+    (void)interlocked_increment(data->counter);
     wake_by_address_single(data->counter);
 }
 
@@ -530,7 +530,7 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items)
 
     ThreadAPI_Sleep(WAIT_WORK_FUNCTION_SLEEP_IN_MS);
 
-    interlocked_increment(&wait_work_context.wait_event);
+    (void)interlocked_increment(&wait_work_context.wait_event);
 
     // assert
     wait_for_equal(&g_call_count, 1, UINT32_MAX);
@@ -918,7 +918,7 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
     LogInfo("Timer stopped");
 
     // set the event, that would trigger a WAIT_OBJECT_0 if stop would not wait for all items
-    interlocked_increment(&wait_work_context.wait_event);
+    (void)interlocked_increment(&wait_work_context.wait_event);
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
@@ -959,7 +959,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
     LogInfo("Timer canceled");
 
     // set the event, that would trigger a WAIT_OBJECT_0 if stop would not wait for all items
-    interlocked_increment(&wait_work_context.wait_event);
+    (void)interlocked_increment(&wait_work_context.wait_event);
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer, NULL);
@@ -1609,7 +1609,7 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items_v2)
 
     ThreadAPI_Sleep(WAIT_WORK_FUNCTION_SLEEP_IN_MS);
 
-    interlocked_increment(&wait_work_context.wait_event);
+    (void)interlocked_increment(&wait_work_context.wait_event);
 
     // assert
     wait_for_equal(&g_call_count, 1, UINT32_MAX);

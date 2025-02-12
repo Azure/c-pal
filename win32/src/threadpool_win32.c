@@ -421,9 +421,6 @@ THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool,
                     /* Codes_SRS_THREADPOOL_WIN32_42_007: [ threadpool_timer_start shall call SetThreadpoolTimer, passing negative start_delay_ms as pftDueTime, timer_period_ms as msPeriod, and 0 as msWindowLength. ]*/
                     threadpool_internal_set_timer(tp_timer, start_delay_ms, timer_period_ms);
 
-                    /* Codes_SRS_THREADPOOL_WIN32_42_009: [ threadpool_timer_start shall return the allocated handle in timer_handle. ]*/
-                    //THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(timer_handle, &timer_temp);
-
                     /* Codes_SRS_THREADPOOL_WIN32_42_010: [ threadpool_timer_start shall succeed and return a non-NULL handle. ]*/
 
                     goto all_ok;

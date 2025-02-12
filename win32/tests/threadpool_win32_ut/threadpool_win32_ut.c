@@ -773,7 +773,6 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_fails)
 /* Tests_SRS_THREADPOOL_WIN32_42_006: [ threadpool_timer_start shall call CreateThreadpoolTimer to schedule execution the callback while passing to it the on_timer_callback function and the newly created context. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_07_002: [ threadpool_timer_start shall initialize the lock guarding the timer state by calling srw_lock_ll_init. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_42_007: [ threadpool_timer_start shall call SetThreadpoolTimer, passing negative start_delay_ms as pftDueTime, timer_period_ms as msPeriod, and 0 as msWindowLength. ]*/
-/* Tests_SRS_THREADPOOL_WIN32_42_009: [ threadpool_timer_start shall return the allocated handle in timer_handle. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_42_010: [ threadpool_timer_start shall succeed and return a non-NULL handle. ]*/
 TEST_FUNCTION(threadpool_timer_start_succeeds)
 {

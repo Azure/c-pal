@@ -158,8 +158,6 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_TIMER), threadpool_timer_start, THANDLE(T
 
 **SRS_THREADPOOL_WIN32_42_008: [** If any error occurs, `threadpool_timer_start` shall fail and return NULL. **]**
 
-**SRS_THREADPOOL_WIN32_42_009: [** `threadpool_timer_start` shall return the allocated handle in `timer_handle`. **]**
-
 **SRS_THREADPOOL_WIN32_42_010: [** `threadpool_timer_start` shall succeed and return a non-NULL handle. **]**
 
 ### threadpool_timer_restart

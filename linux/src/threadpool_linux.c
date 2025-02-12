@@ -109,11 +109,8 @@ static void on_timer_callback(sigval_t timer_data)
     }
     else
     {
-        //THANDLE_INC_REF(THREADPOOL_TIMER)(timer_instance);
         /* Codes_SRS_THREADPOOL_LINUX_45_004: [ on_timer_callback shall call the timer's work_function with work_function_ctx. ]*/
         timer_instance->work_function(timer_instance->work_function_ctx);
-        //THANDLE_DEC_REF(THREADPOOL_TIMER)(timer_instance);
-
     }
 }
 
