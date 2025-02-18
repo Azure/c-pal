@@ -27,6 +27,7 @@
 #include "c_pal/thandle.h" // IWYU pragma: keep
 #include "c_pal/thandle_ll.h"
 
+static volatile_atomic int32_t g_start;
 static volatile_atomic int64_t g_call_count;
 
 typedef struct WAIT_WORK_CONTEXT_TAG
@@ -45,6 +46,9 @@ typedef struct WRAP_DATA_TAG
 #define XTEST_FUNCTION(A) void A(void)
 //diff: added this
 #define WAIT_WORK_FUNCTION_SLEEP_IN_MS 300
+
+#define THREAD_COUNT 10
+#define WORK_ITEM_COUNT 1000
 
 TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);
@@ -141,6 +145,18 @@ static void wait_work_function(void* context)
     ASSERT_IS_TRUE(wait_on_address(&wait_work_context->wait_event, current_value, 2000) == WAIT_ON_ADDRESS_TIMEOUT); //todo: should this line be changed?
     (void)interlocked_increment_64(&wait_work_context->call_count);
     wake_by_address_single_64(&wait_work_context->call_count);
+}
+
+static int schedule_work(void* context)
+{
+    THANDLE(THREADPOOL) threadpool = context;
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&g_start, 1, UINT32_MAX));
+
+    for(size_t i = 0; i < WORK_ITEM_COUNT; i++)
+    {
+        ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, work_function, NULL));
+    }
+    return 0;
 }
 
 #define THREADPOOL_TIMER_STATE_VALUES \
@@ -1620,6 +1636,45 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items_v2)
     THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&work_item, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
+}
+
+TEST_FUNCTION(schedule_work_from_multiple_threads)
+{
+    // arrange
+    LogError("STARTING TEST");
+
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
+    ASSERT_IS_NOT_NULL(execution_engine);
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    THREAD_HANDLE thread_handles[THREAD_COUNT];
+
+    (void)interlocked_exchange(&g_start, 0);
+    (void)interlocked_exchange_64(&g_call_count, 0);
+
+    // act
+    for(size_t i = 0; i < THREAD_COUNT; i++)
+    {
+        ThreadAPI_Create(&thread_handles[i], schedule_work, (void*)threadpool);
+    }
+    
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_SetAndWakeAll(&g_start, 1));
+
+    LogError("JOINING THREADS");
+    for(size_t i = 0; i < THREAD_COUNT; i++)
+    {
+        int thread_result;
+        ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(thread_handles[i], &thread_result));
+        ASSERT_ARE_EQUAL(int, 0, thread_result);
+    }
+    LogError("JOINED THREADS");
+    // assert
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, THREAD_COUNT*WORK_ITEM_COUNT, 15000));
+    LogError("CALL COUNT %" PRId64 "", interlocked_add_64(&g_call_count,0));
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
