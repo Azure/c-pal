@@ -81,7 +81,7 @@ typedef struct THREADPOOL_TAG
     uint32_t max_thread_count;
     uint32_t min_thread_count;
     int32_t used_thread_count;
-    volatile_atomic int32_t task_count;
+    volatile_atomic int64_t task_count;
 
     sem_t semaphore;
     SRW_LOCK_HANDLE srw_lock;
@@ -140,7 +140,7 @@ static int threadpool_work_func(void* param)
                 ts.tv_nsec += TP_SEMAPHORE_TIMEOUT_MS;
 
                 /* Codes_SRS_THREADPOOL_LINUX_07_075: [ threadpool_work_func shall wait on the semaphore with a time limit. ]*/
-                if (sem_timedwait(&threadpool->semaphore, &ts) != 0)
+                if (sem_timedwait(&threadpool->semaphore, &ts) != 0 && interlocked_add_64(&threadpool->task_count, 0) <= 0)
                 {
                     /* Codes_SRS_THREADPOOL_LINUX_07_087: [ If sem_timedwait fails, threadpool_work_func shall timeout and run the loop again. ]*/
                 }
@@ -179,6 +179,7 @@ static int threadpool_work_func(void* param)
                     if (work_function != NULL)
                     {
                         work_function(work_function_ctx);
+                        (void)interlocked_decrement_64(&threadpool->task_count);
                     }
                 }
             }
@@ -367,7 +368,7 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                         else
                         {
                             (void)interlocked_exchange(&result->stop_thread, 0);
-                            (void)interlocked_exchange(&result->task_count, 0);
+                            (void)interlocked_exchange_64(&result->task_count, 0);
 
                             /* Codes_SRS_THREADPOOL_LINUX_07_010: [ insert_idx and consume_idx for the task array shall be initialized to 0. ]*/
                             (void)interlocked_exchange_64(&result->insert_idx, 0);
@@ -477,6 +478,7 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
 
                 /* Codes_SRS_THREADPOOL_LINUX_07_051: [ threadpool_schedule_work shall unblock the threadpool semaphore by calling sem_post. ]*/
                 sem_post(&threadpool_ptr->semaphore);
+                (void)interlocked_increment_64(&threadpool_ptr->task_count);
 
                 /* Codes_SRS_THREADPOOL_LINUX_07_047: [ threadpool_schedule_work shall return zero on success. ]*/
                 result = 0;
@@ -763,6 +765,7 @@ int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THANDLE(THREAD
 
                 /* Codes_SRS_THREADPOOL_LINUX_05_025: [ threadpool_schedule_work_item shall unblock the threadpool semaphore by calling sem_post. ]*/
                 sem_post(&threadpool_ptr->semaphore);
+                (void)interlocked_increment_64(&threadpool_ptr->task_count);
 
                 /* Codes_SRS_THREADPOOL_LINUX_05_026: [ threadpool_schedule_work_item shall succeed and return 0. ]*/
                 result = 0;

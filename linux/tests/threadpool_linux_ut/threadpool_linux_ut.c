@@ -131,7 +131,7 @@ static void threadpool_create_succeed_expectations(void)
     STRICT_EXPECTED_CALL(srw_lock_create(false, IGNORED_ARG)).SetReturn(test_srw_lock);
     STRICT_EXPECTED_CALL(mocked_sem_init(IGNORED_ARG, 0, 0));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_exchange_64(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(interlocked_exchange_64(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(interlocked_exchange_64(IGNORED_ARG, 0));
 
@@ -150,6 +150,7 @@ static void threadpool_schedule_work_succeed_expectations(void)
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_sem_post(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_increment_64(IGNORED_ARG));
 }
 
 static void threadpool_create_work_item_success_expectations(void)
@@ -428,7 +429,7 @@ TEST_FUNCTION(threadpool_create_fails_when_threadAPI_create_fails)
     STRICT_EXPECTED_CALL(srw_lock_create(false, IGNORED_ARG)).SetReturn(test_srw_lock);
     STRICT_EXPECTED_CALL(mocked_sem_init(IGNORED_ARG, 0, 0));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_exchange_64(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(interlocked_exchange_64(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(interlocked_exchange_64(IGNORED_ARG, 0));
 
@@ -496,6 +497,7 @@ TEST_FUNCTION(threadpool_work_func_succeeds_when_sem_timedwait_fails)
 
     STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_REALTIME, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_sem_timedwait(IGNORED_ARG, IGNORED_ARG)).SetReturn(1);
+    STRICT_EXPECTED_CALL(interlocked_add_64(IGNORED_ARG, IGNORED_ARG)).SetReturn(0);
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0)).SetReturn(1);
 
     //act
@@ -537,6 +539,7 @@ TEST_FUNCTION(threadpool_work_func_succeeds_for_threadpool_schedule_work)
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
     STRICT_EXPECTED_CALL(test_work_function(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_decrement_64(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0)).SetReturn(1);
 
     //act
@@ -578,6 +581,7 @@ TEST_FUNCTION(threadpool_work_func_succeeds_for_threadpool_schedule_work_item)
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
     STRICT_EXPECTED_CALL(test_work_function(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_decrement_64(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0)).SetReturn(1);
 
     //act
@@ -720,6 +724,7 @@ TEST_FUNCTION(threadpool_schedule_work_realloc_array_with_no_empty_space)
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_sem_post(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_increment_64(IGNORED_ARG));
 
     // act
     result = threadpool_schedule_work(threadpool, test_work_function, (void*)0x4243);
@@ -1317,6 +1322,7 @@ TEST_FUNCTION(threadpool_schedule_work_item_succeeds)
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_sem_post(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_increment_64(IGNORED_ARG));
 
     // act
     result = threadpool_schedule_work_item(threadpool, threadpool_work_item);
@@ -1381,6 +1387,7 @@ TEST_FUNCTION(threadpool_schedule_work_item_succeeds_realloc_array_with_no_empty
     STRICT_EXPECTED_CALL(srw_lock_acquire_shared(IGNORED_ARG));
     STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_sem_post(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_increment_64(IGNORED_ARG));
 
     // act
     result = threadpool_schedule_work_item(threadpool, threadpool_work_item);

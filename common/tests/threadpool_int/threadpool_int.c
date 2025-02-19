@@ -47,7 +47,7 @@ typedef struct WRAP_DATA_TAG
 //diff: added this
 #define WAIT_WORK_FUNCTION_SLEEP_IN_MS 300
 #define THREAD_COUNT 10
-#define WORK_ITEM_COUNT 1000
+#define WORK_PER_THREAD 1000
 
 TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);
@@ -152,10 +152,9 @@ static int schedule_work_multiple_threads(void* context)
     THANDLE(THREADPOOL) threadpool = context;
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&g_start, 1, UINT32_MAX));
 
-    for (size_t i = 0; i < WORK_ITEM_COUNT; i++)
+    for (size_t i = 0; i < WORK_PER_THREAD; i++)
     {
         ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, work_function, (void *)&g_call_count));
-        ThreadAPI_Sleep(1);
     }
     return 0;
 }
@@ -287,7 +286,7 @@ TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work)
     // create an execution engine
     volatile_atomic int32_t thread_counter = 0;
 
-    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 16 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -452,7 +451,7 @@ TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _timer_start_runs_once))
 {
     // assert
     // create an execution engine
-    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 16 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -483,7 +482,7 @@ TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _start_timers_work_and_run_p
 {
     // assert
     // create an execution engine
-    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 16, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 16 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -1385,11 +1384,10 @@ static int chaos_thread_with_timers_no_lock_and_null_work_item_func(void* contex
     return 0;
 }
 
-//the following 2 tests passed on windows now, but need some fix on linux side for schedule_work_item https://msazure.visualstudio.com/One/_workitems/edit/30570880
 TEST_FUNCTION(chaos_knight_test)
 {
      // start a number of threads and each of them will do a random action on the threadpool
-     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 16, 0 };
+     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 16 };
      EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
      THREAD_HANDLE thread_handles[CHAOS_THREAD_COUNT];
      size_t i;
@@ -1416,7 +1414,7 @@ TEST_FUNCTION(chaos_knight_test)
 
      for (i = 0; i < CHAOS_THREAD_COUNT; i++)
      {
-         ThreadAPI_Create(&thread_handles[i], chaos_thread_func, &chaos_test_data);
+         ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&thread_handles[i], chaos_thread_func, &chaos_test_data));
          ASSERT_IS_NOT_NULL(thread_handles[i], "thread %zu failed to start", i);
      }
 
@@ -1431,8 +1429,7 @@ TEST_FUNCTION(chaos_knight_test)
      // assert that all scheduled items were executed
      ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&chaos_test_data.executed_work_functions, chaos_test_data.expected_call_count, UINT32_MAX));
 
-     LogInfo("Chaos test executed %" PRId64 " work items",
-                interlocked_add_64(&chaos_test_data.executed_work_functions, 0));
+     LogInfo("Chaos test executed %" PRId64 " work items", interlocked_add_64(&chaos_test_data.executed_work_functions, 0));
 
      // call close
      THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&chaos_test_data.work_item_context, NULL);
@@ -1475,7 +1472,7 @@ TEST_FUNCTION(chaos_knight_test)
 //     THANDLE_INITIALIZE_MOVE(THREADPOOL_WORK_ITEM)(&chaos_test_data.work_item_context, &work_item);
 //     for (i = 0; i < CHAOS_THREAD_COUNT; i++)
 //     {
-//         ThreadAPI_Create(&thread_handles[i], chaos_thread_with_timers_no_lock_func, &chaos_test_data);
+//         ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&thread_handles[i], chaos_thread_with_timers_no_lock_func, &chaos_test_data));
 //         ASSERT_IS_NOT_NULL(thread_handles[i], "thread %zu failed to start", i);
 //     }
 
@@ -1510,7 +1507,7 @@ TEST_FUNCTION(one_work_item_schedule_works_v2)
 {
     // assert
     // create an execution engine
-    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 16 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -1539,7 +1536,7 @@ TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work_v
 {
     // arrange
     // create an execution engine
-    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 16 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -1571,7 +1568,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_works_v2))
     // assert
     // create an execution engine
     size_t i;
-    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 16 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -1644,7 +1641,7 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items_v2)
 TEST_FUNCTION(schedule_work_from_multiple_threads)
 {
     // arrange
-    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 16, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 16 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
@@ -1658,7 +1655,7 @@ TEST_FUNCTION(schedule_work_from_multiple_threads)
     // act
     for (size_t i = 0; i < THREAD_COUNT; i++)
     {
-        ThreadAPI_Create(&thread_handles[i], schedule_work_multiple_threads, (void*)threadpool);
+        ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&thread_handles[i], schedule_work_multiple_threads, (void*)threadpool));
     }
 
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_SetAndWakeAll(&g_start, 1));
@@ -1668,9 +1665,10 @@ TEST_FUNCTION(schedule_work_from_multiple_threads)
         ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(thread_handles[i], &thread_result));
         ASSERT_ARE_EQUAL(int, 0, thread_result);
     }
+    LogInfo("Call Count before comparison %" PRId64 "", interlocked_add_64(&g_call_count, 0));
     // assert
-    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, THREAD_COUNT * WORK_ITEM_COUNT, UINT32_MAX));
-    LogInfo("Call Count %" PRId64 "", interlocked_add_64(&g_call_count, 0));
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, THREAD_COUNT * WORK_PER_THREAD, UINT32_MAX));
+    LogInfo("Call Count after comparison %" PRId64 "", interlocked_add_64(&g_call_count, 0));
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
