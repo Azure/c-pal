@@ -140,7 +140,7 @@ static int threadpool_work_func(void* param)
                 ts.tv_nsec += TP_SEMAPHORE_TIMEOUT_MS;
 
                 /* Codes_SRS_THREADPOOL_LINUX_07_075: [ threadpool_work_func shall wait on the semaphore with a time limit. ]*/
-                if (sem_timedwait(&threadpool->semaphore, &ts) != 0 && interlocked_add_64(&threadpool->task_count, 0) <= 0)
+                if (sem_timedwait(&threadpool->semaphore, &ts) == 0)
                 {
                     /* Codes_SRS_THREADPOOL_LINUX_07_087: [ If sem_timedwait fails, threadpool_work_func shall timeout and run the loop again. ]*/
                 }
@@ -176,7 +176,7 @@ static int threadpool_work_func(void* param)
                     srw_lock_release_shared(threadpool->srw_lock);
 
                     /* Codes_SRS_THREADPOOL_LINUX_07_084: [ If the work item function is not NULL, threadpool_work_func shall execute it with work_function_ctx. ]*/
-                    if (work_function != NULL)
+                    if (work_function != NULL && interlocked_add_64(&threadpool->task_count, 0) > 0)
                     {
                         work_function(work_function_ctx);
                         (void)interlocked_decrement_64(&threadpool->task_count);

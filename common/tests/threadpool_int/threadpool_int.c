@@ -29,6 +29,7 @@
 
 static volatile_atomic int32_t g_start;
 static volatile_atomic int64_t g_call_count;
+static volatile_atomic int64_t multi_thread_call_count;
 
 typedef struct WAIT_WORK_CONTEXT_TAG
 {
@@ -153,7 +154,7 @@ static int schedule_work_multiple_threads(void* context)
 
     for (size_t i = 0; i < WORK_PER_THREAD; i++)
     {
-        ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, work_function, (void *)&g_call_count));
+        ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, work_function, (void *)&multi_thread_call_count));
     }
     return 0;
 }
@@ -1656,7 +1657,7 @@ TEST_FUNCTION(schedule_work_from_multiple_threads)
         ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&thread_handles[i], schedule_work_multiple_threads, (void*)threadpool));
     }
 
-    (void)interlocked_exchange_64(&g_call_count, 0);
+    (void)interlocked_exchange_64(&multi_thread_call_count, 0);
 
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_SetAndWakeAll(&g_start, 1));
     for (size_t i = 0; i < THREAD_COUNT; i++)
@@ -1665,10 +1666,10 @@ TEST_FUNCTION(schedule_work_from_multiple_threads)
         ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(thread_handles[i], &thread_result));
         ASSERT_ARE_EQUAL(int, 0, thread_result);
     }
-    LogInfo("Call Count before comparison %" PRId64 "", interlocked_add_64(&g_call_count, 0));
+    LogInfo("Call Count before comparison %" PRId64 "", interlocked_add_64(&multi_thread_call_count, 0));
     // assert
-    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, THREAD_COUNT * WORK_PER_THREAD, UINT32_MAX));
-    LogInfo("Call Count after comparison %" PRId64 "", interlocked_add_64(&g_call_count, 0));
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&multi_thread_call_count, THREAD_COUNT * WORK_PER_THREAD, UINT32_MAX));
+    LogInfo("Call Count after comparison %" PRId64 "", interlocked_add_64(&multi_thread_call_count, 0));
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
