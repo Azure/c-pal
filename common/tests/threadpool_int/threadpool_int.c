@@ -286,7 +286,7 @@ TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work)
     // create an execution engine
     volatile_atomic int32_t thread_counter = 0;
 
-    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 16 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -451,7 +451,7 @@ TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _timer_start_runs_once))
 {
     // assert
     // create an execution engine
-    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 16 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -482,7 +482,7 @@ TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _start_timers_work_and_run_p
 {
     // assert
     // create an execution engine
-    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 16 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 16, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -1387,7 +1387,7 @@ static int chaos_thread_with_timers_no_lock_and_null_work_item_func(void* contex
 TEST_FUNCTION(chaos_knight_test)
 {
      // start a number of threads and each of them will do a random action on the threadpool
-     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 16 };
+     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 16, 0 };
      EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
      THREAD_HANDLE thread_handles[CHAOS_THREAD_COUNT];
      size_t i;
