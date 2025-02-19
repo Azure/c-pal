@@ -46,8 +46,14 @@ typedef struct WRAP_DATA_TAG
 #define TEST_TIMEOUT_VALUE      60000   // 60 seconds
 //diff: added this
 #define WAIT_WORK_FUNCTION_SLEEP_IN_MS 300
-#define THREAD_COUNT 10
-#define WORK_PER_THREAD 1000
+
+#ifdef USE_VALGRIND
+    #define WORK_PER_THREAD 500
+    #define THREAD_COUNT 5
+#else
+    #define WORK_PER_THREAD 1000
+    #define THREAD_COUNT 10
+#endif
 
 TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);
@@ -155,6 +161,13 @@ static int schedule_work_multiple_threads(void* context)
     for (size_t i = 0; i < WORK_PER_THREAD; i++)
     {
         ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, work_function, (void *)&multi_thread_call_count));
+#ifdef  USE_VALGRIND
+        if (i % (WORK_PER_THREAD/THREAD_COUNT) == 0)
+        {
+           // Yield
+           ThreadAPI_Sleep(0);
+        }
+#endif
     }
     return 0;
 }
@@ -1507,7 +1520,7 @@ TEST_FUNCTION(one_work_item_schedule_works_v2)
 {
     // assert
     // create an execution engine
-    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 16 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -1536,7 +1549,7 @@ TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work_v
 {
     // arrange
     // create an execution engine
-    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 16 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -1568,7 +1581,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_works_v2))
     // assert
     // create an execution engine
     size_t i;
-    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 16 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
 
@@ -1641,7 +1654,7 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items_v2)
 TEST_FUNCTION(schedule_work_from_multiple_threads)
 {
     // arrange
-    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 16 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
