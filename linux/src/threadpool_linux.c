@@ -140,7 +140,7 @@ static int threadpool_work_func(void* param)
                 ts.tv_nsec += TP_SEMAPHORE_TIMEOUT_MS;
 
                 /* Codes_SRS_THREADPOOL_LINUX_07_075: [ threadpool_work_func shall wait on the semaphore with a time limit. ]*/
-                if (sem_timedwait(&threadpool->semaphore, &ts) == 0)
+                if (sem_timedwait(&threadpool->semaphore, &ts) != 0  && interlocked_add_64(&threadpool->task_count, 0) <= 0)
                 {
                     /* Codes_SRS_THREADPOOL_LINUX_07_087: [ If sem_timedwait fails, threadpool_work_func shall timeout and run the loop again. ]*/
                 }
