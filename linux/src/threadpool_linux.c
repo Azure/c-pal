@@ -37,7 +37,7 @@
 
 #include "c_pal/threadpool.h"
 
-#define DEFAULT_TASK_ARRAY_SIZE         2048
+#define DEFAULT_TASK_ARRAY_SIZE         16
 #define MILLISEC_TO_NANOSEC             1000000
 #define TP_SEMAPHORE_TIMEOUT_MS         (100*MILLISEC_TO_NANOSEC) // The timespec value is in nanoseconds so need to multiply to get 100 MS
 
@@ -49,6 +49,8 @@
 
 MU_DEFINE_ENUM(TASK_RESULT, TASK_RESULT_VALUES);
 MU_DEFINE_ENUM_STRINGS(TASK_RESULT, TASK_RESULT_VALUES)
+
+volatile_atomic int32_t g_total_sched_calls = 0;
 
 typedef struct THREADPOOL_TIMER_TAG
 {
@@ -116,6 +118,7 @@ static void on_timer_callback(sigval_t timer_data)
 
 static int threadpool_work_func(void* param)
 {
+LogInfo("Starting threadpool_work_func");
     if (param == NULL)
     {
         /* Codes_SRS_THREADPOOL_LINUX_07_073: [ If param is NULL, threadpool_work_func shall fail and return. ]*/
@@ -188,7 +191,7 @@ static int threadpool_work_func(void* param)
     return 0;
 }
 
-static int reallocate_threadpool_array(THREADPOOL* threadpool)
+static int reallocate_threadpool_array(THREADPOOL* threadpool, int32_t current_count)
 {
     int result;
     {
@@ -198,72 +201,109 @@ static int reallocate_threadpool_array(THREADPOOL* threadpool)
         /* Codes_SRS_THREADPOOL_LINUX_07_038: [ threadpool_schedule_work shall get the current size of task array by calling interlocked_add. ]*/
         int32_t existing_count = interlocked_add(&threadpool->task_array_size, 0);
 
-        int32_t new_task_array_size = existing_count*2;
-        /* Codes_SRS_THREADPOOL_LINUX_07_039: [ If there is any overflow computing the new size, threadpool_schedule_work shall fail and return a non-zero value . ]*/
-        if (new_task_array_size < 0)
+        // Has this been reallocated yet?
+        if (existing_count == current_count)
         {
-            LogError("overflow in computation task_array_size: %" PRId32 "*2 (%" PRId32 ") > UINT32_MAX: %" PRId32 " - 1. ", existing_count, new_task_array_size, INT32_MAX);
-            result = MU_FAILURE;
-        }
-        else
-        {
-            /* Codes_SRS_THREADPOOL_LINUX_07_040: [ Otherwise, threadpool_schedule_work shall double the current task array size. ]*/
-            (void)interlocked_exchange(&threadpool->task_array_size, new_task_array_size);
-
-            /* Codes_SRS_THREADPOOL_LINUX_07_041: [ threadpool_schedule_work shall realloc the memory used for the array items. ]*/
-            THREADPOOL_TASK* temp_array = realloc_2(threadpool->task_array, new_task_array_size, sizeof(THREADPOOL_TASK));
-            if (temp_array == NULL)
+            int32_t new_task_array_size = existing_count*2;
+            /* Codes_SRS_THREADPOOL_LINUX_07_039: [ If there is any overflow computing the new size, threadpool_schedule_work shall fail and return a non-zero value . ]*/
+            if (new_task_array_size < 0)
             {
-                /* Codes_SRS_THREADPOOL_LINUX_07_042: [ If any error occurs, threadpool_schedule_work shall fail and return a non-zero value. ]*/
-                LogError("Failure realloc_2(threadpool->task_array: %p, threadpool->task_array_size: %" PRId32", sizeof(THREADPOOL_TASK): %zu", threadpool->task_array, new_task_array_size, sizeof(THREADPOOL_TASK));
+                LogError("overflow in computation task_array_size: %" PRId32 "*2 (%" PRId32 ") > UINT32_MAX: %" PRId32 " - 1. ", existing_count, new_task_array_size, INT32_MAX);
                 result = MU_FAILURE;
             }
             else
             {
-                /* Codes_SRS_THREADPOOL_LINUX_07_043: [ threadpool_schedule_work shall initialize every task item in the new task array with task_func and task_param set to NULL and task_state set to TASK_NOT_USED. ]*/
-                for (uint32_t index = existing_count; index < new_task_array_size; index++)
+                /* Codes_SRS_THREADPOOL_LINUX_07_040: [ Otherwise, threadpool_schedule_work shall double the current task array size. ]*/
+                (void)interlocked_exchange(&threadpool->task_array_size, new_task_array_size);
+
+                /* Codes_SRS_THREADPOOL_LINUX_07_041: [ threadpool_schedule_work shall realloc the memory used for the array items. ]*/
+                THREADPOOL_TASK* temp_array = realloc_2(threadpool->task_array, new_task_array_size, sizeof(THREADPOOL_TASK));
+                if (temp_array == NULL)
                 {
-                    temp_array[index].work_function = NULL;
-                    temp_array[index].work_function_ctx = NULL;
-                    (void)interlocked_exchange(&temp_array[index].task_state, TASK_NOT_USED);
-                }
-                threadpool->task_array = temp_array;
-
-                // Ensure there are no gaps in the array
-                // Consume = 2
-                // Produce = 2
-                // [x x x x]
-                // Consume = 3
-                // Produce = 2
-                // [x x 0 x]
-                // During resize we will have to memmove in the gap at 2
-                // [x x 0 x 0 0 0 0]
-
-                int64_t insert_pos = interlocked_add_64(&threadpool->insert_idx, 0) % existing_count;
-                int64_t consume_pos = interlocked_add_64(&threadpool->consume_idx, 0) % existing_count;
-                uint32_t move_count = 0;
-
-                /* Codes_SRS_THREADPOOL_LINUX_07_044: [ threadpool_schedule_work shall shall memmove everything between the consume index and the size of the array before resize to the end of the new resized array. ]*/
-                if (insert_pos < consume_pos)
-                {
-                    move_count = existing_count - consume_pos;
-                    (void)memmove(&threadpool->task_array[new_task_array_size - move_count], &threadpool->task_array[consume_pos], sizeof(THREADPOOL_TASK)*move_count);
-                    (void)interlocked_exchange_64(&threadpool->consume_idx, new_task_array_size - move_count);
+                    /* Codes_SRS_THREADPOOL_LINUX_07_042: [ If any error occurs, threadpool_schedule_work shall fail and return a non-zero value. ]*/
+                    LogError("Failure realloc_2(threadpool->task_array: %p, threadpool->task_array_size: %" PRId32", sizeof(THREADPOOL_TASK): %zu", threadpool->task_array, new_task_array_size, sizeof(THREADPOOL_TASK));
+                    result = MU_FAILURE;
                 }
                 else
                 {
-                    /* Codes_SRS_THREADPOOL_LINUX_07_045: [ threadpool_schedule_work shall reset the consume_idx and insert_idx to 0 after resize the task array. ]*/
-                    (void)interlocked_exchange_64(&threadpool->consume_idx, 0);
-                    (void)interlocked_exchange_64(&threadpool->insert_idx, existing_count - move_count);
-                }
+                    /* Codes_SRS_THREADPOOL_LINUX_07_043: [ threadpool_schedule_work shall initialize every task item in the new task array with task_func and task_param set to NULL and task_state set to TASK_NOT_USED. ]*/
+                    for (uint32_t index = existing_count; index < new_task_array_size; index++)
+                    {
+                        temp_array[index].work_function = NULL;
+                        temp_array[index].work_function_ctx = NULL;
+                        (void)interlocked_exchange(&temp_array[index].task_state, TASK_NOT_USED);
+                    }
+                    threadpool->task_array = temp_array;
 
-                result = 0;
+                    // Ensure there are no gaps in the array
+                    // Consume = 2
+                    // Produce = 2
+                    // [x x x x]
+                    // Consume = 3
+                    // Produce = 2
+                    // [x x 0 x]
+                    // During resize we will have to memmove in the gap at 2
+                    // [x x 0 x 0 0 0 0]
+
+                    int64_t insert_pos = interlocked_add_64(&threadpool->insert_idx, 0) % existing_count;
+                    int64_t consume_pos = interlocked_add_64(&threadpool->consume_idx, 0) % existing_count;
+                    uint32_t move_count = 0;
+
+                    /* Codes_SRS_THREADPOOL_LINUX_07_044: [ threadpool_schedule_work shall shall memmove everything between the consume index and the size of the array before resize to the end of the new resized array. ]*/
+                    if (insert_pos < consume_pos)
+                    {
+                        move_count = existing_count - consume_pos;
+LogInfo("insert is less, Insert_pos %" PRId64 " consume_pos %" PRId64 " existing_count %" PRId32 " move_count %" PRId32 " new_task_array_size %" PRId32 "", insert_pos, consume_pos, existing_count, move_count, new_task_array_size);
+                        (void)memmove(&threadpool->task_array[new_task_array_size - move_count], &threadpool->task_array[consume_pos], sizeof(THREADPOOL_TASK)*move_count);
+                        // The consume index gets moved by move count
+                        (void)interlocked_exchange_64(&threadpool->consume_idx, move_count);
+
+                        // Need to initialize the new items
+                        for (uint32_t index = consume_pos; index < new_task_array_size - move_count; index++)
+                        {
+                            temp_array[index].work_function = NULL;
+                            temp_array[index].work_function_ctx = NULL;
+                            (void)interlocked_exchange(&temp_array[index].task_state, TASK_NOT_USED);
+                        }
+                    }
+                    else
+                    {
+                        /* Codes_SRS_THREADPOOL_LINUX_07_045: [ threadpool_schedule_work shall reset the consume_idx and insert_idx to 0 after resize the task array. ]*/
+                        (void)interlocked_exchange_64(&threadpool->consume_idx, 0);
+                        (void)interlocked_exchange_64(&threadpool->insert_idx, existing_count);
+LogInfo("Insert_pos %" PRId64 " consume_pos %" PRId64  " existing_count %" PRId32 " move_count %" PRId32 " new_task_array_size %" PRId32 "", insert_pos, consume_pos, existing_count, move_count, new_task_array_size);
+                    }
+
+                    result = 0;
+                }
             }
+        }
+        else
+        {
+            result = 0;
         }
         /* Codes_SRS_THREADPOOL_LINUX_07_046: [ threadpool_schedule_work shall release the SRW lock by calling srw_lock_release_exclusive. ]*/
         srw_lock_release_exclusive(threadpool->srw_lock);
     }
     return result;
+}
+
+void dump(THANDLE(THREADPOOL) threadpool)
+{
+    THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
+
+    int32_t existing_count = interlocked_add(&threadpool_ptr->task_array_size, 0);
+
+    int32_t count = 0;
+    for (uint32_t index = 0; index < existing_count; index++)
+    {
+        if (threadpool_ptr->task_array[index].task_state != TASK_NOT_USED)
+        {
+            LogInfo("Index %" PRId32 " has task: %" PRI_MU_ENUM "", index, MU_ENUM_VALUE(TASK_RESULT, threadpool->task_array[index].task_state));
+            count++;
+        }
+    }
+    LogInfo("the task count is %" PRId32 "", count);
 }
 
 static void threadpool_dispose(THREADPOOL* threadpool)
@@ -436,10 +476,12 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
     else
     {
         THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
+        int32_t iteration = 0;
 
-
+interlocked_increment(&g_total_sched_calls);
         do
         {
+            iteration++;
             /* Codes_SRS_THREADPOOL_LINUX_07_033: [ threadpool_schedule_work shall acquire the SRW lock in shared mode by calling srw_lock_acquire_shared. ]*/
             srw_lock_acquire_shared(threadpool_ptr->srw_lock);
             int32_t existing_count = interlocked_add(&threadpool_ptr->task_array_size, 0);
@@ -455,7 +497,9 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
                 /* Codes_SRS_THREADPOOL_LINUX_07_036: [ Otherwise, threadpool_schedule_work shall release the shared SRW lock by calling srw_lock_release_shared and increase task_array capacity: ]*/
                 srw_lock_release_shared(threadpool_ptr->srw_lock);
 
-                if (reallocate_threadpool_array(threadpool_ptr) != 0)
+//LogInfo("Iteration: %" PRIu32 " Calling reallocate_threadpool_array insert_pos %" PRId64 " existing count %" PRId32 "", iteration, insert_pos, existing_count);
+
+                if (reallocate_threadpool_array(threadpool_ptr, existing_count) != 0)
                 {
                     /* Codes_SRS_THREADPOOL_LINUX_07_048: [ If reallocating the task array fails, threadpool_schedule_work shall fail and return a non-zero value. ]*/
                     LogError("Failure reallocating threadpool_ptr");
@@ -736,7 +780,7 @@ int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THANDLE(THREAD
             /* Codes_SRS_THREADPOOL_LINUX_05_018: [ If the previous task state is not TASK_NOT_USED then threadpool_schedule_work_item shall increase task_array capacity. ]*/
             if (task_state != TASK_NOT_USED)
             {
-                if (reallocate_threadpool_array(threadpool_ptr) != 0)
+                if (reallocate_threadpool_array(threadpool_ptr, existing_count) != 0)
                 {
                     /* Codes_SRS_THREADPOOL_LINUX_05_019: [ If reallocating the task array fails, threadpool_schedule_work_item shall fail and return a non-zero value. ]*/
                     LogError("Failure reallocating threadpool_ptr");
