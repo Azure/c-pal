@@ -43,7 +43,6 @@ typedef struct WRAP_DATA_TAG
 } WRAP_DATA;
 
 #define TEST_TIMEOUT_VALUE      60000   // 60 seconds
-#define XTEST_FUNCTION(A) void A(void)
 //diff: added this
 #define WAIT_WORK_FUNCTION_SLEEP_IN_MS 300
 #define THREAD_COUNT 10
@@ -1650,13 +1649,14 @@ TEST_FUNCTION(schedule_work_from_multiple_threads)
     THREAD_HANDLE thread_handles[THREAD_COUNT];
 
     (void)interlocked_exchange(&g_start, 0);
-    (void)interlocked_exchange_64(&g_call_count, 0);
 
     // act
     for (size_t i = 0; i < THREAD_COUNT; i++)
     {
         ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&thread_handles[i], schedule_work_multiple_threads, (void*)threadpool));
     }
+
+    (void)interlocked_exchange_64(&g_call_count, 0);
 
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_SetAndWakeAll(&g_start, 1));
     for (size_t i = 0; i < THREAD_COUNT; i++)
