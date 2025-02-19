@@ -13,5 +13,7 @@
 
 #include "real_ps_util_renames.h" // IWYU pragma: keep
 
+#include "real_srw_lock_ll_renames.h"
+
 #include "../src/threadpool_win32.c"
 
