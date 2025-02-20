@@ -157,10 +157,9 @@ static size_t get_work_per_thread()
     size_t work_per_thread = WORK_PER_THREAD;
 #ifdef USE_VALGRIND
     // Check if we are being invoked from Valgrind to ensure that
-    // the non-Valgrind and Helgrind run do not Yield
+    // the non-Valgrind and Helgrind run do not reduce the Work Per Thread
     if (RUNNING_ON_VALGRIND)
     {
-        // Yield
         work_per_thread = WORK_PER_THREAD / 10;
     }
 #endif
