@@ -46,13 +46,12 @@ typedef struct WRAP_DATA_TAG
 #define TEST_TIMEOUT_VALUE      60000   // 60 seconds
 //diff: added this
 #define WAIT_WORK_FUNCTION_SLEEP_IN_MS 300
+#define THREAD_COUNT 10
 
 #ifdef USE_VALGRIND
     #define WORK_PER_THREAD 500
-    #define THREAD_COUNT 5
 #else
     #define WORK_PER_THREAD 1000
-    #define THREAD_COUNT 10
 #endif
 
 TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
