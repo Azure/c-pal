@@ -166,6 +166,7 @@ static int threadpool_work_func(void* param)
                             work_function_ctx = threadpool->task_array[current_index].work_function_ctx;
                             /* Codes_SRS_THREADPOOL_LINUX_07_082: [ threadpool_work_func shall set the task state to TASK_NOT_USED. ]*/
                             (void)interlocked_exchange(&threadpool->task_array[current_index].task_state, TASK_NOT_USED);
+                            (void)interlocked_decrement_64(&threadpool->task_count);
                         }
                         else
                         {
@@ -179,7 +180,6 @@ static int threadpool_work_func(void* param)
                     if (work_function != NULL)
                     {
                         work_function(work_function_ctx);
-                        (void)interlocked_decrement_64(&threadpool->task_count);
                     }
                 }
             }

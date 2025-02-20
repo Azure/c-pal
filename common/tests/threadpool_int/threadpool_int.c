@@ -1669,10 +1669,10 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items_v2)
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(schedule_work_from_multiple_threads)
+TEST_FUNCTION(schedule_work_from_multiple_threads)
 {
     // arrange
-    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 8, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 16, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
