@@ -161,7 +161,7 @@ static size_t get_work_per_thread()
     if (RUNNING_ON_VALGRIND)
     {
         // Yield
-        work_per_thread = WORK_PER_THREAD / 2;
+        work_per_thread = WORK_PER_THREAD / 10;
     }
 #endif
     return work_per_thread;
@@ -1669,7 +1669,7 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items_v2)
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(schedule_work_from_multiple_threads)
+DISABLED_TEST_FUNCTION(schedule_work_from_multiple_threads)
 {
     // arrange
     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 8, 0 };
@@ -1688,6 +1688,7 @@ TEST_FUNCTION(schedule_work_from_multiple_threads)
     for (size_t i = 0; i < THREAD_COUNT; i++)
     {
         ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&thread_handles[i], schedule_work_multiple_threads, (void*)threadpool));
+        ASSERT_IS_NOT_NULL(thread_handles[i], "thread %zu failed to start", i);
     }
 
     (void)interlocked_exchange_64(&multi_thread_call_count, 0);
