@@ -3,6 +3,7 @@
 
 #define THREADPOOL                      real_THREADPOOL
 #define THREADPOOL_WORK_ITEM            real_THREADPOOL_WORK_ITEM
+#define THREADPOOL_TIMER                real_THREADPOOL_TIMER
 
 #define threadpool_create               real_threadpool_create
 #define threadpool_create_work_item     real_threadpool_create_work_item
