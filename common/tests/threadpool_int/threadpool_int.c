@@ -7,6 +7,10 @@
 #include <stdbool.h>
 #include <string.h>
 
+#ifdef USE_VALGRIND
+#include <valgrind/valgrind.h>
+#endif
+
 #include "c_logging/logger.h"
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
@@ -47,12 +51,8 @@ typedef struct WRAP_DATA_TAG
 //diff: added this
 #define WAIT_WORK_FUNCTION_SLEEP_IN_MS 300
 #define THREAD_COUNT 10
+#define WORK_PER_THREAD 1000
 
-#ifdef USE_VALGRIND
-    #define WORK_PER_THREAD 500
-#else
-    #define WORK_PER_THREAD 1000
-#endif
 
 TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);
@@ -152,17 +152,39 @@ static void wait_work_function(void* context)
     wake_by_address_single_64(&wait_work_context->call_count);
 }
 
+static size_t get_work_per_thread()
+{
+    size_t work_per_thread = WORK_PER_THREAD;
+#ifdef USE_VALGRIND
+    // Check if we are being invoked from Valgrind to ensure that
+    // the non-Valgrind and Helgrind run do not Yield
+    if (RUNNING_ON_VALGRIND)
+    {
+        // Yield
+        work_per_thread = WORK_PER_THREAD / 2;
+    }
+#endif
+    return work_per_thread;
+}
+
 static int schedule_work_multiple_threads(void* context)
 {
     THANDLE(THREADPOOL) threadpool = context;
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&g_start, 1, UINT32_MAX));
+    size_t work_per_thread = get_work_per_thread();
 
-    for (size_t i = 0; i < WORK_PER_THREAD; i++)
+    for (size_t i = 0; i < work_per_thread; i++)
     {
         ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, work_function, (void *)&multi_thread_call_count));
-#ifdef  USE_VALGRIND
-        // Yield
-        ThreadAPI_Sleep(0);
+
+#ifdef USE_VALGRIND
+        // Check if we are being invoked from Valgrind to ensure that
+        // the non-Valgrind and Helgrind run do not Yield
+        if (RUNNING_ON_VALGRIND)
+        {
+            // Yield
+            ThreadAPI_Sleep(0);
+        }
 #endif
     }
     return 0;
@@ -1650,11 +1672,13 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items_v2)
 TEST_FUNCTION(schedule_work_from_multiple_threads)
 {
     // arrange
-    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 8, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
     ASSERT_IS_NOT_NULL(execution_engine);
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
+
+    size_t work_per_thread = get_work_per_thread();
 
     THREAD_HANDLE thread_handles[THREAD_COUNT];
 
@@ -1669,6 +1693,7 @@ TEST_FUNCTION(schedule_work_from_multiple_threads)
     (void)interlocked_exchange_64(&multi_thread_call_count, 0);
 
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_SetAndWakeAll(&g_start, 1));
+
     for (size_t i = 0; i < THREAD_COUNT; i++)
     {
         int thread_result;
@@ -1677,7 +1702,7 @@ TEST_FUNCTION(schedule_work_from_multiple_threads)
     }
     LogInfo("Call Count before comparison %" PRId64 "", interlocked_add_64(&multi_thread_call_count, 0));
     // assert
-    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&multi_thread_call_count, THREAD_COUNT * WORK_PER_THREAD, UINT32_MAX));
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&multi_thread_call_count, THREAD_COUNT * work_per_thread, UINT32_MAX));
     LogInfo("Call Count after comparison %" PRId64 "", interlocked_add_64(&multi_thread_call_count, 0));
 
     // cleanup
