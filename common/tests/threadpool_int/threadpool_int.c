@@ -161,11 +161,8 @@ static int schedule_work_multiple_threads(void* context)
     {
         ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, work_function, (void *)&multi_thread_call_count));
 #ifdef  USE_VALGRIND
-        if (i % (WORK_PER_THREAD/THREAD_COUNT) == 0)
-        {
-           // Yield
-           ThreadAPI_Sleep(0);
-        }
+        // Yield
+        ThreadAPI_Sleep(0);
 #endif
     }
     return 0;
