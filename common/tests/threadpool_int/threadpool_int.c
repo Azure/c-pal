@@ -229,26 +229,6 @@ static void wait_for_greater_or_equal(volatile_atomic int64_t* value, int64_t ex
     } while (1);
 }
 
-static void wait_for_equal(volatile_atomic int64_t* value, int64_t expected, uint64_t timeout)
-{
-    double start_time = timer_global_get_elapsed_ms();
-    double current_time = timer_global_get_elapsed_ms();
-    do
-    {
-        if (current_time - start_time >= timeout)
-        {
-            ASSERT_FAIL("Timeout waiting for value");
-        }
-
-        int64_t current_value = interlocked_add_64(value, 0);
-        if (current_value == expected)
-        {
-            break;
-        }
-        (void)wait_on_address_64(value, current_value, (uint32_t)(timeout - (current_time - start_time)));
-    } while (1);
-}
-
 TEST_FUNCTION(one_work_item_schedule_works)
 {
     // assert
@@ -578,8 +558,8 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items)
     (void)interlocked_increment(&wait_work_context.wait_event);
 
     // assert
-    wait_for_equal(&g_call_count, 1, UINT32_MAX);
-    wait_for_equal(&wait_work_context.call_count, 1, UINT32_MAX);
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, 1, UINT32_MAX));
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&wait_work_context.call_count, 1, UINT32_MAX));
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
@@ -774,7 +754,7 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
             LogInfo("Waiting for timer to execute after short delay of no execution");
 
             // Should eventually run once (wait up to 2.5 seconds, but it should run in 1.5 seconds)
-            wait_for_equal(&g_call_count, 1, 5000);
+            ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, 1, 5000));
             LogInfo("Timer completed, make sure it doesn't run again");
 
             // And should not run again
@@ -837,7 +817,7 @@ TEST_FUNCTION(restart_timer_works_runs_once)
             LogInfo("Waiting for timer to execute after short delay of no execution");
 
             // Should eventually run once (wait up to 2.5 seconds, but it should run in 1.5 seconds)
-            wait_for_equal(&g_call_count, 1, 2000);
+            ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, 1, 2000));
             LogInfo("Timer completed, make sure it doesn't run again");
 
             // And should not run again
@@ -878,7 +858,7 @@ TEST_FUNCTION(one_start_timer_works_runs_periodically)
     // assert
 
     // Timer should run 4 times in about 2.1 seconds
-    wait_for_equal(&g_call_count, 4, 3000);
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, 4, 3000));
     LogInfo("Timer completed 4 times");
 
     // cleanup
@@ -908,7 +888,7 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
     ASSERT_IS_NOT_NULL(timer);
 
     // Timer should run 4 times in about 2.1 seconds
-    wait_for_equal(&g_call_count, 4, 3000);
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, 4, 3000));
     LogInfo("Timer completed 4 times");
 
     // act
@@ -920,7 +900,7 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
     // assert
 
     // Timer should run 2 more times in about 2.1 seconds
-    wait_for_equal(&g_call_count, 2, 3000);
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, 2, 3000));
     LogInfo("Timer completed 2 more times");
 
     // cleanup
@@ -1194,9 +1174,9 @@ static int chaos_thread_with_timers_no_lock_func(void* context)
             if (interlocked_compare_exchange(&chaos_test_data->can_start_timers, 0, 1) == 1 && interlocked_compare_exchange(&chaos_test_data->can_schedule_works, 0, 1) == 1)
             {
                 // Wait for any threads that had been starting timers to complete
-                wait_for_equal(&chaos_test_data->timers_starting, 0, UINT32_MAX);
+                ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&chaos_test_data->timers_starting, 0, UINT32_MAX));
 
-                wait_for_equal((void*)(&chaos_test_data->executed_work_functions), chaos_test_data->expected_call_count, UINT32_MAX);
+                ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64((void*)(&chaos_test_data->executed_work_functions), chaos_test_data->expected_call_count, UINT32_MAX));
                 // Cleanup all timers
                 chaos_cleanup_all_timers(chaos_test_data);
 
@@ -1319,7 +1299,7 @@ static int chaos_thread_with_timers_no_lock_and_null_work_item_func(void* contex
             if (interlocked_compare_exchange(&chaos_test_data->can_start_timers, 0, 1) == 1)
             {
                 // Wait for any threads that had been starting timers to complete
-                wait_for_equal(&chaos_test_data->timers_starting, 0, UINT32_MAX);
+                ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&chaos_test_data->timers_starting, 0, UINT32_MAX));
 
                 // Cleanup all timers
                 chaos_cleanup_all_timers(chaos_test_data);
@@ -1552,7 +1532,7 @@ TEST_FUNCTION(one_work_item_schedule_works_v2)
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(threadpool, work_item));
 
     // assert
-    wait_for_equal(&g_call_count, 1, UINT32_MAX);
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, 1, UINT32_MAX));
     LogInfo("Work completed");
 
     // cleanup
@@ -1584,7 +1564,7 @@ TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work_v
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, work_function, (void*)&g_call_count));
 
     // assert
-    wait_for_equal(&g_call_count, 1, UINT32_MAX);
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, 1, UINT32_MAX));
     LogInfo("Work completed");
 
     // cleanup
@@ -1616,7 +1596,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_works_v2))
     }
 
     // assert
-    wait_for_equal(&g_call_count, N_WORK_ITEMS, UINT32_MAX);
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, N_WORK_ITEMS, UINT32_MAX));
     LogInfo("Work completed");
 
     // cleanup
@@ -1657,8 +1637,8 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items_v2)
     (void)interlocked_increment(&wait_work_context.wait_event);
 
     // assert
-    wait_for_equal(&g_call_count, 1, UINT32_MAX);
-    wait_for_equal(&wait_work_context.call_count, 1, UINT32_MAX);
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, 1, UINT32_MAX));
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&wait_work_context.call_count, 1, UINT32_MAX));
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&wait_work_item_context, NULL);
