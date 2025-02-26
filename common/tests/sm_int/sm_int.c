@@ -816,7 +816,8 @@ TEST_SUITE_INITIALIZE(suite_init)
 {
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 #if _MSC_VER
-    numberOfProcessors = sysinfo_get_processor_count();
+    // Limit number of processors to 32, otherwise tests are not always completing and become flaky
+    numberOfProcessors = min(sysinfo_get_processor_count(), 32);
     ASSERT_IS_TRUE(numberOfProcessors * 4 <= N_MAX_THREADS, "for systems with maaany processors, modify N_MAX_THREADS to be bigger");
 #else
     // unfortunately on Linux we need to limit the amount of procs we use otherwise Helgrind and DRD will take forever
