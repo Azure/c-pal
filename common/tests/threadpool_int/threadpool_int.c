@@ -410,7 +410,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_with_pool_threads))
     execution_engine_dec_ref(execution_engine);
 }
 
-#define N_THREADPOOL_TIMERS 1
+#define N_THREADPOOL_TIMERS 100
 
 TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _timer_start_runs_once))
 {
