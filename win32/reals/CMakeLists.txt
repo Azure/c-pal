@@ -24,6 +24,7 @@ set(reals_win32_c_files
     ../../common/reals/real_interlocked_hl.c
     ../../common/reals/real_thandle_log_context_handle.c
     ../../common/reals/real_threadpool_thandle.c
+    ../../common/reals/real_threadpool_timer_thandle.c
     ../../common/reals/real_threadpool_work_item_thandle.c
     real_job_object_helper.c
 )
@@ -58,6 +59,7 @@ set(reals_win32_h_files
     ../../common/reals/real_thandle_log_context_handle.h
     ../../common/reals/real_thandle_log_context_handle_renames.h
     ../../common/reals/real_threadpool_thandle.h
+    ../../common/reals/real_threadpool_timer_thandle.h
     ../../common/reals/real_threadpool_work_item_thandle.h
     real_job_object_helper.h
     real_job_object_helper_renames.h

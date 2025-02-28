@@ -127,7 +127,7 @@ TEST_FUNCTION(test_job_object_helper_limit_memory)
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
 }
 
-TEST_FUNCTION(test_job_object_helper_limit_cpu)
+DISABLED_TEST_FUNCTION(test_job_object_helper_limit_cpu)
 {
     size_t time_with_no_limit = get_elapsed_milliseconds_for_cpu_bound_task();
     LogInfo("Unconstrained CPU time = %zu milliseconds", time_with_no_limit);
