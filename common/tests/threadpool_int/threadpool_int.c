@@ -128,7 +128,6 @@ static void threadpool_long_task_v2(void* context)
 
 static void work_function(void* context)
 {
-    LogInfo("work_function been called");
     (void) context;
     (void)interlocked_increment_64(&g_call_count);
     wake_by_address_single_64(&g_call_count);
@@ -845,7 +844,7 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
     ASSERT_IS_NOT_NULL(timer);
 
     // Timer should run 4 times in about 2.1 seconds
-    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, 1, UINT32_MAX));
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, 4, 3000));
     LogInfo("Timer completed 4 times");
 
     // act
@@ -857,7 +856,7 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
     // assert
 
     // Timer should run 2 more times in about 2.1 seconds
-    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, 1, UINT32_MAX));
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, 2, 3000));
     LogInfo("Timer completed 2 more times");
 
     // cleanup
