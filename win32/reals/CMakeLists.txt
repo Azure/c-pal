@@ -3,7 +3,6 @@
 
 set(reals_win32_c_files
     real_arithmetic.c
-    real_call_once.c
     real_lazy_init.c
     real_pipe.c
     real_srw_lock_win32.c
@@ -33,8 +32,6 @@ set(reals_win32_c_files
 set(reals_win32_h_files
     real_arithmetic.h
     real_arithmetic_renames.h
-    real_call_once.h
-    real_call_once_renames.h
     real_lazy_init.h
     real_lazy_init_renames.h
     real_uuid.h
