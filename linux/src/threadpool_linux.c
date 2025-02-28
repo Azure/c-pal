@@ -109,15 +109,16 @@ static int do_init(void* params)
 
     SRW_LOCK_LL* srw_lock_ll_init_params = params;
 
+    /* Codes_SRS_THREADPOOL_LINUX_07_097: [ do_init shall initialize the lock guarding the global timer table by calling srw_lock_ll_init. ]*/
     if (srw_lock_ll_init(srw_lock_ll_init_params) != 0)
     {
-        /*If there are any failures then do_init shall fail and return a non-zero value. ]*/
+        /* Codes_SRS_THREADPOOL_LINUX_07_098: [ If srw_lock_ll_init fails then do_init shall return a non-zero value. ]*/
         LogError("failure in srw_lock_ll_init(srw_lock_ll_init_params=%p)", srw_lock_ll_init_params);
         result = MU_FAILURE;
     }
     else
     {
-        /*do_init shall return 0. ]*/
+        /* Codes_SRS_THREADPOOL_LINUX_07_099: [ do_init shall succeed and return 0. ]*/
         result = 0;
     }
     return result;
@@ -135,16 +136,17 @@ static void on_timer_callback(sigval_t timer_data)
     }
     else
     {
-        //todo: add comment
+        /* Codes_SRS_THREADPOOL_LINUX_07_100: [ on_timer_callback shall acquire the timer table exclusive lock.]*/
         srw_lock_ll_acquire_exclusive(&timer_table_lock);
         for(uint32_t i = 0; i < TIMER_TABLE_SIZE; i++)
         {
             if(timer_table[i] == timer_instance)
             {
-                /* Codes_SRS_THREADPOOL_LINUX_45_004: [ on_timer_callback shall call the timer's work_function with work_function_ctx. ]*/
+                /* Codes_SRS_THREADPOOL_LINUX_45_004: [ If timer exists, on_timer_callback shall call the timer's work_function with work_function_ctx. ]*/
                 timer_instance->work_function(timer_instance->work_function_ctx);
             }
         }
+        /* Codes_SRS_THREADPOOL_LINUX_07_101: [ on_timer_callback shall release the timer table exclusive lock. ]*/
         srw_lock_ll_release_exclusive(&timer_table_lock);
     }
 }
@@ -533,6 +535,8 @@ static void threadpool_timer_dispose(THREADPOOL_TIMER * timer)
     {
         // Do Nothing
     }
+
+    /* Codes_SRS_THREADPOOL_LINUX_07_102: [ threadpool_timer_dispose shall acquire the timer table exclusive lock. ]*/
     srw_lock_ll_acquire_exclusive(&timer_table_lock);
     for(uint32_t i = 0; i < TIMER_TABLE_SIZE; i++)
     {
@@ -542,6 +546,7 @@ static void threadpool_timer_dispose(THREADPOOL_TIMER * timer)
             break;
         }
     }
+    /* Codes_SRS_THREADPOOL_LINUX_07_104: [ threadpool_timer_dispose shall release the timer table exclusive lock. ]*/
     srw_lock_ll_release_exclusive(&timer_table_lock);
 
     /* Codes_SRS_THREADPOOL_LINUX_07_095: [ threadpool_timer_dispose shall call srw_lock_ll_deinit. ]*/
@@ -579,8 +584,10 @@ THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool,
                 /* Codes_SRS_THREADPOOL_LINUX_07_060: [ If any error occurs, threadpool_timer_start shall fail and return NULL. ]*/
                 LogError("srw_lock_ll_init failed, result->timer_lock = %p.", &result->timer_lock);
             }
+            /* Codes_SRS_THREADPOOL_LINUX_07_096: [ threadpool_timer_start shall call lazy_init with do_init as initialization function.  ]*/
             else if(lazy_init(&g_lazy, do_init, (void*)&timer_table_lock) != LAZY_INIT_OK)
             {
+                /* Codes_SRS_THREADPOOL_LINUX_07_060: [ If any error occurs, threadpool_timer_start shall fail and return NULL. ]*/
                 LogError("failure in lazy_init(&g_lazy=%p, do_init=%p, timer_table_lock=%p)", &g_lazy, do_init, &timer_table_lock);
             }
             else

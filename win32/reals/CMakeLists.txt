@@ -18,6 +18,7 @@ set(reals_win32_c_files
     real_threadpool.c
     real_execution_engine.c #note: also contains the code for execution_engine_win32.c
     real_execution_engine_win32.c #note:empty file
+    ../../common/reals/real_call_once.c
     ../../common/reals/real_ps_util.c
     ../../common/reals/real_sm.c
     ../../common/reals/real_s_list.c
@@ -47,8 +48,12 @@ set(reals_win32_h_files
     real_execution_engine_renames.h
     real_execution_engine_win32.h
     real_execution_engine_win32_renames.h
+    ../../common/reals/real_call_once.h
+    ../../common/reals/real_call_once_renames.h
     ../../common/reals/real_ps_util.h
     ../../common/reals/real_ps_util_renames.h
+    ../../common/reals/real_lazy_init.h
+    ../../common/reals/real_lazy_init_renames.h
     ../../common/reals/real_s_list.h
     ../../common/reals/real_s_list_renames.h
     ../../common/reals/real_sm.h
