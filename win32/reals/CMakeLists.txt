@@ -16,6 +16,7 @@ set(reals_win32_c_files
     real_threadpool.c
     real_execution_engine.c #note: also contains the code for execution_engine_win32.c
     real_execution_engine_win32.c #note:empty file
+    ../../common/reals/real_lazy_init.c
     ../../common/reals/real_call_once.c
     ../../common/reals/real_ps_util.c
     ../../common/reals/real_sm.c
