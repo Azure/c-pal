@@ -618,7 +618,7 @@ THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool,
                         /* Codes_SRS_THREADPOOL_LINUX_07_061: [ threadpool_timer_start shall return and allocated handle in timer_handle. ]*/
                         /* Codes_SRS_THREADPOOL_LINUX_07_062: [ threadpool_timer_start shall succeed and return a non-NULL handle. ]*/
                         result->time_id = time_id;
-                        LogInfo("here");
+
                         srw_lock_ll_acquire_exclusive(&timer_table_lock);
                         for(uint32_t i = 0; i < TIMER_TABLE_SIZE; i++)
                         {
