@@ -98,7 +98,8 @@ typedef struct THREADPOOL_TAG
 
 THANDLE_TYPE_DEFINE(THREADPOOL);
 
-#define TIMER_TABLE_SIZE 100
+#define TIMER_TABLE_SIZE 2048
+#define MAX_TIMER_START_RETRY 2
 static SRW_LOCK_LL timer_table_lock;
 static THREADPOOL_TIMER* timer_table[TIMER_TABLE_SIZE] = { NULL };
 static call_once_t g_lazy = LAZY_INIT_NOT_DONE;
@@ -138,9 +139,9 @@ static void on_timer_callback(sigval_t timer_data)
     {
         /* Codes_SRS_THREADPOOL_LINUX_07_100: [ on_timer_callback shall acquire the timer table exclusive lock.]*/
         srw_lock_ll_acquire_exclusive(&timer_table_lock);
-        for(uint32_t i = 0; i < TIMER_TABLE_SIZE; i++)
+        for (uint32_t i = 0; i < TIMER_TABLE_SIZE; i++)
         {
-            if(timer_table[i] == timer_instance)
+            if (timer_table[i] == timer_instance)
             {
                 /* Codes_SRS_THREADPOOL_LINUX_45_004: [ If timer exists, on_timer_callback shall call the timer's work_function with work_function_ctx. ]*/
                 timer_instance->work_function(timer_instance->work_function_ctx);
@@ -538,9 +539,9 @@ static void threadpool_timer_dispose(THREADPOOL_TIMER * timer)
 
     /* Codes_SRS_THREADPOOL_LINUX_07_102: [ threadpool_timer_dispose shall acquire the timer table exclusive lock. ]*/
     srw_lock_ll_acquire_exclusive(&timer_table_lock);
-    for(uint32_t i = 0; i < TIMER_TABLE_SIZE; i++)
+    for (uint32_t i = 0; i < TIMER_TABLE_SIZE; i++)
     {
-        if(timer_table[i] == timer)
+        if (timer_table[i] == timer)
         {
             timer_table[i] = NULL;
             break;
@@ -627,7 +628,8 @@ THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool,
                         result->time_id = time_id;
 
                         srw_lock_ll_acquire_exclusive(&timer_table_lock);
-                        for(uint32_t i = 0; i < TIMER_TABLE_SIZE; i++)
+                        uint32_t retry_times = 0;
+                        for (uint32_t i = 0; i < TIMER_TABLE_SIZE; i++)
                         {
                             if (timer_table[i] == NULL)
                             {
@@ -635,12 +637,20 @@ THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool,
                                 srw_lock_ll_release_exclusive(&timer_table_lock);
                                 goto all_ok;
                             }
-                            else if(i == TIMER_TABLE_SIZE - 1)
+                            else if (i == TIMER_TABLE_SIZE - 1)
                             {
-                                LogError("No timers available");
+                                if (retry_times < MAX_TIMER_START_RETRY)
+                                {
+                                    ThreadAPI_Sleep(10);
+                                    i = 0;
+                                }
+                                else
+                                {
+                                    LogError("No timers available");
+                                }
+                                srw_lock_ll_release_exclusive(&timer_table_lock);
                             }
                         }
-                        srw_lock_ll_release_exclusive(&timer_table_lock);
                     }
                     /* Codes_SRS_THREADPOOL_LINUX_07_063: [ If timer_settime fails, threadpool_timer_start shall delete the timer by calling timer_delete. ]*/
                     if (timer_delete(time_id) != 0)

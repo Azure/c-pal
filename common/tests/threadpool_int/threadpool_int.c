@@ -411,7 +411,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_with_pool_threads))
 
 #define N_THREADPOOL_TIMERS 100
 
-TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _timer_start_runs_once))
+TEST_FUNCTION(starting_one_timer_runs_once)
 {
     // assert
     // create an execution engine
@@ -843,7 +843,7 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
     THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&g_call_count);
     ASSERT_IS_NOT_NULL(timer);
 
-    // Timer should run 4 times in about 2.1 seconds
+    // Timer should run 4 times in about 3 seconds
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, 4, 3000));
     LogInfo("Timer completed 4 times");
 
@@ -855,7 +855,7 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
 
     // assert
 
-    // Timer should run 2 more times in about 2.1 seconds
+    // Timer should run 2 more times in about 3 seconds
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, 2, 3000));
     LogInfo("Timer completed 2 more times");
 
