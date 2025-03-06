@@ -215,12 +215,6 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_TIMER), threadpool_timer_start, THANDLE(T
 
 **SRS_THREADPOOL_LINUX_07_096: [** threadpool_timer_start shall call `lazy_init` with `do_init` as initialization function.  **]**
 
-**SRS_THREADPOOL_LINUX_07_097: [** `do_init` shall initialize the lock guarding the global timer table by calling `srw_lock_ll_init`. **]**
-
-**SRS_THREADPOOL_LINUX_07_098: [** If `srw_lock_ll_init` fails then `do_init` shall return a non-zero value. **]**
-
-**SRS_THREADPOOL_LINUX_07_099: [** `do_init` shall succeed and return 0. **]**
-
 **SRS_THREADPOOL_LINUX_07_057: [** `work_function_ctx` shall be allowed to be `NULL`. **]**
 
 **SRS_THREADPOOL_LINUX_07_059: [** `threadpool_timer_start` shall call `timer_create` and `timer_settime` to schedule execution. **]**
@@ -236,6 +230,19 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_TIMER), threadpool_timer_start, THANDLE(T
 **SRS_THREADPOOL_LINUX_07_062: [** `threadpool_timer_start` shall succeed and return a non-NULL handle. **]**
 
 **SRS_THREADPOOL_LINUX_07_063: [** If `timer_settime` fails, `threadpool_timer_start` shall delete the timer by calling `timer_delete`. **]**
+
+### do_init
+```C
+static int do_init(void* params);
+```
+
+`do_init` initialize the global timer lock if the lock is not initialized yet.
+
+**SRS_THREADPOOL_LINUX_07_097: [** `do_init` shall initialize the lock guarding the global timer table by calling `srw_lock_ll_init`. **]**
+
+**SRS_THREADPOOL_LINUX_07_098: [** If `srw_lock_ll_init` fails then `do_init` shall return a non-zero value. **]**
+
+**SRS_THREADPOOL_LINUX_07_099: [** `do_init` shall succeed and return 0. **]**
 
 ### threadpool_timer_restart
 
