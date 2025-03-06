@@ -54,6 +54,7 @@
 #define MIN_THREAD_COUNT 5
 #define MAX_THREAD_COUNT 10
 #define MAX_THREADPOOL_TIMER_COUNT 64
+#define MAX_TIMERS 2048
 
 struct itimerspec;
 struct timespec;
@@ -842,6 +843,48 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_fails)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
+/* Codes_SRS_THREADPOOL_LINUX_07_060: [ If any error occurs, threadpool_timer_start shall fail and return NULL. ]*/
+TEST_FUNCTION(threadpool_timer_start_fails_when_no_available_slot_in_timer_table)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool();
+
+    THANDLE(THREADPOOL_TIMER)* timers = malloc(MAX_TIMERS * sizeof(THANDLE(THREADPOOL_TIMER)));
+    for (uint32_t i = 0; i < MAX_TIMERS; i++)
+    {
+        THANDLE(THREADPOOL_TIMER) timer_temp = threadpool_timer_start(threadpool, 42, 2000, test_work_function, (void*)0x4243);
+
+        THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)((void *) & timers[i], &timer_temp);
+        ASSERT_IS_NOT_NULL(timers[i]);
+    }
+    umock_c_reset_all_calls();
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
+    STRICT_EXPECTED_CALL(srw_lock_ll_init(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_timer_create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, 0, IGNORED_ARG, NULL));
+    STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_timer_delete(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+
+    //act
+    THANDLE(THREADPOOL_TIMER) timer_instance = threadpool_timer_start(threadpool, 42, 2000, test_work_function, (void*)0x4243);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NULL(timer_instance);
+
+    // cleanup
+    for (uint32_t i = 0; i < MAX_TIMERS; i++)
+    {
+        THANDLE_ASSIGN(THREADPOOL_TIMER)((void*)&timers[i], NULL);
+    }
+    free((void*)timers);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
 /* Tests_SRS_THREADPOOL_LINUX_07_058: [ threadpool_timer_start shall allocate memory for THANDLE(THREADPOOL_TIMER), passing threadpool_timer_dispose as dispose function, and store work_function and work_function_ctx in it. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_091: [ threadpool_timer_start shall initialize the lock guarding the timer state by calling srw_lock_ll_init. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_096: [ threadpool_timer_start shall call lazy_init with do_init as initialization function.  ]*/
@@ -850,6 +893,8 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_fails)
 /* Tests_SRS_THREADPOOL_LINUX_07_057: [ work_function_ctx shall be allowed to be NULL. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_059: [ threadpool_timer_start shall call timer_create and timer_settime to schedule execution. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_061: [ threadpool_timer_start shall return and allocated handle in timer_handle. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_105: [ threadpool_timer_start shall acquire the exclusive lock for the timer table. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_106: [ threadpool_timer_start shall add the new timer to the timer table and release the exclusive lock. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_062: [ threadpool_timer_start shall succeed and return a non-NULL handle. ]*/
 TEST_FUNCTION(threadpool_timer_start_succeeds)
 {
@@ -885,6 +930,8 @@ TEST_FUNCTION(threadpool_timer_start_succeeds)
 /* Tests_SRS_THREADPOOL_LINUX_07_099: [ do_init shall succeed and return 0. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_059: [ threadpool_timer_start shall call timer_create and timer_settime to schedule execution. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_061: [ threadpool_timer_start shall return and allocated handle in timer_handle. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_105: [ threadpool_timer_start shall acquire the exclusive lock for the timer table. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_106: [ threadpool_timer_start shall add the new timer to the timer table and release the exclusive lock. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_062: [ threadpool_timer_start shall succeed and return a non-NULL handle. ]*/
 TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_context_succeeds)
 {

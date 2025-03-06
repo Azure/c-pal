@@ -229,6 +229,10 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_TIMER), threadpool_timer_start, THANDLE(T
 
 **SRS_THREADPOOL_LINUX_07_061: [** `threadpool_timer_start` shall return and allocated handle in `timer_handle`. **]**
 
+**SRS_THREADPOOL_LINUX_07_105: [** `threadpool_timer_start` shall acquire the exclusive lock for the timer table. **]**
+
+**SRS_THREADPOOL_LINUX_07_106: [** `threadpool_timer_start` shall add the new timer to the timer table and release the exclusive lock. **]**
+
 **SRS_THREADPOOL_LINUX_07_062: [** `threadpool_timer_start` shall succeed and return a non-NULL handle. **]**
 
 **SRS_THREADPOOL_LINUX_07_063: [** If `timer_settime` fails, `threadpool_timer_start` shall delete the timer by calling `timer_delete`. **]**

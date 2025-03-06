@@ -99,7 +99,6 @@ typedef struct THREADPOOL_TAG
 THANDLE_TYPE_DEFINE(THREADPOOL);
 
 #define TIMER_TABLE_SIZE 2048
-#define MAX_TIMER_START_RETRY 2
 static SRW_LOCK_LL timer_table_lock;
 static THREADPOOL_TIMER* timer_table[TIMER_TABLE_SIZE] = { NULL };
 static call_once_t g_lazy = LAZY_INIT_NOT_DONE;
@@ -627,27 +626,21 @@ THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool,
                         /* Codes_SRS_THREADPOOL_LINUX_07_062: [ threadpool_timer_start shall succeed and return a non-NULL handle. ]*/
                         result->time_id = time_id;
 
+                        /* Codes_SRS_THREADPOOL_LINUX_07_105: [ threadpool_timer_start shall acquire the exclusive lock for the timer table. ]*/
                         srw_lock_ll_acquire_exclusive(&timer_table_lock);
-                        uint32_t retry_times = 0;
                         for (uint32_t i = 0; i < TIMER_TABLE_SIZE; i++)
                         {
                             if (timer_table[i] == NULL)
                             {
+                                /* Codes_SRS_THREADPOOL_LINUX_07_106: [ threadpool_timer_start shall add the new timer to the timer table and release the exclusive lock. ]*/
                                 timer_table[i] = result;
                                 srw_lock_ll_release_exclusive(&timer_table_lock);
                                 goto all_ok;
                             }
                             else if (i == TIMER_TABLE_SIZE - 1)
                             {
-                                if (retry_times < MAX_TIMER_START_RETRY)
-                                {
-                                    ThreadAPI_Sleep(10);
-                                    i = 0;
-                                }
-                                else
-                                {
-                                    LogError("No timers available");
-                                }
+                                /* Codes_SRS_THREADPOOL_LINUX_07_060: [ If any error occurs, threadpool_timer_start shall fail and return NULL. ]*/
+                                LogError("No timers available");
                                 srw_lock_ll_release_exclusive(&timer_table_lock);
                             }
                         }
