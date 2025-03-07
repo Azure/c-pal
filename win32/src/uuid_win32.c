@@ -14,7 +14,7 @@
 static int is_UUID_T_and_UUID_same_size[sizeof(UUID_T) == sizeof(UUID)]; /*just a sanity check*/
 
 /*these are interface requirements*/
-/*Codes_SRS_UUID_02_001: [ If destination is NULL then uuid_produce shall fail and return a non-NULL value. ]*/
+/*Codes_SRS_UUID_02_001: [ If destination is NULL then uuid_produce shall fail and return a non-zero value. ]*/
 /*Codes_SRS_UUID_02_002: [ uuid_produce shall generate in destination the representation of a UUID (as per RFC 4122). ]*/
 /*Codes_SRS_UUID_02_004: [ uuid_produce shall succeed and return 0. ]*/
 
@@ -41,8 +41,8 @@ static void GUID_to_UUID_T(const GUID* guid, UUID_T uuid)
 int uuid_produce(UUID_T destination)
 {
     int result;
-    /*Codes_SRS_UUID_02_001: [ If destination is NULL then uuid_produce shall fail and return a non-NULL value. ]*/
-    /*Codes_SRS_UUID_WIN32_02_001: [ If destination is NULL then uuid_produce shall fail and return a non-NULL value. ]*/
+    /*Codes_SRS_UUID_02_001: [ If destination is NULL then uuid_produce shall fail and return a non-zero value. ]*/
+    /*Codes_SRS_UUID_WIN32_02_001: [ If destination is NULL then uuid_produce shall fail and return a non-zero value. ]*/
     if (destination == NULL)
     {
         LogError("invalid argument UUID_T destination=%p", destination);

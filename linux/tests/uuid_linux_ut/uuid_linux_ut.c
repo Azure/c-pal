@@ -149,7 +149,7 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
     umock_c_negative_tests_deinit();
 }
 
-/*Tests_SRS_UUID_LINUX_02_001: [ If destination is NULL then uuid_produce shall fail and return a non-NULL value. ]*/
+/*Tests_SRS_UUID_LINUX_02_001: [ If destination is NULL then uuid_produce shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(uuid_produce_with_destination_NULL_fails)
 {
     ///arrange
