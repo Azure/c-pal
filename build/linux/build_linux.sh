@@ -19,6 +19,6 @@ cmake -Drun_valgrind:BOOL=ON -Drun_helgrind:BOOL=ON $build_root -Drun_unittests:
 make --jobs=$CORES
 
 # /*reenable threadpool_int_valgrind with https://msazure.visualstudio.com/One/_workitems/edit/31576998
-ctest -j $CORES --output-on-failure -E "threadpool_int_valgrind"
+ctest -j $CORES --output-on-failure
 
-popd 
+popd

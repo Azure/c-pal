@@ -213,6 +213,8 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_TIMER), threadpool_timer_start, THANDLE(T
 
 **SRS_THREADPOOL_LINUX_07_091: [** `threadpool_timer_start` shall initialize the lock guarding the timer state by calling `srw_lock_ll_init`. **]**
 
+**SRS_THREADPOOL_LINUX_07_096: [** threadpool_timer_start shall call `lazy_init` with `do_init` as initialization function.  **]**
+
 **SRS_THREADPOOL_LINUX_07_057: [** `work_function_ctx` shall be allowed to be `NULL`. **]**
 
 **SRS_THREADPOOL_LINUX_07_059: [** `threadpool_timer_start` shall call `timer_create` and `timer_settime` to schedule execution. **]**
@@ -221,9 +223,26 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_TIMER), threadpool_timer_start, THANDLE(T
 
 **SRS_THREADPOOL_LINUX_07_061: [** `threadpool_timer_start` shall return and allocated handle in `timer_handle`. **]**
 
+**SRS_THREADPOOL_LINUX_07_105: [** `threadpool_timer_start` shall acquire the exclusive lock for the timer table. **]**
+
+**SRS_THREADPOOL_LINUX_07_106: [** `threadpool_timer_start` shall add the new timer to the timer table and release the exclusive lock. **]**
+
 **SRS_THREADPOOL_LINUX_07_062: [** `threadpool_timer_start` shall succeed and return a non-NULL handle. **]**
 
 **SRS_THREADPOOL_LINUX_07_063: [** If `timer_settime` fails, `threadpool_timer_start` shall delete the timer by calling `timer_delete`. **]**
+
+### do_init
+```C
+static int do_init(void* params);
+```
+
+`do_init` initialize the global timer lock if the lock is not initialized yet.
+
+**SRS_THREADPOOL_LINUX_07_097: [** `do_init` shall initialize the lock guarding the global timer table by calling `srw_lock_ll_init`. **]**
+
+**SRS_THREADPOOL_LINUX_07_098: [** If `srw_lock_ll_init` fails then `do_init` shall return a non-zero value. **]**
+
+**SRS_THREADPOOL_LINUX_07_099: [** `do_init` shall succeed and return 0. **]**
 
 ### threadpool_timer_restart
 
@@ -271,7 +290,9 @@ static void threadpool_timer_dispose(THREADPOOL_TIMER * timer);
 
 **SRS_THREADPOOL_LINUX_07_071: [** `threadpool_timer_dispose` shall call `timer_delete` to destroy the ongoing timers. **]**
 
-**SRS_THREADPOOL_LINUX_07_096: [** `threadpool_timer_dispose` shall call ThreadAPI_Sleep to allow timer resources to clean up. **]**
+**SRS_THREADPOOL_LINUX_07_102: [** `threadpool_timer_dispose` shall acquire the timer table exclusive lock. **]**
+
+**SRS_THREADPOOL_LINUX_07_104: [** `threadpool_timer_dispose` shall release the timer table exclusive lock. **]**
 
 **SRS_THREADPOOL_LINUX_07_095: [** `threadpool_timer_dispose` shall call `srw_lock_ll_deinit`. **]**
 
@@ -287,7 +308,11 @@ static void on_timer_callback(sigval_t timer_data);
 
 **SRS_THREADPOOL_LINUX_45_001: [** If timer instance is `NULL`, then `on_timer_callback` shall return. **]**
 
-**SRS_THREADPOOL_LINUX_45_004: [** `on_timer_callback` shall call the timer's `work_function` with `work_function_ctx`. **]**
+**SRS_THREADPOOL_LINUX_07_100: [** `on_timer_callback` shall acquire the timer table exclusive lock. **]**
+
+**SRS_THREADPOOL_LINUX_45_004: [** If timer exists, `on_timer_callback` shall call the timer's `work_function` with `work_function_ctx`. **]**
+
+**SRS_THREADPOOL_LINUX_07_101: [** `on_timer_callback` shall release the timer table exclusive lock. **]**
 
 ### threadpool_work_func
 
