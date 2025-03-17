@@ -14,6 +14,15 @@
    ...
 }
 {
+   <vsnprintf suppression>
+   Helgrind:Race
+   ...
+   fun:__vsnprintf_internal
+   ...
+   fun:log_sink_console_log
+   ...
+}
+{
    <incorrect interlocked flagging>
    Helgrind:Race
    fun:interlocked_compare_exchange

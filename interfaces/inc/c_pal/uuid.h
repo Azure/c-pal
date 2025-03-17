@@ -7,7 +7,7 @@
 #include <inttypes.h>
 #include <stdbool.h>
 
-#ifdef WIN32 
+#ifdef WIN32
 #include "windows.h"
 #endif
 
@@ -15,12 +15,13 @@
 typedef unsigned char UUID_T[UUID_T_LENGTH]; /*introduces UUID_T as "array of 16 bytes"*/
 
 #include "macro_utils/macro_utils.h"
+
 #include "umock_c/umock_c_prod.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-    MOCKABLE_FUNCTION(, int, uuid_produce, UUID_T, destination);
+    MOCKABLE_FUNCTION_WITH_RETURNS(, int, uuid_produce, UUID_T, destination)(0, MU_FAILURE);
     MOCKABLE_FUNCTION(, bool, is_uuid_nil, const UUID_T, uuid_value);
 
 #ifdef WIN32 /*some functions, format specifiers only exists in Windows realm*/

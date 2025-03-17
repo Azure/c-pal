@@ -28,7 +28,7 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 {
 }
 
-/*Tests_SRS_UUID_02_001: [ If destination is NULL then uuid_produce shall fail and return a non-NULL value. ]*/
+/*Tests_SRS_UUID_02_001: [ If destination is NULL then uuid_produce shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(uuid_produce_succeeds_with_destination_NULL)
 {
     ///arrange
