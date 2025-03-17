@@ -411,7 +411,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_with_pool_threads))
 
 #define N_THREADPOOL_TIMERS 100
 
-TEST_FUNCTION(starting_one_timer_runs_once)
+TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _timer_start_runs_once))
 {
     // assert
     // create an execution engine
