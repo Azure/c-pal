@@ -470,6 +470,7 @@ TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _start_timers_work_and_run_p
 
     // Every timer should execute at least twice in less than 1 second
     // Wait up to 2 seconds
+
     wait_for_greater_or_equal(&g_call_count, (2 * N_THREADPOOL_TIMERS), 2000);
 
     LogInfo("Timers completed, stopping all timers");
@@ -842,7 +843,7 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
     THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(threadpool, 100, 500, work_function, (void*)&g_call_count);
     ASSERT_IS_NOT_NULL(timer);
 
-    // Timer should run 4 times in about 2.1 seconds
+    // Timer should run 4 times in about 3 seconds
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, 4, 3000));
     LogInfo("Timer completed 4 times");
 
@@ -854,7 +855,7 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
 
     // assert
 
-    // Timer should run 2 more times in about 2.1 seconds
+    // Timer should run 2 more times in about 3 seconds
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&g_call_count, 2, 3000));
     LogInfo("Timer completed 2 more times");
 

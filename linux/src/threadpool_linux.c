@@ -26,6 +26,7 @@
 #include "c_pal/threadapi.h"
 #include "c_pal/interlocked.h"
 #include "c_pal/interlocked_hl.h"
+#include "c_pal/lazy_init.h"
 #include "c_pal/srw_lock.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_linux.h"
@@ -97,6 +98,32 @@ typedef struct THREADPOOL_TAG
 
 THANDLE_TYPE_DEFINE(THREADPOOL);
 
+#define TIMER_TABLE_SIZE 2048
+static SRW_LOCK_LL timer_table_lock;
+static THREADPOOL_TIMER* timer_table[TIMER_TABLE_SIZE] = { NULL };
+static call_once_t g_lazy = LAZY_INIT_NOT_DONE;
+
+static int do_init(void* params)
+{
+    int result;
+
+    SRW_LOCK_LL* srw_lock_ll_init_params = params;
+
+    /* Codes_SRS_THREADPOOL_LINUX_07_097: [ do_init shall initialize the lock guarding the global timer table by calling srw_lock_ll_init. ]*/
+    if (srw_lock_ll_init(srw_lock_ll_init_params) != 0)
+    {
+        /* Codes_SRS_THREADPOOL_LINUX_07_098: [ If srw_lock_ll_init fails then do_init shall return a non-zero value. ]*/
+        LogError("failure in srw_lock_ll_init(srw_lock_ll_init_params=%p)", srw_lock_ll_init_params);
+        result = MU_FAILURE;
+    }
+    else
+    {
+        /* Codes_SRS_THREADPOOL_LINUX_07_099: [ do_init shall succeed and return 0. ]*/
+        result = 0;
+    }
+    return result;
+}
+
 static void on_timer_callback(sigval_t timer_data)
 {
     /* Codes_SRS_THREADPOOL_LINUX_45_002: [ on_timer_callback shall set the timer instance to timer_data.sival_ptr. ]*/
@@ -109,8 +136,18 @@ static void on_timer_callback(sigval_t timer_data)
     }
     else
     {
-        /* Codes_SRS_THREADPOOL_LINUX_45_004: [ on_timer_callback shall call the timer's work_function with work_function_ctx. ]*/
-        timer_instance->work_function(timer_instance->work_function_ctx);
+        /* Codes_SRS_THREADPOOL_LINUX_07_100: [ on_timer_callback shall acquire the timer table exclusive lock.]*/
+        srw_lock_ll_acquire_exclusive(&timer_table_lock);
+        for (uint32_t i = 0; i < TIMER_TABLE_SIZE; i++)
+        {
+            if (timer_table[i] == timer_instance)
+            {
+                /* Codes_SRS_THREADPOOL_LINUX_45_004: [ If timer exists, on_timer_callback shall call the timer's work_function with work_function_ctx. ]*/
+                timer_instance->work_function(timer_instance->work_function_ctx);
+            }
+        }
+        /* Codes_SRS_THREADPOOL_LINUX_07_101: [ on_timer_callback shall release the timer table exclusive lock. ]*/
+        srw_lock_ll_release_exclusive(&timer_table_lock);
     }
 }
 
@@ -498,17 +535,19 @@ static void threadpool_timer_dispose(THREADPOOL_TIMER * timer)
     {
         // Do Nothing
     }
-    // Even though timer_delete does cancel any events, there is a small window where an event was triggered just before and a thread is being created.
-    // So the callback can still execute after the timer_delete call. A small wait here keeps the timer instance alive long enough for
-    // the callback to use it if we hit this window.
 
-    /* Codes_SRS_THREADPOOL_LINUX_07_096: [ threadpool_timer_dispose shall call ThreadAPI_Sleep to allow timer resources to clean up. ]*/
-    ThreadAPI_Sleep(35);
-    // This doesn't fix the problem, this won't 100% guarantee the thread will be executed before we free the timer data. There are a couple of
-    // options to fix the problem, but the way that fits this threadpool model best would be to keep a pool of timers in the threadpool,
-    // and manage each state as in-use or not. That way the timer data allocation is not dependent on threadpool_timer_start/destroy.
-    // To reproduce this problem, create a large number of threads that delete the timer at the same time it is due to expire and remove the pause
-    // above.
+    /* Codes_SRS_THREADPOOL_LINUX_07_102: [ threadpool_timer_dispose shall acquire the timer table exclusive lock. ]*/
+    srw_lock_ll_acquire_exclusive(&timer_table_lock);
+    for (uint32_t i = 0; i < TIMER_TABLE_SIZE; i++)
+    {
+        if (timer_table[i] == timer)
+        {
+            timer_table[i] = NULL;
+            break;
+        }
+    }
+    /* Codes_SRS_THREADPOOL_LINUX_07_104: [ threadpool_timer_dispose shall release the timer table exclusive lock. ]*/
+    srw_lock_ll_release_exclusive(&timer_table_lock);
 
     /* Codes_SRS_THREADPOOL_LINUX_07_095: [ threadpool_timer_dispose shall call srw_lock_ll_deinit. ]*/
     srw_lock_ll_deinit(&timer->timer_lock);
@@ -543,7 +582,13 @@ THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool,
             if (srw_lock_ll_init(&result->timer_lock) != 0)
             {
                 /* Codes_SRS_THREADPOOL_LINUX_07_060: [ If any error occurs, threadpool_timer_start shall fail and return NULL. ]*/
-                LogError("srw_lock_ll_init failed");
+                LogError("srw_lock_ll_init failed, result->timer_lock = %p.", &result->timer_lock);
+            }
+            /* Codes_SRS_THREADPOOL_LINUX_07_096: [ threadpool_timer_start shall call lazy_init with do_init as initialization function.  ]*/
+            else if(lazy_init(&g_lazy, do_init, (void*)&timer_table_lock) != LAZY_INIT_OK)
+            {
+                /* Codes_SRS_THREADPOOL_LINUX_07_060: [ If any error occurs, threadpool_timer_start shall fail and return NULL. ]*/
+                LogError("failure in lazy_init(&g_lazy=%p, do_init=%p, timer_table_lock=%p)", &g_lazy, do_init, &timer_table_lock);
             }
             else
             {
@@ -580,7 +625,25 @@ THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool,
                         /* Codes_SRS_THREADPOOL_LINUX_07_061: [ threadpool_timer_start shall return and allocated handle in timer_handle. ]*/
                         /* Codes_SRS_THREADPOOL_LINUX_07_062: [ threadpool_timer_start shall succeed and return a non-NULL handle. ]*/
                         result->time_id = time_id;
-                        goto all_ok;
+
+                        /* Codes_SRS_THREADPOOL_LINUX_07_105: [ threadpool_timer_start shall acquire the exclusive lock for the timer table. ]*/
+                        srw_lock_ll_acquire_exclusive(&timer_table_lock);
+                        for (uint32_t i = 0; i < TIMER_TABLE_SIZE; i++)
+                        {
+                            if (timer_table[i] == NULL)
+                            {
+                                /* Codes_SRS_THREADPOOL_LINUX_07_106: [ threadpool_timer_start shall add the new timer to the timer table and release the exclusive lock. ]*/
+                                timer_table[i] = result;
+                                srw_lock_ll_release_exclusive(&timer_table_lock);
+                                goto all_ok;
+                            }
+                            else if (i == TIMER_TABLE_SIZE - 1)
+                            {
+                                /* Codes_SRS_THREADPOOL_LINUX_07_060: [ If any error occurs, threadpool_timer_start shall fail and return NULL. ]*/
+                                LogError("No timers available");
+                                srw_lock_ll_release_exclusive(&timer_table_lock);
+                            }
+                        }
                     }
                     /* Codes_SRS_THREADPOOL_LINUX_07_063: [ If timer_settime fails, threadpool_timer_start shall delete the timer by calling timer_delete. ]*/
                     if (timer_delete(time_id) != 0)
