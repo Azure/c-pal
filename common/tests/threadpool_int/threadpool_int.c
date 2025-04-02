@@ -694,7 +694,7 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
         LogInfo("Starting timer");
 
         // act (start a timer to start delayed and then execute once)
-        THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(threadpool, 2000, 0, work_function, (void*) & g_call_count);
+        THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(threadpool, 2000, 0, work_function, (void*)&g_call_count);
         ASSERT_IS_NOT_NULL(timer);
 
         // assert
