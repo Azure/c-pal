@@ -1405,10 +1405,7 @@ TEST_FUNCTION(chaos_knight_test)
     execution_engine_dec_ref(execution_engine);
 }
 
-//the following 1 test passed on windows, but need some fix on linux side for schedule_work_item https://msazure.visualstudio.com/One/_workitems/edit/30570880
-
-
-//test used for detect race condition between timer_restart/timer_cancel and timer destory, failed due to the race condition for the current code, will uncomment after the fix
+//test used to detect race condition between timer_restart/timer_cancel and timer destory, failed due to the race condition for the current code, will uncomment after the fix
 TEST_FUNCTION(chaos_knight_test_with_timers_no_lock)
 {
      // start a number of threads and each of them will do a random action on the threadpool
