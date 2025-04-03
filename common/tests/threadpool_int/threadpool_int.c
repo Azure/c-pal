@@ -128,9 +128,9 @@ static void threadpool_long_task_v2(void* context)
 
 static void work_function(void* context)
 {
-    (void) context;
-    (void)interlocked_increment_64(&g_call_count);
-    wake_by_address_single_64(&g_call_count);
+    volatile_atomic int64_t* call_count = (volatile_atomic int64_t*)context;
+    (void)interlocked_increment_64(call_count);
+    wake_by_address_single_64((void*)call_count);
 }
 
 static void wait_work_function(void* context)
@@ -694,7 +694,7 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
         LogInfo("Starting timer");
 
         // act (start a timer to start delayed and then execute once)
-        THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(threadpool, 2000, 0, work_function, NULL);
+        THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(threadpool, 2000, 0, work_function, (void*)&g_call_count);
         ASSERT_IS_NOT_NULL(timer);
 
         // assert
@@ -1081,17 +1081,19 @@ static int chaos_thread_func(void* context)
         {
         case 0:
             //perform a schedule item
-            if (threadpool_schedule_work(chaos_test_data->threadpool, threadpool_task_wait_60_millisec, (void*)&chaos_test_data->executed_work_functions) == 0)
+            if (threadpool_schedule_work(chaos_test_data->threadpool, work_function, (void*)&chaos_test_data->executed_work_functions) == 0)
             {
                 (void)interlocked_increment_64(&chaos_test_data->expected_call_count);
+                wake_by_address_single_64(&chaos_test_data->expected_call_count);
             }
             break;
         case 1:
             // perform a schedule work item
-            /*if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
+            if (threadpool_schedule_work_item(chaos_test_data->threadpool, chaos_test_data->work_item_context) == 0)
             {
                 (void)interlocked_increment_64(&chaos_test_data->expected_call_count);
-            }*/
+                wake_by_address_single_64(&chaos_test_data->expected_call_count);
+            }
             break;
         }
     }
@@ -1347,62 +1349,64 @@ static int chaos_thread_with_timers_no_lock_and_null_work_item_func(void* contex
     return 0;
 }
 
-//the following 2 tests passed on windows now, but need some fix on linux side for schedule_work_item https://msazure.visualstudio.com/One/_workitems/edit/30570880
-// TEST_FUNCTION(chaos_knight_test)
-// {
-//     // start a number of threads and each of them will do a random action on the threadpool
-//     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 16, 0 };
-//     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
-//     THREAD_HANDLE thread_handles[16];
-//     size_t i;
-//     CHAOS_TEST_DATA chaos_test_data;
 
-//     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
-//     ASSERT_IS_NOT_NULL(threadpool);
+TEST_FUNCTION(chaos_knight_test)
+{
+    // start a number of threads and each of them will do a random action on the threadpool
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 16, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    THREAD_HANDLE thread_handles[CHAOS_THREAD_COUNT];
+    size_t i;
+    CHAOS_TEST_DATA chaos_test_data;
 
-//     THANDLE_INITIALIZE_MOVE(THREADPOOL)(&chaos_test_data.threadpool, &threadpool);
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
 
-//     (void)interlocked_exchange_64(&chaos_test_data.expected_call_count, 0);
-//     (void)interlocked_exchange_64(&chaos_test_data.executed_work_functions, 0);
-//     (void)interlocked_exchange(&chaos_test_data.chaos_test_done, 0);
+    THANDLE_INITIALIZE_MOVE(THREADPOOL)(&chaos_test_data.threadpool, &threadpool);
 
-//     for (i = 0; i < MAX_THREADPOOL_TIMER_COUNT; i++)
-//     {
-//         THANDLE_INITIALIZE(THREADPOOL_TIMER)(&chaos_test_data.timers[i].timer, NULL);
-//         interlocked_exchange(&chaos_test_data.timers[i].state, THREADPOOL_TIMER_STATE_NONE);
-//     }
+    (void)interlocked_exchange_64(&chaos_test_data.expected_call_count, 0);
+    (void)interlocked_exchange_64(&chaos_test_data.executed_work_functions, 0);
+    (void)interlocked_exchange(&chaos_test_data.chaos_test_done, 0);
 
-//     // Create the Work Item Context once
-//     THANDLE(THREADPOOL_WORK_ITEM) work_item = threadpool_create_work_item(chaos_test_data.threadpool, threadpool_task_wait_20_millisec, (void*)&chaos_test_data.executed_work_functions);
-//     for (i = 0; i < 16; i++)
-//     {
-//         ThreadAPI_Create(&thread_handles[i], chaos_thread_func, &chaos_test_data);
-//         ASSERT_IS_NOT_NULL(thread_handles[i], "thread %zu failed to start", i);
-//     }
-//     // wait for some time
-//     ThreadAPI_Sleep(1);
+    for (i = 0; i < MAX_THREADPOOL_TIMER_COUNT; i++)
+    {
+        THANDLE_INITIALIZE(THREADPOOL_TIMER)(&chaos_test_data.timers[i].timer, NULL);
+        interlocked_exchange(&chaos_test_data.timers[i].state, THREADPOOL_TIMER_STATE_NONE);
+    }
 
-//     (void)interlocked_exchange(&chaos_test_data.chaos_test_done, 1);
-//     // wait for all threads to complete
-//     for (i = 0; i < 16; i++)
-//     {
-//         int dont_care;
-//         ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(thread_handles[i], &dont_care));
-//     }
-//     LogInfo("executed_work_functions=%" PRIu64 ", expected_call_count=%" PRIu64 "", chaos_test_data.executed_work_functions, chaos_test_data.expected_call_count);
-//     // assert that all scheduled items were executed
-//     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&chaos_test_data.executed_work_functions, chaos_test_data.expected_call_count, UINT32_MAX));
+    // Create the Work Item Context once
+    THANDLE(THREADPOOL_WORK_ITEM) work_item = threadpool_create_work_item(chaos_test_data.threadpool, work_function, (void*)&chaos_test_data.executed_work_functions);
+    THANDLE_INITIALIZE_MOVE(THREADPOOL_WORK_ITEM)(&chaos_test_data.work_item_context, &work_item);
 
-//     LogInfo("Chaos test executed %" PRId64 " work items",
-//         interlocked_add_64(&chaos_test_data.executed_work_functions, 0));
+    for (i = 0; i < CHAOS_THREAD_COUNT; i++)
+    {
+        ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&thread_handles[i], chaos_thread_func, &chaos_test_data));
+        ASSERT_IS_NOT_NULL(thread_handles[i], "thread %zu failed to start", i);
+    }
 
-//     // call close
-//     THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&work_item, NULL);
+    (void)interlocked_exchange(&chaos_test_data.chaos_test_done, 1);
+    // wait for all threads to complete
+    for (i = 0; i < CHAOS_THREAD_COUNT; i++)
+    {
+        int dont_care;
+        ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(thread_handles[i], &dont_care));
+    }
+    LogInfo("executed_work_functions=%" PRIu64 ", expected_call_count=%" PRIu64 "", chaos_test_data.executed_work_functions, chaos_test_data.expected_call_count);
+    // assert that all scheduled items were executed
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&chaos_test_data.executed_work_functions, chaos_test_data.expected_call_count, UINT32_MAX));
 
-//     // cleanup
-//     THANDLE_ASSIGN(THREADPOOL)(&chaos_test_data.threadpool, NULL);
-//     execution_engine_dec_ref(execution_engine);
-// }
+    LogInfo("Chaos test executed %" PRId64 " work items", interlocked_add_64(&chaos_test_data.executed_work_functions, 0));
+
+    // call close
+    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&chaos_test_data.work_item_context, NULL);
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&chaos_test_data.threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+//the following 1 test passed on windows, but need some fix on linux side for schedule_work_item https://msazure.visualstudio.com/One/_workitems/edit/30570880
+
 
 //test used for detect race condition between timer_restart/timer_cancel and timer destory, failed due to the race condition for the current code, will uncomment after the fix
 // TEST_FUNCTION(chaos_knight_test_with_timers_no_lock)
