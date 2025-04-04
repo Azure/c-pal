@@ -1119,7 +1119,7 @@ static int chaos_thread_with_timers_no_lock_func(void* context)
 
     while (interlocked_add(&chaos_test_data->chaos_test_done, 0) == 0)
     {
-        int which_action = rand() * (MU_ENUM_VALUE_COUNT(TEST_ACTION_VALUES) - 2) / RAND_MAX + 1;
+        int which_action = rand() * (MU_ENUM_VALUE_COUNT(TEST_ACTION_VALUES) - 1) / RAND_MAX + 1;
         switch (which_action)
         {
         default:
@@ -1145,7 +1145,7 @@ static int chaos_thread_with_timers_no_lock_func(void* context)
             // perform a schedule item
             if (interlocked_add(&chaos_test_data->can_schedule_works, 0) != 0)
             {
-                if (threadpool_schedule_work(chaos_test_data->threadpool, threadpool_task_wait_20_millisec, (void*)&chaos_test_data->executed_work_functions) == 0)
+                if (threadpool_schedule_work(chaos_test_data->threadpool, work_function, (void*)&chaos_test_data->executed_work_functions) == 0)
                 {
                     (void)interlocked_increment_64(&chaos_test_data->expected_call_count);
                 }
@@ -1405,7 +1405,7 @@ TEST_FUNCTION(chaos_knight_test)
     execution_engine_dec_ref(execution_engine);
 }
 
-//test used to detect race condition between timer_restart/timer_cancel and timer destory, failed due to the race condition for the current code, will uncomment after the fix
+//test used to detect race condition between timer_restart/timer_cancel and timer destory, failed due to the race condition for the current code
 TEST_FUNCTION(chaos_knight_test_with_timers_no_lock)
 {
      // start a number of threads and each of them will do a random action on the threadpool
@@ -1434,17 +1434,17 @@ TEST_FUNCTION(chaos_knight_test_with_timers_no_lock)
          (void)interlocked_exchange(&chaos_test_data.timers[i].state, THREADPOOL_TIMER_STATE_NONE);
      }
 
-     THANDLE(THREADPOOL_WORK_ITEM) work_item = threadpool_create_work_item(chaos_test_data.threadpool, threadpool_task_wait_20_millisec, (void*)&chaos_test_data.executed_work_functions);
+     THANDLE(THREADPOOL_WORK_ITEM) work_item = threadpool_create_work_item(chaos_test_data.threadpool, work_function, (void*)&chaos_test_data.executed_work_functions);
      ASSERT_IS_NOT_NULL(work_item);
      THANDLE_INITIALIZE_MOVE(THREADPOOL_WORK_ITEM)(&chaos_test_data.work_item_context, &work_item);
      for (i = 0; i < CHAOS_THREAD_COUNT; i++)
      {
-         ThreadAPI_Create(&thread_handles[i], chaos_thread_with_timers_no_lock_func, &chaos_test_data);
+         ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&thread_handles[i], chaos_thread_with_timers_no_lock_func, &chaos_test_data));
          ASSERT_IS_NOT_NULL(thread_handles[i], "thread %zu failed to start", i);
      }
 
      // wait for some time
-     ThreadAPI_Sleep(10);
+     ThreadAPI_Sleep(1000);
 
      (void)interlocked_exchange(&chaos_test_data.chaos_test_done, 1);
 
