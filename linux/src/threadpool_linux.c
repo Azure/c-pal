@@ -99,6 +99,11 @@ typedef struct THREADPOOL_TAG
 THANDLE_TYPE_DEFINE(THREADPOOL);
 
 #define TIMER_TABLE_SIZE 2048
+
+// One of the issues is that for any change to a timer (start/dispose) we're holding a fat lock over
+// the complete table of timers. This poses an issue with calling timer functions from within a timer callback
+// Because the pthread rwlock is not reentrant we end up blocking 
+// Likely one alternative is to downgrade to using the timer lock instead of the fat table lock
 static SRW_LOCK_LL timer_table_lock;
 static THREADPOOL_TIMER* timer_table[TIMER_TABLE_SIZE] = { NULL };
 static call_once_t g_lazy = LAZY_INIT_NOT_DONE;
