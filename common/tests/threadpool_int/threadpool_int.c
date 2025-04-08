@@ -41,9 +41,6 @@ typedef struct WRAP_DATA_TAG
     char mem[10];
 } WRAP_DATA;
 
-#define TEST_TIMEOUT_VALUE      60000   // 60 seconds
-#define X_TEST_FUNCTION(A) void A(void)
-//diff: added this
 #define WAIT_WORK_FUNCTION_SLEEP_IN_MS 300
 
 TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
