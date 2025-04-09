@@ -1219,7 +1219,6 @@ TEST_FUNCTION(on_timer_callback_calls_work_function)
 }
 
 /* Tests_SRS_THREADPOOL_LINUX_45_002: [ on_timer_callback shall extract from the lower bits of timer_data.sival_ptr the information indicating which timer table entry is being triggered. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_45_001: [ If timer instance is NULL, then on_timer_callback shall return. ]*/
 TEST_FUNCTION(on_timer_callback_does_nothing_after_dispose)
 {
     // arrange
@@ -1243,7 +1242,6 @@ TEST_FUNCTION(on_timer_callback_does_nothing_after_dispose)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-#if 0
 /* threadpool_create_work_item */
 
 /* Tests_SRS_THREADPOOL_LINUX_05_001: [ If threadpool is NULL, threadpool_create_work_item shall fail and return a NULL value. ]*/
@@ -1567,6 +1565,5 @@ TEST_FUNCTION(threadpool_schedule_work_item_fails_when_realloc_array_fails)
     THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&threadpool_work_item, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
-#endif
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
