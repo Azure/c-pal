@@ -54,8 +54,7 @@ MU_DEFINE_ENUM_STRINGS(TASK_RESULT, TASK_RESULT_VALUES)
 #define TIMER_STATE_VALUES  \
     TIMER_NOT_USED,         \
     TIMER_ARMED,            \
-    TIMER_CALLING_CALLBACK, \
-    TIMER_DISPOSING
+    TIMER_CALLING_CALLBACK  \
 
 MU_DEFINE_ENUM(TIMER_STATE, TIMER_STATE_VALUES);
 MU_DEFINE_ENUM_STRINGS(TIMER_STATE, TIMER_STATE_VALUES)
@@ -65,7 +64,6 @@ typedef struct CUSTOM_TIMER_DATA_TAG
     THREADPOOL_WORK_FUNCTION work_function;
     void* work_function_ctx;
     volatile_atomic int32_t timer_state; // TIMER_STATE
-    SRW_LOCK_LL timer_lock;
 } CUSTOM_TIMER_DATA;
 
 typedef struct THREADPOOL_TIMER_TAG
@@ -114,7 +112,8 @@ typedef struct THREADPOOL_TAG
 THANDLE_TYPE_DEFINE(THREADPOOL);
 
 // This gives us 2048 timers, plenty for us
-// We'll use the remaining bits as epoch to avoid ABA problems
+// We'll use the remaining bits as epoch to avoid ABA problems (even though ABA is highly unlikely, we'll make it even less likely :-))
+/* Codes_SRS_THREADPOOL_LINUX_01_003: [ 2048 timers shall be supported. ]*/
 #define TIMER_TABLE_INDEX_BITS 11
 
 #define TIMER_TABLE_SIZE (1 << TIMER_TABLE_INDEX_BITS)
@@ -134,6 +133,7 @@ static int do_init(void* params)
 {
     for (uint32_t i = 0; i < TIMER_TABLE_SIZE; i++)
     {
+        /* Codes_SRS_THREADPOOL_LINUX_01_004: [ do_init shall initialize the state for each timer to NOT_USED. ]*/
         (void)interlocked_exchange(&timer_table[i].timer_state, TIMER_NOT_USED);
     }
 
@@ -143,18 +143,20 @@ static int do_init(void* params)
 
 static void on_timer_callback(sigval_t timer_data)
 {
-    /* Codes_SRS_THREADPOOL_LINUX_45_002: [ on_timer_callback shall set the timer instance to timer_data.sival_ptr. ]*/
-    /* Codes_SRS_THREADPOOL_LINUX_45_001: [ If timer instance is NULL, then on_timer_callback shall return. ]*/
+    /* Codes_SRS_THREADPOOL_LINUX_45_002: [ on_timer_callback shall extract from the lower bits of timer_data.sival_ptr the information indicating which timer table entry is being triggered. ]*/
     uint32_t timer_index = TIMER_SIGVAL_TO_TIMER_INDEX((uintptr_t)timer_data.sival_ptr);
     //uint32_t timer_epoch = TIMER_SIGVAL_TO_EPOCH((uintptr_t)timer_data.sival_ptr);
 
     CUSTOM_TIMER_DATA* timer_instance = &timer_table[timer_index];
 
+    /* Codes_SRS_THREADPOOL_LINUX_01_008: [ If the timer is in the state ARMED: ]*/
+    /* Codes_SRS_THREADPOOL_LINUX_01_007: [ on_timer_callback shall transition it to CALLING_CALLBACK. ]*/
     if (interlocked_compare_exchange(&timer_instance->timer_state, TIMER_CALLING_CALLBACK, TIMER_ARMED) == TIMER_ARMED)
     {
-        /* Codes_SRS_THREADPOOL_LINUX_45_004: [ If timer exists, on_timer_callback shall call the timer's work_function with work_function_ctx. ]*/
+        /* Codes_SRS_THREADPOOL_LINUX_45_004: [ on_timer_callback shall call the timer's work_function with work_function_ctx. ]*/
         timer_instance->work_function(timer_instance->work_function_ctx);
 
+        /* Codes_SRS_THREADPOOL_LINUX_01_009: [ on_timer_callback shall transition it to ARMED. ]*/
         (void)interlocked_exchange(&timer_instance->timer_state, TIMER_ARMED);
     }
 }
@@ -547,19 +549,15 @@ static void threadpool_timer_dispose(THREADPOOL_TIMER* timer)
 
     do
     {
-        int32_t current_timer_state = interlocked_compare_exchange(&custom_timer_data->timer_state, TIMER_DISPOSING, TIMER_ARMED);
+        /* Codes_SRS_THREADPOOL_LINUX_01_006: [ If the timer state is ARMED, threadpool_timer_dispose shall set the state of the timer to NOT_USED. ]*/
+        int32_t current_timer_state = interlocked_compare_exchange(&custom_timer_data->timer_state, TIMER_NOT_USED, TIMER_ARMED);
         if (current_timer_state == TIMER_ARMED)
         {
-            custom_timer_data->work_function = NULL;
-
-            /* Codes_SRS_THREADPOOL_LINUX_07_095: [ threadpool_timer_dispose shall call srw_lock_ll_deinit. ]*/
-            srw_lock_ll_deinit(&custom_timer_data->timer_lock);
-
-            (void)interlocked_exchange(&custom_timer_data->timer_state, TIMER_NOT_USED);
             break;
         }
         else
         {
+            /* Codes_SRS_THREADPOOL_LINUX_01_010: [ Otherwise, threadpool_timer_dispose shall block until the state is ARMED and reattempt to set the state to NOT_USED. ]*/
             (void)InterlockedHL_WaitForNotValue(&custom_timer_data->timer_state, current_timer_state, UINT32_MAX);
         }
     } while (1);
@@ -600,17 +598,20 @@ THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool,
             {
                 uint32_t i;
 
+                /* Codes_SRS_THREADPOOL_LINUX_01_002: [ threadpool_timer_start shall find an unused entry in the timers table maintained by the module. ]*/
                 for (i = 0; i < TIMER_TABLE_SIZE; i++)
                 {
+                    /* Codes_SRS_THREADPOOL_LINUX_01_005: [ If an unused entry is found, it's state shall be marked as ARMED. ]*/
                     if (interlocked_compare_exchange(&timer_table[i].timer_state, TIMER_ARMED, TIMER_NOT_USED) == TIMER_NOT_USED)
                     {
-                        // found a timer
+                        // found an unused timer entry
                         break;
                     }
                 }
 
                 if (i == TIMER_TABLE_SIZE)
                 {
+                    /* Codes_SRS_THREADPOOL_LINUX_01_001: [ If all timer entries are used, threadpool_timer_start shall fail and return NULL. ]*/
                     LogError("No timers available");
                 }
                 else
@@ -619,8 +620,6 @@ THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool,
                     CUSTOM_TIMER_DATA* custom_timer_data = &timer_table[i];
                     result->custom_timer_data = custom_timer_data;
                     
-                    srw_lock_ll_init(&custom_timer_data->timer_lock);
-
                     custom_timer_data->work_function = work_function;
                     /* Codes_SRS_THREADPOOL_LINUX_07_057: [ work_function_ctx shall be allowed to be NULL. ]*/
                     custom_timer_data->work_function_ctx = work_function_ctx;
@@ -651,7 +650,6 @@ THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool,
                         }
                         else
                         {
-                            /* Codes_SRS_THREADPOOL_LINUX_07_061: [ threadpool_timer_start shall return and allocated handle in timer_handle. ]*/
                             /* Codes_SRS_THREADPOOL_LINUX_07_062: [ threadpool_timer_start shall succeed and return a non-NULL handle. ]*/
                             result->time_id = time_id;
                             goto all_ok;
@@ -695,10 +693,6 @@ int threadpool_timer_restart(THANDLE(THREADPOOL_TIMER) timer, uint32_t start_del
         its.it_interval.tv_nsec = timer_period_ms * MILLISEC_TO_NANOSEC % 1000000000;
 
         THREADPOOL_TIMER * timer_content = THANDLE_GET_T(THREADPOOL_TIMER)(timer);
-        CUSTOM_TIMER_DATA* custom_timer_data = timer_content->custom_timer_data;
-
-        /* Codes_SRS_THREADPOOL_LINUX_07_090: [ threadpool_timer_restart shall acquire an exclusive lock. ]*/
-        srw_lock_ll_acquire_exclusive(&custom_timer_data->timer_lock);
 
         /* Codes_SRS_THREADPOOL_LINUX_07_065: [ threadpool_timer_restart shall call timer_settime to change the delay and period. ]*/
         if (timer_settime(timer_content->time_id, 0, &its, NULL) != 0)
@@ -712,8 +706,6 @@ int threadpool_timer_restart(THANDLE(THREADPOOL_TIMER) timer, uint32_t start_del
             /* Codes_SRS_THREADPOOL_LINUX_07_067: [ threadpool_timer_restart shall succeed and return 0. ]*/
             result = 0;
         }
-        /* Codes_SRS_THREADPOOL_LINUX_07_092: [ threadpool_timer_restart shall release the exclusive lock. ]*/
-        srw_lock_ll_release_exclusive(&custom_timer_data->timer_lock);
     }
     return result;
 }
@@ -728,10 +720,6 @@ void threadpool_timer_cancel(THANDLE(THREADPOOL_TIMER) timer)
     else
     {
         THREADPOOL_TIMER * timer_content = THANDLE_GET_T(THREADPOOL_TIMER)(timer);
-        CUSTOM_TIMER_DATA* custom_timer_data = timer_content->custom_timer_data;
-
-        /* Codes_SRS_THREADPOOL_LINUX_07_093: [ threadpool_timer_cancel shall acquire an exclusive lock. ]*/
-        srw_lock_ll_acquire_exclusive(&custom_timer_data->timer_lock);
 
         struct itimerspec its = {0};
         /* Codes_SRS_THREADPOOL_LINUX_07_069: [ threadpool_timer_cancel shall call timer_settime with 0 for flags and NULL for old_value and {0} for new_value to cancel the ongoing timers. ]*/
@@ -743,8 +731,6 @@ void threadpool_timer_cancel(THANDLE(THREADPOOL_TIMER) timer)
         {
             // Do Nothing
         }
-        /* Codes_SRS_THREADPOOL_LINUX_07_094: [ threadpool_timer_cancel shall release the exclusive lock. ]*/
-        srw_lock_ll_release_exclusive(&custom_timer_data->timer_lock);
     }
 }
 

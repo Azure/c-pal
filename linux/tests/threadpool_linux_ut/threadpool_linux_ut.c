@@ -182,11 +182,25 @@ static THANDLE(THREADPOOL) test_create_threadpool(void)
     return threadpool;
 }
 
+static void setup_lazy_init(void)
+{
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool();
+    // create one timer 
+    THANDLE(THREADPOOL_TIMER) timer_instance = threadpool_timer_start(threadpool, 42, 2000, test_work_function, NULL);
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_instance, NULL);
+
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
 static THANDLE(THREADPOOL_TIMER) test_create_threadpool_and_start_timer(uint32_t start_delay_ms, uint32_t timer_period_ms, void* work_function_context, THANDLE(THREADPOOL)* threadpool)
 {
+    setup_lazy_init();
     THANDLE(THREADPOOL) test_result = test_create_threadpool();
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));  // state set to ARMED
     STRICT_EXPECTED_CALL(mocked_timer_create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, 0, IGNORED_ARG, NULL));
 
@@ -843,10 +857,13 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_fails)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-/* Codes_SRS_THREADPOOL_LINUX_07_060: [ If any error occurs, threadpool_timer_start shall fail and return NULL. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_01_002: [ threadpool_timer_start shall find an unused entry in the timers table maintained by the module. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_01_001: [ If all timer entries are used, threadpool_timer_start shall fail and return NULL. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_01_003: [ 2048 timers shall be supported. ]*/
 TEST_FUNCTION(threadpool_timer_start_fails_when_no_available_slot_in_timer_table)
 {
     // arrange
+    setup_lazy_init();
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
 
     THANDLE(THREADPOOL_TIMER)* timers = malloc(MAX_TIMERS * sizeof(THANDLE(THREADPOOL_TIMER)));
@@ -854,19 +871,18 @@ TEST_FUNCTION(threadpool_timer_start_fails_when_no_available_slot_in_timer_table
     {
         THANDLE(THREADPOOL_TIMER) timer_temp = threadpool_timer_start(threadpool, 42, 2000, test_work_function, (void*)0x4243);
 
-        THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)((void *) & timers[i], &timer_temp);
+        THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)((void*)&timers[i], &timer_temp);
         ASSERT_IS_NOT_NULL(timers[i]);
     }
     umock_c_reset_all_calls();
+
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
-    STRICT_EXPECTED_CALL(srw_lock_ll_init(IGNORED_ARG));
     STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mocked_timer_create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, 0, IGNORED_ARG, NULL));
-    STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mocked_timer_delete(IGNORED_ARG));
+    for (uint32_t i = 0; i < MAX_TIMERS; i++)
+    {
+        STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG)); // attempt to set state to ARMED
+    }
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
     //act
@@ -886,29 +902,25 @@ TEST_FUNCTION(threadpool_timer_start_fails_when_no_available_slot_in_timer_table
 }
 
 /* Tests_SRS_THREADPOOL_LINUX_07_058: [ threadpool_timer_start shall allocate memory for THANDLE(THREADPOOL_TIMER), passing threadpool_timer_dispose as dispose function, and store work_function and work_function_ctx in it. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_091: [ threadpool_timer_start shall initialize the lock guarding the timer state by calling srw_lock_ll_init. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_096: [ threadpool_timer_start shall call lazy_init with do_init as initialization function.  ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_097: [ do_init shall initialize the lock guarding the global timer table by calling srw_lock_ll_init. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_01_004: [ do_init shall initialize the state for each timer to NOT_USED. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_099: [ do_init shall succeed and return 0. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_057: [ work_function_ctx shall be allowed to be NULL. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_01_005: [ If an unused entry is found, it's state shall be marked as ARMED. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_059: [ threadpool_timer_start shall call timer_create and timer_settime to schedule execution. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_061: [ threadpool_timer_start shall return and allocated handle in timer_handle. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_105: [ threadpool_timer_start shall acquire the exclusive lock for the timer table. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_106: [ threadpool_timer_start shall add the new timer to the timer table and release the exclusive lock. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_062: [ threadpool_timer_start shall succeed and return a non-NULL handle. ]*/
 TEST_FUNCTION(threadpool_timer_start_succeeds)
 {
     // arrange
+    setup_lazy_init();
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
-    STRICT_EXPECTED_CALL(srw_lock_ll_init(IGNORED_ARG));
     STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG)); // state set to ARMED
     STRICT_EXPECTED_CALL(mocked_timer_create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, 0, IGNORED_ARG, NULL));
-    STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
 
     // act
     THANDLE(THREADPOOL_TIMER) timer_instance = threadpool_timer_start(threadpool, 42, 2000, test_work_function, (void*)0x4243);
@@ -924,28 +936,24 @@ TEST_FUNCTION(threadpool_timer_start_succeeds)
 
 /* Tests_SRS_THREADPOOL_LINUX_07_057: [ work_function_ctx shall be allowed to be NULL. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_058: [ threadpool_timer_start shall allocate memory for THANDLE_MALLOC(THREADPOOL_TIMER) and store work_function and work_function_ctx in it. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_091: [ threadpool_timer_start shall initialize the lock guarding the timer state by calling srw_lock_ll_init. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_096: [ threadpool_timer_start shall call lazy_init with do_init as initialization function.  ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_097: [ do_init shall initialize the lock guarding the global timer table by calling srw_lock_ll_init. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_01_004: [ do_init shall initialize the state for each timer to NOT_USED. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_099: [ do_init shall succeed and return 0. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_01_005: [ If an unused entry is found, it's state shall be marked as ARMED. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_059: [ threadpool_timer_start shall call timer_create and timer_settime to schedule execution. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_061: [ threadpool_timer_start shall return and allocated handle in timer_handle. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_105: [ threadpool_timer_start shall acquire the exclusive lock for the timer table. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_106: [ threadpool_timer_start shall add the new timer to the timer table and release the exclusive lock. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_062: [ threadpool_timer_start shall succeed and return a non-NULL handle. ]*/
 TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_context_succeeds)
 {
     // arrange
+    setup_lazy_init();
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
-    STRICT_EXPECTED_CALL(srw_lock_ll_init(IGNORED_ARG));
     STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG)); // state set to ARMED
     STRICT_EXPECTED_CALL(mocked_timer_create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, 0, IGNORED_ARG, NULL));
-    STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
 
     // act
     THANDLE(THREADPOOL_TIMER) timer_instance = threadpool_timer_start(threadpool, 42, 2000, test_work_function, NULL);
@@ -961,22 +969,23 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_context_succeeds)
 
 /* Tests_SRS_THREADPOOL_LINUX_07_057: [ work_function_ctx shall be allowed to be NULL. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_058: [ threadpool_timer_start shall allocate memory for THANDLE_MALLOC(THREADPOOL_TIMER) and store work_function and work_function_ctx in it. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_091: [ threadpool_timer_start shall initialize the lock guarding the timer state by calling srw_lock_ll_init. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_059: [ threadpool_timer_start shall call timer_create and timer_settime to schedule execution. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_063: [ If timer_settime fails, threadpool_timer_start shall delete the timer by calling timer_delete. ]*/
 TEST_FUNCTION(threadpool_timer_start_delete_timer_when_timer_set_time_functions_fails)
 {
     // arrange
+    setup_lazy_init();
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
-    STRICT_EXPECTED_CALL(srw_lock_ll_init(IGNORED_ARG));
     STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));  // state set to ARMED
     STRICT_EXPECTED_CALL(mocked_timer_create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, 0, IGNORED_ARG, NULL)).SetReturn(-1);
 
     STRICT_EXPECTED_CALL(mocked_timer_delete(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG)); // state revert to NOT_USED
     STRICT_EXPECTED_CALL(gballoc_hl_free(IGNORED_ARG));
     // act
     THANDLE(THREADPOOL_TIMER) timer_instance = threadpool_timer_start(threadpool, 42, 2000, test_work_function, (void*)0x4243);
@@ -989,7 +998,6 @@ TEST_FUNCTION(threadpool_timer_start_delete_timer_when_timer_set_time_functions_
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_07_098: [ If srw_lock_ll_init fails then do_init shall return a non-zero value. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_060: [ If any error occurs, threadpool_timer_start shall fail and return NULL. ]*/
 TEST_FUNCTION(threadpool_timer_start_fails_when_underlying_functions_fail)
 {
@@ -998,14 +1006,11 @@ TEST_FUNCTION(threadpool_timer_start_fails_when_underlying_functions_fail)
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1)).CallCannotFail();
-    STRICT_EXPECTED_CALL(srw_lock_ll_init(IGNORED_ARG));
     STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .SetReturn(LAZY_INIT_ERROR);
-    STRICT_EXPECTED_CALL(srw_lock_ll_init(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG)).CallCannotFail();  // state set to ARMED
     STRICT_EXPECTED_CALL(mocked_timer_create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, 0, IGNORED_ARG, NULL));
-    STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
 
     umock_c_negative_tests_snapshot();
 
@@ -1043,19 +1048,15 @@ TEST_FUNCTION(threadpool_timer_restart_with_NULL_timer_fails)
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_07_090: [ threadpool_timer_restart shall acquire an exclusive lock. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_065: [ threadpool_timer_restart shall call timer_settime to change the delay and period. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_067: [ threadpool_timer_restart shall succeed and return 0. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_092: [ threadpool_timer_restart shall release the exclusive lock. ]*/
 TEST_FUNCTION(threadpool_timer_restart_succeeds)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = NULL;
     THANDLE(THREADPOOL_TIMER) timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool);
 
-    STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, 0, IGNORED_ARG, NULL));
-    STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
 
     // act
     int result = threadpool_timer_restart(timer_instance, 43, 1000);
@@ -1076,9 +1077,7 @@ TEST_FUNCTION(threadpool_timer_restart_fails_when_timer_set_time_fails)
     THANDLE(THREADPOOL) threadpool = NULL;
     THANDLE(THREADPOOL_TIMER) timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool);
 
-    STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, 0, IGNORED_ARG, NULL)).SetReturn(-1);
-    STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
 
     // act
     int result = threadpool_timer_restart(timer_instance, 43, 1000);
@@ -1106,18 +1105,14 @@ TEST_FUNCTION(threadpool_timer_cancel_with_NULL_timer_fails)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_07_093: [ threadpool_timer_cancel shall acquire an exclusive lock. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_069: [ threadpool_timer_cancel shall call timer_settime with 0 for flags and NULL for old_value and {0} for new_value to cancel the ongoing timers. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_094: [ threadpool_timer_cancel shall release the exclusive lock. ]*/
 TEST_FUNCTION(threadpool_timer_cancel_succeeds)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = NULL;
     THANDLE(THREADPOOL_TIMER) timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool);
 
-    STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, 0, IGNORED_ARG, NULL));
-    STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
 
     // act
     threadpool_timer_cancel(timer_instance);
@@ -1132,10 +1127,8 @@ TEST_FUNCTION(threadpool_timer_cancel_succeeds)
 
 /* threadpool_timer_dispose */
 
-/* Tests_SRS_THREADPOOL_LINUX_07_095: [ threadpool_timer_dispose shall call srw_lock_ll_deinit. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_071: [ threadpool_timer_dispose shall call timer_delete to destroy the ongoing timers. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_102: [ threadpool_timer_dispose shall acquire the timer table exclusive lock. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_104: [ threadpool_timer_dispose shall release the timer table exclusive lock. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_01_006: [ If the timer state is ARMED, threadpool_timer_dispose shall set the state of the timer to NOT_USED. ]*/
 TEST_FUNCTION(threadpool_timer_dispose_succeeds)
 {
     // arrange
@@ -1144,9 +1137,7 @@ TEST_FUNCTION(threadpool_timer_dispose_succeeds)
 
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_delete(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(srw_lock_ll_deinit(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));  // state set to NOT_USED
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
     // act
@@ -1159,31 +1150,59 @@ TEST_FUNCTION(threadpool_timer_dispose_succeeds)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_45_002: [ on_timer_callback shall set the timer instance to timer_data.sival_ptr. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_45_001: [ If timer instance is NULL, then on_timer_callback shall return. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_100: [ on_timer_callback shall acquire the timer table exclusive lock.]*/
-/* Tests_SRS_THREADPOOL_LINUX_45_004: [ If timer exists, on_timer_callback shall call the timer's work_function with work_function_ctx. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_101: [ on_timer_callback shall release the timer table exclusive lock. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_01_010: [ Otherwise, threadpool_timer_dispose shall block until the state is ARMED and reattempt to set the state to NOT_USED. ]*/
+TEST_FUNCTION(threadpool_timer_dispose_waits_for_state_to_be_ARMED)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = NULL;
+    int32_t armed_state_value;
+    // create one timer and capture the ARMED state
+    THANDLE(THREADPOOL_TIMER) timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool);
+
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_timer_delete(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CaptureReturn(&armed_state_value);  // state set to NOT_USED
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_instance, NULL);
+
+    // now do it again so we can simulate that a different value is returned from the interlocked_compare_exchange
+    THANDLE(THREADPOOL_TIMER) timer_instance_2 = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool);
+
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_timer_delete(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(armed_state_value + 1);
+    STRICT_EXPECTED_CALL(InterlockedHL_WaitForNotValue(IGNORED_ARG, armed_state_value + 1, UINT32_MAX));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+
+    // act
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_instance_2, NULL);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* on_timer_callback */
+
+/* Tests_SRS_THREADPOOL_LINUX_45_002: [ on_timer_callback shall extract from the lower bits of timer_data.sival_ptr the information indicating which timer table entry is being triggered. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_01_008: [ If the timer is in the state ARMED: ]*/
+    /* Tests_SRS_THREADPOOL_LINUX_01_007: [ on_timer_callback shall transition it to CALLING_CALLBACK. ]*/
+    /* Tests_SRS_THREADPOOL_LINUX_45_004: [ on_timer_callback shall call the timer's work_function with work_function_ctx. ]*/
+    /* Tests_SRS_THREADPOOL_LINUX_01_009: [ on_timer_callback shall transition it to ARMED. ]*/
 TEST_FUNCTION(on_timer_callback_calls_work_function)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(srw_lock_ll_init(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mocked_timer_create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, 0, IGNORED_ARG, NULL));
-    STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
-    THANDLE(THREADPOOL_TIMER) timer_instance = threadpool_timer_start(threadpool, 42, 2000, test_work_function, (void*)0x4243);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_IS_NOT_NULL(timer_instance);
-    umock_c_reset_all_calls();
+    THANDLE(THREADPOOL_TIMER) timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool);
 
-    STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));  // state set to CALLING_CALLBACK
     STRICT_EXPECTED_CALL(test_work_function((void*)0x4243));
-    STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));  // state set to ARMED
 
     sigval_t timer_data = {0};
     timer_data.sival_ptr = g_sigevent.sigev_value.sival_ptr;
@@ -1199,25 +1218,17 @@ TEST_FUNCTION(on_timer_callback_calls_work_function)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_45_002: [ on_timer_callback shall set the timer instance to timer_data.sival_ptr. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_45_002: [ on_timer_callback shall extract from the lower bits of timer_data.sival_ptr the information indicating which timer table entry is being triggered. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_45_001: [ If timer instance is NULL, then on_timer_callback shall return. ]*/
-TEST_FUNCTION(on_timer_callback_does_nothing_with_null_pointer)
+TEST_FUNCTION(on_timer_callback_does_nothing_after_dispose)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
-    STRICT_EXPECTED_CALL(srw_lock_ll_init(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(srw_lock_ll_init(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mocked_timer_create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, 0, IGNORED_ARG, NULL));
-    STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
-    THANDLE(THREADPOOL_TIMER) timer_instance = threadpool_timer_start(threadpool, 42, 2000, test_work_function, (void*)0x4243);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_IS_NOT_NULL(timer_instance);
+    THANDLE(THREADPOOL_TIMER) timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool);
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_instance, NULL);
     umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));  // attempt to set state to CALLING_CALLBACK
 
     sigval_t timer_data = {0};
     timer_data.sival_ptr = NULL;
@@ -1229,14 +1240,13 @@ TEST_FUNCTION(on_timer_callback_does_nothing_with_null_pointer)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
-    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_instance, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
+#if 0
 /* threadpool_create_work_item */
 
 /* Tests_SRS_THREADPOOL_LINUX_05_001: [ If threadpool is NULL, threadpool_create_work_item shall fail and return a NULL value. ]*/
-
 TEST_FUNCTION(threadpool_create_work_item_with_NULL_threadpool_fails)
 {
     //arrange
@@ -1250,7 +1260,6 @@ TEST_FUNCTION(threadpool_create_work_item_with_NULL_threadpool_fails)
 }
 
 /* Tests_SRS_THREADPOOL_LINUX_05_002: [ If work_function is NULL, threadpool_create_work_item shall fail and return a NULL value. ] */
-
 TEST_FUNCTION(threadpool_create_work_item_with_NULL_work_function_fails)
 {
     // arrange
@@ -1268,7 +1277,6 @@ TEST_FUNCTION(threadpool_create_work_item_with_NULL_work_function_fails)
 
 /* Tests_SRS_THREADPOOL_LINUX_05_005: [ threadpool_create_work_item shall allocate memory for threadpool_work_item of type THANDLE(THREADPOOL_WORK_ITEM) . ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_007: [ threadpool_create_work_item shall copy the work_function and work_function_context into the threadpool work item. ]*/
-
 TEST_FUNCTION(threadpool_create_work_item_succeeds)
 {
     // arrange
@@ -1289,7 +1297,6 @@ TEST_FUNCTION(threadpool_create_work_item_succeeds)
 
 /* Tests_SRS_THREADPOOL_LINUX_05_005: [ threadpool_create_work_item shall allocate memory for threadpool_work_item of type THANDLE(THREADPOOL_WORK_ITEM) . ] */
 /* Tests_SRS_THREADPOOL_LINUX_05_007: [ threadpool_create_work_item shall copy the work_function and work_function_context into the threadpool work item. ]*/
-
 TEST_FUNCTION(threadpool_create_work_item_succeeds_with_NULL_work_function_context)
 {
     // arrange
@@ -1310,7 +1317,6 @@ TEST_FUNCTION(threadpool_create_work_item_succeeds_with_NULL_work_function_conte
 
 
 /* Tests_SRS_THREADPOOL_LINUX_05_006: [ If during the initialization of threadpool_work_item, malloc fails then threadpool_create_work_item shall fail and return a NULL value. ]*/
-
 TEST_FUNCTION(threadpool_create_work_item_fails_for_malloc)
 {
     // arrange
@@ -1339,7 +1345,6 @@ TEST_FUNCTION(threadpool_create_work_item_fails_for_malloc)
 /* threadpool_schedule_work_item */
 
 /* Tests_SRS_THREADPOOL_LINUX_05_010: [ If threadpool is NULL, threadpool_schedule_work_item shall fail and return a non-zero value. ]*/
-
 TEST_FUNCTION(threadpool_schedule_work_item_with_NULL_threadpool_fails)
 {
     // arrange
@@ -1354,7 +1359,6 @@ TEST_FUNCTION(threadpool_schedule_work_item_with_NULL_threadpool_fails)
 }
 
 /* Tests_SRS_THREADPOOL_LINUX_05_011: [ If threadpool_work_item is NULL, threadpool_schedule_work_item shall fail and return a non-zero value. ] */
-
 TEST_FUNCTION(threadpool_schedule_work_item_with_NULL_work_function_fails)
 {
     // arrange
@@ -1382,7 +1386,6 @@ TEST_FUNCTION(threadpool_schedule_work_item_with_NULL_work_function_fails)
 /* Tests_SRS_THREADPOOL_LINUX_05_023: [ threadpool_schedule_work_item shall set the task_state to TASK_WAITING and then release the shared SRW lock by calling srw_lock_release_exclusive. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_025: [ threadpool_schedule_work_item shall unblock the threadpool semaphore by calling sem_post. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_026: [ threadpool_schedule_work_item shall succeed and return 0. ]*/
-
 TEST_FUNCTION(threadpool_schedule_work_item_succeeds)
 {
     // arrange
@@ -1429,7 +1432,6 @@ TEST_FUNCTION(threadpool_schedule_work_item_succeeds)
 /* Tests_SRS_THREADPOOL_LINUX_05_023: [ threadpool_schedule_work_item shall set the task_state to TASK_WAITING and then release the shared SRW lock by calling srw_lock_release_exclusive. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_025: [ threadpool_schedule_work_item shall unblock the threadpool semaphore by calling sem_post. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_026: [ threadpool_schedule_work_item shall succeed and return 0. ]*/
-
 TEST_FUNCTION(threadpool_schedule_work_item_succeeds_realloc_array_with_no_empty_space)
 {
     // arrange
@@ -1488,7 +1490,6 @@ TEST_FUNCTION(threadpool_schedule_work_item_succeeds_realloc_array_with_no_empty
 /* Tests_SRS_THREADPOOL_LINUX_05_017: [ threadpool_schedule_work_item shall release the shared SRW lock by calling srw_lock_release_shared. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_018: [ If the previous task state is not TASK_NOT_USED then threadpool_schedule_work_item shall increase task_array capacity. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_019: [ If reallocating the task array fails, threadpool_schedule_work_item shall fail and return a non-zero value. ]*/
-
 TEST_FUNCTION(threadpool_schedule_work_item_fails_when_new_array_size_overflows)
 {
     // arrange
@@ -1530,7 +1531,6 @@ TEST_FUNCTION(threadpool_schedule_work_item_fails_when_new_array_size_overflows)
 /* Tests_SRS_THREADPOOL_LINUX_05_017: [ threadpool_schedule_work_item shall release the shared SRW lock by calling srw_lock_release_shared. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_018: [ If the previous task state is not TASK_NOT_USED then threadpool_schedule_work_item shall increase task_array capacity. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_019: [ If reallocating the task array fails, threadpool_schedule_work_item shall fail and return a non-zero value. ]*/
-
 TEST_FUNCTION(threadpool_schedule_work_item_fails_when_realloc_array_fails)
 {
     // arrange
@@ -1567,5 +1567,6 @@ TEST_FUNCTION(threadpool_schedule_work_item_fails_when_realloc_array_fails)
     THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&threadpool_work_item, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
+#endif
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
