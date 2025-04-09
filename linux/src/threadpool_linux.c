@@ -111,10 +111,10 @@ typedef struct THREADPOOL_TAG
 
 THANDLE_TYPE_DEFINE(THREADPOOL);
 
-// This gives us 2048 timers, plenty for us
+// This gives us 1024 timers, plenty for us
 // We'll use the remaining bits as epoch to avoid ABA problems (even though ABA is highly unlikely, we'll make it even less likely :-))
-/* Codes_SRS_THREADPOOL_LINUX_01_003: [ 2048 timers shall be supported. ]*/
-#define TIMER_TABLE_INDEX_BITS 11
+/* Codes_SRS_THREADPOOL_LINUX_01_003: [ 1024 timers shall be supported. ]*/
+#define TIMER_TABLE_INDEX_BITS 10
 
 #define TIMER_TABLE_SIZE (1 << TIMER_TABLE_INDEX_BITS)
 #define TIMER_TABLE_SIZE_MASK (TIMER_TABLE_SIZE - 1)

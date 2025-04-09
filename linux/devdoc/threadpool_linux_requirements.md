@@ -221,7 +221,7 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_TIMER), threadpool_timer_start, THANDLE(T
 
 **SRS_THREADPOOL_LINUX_01_002: [** `threadpool_timer_start` shall find an unused entry in the timers table maintained by the module. **]**
 
-**SRS_THREADPOOL_LINUX_01_003: [** 2048 timers shall be supported. **]**
+**SRS_THREADPOOL_LINUX_01_003: [** 1024 timers shall be supported. **]**
 
 **SRS_THREADPOOL_LINUX_01_001: [** If all timer entries are used, `threadpool_timer_start` shall fail and return NULL. **]**
 
