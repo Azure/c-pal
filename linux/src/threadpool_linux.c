@@ -154,8 +154,6 @@ static void on_timer_callback(sigval_t timer_data)
     /* Codes_SRS_THREADPOOL_LINUX_01_012: [ on_timer_callback shall use the rest of the higher bits of timer_data.sival_ptr as timer epoch. ]*/
     uint64_t timer_epoch = TIMER_SIGVAL_TO_EPOCH((uintptr_t)timer_data.sival_ptr);
 
-    LogInfo("epoch = %" PRIu64 ", index = %" PRIu32, timer_epoch, timer_index);
-
     CUSTOM_TIMER_DATA* timer_instance = &timer_table[timer_index];
 
     /* Codes_SRS_THREADPOOL_LINUX_01_008: [ If the timer is in the state ARMED: ]*/
@@ -647,7 +645,6 @@ THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool,
                         }
                         if (interlocked_compare_exchange_64(&timer_epoch_number, new_epoch_number, current_epoch_number) == current_epoch_number)
                         {
-                            LogInfo("Setting epoch number to %" PRIu64 " for timer at entry %" PRIu32, new_epoch_number, i);
                             custom_timer_data->epoch_number = new_epoch_number;
                             break;
                         }
