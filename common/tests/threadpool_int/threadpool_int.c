@@ -41,9 +41,6 @@ typedef struct WRAP_DATA_TAG
     char mem[10];
 } WRAP_DATA;
 
-#define TEST_TIMEOUT_VALUE      60000   // 60 seconds
-#define XTEST_FUNCTION(A) void A(void)
-//diff: added this
 #define WAIT_WORK_FUNCTION_SLEEP_IN_MS 300
 
 TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
@@ -1606,5 +1603,62 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items_v2)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
+
+typedef struct TIMER_STARTS_A_TIMER_CONTEXT_TAG
+{
+    volatile_atomic int32_t timer_started_from_a_timer_function_executed;
+    THANDLE(THREADPOOL) threadpool;
+    THANDLE(THREADPOOL_TIMER) second_timer;
+} TIMER_STARTS_AT_TIMER_CONTEXT;
+
+static void complete_timer_starts_a_timer_test_work_function(void* context)
+{
+    TIMER_STARTS_AT_TIMER_CONTEXT* timer_starts_a_timer_context = context;
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_SetAndWake(&timer_starts_a_timer_context->timer_started_from_a_timer_function_executed, 1));
+}
+
+static void timer_work_function_that_starts_another_timer(void* context)
+{
+    TIMER_STARTS_AT_TIMER_CONTEXT* timer_starts_a_timer_context = context;
+    THANDLE(THREADPOOL_TIMER) second_timer_instance = threadpool_timer_start(timer_starts_a_timer_context->threadpool, 200, 0, complete_timer_starts_a_timer_test_work_function, (void*)timer_starts_a_timer_context);
+    THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(&timer_starts_a_timer_context->second_timer, &second_timer_instance);
+}
+
+#ifdef WIN32
+// Product Backlog Item 28024321: [Linux] PAL Fix threadpool timer implementation
+// This test is exposing the issue with the fact that pthreads rwlock is not reentrant on Linux
+// One of the issues is that for any change to a timer we're holding a fat lock on Linux over
+// the complete table of timers. Likely one alternative is to downgrade to using the timer lock instead
+// of the fat table lock
+// Task: https://msazure.visualstudio.com/One/_workitems/edit/32202697
+TEST_FUNCTION(starting_a_timer_from_a_timer_callback_works)
+{
+    // assert
+    // create an execution engine
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 1, 1 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    // create the threadpool
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    TIMER_STARTS_AT_TIMER_CONTEXT timer_starts_a_timer_context;
+    THANDLE_INITIALIZE_MOVE(THREADPOOL)(&timer_starts_a_timer_context.threadpool, &threadpool);
+    (void)interlocked_exchange(&timer_starts_a_timer_context.timer_started_from_a_timer_function_executed, 0);
+
+    THANDLE(THREADPOOL_TIMER) first_timer = threadpool_timer_start(timer_starts_a_timer_context.threadpool, 200, 0, timer_work_function_that_starts_another_timer, (void*)&timer_starts_a_timer_context);
+    ASSERT_IS_NOT_NULL(first_timer);
+
+    // assert
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&timer_starts_a_timer_context.timer_started_from_a_timer_function_executed, 1, UINT32_MAX));
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&first_timer, NULL);
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_starts_a_timer_context.second_timer, NULL);
+    THANDLE_ASSIGN(THREADPOOL)(&timer_starts_a_timer_context.threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+#endif
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
