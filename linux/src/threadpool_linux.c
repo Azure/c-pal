@@ -130,10 +130,6 @@ THANDLE_TYPE_DEFINE(THREADPOOL);
 
 static volatile_atomic int64_t timer_epoch_number;
 
-// One of the issues is that for any change to a timer (start/dispose) we're holding a fat lock over
-// the complete table of timers. This poses an issue with calling timer functions from within a timer callback
-// Because the pthread rwlock is not reentrant we end up blocking 
-// Likely one alternative is to downgrade to using the timer lock instead of the fat table lock
 static call_once_t g_lazy = LAZY_INIT_NOT_DONE;
 
 static CUSTOM_TIMER_DATA timer_table[TIMER_TABLE_SIZE];
