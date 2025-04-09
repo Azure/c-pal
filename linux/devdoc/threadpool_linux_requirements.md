@@ -52,6 +52,7 @@ In order to accomodate for this, the chosen design is to track the state of the 
 Each timer tracked in the internal timer table has:
 - a state (NOT_USED, ARMED, CALLING_CALLBACK)
 - the work function and context
+- epoch number (see below ABA problem details)
 
 ```mermaid
 ---
@@ -64,6 +65,34 @@ stateDiagram-v2
     ARMED --> CALLING_CALLBACK : on_timer_callback called by POSIX
     CALLING_CALLBACK --> ARMED : work function called
 ```
+
+#### ABA problem
+
+The timer implementation is susceptible to the ABA problem.
+
+It could happen that a timer (T1) is started, taking one of the entries in the timer table to store its data.
+
+If the timer T1 is disposed before the callback from POSIX is executed, the timer entry in the table is released.
+
+Still before the POSIX callback is executed, let's assume another timer (T2) is started and it takes the same entry in the timers table.
+
+At this point the original POSIX callback (that was supposed to fire for timer T1) fires and executes the callback recorded in the timers table, but that is the callback for T2, resulting in an unwanted spurious callback.
+
+In order to avoid this problem an epoch number is to be used.
+This epoch number is stamped in the timer table entry and also is passed to the POSIX timer APIs, so that it can be used for comparison in the POSIX timer callback.
+
+This results in the need of storing 2 things in the sigval pointer that gets passed as context to the POSIX timer callback:
+- the epoch number.
+- a reference/index to the timer table entry.
+
+The context has in normal circumstances 64 bits, thus we can share the 64 bits between the 2 fields.
+Given that the expected number of timers to be used concurrently is not expected to be very high, we can reserve 10 bits (1024) for the index of the timer table entry, leaving the rest of the 54 bits for the epoch number.
+
+Rules for the timer epoch number:
+- Timer epoch number is initialized to 0 (static).
+- Timer epoch number is incremented whenever a new timer is started and thus an entry in the timers table becomes used.
+- Timer epoch number gets stamped in the entry in the timers table and gets passed to the POSIX timer function as context.
+- Timer epoch number is checked in the POSOX timer callback in order to make sure that the timer work function is called for the correct timer.
 
 ## Exposed API
 
@@ -227,6 +256,8 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_TIMER), threadpool_timer_start, THANDLE(T
 
 **SRS_THREADPOOL_LINUX_01_005: [** If an unused entry is found, it's state shall be marked as `ARMED`. **]**
 
+**SRS_THREADPOOL_LINUX_01_011: [** `threadpool_timer_start` shall increment the timer epoch number and store it in the selected entry in the timer table. **]**
+
 **SRS_THREADPOOL_LINUX_07_059: [** `threadpool_timer_start` shall call `timer_create` and `timer_settime` to schedule execution. **]**
 
 **SRS_THREADPOOL_LINUX_07_060: [** If any error occurs, `threadpool_timer_start` shall fail and return NULL. **]**
@@ -296,13 +327,15 @@ static void on_timer_callback(sigval_t timer_data);
 
 `on_timer_callback` executes when the POSIX timer is triggered.
 
-**SRS_THREADPOOL_LINUX_45_002: [** `on_timer_callback` shall extract from the lower bits of `timer_data.sival_ptr` the information indicating which timer table entry is being triggered. **]**
+**SRS_THREADPOOL_LINUX_45_002: [** `on_timer_callback` shall extract from the lower 10 bits of `timer_data.sival_ptr` the information indicating which timer table entry is being triggered. **]**
+
+**SRS_THREADPOOL_LINUX_01_012: [** `on_timer_callback` shall use the rest of the higher bits of `timer_data.sival_ptr` as timer epoch. **]**
 
 **SRS_THREADPOOL_LINUX_01_008: [** If the timer is in the state `ARMED`: **]**
 
 - **SRS_THREADPOOL_LINUX_01_007: [** `on_timer_callback` shall transition it to `CALLING_CALLBACK`. **]**
 
-- **SRS_THREADPOOL_LINUX_45_004: [** `on_timer_callback` shall call the timer's `work_function` with `work_function_ctx`. **]**
+- **SRS_THREADPOOL_LINUX_45_004: [** If the timer epoch of the timer table entry is the same like the timer epoch in `timer_data.sival_ptr`, `on_timer_callback` shall call the timer's `work_function` with `work_function_ctx`. **]**
 
 - **SRS_THREADPOOL_LINUX_01_009: [** `on_timer_callback` shall transition it to `ARMED`. **]**
 

@@ -64,6 +64,7 @@ typedef struct CUSTOM_TIMER_DATA_TAG
     THREADPOOL_WORK_FUNCTION work_function;
     void* work_function_ctx;
     volatile_atomic int32_t timer_state; // TIMER_STATE
+    int64_t epoch_number;
 } CUSTOM_TIMER_DATA;
 
 typedef struct THREADPOOL_TIMER_TAG
@@ -115,11 +116,19 @@ THANDLE_TYPE_DEFINE(THREADPOOL);
 // We'll use the remaining bits as epoch to avoid ABA problems (even though ABA is highly unlikely, we'll make it even less likely :-))
 /* Codes_SRS_THREADPOOL_LINUX_01_003: [ 1024 timers shall be supported. ]*/
 #define TIMER_TABLE_INDEX_BITS 10
+#define TIMER_EPOCH_BITS ((sizeof(uintptr_t) * 8) - TIMER_TABLE_INDEX_BITS)
 
 #define TIMER_TABLE_SIZE (1 << TIMER_TABLE_INDEX_BITS)
 #define TIMER_TABLE_SIZE_MASK (TIMER_TABLE_SIZE - 1)
-#define TIMER_SIGVAL_TO_EPOCH(x) (((x) & (~TIMER_TABLE_SIZE_MASK)) >> TIMER_TABLE_INDEX_BITS)
+#define TIMER_EPOCH_MAX ((1UL << TIMER_EPOCH_BITS) - 1)
+
+#define TIMER_SIGVAL_TO_EPOCH(x) (x >> TIMER_TABLE_INDEX_BITS)
 #define TIMER_SIGVAL_TO_TIMER_INDEX(x) ((x) & TIMER_TABLE_SIZE_MASK)
+
+#define MAKE_SIGVAL_FROM_INDEX_AND_EPOCH(index, epoch) \
+    (void*)(uintptr_t)((index & TIMER_TABLE_SIZE_MASK) | (epoch << TIMER_TABLE_INDEX_BITS))
+
+static volatile_atomic int64_t timer_epoch_number;
 
 // One of the issues is that for any change to a timer (start/dispose) we're holding a fat lock over
 // the complete table of timers. This poses an issue with calling timer functions from within a timer callback
@@ -143,9 +152,13 @@ static int do_init(void* params)
 
 static void on_timer_callback(sigval_t timer_data)
 {
-    /* Codes_SRS_THREADPOOL_LINUX_45_002: [ on_timer_callback shall extract from the lower bits of timer_data.sival_ptr the information indicating which timer table entry is being triggered. ]*/
+    /* Codes_SRS_THREADPOOL_LINUX_45_002: [ on_timer_callback shall extract from the lower 10 bits of timer_data.sival_ptr the information indicating which timer table entry is being triggered. ]*/
     uint32_t timer_index = TIMER_SIGVAL_TO_TIMER_INDEX((uintptr_t)timer_data.sival_ptr);
-    //uint32_t timer_epoch = TIMER_SIGVAL_TO_EPOCH((uintptr_t)timer_data.sival_ptr);
+
+    /* Codes_SRS_THREADPOOL_LINUX_01_012: [ on_timer_callback shall use the rest of the higher bits of timer_data.sival_ptr as timer epoch. ]*/
+    uint64_t timer_epoch = TIMER_SIGVAL_TO_EPOCH((uintptr_t)timer_data.sival_ptr);
+
+    LogInfo("epoch = %" PRIu64 ", index = %" PRIu32, timer_epoch, timer_index);
 
     CUSTOM_TIMER_DATA* timer_instance = &timer_table[timer_index];
 
@@ -153,8 +166,11 @@ static void on_timer_callback(sigval_t timer_data)
     /* Codes_SRS_THREADPOOL_LINUX_01_007: [ on_timer_callback shall transition it to CALLING_CALLBACK. ]*/
     if (interlocked_compare_exchange(&timer_instance->timer_state, TIMER_CALLING_CALLBACK, TIMER_ARMED) == TIMER_ARMED)
     {
-        /* Codes_SRS_THREADPOOL_LINUX_45_004: [ on_timer_callback shall call the timer's work_function with work_function_ctx. ]*/
-        timer_instance->work_function(timer_instance->work_function_ctx);
+        if (timer_epoch == timer_instance->epoch_number)
+        {
+            /* Codes_SRS_THREADPOOL_LINUX_45_004: [ If the timer epoch of the timer table entry is the same like the timer epoch in timer_data.sival_ptr, on_timer_callback shall call the timer's work_function with work_function_ctx. ]*/
+            timer_instance->work_function(timer_instance->work_function_ctx);
+        }
 
         /* Codes_SRS_THREADPOOL_LINUX_01_009: [ on_timer_callback shall transition it to ARMED. ]*/
         (void)interlocked_exchange(&timer_instance->timer_state, TIMER_ARMED);
@@ -619,6 +635,31 @@ THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool,
                     // point custom data to the proper place in the table
                     CUSTOM_TIMER_DATA* custom_timer_data = &timer_table[i];
                     result->custom_timer_data = custom_timer_data;
+
+                    /* Codes_SRS_THREADPOOL_LINUX_01_011: [ threadpool_timer_start shall increment the timer epoch number and store it in the selected entry in the timer table. ]*/
+                    do
+                    {
+                        int64_t current_epoch_number = interlocked_add_64(&timer_epoch_number, 0);
+                        int64_t new_epoch_number;
+                        if (timer_epoch_number == TIMER_EPOCH_MAX)
+                        {
+                            new_epoch_number = 0;
+                        }
+                        else
+                        {
+                            new_epoch_number = current_epoch_number + 1;
+                        }
+                        if (interlocked_compare_exchange_64(&timer_epoch_number, new_epoch_number, current_epoch_number) == current_epoch_number)
+                        {
+                            LogInfo("Setting epoch number to %" PRIu64 " for timer at entry %" PRIu32, new_epoch_number, i);
+                            custom_timer_data->epoch_number = new_epoch_number;
+                            break;
+                        }
+                        else
+                        {
+                            // somethiung changed, try again
+                        }
+                    } while (1);
                     
                     custom_timer_data->work_function = work_function;
                     /* Codes_SRS_THREADPOOL_LINUX_07_057: [ work_function_ctx shall be allowed to be NULL. ]*/
@@ -629,7 +670,7 @@ THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool,
     
                     sigev.sigev_notify          = SIGEV_THREAD;
                     sigev.sigev_notify_function = on_timer_callback;
-                    sigev.sigev_value.sival_ptr = (void*)(uintptr_t)i;
+                    sigev.sigev_value.sival_ptr = MAKE_SIGVAL_FROM_INDEX_AND_EPOCH(i, custom_timer_data->epoch_number);
     
                     /* Codes_SRS_THREADPOOL_LINUX_07_059: [ threadpool_timer_start shall call timer_create and timer_settime to schedule execution. ]*/
                     if (timer_create(CLOCK_REALTIME, &sigev, &time_id) != 0)
