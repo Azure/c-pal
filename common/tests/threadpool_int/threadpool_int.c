@@ -1613,6 +1613,7 @@ typedef struct TIMER_STARTS_A_TIMER_CONTEXT_TAG
 
 static void complete_timer_starts_a_timer_test_work_function(void* context)
 {
+    (void)context;
     TIMER_STARTS_AT_TIMER_CONTEXT* timer_starts_a_timer_context = context;
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_SetAndWake(&timer_starts_a_timer_context->timer_started_from_a_timer_function_executed, 1));
 }
@@ -1624,13 +1625,6 @@ static void timer_work_function_that_starts_another_timer(void* context)
     THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(&timer_starts_a_timer_context->second_timer, &second_timer_instance);
 }
 
-#ifdef WIN32
-// Product Backlog Item 28024321: [Linux] PAL Fix threadpool timer implementation
-// This test is exposing the issue with the fact that pthreads rwlock is not reentrant on Linux
-// One of the issues is that for any change to a timer we're holding a fat lock on Linux over
-// the complete table of timers. Likely one alternative is to downgrade to using the timer lock instead
-// of the fat table lock
-// Task: https://msazure.visualstudio.com/One/_workitems/edit/32202697
 TEST_FUNCTION(starting_a_timer_from_a_timer_callback_works)
 {
     // assert
@@ -1659,6 +1653,5 @@ TEST_FUNCTION(starting_a_timer_from_a_timer_callback_works)
     THANDLE_ASSIGN(THREADPOOL)(&timer_starts_a_timer_context.threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
-#endif
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
