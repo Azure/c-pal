@@ -167,7 +167,7 @@ static void on_timer_callback(sigval_t timer_data)
         }
 
         /* Codes_SRS_THREADPOOL_LINUX_01_009: [ on_timer_callback shall transition it to ARMED. ]*/
-        (void)interlocked_exchange(&timer_instance->timer_state, TIMER_ARMED);
+        (void)InterlockedHL_SetAndWake(&timer_instance->timer_state, TIMER_ARMED);
     }
 }
 
@@ -563,6 +563,7 @@ static void threadpool_timer_dispose(THREADPOOL_TIMER* timer)
         int32_t current_timer_state = interlocked_compare_exchange(&custom_timer_data->timer_state, TIMER_NOT_USED, TIMER_ARMED);
         if (current_timer_state == TIMER_ARMED)
         {
+            wake_by_address_all(&custom_timer_data->timer_state);
             break;
         }
         else

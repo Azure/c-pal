@@ -1165,6 +1165,7 @@ TEST_FUNCTION(threadpool_timer_dispose_succeeds)
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_delete(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));  // state set to NOT_USED
+    STRICT_EXPECTED_CALL(wake_by_address_all(IGNORED_ARG));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
     // act
@@ -1202,6 +1203,7 @@ TEST_FUNCTION(threadpool_timer_dispose_waits_for_state_to_be_ARMED)
         .SetReturn(armed_state_value + 1);
     STRICT_EXPECTED_CALL(InterlockedHL_WaitForNotValue(IGNORED_ARG, armed_state_value + 1, UINT32_MAX));
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(wake_by_address_all(IGNORED_ARG));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
     // act
@@ -1230,7 +1232,7 @@ TEST_FUNCTION(on_timer_callback_calls_work_function)
 
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));  // state set to CALLING_CALLBACK
     STRICT_EXPECTED_CALL(test_work_function((void*)0x4243));
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));  // state set to ARMED
+    STRICT_EXPECTED_CALL(InterlockedHL_SetAndWake(IGNORED_ARG, IGNORED_ARG));  // state set to ARMED
 
     sigval_t timer_data = {0};
     timer_data.sival_ptr = g_sigevent.sigev_value.sival_ptr;
@@ -1286,7 +1288,7 @@ TEST_FUNCTION(on_timer_for_an_old_timer_does_not_call_the_timer_user_callback)
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));  // set state to CALLING_CALLBACK
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));  // set state to ARMED
+    STRICT_EXPECTED_CALL(InterlockedHL_SetAndWake(IGNORED_ARG, IGNORED_ARG));  // state set to ARMED
 
     // act
     g_sigevent.sigev_notify_function(timer_data_1);
@@ -1311,7 +1313,7 @@ TEST_FUNCTION(on_timer_for_timer_with_correct_epoch_for_2nd_timer_succeeds)
 
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));  // state set to CALLING_CALLBACK
     STRICT_EXPECTED_CALL(test_work_function((void*)0x4244));
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));  // state set to ARMED
+    STRICT_EXPECTED_CALL(InterlockedHL_SetAndWake(IGNORED_ARG, IGNORED_ARG));  // state set to ARMED
 
     sigval_t timer_data = {0};
     timer_data.sival_ptr = g_sigevent.sigev_value.sival_ptr;
