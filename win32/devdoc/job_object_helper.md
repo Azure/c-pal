@@ -5,6 +5,9 @@
 ## Exposed API
 ```c
 MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_create);
+MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_create_with_name, const char*, job_name);
+MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_get, const char*, job_name);
+MOCKABLE_FUNCTION(, bool, job_object_helper_assign_process, THANDLE(JOB_OBJECT_HELPER), job_object_helper);
 MOCKABLE_FUNCTION(, int, job_object_helper_limit_memory, THANDLE(JOB_OBJECT_HELPER), job_object_helper, uint32_t, percent_physical_memory);
 MOCKABLE_FUNCTION(, int, job_object_helper_limit_cpu, THANDLE(JOB_OBJECT_HELPER), job_object_helper, uint32_t, percent_cpu);
 ```
@@ -28,6 +31,64 @@ MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_create);
 **SRS_JOB_OBJECT_HELPER_18_018: [** If there are any failures, `job_object_helper_create` shall fail and return `NULL`. **]**
 
 **SRS_JOB_OBJECT_HELPER_18_019: [** `job_object_helper_create` shall succeed and return the `JOB_OBJECT_HELPER` object.  **]**
+
+## job_object_helper_create_with_name
+```c
+MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_create_with_name, const char*, job_name);
+```
+``job_object_helper_create_with_name`` is used to create a Job Object with the specified name.
+
+**SRS_JOB_OBJECT_HELPER_19_001: [** `job_object_helper_create_with_name` shall log the error and return `NULL` if the passed `job_name` is `NULL` or empty. **]**
+
+**SRS_JOB_OBJECT_HELPER_19_002: [** `job_object_helper_create_with_name` shall allocate `JOB_OBJECT_HELPER` object. **]**
+
+**SRS_JOB_OBJECT_HELPER_19_016: [** `job_object_helper_create_with_name` shall call `mbs_to_wcs` to convert job_name to `wchar_t*`. **]**
+
+**SRS_JOB_OBJECT_HELPER_19_003: [** `job_object_helper_create_with_name` shall call `CreateJobObject` to create a new job object passing `NULL` for `lpJobAttributes` and `job_name` to `lpName`. **]**
+
+**SRS_JOB_OBJECT_HELPER_19_004: [** `job_object_helper_create_with_name` shall log the error and return `NULL` if the `CreateJobObject` fail. **]**
+
+**SRS_JOB_OBJECT_HELPER_19_005: [** `job_object_helper_create_with_name` shall return the `JOB_OBJECT_HELPER` object when the job object is created successfully. **]**
+
+
+## job_object_helper_get
+```c
+MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_get, const char*, job_name);
+```
+``job_object_helper_get`` is used for getting a `JOB_OBJECT_HELPER` created with the name `job_name`.
+
+**SRS_JOB_OBJECT_HELPER_19_006: [** `job_object_helper_get` shall log the error and return `NULL` if the passed `job_name` is `NULL` or empty. **]**
+
+**SRS_JOB_OBJECT_HELPER_19_017: [** `job_object_helper_get` shall call `mbs_to_wcs` to convert the `job_name` to `wchar_t*` type. **]**
+
+**SRS_JOB_OBJECT_HELPER_19_007: [** `job_object_helper_get` shall call `OpenJobObject` with name parameter set to `job_name`. **]**
+
+**SRS_JOB_OBJECT_HELPER_19_008: [** `job_object_helper_get` shall log the error and return `NULL` if the `job object` with the name does not exist. **]**
+
+**SRS_JOB_OBJECT_HELPER_19_009: [** `job_object_helper_get`shall return the `JOB_OBJECT_HELPER` object when the job object is opened successfully. **]**
+
+
+## job_object_helper_assign_process
+```c
+MOCKABLE_FUNCTION(, bool, job_object_helper_assign_process, THANDLE(JOB_OBJECT_HELPER), job_object_helper);
+```
+``job_object_helper_assign_process`` assigns the current process to the Job Object.
+
+**SRS_JOB_OBJECT_HELPER_19_010: [** `job_object_helper_assign_process` shall log the error and return `False` if the `job_object_helper` is `NULL`. **]**
+
+**SRS_JOB_OBJECT_HELPER_19_011: [** `job_object_helper_assign_process` shall call `OpenJobObject` with Permission `JOB_OBJECT_ASSIGN_PROCESS`. **]**
+
+**SRS_JOB_OBJECT_HELPER_19_018: [** `job_object_helper_assign_process` shall log the error and return `False` if `OpenJobObject` call fails. **]**
+
+**SRS_JOB_OBJECT_HELPER_19_012: [** `job_object_helper_assign_process` shall call `GetCurrentProcess` to get the current process handle. **]**
+
+**SRS_JOB_OBJECT_HELPER_19_019: [** `job_object_helper_assign_process` shall log the error and return `False` if `GetCurrentProcess` call fails. **]**
+
+**SRS_JOB_OBJECT_HELPER_19_013: [** `job_object_helper_assign_process` shall call `AssignProcessToJobObject` to assign the current process to the job object. **]**
+
+**SRS_JOB_OBJECT_HELPER_19_014: [** `job_object_helper_assign_process` shall log error and return `False` if the `AssignProcessToJobObject` fails. **]**
+
+**SRS_JOB_OBJECT_HELPER_19_015: [** `job_object_helper_assign_process` shall return `True` if the `AssignProcessToJobObject` succeeds. **]**
 
 
 ## job_object_helper_dispose
