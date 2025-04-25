@@ -21,6 +21,7 @@ if(${run_unittests})
     build_test_folder(thandle_ut)
     build_test_folder(thandle_ptr_ut)
     build_test_folder(real_thandle_log_context_handle_ut)
+    build_test_folder(tqueue_ut)
 endif()
 
 if(${run_int_tests})
@@ -31,6 +32,7 @@ if(${run_int_tests})
     build_test_folder(sm_int)
     build_test_folder(thandle_ptr_int)
     build_test_folder(threadpool_int)
+    build_test_folder(tqueue_int)
 endif()
 
 

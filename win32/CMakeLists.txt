@@ -12,6 +12,8 @@ set(pal_common_h_files
     ../common/inc/c_pal/thandle.h
     ../common/inc/c_pal/thandle_ptr.h
     ../common/inc/c_pal/thandle_log_context_handle.h
+    ../common/inc/c_pal/tqueue.h
+    ../common/inc/c_pal/tqueue_ll.h
 )
 
 set(pal_common_c_files
@@ -22,6 +24,7 @@ set(pal_common_c_files
     ../common/src/s_list.c
     ../common/src/sm.c
     ../common/src/thandle_log_context_handle.c
+    ../common/src/tqueue.c
 )
 
 #determining which one of the GBALLOC_LL implementations to use. By convention the file is called "gballoc_ll_" followed by "type".
