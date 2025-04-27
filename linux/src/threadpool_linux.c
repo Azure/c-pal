@@ -35,6 +35,7 @@
 #include "c_pal/thandle.h" // IWYU pragma: keep
 #include "c_pal/thandle_ll.h"
 #include "c_pal/srw_lock_ll.h"
+#include "c_pal/tqueue.h"
 
 #include "c_pal/threadpool.h"
 
@@ -77,7 +78,6 @@ THANDLE_TYPE_DEFINE(THREADPOOL_TIMER);
 
 typedef struct THREADPOOL_TASK_TAG
 {
-    volatile_atomic int32_t task_state;
     THREADPOOL_WORK_FUNCTION work_function;
     void* work_function_ctx;
 } THREADPOOL_TASK;
@@ -90,24 +90,26 @@ typedef struct THREADPOOL_WORK_ITEM_TAG
 
 THANDLE_TYPE_DEFINE(THREADPOOL_WORK_ITEM);
 
+TQUEUE_DEFINE_STRUCT_TYPE(THREADPOOL_TASK);
+THANDLE_TYPE_DECLARE(TQUEUE_TYPEDEF_NAME(THREADPOOL_TASK))
+TQUEUE_TYPE_DECLARE(THREADPOOL_TASK);
+
+THANDLE_TYPE_DEFINE(TQUEUE_TYPEDEF_NAME(THREADPOOL_TASK))
+TQUEUE_TYPE_DEFINE(THREADPOOL_TASK);
+
 typedef struct THREADPOOL_TAG
 {
     volatile_atomic int32_t stop_thread;
     uint32_t max_thread_count;
     uint32_t min_thread_count;
     int32_t used_thread_count;
-    volatile_atomic int32_t task_count;
 
     sem_t semaphore;
     SRW_LOCK_HANDLE srw_lock;
     uint32_t list_index;
 
-    THREADPOOL_TASK* task_array;
-    volatile_atomic int32_t task_array_size;
-    volatile_atomic int64_t insert_idx;
-    volatile_atomic int64_t consume_idx;
-
     THREAD_HANDLE* thread_handle_array;
+    TQUEUE(THREADPOOL_TASK) task_queue;
 } THREADPOOL;
 
 THANDLE_TYPE_DEFINE(THREADPOOL);
@@ -182,7 +184,6 @@ static int threadpool_work_func(void* param)
     {
         struct timespec ts;
         THREADPOOL* threadpool = param;
-        int64_t current_index;
 
         do
         {
@@ -203,39 +204,11 @@ static int threadpool_work_func(void* param)
                 }
                 else
                 {
-                    THREADPOOL_WORK_FUNCTION work_function = NULL;
-                    void* work_function_ctx = NULL;
-                    /* Codes_SRS_THREADPOOL_LINUX_07_076: [ threadpool_work_func shall acquire the shared SRW lock by calling srw_lock_acquire_shared. ]*/
-                    srw_lock_acquire_shared(threadpool->srw_lock);
-                    {
-                        /* Codes_SRS_THREADPOOL_LINUX_07_077: [ threadpool_work_func shall get the current task array size by calling interlocked_add. ]*/
-                        int32_t existing_count = interlocked_add(&threadpool->task_array_size, 0);
+                    THREADPOOL_TASK threadpool_task;
 
-                        /* Codes_SRS_THREADPOOL_LINUX_07_078: [ threadpool_work_func shall increment the current consume index by calling interlocked_increment_64. ]*/
-                        /* Codes_SRS_THREADPOOL_LINUX_07_079: [ threadpool_work_func shall get the next waiting task consume index from incremented consume index modulo current task array size. ]*/
-                        current_index = (interlocked_increment_64(&threadpool->consume_idx) - 1) % existing_count;
-                        /* Codes_SRS_THREADPOOL_LINUX_07_080: [ If consume index has task state TASK_WAITING, threadpool_work_func shall set the task state to TASK_WORKING. ]*/
-                        TASK_RESULT curr_task_result = interlocked_compare_exchange(&threadpool->task_array[current_index].task_state, TASK_WORKING, TASK_WAITING);
-                        if (TASK_WAITING == curr_task_result)
-                        {
-                            /* Codes_SRS_THREADPOOL_LINUX_07_081: [ threadpool_work_func shall copy the function and parameter to local variables. ]*/
-                            work_function = threadpool->task_array[current_index].work_function;
-                            work_function_ctx = threadpool->task_array[current_index].work_function_ctx;
-                            /* Codes_SRS_THREADPOOL_LINUX_07_082: [ threadpool_work_func shall set the task state to TASK_NOT_USED. ]*/
-                            (void)interlocked_exchange(&threadpool->task_array[current_index].task_state, TASK_NOT_USED);
-                        }
-                        else
-                        {
-                            //do nothing
-                        }
-                    }
-                    /* Codes_SRS_THREADPOOL_LINUX_07_083: [ threadpool_work_func shall release the shared SRW lock by calling srw_lock_release_shared. ]*/
-                    srw_lock_release_shared(threadpool->srw_lock);
-
-                    /* Codes_SRS_THREADPOOL_LINUX_07_084: [ If the work item function is not NULL, threadpool_work_func shall execute it with work_function_ctx. ]*/
-                    if (work_function != NULL)
+                    while (TQUEUE_POP(THREADPOOL_TASK)(threadpool->task_queue, &threadpool_task, NULL, NULL, NULL) == TQUEUE_POP_OK)
                     {
-                        work_function(work_function_ctx);
+                        threadpool_task.work_function(threadpool_task.work_function_ctx);
                     }
                 }
             }
@@ -243,84 +216,6 @@ static int threadpool_work_func(void* param)
         } while (interlocked_add(&threadpool->stop_thread, 0) != 1);
     }
     return 0;
-}
-
-static int reallocate_threadpool_array(THREADPOOL* threadpool)
-{
-    int result;
-    {
-        /* Codes_SRS_THREADPOOL_LINUX_07_037: [ threadpool_schedule_work shall acquire the SRW lock in exclusive mode by calling srw_lock_acquire_exclusive. ]*/
-        srw_lock_acquire_exclusive(threadpool->srw_lock);
-
-        /* Codes_SRS_THREADPOOL_LINUX_07_038: [ threadpool_schedule_work shall get the current size of task array by calling interlocked_add. ]*/
-        int32_t existing_count = interlocked_add(&threadpool->task_array_size, 0);
-
-        int32_t new_task_array_size = existing_count*2;
-        /* Codes_SRS_THREADPOOL_LINUX_07_039: [ If there is any overflow computing the new size, threadpool_schedule_work shall fail and return a non-zero value . ]*/
-        if (new_task_array_size < 0)
-        {
-            LogError("overflow in computation task_array_size: %" PRId32 "*2 (%" PRId32 ") > UINT32_MAX: %" PRId32 " - 1. ", existing_count, new_task_array_size, INT32_MAX);
-            result = MU_FAILURE;
-        }
-        else
-        {
-            /* Codes_SRS_THREADPOOL_LINUX_07_040: [ Otherwise, threadpool_schedule_work shall double the current task array size. ]*/
-            (void)interlocked_exchange(&threadpool->task_array_size, new_task_array_size);
-
-            /* Codes_SRS_THREADPOOL_LINUX_07_041: [ threadpool_schedule_work shall realloc the memory used for the array items. ]*/
-            THREADPOOL_TASK* temp_array = realloc_2(threadpool->task_array, new_task_array_size, sizeof(THREADPOOL_TASK));
-            if (temp_array == NULL)
-            {
-                /* Codes_SRS_THREADPOOL_LINUX_07_042: [ If any error occurs, threadpool_schedule_work shall fail and return a non-zero value. ]*/
-                LogError("Failure realloc_2(threadpool->task_array: %p, threadpool->task_array_size: %" PRId32", sizeof(THREADPOOL_TASK): %zu", threadpool->task_array, new_task_array_size, sizeof(THREADPOOL_TASK));
-                result = MU_FAILURE;
-            }
-            else
-            {
-                /* Codes_SRS_THREADPOOL_LINUX_07_043: [ threadpool_schedule_work shall initialize every task item in the new task array with task_func and task_param set to NULL and task_state set to TASK_NOT_USED. ]*/
-                for (uint32_t index = existing_count; index < new_task_array_size; index++)
-                {
-                    temp_array[index].work_function = NULL;
-                    temp_array[index].work_function_ctx = NULL;
-                    (void)interlocked_exchange(&temp_array[index].task_state, TASK_NOT_USED);
-                }
-                threadpool->task_array = temp_array;
-
-                // Ensure there are no gaps in the array
-                // Consume = 2
-                // Produce = 2
-                // [x x x x]
-                // Consume = 3
-                // Produce = 2
-                // [x x 0 x]
-                // During resize we will have to memmove in the gap at 2
-                // [x x 0 x 0 0 0 0]
-
-                int64_t insert_pos = interlocked_add_64(&threadpool->insert_idx, 0) % existing_count;
-                int64_t consume_pos = interlocked_add_64(&threadpool->consume_idx, 0) % existing_count;
-                uint32_t move_count = 0;
-
-                /* Codes_SRS_THREADPOOL_LINUX_07_044: [ threadpool_schedule_work shall shall memmove everything between the consume index and the size of the array before resize to the end of the new resized array. ]*/
-                if (insert_pos < consume_pos)
-                {
-                    move_count = existing_count - consume_pos;
-                    (void)memmove(&threadpool->task_array[new_task_array_size - move_count], &threadpool->task_array[consume_pos], sizeof(THREADPOOL_TASK)*move_count);
-                    (void)interlocked_exchange_64(&threadpool->consume_idx, new_task_array_size - move_count);
-                }
-                else
-                {
-                    /* Codes_SRS_THREADPOOL_LINUX_07_045: [ threadpool_schedule_work shall reset the consume_idx and insert_idx to 0 after resize the task array. ]*/
-                    (void)interlocked_exchange_64(&threadpool->consume_idx, 0);
-                    (void)interlocked_exchange_64(&threadpool->insert_idx, existing_count - move_count);
-                }
-
-                result = 0;
-            }
-        }
-        /* Codes_SRS_THREADPOOL_LINUX_07_046: [ threadpool_schedule_work shall release the SRW lock by calling srw_lock_release_exclusive. ]*/
-        srw_lock_release_exclusive(threadpool->srw_lock);
-    }
-    return result;
 }
 
 static void threadpool_dispose(THREADPOOL* threadpool)
@@ -342,7 +237,6 @@ static void threadpool_dispose(THREADPOOL* threadpool)
     }
 
     /* Codes_SRS_THREADPOOL_LINUX_07_016: [ threadpool_dispose shall free the memory allocated in threadpool_create. ]*/
-    free(threadpool->task_array);
     free(threadpool->thread_handle_array);
 
     /* Codes_SRS_THREADPOOL_LINUX_07_014: [ threadpool_dispose shall destroy the semphore by calling sem_destroy. ]*/
@@ -387,64 +281,57 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
             }
             else
             {
-                /* Codes_SRS_THREADPOOL_LINUX_07_006: [ threadpool_create shall allocate memory with default task array size 2048 for an array of tasks and on success return a non-NULL handle to it. ]*/
-                result->task_array = malloc_2(DEFAULT_TASK_ARRAY_SIZE, sizeof(THREADPOOL_TASK));
-                if (result->task_array == NULL)
+                /* Codes_SRS_THREADPOOL_LINUX_07_008: [ threadpool_create shall create a SRW lock by calling srw_lock_create. ]*/
+                result->srw_lock = srw_lock_create(false, "threadpool_lock");
+                if (result->srw_lock == NULL)
                 {
                     /* Codes_SRS_THREADPOOL_LINUX_07_011: [ If any error occurs, threadpool_create shall fail and return NULL. ]*/
-                    LogError("Failure malloc_2(DEFAULT_TASK_ARRAY_SIZE: %" PRIu32 ", sizeof(THREADPOOL_TASK)): %zu", DEFAULT_TASK_ARRAY_SIZE, sizeof(THREADPOOL_TASK));
+                    LogError("Failure srw_lock_create");
                 }
                 else
                 {
-                    result->task_array_size = DEFAULT_TASK_ARRAY_SIZE;
-                    /* Codes_SRS_THREADPOOL_LINUX_07_007: [ threadpool_create shall initialize every task item in the tasks array with task_func and task_param set to NULL and task_state set to TASK_NOT_USED. ]*/
-                    for (uint32_t index = 0; index < result->task_array_size; index++)
-                    {
-                        result->task_array[index].work_function = NULL;
-                        result->task_array[index].work_function_ctx = NULL;
-                        (void)interlocked_exchange(&result->task_array[index].task_state, TASK_NOT_USED);
-                    }
-
-                    /* Codes_SRS_THREADPOOL_LINUX_07_008: [ threadpool_create shall create a SRW lock by calling srw_lock_create. ]*/
-                    result->srw_lock = srw_lock_create(false, "threadpool_lock");
-                    if (result->srw_lock == NULL)
+                    result->list_index = 0;
+                    /* Codes_SRS_THREADPOOL_LINUX_07_009: [ threadpool_create shall create a shared semaphore with initialized value zero. ]*/
+                    if (sem_init(&result->semaphore, 0 , 0) != 0)
                     {
                         /* Codes_SRS_THREADPOOL_LINUX_07_011: [ If any error occurs, threadpool_create shall fail and return NULL. ]*/
-                        LogError("Failure srw_lock_create");
+                        LogError("Failure creating sem_init");
                     }
                     else
                     {
-                        result->list_index = 0;
-                        /* Codes_SRS_THREADPOOL_LINUX_07_009: [ threadpool_create shall create a shared semaphore with initialized value zero. ]*/
-                        if (sem_init(&result->semaphore, 0 , 0) != 0)
+                        TQUEUE(THREADPOOL_TASK) temp_task_queue = TQUEUE_CREATE(THREADPOOL_TASK)(1, UINT32_MAX, NULL, NULL, NULL);
+                        if (result->task_queue == NULL)
                         {
-                            /* Codes_SRS_THREADPOOL_LINUX_07_011: [ If any error occurs, threadpool_create shall fail and return NULL. ]*/
-                            LogError("Failure creating sem_init");
+                            LogError("TQUEUE_CREATE(THREADPOOL_TASK)(1, UINT32_MAX, NULL, NULL, NULL) failed");
                         }
                         else
                         {
-                            (void)interlocked_exchange(&result->stop_thread, 0);
-                            (void)interlocked_exchange(&result->task_count, 0);
-
-                            /* Codes_SRS_THREADPOOL_LINUX_07_010: [ insert_idx and consume_idx for the task array shall be initialized to 0. ]*/
-                            (void)interlocked_exchange_64(&result->insert_idx, 0);
-                            (void)interlocked_exchange_64(&result->consume_idx, 0);
-
-                            uint32_t index;
-                            for (index = 0; index < result->used_thread_count; index++)
+                            TQUEUE_INITIALIZE_MOVE(THREADPOOL_TASK)(&result->task_queue, &temp_task_queue);
                             {
-                                /* Codes_SRS_THREADPOOL_LINUX_07_020: [ threadpool_create shall create number of min_thread_count threads for threadpool using ThreadAPI_Create. ]*/
-                                if (ThreadAPI_Create(&result->thread_handle_array[index], threadpool_work_func, result) != THREADAPI_OK)
+                                (void)interlocked_exchange(&result->stop_thread, 0);
+
+                                uint32_t index;
+                                for (index = 0; index < result->used_thread_count; index++)
                                 {
-                                    /* Codes_SRS_THREADPOOL_LINUX_07_011: [ If any error occurs, threadpool_create shall fail and return NULL. ]*/
-                                    LogError("Failure creating thread %" PRIu32 "", index);
-                                    break;
+                                    /* Codes_SRS_THREADPOOL_LINUX_07_020: [ threadpool_create shall create number of min_thread_count threads for threadpool using ThreadAPI_Create. ]*/
+                                    if (ThreadAPI_Create(&result->thread_handle_array[index], threadpool_work_func, result) != THREADAPI_OK)
+                                    {
+                                        /* Codes_SRS_THREADPOOL_LINUX_07_011: [ If any error occurs, threadpool_create shall fail and return NULL. ]*/
+                                        LogError("Failure creating thread %" PRIu32 "", index);
+                                        break;
+                                    }
                                 }
-                            }
 
-                            /* Codes_SRS_THREADPOOL_LINUX_07_022: [ If one of the thread creation fails, threadpool_create shall fail and return a non-zero value, terminate all threads already created. ]*/
-                            if (index < result->used_thread_count)
-                            {
+                                /* Codes_SRS_THREADPOOL_LINUX_07_022: [ If one of the thread creation fails, threadpool_create shall fail and return a non-zero value, terminate all threads already created. ]*/
+                                if (index < result->used_thread_count)
+                                {
+                                    LogError("Failed starting one of the threadpool threads");
+                                }
+                                else
+                                {
+                                    goto all_ok;
+                                }
+
                                 (void)interlocked_exchange(&result->stop_thread, 1);
                                 for (uint32_t inner = 0; inner < index; inner++)
                                 {
@@ -455,18 +342,15 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                                     }
                                     else
                                     {
-                                        // Everything Okay.
+                                        // do nothing
                                     }
                                 }
-                            }
-                            else
-                            {
-                                goto all_ok;
+
+                                TQUEUE_ASSIGN(THREADPOOL_TASK)(&result->task_queue, NULL);
                             }
                         }
-                        srw_lock_destroy(result->srw_lock);
                     }
-                    free(result->task_array);
+                    srw_lock_destroy(result->srw_lock);
                 }
                 free(result->thread_handle_array);
             }
@@ -494,51 +378,19 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
     {
         THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
 
-        do
+        THREADPOOL_TASK threadpool_task = { .work_function = work_function, .work_function_ctx = work_function_ctx };
+        if (TQUEUE_PUSH(THREADPOOL_TASK)(threadpool_ptr->task_queue, &threadpool_task, NULL) != TQUEUE_PUSH_OK)
         {
-            /* Codes_SRS_THREADPOOL_LINUX_07_033: [ threadpool_schedule_work shall acquire the SRW lock in shared mode by calling srw_lock_acquire_shared. ]*/
-            srw_lock_acquire_shared(threadpool_ptr->srw_lock);
-            int32_t existing_count = interlocked_add(&threadpool_ptr->task_array_size, 0);
+            LogError("TQUEUE_PUSH(THREADPOOL_TASK)(threadpool_ptr->task_queue, &threadpool_task, NULL) failed");
+        }
+        else
+        {
+            /* Codes_SRS_THREADPOOL_LINUX_07_051: [ threadpool_schedule_work shall unblock the threadpool semaphore by calling sem_post. ]*/
+            sem_post(&threadpool_ptr->semaphore);
 
-            /* Codes_SRS_THREADPOOL_LINUX_07_034: [ threadpool_schedule_work shall increment the insert_pos. ]*/
-            int64_t insert_pos = (interlocked_increment_64(&threadpool_ptr->insert_idx) - 1) % existing_count;
-
-            /* Codes_SRS_THREADPOOL_LINUX_07_035: [ If task state is TASK_NOT_USED, threadpool_schedule_work shall set the current task state to TASK_INITIALIZING. ]*/
-            int32_t task_state = interlocked_compare_exchange(&threadpool_ptr->task_array[insert_pos].task_state, TASK_INITIALIZING, TASK_NOT_USED);
-
-            if (task_state != TASK_NOT_USED)
-            {
-                /* Codes_SRS_THREADPOOL_LINUX_07_036: [ Otherwise, threadpool_schedule_work shall release the shared SRW lock by calling srw_lock_release_shared and increase task_array capacity: ]*/
-                srw_lock_release_shared(threadpool_ptr->srw_lock);
-
-                if (reallocate_threadpool_array(threadpool_ptr) != 0)
-                {
-                    /* Codes_SRS_THREADPOOL_LINUX_07_048: [ If reallocating the task array fails, threadpool_schedule_work shall fail and return a non-zero value. ]*/
-                    LogError("Failure reallocating threadpool_ptr");
-                    result = MU_FAILURE;
-                    break;
-                }
-                continue;
-            }
-            /* Codes_SRS_THREADPOOL_LINUX_07_049: [ threadpool_schedule_work shall copy the work function and work function context into insert position in the task array and assign 0 to the return variable to indicate success. ] */
-            else
-            {
-                THREADPOOL_TASK* task_item = &threadpool_ptr->task_array[insert_pos];
-                task_item->work_function_ctx = work_function_ctx;
-                task_item->work_function = work_function;
-
-                /* Codes_SRS_THREADPOOL_LINUX_07_050: [ threadpool_schedule_work shall set the task_state to TASK_WAITING and then release the shared SRW lock. ] */
-                (void)interlocked_exchange(&task_item->task_state, TASK_WAITING);
-                srw_lock_release_shared(threadpool_ptr->srw_lock);
-
-                /* Codes_SRS_THREADPOOL_LINUX_07_051: [ threadpool_schedule_work shall unblock the threadpool semaphore by calling sem_post. ]*/
-                sem_post(&threadpool_ptr->semaphore);
-
-                /* Codes_SRS_THREADPOOL_LINUX_07_047: [ threadpool_schedule_work shall return zero on success. ]*/
-                result = 0;
-                break;
-            }
-        } while (true);
+            /* Codes_SRS_THREADPOOL_LINUX_07_047: [ threadpool_schedule_work shall return zero on success. ]*/
+            result = 0;
+        }
     }
     return result;
 }
@@ -819,56 +671,24 @@ int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THANDLE(THREAD
     {
         THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
 
-        do
+        THREADPOOL_TASK threadpool_task = {
+            .work_function = threadpool_work_item->work_function,
+            .work_function_ctx = threadpool_work_item->work_function_ctx
+        };
+
+        if (TQUEUE_PUSH(THREADPOOL_TASK)(threadpool_ptr->task_queue, &threadpool_task, NULL) != TQUEUE_PUSH_OK)
         {
-            /* Codes_SRS_THREADPOOL_LINUX_05_014: [ threadpool_schedule_work_item shall acquire the SRW lock in shared mode by calling srw_lock_acquire_shared. ]*/
-            srw_lock_acquire_shared(threadpool_ptr->srw_lock);
-            int32_t existing_count = interlocked_add(&threadpool_ptr->task_array_size, 0);
+            LogError("TQUEUE_PUSH(THREADPOOL_TASK)(threadpool_ptr->task_queue, &threadpool_task, NULL) failed");
+            result = MU_FAILURE;
+        }
+        else
+        {
+            /* Codes_SRS_THREADPOOL_LINUX_05_025: [ threadpool_schedule_work_item shall unblock the threadpool semaphore by calling sem_post. ]*/
+            sem_post(&threadpool_ptr->semaphore);
 
-            /* Codes_SRS_THREADPOOL_LINUX_05_015: [ threadpool_schedule_work_item shall increment the insert_pos. ]*/
-            int64_t insert_pos = (interlocked_increment_64(&threadpool_ptr->insert_idx) - 1) % existing_count;
-
-            /* Codes_SRS_THREADPOOL_LINUX_05_016: [ If task state is TASK_NOT_USED, threadpool_schedule_work_item shall set the current task state to TASK_INITIALIZING. ]*/
-            int32_t task_state = interlocked_compare_exchange(&threadpool_ptr->task_array[insert_pos].task_state, TASK_INITIALIZING, TASK_NOT_USED);
-
-            /* Codes_SRS_THREADPOOL_LINUX_05_017: [ threadpool_schedule_work_item shall release the shared SRW lock by calling srw_lock_release_shared. ]*/
-            srw_lock_release_shared(threadpool_ptr->srw_lock);
-            /* Codes_SRS_THREADPOOL_LINUX_05_018: [ If the previous task state is not TASK_NOT_USED then threadpool_schedule_work_item shall increase task_array capacity. ]*/
-            if (task_state != TASK_NOT_USED)
-            {
-                if (reallocate_threadpool_array(threadpool_ptr) != 0)
-                {
-                    /* Codes_SRS_THREADPOOL_LINUX_05_019: [ If reallocating the task array fails, threadpool_schedule_work_item shall fail and return a non-zero value. ]*/
-                    LogError("Failure reallocating threadpool_ptr");
-                    result = MU_FAILURE;
-                    break;
-                }
-                continue;
-            }
-            else
-            {
-                THREADPOOL_WORK_ITEM_HANDLE threadpool_work_item_ptr = THANDLE_GET_T(THREADPOOL_WORK_ITEM)(threadpool_work_item);
-                /* Codes_SRS_THREADPOOL_LINUX_05_020: [ threadpool_schedule_work_item shall acquire the SRW lock in shared mode by calling srw_lock_acquire_exclusive. ]*/
-                srw_lock_acquire_shared(threadpool_ptr->srw_lock);
-                THREADPOOL_TASK* task_item = &threadpool_ptr->task_array[insert_pos];
-
-                /* Codes_SRS_THREADPOOL_LINUX_05_022: [ threadpool_schedule_work_item shall copy the work_function and work_function_context from threadpool_work_item into insert position in the task array. ]*/
-                task_item->work_function_ctx = threadpool_work_item_ptr->work_function_ctx;
-                task_item->work_function = threadpool_work_item_ptr->work_function;
-
-                /* Codes_SRS_THREADPOOL_LINUX_05_023: [ threadpool_schedule_work_item shall set the task_state to TASK_WAITING and then release the shared SRW lock by calling srw_lock_release_exclusive. ]*/
-                (void)interlocked_exchange(&task_item->task_state, TASK_WAITING);
-
-                srw_lock_release_shared(threadpool_ptr->srw_lock);
-
-                /* Codes_SRS_THREADPOOL_LINUX_05_025: [ threadpool_schedule_work_item shall unblock the threadpool semaphore by calling sem_post. ]*/
-                sem_post(&threadpool_ptr->semaphore);
-
-                /* Codes_SRS_THREADPOOL_LINUX_05_026: [ threadpool_schedule_work_item shall succeed and return 0. ]*/
-                result = 0;
-                break;
-            }
-        } while (true);
+            /* Codes_SRS_THREADPOOL_LINUX_05_026: [ threadpool_schedule_work_item shall succeed and return 0. ]*/
+            result = 0;
+        }
     }
     return result;
 }
