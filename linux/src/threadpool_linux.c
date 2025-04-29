@@ -209,9 +209,14 @@ static int threadpool_work_func(void* param)
                 {
                     THANDLE(THREADPOOL_WORK_ITEM) threadpool_work_item;
 
+                    /* Codes_SRS_THREADPOOL_LINUX_01_016: [ threadpool_work_func shall pop an item from the task queue by calling TQUEUE_POP(THANDLE(THREADPOOL_WORK_ITEM)). ]*/
+                    /* Codes_SRS_THREADPOOL_LINUX_01_017: [ If the pop returns TQUEUE_POP_OK: ]*/
                     while (TQUEUE_POP(THANDLE(THREADPOOL_WORK_ITEM))(threadpool->task_queue, &threadpool_work_item, NULL, NULL, NULL) == TQUEUE_POP_OK)
                     {
+                        /* Codes_SRS_THREADPOOL_LINUX_07_084: [ threadpool_work_func shall execute the work_function with work_function_ctx. ]*/
                         threadpool_work_item->work_function(threadpool_work_item->work_function_ctx);
+
+                        /* Codes_SRS_THREADPOOL_LINUX_01_018: [ threadpool_work_func shall release the reference to the work item. ]*/
                         THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&threadpool_work_item, NULL);
                     }
                 }
@@ -241,6 +246,7 @@ static void threadpool_dispose(THREADPOOL* threadpool)
     }
 
     /* Codes_SRS_THREADPOOL_LINUX_07_016: [ threadpool_dispose shall free the memory allocated in threadpool_create. ]*/
+    TQUEUE_ASSIGN(THANDLE(THREADPOOL_WORK_ITEM))(&threadpool->task_queue, NULL);
     free(threadpool->thread_handle_array);
 
     /* Codes_SRS_THREADPOOL_LINUX_07_014: [ threadpool_dispose shall destroy the semphore by calling sem_destroy. ]*/
@@ -370,6 +376,7 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
     {
         THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
 
+        /* Codes_SRS_THREADPOOL_LINUX_01_014: [ threadpool_schedule_work shall create a new THANDLE(THREADPOOL_WORK_ITEM) and save the work_function and work_function_context in it. ]*/
         THREADPOOL_WORK_ITEM* threadpool_work_item_ptr = THANDLE_MALLOC(THREADPOOL_WORK_ITEM)(NULL);
         if (threadpool_work_item_ptr == NULL)
         {
@@ -382,6 +389,7 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
 
             THANDLE(THREADPOOL_WORK_ITEM) threadpool_work_item = threadpool_work_item_ptr;
 
+            /* Codes_SRS_THREADPOOL_LINUX_01_015: [ threadpool_schedule_work shall push the newly created THANDLE(THREADPOOL_WORK_ITEM) in the work item queue. ]*/
             if (TQUEUE_PUSH(THANDLE(THREADPOOL_WORK_ITEM))(threadpool_ptr->task_queue, &threadpool_work_item, NULL) != TQUEUE_PUSH_OK)
             {
                 LogError("TQUEUE_PUSH(THREADPOOL_TASK)(threadpool_ptr->task_queue, &threadpool_task, NULL) failed");
@@ -395,11 +403,15 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
 
                 /* Codes_SRS_THREADPOOL_LINUX_07_047: [ threadpool_schedule_work shall return zero on success. ]*/
                 result = 0;
+
+                goto all_ok;
             }
 
             THANDLE_FREE(THREADPOOL_WORK_ITEM)(threadpool_work_item_ptr);
         }
     }
+
+all_ok:
     return result;
 }
 
@@ -679,9 +691,11 @@ int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THANDLE(THREAD
     {
         THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
 
+        /* Codes_SRS_THREADPOOL_LINUX_01_019: [ threadpool_schedule_work_item shall TQUEUE_PUSH the threadpool_work_item into the task queue. ]*/
         if (TQUEUE_PUSH(THANDLE(THREADPOOL_WORK_ITEM))(threadpool_ptr->task_queue, &threadpool_work_item, NULL) != TQUEUE_PUSH_OK)
         {
-            LogError("TQUEUE_PUSH(THREADPOOL_TASK)(threadpool_ptr->task_queue, &threadpool_task, NULL) failed");
+            /* Codes_SRS_THREADPOOL_LINUX_01_020: [ If any error occurrs, threadpool_schedule_work_item shall fail and return a non-zero value. ]*/
+            LogError("TQUEUE_PUSH(THANDLE(THREADPOOL_WORK_ITEM))(threadpool_ptr->task_queue, &threadpool_work_item, NULL) failed");
             result = MU_FAILURE;
         }
         else
