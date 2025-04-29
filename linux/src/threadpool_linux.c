@@ -167,6 +167,18 @@ static void on_timer_callback(sigval_t timer_data)
     }
 }
 
+static void THANDLE_THREADPOOL_WORK_ITEM_copy_item(void* context, THANDLE(THREADPOOL_WORK_ITEM)* dst, THANDLE(THREADPOOL_WORK_ITEM)* src)
+{
+    (void)context;
+    THANDLE_INITIALIZE(THREADPOOL_WORK_ITEM)(dst, *src);
+}
+
+static void THANDLE_THREADPOOL_WORK_ITEM_dispose(void* context, THANDLE(THREADPOOL_WORK_ITEM)* item)
+{
+    (void)context;
+    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(item, NULL);
+}
+
 static int threadpool_work_func(void* param)
 {
     if (param == NULL)
@@ -294,7 +306,7 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                     }
                     else
                     {
-                        TQUEUE(THANDLE(THREADPOOL_WORK_ITEM)) temp_task_queue = TQUEUE_CREATE(THANDLE(THREADPOOL_WORK_ITEM))(2048, UINT32_MAX, NULL, NULL, NULL);
+                        TQUEUE(THANDLE(THREADPOOL_WORK_ITEM)) temp_task_queue = TQUEUE_CREATE(THANDLE(THREADPOOL_WORK_ITEM))(2048, UINT32_MAX, THANDLE_THREADPOOL_WORK_ITEM_copy_item, THANDLE_THREADPOOL_WORK_ITEM_dispose, NULL);
                         if (temp_task_queue == NULL)
                         {
                             LogError("TQUEUE_CREATE(THANDLE(THREADPOOL_WORK_ITEM))(2048, UINT32_MAX, NULL, NULL, NULL) failed");
