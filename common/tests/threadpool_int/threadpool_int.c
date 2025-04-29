@@ -608,7 +608,7 @@ TEST_FUNCTION(threadpool_force_wrap_around)
     ASSERT_IS_NOT_NULL(threadpool);
 
     volatile_atomic int32_t thread_counter;
-    interlocked_exchange(&thread_counter, 0);
+    (void)interlocked_exchange(&thread_counter, 0);
 
     for (uint32_t index = 0; index < num_threads; index++)
     {
@@ -642,7 +642,7 @@ TEST_FUNCTION(threadpool_force_wrap_around_v2)
     ASSERT_IS_NOT_NULL(threadpool);
 
     volatile_atomic int32_t thread_counter;
-    interlocked_exchange(&thread_counter, 0);
+    (void)interlocked_exchange(&thread_counter, 0);
 
     WRAP_DATA* data = malloc(sizeof(WRAP_DATA));
     ASSERT_IS_NOT_NULL(data);

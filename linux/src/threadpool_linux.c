@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <stdio.h>
-#include <stdbool.h>
 #include <semaphore.h>
 #include <time.h>
 #include <string.h>
@@ -29,7 +28,6 @@
 #include "c_pal/lazy_init.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_linux.h"
-#include "c_pal/log_critical_and_terminate.h"
 #include "c_pal/sync.h"
 #include "c_pal/thandle.h" // IWYU pragma: keep
 #include "c_pal/thandle_ll.h"
@@ -97,7 +95,6 @@ typedef struct THREADPOOL_TAG
     int32_t used_thread_count;
 
     sem_t semaphore;
-    uint32_t list_index;
 
     THREAD_HANDLE* thread_handle_array;
     TQUEUE(THANDLE(THREADPOOL_WORK_ITEM)) task_queue;
@@ -289,7 +286,6 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
             }
             else
             {
-                result->list_index = 0;
                 /* Codes_SRS_THREADPOOL_LINUX_07_009: [ threadpool_create shall create a shared semaphore with initialized value zero. ]*/
                 if (sem_init(&result->semaphore, 0 , 0) != 0)
                 {
@@ -360,7 +356,7 @@ all_ok:
     return result;
 }
 
-int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_ctx)
+int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context)
 {
     int result;
     if (
@@ -369,7 +365,7 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
         /* Codes_SRS_THREADPOOL_LINUX_07_030: [ If work_function is NULL, threadpool_schedule_work shall fail and return a non-zero value. ]*/
         work_function == NULL)
     {
-        LogError("Invalid arguments: THANDLE(THREADPOOL) threadpool: %p, THREADPOOL_WORK_FUNCTION work_function: %p, void* work_function_ctx: %p", threadpool, work_function, work_function_ctx);
+        LogError("Invalid arguments: THANDLE(THREADPOOL) threadpool: %p, THREADPOOL_WORK_FUNCTION work_function: %p, void* work_function_context: %p", threadpool, work_function, work_function_context);
         result = MU_FAILURE;
     }
     else
@@ -381,12 +377,12 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
         if (threadpool_work_item_ptr == NULL)
         {
             /* Codes_SRS_THREADPOOL_LINUX_07_042: [ If any error occurs, threadpool_schedule_work shall fail and return a non-zero value. ]*/
-            LogError("Could not allocate memory for Work Item Context");
+            LogError("THANDLE_MALLOC(THREADPOOL_WORK_ITEM)(NULL) failed");
             result = MU_FAILURE;
         }
         else
         {
-            threadpool_work_item_ptr->work_function_ctx = work_function_ctx;
+            threadpool_work_item_ptr->work_function_ctx = work_function_context;
             threadpool_work_item_ptr->work_function = work_function;
 
             THANDLE(THREADPOOL_WORK_ITEM) threadpool_work_item = threadpool_work_item_ptr;

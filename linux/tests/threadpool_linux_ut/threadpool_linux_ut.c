@@ -2,7 +2,6 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <semaphore.h>
 #include <time.h>
 #include <bits/types/sigevent_t.h>         // for sigevent, sigev_notify_fun...
@@ -14,7 +13,6 @@
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_stdint.h"
-#include "umock_c/umocktypes_bool.h"
 #include "umock_c/umocktypes.h"
 #include "umock_c/umock_c_negative_tests.h"
 
@@ -30,10 +28,8 @@
 #include "c_pal/interlocked_hl.h"
 #include "c_pal/lazy_init.h"
 #include "c_pal/sync.h"
-#include "c_pal/sm.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_linux.h"
-#include "c_pal/ps_util.h"
 
 #include "c_pal/tqueue_threadpool_work_item.h"
 
@@ -44,7 +40,6 @@
 
 #include "real_interlocked.h"
 #include "real_gballoc_hl.h"
-#include "real_sm.h"
 #include "../../linux_reals/real_tqueue_threadpool_work_item.h"
 #include "../reals/real_lazy_init.h"
 #include "../reals/real_interlocked_hl.h"
@@ -232,7 +227,6 @@ TEST_SUITE_INITIALIZE(suite_init)
 {
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error));
     ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types());
-    ASSERT_ARE_EQUAL(int, 0, umocktypes_bool_register_types());
     ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
 
     REGISTER_UMOCK_ALIAS_TYPE(THREAD_HANDLE, void*);
