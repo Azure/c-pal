@@ -30,12 +30,10 @@
 #include "c_pal/interlocked_hl.h"
 #include "c_pal/lazy_init.h"
 #include "c_pal/sync.h"
-#include "c_pal/srw_lock.h"
 #include "c_pal/sm.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_linux.h"
 #include "c_pal/ps_util.h"
-#include "c_pal/srw_lock_ll.h"
 
 #include "c_pal/tqueue_threadpool_work_item.h"
 
@@ -46,8 +44,8 @@
 
 #include "real_interlocked.h"
 #include "real_gballoc_hl.h"
-#include "real_srw_lock_ll.h"
 #include "real_sm.h"
+#include "../../linux_reals/real_tqueue_threadpool_work_item.h"
 #include "../reals/real_lazy_init.h"
 #include "../reals/real_interlocked_hl.h"
 
@@ -63,7 +61,6 @@ struct itimerspec;
 struct timespec;
 
 static EXECUTION_ENGINE_PARAMETERS execution_engine = {MIN_THREAD_COUNT, MAX_THREAD_COUNT};
-static SRW_LOCK_HANDLE test_srw_lock = (SRW_LOCK_HANDLE)0x4242;
 static EXECUTION_ENGINE_HANDLE test_execution_engine = (EXECUTION_ENGINE_HANDLE)0x4243;
 static THREAD_HANDLE test_thread_handle = (THREAD_HANDLE)0x4200;
 static THREAD_START_FUNC g_saved_worker_thread_func;
@@ -134,7 +131,8 @@ static void threadpool_create_succeed_expectations(void)
     STRICT_EXPECTED_CALL(execution_engine_linux_get_parameters(test_execution_engine));
     STRICT_EXPECTED_CALL(malloc_2(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_sem_init(IGNORED_ARG, 0, 0));
-    STRICT_EXPECTED_CALL(TQUEUE_CREATE(THANDLE(THREADPOOL_WORK_ITEM))(2048, UINT32_MAX, NULL, NULL, NULL));
+    STRICT_EXPECTED_CALL(TQUEUE_CREATE(THANDLE(THREADPOOL_WORK_ITEM))(2048, UINT32_MAX, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(TQUEUE_INITIALIZE_MOVE(THANDLE(THREADPOOL_WORK_ITEM))(IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
 
     for(size_t i = 0; i < MIN_THREAD_COUNT; i++)
@@ -145,12 +143,10 @@ static void threadpool_create_succeed_expectations(void)
 
 static void threadpool_schedule_work_succeed_expectations(void)
 {
-    STRICT_EXPECTED_CALL(srw_lock_acquire_shared(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(interlocked_increment_64(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(srw_lock_release_shared(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_sem_post(IGNORED_ARG));
 }
 
@@ -233,14 +229,12 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_UMOCK_ALIAS_TYPE(THREAD_HANDLE, void*);
     REGISTER_UMOCK_ALIAS_TYPE(THREAD_START_FUNC, void*);
     REGISTER_UMOCK_ALIAS_TYPE(EXECUTION_ENGINE_HANDLE, void*);
-    REGISTER_UMOCK_ALIAS_TYPE(SRW_LOCK_HANDLE, void*);
     REGISTER_UMOCK_ALIAS_TYPE(THREADAPI_RESULT, int);
     REGISTER_UMOCK_ALIAS_TYPE(clockid_t, int);
     REGISTER_UMOCK_ALIAS_TYPE(timer_t, void*);
     REGISTER_UMOCK_ALIAS_TYPE(LAZY_INIT_FUNCTION, void*);
 
     REGISTER_GLOBAL_MOCK_RETURN(execution_engine_linux_get_parameters, &execution_engine);
-    REGISTER_GLOBAL_MOCK_RETURNS(srw_lock_create, test_srw_lock, NULL);
     REGISTER_GLOBAL_MOCK_RETURNS(mocked_sem_init, 0, -1);
     REGISTER_GLOBAL_MOCK_RETURNS(mocked_clock_gettime, 0, -1);
     REGISTER_GLOBAL_MOCK_RETURN(ThreadAPI_Join, THREADAPI_OK);
@@ -255,6 +249,13 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(malloc_2, NULL);
     REGISTER_GLOBAL_MOCK_RETURNS(mocked_timer_create, 0, 1);
     REGISTER_GLOBAL_MOCK_RETURNS(mocked_timer_settime, 0, -1);
+
+    REGISTER_UMOCK_ALIAS_TYPE(TQUEUE_COPY_ITEM_FUNC(THANDLE(THREADPOOL_WORK_ITEM)), void*);
+    REGISTER_UMOCK_ALIAS_TYPE(TQUEUE_DISPOSE_ITEM_FUNC(THANDLE(THREADPOOL_WORK_ITEM)), void*);
+    REGISTER_UMOCK_ALIAS_TYPE(TQUEUE_CONDITION_FUNC(THANDLE(THREADPOOL_WORK_ITEM)), void*);
+    REGISTER_UMOCK_ALIAS_TYPE(TQUEUE(THANDLE(THREADPOOL_WORK_ITEM)), void*);
+
+    REGISTER_TQUEUE_THREADPOOL_WORK_ITEM_GLOBAL_MOCK_HOOK();
 
     REGISTER_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT);
     REGISTER_TYPE(LAZY_INIT_RESULT, LAZY_INIT_RESULT);
@@ -300,7 +301,6 @@ TEST_FUNCTION(threadpool_create_with_NULL_execution_engine_fails)
 /* Tests_SRS_THREADPOOL_LINUX_07_006: [ threadpool_create shall allocate memory with default task array size 2048 for an array of tasks and on success return a non-NULL handle to it. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_007: [ threadpool_create shall initialize every task item in the tasks array with task_func and task_param set to NULL and task_state set to TASK_NOT_USED. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_009: [ threadpool_create shall create a shared semaphore with initialized value zero. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_008: [ threadpool_create shall create a SRW lock by calling srw_lock_create. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_010: [ insert_idx and consume_idx for the task array shall be initialized to 0. ]*/
 TEST_FUNCTION(threadpool_create_succeeds)
 {

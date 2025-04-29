@@ -27,14 +27,12 @@
 #include "c_pal/interlocked.h"
 #include "c_pal/interlocked_hl.h"
 #include "c_pal/lazy_init.h"
-#include "c_pal/srw_lock.h"
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_linux.h"
 #include "c_pal/log_critical_and_terminate.h"
 #include "c_pal/sync.h"
 #include "c_pal/thandle.h" // IWYU pragma: keep
 #include "c_pal/thandle_ll.h"
-#include "c_pal/srw_lock_ll.h"
 #include "c_pal/tqueue.h"
 #include "c_pal/tqueue_threadpool_work_item.h"
 
@@ -99,7 +97,6 @@ typedef struct THREADPOOL_TAG
     int32_t used_thread_count;
 
     sem_t semaphore;
-    SRW_LOCK_HANDLE srw_lock;
     uint32_t list_index;
 
     THREAD_HANDLE* thread_handle_array;
@@ -248,8 +245,6 @@ static void threadpool_dispose(THREADPOOL* threadpool)
 
     /* Codes_SRS_THREADPOOL_LINUX_07_014: [ threadpool_dispose shall destroy the semphore by calling sem_destroy. ]*/
     sem_destroy(&threadpool->semaphore);
-    /* Codes_SRS_THREADPOOL_LINUX_07_015: [ threadpool_dispose shall destroy the SRW lock by calling srw_lock_destroy. ]*/
-    srw_lock_destroy(threadpool->srw_lock);
 }
 
 THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
@@ -288,76 +283,65 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
             }
             else
             {
-                /* Codes_SRS_THREADPOOL_LINUX_07_008: [ threadpool_create shall create a SRW lock by calling srw_lock_create. ]*/
-                result->srw_lock = srw_lock_create(false, "threadpool_lock");
-                if (result->srw_lock == NULL)
+                result->list_index = 0;
+                /* Codes_SRS_THREADPOOL_LINUX_07_009: [ threadpool_create shall create a shared semaphore with initialized value zero. ]*/
+                if (sem_init(&result->semaphore, 0 , 0) != 0)
                 {
                     /* Codes_SRS_THREADPOOL_LINUX_07_011: [ If any error occurs, threadpool_create shall fail and return NULL. ]*/
-                    LogError("Failure srw_lock_create");
+                    LogError("Failure creating sem_init");
                 }
                 else
                 {
-                    result->list_index = 0;
-                    /* Codes_SRS_THREADPOOL_LINUX_07_009: [ threadpool_create shall create a shared semaphore with initialized value zero. ]*/
-                    if (sem_init(&result->semaphore, 0 , 0) != 0)
+                    TQUEUE(THANDLE(THREADPOOL_WORK_ITEM)) temp_task_queue = TQUEUE_CREATE(THANDLE(THREADPOOL_WORK_ITEM))(DEFAULT_TASK_ARRAY_SIZE, UINT32_MAX, THANDLE_THREADPOOL_WORK_ITEM_copy_item, THANDLE_THREADPOOL_WORK_ITEM_dispose, NULL);
+                    if (temp_task_queue == NULL)
                     {
-                        /* Codes_SRS_THREADPOOL_LINUX_07_011: [ If any error occurs, threadpool_create shall fail and return NULL. ]*/
-                        LogError("Failure creating sem_init");
+                        LogError("TQUEUE_CREATE(THANDLE(THREADPOOL_WORK_ITEM))(DEFAULT_TASK_ARRAY_SIZE=%d, UINT32_MAX, THANDLE_THREADPOOL_WORK_ITEM_copy_item, THANDLE_THREADPOOL_WORK_ITEM_dispose, NULL) failed", DEFAULT_TASK_ARRAY_SIZE);
                     }
                     else
                     {
-                        TQUEUE(THANDLE(THREADPOOL_WORK_ITEM)) temp_task_queue = TQUEUE_CREATE(THANDLE(THREADPOOL_WORK_ITEM))(2048, UINT32_MAX, THANDLE_THREADPOOL_WORK_ITEM_copy_item, THANDLE_THREADPOOL_WORK_ITEM_dispose, NULL);
-                        if (temp_task_queue == NULL)
+                        TQUEUE_INITIALIZE_MOVE(THANDLE(THREADPOOL_WORK_ITEM))(&result->task_queue, &temp_task_queue);
                         {
-                            LogError("TQUEUE_CREATE(THANDLE(THREADPOOL_WORK_ITEM))(2048, UINT32_MAX, NULL, NULL, NULL) failed");
-                        }
-                        else
-                        {
-                            TQUEUE_INITIALIZE_MOVE(THANDLE(THREADPOOL_WORK_ITEM))(&result->task_queue, &temp_task_queue);
+                            (void)interlocked_exchange(&result->stop_thread, 0);
+
+                            uint32_t index;
+                            for (index = 0; index < result->used_thread_count; index++)
                             {
-                                (void)interlocked_exchange(&result->stop_thread, 0);
-
-                                uint32_t index;
-                                for (index = 0; index < result->used_thread_count; index++)
+                                /* Codes_SRS_THREADPOOL_LINUX_07_020: [ threadpool_create shall create number of min_thread_count threads for threadpool using ThreadAPI_Create. ]*/
+                                if (ThreadAPI_Create(&result->thread_handle_array[index], threadpool_work_func, result) != THREADAPI_OK)
                                 {
-                                    /* Codes_SRS_THREADPOOL_LINUX_07_020: [ threadpool_create shall create number of min_thread_count threads for threadpool using ThreadAPI_Create. ]*/
-                                    if (ThreadAPI_Create(&result->thread_handle_array[index], threadpool_work_func, result) != THREADAPI_OK)
-                                    {
-                                        /* Codes_SRS_THREADPOOL_LINUX_07_011: [ If any error occurs, threadpool_create shall fail and return NULL. ]*/
-                                        LogError("Failure creating thread %" PRIu32 "", index);
-                                        break;
-                                    }
+                                    /* Codes_SRS_THREADPOOL_LINUX_07_011: [ If any error occurs, threadpool_create shall fail and return NULL. ]*/
+                                    LogError("Failure creating thread %" PRIu32 "", index);
+                                    break;
                                 }
+                            }
 
-                                /* Codes_SRS_THREADPOOL_LINUX_07_022: [ If one of the thread creation fails, threadpool_create shall fail and return a non-zero value, terminate all threads already created. ]*/
-                                if (index < result->used_thread_count)
+                            /* Codes_SRS_THREADPOOL_LINUX_07_022: [ If one of the thread creation fails, threadpool_create shall fail and return a non-zero value, terminate all threads already created. ]*/
+                            if (index < result->used_thread_count)
+                            {
+                                LogError("Failed starting one of the threadpool threads");
+                            }
+                            else
+                            {
+                                goto all_ok;
+                            }
+
+                            (void)interlocked_exchange(&result->stop_thread, 1);
+                            for (uint32_t inner = 0; inner < index; inner++)
+                            {
+                                int dont_care;
+                                if (ThreadAPI_Join(result->thread_handle_array[inner], &dont_care) != THREADAPI_OK)
                                 {
-                                    LogError("Failed starting one of the threadpool threads");
+                                    LogError("Failure joining thread number %" PRIu32 "", inner);
                                 }
                                 else
                                 {
-                                    goto all_ok;
+                                    // do nothing
                                 }
-
-                                (void)interlocked_exchange(&result->stop_thread, 1);
-                                for (uint32_t inner = 0; inner < index; inner++)
-                                {
-                                    int dont_care;
-                                    if (ThreadAPI_Join(result->thread_handle_array[inner], &dont_care) != THREADAPI_OK)
-                                    {
-                                        LogError("Failure joining thread number %" PRIu32 "", inner);
-                                    }
-                                    else
-                                    {
-                                        // do nothing
-                                    }
-                                }
-
-                                TQUEUE_ASSIGN(THANDLE(THREADPOOL_WORK_ITEM))(&result->task_queue, NULL);
                             }
+
+                            TQUEUE_ASSIGN(THANDLE(THREADPOOL_WORK_ITEM))(&result->task_queue, NULL);
                         }
                     }
-                    srw_lock_destroy(result->srw_lock);
                 }
                 free(result->thread_handle_array);
             }
