@@ -7,7 +7,7 @@
 MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_create);
 MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_create_with_name, const char*, job_name);
 MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_get, const char*, job_name);
-MOCKABLE_FUNCTION(, bool, job_object_helper_assign_process, THANDLE(JOB_OBJECT_HELPER), job_object_helper);
+MOCKABLE_FUNCTION(, int, job_object_helper_assign_process, THANDLE(JOB_OBJECT_HELPER), job_object_helper, THANDLE(PROCESS_HANDLE), process_hndl);
 MOCKABLE_FUNCTION(, int, job_object_helper_limit_memory, THANDLE(JOB_OBJECT_HELPER), job_object_helper, uint32_t, percent_physical_memory);
 MOCKABLE_FUNCTION(, int, job_object_helper_limit_cpu, THANDLE(JOB_OBJECT_HELPER), job_object_helper, uint32_t, percent_cpu);
 ```
@@ -31,6 +31,7 @@ MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_create);
 **SRS_JOB_OBJECT_HELPER_18_018: [** If there are any failures, `job_object_helper_create` shall fail and return `NULL`. **]**
 
 **SRS_JOB_OBJECT_HELPER_18_019: [** `job_object_helper_create` shall succeed and return the `JOB_OBJECT_HELPER` object.  **]**
+
 
 ## job_object_helper_create_with_name
 ```c
@@ -70,25 +71,25 @@ MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_get, const cha
 
 ## job_object_helper_assign_process
 ```c
-MOCKABLE_FUNCTION(, bool, job_object_helper_assign_process, THANDLE(JOB_OBJECT_HELPER), job_object_helper);
+MOCKABLE_FUNCTION(, int, job_object_helper_assign_process, THANDLE(JOB_OBJECT_HELPER), job_object_helper, THANDLE(PROCESS_HANDLE), process_hndl);
 ```
-``job_object_helper_assign_process`` assigns the current process to the Job Object.
+``job_object_helper_assign_process`` assigns the process to the Job Object.
 
-**SRS_JOB_OBJECT_HELPER_19_010: [** `job_object_helper_assign_process` shall log the error and return `False` if the `job_object_helper` is `NULL`. **]**
+**SRS_JOB_OBJECT_HELPER_19_010: [** `job_object_helper_assign_process` shall log the error and return `MU_FAILURE` if the `job_object_helper` is `NULL`. **]**
+
+**SRS_JOB_OBJECT_HELPER_19_020: [** If the `process_hndl` is null, then `job_object_helper_assign_process` shall set it to the `GetCurrentProcess()` output. **]**
+
+**SRS_JOB_OBJECT_HELPER_19_019: [** `job_object_helper_assign_process` shall log the error and return `MU_FAILURE` if `GetCurrentProcess` call fails. **]**
 
 **SRS_JOB_OBJECT_HELPER_19_011: [** `job_object_helper_assign_process` shall call `OpenJobObject` with Permission `JOB_OBJECT_ASSIGN_PROCESS`. **]**
 
-**SRS_JOB_OBJECT_HELPER_19_018: [** `job_object_helper_assign_process` shall log the error and return `False` if `OpenJobObject` call fails. **]**
-
-**SRS_JOB_OBJECT_HELPER_19_012: [** `job_object_helper_assign_process` shall call `GetCurrentProcess` to get the current process handle. **]**
-
-**SRS_JOB_OBJECT_HELPER_19_019: [** `job_object_helper_assign_process` shall log the error and return `False` if `GetCurrentProcess` call fails. **]**
+**SRS_JOB_OBJECT_HELPER_19_018: [** `job_object_helper_assign_process` shall log the error and return `MU_FAILURE` if `OpenJobObject` call fails. **]**
 
 **SRS_JOB_OBJECT_HELPER_19_013: [** `job_object_helper_assign_process` shall call `AssignProcessToJobObject` to assign the current process to the job object. **]**
 
-**SRS_JOB_OBJECT_HELPER_19_014: [** `job_object_helper_assign_process` shall log error and return `False` if the `AssignProcessToJobObject` fails. **]**
+**SRS_JOB_OBJECT_HELPER_19_014: [** `job_object_helper_assign_process` shall log error and return `MU_FAILURE_` if the `AssignProcessToJobObject` fails. **]**
 
-**SRS_JOB_OBJECT_HELPER_19_015: [** `job_object_helper_assign_process` shall return `True` if the `AssignProcessToJobObject` succeeds. **]**
+**SRS_JOB_OBJECT_HELPER_19_015: [** `job_object_helper_assign_process` shall return `0` if the `AssignProcessToJobObject` succeeds. **]**
 
 
 ## job_object_helper_dispose

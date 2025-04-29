@@ -22,6 +22,12 @@ typedef struct JOB_OBJECT_HELPER_TAG {
 
 THANDLE_TYPE_DEFINE(JOB_OBJECT_HELPER);
 
+typedef struct PROCESS_HANDLE_TAG {
+    HANDLE process_hndl;
+} PROCESS_HANDLE;
+
+THANDLE_TYPE_DEFINE(PROCESS_HANDLE);
+
 static void job_object_helper_dispose(JOB_OBJECT_HELPER* job_object_helper)
 {
     /*Codes_SRS_JOB_OBJECT_HELPER_18_033: [ job_object_helper_dispose shall call CloseHandle to close the handle to the job object. ]*/
@@ -137,6 +143,26 @@ IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_limit_memory, THANDLE(JOB_O
 
     return result;
 }
+
+IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_create_with_name, const char*, job_name)
+{
+    (void)job_name;
+    return NULL;
+}
+
+IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_get, const char*, job_name)
+{
+    (void)job_name;
+    return NULL;
+}
+
+IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_assign_process, THANDLE(JOB_OBJECT_HELPER), job_object_helper, THANDLE(PROCESS_HANDLE), process_hndl)
+{
+    (void)job_object_helper;
+    (void)process_hndl;
+    return MU_FAILURE;
+}
+
 
 IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_limit_cpu, THANDLE(JOB_OBJECT_HELPER), job_object_helper, uint32_t, percent_cpu)
 {

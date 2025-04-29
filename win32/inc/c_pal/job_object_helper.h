@@ -18,6 +18,9 @@
 typedef struct JOB_OBJECT_HELPER_TAG JOB_OBJECT_HELPER;
 THANDLE_TYPE_DECLARE(JOB_OBJECT_HELPER);
 
+typedef struct PROCESS_HANDLE_TAG PROCESS_HANDLE;
+THANDLE_TYPE_DECLARE(PROCESS_HANDLE);
+
 #include "umock_c/umock_c_prod.h"
 
 #ifdef __cplusplus
@@ -25,6 +28,9 @@ extern "C"
 {
 #endif
     MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_create);
+    MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_create_with_name, const char*, job_name);
+    MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_get, const char*, job_name);
+    MOCKABLE_FUNCTION(, int, job_object_helper_assign_process, THANDLE(JOB_OBJECT_HELPER), job_object_helper, THANDLE(PROCESS_HANDLE), process_hndl);
     MOCKABLE_FUNCTION(, int, job_object_helper_limit_memory, THANDLE(JOB_OBJECT_HELPER), job_object_helper, uint32_t, percent_physical_memory);
     MOCKABLE_FUNCTION(, int, job_object_helper_limit_cpu, THANDLE(JOB_OBJECT_HELPER), job_object_helper, uint32_t, percent_cpu);
 #ifdef __cplusplus
