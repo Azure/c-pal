@@ -120,8 +120,6 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HAN
 
 **SRS_THREADPOOL_LINUX_01_013: [** `threadpool_create` shall create a queue of threadpool work items by calling `TQUEUE_CREATE(THANDLE(THREADPOOL_WORK_ITEM))` with initial size 2048 and max size `UINT32_MAX`. **]**
 
-**SRS_THREADPOOL_LINUX_07_008: [** `threadpool_create` shall create a SRW lock by calling `srw_lock_create`. **]**
-
 **SRS_THREADPOOL_LINUX_07_009: [** `threadpool_create` shall create a shared semaphore with initialized value zero. **]**
 
 **SRS_THREADPOOL_LINUX_07_020: [** `threadpool_create` shall create `min_thread_count` number of threads for `threadpool` using `ThreadAPI_Create`. **]**
