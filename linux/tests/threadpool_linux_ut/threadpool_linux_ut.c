@@ -326,7 +326,6 @@ TEST_FUNCTION(threadpool_create_succeeds)
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
-
 }
 
 /* Tests_SRS_THREADPOOL_LINUX_07_011: [ If any error occurs, threadpool_create shall fail and return NULL. ]*/
@@ -705,13 +704,14 @@ TEST_FUNCTION(threadpool_work_func_succeeds_for_threadpool_schedule_work_2_items
     /* Tests_SRS_THREADPOOL_LINUX_07_084: [ threadpool_work_func shall execute the work_function with work_function_ctx. ]*/
     /* Tests_SRS_THREADPOOL_LINUX_01_018: [ threadpool_work_func shall release the reference to the work item. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_085: [ threadpool_work_func shall loop until the flag to stop the threads is not set to 1. ]*/
-DISABLED_TEST_FUNCTION(threadpool_work_func_succeeds_for_threadpool_schedule_work_item)
+TEST_FUNCTION(threadpool_work_func_succeeds_for_threadpool_schedule_work_item)
 {
     //arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
     THANDLE(THREADPOOL_WORK_ITEM) threadpool_work_item = threadpool_create_work_item(threadpool, test_work_function, (void*)0x4242);
     ASSERT_IS_NOT_NULL(threadpool_work_item);
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(threadpool, threadpool_work_item));
+    THANDLE_ASSIGN(real_THREADPOOL_WORK_ITEM)(&threadpool_work_item, NULL);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_REALTIME, IGNORED_ARG));
@@ -734,7 +734,6 @@ DISABLED_TEST_FUNCTION(threadpool_work_func_succeeds_for_threadpool_schedule_wor
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
-    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&threadpool_work_item, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
@@ -1274,7 +1273,7 @@ TEST_FUNCTION(threadpool_create_work_item_succeeds)
     ASSERT_IS_NOT_NULL(threadpool_work_item);
 
     // cleanup
-    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&threadpool_work_item, NULL);
+    THANDLE_ASSIGN(real_THREADPOOL_WORK_ITEM)(&threadpool_work_item, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
@@ -1294,7 +1293,7 @@ TEST_FUNCTION(threadpool_create_work_item_succeeds_with_NULL_work_function_conte
     ASSERT_IS_NOT_NULL(threadpool_work_item);
 
     // cleanup
-    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&threadpool_work_item, NULL);
+    THANDLE_ASSIGN(real_THREADPOOL_WORK_ITEM)(&threadpool_work_item, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
@@ -1386,7 +1385,7 @@ TEST_FUNCTION(threadpool_schedule_work_item_succeeds)
     ASSERT_ARE_EQUAL(int, 0, result);
 
     // cleanup
-    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&threadpool_work_item, NULL);
+    THANDLE_ASSIGN(real_THREADPOOL_WORK_ITEM)(&threadpool_work_item, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
@@ -1424,7 +1423,7 @@ TEST_FUNCTION(threadpool_schedule_work_item_twice_same_item_succeeds)
     ASSERT_ARE_EQUAL(int, 0, result_2);
 
     // cleanup
-    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&threadpool_work_item, NULL);
+    THANDLE_ASSIGN(real_THREADPOOL_WORK_ITEM)(&threadpool_work_item, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
@@ -1466,8 +1465,8 @@ TEST_FUNCTION(threadpool_schedule_work_2_items_succeeds)
     ASSERT_ARE_EQUAL(int, 0, result_2);
 
     // cleanup
-    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&threadpool_work_item_1, NULL);
-    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&threadpool_work_item_2, NULL);
+    THANDLE_ASSIGN(real_THREADPOOL_WORK_ITEM)(&threadpool_work_item_1, NULL);
+    THANDLE_ASSIGN(real_THREADPOOL_WORK_ITEM)(&threadpool_work_item_2, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
@@ -1504,7 +1503,7 @@ TEST_FUNCTION(when_underlying_calls_fail_threadpool_schedule_work_item_fails)
     }
 
     // cleanup
-    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&threadpool_work_item, NULL);
+    THANDLE_ASSIGN(real_THREADPOOL_WORK_ITEM)(&threadpool_work_item, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 

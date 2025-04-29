@@ -340,6 +340,6 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), thr
 
 **SRS_THREADPOOL_LINUX_05_025: [** `threadpool_schedule_work_item` shall unblock the `threadpool` semaphore by calling `sem_post`. **]**
 
-If any error occurrs, `threadpool_schedule_work_item` shall fail and return a non-zero value.
+**SRS_THREADPOOL_LINUX_01_020: [** If any error occurrs, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
 
 **SRS_THREADPOOL_LINUX_05_026: [** `threadpool_schedule_work_item` shall succeed and return 0. **]**

@@ -380,7 +380,9 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
         THREADPOOL_WORK_ITEM* threadpool_work_item_ptr = THANDLE_MALLOC(THREADPOOL_WORK_ITEM)(NULL);
         if (threadpool_work_item_ptr == NULL)
         {
+            /* Codes_SRS_THREADPOOL_LINUX_07_042: [ If any error occurs, threadpool_schedule_work shall fail and return a non-zero value. ]*/
             LogError("Could not allocate memory for Work Item Context");
+            result = MU_FAILURE;
         }
         else
         {
@@ -392,7 +394,9 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
             /* Codes_SRS_THREADPOOL_LINUX_01_015: [ threadpool_schedule_work shall push the newly created THANDLE(THREADPOOL_WORK_ITEM) in the work item queue. ]*/
             if (TQUEUE_PUSH(THANDLE(THREADPOOL_WORK_ITEM))(threadpool_ptr->task_queue, &threadpool_work_item, NULL) != TQUEUE_PUSH_OK)
             {
-                LogError("TQUEUE_PUSH(THREADPOOL_TASK)(threadpool_ptr->task_queue, &threadpool_task, NULL) failed");
+                /* Codes_SRS_THREADPOOL_LINUX_07_042: [ If any error occurs, threadpool_schedule_work shall fail and return a non-zero value. ]*/
+                LogError("TQUEUE_PUSH(THANDLE(THREADPOOL_WORK_ITEM))(threadpool_ptr->task_queue, &threadpool_work_item, NULL) failed");
+                result = MU_FAILURE;
             }
             else
             {
