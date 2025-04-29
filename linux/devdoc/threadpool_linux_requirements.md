@@ -11,35 +11,8 @@
 `threadpool_linux` maintains the following:
 1. `max_thread_count`, `min_thread_count`, `used_thread_count` : static 32-bit counters for the `threadpool` thread limits.
 2. `semaphore` : a semaphore to ensure the number of waiting tasks changed atomically when a task is inserted or consumed in the array.
-3. `task_array` : a circular array of waiting tasks with default size 2048, initialized in `threadpool_create`. Insert index and consume index for the array is initialized to 0. Insert index is incremented every time when a new work item add to the array, and the consume index is incremented every time when a task gets executed. The insert index modulo the array size gives the actual insert position, and the consume index modulo the array size gives the actual consume position. Each array item contains a `THREADPOOL_TASK` object, which obtains the `task_state` and task function information.
-    - `task_state` can be following:
-       - `TASK_NOT_USED` : Entry is not used. Entered after a call to `threadpool_create`, new array items after a call to `reallocate_threadpool_array`, and a call to `threadpool_work_func`.
-       - `TASK_INITIALIZING` : Start copying work item into the entry. Entered in the progress of a call to `threadpool_schedule_work`.
-       - `TASK_WAITING` : Work item in the entry is waiting to be executed. Entered after a call to `threadpool_schedule_work` with a zero return value.
-       - `TASK_WORKING` : Work item is executing. Entered in the progress of a call to `threadpool_work_func` by calling `threadpool_schedule_work`.
-4. `task_array_size` : a 32 bit variable represents the size of the task array.
-5. `insert_idx` : a 64 bit variable represents the next available insert position in the circular task array.
-6. `consume_idx` : a 64 bit variable represents the next available consume position in the circular task array.
-7. `srw_lock` : a SRW lock to ensure the progress of resize array will not be interupted as well as task array insert and consume get locked when task array resize happens.
+3. `task_queue` : a `TQUEUE` of waiting tasks with default size 2048, initialized in `threadpool_create`. Each array item contains a `THREADPOOL_TASK` object, which obtains the `task_state` and task function information.
 8. `thread_handle_array` : an array of threads in the `threadpool`, all intialized in `threadpool_create`.
-
-### Reallocating the Task Array
-
-`threadpool_linux` allocates an array for all tasks instead of allocating a context for each work item to reduce the overhead of memory allocation since this module is in the hot path. When the task array is full, the array size shall be doubled to reduce the number of memory allocations.
-
-When reallocating the task array, there is overhead due to the memory allocation and copy. But the performance impact would be very infrequent since the size of array is doubled every time.
-
-If there is a context switch right after getting the insert index and the consume index is incremented after that, there will be a gap between consume index and insert index during reallocation. In this case, the tasks between consume index to the end of the array before resize should be moved to the end of the new resized array.
-
-New task array memory layout should be in same order of the original array except more empty slots is needed to make sure there is no trailing gaps in the new resized array.  `moving_count` is used to record the number of tasks between `consume_idx` and `task_array_size` before resize. New task array should initialize `consume_idx` as 0 and `insert_idx` as original array size if there's no gaps; `consume_idx` remains the same and `insert_idx` set to `new_array_size` - `move_count` if gaps exist.
-
-If the doubled array size get overflowed for a 32 bits integer, resize failed and return. In this case, the maximum size of task array is 2^32 and the maximum value of `insert_idx` and `consume_idx` is 2^64 which will never get overflowed.
-
-```mermaid
-graph TD
-    A(insert_idx == consume_idx) --> |worker thread runs first| B(consume_idx increment)
-    A--> |main thread runs first| D(no gaps) -->F
-    B--> C(gaps occured)-->E(memmove)-->F(resize done)
 
 ```
 ### Threadpool timer
@@ -146,6 +119,8 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HAN
 **SRS_THREADPOOL_LINUX_07_005: [** `threadpool_create` shall allocate memory for an array of thread handles of size `min_thread_count` and on success return a non-`NULL` handle to it. **]**
 
 **SRS_THREADPOOL_LINUX_07_006: [** `threadpool_create` shall allocate memory with default task array size 2048 for an array of tasks and on success return a non-`NULL` handle to it. **]**
+
+**SRS_THREADPOOL_LINUX_01_013: [** `threadpool_create` shall create the queue of tasks by calling `TQUEUE_CREATE`. **]**
 
 **SRS_THREADPOOL_LINUX_07_007: [** `threadpool_create` shall initialize every task item in the tasks array with `task_func` and `task_param` set to `NULL` and `task_state` set to `TASK_NOT_USED`. **]**
 

@@ -36,6 +36,7 @@
 #include "c_pal/thandle_ll.h"
 #include "c_pal/srw_lock_ll.h"
 #include "c_pal/tqueue.h"
+#include "c_pal/tqueue_threadpool_work_item.h"
 
 #include "c_pal/threadpool.h"
 
@@ -90,13 +91,6 @@ typedef struct THREADPOOL_WORK_ITEM_TAG
 
 THANDLE_TYPE_DEFINE(THREADPOOL_WORK_ITEM);
 
-TQUEUE_DEFINE_STRUCT_TYPE(THREADPOOL_TASK);
-THANDLE_TYPE_DECLARE(TQUEUE_TYPEDEF_NAME(THREADPOOL_TASK))
-TQUEUE_TYPE_DECLARE(THREADPOOL_TASK);
-
-THANDLE_TYPE_DEFINE(TQUEUE_TYPEDEF_NAME(THREADPOOL_TASK))
-TQUEUE_TYPE_DEFINE(THREADPOOL_TASK);
-
 typedef struct THREADPOOL_TAG
 {
     volatile_atomic int32_t stop_thread;
@@ -109,7 +103,7 @@ typedef struct THREADPOOL_TAG
     uint32_t list_index;
 
     THREAD_HANDLE* thread_handle_array;
-    TQUEUE(THREADPOOL_TASK) task_queue;
+    TQUEUE(THANDLE(THREADPOOL_WORK_ITEM)) task_queue;
 } THREADPOOL;
 
 THANDLE_TYPE_DEFINE(THREADPOOL);
@@ -204,11 +198,12 @@ static int threadpool_work_func(void* param)
                 }
                 else
                 {
-                    THREADPOOL_TASK threadpool_task;
+                    THANDLE(THREADPOOL_WORK_ITEM) threadpool_work_item;
 
-                    while (TQUEUE_POP(THREADPOOL_TASK)(threadpool->task_queue, &threadpool_task, NULL, NULL, NULL) == TQUEUE_POP_OK)
+                    while (TQUEUE_POP(THANDLE(THREADPOOL_WORK_ITEM))(threadpool->task_queue, &threadpool_work_item, NULL, NULL, NULL) == TQUEUE_POP_OK)
                     {
-                        threadpool_task.work_function(threadpool_task.work_function_ctx);
+                        threadpool_work_item->work_function(threadpool_work_item->work_function_ctx);
+                        THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&threadpool_work_item, NULL);
                     }
                 }
             }
@@ -299,14 +294,14 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                     }
                     else
                     {
-                        TQUEUE(THREADPOOL_TASK) temp_task_queue = TQUEUE_CREATE(THREADPOOL_TASK)(1, UINT32_MAX, NULL, NULL, NULL);
-                        if (result->task_queue == NULL)
+                        TQUEUE(THANDLE(THREADPOOL_WORK_ITEM)) temp_task_queue = TQUEUE_CREATE(THANDLE(THREADPOOL_WORK_ITEM))(2048, UINT32_MAX, NULL, NULL, NULL);
+                        if (temp_task_queue == NULL)
                         {
-                            LogError("TQUEUE_CREATE(THREADPOOL_TASK)(1, UINT32_MAX, NULL, NULL, NULL) failed");
+                            LogError("TQUEUE_CREATE(THANDLE(THREADPOOL_WORK_ITEM))(2048, UINT32_MAX, NULL, NULL, NULL) failed");
                         }
                         else
                         {
-                            TQUEUE_INITIALIZE_MOVE(THREADPOOL_TASK)(&result->task_queue, &temp_task_queue);
+                            TQUEUE_INITIALIZE_MOVE(THANDLE(THREADPOOL_WORK_ITEM))(&result->task_queue, &temp_task_queue);
                             {
                                 (void)interlocked_exchange(&result->stop_thread, 0);
 
@@ -346,7 +341,7 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                                     }
                                 }
 
-                                TQUEUE_ASSIGN(THREADPOOL_TASK)(&result->task_queue, NULL);
+                                TQUEUE_ASSIGN(THANDLE(THREADPOOL_WORK_ITEM))(&result->task_queue, NULL);
                             }
                         }
                     }
@@ -378,18 +373,34 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
     {
         THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
 
-        THREADPOOL_TASK threadpool_task = { .work_function = work_function, .work_function_ctx = work_function_ctx };
-        if (TQUEUE_PUSH(THREADPOOL_TASK)(threadpool_ptr->task_queue, &threadpool_task, NULL) != TQUEUE_PUSH_OK)
+        THREADPOOL_WORK_ITEM* threadpool_work_item_ptr = THANDLE_MALLOC(THREADPOOL_WORK_ITEM)(NULL);
+        if (threadpool_work_item_ptr == NULL)
         {
-            LogError("TQUEUE_PUSH(THREADPOOL_TASK)(threadpool_ptr->task_queue, &threadpool_task, NULL) failed");
+            LogError("Could not allocate memory for Work Item Context");
         }
         else
         {
-            /* Codes_SRS_THREADPOOL_LINUX_07_051: [ threadpool_schedule_work shall unblock the threadpool semaphore by calling sem_post. ]*/
-            sem_post(&threadpool_ptr->semaphore);
+            threadpool_work_item_ptr->work_function_ctx = work_function_ctx;
+            threadpool_work_item_ptr->work_function = work_function;
 
-            /* Codes_SRS_THREADPOOL_LINUX_07_047: [ threadpool_schedule_work shall return zero on success. ]*/
-            result = 0;
+            THANDLE(THREADPOOL_WORK_ITEM) threadpool_work_item = threadpool_work_item_ptr;
+
+            if (TQUEUE_PUSH(THANDLE(THREADPOOL_WORK_ITEM))(threadpool_ptr->task_queue, &threadpool_work_item, NULL) != TQUEUE_PUSH_OK)
+            {
+                LogError("TQUEUE_PUSH(THREADPOOL_TASK)(threadpool_ptr->task_queue, &threadpool_task, NULL) failed");
+            }
+            else
+            {
+                /* Codes_SRS_THREADPOOL_LINUX_07_051: [ threadpool_schedule_work shall unblock the threadpool semaphore by calling sem_post. ]*/
+                sem_post(&threadpool_ptr->semaphore);
+
+                THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&threadpool_work_item, NULL);
+
+                /* Codes_SRS_THREADPOOL_LINUX_07_047: [ threadpool_schedule_work shall return zero on success. ]*/
+                result = 0;
+            }
+
+            THANDLE_FREE(THREADPOOL_WORK_ITEM)(threadpool_work_item_ptr);
         }
     }
     return result;
@@ -671,12 +682,7 @@ int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THANDLE(THREAD
     {
         THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
 
-        THREADPOOL_TASK threadpool_task = {
-            .work_function = threadpool_work_item->work_function,
-            .work_function_ctx = threadpool_work_item->work_function_ctx
-        };
-
-        if (TQUEUE_PUSH(THREADPOOL_TASK)(threadpool_ptr->task_queue, &threadpool_task, NULL) != TQUEUE_PUSH_OK)
+        if (TQUEUE_PUSH(THANDLE(THREADPOOL_WORK_ITEM))(threadpool_ptr->task_queue, &threadpool_work_item, NULL) != TQUEUE_PUSH_OK)
         {
             LogError("TQUEUE_PUSH(THREADPOOL_TASK)(threadpool_ptr->task_queue, &threadpool_task, NULL) failed");
             result = MU_FAILURE;
