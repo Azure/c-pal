@@ -15,9 +15,7 @@ int gballoc_hl_init(void* gballoc_hl_init_params, void* gballoc_ll_init_params)
     (void)gballoc_hl_init_params; /*are ignored, this is "passthrough*/
 
     /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_42_001: [ gballoc_hl_init shall call gballoc_ll_init as function to execute and gballoc_ll_init_params as parameter and return the result. ]*/
-    int result = gballoc_ll_init(gballoc_ll_init_params);
-
-    return result;
+    return gballoc_ll_init(gballoc_ll_init_params);
 }
 
 void gballoc_hl_deinit(void)
@@ -198,9 +196,7 @@ void gballoc_hl_print_stats(void)
 size_t gballoc_hl_size(void* ptr)
 {
     /* Codes_SRS_GBALLOC_HL_PASSTHROUGH_01_003: [ Otherwise, gballoc_hl_size shall call gballoc_ll_size with ptr as argument and return the result of gballoc_ll_size. ]*/
-    size_t result = gballoc_ll_size(ptr);
-
-    return result;
+    return gballoc_ll_size(ptr);
 }
 
 int gballoc_hl_set_option(const char* option_name, void* option_value)
