@@ -292,6 +292,7 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                 }
                 else
                 {
+                    /* Codes_SRS_THREADPOOL_LINUX_01_013: [ threadpool_create shall create a queue of threadpool work items by calling TQUEUE_CREATE(THANDLE(THREADPOOL_WORK_ITEM)) with initial size 2048 and max size UINT32_MAX. ]*/
                     TQUEUE(THANDLE(THREADPOOL_WORK_ITEM)) temp_task_queue = TQUEUE_CREATE(THANDLE(THREADPOOL_WORK_ITEM))(DEFAULT_TASK_ARRAY_SIZE, UINT32_MAX, THANDLE_THREADPOOL_WORK_ITEM_copy_item, THANDLE_THREADPOOL_WORK_ITEM_dispose, NULL);
                     if (temp_task_queue == NULL)
                     {
@@ -315,7 +316,7 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                                 }
                             }
 
-                            /* Codes_SRS_THREADPOOL_LINUX_07_022: [ If one of the thread creation fails, threadpool_create shall fail and return a non-zero value, terminate all threads already created. ]*/
+                            /* Codes_SRS_THREADPOOL_LINUX_07_022: [ If one of the thread creation fails, threadpool_create shall fail, terminate all threads already created and return NULL. ]*/
                             if (index < result->used_thread_count)
                             {
                                 LogError("Failed starting one of the threadpool threads");
