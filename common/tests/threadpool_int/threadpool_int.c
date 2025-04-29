@@ -1426,6 +1426,7 @@ TEST_FUNCTION(chaos_knight_test_with_timers_no_lock)
     (void)interlocked_exchange_64(&chaos_test_data.timers_starting, 0);
     (void)interlocked_exchange(&chaos_test_data.chaos_test_done, 0);
     (void)interlocked_exchange(&chaos_test_data.can_start_timers, 1);
+    (void)interlocked_exchange(&chaos_test_data.can_schedule_works, 0);
 
     for (i = 0; i < MAX_THREADPOOL_TIMER_COUNT; i++)
     {
@@ -1438,7 +1439,7 @@ TEST_FUNCTION(chaos_knight_test_with_timers_no_lock)
     THANDLE_INITIALIZE_MOVE(THREADPOOL_WORK_ITEM)(&chaos_test_data.work_item_context, &work_item);
     for (i = 0; i < CHAOS_THREAD_COUNT; i++)
     {
-        ThreadAPI_Create(&thread_handles[i], chaos_thread_with_timers_no_lock_func, &chaos_test_data);
+        ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&thread_handles[i], chaos_thread_with_timers_no_lock_func, &chaos_test_data));
         ASSERT_IS_NOT_NULL(thread_handles[i], "thread %zu failed to start", i);
     }
 
