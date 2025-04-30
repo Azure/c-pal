@@ -1122,16 +1122,9 @@ static void chaos_cleanup_all_timers(CHAOS_TEST_DATA* chaos_test_data)
 static int chaos_thread_with_timers_no_lock_func(void* context)
 {
     CHAOS_TEST_DATA* chaos_test_data = context;
-    int64_t iterations = 0;
 
     while (interlocked_add(&chaos_test_data->chaos_test_done, 0) == 0)
     {
-        // keep a counter of iterations and yield every 1000 iterations
-        if (iterations % 1000 == 0)
-        {
-            ThreadAPI_Sleep(1);
-        }
-
         TEST_ACTION which_action = (TEST_ACTION)((uint64_t)rand() * (MU_COUNT_ARG(TEST_ACTION_VALUES)) / ((uint32_t)RAND_MAX + 1));
         switch (which_action)
         {
