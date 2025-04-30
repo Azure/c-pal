@@ -156,8 +156,8 @@ static void wait_work_function(void* context)
     TEST_ACTION_RESTART_THREADPOOL_TIMER, \
     TEST_ACTION_SCHEDULE_WORK_ITEM
 
-MU_DEFINE_ENUM(TEST_ACTION, TEST_ACTION_VALUES)
-MU_DEFINE_ENUM_STRINGS(TEST_ACTION, TEST_ACTION_VALUES)
+MU_DEFINE_ENUM_WITHOUT_INVALID(TEST_ACTION, TEST_ACTION_VALUES)
+MU_DEFINE_ENUM_STRINGS_WITHOUT_INVALID(TEST_ACTION, TEST_ACTION_VALUES)
 
 MU_DEFINE_ENUM(THREADPOOL_TIMER_STATE, THREADPOOL_TIMER_STATE_VALUES)
 MU_DEFINE_ENUM_STRINGS(THREADPOOL_TIMER_STATE, THREADPOOL_TIMER_STATE_VALUES)
@@ -1120,7 +1120,7 @@ static int chaos_thread_with_timers_no_lock_func(void* context)
 
     while (interlocked_add(&chaos_test_data->chaos_test_done, 0) == 0)
     {
-        int which_action = rand() * (MU_ENUM_VALUE_COUNT(TEST_ACTION_VALUES) - 2) / RAND_MAX + 1;
+        TEST_ACTION which_action = (TEST_ACTION)((uint32_t)rand() * (MU_COUNT_ARG(TEST_ACTION_VALUES)) / ((uint32_t)RAND_MAX + 1));
         switch (which_action)
         {
         default:
