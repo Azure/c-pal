@@ -948,7 +948,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(schedule_work_two_times)
+TEST_FUNCTION(schedule_work_two_times)
 {
     // assert
     EXECUTION_ENGINE_PARAMETERS params;
@@ -997,7 +997,7 @@ DISABLED_TEST_FUNCTION(schedule_work_two_times)
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(schedule_work_two_times_v2)
+TEST_FUNCTION(schedule_work_two_times_v2)
 {
     // assert
     EXECUTION_ENGINE_PARAMETERS params;
@@ -1349,7 +1349,7 @@ static int chaos_thread_with_timers_no_lock_and_null_work_item_func(void* contex
     return 0;
 }
 
-DISABLED_TEST_FUNCTION(chaos_knight_test)
+TEST_FUNCTION(chaos_knight_test)
 {
     // start a number of threads and each of them will do a random action on the threadpool
     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 16, 0 };
@@ -1405,7 +1405,7 @@ DISABLED_TEST_FUNCTION(chaos_knight_test)
 }
 
 // test used for detect race condition between timer_restart/timer_cancel and timer destory, failed due to the race condition for the current code, will uncomment after the fix
-DISABLED_TEST_FUNCTION(chaos_knight_test_with_timers_no_lock)
+TEST_FUNCTION(chaos_knight_test_with_timers_no_lock)
 {
     // start a number of threads and each of them will do a random action on the threadpool
     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
@@ -1469,7 +1469,7 @@ DISABLED_TEST_FUNCTION(chaos_knight_test_with_timers_no_lock)
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(one_work_item_schedule_works_v2)
+TEST_FUNCTION(one_work_item_schedule_works_v2)
 {
     // assert
     // create an execution engine
@@ -1625,7 +1625,7 @@ static void timer_work_function_that_starts_another_timer(void* context)
     THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(&timer_starts_a_timer_context->second_timer, &second_timer_instance);
 }
 
-DISABLED_TEST_FUNCTION(starting_a_timer_from_a_timer_callback_works)
+TEST_FUNCTION(starting_a_timer_from_a_timer_callback_works)
 {
     // assert
     // create an execution engine
