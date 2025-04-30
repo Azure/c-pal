@@ -40,9 +40,9 @@
 
 #include "real_interlocked.h"
 #include "real_gballoc_hl.h"
-#include "../../linux_reals/real_tqueue_threadpool_work_item.h"
-#include "../reals/real_lazy_init.h"
-#include "../reals/real_interlocked_hl.h"
+#include "real_tqueue_threadpool_work_item.h"
+#include "real_lazy_init.h"
+#include "real_interlocked_hl.h"
 
 #include "c_pal/threadpool.h"
 
