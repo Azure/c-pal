@@ -1542,7 +1542,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_works_v2))
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
-    LogInfo("Scheduling work %d times", N_WORK_TIMES);
+    LogInfo("Scheduling work %" PRIu32 " times", (uint32_t)N_WORK_ITEMS);
     // act (schedule work items)
     LogInfo("Create Work Item Context");
     THANDLE(THREADPOOL_WORK_ITEM) work_item = threadpool_create_work_item(threadpool, work_function, (void*)&g_call_count);
