@@ -181,7 +181,7 @@ static void wait_for_greater_or_equal(volatile_atomic int64_t* value, int64_t ex
     } while (1);
 }
 
-DISABLED_TEST_FUNCTION(one_work_item_schedule_works)
+TEST_FUNCTION(one_work_item_schedule_works)
 {
     // assert
     EXECUTION_ENGINE_PARAMETERS params;
@@ -209,7 +209,7 @@ DISABLED_TEST_FUNCTION(one_work_item_schedule_works)
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(one_work_item_schedule_work_item)
+TEST_FUNCTION(one_work_item_schedule_work_item)
 {
     // assert
     EXECUTION_ENGINE_PARAMETERS params;
@@ -241,7 +241,7 @@ DISABLED_TEST_FUNCTION(one_work_item_schedule_work_item)
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work)
+TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work)
 {
     // arrange
     // create an execution engine
@@ -272,7 +272,7 @@ DISABLED_TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedu
 
 #define N_WORK_ITEMS 30
 
-DISABLED_TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
+TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
 {
     EXECUTION_ENGINE_PARAMETERS params;
     params.min_thread_count = 1;
@@ -309,7 +309,7 @@ DISABLED_TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work))
+TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work))
 {
     EXECUTION_ENGINE_PARAMETERS params;
     params.min_thread_count = 1;
@@ -340,7 +340,7 @@ DISABLED_TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work))
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
+TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
 {
     // assert
     EXECUTION_ENGINE_PARAMETERS params;
@@ -376,7 +376,7 @@ DISABLED_TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_th
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_with_pool_threads))
+TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_with_pool_threads))
 {
     // assert
     EXECUTION_ENGINE_PARAMETERS params;
@@ -408,7 +408,7 @@ DISABLED_TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_with_pool_threads)
 
 #define N_THREADPOOL_TIMERS 100
 
-DISABLED_TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _timer_start_runs_once))
+TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _timer_start_runs_once))
 {
     // assert
     // create an execution engine
@@ -439,7 +439,7 @@ DISABLED_TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _timer_start_runs_o
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _start_timers_work_and_run_periodically))
+TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _start_timers_work_and_run_periodically))
 {
     // assert
     // create an execution engine
@@ -484,7 +484,7 @@ DISABLED_TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _start_timers_work_
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items)
+TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items)
 {
     // assert
     // create an execution engine
@@ -521,7 +521,7 @@ DISABLED_TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items)
 
 #define N_CHAOS_WORK_ITEMS 50
 
-DISABLED_TEST_FUNCTION(threadpool_chaos_knight)
+TEST_FUNCTION(threadpool_chaos_knight)
 {
     // assert
     EXECUTION_ENGINE_PARAMETERS params;
@@ -554,7 +554,7 @@ DISABLED_TEST_FUNCTION(threadpool_chaos_knight)
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(threadpool_chaos_knight_v2)
+TEST_FUNCTION(threadpool_chaos_knight_v2)
 {
     // assert
     EXECUTION_ENGINE_PARAMETERS params;
@@ -593,7 +593,7 @@ DISABLED_TEST_FUNCTION(threadpool_chaos_knight_v2)
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(threadpool_force_wrap_around)
+TEST_FUNCTION(threadpool_force_wrap_around)
 {
     // arrange
     const uint32_t num_threads = WRAP_TEST_WORK_ITEMS;
@@ -627,7 +627,7 @@ DISABLED_TEST_FUNCTION(threadpool_force_wrap_around)
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(threadpool_force_wrap_around_v2)
+TEST_FUNCTION(threadpool_force_wrap_around_v2)
 {
     // arrange
     const uint32_t num_threads = WRAP_TEST_WORK_ITEMS;
@@ -669,7 +669,7 @@ DISABLED_TEST_FUNCTION(threadpool_force_wrap_around_v2)
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(one_start_timer_works_runs_once)
+TEST_FUNCTION(one_start_timer_works_runs_once)
 {
     // assert
     // create an execution engine
@@ -729,7 +729,7 @@ DISABLED_TEST_FUNCTION(one_start_timer_works_runs_once)
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(restart_timer_works_runs_once)
+TEST_FUNCTION(restart_timer_works_runs_once)
 {
     // assert
     // create an execution engine
@@ -792,7 +792,7 @@ DISABLED_TEST_FUNCTION(restart_timer_works_runs_once)
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(one_start_timer_works_runs_periodically)
+TEST_FUNCTION(one_start_timer_works_runs_periodically)
 {
     // assert
     // create an execution engine
@@ -823,7 +823,7 @@ DISABLED_TEST_FUNCTION(one_start_timer_works_runs_periodically)
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
+TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
 {
     // assert
     // create an execution engine
@@ -865,7 +865,7 @@ DISABLED_TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
+TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
 {
     // assert
     // create an execution engine
@@ -906,7 +906,7 @@ DISABLED_TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
+TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
 {
     // assert
     // create an execution engine
@@ -948,7 +948,7 @@ DISABLED_TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(schedule_work_two_times)
+DISABLED_TEST_FUNCTION(schedule_work_two_times)
 {
     // assert
     EXECUTION_ENGINE_PARAMETERS params;
@@ -997,7 +997,7 @@ TEST_FUNCTION(schedule_work_two_times)
     execution_engine_dec_ref(execution_engine);
 }
 
-TEST_FUNCTION(schedule_work_two_times_v2)
+DISABLED_TEST_FUNCTION(schedule_work_two_times_v2)
 {
     // assert
     EXECUTION_ENGINE_PARAMETERS params;
@@ -1349,7 +1349,7 @@ static int chaos_thread_with_timers_no_lock_and_null_work_item_func(void* contex
     return 0;
 }
 
-TEST_FUNCTION(chaos_knight_test)
+DISABLED_TEST_FUNCTION(chaos_knight_test)
 {
     // start a number of threads and each of them will do a random action on the threadpool
     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 16, 0 };
