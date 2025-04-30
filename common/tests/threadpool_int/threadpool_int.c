@@ -71,6 +71,7 @@ TEST_FUNCTION_INITIALIZE(method_init)
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
 {
+    fflush(stdout);
 }
 
 static void threadpool_task_wait_20_millisec(void* parameter)
