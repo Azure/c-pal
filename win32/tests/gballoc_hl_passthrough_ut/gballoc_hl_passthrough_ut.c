@@ -11,25 +11,16 @@
 
 #define ENABLE_MOCKS
 #include "c_pal/gballoc_ll.h"
-#include "c_pal/interlocked.h"
-#include "c_pal/lazy_init.h"
 #undef ENABLE_MOCKS
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
 #include "real_gballoc_ll.h"
-#include "real_interlocked.h"
-#include "real_lazy_init.h"
 
 #include "c_pal/gballoc_hl.h"
 
-MU_DEFINE_ENUM_STRINGS(LAZY_INIT_RESULT, LAZY_INIT_RESULT_VALUES);
-TEST_DEFINE_ENUM_TYPE(LAZY_INIT_RESULT, LAZY_INIT_RESULT_VALUES);
-IMPLEMENT_UMOCK_C_ENUM_TYPE(LAZY_INIT_RESULT, LAZY_INIT_RESULT_VALUES);
-
 static void TEST_gballoc_hl_init(void)
 {
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(gballoc_ll_init(IGNORED_ARG));
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -38,7 +29,6 @@ static void TEST_gballoc_hl_init(void)
 static void TEST_gballoc_hl_deinit(void)
 {
     STRICT_EXPECTED_CALL(gballoc_ll_deinit());
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, LAZY_INIT_NOT_DONE));
     gballoc_hl_deinit();
 }
 
@@ -55,13 +45,7 @@ TEST_SUITE_INITIALIZE(init_suite)
 
     ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types());
 
-    REGISTER_UMOCK_ALIAS_TYPE(LAZY_INIT_FUNCTION, void*);
-
-    REGISTER_TYPE(LAZY_INIT_RESULT, LAZY_INIT_RESULT);
-
     REGISTER_GBALLOC_LL_GLOBAL_MOCK_HOOK();
-    REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK();
-    REGISTER_LAZY_INIT_GLOBAL_MOCK_HOOK();
 }
 
 TEST_SUITE_CLEANUP(TestClassCleanup)
@@ -78,15 +62,11 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
 {
 }
 
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_017: [ gballoc_hl_init shall call lazy_init with do_init as function to execute and gballoc_ll_init_params as parameter. ]*/
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_018: [ do_init shall call gballoc_ll_init(params). ]*/
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_019: [ do_init shall return 0. ]*/
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_002: [ gballoc_hl_init shall succeed and return 0. ]*/
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_42_001: [ gballoc_hl_init shall call gballoc_ll_init as function to execute and gballoc_ll_init_params as parameter and return the result. ]*/
 TEST_FUNCTION(gballoc_hl_init_happy_path)
 {
     ///arrange
     int result;
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, (void*)0x33));
 
     STRICT_EXPECTED_CALL(gballoc_ll_init((void*)0x33))
         .SetReturn(0);
@@ -102,31 +82,11 @@ TEST_FUNCTION(gballoc_hl_init_happy_path)
     gballoc_hl_deinit();
 }
 
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_003: [ If there are any failures then gballoc_hl_init shall fail and return a non-zero value. ]*/
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_020: [ If there are any failures then do_init shall fail and return a non-zero value. ]*/
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_42_001: [ gballoc_hl_init shall call gballoc_ll_init as function to execute and gballoc_ll_init_params as parameter and return the result. ]*/
 TEST_FUNCTION(gballoc_hl_init_unhappy_path_1)
 {
     ///arrange
     int result;
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, (void*)0x33))
-        .SetReturn(LAZY_INIT_ERROR);
-
-    ///act
-    result = gballoc_hl_init(NULL, (void*)0x33);
-
-    ///assert
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_003: [ If there are any failures then gballoc_hl_init shall fail and return a non-zero value. ]*/
-TEST_FUNCTION(gballoc_hl_init_unhappy_path_2)
-{
-    ///arrange
-    int result;
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, (void*)0x33));
 
     STRICT_EXPECTED_CALL(gballoc_ll_init((void*)0x33))
         .SetReturn(1);
@@ -141,19 +101,15 @@ TEST_FUNCTION(gballoc_hl_init_unhappy_path_2)
 
 
 /*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_004: [ gballoc_hl_deinit shall call gballoc_ll_deinit. ]*/
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_021: [ gballoc_hl_deinit shall switch module's state to LAZY_INIT_NOT_DONE ]*/
-TEST_FUNCTION(gballoc_hl_deinit_does_nothing_when_not_init)
+TEST_FUNCTION(gballoc_hl_deinit_calls_ll_deinit)
 {
     ///arrange
     int result;
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, (void*)0x33))
-        .SetReturn(LAZY_INIT_ERROR);
     result = gballoc_hl_init(NULL, (void*)0x33);
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(int, 0, result);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(gballoc_ll_deinit());
-    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, LAZY_INIT_NOT_DONE));
 
     ///act
     gballoc_hl_deinit();
@@ -162,15 +118,12 @@ TEST_FUNCTION(gballoc_hl_deinit_does_nothing_when_not_init)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_022: [ gballoc_hl_malloc shall call lazy_init passing as execution function do_init and NULL for argument. ]*/
 /*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_005: [ gballoc_hl_malloc shall call gballoc_ll_malloc(size) and return what gballoc_ll_malloc returned. ]*/
 TEST_FUNCTION(gballoc_hl_malloc_succeeds)
 {
     ///arrange
     TEST_gballoc_hl_init();
     void* result;
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
 
     STRICT_EXPECTED_CALL(gballoc_ll_malloc(3));
 
@@ -193,8 +146,6 @@ TEST_FUNCTION(gballoc_hl_malloc_unhappy_path_1)
     TEST_gballoc_hl_init();
     void* result;
 
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
-
     STRICT_EXPECTED_CALL(gballoc_ll_malloc(3))
         .SetReturn(NULL);
 
@@ -209,36 +160,12 @@ TEST_FUNCTION(gballoc_hl_malloc_unhappy_path_1)
     TEST_gballoc_hl_deinit();
 }
 
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_023: [ If lazy_init fail then gballoc_hl_malloc shall fail and return NULL. ]*/
-TEST_FUNCTION(gballoc_hl_malloc_unhappy_path_2)
-{
-    ///arrange
-    TEST_gballoc_hl_init();
-    void* result;
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL))
-        .SetReturn(LAZY_INIT_ERROR);
-
-    ///act
-    result = gballoc_hl_malloc(3);
-
-    ///assert
-    ASSERT_IS_NULL(result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///clean
-    TEST_gballoc_hl_deinit();
-}
-
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_028: [ gballoc_hl_malloc_2 shall call lazy_init passing as execution function do_init and NULL for argument. ]*/
 /*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_030: [ gballoc_hl_malloc_2 shall call gballoc_ll_malloc_2(size) and return what gballoc_ll_malloc_2 returned. ]*/
 TEST_FUNCTION(gballoc_hl_malloc_2_succeeds)
 {
     ///arrange
     TEST_gballoc_hl_init();
     void* result;
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
 
     STRICT_EXPECTED_CALL(gballoc_ll_malloc_2(3, 4));
 
@@ -254,35 +181,12 @@ TEST_FUNCTION(gballoc_hl_malloc_2_succeeds)
     TEST_gballoc_hl_deinit();
 }
 
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_029: [ If lazy_init fail then gballoc_hl_malloc_2 shall fail and return NULL. ]*/
-TEST_FUNCTION(gballoc_hl_malloc_2_unhappy_path_2)
-{
-    ///arrange
-    TEST_gballoc_hl_init();
-    void* result;
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL))
-        .SetReturn(LAZY_INIT_ERROR);
-
-    ///act
-    result = gballoc_hl_malloc_2(3, 4);
-
-    ///assert
-    ASSERT_IS_NULL(result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///clean
-    TEST_gballoc_hl_deinit();
-}
-
 /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_030: [ gballoc_hl_malloc_2 shall call gballoc_ll_malloc_2(size) and return what gballoc_ll_malloc_2 returned. ]*/
 TEST_FUNCTION(gballoc_hl_malloc_2_unhappy_path_1)
 {
     ///arrange
     TEST_gballoc_hl_init();
     void* result;
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
 
     STRICT_EXPECTED_CALL(gballoc_ll_malloc_2(3, 4))
         .SetReturn(NULL);
@@ -298,15 +202,12 @@ TEST_FUNCTION(gballoc_hl_malloc_2_unhappy_path_1)
     TEST_gballoc_hl_deinit();
 }
 
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_031: [ gballoc_hl_malloc_flex shall call lazy_init passing as execution function do_init and NULL for argument. ]*/
 /*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_033: [ gballoc_hl_malloc_flex shall call gballoc_ll_malloc_flex(size) and return what gballoc_hl_malloc_flex returned. ]*/
 TEST_FUNCTION(gballoc_hl_malloc_flex_succeeds)
 {
     ///arrange
     TEST_gballoc_hl_init();
     void* result;
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
 
     STRICT_EXPECTED_CALL(gballoc_ll_malloc_flex(2, 3, 4));
 
@@ -329,32 +230,8 @@ TEST_FUNCTION(gballoc_hl_malloc_flex_unhappy_path_1)
     TEST_gballoc_hl_init();
     void* result;
 
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
-
     STRICT_EXPECTED_CALL(gballoc_ll_malloc_flex(2, 3, 4))
         .SetReturn(NULL);
-
-    ///act
-    result = gballoc_hl_malloc_flex(2, 3, 4);
-
-    ///assert
-    ASSERT_IS_NULL(result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///clean
-    gballoc_hl_free(result);
-    TEST_gballoc_hl_deinit();
-}
-
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_032: [ If lazy_init fail then gballoc_hl_malloc_flex shall fail and return NULL. ]*/
-TEST_FUNCTION(gballoc_hl_malloc_flex_unhappy_path_2)
-{
-    ///arrange
-    TEST_gballoc_hl_init();
-    void* result;
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL))
-        .SetReturn(LAZY_INIT_ERROR);
 
     ///act
     result = gballoc_hl_malloc_flex(2, 3, 4);
@@ -404,15 +281,12 @@ TEST_FUNCTION(gballoc_hl_free_with_non_NULL_succeeds)
     TEST_gballoc_hl_deinit();
 }
 
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_024: [ gballoc_hl_calloc shall call lazy_init passing as execution function do_init and NULL for argument. ]*/
 /*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_007: [ gballoc_hl_calloc shall call gballoc_ll_calloc(nmemb, size) and return what gballoc_ll_calloc returned. ]*/
 TEST_FUNCTION(gballoc_ll_calloc_succeeds)
 {
     ///arrange
     TEST_gballoc_hl_init();
     void* result;
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
 
     STRICT_EXPECTED_CALL(gballoc_ll_calloc(1, 2));
 
@@ -428,33 +302,12 @@ TEST_FUNCTION(gballoc_ll_calloc_succeeds)
     TEST_gballoc_hl_deinit();
 }
 
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_025: [ If lazy_init fail then gballoc_hl_calloc shall fail and return NULL. ]*/
-TEST_FUNCTION(gballoc_ll_calloc_fails_when_lazy_init_fails)
-{
-    ///arrange
-    void* result;
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL))
-        .SetReturn(LAZY_INIT_ERROR);
-
-    ///act
-    result = gballoc_hl_calloc(1, 2);
-
-    ///assert
-    ASSERT_IS_NULL(result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///clean
-    gballoc_hl_free(result);
-}
 /*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_007: [ gballoc_hl_calloc shall call gballoc_ll_calloc(nmemb, size) and return what gballoc_ll_calloc returned. ]*/
 TEST_FUNCTION(gballoc_ll_calloc_when_ll_fails_it_fails)
 {
     ///arrange
     TEST_gballoc_hl_init();
     void* result;
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
 
     STRICT_EXPECTED_CALL(gballoc_ll_calloc(1, 2))
         .SetReturn(NULL);
@@ -470,7 +323,6 @@ TEST_FUNCTION(gballoc_ll_calloc_when_ll_fails_it_fails)
     TEST_gballoc_hl_deinit();
 }
 
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_026: [ gballoc_hl_realloc shall call lazy_init passing as execution function do_init and NULL for argument. ]*/
 /*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_008: [ gballoc_hl_realloc shall call gballoc_ll_realloc(ptr, size) and return what gballoc_ll_realloc returned. ]*/
 TEST_FUNCTION(gballoc_hl_realloc_succeeds)
 {
@@ -480,8 +332,6 @@ TEST_FUNCTION(gballoc_hl_realloc_succeeds)
     ASSERT_IS_NOT_NULL(ptr);
     umock_c_reset_all_calls();
     void* result;
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
 
     STRICT_EXPECTED_CALL(gballoc_ll_realloc(ptr, 10));
 
@@ -497,31 +347,6 @@ TEST_FUNCTION(gballoc_hl_realloc_succeeds)
     TEST_gballoc_hl_deinit();
 }
 
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_027: [ If lazy_init fail then gballoc_hl_realloc shall fail and return NULL. ]*/
-TEST_FUNCTION(gballoc_hl_realloc_fails_when_lazy_init_fails)
-{
-    ///arrange
-    TEST_gballoc_hl_init();
-    void* ptr = gballoc_hl_malloc(3);
-    ASSERT_IS_NOT_NULL(ptr);
-    umock_c_reset_all_calls();
-    void* result;
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL))
-        .SetReturn(LAZY_INIT_ERROR);
-
-    ///act
-    result = gballoc_hl_realloc(ptr, 10);
-
-    ///assert
-    ASSERT_IS_NULL(result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///clean
-    gballoc_hl_free(ptr);
-    TEST_gballoc_hl_deinit();
-}
-
 /*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_008: [ gballoc_hl_realloc shall call gballoc_ll_realloc(ptr, size) and return what gballoc_ll_realloc returned. ]*/
 TEST_FUNCTION(gballoc_hl_realloc_when_ll_fails)
 {
@@ -531,8 +356,6 @@ TEST_FUNCTION(gballoc_hl_realloc_when_ll_fails)
     ASSERT_IS_NOT_NULL(ptr);
     umock_c_reset_all_calls();
     void* result;
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
 
     STRICT_EXPECTED_CALL(gballoc_ll_realloc(ptr, 10))
         .SetReturn(NULL);
@@ -549,7 +372,6 @@ TEST_FUNCTION(gballoc_hl_realloc_when_ll_fails)
     TEST_gballoc_hl_deinit();
 }
 
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_034: [ gballoc_hl_realloc_2 shall call lazy_init passing as execution function do_init and NULL for argument. ]*/
 /*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_036: [ gballoc_hl_realloc_2 shall call gballoc_ll_realloc_2(ptr, nmemb, size) and return what gballoc_ll_realloc_2 returned. ]*/
 TEST_FUNCTION(gballoc_hl_realloc_2_succeeds)
 {
@@ -559,8 +381,6 @@ TEST_FUNCTION(gballoc_hl_realloc_2_succeeds)
     ASSERT_IS_NOT_NULL(ptr);
     umock_c_reset_all_calls();
     void* result;
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
 
     STRICT_EXPECTED_CALL(gballoc_ll_realloc_2(ptr, 10, 10));
 
@@ -586,8 +406,6 @@ TEST_FUNCTION(gballoc_hl_realloc_2_unhappy_path_1)
     umock_c_reset_all_calls();
     void* result;
 
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
-
     STRICT_EXPECTED_CALL(gballoc_ll_realloc_2(ptr, 10, 10))
         .SetReturn(NULL);
 
@@ -603,32 +421,6 @@ TEST_FUNCTION(gballoc_hl_realloc_2_unhappy_path_1)
     TEST_gballoc_hl_deinit();
 }
 
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_035: [ If lazy_init fail then gballoc_hl_realloc_2 shall fail and return NULL. ]*/
-TEST_FUNCTION(gballoc_hl_realloc_2_unhappy_path_2)
-{
-    ///arrange
-    TEST_gballoc_hl_init();
-    void* ptr = gballoc_hl_malloc(3);
-    ASSERT_IS_NOT_NULL(ptr);
-    umock_c_reset_all_calls();
-    void* result;
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL))
-        .SetReturn(LAZY_INIT_ERROR);
-
-    ///act
-    result = gballoc_hl_realloc_2(ptr, 10, 10);
-
-    ///assert
-    ASSERT_IS_NULL(result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///clean
-    gballoc_hl_free(ptr);
-    TEST_gballoc_hl_deinit();
-}
-
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_037: [ gballoc_hl_realloc_flex shall call lazy_init passing as execution function do_init and NULL for argument. ]*/
 /*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_039: [ gballoc_hl_realloc_flex shall call gballoc_ll_realloc_flex(ptr, base, nmemb, size) and return what gballoc_ll_realloc_flex returned. ]*/
 TEST_FUNCTION(gballoc_hl_realloc_flex_succeeds)
 {
@@ -638,8 +430,6 @@ TEST_FUNCTION(gballoc_hl_realloc_flex_succeeds)
     ASSERT_IS_NOT_NULL(ptr);
     umock_c_reset_all_calls();
     void* result;
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
 
     STRICT_EXPECTED_CALL(gballoc_ll_realloc_flex(ptr, 3, 10, 10));
 
@@ -665,35 +455,8 @@ TEST_FUNCTION(gballoc_hl_realloc_flex_unhappy_path_1)
     umock_c_reset_all_calls();
     void* result;
 
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
-
     STRICT_EXPECTED_CALL(gballoc_ll_realloc_flex(ptr, 3, 10, 10))
         .SetReturn(NULL);
-
-    ///act
-    result = gballoc_hl_realloc_flex(ptr, 3, 10, 10);
-
-    ///assert
-    ASSERT_IS_NULL(result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///clean
-    gballoc_hl_free(ptr);
-    TEST_gballoc_hl_deinit();
-}
-
-/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_038: [ If lazy_init fail then gballoc_hl_realloc_flex shall fail and return NULL. ]*/
-TEST_FUNCTION(gballoc_hl_realloc_flex_unhappy_path_2)
-{
-    ///arrange
-    TEST_gballoc_hl_init();
-    void* ptr = gballoc_hl_malloc(3);
-    ASSERT_IS_NOT_NULL(ptr);
-    umock_c_reset_all_calls();
-    void* result;
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL))
-        .SetReturn(LAZY_INIT_ERROR);
 
     ///act
     result = gballoc_hl_realloc_flex(ptr, 3, 10, 10);
@@ -912,29 +675,6 @@ TEST_FUNCTION(gballoc_hl_set_option_calls_gballoc_ll_set_option_and_returns_non_
 
 /* gballoc_hl_size */
 
-/* Tests_SRS_GBALLOC_HL_PASSTHROUGH_01_002: [ If the module was not initialized, gballoc_hl_size shall return 0. ]*/
-TEST_FUNCTION(when_module_is_not_initialized_gballoc_hl_size_returns_0)
-{
-    ///arrange
-    ASSERT_ARE_EQUAL(int, 0, gballoc_ll_init(NULL));
-    void* ptr = gballoc_ll_malloc(3);
-    ASSERT_IS_NOT_NULL(ptr);
-    gballoc_ll_deinit();
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-
-    ///act
-    size_t size = gballoc_hl_size(ptr);
-
-    ///assert
-    ASSERT_ARE_EQUAL(size_t, 0, size);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///clean
-    gballoc_ll_free(ptr);
-}
-
 /* Tests_SRS_GBALLOC_HL_PASSTHROUGH_01_003: [ Otherwise, gballoc_hl_size shall call gballoc_ll_size with ptr as argument and return the result of gballoc_ll_size. ]*/
 TEST_FUNCTION(gballoc_hl_size_returns_the_result_of_the_underlying_ll_size)
 {
@@ -945,7 +685,6 @@ TEST_FUNCTION(gballoc_hl_size_returns_the_result_of_the_underlying_ll_size)
     ASSERT_IS_NOT_NULL(ptr);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(gballoc_ll_size(IGNORED_ARG))
         .CaptureReturn(&returned_size);
 
