@@ -1498,7 +1498,7 @@ DISABLED_TEST_FUNCTION(one_work_item_schedule_works_v2)
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work_v2)
+TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work_v2)
 {
     // arrange
     // create an execution engine
@@ -1529,7 +1529,7 @@ DISABLED_TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedu
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-DISABLED_TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_works_v2))
+TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_works_v2))
 {
     // assert
     // create an execution engine
@@ -1542,7 +1542,7 @@ DISABLED_TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_works_v2))
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
-    LogInfo("Scheduling work " MU_TOSTRING(N_WORK_TIMES) " times");
+    LogInfo("Scheduling work %d times", N_WORK_TIMES);
     // act (schedule work items)
     LogInfo("Create Work Item Context");
     THANDLE(THREADPOOL_WORK_ITEM) work_item = threadpool_create_work_item(threadpool, work_function, (void*)&g_call_count);
@@ -1562,7 +1562,7 @@ DISABLED_TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_works_v2))
     execution_engine_dec_ref(execution_engine);
 }
 
-DISABLED_TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items_v2)
+TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items_v2)
 {
     // assert
     // create an execution engine
