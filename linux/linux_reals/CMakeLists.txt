@@ -15,6 +15,7 @@ set(linux_reals_c_files
     real_threadpool.c
     real_timer.c
     real_uuid.c
+    real_tqueue_threadpool_work_item.c
     ../../common/reals/real_call_once.c
     ../../common/reals/real_s_list.c
     ../../common/reals/real_ps_util.c
@@ -40,6 +41,8 @@ set(linux_reals_h_files
     real_threadpool_renames.h
     real_uuid_renames.h
     real_uuid.h
+    real_tqueue_threadpool_work_item.h
+    real_tqueue_threadpool_work_item_renames.h
     ../../common/reals/real_refcount.h
     ../../common/reals/real_s_list.h
     ../../common/reals/real_s_list_renames.h
