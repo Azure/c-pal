@@ -86,8 +86,6 @@ MOCKABLE_FUNCTION(, int, job_object_helper_assign_process, THANDLE(JOB_OBJECT_HE
 
 **SRS_JOB_OBJECT_HELPER_19_020: [** If the `process_handle` is null, then `job_object_helper_assign_process` shall set it to the `GetCurrentProcess()` output. **]**
 
-**SRS_JOB_OBJECT_HELPER_19_011: [** `job_object_helper_assign_process` shall call `OpenJobObject` with Permission `JOB_OBJECT_ASSIGN_PROCESS`. **]**
-
 **SRS_JOB_OBJECT_HELPER_19_013: [** `job_object_helper_assign_process` shall call `AssignProcessToJobObject` to assign the `process_handle` to the job object. **]**
 
 **SRS_JOB_OBJECT_HELPER_19_014: [** If there are any failures then `job_object_helper_assign_process` shall fail and return a non-zero value. **]**
