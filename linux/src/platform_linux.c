@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include <stddef.h>                       // for NULL
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -26,9 +27,10 @@ static int warmup_getaddrinfo(void)
     addrHint.ai_socktype = SOCK_STREAM;
     addrHint.ai_flags = AI_PASSIVE;
     
-    /* Codes_SRS_PLATFORM_LINUX_01_001: [ platform_init shall call getaddrinfo for localhost and port 4242. ]*/
+    /* Codes_SRS_PLATFORM_LINUX_01_001: [ Otherwise, platform_init shall call getaddrinfo for localhost and port 4242. ]*/
     if (getaddrinfo("localhost", "4242", &addrHint, &addrInfo) != 0)
     {
+        // Codes_SRS_PLATFORM_LINUX_01_002: [ If any error occurs, platform_init shall return a non-zero value. ]
         LogError("Failure calling getaddrinfo");
         result = MU_FAILURE;
     }
@@ -46,35 +48,34 @@ int platform_init(void)
 {
     int result;
 
-    if (warmup_getaddrinfo() != 0)
+    if (g_completion_port == NULL)
     {
-        // Codes_SRS_PLATFORM_LINUX_11_000: [ If the warmup_getaddrinfo fails, platform_init shall return a non-zero value. ]
-        LogError("Failure calling warmup_getaddrinfo");
-        result = MU_FAILURE;
-    }
-    else
-    {
-        if (g_completion_port == NULL)
+        if (warmup_getaddrinfo() != 0)
         {
-            // Codes_SRS_PLATFORM_LINUX_11_001: [ If the completion_port object is NULL, platform_init shall call completion_port_create. ]
+            LogError("Failure calling warmup_getaddrinfo");
+            result = MU_FAILURE;
+        }
+        else
+        {
+            // Codes_SRS_PLATFORM_LINUX_11_001: [ platform_init shall call completion_port_create. ]
             g_completion_port = completion_port_create();
             if (g_completion_port == NULL)
             {
-                // Codes_SRS_PLATFORM_LINUX_11_003: [ otherwise, platform_init shall return a non-zero value. ]
+                // Codes_SRS_PLATFORM_LINUX_01_002: [ If any error occurs, platform_init shall return a non-zero value. ]
                 LogError("Failure calling completion_port_create");
                 result = MU_FAILURE;
             }
             else
             {
-                // Codes_SRS_PLATFORM_LINUX_11_002: [ If completion_port_create returns a valid completion port object, platform_init shall return zero. ]
+                // Codes_SRS_PLATFORM_LINUX_11_002: [ platform_init shall succeed and return zero. ]
                 result = 0;
             }
         }
-        else
-        {
-            // Codes_SRS_PLATFORM_LINUX_11_007: [ If the completion port object is non-NULL, platform_init shall return zero. ]
-            result = 0;
-        }
+    }
+    else
+    {
+        // Codes_SRS_PLATFORM_LINUX_11_007: [ If the completion port object is non-NULL, platform_init shall return zero. ]
+        result = 0;
     }
     return result;
 }
