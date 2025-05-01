@@ -18,7 +18,9 @@ MOCKABLE_FUNCTION(, COMPLETION_PORT_HANDLE, platform_get_completion_port);
 MOCKABLE_FUNCTION(, int, platform_init);
 ```
 
-`platform_init` initializes the completion port object if it's not initialized
+`platform_init` performs platform initialization for Linux. This includes warming up `getaddrinfo` (needed for avoiding init races) and initializing the Linux equivalent of completion ports.
+
+**SRS_PLATFORM_LINUX_01_001: [** `platform_init` shall call `getaddrinfo` for `localhost` and port `4242`. **]**
 
 **SRS_PLATFORM_LINUX_11_001: [** If the completion port object is NULL, `platform_init` shall call `completion_port_create`. **]**
 

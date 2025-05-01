@@ -26,6 +26,7 @@ static int warmup_getaddrinfo(void)
     addrHint.ai_socktype = SOCK_STREAM;
     addrHint.ai_flags = AI_PASSIVE;
     
+    /* Codes_SRS_PLATFORM_LINUX_01_001: [ platform_init shall call getaddrinfo for localhost and port 4242. ]*/
     if (getaddrinfo("localhost", "4242", &addrHint, &addrInfo) != 0)
     {
         LogError("Failure calling getaddrinfo");
