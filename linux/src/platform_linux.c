@@ -27,6 +27,9 @@ static int warmup_getaddrinfo(void)
     addrHint.ai_socktype = SOCK_STREAM;
     addrHint.ai_flags = AI_PASSIVE;
     
+    // The below getaddrinfo call is used to avoid initialization races in getaddrinfo (nss)
+    // If no warmup is done, Helgrind will complain in various int tests
+
     /* Codes_SRS_PLATFORM_LINUX_01_001: [ Otherwise, platform_init shall call getaddrinfo for localhost and port 4242. ]*/
     if (getaddrinfo("localhost", "4242", &addrHint, &addrInfo) != 0)
     {
