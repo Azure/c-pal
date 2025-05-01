@@ -2,6 +2,10 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include <stddef.h>                       // for NULL
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+
 #include "macro_utils/macro_utils.h"      // for MU_FAILURE
 
 #include "c_logging/logger.h"
@@ -12,29 +16,64 @@
 
 COMPLETION_PORT_HANDLE g_completion_port = NULL;
 
-int platform_init(void)
+static int warmup_getaddrinfo(void)
 {
     int result;
-    if (g_completion_port == NULL)
+    struct addrinfo* addrInfo = NULL;
+    struct addrinfo addrHint = { 0 };
+
+    addrHint.ai_family = AF_UNSPEC;
+    addrHint.ai_socktype = SOCK_STREAM;
+    addrHint.ai_flags = AI_PASSIVE;
+    
+    if (getaddrinfo("localhost", "4242", &addrHint, &addrInfo) != 0)
     {
-        // Codes_SRS_PLATFORM_LINUX_11_001: [ If the completion_port object is NULL, platform_init shall call completion_port_create. ]
-        g_completion_port = completion_port_create();
-        if (g_completion_port == NULL)
-        {
-            // Codes_SRS_PLATFORM_LINUX_11_003: [ otherwise, platform_init shall return a non-zero value. ]
-            LogError("Failure calling completion_port_create");
-            result = MU_FAILURE;
-        }
-        else
-        {
-            // Codes_SRS_PLATFORM_LINUX_11_002: [ If completion_port_create returns a valid completion port object, platform_init shall return zero. ]
-            result = 0;
-        }
+        LogError("Failure calling getaddrinfo");
+        result = MU_FAILURE;
     }
     else
     {
-        // Codes_SRS_PLATFORM_LINUX_11_007: [ If the completion port object is non-NULL, platform_init shall return zero. ]
+        freeaddrinfo(addrInfo);
+
         result = 0;
+    }
+
+    return result;
+}
+
+int platform_init(void)
+{
+    int result;
+
+    if (warmup_getaddrinfo() != 0)
+    {
+        // Codes_SRS_PLATFORM_LINUX_11_000: [ If the warmup_getaddrinfo fails, platform_init shall return a non-zero value. ]
+        LogError("Failure calling warmup_getaddrinfo");
+        result = MU_FAILURE;
+    }
+    else
+    {
+        if (g_completion_port == NULL)
+        {
+            // Codes_SRS_PLATFORM_LINUX_11_001: [ If the completion_port object is NULL, platform_init shall call completion_port_create. ]
+            g_completion_port = completion_port_create();
+            if (g_completion_port == NULL)
+            {
+                // Codes_SRS_PLATFORM_LINUX_11_003: [ otherwise, platform_init shall return a non-zero value. ]
+                LogError("Failure calling completion_port_create");
+                result = MU_FAILURE;
+            }
+            else
+            {
+                // Codes_SRS_PLATFORM_LINUX_11_002: [ If completion_port_create returns a valid completion port object, platform_init shall return zero. ]
+                result = 0;
+            }
+        }
+        else
+        {
+            // Codes_SRS_PLATFORM_LINUX_11_007: [ If the completion port object is non-NULL, platform_init shall return zero. ]
+            result = 0;
+        }
     }
     return result;
 }
