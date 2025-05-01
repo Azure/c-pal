@@ -8,7 +8,7 @@ set(${theseTestsName}_test_files
 )
 
 set(${theseTestsName}_c_files
-    ../../src/platform_linux.c
+    platform_mocked.c
 )
 
 set(${theseTestsName}_h_files
