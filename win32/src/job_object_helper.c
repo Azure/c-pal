@@ -5,7 +5,7 @@
 
 #include "windows.h"
 #include "processthreadsapi.h"
-#include "jobapi.h"
+#include "jobapi2.h"
 
 #include "macro_utils/macro_utils.h"
 #include "c_logging/logger.h"
@@ -21,12 +21,6 @@ typedef struct JOB_OBJECT_HELPER_TAG {
 } JOB_OBJECT_HELPER;
 
 THANDLE_TYPE_DEFINE(JOB_OBJECT_HELPER);
-
-typedef struct PROCESS_HANDLE_TAG {
-    HANDLE process_handle;
-} PROCESS_HANDLE;
-
-THANDLE_TYPE_DEFINE(PROCESS_HANDLE);
 
 static void job_object_helper_dispose(JOB_OBJECT_HELPER* job_object_helper)
 {
@@ -123,8 +117,8 @@ IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_limit_memory, THANDLE(JOB_O
         else
         {
             /*Codes_SRS_JOB_OBJECT_HELPER_18_039: [ job_object_helper_limit_memory shall call SetInformationJobObject, passing JobObjectExtendedLimitInformation and a JOBOBJECT_EXTENDED_LIMIT_INFORMATION object with JOB_OBJECT_LIMIT_JOB_MEMORY set and JobMemoryLimit set to the percent_physical_memory percent of the physical memory in bytes. ]*/
-            JOBOBJECT_EXTENDED_LIMIT_INFORMATION extended_limit_information = {0};
-            extended_limit_information.BasicLimitInformation.LimitFlags  = JOB_OBJECT_LIMIT_JOB_MEMORY;
+            JOBOBJECT_EXTENDED_LIMIT_INFORMATION extended_limit_information = { 0 };
+            extended_limit_information.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_JOB_MEMORY;
             extended_limit_information.JobMemoryLimit = percent_physical_memory * memory_status_ex.ullTotalPhys / 100;
             if (!SetInformationJobObject(job_object_helper->job_object, JobObjectExtendedLimitInformation, &extended_limit_information, sizeof(extended_limit_information)))
             {
@@ -143,26 +137,6 @@ IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_limit_memory, THANDLE(JOB_O
 
     return result;
 }
-
-IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_create_with_name, const char*, job_name)
-{
-    (void)job_name;
-    return NULL;
-}
-
-IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_get, const char*, job_name)
-{
-    (void)job_name;
-    return NULL;
-}
-
-IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_assign_process, THANDLE(JOB_OBJECT_HELPER), job_object_helper, THANDLE(PROCESS_HANDLE), process_hndl)
-{
-    (void)job_object_helper;
-    (void)process_hndl;
-    return MU_FAILURE;
-}
-
 
 IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_limit_cpu, THANDLE(JOB_OBJECT_HELPER), job_object_helper, uint32_t, percent_cpu)
 {
@@ -200,3 +174,10 @@ IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_limit_cpu, THANDLE(JOB_OBJE
 
 }
 
+IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_set_job_limits_to_current_process, const char*, job_name, uint32_t, percent_cpu, uint32_t, percent_physical_memory)
+{
+    (void)job_name;
+    (void)percent_cpu;
+    (void)percent_physical_memory;
+    return -1;
+}

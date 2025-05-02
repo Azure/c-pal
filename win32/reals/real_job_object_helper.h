@@ -34,20 +34,13 @@ extern "C" {
     typedef struct JOB_OBJECT_HELPER_TAG real_JOB_OBJECT_HELPER;
     THANDLE_TYPE_DECLARE(real_JOB_OBJECT_HELPER);
 
-    typedef struct PROCESS_HANDLE_TAG real_PROCESS_HANDLE;
-    THANDLE_TYPE_DECLARE(real_PROCESS_HANDLE);
-
     THANDLE(JOB_OBJECT_HELPER) real_job_object_helper_create(void);
-
-    THANDLE(JOB_OBJECT_HELPER) real_job_object_helper_create_with_name(const char* job_name);
-
-    THANDLE(JOB_OBJECT_HELPER) real_job_object_helper_get(const char* job_name);
-
-    int read_job_object_helper_assign_process(THANDLE(JOB_OBJECT_HELPER) job_object_helper, THANDLE(PROCESS_HANDLE) process_hndl);
 
     int real_job_object_helper_limit_memory(THANDLE(JOB_OBJECT_HELPER) job_object_helper, uint32_t percent_physical_memory);
 
     int real_job_object_helper_limit_cpu(THANDLE(JOB_OBJECT_HELPER) job_object_helper, uint32_t percent_cpu);
+
+    int real_job_object_helper_set_job_limits_to_current_process(const char* job_name, uint32_t percent_cpu, uint32_t percent_physical_memory);
 
 #ifdef __cplusplus
 }
