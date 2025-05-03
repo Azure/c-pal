@@ -11,39 +11,18 @@
 
 #include "c_pal/gballoc_hl.h"
 
-static int wasInitialized = 0;
-
 int gballoc_hl_init(void* gballoc_hl_init_params, void* gballoc_ll_init_params)
 {
-    int result;
     (void)gballoc_hl_init_params; /*are ignored, this is "passthrough*/
 
-    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_018: [ do_init shall call gballoc_ll_init(params). ]*/
-
-    if (gballoc_ll_init(gballoc_ll_init_params) != 0)
-    {
-        /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_003: [ If there are any failures then gballoc_hl_init shall fail and return a non-zero value. ]*/
-        LogError("failure in gballoc_ll_init(gballoc_ll_init_params=%p)", gballoc_ll_init_params);
-        result = MU_FAILURE;
-    }
-    else
-    {
-        /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_002: [ gballoc_hl_init shall succeed and return 0. ]*/
-        result = 0;
-        wasInitialized = 1;
-    }
-
-    return result;
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_42_001: [ gballoc_hl_init shall call gballoc_ll_init as function to execute and gballoc_ll_init_params as parameter and return the result. ]*/
+    return gballoc_ll_init(gballoc_ll_init_params);
 }
 
 void gballoc_hl_deinit(void)
 {
     /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_004: [ gballoc_hl_deinit shall call gballoc_ll_deinit. ]*/
-    if (wasInitialized)
-    {
-        gballoc_ll_deinit();
-        wasInitialized = 0;
-    }
+    gballoc_ll_deinit();
 }
 
 void* gballoc_hl_malloc(size_t size)
@@ -90,19 +69,8 @@ void gballoc_hl_free(void* ptr)
 
 size_t gballoc_hl_size(void* ptr)
 {
-    size_t result;
-
-    if (!wasInitialized)
-    {
-        /* Codes_SRS_GBALLOC_HL_PASSTHROUGH_01_002: [ If the module was not initialized, gballoc_hl_size shall return 0. ]*/
-        result = 0;
-    }
-    else
-    {
-        /* Codes_SRS_GBALLOC_HL_PASSTHROUGH_01_003: [ Otherwise, gballoc_hl_size shall call gballoc_ll_size with ptr as argument and return the result of gballoc_ll_size. ]*/
-        result = gballoc_ll_size(ptr);
-    }
-    return result;
+    /* Codes_SRS_GBALLOC_HL_PASSTHROUGH_01_003: [ Otherwise, gballoc_hl_size shall call gballoc_ll_size with ptr as argument and return the result of gballoc_ll_size. ]*/
+    return gballoc_ll_size(ptr);
 }
 
 void* gballoc_hl_calloc(size_t nmemb, size_t size)
@@ -235,4 +203,3 @@ int gballoc_hl_set_option(const char* option_name, void* option_value)
     /* Codes_SRS_GBALLOC_HL_PASSTHROUGH_28_001: [ gballoc_hl_set_option shall call gballoc_ll_set_option with option_name and option_value as arguments. ]*/
     return gballoc_ll_set_option(option_name, option_value);
 }
- 
