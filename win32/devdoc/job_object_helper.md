@@ -90,13 +90,13 @@ MOCKABLE_FUNCTION(, int, job_object_helper_set_job_limits_to_current_process, co
 ```
 `job_object_helper_set_job_limits_to_current_process` Creates the Job Object with limits if the job object doesn't exists and set limits on the current process by assigning it to the Job object.
 
+**S_RS_JOB_OBJECT_HELPER_19_013: [** If `percent_cpu` is greater than `100` then `job_object_helper_set_job_limits_to_current_process` shall fail and return a non-zero value. **]**
+
+**S_RS_JOB_OBJECT_HELPER_19_012: [** If `percent_physical_memory` is greater than `100` then `job_object_helper_set_job_limits_to_current_process` shall fail and return a non-zero value. **]**
+
 **S_RS_JOB_OBJECT_HELPER_19_002: [** `job_object_helper_set_job_limits_to_current_process` shall call `CreateJobObjectA` passing `job_name` for `lpName` and `NULL` for `lpJobAttributes`. **]**
 
-**S_RS_JOB_OBJECT_HELPER_19_013: [** If `percent_cpu` is greater than `100` then `job_object_helper_set_job_limits_to_current_process` shall fail. **]**
-
 **S_RS_JOB_OBJECT_HELPER_19_003: [** If `percent_cpu` is not `0` then `job_object_helper_set_job_limits_to_current_process` shall call `SetInformationJobObject` passing `JobObjectCpuRateControlInformation` and a `JOBOBJECT_CPU_RATE_CONTROL_INFORMATION` object with `JOB_OBJECT_CPU_RATE_CONTROL_ENABLE` and `JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP` set, and `CpuRate` set to `percent_cpu` times `100`. **]**
-
-**S_RS_JOB_OBJECT_HELPER_19_012: [** If `percent_physical_memory` is greater than `100` then `job_object_helper_set_job_limits_to_current_process` shall fail. **]**
 
 **S_RS_JOB_OBJECT_HELPER_19_004: [** If `percent_physical_memory` is not `0` then `job_object_helper_set_job_limits_to_current_process` shall call `GlobalMemoryStatusEx` to get the total amount of physical memory in kb. **]**
 
