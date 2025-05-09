@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "windows.h"
+#include "jobapi2.h"
 
 #include "macro_utils/macro_utils.h"
 
@@ -37,6 +38,9 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 #define test_total_physical_memory 20480
 
 MOCK_FUNCTION_WITH_CODE(, HANDLE, mocked_CreateJobObject, LPSECURITY_ATTRIBUTES, lpJobAttributes, LPCSTR, lpName)
+MOCK_FUNCTION_END(real_gballoc_hl_malloc(1))
+
+MOCK_FUNCTION_WITH_CODE(, HANDLE, mocked_CreateJobObjectA, LPSECURITY_ATTRIBUTES, lpJobAttributes, LPCSTR, lpName)
 MOCK_FUNCTION_END(real_gballoc_hl_malloc(1))
 
 MOCK_FUNCTION_WITH_CODE(, HANDLE, mocked_GetCurrentProcess)
@@ -391,5 +395,266 @@ TEST_FUNCTION(job_object_helper_limit_cpu_fails)
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
 }
 
+static void setup_job_object_helper_set_job_limits_to_current_process_expectations(void)
+{
+    STRICT_EXPECTED_CALL(mocked_CreateJobObjectA(IGNORED_ARG, "job_name"))
+        .SetFailReturn(NULL);
+    setup_job_object_helper_limit_cpu_expectations();
+    setup_job_object_helper_limit_memory_expectations();
+    STRICT_EXPECTED_CALL(mocked_GetCurrentProcess())
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(mocked_AssignProcessToJobObject(IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(TRUE)
+        .SetFailReturn(FALSE);
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
+        .SetReturn(TRUE)
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
+        .SetReturn(TRUE)
+        .CallCannotFail();
+}
+
+/*Tests_S_RS_JOB_OBJECT_HELPER_19_013: [ If percent_cpu is greater than 100 then job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value.]*/
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_with_invalid_percent_cpu)
+{
+    // arrange
+    // act
+    int result = job_object_helper_set_job_limits_to_current_process("job_name", 20, 242);
+    // assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+}
+
+/*Tests_S_RS_JOB_OBJECT_HELPER_19_012: [ If percent_physical_memory is greater than 100 then job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value.]*/
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_with_invalid_percent_physical_memory)
+{
+    // arrange
+    // act
+    int result = job_object_helper_set_job_limits_to_current_process("job_name", 101, 40);
+    // assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+}
+
+/*Tests_S_RS_JOB_OBJECT_HELPER_19_002: [job_object_helper_set_job_limits_to_current_process shall call CreateJobObjectA passing job_name for lpName and NULL for lpJobAttributes.]*/
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_CreateObjectA_fails)
+{
+    // arrange
+    STRICT_EXPECTED_CALL(mocked_CreateJobObjectA(IGNORED_ARG, "job_name"))
+        .SetReturn(FALSE)
+        .SetFailReturn(NULL);
+
+    // act
+    int result = job_object_helper_set_job_limits_to_current_process("job_name", 42, 42);
+    // assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_S_RS_JOB_OBJECT_HELPER_19_003: [If percent_cpu is not 0 then `job_object_helper_set_job_limits_to_current_process` shall call SetInformationJobObject passing JobObjectCpuRateControlInformation and a JOBOBJECT_CPU_RATE_CONTROL_INFORMATION object with JOB_OBJECT_CPU_RATE_CONTROL_ENABLE and JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP set, and CpuRate set to percent_cpu times 100.]*/
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_SetInformationJobObject_for_cpu_limits_fails)
+{
+    // arrange
+    // arrange
+    STRICT_EXPECTED_CALL(mocked_CreateJobObjectA(IGNORED_ARG, "job_name"))
+        .SetFailReturn(NULL);
+    STRICT_EXPECTED_CALL(mocked_SetInformationJobObject(IGNORED_ARG, JobObjectCpuRateControlInformation, IGNORED_ARG, sizeof(JOBOBJECT_CPU_RATE_CONTROL_INFORMATION)))
+        .SetReturn(FALSE)
+        .SetFailReturn(TRUE);
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
+        .SetReturn(TRUE)
+        .CallCannotFail();
+    // act
+    int result = job_object_helper_set_job_limits_to_current_process("job_name", 42, 42);
+    // assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_S_RS_JOB_OBJECT_HELPER_19_004: [If percent_physical_memory is not 0 then job_object_helper_set_job_limits_to_current_process shall call GlobalMemoryStatusEx to get the total amount of physical memory in kb.] */
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_GlobalMemoryStatusEx_fails)
+{
+    // arrange
+    STRICT_EXPECTED_CALL(mocked_CreateJobObjectA(IGNORED_ARG, "job_name"))
+        .SetFailReturn(NULL);
+    setup_job_object_helper_limit_cpu_expectations();
+    STRICT_EXPECTED_CALL(mocked_GlobalMemoryStatusEx(IGNORED_ARG))
+        .SetReturn(FALSE)
+        .SetFailReturn(TRUE);
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
+        .SetReturn(TRUE)
+        .CallCannotFail();
+    // act
+    int result = job_object_helper_set_job_limits_to_current_process("job_name", 42, 42);
+    // assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_S_RS_JOB_OBJECT_HELPER_19_005: [If percent_physical_memory is not 0 then job_object_helper_set_job_limits_to_current_process shall call SetInformationJobObject, passing JobObjectExtendedLimitInformation and a JOBOBJECT_EXTENDED_LIMIT_INFORMATION object with JOB_OBJECT_LIMIT_JOB_MEMORY set and JobMemoryLimit set to the percent_physical_memory percent of the physical memory in bytes.]*/
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_SetInformationJobObject_for_memory_limits_fails)
+{
+    // arrange
+    STRICT_EXPECTED_CALL(mocked_CreateJobObjectA(IGNORED_ARG, "job_name"))
+        .SetFailReturn(NULL);
+    setup_job_object_helper_limit_cpu_expectations();
+    STRICT_EXPECTED_CALL(mocked_GlobalMemoryStatusEx(IGNORED_ARG))
+        .SetReturn(TRUE)
+        .SetFailReturn(FALSE);
+    STRICT_EXPECTED_CALL(mocked_SetInformationJobObject(IGNORED_ARG, JobObjectExtendedLimitInformation, IGNORED_ARG, sizeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION)))
+        .SetReturn(FALSE)
+        .SetFailReturn(TRUE);
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
+        .SetReturn(TRUE)
+        .CallCannotFail();
+    // act
+    int result = job_object_helper_set_job_limits_to_current_process("job_name", 42, 42);
+    // assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_S_RS_JOB_OBJECT_HELPER_19_006: [ job_object_helper_set_job_limits_to_current_process shall call CloseHandle to close the handle of the current process.]*/
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_GetCurrentProcess_fails)
+{
+    // arrange
+    STRICT_EXPECTED_CALL(mocked_CreateJobObjectA(IGNORED_ARG, "job_name"))
+        .SetFailReturn(NULL);
+    setup_job_object_helper_limit_cpu_expectations();
+    setup_job_object_helper_limit_memory_expectations();
+	STRICT_EXPECTED_CALL(mocked_GetCurrentProcess()).
+        SetReturn(FALSE).
+        SetFailReturn(NULL);
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
+        .SetReturn(TRUE)
+        .CallCannotFail();
+    // act
+    int result = job_object_helper_set_job_limits_to_current_process("job_name", 42, 42);
+    // assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+
+/*Tests_S_RS_JOB_OBJECT_HELPER_19_007: [job_object_helper_set_job_limits_to_current_process shall call AssignProcessToJobObject to assign the current process to the new job object.]*/
+/*Tests_S_RS_JOB_OBJECT_HELPER_19_009: [If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value.]*/
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_AssignProcessToJobObject_fails)
+{
+    // arrange
+    STRICT_EXPECTED_CALL(mocked_CreateJobObjectA(IGNORED_ARG, "job_name"))
+        .SetFailReturn(NULL);
+    setup_job_object_helper_limit_cpu_expectations();
+    setup_job_object_helper_limit_memory_expectations();
+    STRICT_EXPECTED_CALL(mocked_GetCurrentProcess())
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(mocked_AssignProcessToJobObject(IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(FALSE)
+        .SetFailReturn(TRUE);
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
+        .SetReturn(TRUE)
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
+        .SetReturn(TRUE)
+        .CallCannotFail();
+
+    // act
+    int result = job_object_helper_set_job_limits_to_current_process("job_name", 42, 42);
+    // assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+
+/*Tests_S_RS_JOB_OBJECT_HELPER_19_007: [job_object_helper_set_job_limits_to_current_process shall call AssignProcessToJobObject to assign the current process to the new job object.]*/
+/*Tests_S_RS_JOB_OBJECT_HELPER_19_010: [job_object_set_job_limits_to_current_process shall succeed and return 0.]*/
+/*Tests_S_RS_JOB_OBJECT_HELPER_19_008: [job_object_helper_set_job_limits_to_current_process shall call CloseHandle to close the handle of the current process.]*/
+/*Tests_S_RS_JOB_OBJECT_HELPER_19_011 : [job_object_helper_set_job_limits_to_current_process shall call CloseHandle to close the handle of the Job object.]*/
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_succeeds)
+{
+    // arrange
+    STRICT_EXPECTED_CALL(mocked_CreateJobObjectA(IGNORED_ARG, "job_name"))
+        .SetFailReturn(NULL);
+    STRICT_EXPECTED_CALL(mocked_GetCurrentProcess())
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(mocked_AssignProcessToJobObject(IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(TRUE)
+        .SetFailReturn(FALSE);
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
+        .SetReturn(TRUE)
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
+        .SetReturn(TRUE)
+        .CallCannotFail();
+    // act
+    int result = job_object_helper_set_job_limits_to_current_process("job_name", 0, 0);
+    // assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_S_RS_JOB_OBJECT_HELPER_19_010: [job_object_set_job_limits_to_current_process shall succeed and return 0.]*/
+/*Tests_S_RS_JOB_OBJECT_HELPER_19_003: [If percent_cpu is not 0 then `job_object_helper_set_job_limits_to_current_process` shall call SetInformationJobObject passing JobObjectCpuRateControlInformation and a JOBOBJECT_CPU_RATE_CONTROL_INFORMATION object with JOB_OBJECT_CPU_RATE_CONTROL_ENABLE and JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP set, and CpuRate set to percent_cpu times 100.]*/
+/*Tests_S_RS_JOB_OBJECT_HELPER_19_005: [If percent_physical_memory is not 0 then job_object_helper_set_job_limits_to_current_process shall call SetInformationJobObject, passing JobObjectExtendedLimitInformation and a JOBOBJECT_EXTENDED_LIMIT_INFORMATION object with JOB_OBJECT_LIMIT_JOB_MEMORY set and JobMemoryLimit set to the percent_physical_memory percent of the physical memory in bytes.]*/
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_succeeds_valid_limits)
+{
+    // arrange
+    setup_job_object_helper_set_job_limits_to_current_process_expectations();
+    // act
+    int result = job_object_helper_set_job_limits_to_current_process("job_name", 50, 50);
+    // assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_S_RS_JOB_OBJECT_HELPER_19_010: [job_object_set_job_limits_to_current_process shall succeed and return 0.]*/
+/*Tests_S_RS_JOB_OBJECT_HELPER_19_003: [If percent_cpu is not 0 then `job_object_helper_set_job_limits_to_current_process` shall call SetInformationJobObject passing JobObjectCpuRateControlInformation and a JOBOBJECT_CPU_RATE_CONTROL_INFORMATION object with JOB_OBJECT_CPU_RATE_CONTROL_ENABLE and JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP set, and CpuRate set to percent_cpu times 100.]*/
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_succeeds_no_memory_limits)
+{
+    // arrange
+    STRICT_EXPECTED_CALL(mocked_CreateJobObjectA(IGNORED_ARG, "job_name"))
+        .SetFailReturn(NULL);
+    setup_job_object_helper_limit_cpu_expectations();
+    STRICT_EXPECTED_CALL(mocked_GetCurrentProcess())
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(mocked_AssignProcessToJobObject(IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(TRUE)
+        .SetFailReturn(FALSE);
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
+        .SetReturn(TRUE)
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
+        .SetReturn(TRUE)
+        .CallCannotFail();
+    // act
+    int result = job_object_helper_set_job_limits_to_current_process("job_name", 50, 0);
+    // assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_S_RS_JOB_OBJECT_HELPER_19_010: [job_object_set_job_limits_to_current_process shall succeed and return 0.]*/
+/*Tests_S_RS_JOB_OBJECT_HELPER_19_005: [If percent_physical_memory is not 0 then job_object_helper_set_job_limits_to_current_process shall call SetInformationJobObject, passing JobObjectExtendedLimitInformation and a JOBOBJECT_EXTENDED_LIMIT_INFORMATION object with JOB_OBJECT_LIMIT_JOB_MEMORY set and JobMemoryLimit set to the percent_physical_memory percent of the physical memory in bytes.]*/
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_succeeds_no_cpu_limits)
+{
+    // arrange
+    STRICT_EXPECTED_CALL(mocked_CreateJobObjectA(IGNORED_ARG, "job_name"))
+        .SetFailReturn(NULL);
+    setup_job_object_helper_limit_memory_expectations();
+    STRICT_EXPECTED_CALL(mocked_GetCurrentProcess())
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(mocked_AssignProcessToJobObject(IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(TRUE)
+        .SetFailReturn(FALSE);
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
+        .SetReturn(TRUE)
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
+        .SetReturn(TRUE)
+        .CallCannotFail();
+    // act
+    int result = job_object_helper_set_job_limits_to_current_process("job_name", 0, 50);
+    // assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
+
