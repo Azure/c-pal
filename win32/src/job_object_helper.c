@@ -230,8 +230,9 @@ IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_set_job_limits_to_current_p
 
         /*Codes_S_RS_JOB_OBJECT_HELPER_19_005: [ If percent_physical_memory is not 0 then job_object_helper_set_job_limits_to_current_process shall call SetInformationJobObject, passing JobObjectExtendedLimitInformation and a JOBOBJECT_EXTENDED_LIMIT_INFORMATION object with JOB_OBJECT_LIMIT_JOB_MEMORY set and JobMemoryLimit set to the percent_physical_memory percent of the physical memory in bytes.] */
         JOBOBJECT_EXTENDED_LIMIT_INFORMATION extended_limit_information = { 0 };
-        extended_limit_information.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_JOB_MEMORY;
+        extended_limit_information.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_JOB_MEMORY | JOB_OBJECT_LIMIT_PROCESS_MEMORY;
         extended_limit_information.JobMemoryLimit = percent_physical_memory * memory_status_ex.ullTotalPhys / 100;
+        extended_limit_information.ProcessMemoryLimit = percent_physical_memory * memory_status_ex.ullTotalPhys / 100;
         if (!SetInformationJobObject(job_object, JobObjectExtendedLimitInformation, &extended_limit_information, sizeof(extended_limit_information)))
         {
             /*Codes_S_RS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value.] */
@@ -272,12 +273,15 @@ IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_set_job_limits_to_current_p
     }
 
     /*Codes_S_RS_JOB_OBJECT_HELPER_19_011: [ job_object_helper_set_job_limits_to_current_process shall call CloseHandle to close the handle of the Job object.] */
-    if (!CloseHandle(job_object))
-    {
-        /*Codes_S_RS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value.] */
-        LogLastError("failure in CloseHandle(job_object=%p)", job_object);
-        return MU_FAILURE;
-    }
+
+    // TODO (Shrikant): Discuss with Matt and Andrei, closing the HANDLE is deleting the object. looks like we will need to keep atleast one HANDLE open.
+
+    //if (!CloseHandle(job_object))
+    //{
+    //    /*Codes_S_RS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value.] */
+    //    LogLastError("failure in CloseHandle(job_object=%p)", job_object);
+    //    return MU_FAILURE;
+    //}
 
     /*Codes_S_RS_JOB_OBJECT_HELPER_19_010: [job_object_set_job_limits_to_current_process shall succeed and return 0.] */
     return 0;
