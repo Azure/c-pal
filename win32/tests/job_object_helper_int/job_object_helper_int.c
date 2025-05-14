@@ -92,6 +92,187 @@ TEST_FUNCTION_CLEANUP(cleanup)
 {
 }
 
+
+TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process)
+{
+    /* Check that calling job_object_helper_set_job_limits_to_current_process
+    *  1. creates the job object
+    *  2. assigns the current process to the job object
+    *  3. sets the job limits
+    */
+
+    THANDLE(JOB_OBJECT_HELPER) result = job_object_helper_set_job_limits_to_current_process("job_test_ebs", 50, 1);
+    ASSERT_IS_NOT_NULL(result);
+
+    /* Check that the job object was created */
+    HANDLE job_object = OpenJobObjectA(JOB_OBJECT_QUERY, FALSE, "job_test_ebs");
+    ASSERT_IS_NOT_NULL(job_object);
+    ASSERT_IS_TRUE(job_object != NULL, "Failed to open job object");
+    ASSERT_IS_TRUE(job_object != INVALID_HANDLE_VALUE, "Failed to open job object");
+
+    /* Query the Job Object to check if it has 1 process associated with it */
+    JOBOBJECT_BASIC_PROCESS_ID_LIST process_id_list;
+    DWORD return_length = 0;
+    BOOL result_query = QueryInformationJobObject(job_object, JobObjectBasicProcessIdList, &process_id_list, sizeof(process_id_list), &return_length);
+    ASSERT_IS_TRUE(result_query, "Failed to query job object");
+    ASSERT_IS_TRUE(return_length == sizeof(process_id_list), "Failed to query job object");
+    ASSERT_IS_TRUE(process_id_list.NumberOfAssignedProcesses == 1, "Job object should have 1 process associated with it");
+
+    /* Check that the current process is assigned to the job object */
+    HANDLE current_process = GetCurrentProcess();
+    ASSERT_IS_NOT_NULL(current_process);
+
+    BOOL ret = TRUE;
+    ASSERT_IS_TRUE(IsProcessInJob(current_process, job_object, &ret));
+    ASSERT_IS_TRUE(ret, "Current process should be assigned to the job object");
+
+    /* Check that the job limits were set */
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION job_info;
+    result_query = QueryInformationJobObject(job_object, JobObjectExtendedLimitInformation, &job_info, sizeof(job_info), &return_length);
+    ASSERT_IS_TRUE(result_query, "Failed to query job object");
+    ASSERT_IS_TRUE(return_length == sizeof(job_info), "Failed to query job object");
+    LogInfo("Job memory limit: %zu", job_info.JobMemoryLimit / (1024 * 1024));
+    ASSERT_IS_TRUE(job_info.JobMemoryLimit > 0, "Job object should have memory limit set");
+    ASSERT_IS_TRUE(job_info.ProcessMemoryLimit > 0, "Job object should have process memory limit set");
+
+    /* Performing the same action from the same process shall not change anything */
+    THANDLE(JOB_OBJECT_HELPER) result_1 = job_object_helper_set_job_limits_to_current_process("job_test_ebs", 50, 50);
+    ASSERT_IS_NOT_NULL(result_1);
+
+    job_object = OpenJobObjectA(JOB_OBJECT_QUERY, FALSE, "job_test_ebs");
+    ASSERT_IS_NOT_NULL(job_object);
+
+    // Even though API was called twice, however since it was called from the same process, it shall show only one process is associated with it.
+    result_query = QueryInformationJobObject(job_object, JobObjectBasicProcessIdList, &process_id_list, sizeof(process_id_list), &return_length);
+    ASSERT_IS_TRUE(process_id_list.NumberOfAssignedProcesses == 1, "Job object should have 1 process associated with it");
+
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&result, NULL);
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&result_1, NULL);
+}
+
+TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_from_multiple_processes)
+{
+    // Read the environment variable "BUILD_BINARYDIRECTORY"
+    char path[512];
+    char fullPath[512];
+    GetEnvironmentVariableA("BUILD_BINARIESDIRECTORY", path, sizeof(path));
+    snprintf(fullPath, sizeof(fullPath), "%s\\Debug\\job_object_helper_tester\\job_object_helper_tester.exe", path);
+    LogInfo("Binary path: %s\n", fullPath);
+
+    // start 3 new process using CreateNewProcess, those processes shall
+    // call job_object_helper_set_job_limits_to_current_process
+    STARTUPINFOA si[3];
+    PROCESS_INFORMATION pi[3];
+
+    char buffer[MAX_PATH];
+    GetCurrentDirectoryA(MAX_PATH, buffer);
+    for (int i = 0; i < 3; ++i)
+    {
+        LogInfo("Starting process %d", i);
+        ZeroMemory(&si[i], sizeof(si[i]));
+        si[i].cb = sizeof(si[i]);
+        ZeroMemory(&pi[i], sizeof(pi[i]));
+
+        // Start the process; this process calls job_object_helper_set_job_limits_to_current_process
+        CreateProcessA(fullPath, NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si[i], &pi[i]);
+
+        // sleep for  5 seconds to allow the child process to run
+        Sleep(5000);
+        // try for 3 times before declaring a failure, as it may take time for a new process to get scheduled and create the job object
+        HANDLE job_object = NULL;
+        for (int j = 0; j < 3; ++j)
+        {
+            job_object = OpenJobObjectA(JOB_OBJECT_QUERY, FALSE, "//node/test_job");
+            if (job_object != NULL)
+            {
+                break;
+            }
+            LogInfo("OpenJobObjectA failed, will retry %d", j + 1);
+            // sleep for 5 seconds
+            Sleep(5000);
+        }
+
+        ASSERT_IS_NOT_NULL(job_object);
+        ASSERT_IS_TRUE(job_object != NULL, "Failed to open job object");
+
+        //* Query the Job Object to check if it has all processes associated with it */
+        DWORD bufferSize = sizeof(JOBOBJECT_BASIC_PROCESS_ID_LIST) + sizeof(ULONG_PTR) * 16;
+        JOBOBJECT_BASIC_PROCESS_ID_LIST* pidList = NULL;
+        while (1)
+        {
+            pidList = (JOBOBJECT_BASIC_PROCESS_ID_LIST*)malloc(bufferSize);
+
+            if (!QueryInformationJobObject(job_object, JobObjectBasicProcessIdList, pidList, bufferSize, NULL))
+            {
+                DWORD err = GetLastError();
+                if (err == ERROR_MORE_DATA) {
+                    // Increase buffer size and try again
+                    bufferSize *= 2;
+                    free(pidList);
+                    continue;
+                }
+            }
+            break;
+        }
+
+        ASSERT_IS_TRUE(pidList->NumberOfAssignedProcesses == (unsigned long)(i + 1), "Job object should have 1 process associated with it");
+    }
+
+    for (int i = 0; i < 3; ++i)
+    {
+        // Wait until child process exits.
+        WaitForSingleObject(pi[i].hProcess, INFINITE);
+
+        // Close process and thread handles.
+        CloseHandle(pi[i].hProcess);
+        CloseHandle(pi[i].hThread);
+    }
+}
+
+TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_check_memory_limits)
+{
+    /* Get the total available Memory */
+    MEMORYSTATUSEX memStatus;
+    memStatus.dwLength = sizeof(memStatus);
+    GlobalMemoryStatusEx(&memStatus);
+
+    SIZE_T totalMemory = memStatus.ullTotalPhys;
+    /* Calculate 1% of the memory */
+    SIZE_T onePercentOfTotalMemory = totalMemory / 100;
+    LogInfo("Total Memory: %zu", totalMemory);
+    LogInfo("1%% of Total Memory: %zu", onePercentOfTotalMemory);
+
+    /* Set the process's memory limit to 1% */
+    THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_set_job_limits_to_current_process("job_test_ebs1", 50, 1);
+    ASSERT_IS_NOT_NULL(job_object_helper);
+
+    /* allocations till 1% should pass */
+    char* buffer[12];
+    long long int memory_size = onePercentOfTotalMemory / 10;
+    LogInfo("Allocating %lld in every allocation", memory_size);
+    int allocationFailed = 0;
+    for (int i = 0; i < 12; ++i)
+    {
+        LogInfo("Allocating %d", i);
+        buffer[i] = (char*)malloc(memory_size);
+        if (buffer[i] == NULL) {
+            allocationFailed++;
+        }
+        Sleep(10);
+    }
+    /* After reaching the limit, allocations are expected to be failed */
+    ASSERT_ARE_NOT_EQUAL(int, 0, allocationFailed);
+
+    /* Free the allocated memory */
+    for (int i = 0; i < 12; ++i)
+    {
+        if (buffer[i])
+            free(buffer[i]);
+    }
+
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
+}
+
 TEST_FUNCTION(test_job_object_helper_limit_memory)
 {
     LogInfo("Each block is %zu MB", TEST_BUFFER_SIZE / MEGABYTE);
