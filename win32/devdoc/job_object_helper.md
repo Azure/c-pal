@@ -86,15 +86,17 @@ MOCKABLE_FUNCTION(, int, job_object_helper_limit_cpu, THANDLE(JOB_OBJECT_HELPER)
 
 ## job_object_helper_set_job_limits_to_current_process
 ```c
-MOCKABLE_FUNCTION(, int, job_object_helper_set_job_limits_to_current_process, const char*, job_name, uint32_t, percent_cpu, uint32_t, percent_physical_memory);
+MOCKABLE_FUNCTION(, THANDLE(JOB_OJBECT_HELPER), job_object_helper_set_job_limits_to_current_process, const char*, job_name, uint32_t, percent_cpu, uint32_t, percent_physical_memory);
 ```
 `job_object_helper_set_job_limits_to_current_process` Creates the Job Object with limits if the job object doesn't exists and set limits on the current process by assigning it to the Job object.
 
-**SRS_JOB_OBJECT_HELPER_19_013: [** If `percent_cpu` is greater than `100` then `job_object_helper_set_job_limits_to_current_process` shall fail and return a non-zero value. **]**
+**SRS_JOB_OBJECT_HELPER_19_013: [** If `percent_cpu` is greater than `100` then `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
 
-**SRS_JOB_OBJECT_HELPER_19_012: [** If `percent_physical_memory` is greater than `100` then `job_object_helper_set_job_limits_to_current_process` shall fail and return a non-zero value. **]**
+**SRS_JOB_OBJECT_HELPER_19_012: [** If `percent_physical_memory` is greater than `100` then `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
 
-**SRS_JOB_OBJECT_HELPER_19_014: [** If `percent_cpu` and `percent_physical_memory` are `0` then `job_object_helper_set_job_limits_to_current_process` shall succeed and return `0`. **]**
+**SRS_JOB_OBJECT_HELPER_19_014: [** If `percent_cpu` and `percent_physical_memory` are `0` then `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
+
+**SRS_JOB_OBJECT_HELPER_19_015: [** `job_object_helper_set_job_limits_to_current_process` shall allocate a `JOB_OBJECT_HELPER` object. **]**
 
 **SRS_JOB_OBJECT_HELPER_19_002: [** `job_object_helper_set_job_limits_to_current_process` shall call `CreateJobObjectA` passing `job_name` for `lpName` and `NULL` for `lpJobAttributes`. **]**
 
@@ -110,8 +112,8 @@ MOCKABLE_FUNCTION(, int, job_object_helper_set_job_limits_to_current_process, co
 
 **SRS_JOB_OBJECT_HELPER_19_008: [** `job_object_helper_set_job_limits_to_current_process` shall call `CloseHandle` to close the handle of the current process. **]**
 
-**SRS_JOB_OBJECT_HELPER_19_011: [** `job_object_helper_set_job_limits_to_current_process` shall call `CloseHandle` to close the handle of the Job object. **]**
+**SRS_JOB_OBJECT_HELPER_19_011: [** If there are any failures, `job_object_helper_set_job_limits_to_current_process` shall call `CloseHandle` to close the handle of the Job object and deallocate `JOB_OBJECT_HELPER`. **]**
 
-**SRS_JOB_OBJECT_HELPER_19_009: [** If there are any failures, `job_object_helper_set_job_limits_to_current_process` shall fail and return a non-zero value. **]**
+**SRS_JOB_OBJECT_HELPER_19_009: [** If there are any failures, `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
 
-**SRS_JOB_OBJECT_HELPER_19_010: [** `job_object_set_job_limits_to_current_process` shall succeed and return `0`. **]**
+**SRS_JOB_OBJECT_HELPER_19_010: [** `job_object_set_job_limits_to_current_process` shall succeed and return a `JOB_OBJECT_HELPER` object. **]**
