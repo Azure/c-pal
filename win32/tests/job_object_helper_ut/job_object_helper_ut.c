@@ -128,8 +128,10 @@ static void setup_job_object_helper_set_job_limits_to_current_process_process_as
     STRICT_EXPECTED_CALL(mocked_GetCurrentProcess())
         .SetFailReturn(NULL);
     STRICT_EXPECTED_CALL(mocked_AssignProcessToJobObject(IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(TRUE)
         .SetFailReturn(FALSE);
     STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
+        .SetReturn(TRUE)
         .CallCannotFail();
 }
 
