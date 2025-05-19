@@ -182,66 +182,57 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
 
     /*Codes_SRS_JOB_OBJECT_HELPER_19_013: [ If percent_cpu is greater than 100 then job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
     /*Codes_SRS_JOB_OBJECT_HELPER_19_012: [ If percent_physical_memory is greater than 100 then job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
-    if (percent_cpu > 100 || percent_physical_memory > 100)
+    /*Codes_SRS_JOB_OBJECT_HELPER_19_014: [ If percent_cpu and percent_physical_memory are 0 then job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
+    if (percent_cpu > 100 || percent_physical_memory > 100 || (percent_cpu == 0 && percent_physical_memory == 0))
     {
         LogError("Invalid arguments: job_name=%s, percent_cpu=%" PRIu32 ", percent_physical_memory=%" PRIu32 "", MU_P_OR_NULL(job_name), percent_cpu, percent_physical_memory);
         result = NULL;
     }
     else
     {
-        /*Codes_SRS_JOB_OBJECT_HELPER_19_014: [ If percent_cpu and percent_physical_memory are 0 then job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
-        if (percent_cpu == 0 && percent_physical_memory == 0)
+        /*Codes_SRS_JOB_OBJECT_HELPER_19_015: [ job_object_helper_set_job_limits_to_current_process shall allocate a JOB_OBJECT_HELPER object. ]*/
+        job_object_helper = THANDLE_MALLOC(JOB_OBJECT_HELPER)(job_object_helper_dispose);
+        if (job_object_helper == NULL)
         {
+            /*Codes_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
+            LogError("failure in THANDLE_MALLOC(JOB_OBJECT_HELPER)(job_object_helper_dispose=%p)", job_object_helper_dispose);
             result = NULL;
         }
         else
         {
-            /*Codes_SRS_JOB_OBJECT_HELPER_19_015: [ job_object_helper_set_job_limits_to_current_process shall allocate a JOB_OBJECT_HELPER object. ]*/
-            job_object_helper = THANDLE_MALLOC(JOB_OBJECT_HELPER)(job_object_helper_dispose);
-            if (job_object_helper == NULL)
+            /*Codes_SRS_JOB_OBJECT_HELPER_19_002: [ job_object_helper_set_job_limits_to_current_process shall call CreateJobObjectA passing job_name for lpName and NULL for lpJobAttributes. ] */
+            job_object_helper->job_object = CreateJobObjectA(NULL, job_name);
+            if (job_object_helper->job_object == NULL)
             {
-                /*Codes_SRS_JOB_OBJECT_HELPER_19_011: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall call CloseHandle to close the handle of the Job object and deallocate JOB_OBJECT_HELPER. ]*/
-                /*Codes_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
-                LogError("failure in THANDLE_MALLOC(JOB_OBJECT_HELPER)(job_object_helper_dispose=%p)", job_object_helper_dispose);
+                /*Codes_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value. ] */
+                LogLastError("failure in CreateJobObjectA(lpJobAttributes=NULL, job_name=%s)", MU_P_OR_NULL(job_name));
                 result = NULL;
-                goto cleanup;
             }
             else
             {
-                /*Codes_SRS_JOB_OBJECT_HELPER_19_002: [ job_object_helper_set_job_limits_to_current_process shall call CreateJobObjectA passing job_name for lpName and NULL for lpJobAttributes. ] */
-                job_object_helper->job_object = CreateJobObjectA(NULL, job_name);
-                if (job_object_helper->job_object == NULL)
+                bool failed = false;
+                /*Codes_SRS_JOB_OBJECT_HELPER_19_003: [ If percent_cpu is not 0 then job_object_helper_set_job_limits_to_current_process shall call SetInformationJobObject passing JobObjectCpuRateControlInformation and a JOBOBJECT_CPU_RATE_CONTROL_INFORMATION object with JOB_OBJECT_CPU_RATE_CONTROL_ENABLE and JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP set, and CpuRate set to percent_cpu times 100. ]*/
+                if (percent_cpu != 0)
                 {
-                    /*Codes_SRS_JOB_OBJECT_HELPER_19_011: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall call CloseHandle to close the handle of the Job object and deallocate JOB_OBJECT_HELPER. ]*/
-                    /*Codes_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value. ] */
-                    LogLastError("failure in CreateJobObjectA(lpJobAttributes=NULL, job_name=%s)", MU_P_OR_NULL(job_name));
-                    result = NULL;
-                    goto cleanup;
+                    JOBOBJECT_CPU_RATE_CONTROL_INFORMATION cpu_rate_control_information = { 0 };
+                    cpu_rate_control_information.ControlFlags = JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP;
+                    cpu_rate_control_information.CpuRate = percent_cpu * 100;
+                    if (!SetInformationJobObject(job_object_helper->job_object, JobObjectCpuRateControlInformation, &cpu_rate_control_information, sizeof(cpu_rate_control_information)))
+                    {
+                        /*Codes_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value. ] */
+                        LogLastError("failure in SetInformationJobObject(job_object=%p, JobObjectCpuRateControlInformation, &cpu_rate_control_information=%p, sizeof(cpu_rate_control_information)=%zu)",
+                            job_object_helper->job_object, &cpu_rate_control_information, sizeof(cpu_rate_control_information));
+                        result = NULL;
+                        failed = true;
+                    }
+                }
+
+                if (failed)
+                {
+                    LogError("failure in SetInformationJobObject(job_object_helper->job_object=%p)", job_object_helper->job_object);
                 }
                 else
                 {
-                    /*Codes_SRS_JOB_OBJECT_HELPER_19_003: [ If percent_cpu is not 0 then job_object_helper_set_job_limits_to_current_process shall call SetInformationJobObject passing JobObjectCpuRateControlInformation and a JOBOBJECT_CPU_RATE_CONTROL_INFORMATION object with JOB_OBJECT_CPU_RATE_CONTROL_ENABLE and JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP set, and CpuRate set to percent_cpu times 100. ]*/
-                    if (percent_cpu != 0)
-                    {
-                        JOBOBJECT_CPU_RATE_CONTROL_INFORMATION cpu_rate_control_information = { 0 };
-                        cpu_rate_control_information.ControlFlags = JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP;
-                        cpu_rate_control_information.CpuRate = percent_cpu * 100;
-                        if (!SetInformationJobObject(job_object_helper->job_object, JobObjectCpuRateControlInformation, &cpu_rate_control_information, sizeof(cpu_rate_control_information)))
-                        {
-                            /*Codes_SRS_JOB_OBJECT_HELPER_19_011: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall call CloseHandle to close the handle of the Job object and deallocate JOB_OBJECT_HELPER. ]*/
-                            /*Codes_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value. ] */
-                            LogLastError("failure in SetInformationJobObject(job_object=%p, JobObjectCpuRateControlInformation, &cpu_rate_control_information=%p, sizeof(cpu_rate_control_information)=%zu)",
-                                job_object_helper->job_object, &cpu_rate_control_information, sizeof(cpu_rate_control_information));
-                            result = NULL;
-                            goto cleanup;
-                        }
-                        else
-                        {
-                            /*Codes_SRS_JOB_OBJECT_HELPER_19_010: [ job_object_set_job_limits_to_current_process shall succeed  return a JOB_OBJECT_HELPER object. ]*/
-                            result = job_object_helper;
-                        }
-                    }
-
                     if (percent_physical_memory != 0)
                     {
                         /*Codes_SRS_JOB_OBJECT_HELPER_19_004: [ If percent_physical_memory is not 0 then job_object_helper_set_job_limits_to_current_process shall call GlobalMemoryStatusEx to get the total amount of physical memory in kb. ]*/
@@ -249,11 +240,10 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
                         memory_status_ex.dwLength = sizeof(memory_status_ex);
                         if (!GlobalMemoryStatusEx(&memory_status_ex))
                         {
-                            /*Codes_SRS_JOB_OBJECT_HELPER_19_011: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall call CloseHandle to close the handle of the Job object and deallocate JOB_OBJECT_HELPER. ]*/
                             /*Codes_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value. ]*/
                             LogLastError("failure in GlobalMemoryStatusEx(&memory_status_ex=%p)", &memory_status_ex);
                             result = NULL;
-                            goto cleanup;
+                            failed = true;
                         }
                         else
                         {
@@ -264,64 +254,68 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
                             extended_limit_information.ProcessMemoryLimit = percent_physical_memory * memory_status_ex.ullTotalPhys / 100;
                             if (!SetInformationJobObject(job_object_helper->job_object, JobObjectExtendedLimitInformation, &extended_limit_information, sizeof(extended_limit_information)))
                             {
-                                /*Codes_SRS_JOB_OBJECT_HELPER_19_011: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall call CloseHandle to close the handle of the Job object and deallocate JOB_OBJECT_HELPER. ]*/
                                 /*Codes_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value.] */
                                 LogLastError("failure in SetInformationJobObject(job_object=%p, JobObjectExtendedLimitInformation, &extended_limit_information=%p, sizeof(extended_limit_information)=%zu)",
                                     job_object_helper->job_object, &extended_limit_information, sizeof(extended_limit_information));
                                 result = NULL;
-                                goto cleanup;
+                                failed = true;
+                            }
+                        }
+                    }
+
+                    if (failed)
+                    {
+                        LogError("failure in SetInformationJobObject(job_object_helper->job_object=%p)", job_object_helper->job_object);
+                    }
+                    else
+                    {
+                        /*Codes_SRS_JOB_OBJECT_HELPER_19_006: [ job_object_helper_set_job_limits_to_current_process shall call GetCurrentProcess to get the current process handle. ]*/
+                        HANDLE current_process = GetCurrentProcess();
+                        if (current_process == NULL)
+                        {
+                            /*Codes_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value. ]*/
+                            LogLastError("failure in GetCurrentProcess()");
+                            result = NULL;
+                        }
+                        else
+                        {
+                            /*Codes_SRS_JOB_OBJECT_HELPER_19_007: [ job_object_helper_set_job_limits_to_current_process shall call AssignProcessToJobObject to assign the current process to the new job object. ]*/
+                            int assign_process_to_job_object_result = AssignProcessToJobObject(job_object_helper->job_object, current_process);
+                            /*Codes_SRS_JOB_OBJECT_HELPER_19_008: [ job_object_helper_set_job_limits_to_current_process shall call CloseHandle to close the handle of the current process. ]*/
+                            if (!CloseHandle(current_process))
+                            {
+                                /*Codes_S_RS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value.] */
+                                LogLastError("failure in CloseHandle(current_process=%p)", current_process);
+                            }
+                            if (!assign_process_to_job_object_result)
+                            {
+                                /*Codes_S_RS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value. ]*/
+                                LogLastError("failure in AssignProcessToJobObject(job_object=%p, current_process=%p)", job_object_helper->job_object, current_process);
+                                result = NULL;
                             }
                             else
                             {
                                 /*Codes_SRS_JOB_OBJECT_HELPER_19_010: [ job_object_set_job_limits_to_current_process shall succeed  return a JOB_OBJECT_HELPER object. ]*/
                                 result = job_object_helper;
+                                goto all_ok;
                             }
                         }
                     }
-
-                    /*Codes_SRS_JOB_OBJECT_HELPER_19_006: [ job_object_helper_set_job_limits_to_current_process shall call GetCurrentProcess to get the current process handle. ]*/
-                    HANDLE current_process = GetCurrentProcess();
-                    if (current_process == NULL)
-                    {
-                        /*Codes_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value. ]*/
-                        LogLastError("failure in GetCurrentProcess()");
-                        result = NULL;
-                    }
-                    else
-                    {
-                        /*Codes_SRS_JOB_OBJECT_HELPER_19_007: [ job_object_helper_set_job_limits_to_current_process shall call AssignProcessToJobObject to assign the current process to the new job object. ]*/
-                        if (!AssignProcessToJobObject(job_object_helper->job_object, current_process))
-                        {
-                            /*Codes_S_RS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value. ]*/
-                            LogLastError("failure in AssignProcessToJobObject(job_object=%p, current_process=%p)", job_object_helper->job_object, current_process);
-                            result = NULL;
-                        }
-                        /*Codes_SRS_JOB_OBJECT_HELPER_19_008: [ job_object_helper_set_job_limits_to_current_process shall call CloseHandle to close the handle of the current process. ]*/
-                        if (!CloseHandle(current_process))
-                        {
-                            /*Codes_S_RS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value.] */
-                            LogLastError("failure in CloseHandle(current_process=%p)", current_process);
-                        }
-                    }
-                }
-            }
-            /*Codes_SRS_JOB_OBJECT_HELPER_19_011: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall call CloseHandle to close the handle of the Job object and deallocate JOB_OBJECT_HELPER. ]*/
-            cleanup:
-            if (result == NULL)
-            {
-                if (job_object_helper != NULL)
-                {
-                    LogInfo("Closing job object handle");
-                    if (job_object_helper->job_object != NULL && !CloseHandle(job_object_helper->job_object))
-                    {
-                        LogLastError("failure in CloseHandle(job_object_helper->job_object=%p)", job_object_helper->job_object);
-                    }
-                    THANDLE_FREE(JOB_OBJECT_HELPER)(job_object_helper);
                 }
             }
         }
+        if (job_object_helper != NULL)
+        {
+            LogInfo("Closing job object handle");
+            if (job_object_helper->job_object != NULL && !CloseHandle(job_object_helper->job_object))
+            {
+                LogLastError("failure in CloseHandle(job_object_helper->job_object=%p)", job_object_helper->job_object);
+            }
+            THANDLE_FREE(JOB_OBJECT_HELPER)(job_object_helper);
+        }
     }
+
+all_ok:
     /*Codes_SRS_JOB_OBJECT_HELPER_19_010: [ job_object_set_job_limits_to_current_process shall succeed return a JOB_OBJECT_HELPER object. ]*/
-    /*Codes_SRS_JOB_OBJECT_HELPER_19_011: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall call CloseHandle to close the handle of the Job object and deallocate JOB_OBJECT_HELPER. ]*/
     return result;
 }

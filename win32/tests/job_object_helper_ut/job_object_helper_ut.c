@@ -128,10 +128,8 @@ static void setup_job_object_helper_set_job_limits_to_current_process_process_as
     STRICT_EXPECTED_CALL(mocked_GetCurrentProcess())
         .SetFailReturn(NULL);
     STRICT_EXPECTED_CALL(mocked_AssignProcessToJobObject(IGNORED_ARG, IGNORED_ARG))
-        .SetReturn(TRUE)
         .SetFailReturn(FALSE);
     STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
-        .SetReturn(TRUE)
         .CallCannotFail();
 }
 
@@ -437,7 +435,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_test_limits)
     // act
     THANDLE(JOB_OBJECT_HELPER) result = job_object_helper_set_job_limits_to_current_process("job_name", cpu_limits[0], memory_limits[0]);
     // assert
-	ASSERT_IS_NULL(result);
+    ASSERT_IS_NULL(result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&result, NULL);
 
@@ -498,13 +496,11 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_succeeds)
 /*Tests_SRS_JOB_OBJECT_HELPER_19_006: [ job_object_helper_set_job_limits_to_current_process shall call GetCurrentProcess to get the current process handle. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_19_007: [ job_object_helper_set_job_limits_to_current_process shall call AssignProcessToJobObject to assign the current process to the new job object. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
-/*Tests_SRS_JOB_OBJECT_HELPER_19_011: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall call CloseHandle to close the handle of the Job object and deallocate JOB_OBJECT_HELPER. ]*/
 TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_fails)
 {
     // arrange
     setup_job_object_helper_set_job_limits_to_current_process_expectations();
     STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
-        .SetReturn(TRUE)
         .CallCannotFail();
 
     umock_c_negative_tests_snapshot();

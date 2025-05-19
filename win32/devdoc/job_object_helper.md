@@ -11,7 +11,7 @@ THANDLE_TYPE_DECLARE(JOB_OBJECT_HELPER);
 MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_create);
 MOCKABLE_FUNCTION(, int, job_object_helper_limit_memory, THANDLE(JOB_OBJECT_HELPER), job_object_helper, uint32_t, percent_physical_memory);
 MOCKABLE_FUNCTION(, int, job_object_helper_limit_cpu, THANDLE(JOB_OBJECT_HELPER), job_object_helper, uint32_t, percent_cpu);
-MOCKABLE_FUNCTION(, int, job_object_helper_set_job_limits_to_current_process, const char*, job_name, uint32_t, percent_cpu, uint32_t, percent_physical_memory);
+MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_job_limits_to_current_process, const char*, job_name, uint32_t, percent_cpu, uint32_t, percent_physical_memory);
 ```
 
 ## job_object_helper_create
@@ -88,7 +88,7 @@ MOCKABLE_FUNCTION(, int, job_object_helper_limit_cpu, THANDLE(JOB_OBJECT_HELPER)
 ```c
 MOCKABLE_FUNCTION(, THANDLE(JOB_OJBECT_HELPER), job_object_helper_set_job_limits_to_current_process, const char*, job_name, uint32_t, percent_cpu, uint32_t, percent_physical_memory);
 ```
-`job_object_helper_set_job_limits_to_current_process` Creates the Job Object with limits if the job object doesn't exists and set limits on the current process by assigning it to the Job object.
+`job_object_helper_set_job_limits_to_current_process` Creates the Job Object with limits if not present and assigns the current process to it. Returns a THANDLE to allow reuse of the job object across multiple processes. If being used only in single process, then handle can be released immediately and process continues having the set limits.
 
 **SRS_JOB_OBJECT_HELPER_19_013: [** If `percent_cpu` is greater than `100` then `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
 
@@ -111,8 +111,6 @@ MOCKABLE_FUNCTION(, THANDLE(JOB_OJBECT_HELPER), job_object_helper_set_job_limits
 **SRS_JOB_OBJECT_HELPER_19_007: [** `job_object_helper_set_job_limits_to_current_process` shall call `AssignProcessToJobObject` to assign the current process to the new job object. **]**
 
 **SRS_JOB_OBJECT_HELPER_19_008: [** `job_object_helper_set_job_limits_to_current_process` shall call `CloseHandle` to close the handle of the current process. **]**
-
-**SRS_JOB_OBJECT_HELPER_19_011: [** If there are any failures, `job_object_helper_set_job_limits_to_current_process` shall call `CloseHandle` to close the handle of the Job object and deallocate `JOB_OBJECT_HELPER`. **]**
 
 **SRS_JOB_OBJECT_HELPER_19_009: [** If there are any failures, `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
 
