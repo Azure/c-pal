@@ -483,6 +483,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_succeeds)
         ASSERT_IS_NOT_NULL(result);
 
         // cleanup
+        THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&result, NULL);
     }
 }
 
