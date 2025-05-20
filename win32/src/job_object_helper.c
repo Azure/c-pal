@@ -176,27 +176,26 @@ IMPLEMENT_MOCKABLE_FUNCTION(, int, job_object_helper_limit_cpu, THANDLE(JOB_OBJE
 
 IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_job_limits_to_current_process, const char*, job_name, uint32_t, percent_cpu, uint32_t, percent_physical_memory)
 {
-    /*Codes_SRS_JOB_OBJECT_HELPER_19_010: [ job_object_set_job_limits_to_current_process shall succeed return a JOB_OBJECT_HELPER object. ]*/
-    JOB_OBJECT_HELPER* result = NULL;
-    JOB_OBJECT_HELPER* job_object_helper = NULL;
+    THANDLE(JOB_OBJECT_HELPER) result = NULL;
 
-    /*Codes_SRS_JOB_OBJECT_HELPER_19_013: [ If percent_cpu is greater than 100 then job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
-    /*Codes_SRS_JOB_OBJECT_HELPER_19_012: [ If percent_physical_memory is greater than 100 then job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
-    /*Codes_SRS_JOB_OBJECT_HELPER_19_014: [ If percent_cpu and percent_physical_memory are 0 then job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
-    if (percent_cpu > 100 || percent_physical_memory > 100 || (percent_cpu == 0 && percent_physical_memory == 0))
+    if (
+        /*Codes_SRS_JOB_OBJECT_HELPER_19_013: [ If percent_cpu is greater than 100 then job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
+        percent_cpu > 100 ||
+        /*Codes_SRS_JOB_OBJECT_HELPER_19_012: [ If percent_physical_memory is greater than 100 then job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
+        percent_physical_memory > 100 ||
+        /*Codes_SRS_JOB_OBJECT_HELPER_19_014: [ If percent_cpu and percent_physical_memory are 0 then job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
+        (percent_cpu == 0 && percent_physical_memory == 0))
     {
         LogError("Invalid arguments: job_name=%s, percent_cpu=%" PRIu32 ", percent_physical_memory=%" PRIu32 "", MU_P_OR_NULL(job_name), percent_cpu, percent_physical_memory);
-        result = NULL;
     }
     else
     {
         /*Codes_SRS_JOB_OBJECT_HELPER_19_015: [ job_object_helper_set_job_limits_to_current_process shall allocate a JOB_OBJECT_HELPER object. ]*/
-        job_object_helper = THANDLE_MALLOC(JOB_OBJECT_HELPER)(job_object_helper_dispose);
+        JOB_OBJECT_HELPER *job_object_helper = THANDLE_MALLOC(JOB_OBJECT_HELPER)(job_object_helper_dispose);
         if (job_object_helper == NULL)
         {
             /*Codes_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
             LogError("failure in THANDLE_MALLOC(JOB_OBJECT_HELPER)(job_object_helper_dispose=%p)", job_object_helper_dispose);
-            result = NULL;
         }
         else
         {
@@ -206,7 +205,6 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
             {
                 /*Codes_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value. ] */
                 LogLastError("failure in CreateJobObjectA(lpJobAttributes=NULL, job_name=%s)", MU_P_OR_NULL(job_name));
-                result = NULL;
             }
             else
             {
@@ -222,14 +220,13 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
                         /*Codes_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value. ] */
                         LogLastError("failure in SetInformationJobObject(job_object=%p, JobObjectCpuRateControlInformation, &cpu_rate_control_information=%p, sizeof(cpu_rate_control_information)=%zu)",
                             job_object_helper->job_object, &cpu_rate_control_information, sizeof(cpu_rate_control_information));
-                        result = NULL;
                         failed = true;
                     }
                 }
 
                 if (failed)
                 {
-                    LogError("failure in SetInformationJobObject(job_object_helper->job_object=%p)", job_object_helper->job_object);
+                    /* Error already logged in previous check of SetInformationJobObject */
                 }
                 else
                 {
@@ -242,7 +239,6 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
                         {
                             /*Codes_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value. ]*/
                             LogLastError("failure in GlobalMemoryStatusEx(&memory_status_ex=%p)", &memory_status_ex);
-                            result = NULL;
                             failed = true;
                         }
                         else
@@ -257,7 +253,6 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
                                 /*Codes_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value.] */
                                 LogLastError("failure in SetInformationJobObject(job_object=%p, JobObjectExtendedLimitInformation, &extended_limit_information=%p, sizeof(extended_limit_information)=%zu)",
                                     job_object_helper->job_object, &extended_limit_information, sizeof(extended_limit_information));
-                                result = NULL;
                                 failed = true;
                             }
                         }
@@ -265,7 +260,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
 
                     if (failed)
                     {
-                        LogError("failure in SetInformationJobObject(job_object_helper->job_object=%p)", job_object_helper->job_object);
+                        /* Error already logged in previous check of SetInformationJobObject */
                     }
                     else
                     {
@@ -275,12 +270,16 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
                         {
                             /*Codes_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value. ]*/
                             LogLastError("failure in GetCurrentProcess()");
-                            result = NULL;
                         }
                         else
                         {
                             /*Codes_SRS_JOB_OBJECT_HELPER_19_007: [ job_object_helper_set_job_limits_to_current_process shall call AssignProcessToJobObject to assign the current process to the new job object. ]*/
-                            int assign_process_to_job_object_result = AssignProcessToJobObject(job_object_helper->job_object, current_process);
+                            BOOL assign_process_to_job_object_result = AssignProcessToJobObject(job_object_helper->job_object, current_process);
+                            if (!assign_process_to_job_object_result)
+                            {
+                                /*Codes_S_RS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value. ]*/
+                                LogLastError("failure in AssignProcessToJobObject(job_object=%p, current_process=%p)", job_object_helper->job_object, current_process);
+                            }
                             /*Codes_SRS_JOB_OBJECT_HELPER_19_008: [ job_object_helper_set_job_limits_to_current_process shall call CloseHandle to close the handle of the current process. ]*/
                             if (!CloseHandle(current_process))
                             {
@@ -289,33 +288,27 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
                             }
                             if (!assign_process_to_job_object_result)
                             {
-                                /*Codes_S_RS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value. ]*/
-                                LogLastError("failure in AssignProcessToJobObject(job_object=%p, current_process=%p)", job_object_helper->job_object, current_process);
-                                result = NULL;
+                                /* Error already logged in previous check of assign_process_to_job_object_result */
                             }
                             else
                             {
-                                /*Codes_SRS_JOB_OBJECT_HELPER_19_010: [ job_object_set_job_limits_to_current_process shall succeed  return a JOB_OBJECT_HELPER object. ]*/
-                                result = job_object_helper;
+                                /*Codes_SRS_JOB_OBJECT_HELPER_19_010: [ job_object_set_job_limits_to_current_process shall succeed and return a JOB_OBJECT_HELPER object. ]*/
+                                THANDLE_INITIALIZE(JOB_OBJECT_HELPER)(&result, job_object_helper);
                                 goto all_ok;
                             }
                         }
                     }
                 }
             }
-        }
-        if (job_object_helper != NULL)
-        {
-            LogInfo("Closing job object handle");
-            if (job_object_helper->job_object != NULL && !CloseHandle(job_object_helper->job_object))
+            if (!CloseHandle(job_object_helper->job_object))
             {
                 LogLastError("failure in CloseHandle(job_object_helper->job_object=%p)", job_object_helper->job_object);
             }
-            THANDLE_FREE(JOB_OBJECT_HELPER)(job_object_helper);
         }
+        THANDLE_FREE(JOB_OBJECT_HELPER)(job_object_helper);
     }
 
 all_ok:
-    /*Codes_SRS_JOB_OBJECT_HELPER_19_010: [ job_object_set_job_limits_to_current_process shall succeed return a JOB_OBJECT_HELPER object. ]*/
+    /*Codes_SRS_JOB_OBJECT_HELPER_19_010: [ job_object_set_job_limits_to_current_process shall succeed and return a JOB_OBJECT_HELPER object. ]*/
     return result;
 }

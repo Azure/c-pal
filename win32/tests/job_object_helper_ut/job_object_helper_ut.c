@@ -433,21 +433,16 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_test_limits)
     // arrange
     int cpu_limits[4] = {0, 20, 101, 230 };
     int memory_limits[4] = {0, 242, 40, 230};
+    ASSERT_ARE_EQUAL(int, MU_COUNT_ARRAY_ITEMS(cpu_limits), MU_COUNT_ARRAY_ITEMS(memory_limits), "cpu_limits and memory_limits must have the same number of items");
 
-    // act
-    THANDLE(JOB_OBJECT_HELPER) result = job_object_helper_set_job_limits_to_current_process("job_name", cpu_limits[0], memory_limits[0]);
-    // assert
-    ASSERT_IS_NULL(result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&result, NULL);
-
-    for (int i = 1; i < 4; ++i) {
+    for (int i = 0; i < MU_COUNT_ARRAY_ITEMS(cpu_limits); ++i)
+    {
+        umock_c_reset_all_calls();
         // act
-        THANDLE(JOB_OBJECT_HELPER) result1 = job_object_helper_set_job_limits_to_current_process("job_name", cpu_limits[i], memory_limits[i]);
+        THANDLE(JOB_OBJECT_HELPER) result = job_object_helper_set_job_limits_to_current_process("job_name", cpu_limits[i], memory_limits[i]);
         // assert
-        ASSERT_IS_NULL(result1);
-        // cleanup
-        THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&result1, NULL);
+        ASSERT_IS_NULL(result);
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     }
 }
 
@@ -465,7 +460,9 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_succeeds)
     int cpu_limits[3] = { 50, 20, 0 };
     int memory_limits[3] = { 50, 0, 20 };
 
-    for (int i = 0; i < 3; ++i)
+	ASSERT_ARE_EQUAL(int, MU_COUNT_ARRAY_ITEMS(cpu_limits), MU_COUNT_ARRAY_ITEMS(memory_limits), "cpu_limits and memory_limits must have the same number of items");
+
+    for (int i = 0; i < MU_COUNT_ARRAY_ITEMS(cpu_limits); ++i)
     {
         umock_c_reset_all_calls();
         setup_job_object_helper_set_job_limits_to_current_process_createObjectA_expectations();
@@ -486,7 +483,6 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_succeeds)
         ASSERT_IS_NOT_NULL(result);
 
         // cleanup
-        THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&result, NULL);
     }
 }
 
@@ -516,7 +512,6 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_fails)
             THANDLE(JOB_OBJECT_HELPER) result = job_object_helper_set_job_limits_to_current_process("job_name", 50, 50);
             // assert
             ASSERT_IS_NULL(result);
-            THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&result, NULL);
         }
     }
 }
