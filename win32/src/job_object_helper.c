@@ -293,7 +293,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
                             else
                             {
                                 /*Codes_SRS_JOB_OBJECT_HELPER_19_010: [ job_object_set_job_limits_to_current_process shall succeed and return a JOB_OBJECT_HELPER object. ]*/
-                                THANDLE_INITIALIZE(JOB_OBJECT_HELPER)(&result, job_object_helper);
+                                THANDLE_INITIALIZE_MOVE(JOB_OBJECT_HELPER)(&result, &job_object_helper);
                                 goto all_ok;
                             }
                         }
