@@ -460,7 +460,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_succeeds)
     int cpu_limits[3] = { 50, 20, 0 };
     int memory_limits[3] = { 50, 0, 20 };
 
-	ASSERT_ARE_EQUAL(int, MU_COUNT_ARRAY_ITEMS(cpu_limits), MU_COUNT_ARRAY_ITEMS(memory_limits), "cpu_limits and memory_limits must have the same number of items");
+    ASSERT_ARE_EQUAL(int, MU_COUNT_ARRAY_ITEMS(cpu_limits), MU_COUNT_ARRAY_ITEMS(memory_limits), "cpu_limits and memory_limits must have the same number of items");
 
     for (int i = 0; i < MU_COUNT_ARRAY_ITEMS(cpu_limits); ++i)
     {

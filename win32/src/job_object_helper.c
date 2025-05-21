@@ -299,10 +299,10 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
                         }
                     }
                 }
-            }
-            if (!CloseHandle(job_object_helper->job_object))
-            {
-                LogLastError("failure in CloseHandle(job_object_helper->job_object=%p)", job_object_helper->job_object);
+                if (!CloseHandle(job_object_helper->job_object))
+                {
+                    LogLastError("failure in CloseHandle(job_object_helper->job_object=%p)", job_object_helper->job_object);
+                }
             }
         }
         THANDLE_FREE(JOB_OBJECT_HELPER)(job_object_helper);
