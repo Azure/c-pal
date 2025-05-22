@@ -90,6 +90,8 @@ MOCKABLE_FUNCTION(, THANDLE(JOB_OJBECT_HELPER), job_object_helper_set_job_limits
 ```
 `job_object_helper_set_job_limits_to_current_process` Creates the Job Object with limits if not present and assigns the current process to it. Returns a THANDLE to allow reuse of the job object across multiple processes. If being used only in single process, then handle can be released immediately and process continues having the set limits.
 
+**SRS_JOB_OBJECT_HELPER_19_001: [** If `job_name` is `NULL`, `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
+
 **SRS_JOB_OBJECT_HELPER_19_013: [** If `percent_cpu` is greater than `100` then `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
 
 **SRS_JOB_OBJECT_HELPER_19_012: [** If `percent_physical_memory` is greater than `100` then `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
