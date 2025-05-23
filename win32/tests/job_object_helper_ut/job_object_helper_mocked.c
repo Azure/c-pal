@@ -1,10 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #include "windows.h"
+#include "jobapi2.h"
 
 #undef CreateJobObject
 #define CreateJobObject mocked_CreateJobObject
 HANDLE mocked_CreateJobObject(LPSECURITY_ATTRIBUTES lpJobAttributes, LPCSTR lpName);
+
+#undef CreateJobObjectA
+#define CreateJobObjectA mocked_CreateJobObjectA
+HANDLE mocked_CreateJobObjectA(LPSECURITY_ATTRIBUTES lpJobAttributes, LPCSTR lpName);
 
 #undef GetCurrentProcess
 #define GetCurrentProcess mocked_GetCurrentProcess
