@@ -179,8 +179,6 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
     THANDLE(JOB_OBJECT_HELPER) result = NULL;
 
     if (
-        /*Codes_SRS_JOB_OBJECT_HELPER_19_001: [ If job_name is NULL or empty then job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
-        job_name == NULL || strlen(job_name) == 0 ||
         /*Codes_SRS_JOB_OBJECT_HELPER_19_013: [ If percent_cpu is greater than 100 then job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
         percent_cpu > 100 ||
         /*Codes_SRS_JOB_OBJECT_HELPER_19_012: [ If percent_physical_memory is greater than 100 then job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/

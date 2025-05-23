@@ -421,24 +421,6 @@ TEST_FUNCTION(job_object_helper_limit_cpu_fails)
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
 }
 
-
-/*Tests_SRS_JOB_OBJECT_HELPER_19_001: [ If job_name is NULL or empty then job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
-TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_test_job_name)
-{
-    // arrange
-    // Note: Windows Job object api supports creating a job object with a name consisting of all spaces and open it again with the same name (i.e. all spaces).
-    const char* job_names[2] = { NULL, "" };
-    for (int i = 0; i < MU_COUNT_ARRAY_ITEMS(job_names); ++i)
-    {
-        umock_c_reset_all_calls();
-        // act
-        THANDLE(JOB_OBJECT_HELPER) result = job_object_helper_set_job_limits_to_current_process(job_names[i], 20, 20);
-        // assert
-        ASSERT_IS_NULL(result);
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    }
-}
-
 /*Tests_SRS_JOB_OBJECT_HELPER_19_013: [ If percent_cpu is greater than 100 then job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_19_012: [ If percent_physical_memory is greater than 100 then job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_19_014: [ If percent_cpu and percent_physical_memory are 0 then job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
