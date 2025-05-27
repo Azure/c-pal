@@ -255,7 +255,9 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_from_mult
             break;
         }
 
+        ASSERT_IS_NOT_NULL(pidList);
         ASSERT_IS_TRUE(pidList->NumberOfAssignedProcesses == (unsigned long)(i + 1), "Job object should have 1 process associated with it");
+        free(pidList);
     }
 
     for (int i = 0; i < NUM_TEST_PROCESSES; ++i)

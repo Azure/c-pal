@@ -264,11 +264,25 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
                     }
                     else
                     {
-                        /*Codes_SRS_JOB_OBJECT_HELPER_19_007: [ job_object_helper_set_job_limits_to_current_process shall call AssignProcessToJobObject with hJob set to job_object_helper->job_object and hProcess set to GetCurrentProcess() to assign the current process to the new job object.] */
-                        if (!AssignProcessToJobObject(job_object_helper->job_object, GetCurrentProcess()))
+                        /*Codes_SRS_JOB_OBJECT_HELPER_19_006: [ job_object_helper_set_job_limits_to_current_process shall call GetCurrentProcess to get the current process handle. ]*/
+                        HANDLE current_process = GetCurrentProcess();
+                        /*Codes_SRS_JOB_OBJECT_HELPER_19_007: [ job_object_helper_set_job_limits_to_current_process shall call AssignProcessToJobObject to assign the current process to the new job object. ]*/
+                        BOOL assign_process_to_job_object_result = AssignProcessToJobObject(job_object_helper->job_object, current_process);
+                        if (!assign_process_to_job_object_result)
                         {
-                            /*Codes_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value. ]*/
-                            LogLastError("failure to assign current process handle to (job_object=%p)", job_object_helper->job_object);
+                            /*Codes_S_RS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value. ]*/
+                            LogLastError("failure in AssignProcessToJobObject(job_object=%p, current_process=%p)", job_object_helper->job_object, current_process);
+                        }
+                        /*Codes_SRS_JOB_OBJECT_HELPER_19_008: [ job_object_helper_set_job_limits_to_current_process shall call CloseHandle to close the handle of the current process. ]*/
+                        if (!CloseHandle(current_process))
+                        {
+                            /*Codes_S_RS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return a non-zero value.] */
+                            LogLastError("failure in CloseHandle(current_process=%p)", current_process);
+                        }
+
+                        if (!assign_process_to_job_object_result)
+                        {
+                            /* Error already logged in previous check of assign_process_to_job_object_result */
                         }
                         else
                         {
