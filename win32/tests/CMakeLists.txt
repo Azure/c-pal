@@ -1,7 +1,5 @@
 #Copyright (C) Microsoft Corporation. All rights reserved.
 
-add_subdirectory(job_object_helper_tester)
-
 # unit tests
 if(${run_unittests})
     build_test_folder(execution_engine_win32_ut)
@@ -39,6 +37,7 @@ if(${run_unittests})
 endif()
 
 if(${run_int_tests})
+    add_subdirectory(job_object_helper_tester)
     build_test_folder(malloc_multi_flex_int)
     build_test_folder(string_utils_int)
     build_test_folder(job_object_helper_int)
