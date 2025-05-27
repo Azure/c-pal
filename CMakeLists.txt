@@ -236,5 +236,3 @@ add_vld_if_defined(${CMAKE_CURRENT_SOURCE_DIR})
 
 # Define GBALLOC_LL_TYPE_<ALLOCATOR_TYPE> for the c_pal target
 target_compile_definitions(c_pal INTERFACE GBALLOC_LL_TYPE_${GBALLOC_LL_TYPE})
-
-add_subdirectory(tools)

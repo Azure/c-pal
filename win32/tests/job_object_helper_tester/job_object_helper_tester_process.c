@@ -31,8 +31,8 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    // Sleep for 30 sec
-    Sleep(1 * 30 * 1000);
+    // Sleep for 15 sec
+    Sleep(1 * 15 * 1000);
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
     return 0;
 }

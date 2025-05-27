@@ -1,5 +1,7 @@
 #Copyright (C) Microsoft Corporation. All rights reserved.
 
+add_subdirectory(job_object_helper_tester)
+
 # unit tests
 if(${run_unittests})
     build_test_folder(execution_engine_win32_ut)
