@@ -52,10 +52,11 @@ int main(int argc, char* argv[])
             void* p = NULL;
             if (allocate_memory_size != 0)
             {
-                (void)printf("Allocated memory size: %d Bytes\n", allocate_memory_size);
+                (void)printf("Allocate memory size: %d Bytes\n", allocate_memory_size);
                 p = malloc(allocate_memory_size);
                 if (!p)
                 {
+                    (void)printf("Memory allocation failed\n");
                     result = MEMORY_ALLOCATION_FAILED;
                 }
                 else

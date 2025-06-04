@@ -214,15 +214,15 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_from_mult
     (void)uuid_produce(job_name_uuid);
 
     char job_name[64];
-    (void)snprintf(job_name, sizeof(job_name), "job_test_ebs_%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
+    (void)snprintf(job_name, sizeof(job_name), TEST_JOB_NAME_PREFIX "%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
     LogInfo("Running test with job name: %s...", job_name);
 
     char full_path[MAX_PATH];
     get_job_object_helper_tester_excutable_path(full_path, sizeof(full_path));
     ASSERT_ARE_NOT_EQUAL(size_t, 0, strlen(full_path), "Failed to get the full path to job_object_helper_tester executable");
 
-    // start 3 new process using CreateNewProcess, those processes shall
-    // call job_object_helper_set_job_limits_to_current_process
+    /* start 3 new process using CreateNewProcess, those processes shall
+    call job_object_helper_set_job_limits_to_current_process */
     STARTUPINFOA si[NUM_TEST_PROCESSES];
     PROCESS_INFORMATION pi[NUM_TEST_PROCESSES];
 
@@ -295,8 +295,7 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_check_mem
     (void)uuid_produce(job_name_uuid);
 
     char job_name[64];
-    (void)snprintf(job_name, sizeof(job_name), "job_test_ebs_%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
-
+    (void)snprintf(job_name, sizeof(job_name), TEST_JOB_NAME_PREFIX "%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
     LogInfo("Running test with Job name: %s...", job_name);
 
     /* Get the total available Memory */
@@ -321,7 +320,6 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_check_mem
     int allocation_failed = 0;
     for (int i = 0; i < NUM_ALLOCATE_MEMORY_BLOCKS; ++i)
     {
-        LogInfo("Allocating %d", i);
         buffer[i] = malloc(memory_size);
         if (buffer[i] == NULL) {
             allocation_failed++;
@@ -348,7 +346,7 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_from_mult
     (void)uuid_produce(job_name_uuid);
 
     char job_name[64];
-    (void)snprintf(job_name, sizeof(job_name), "job_test_ebs_%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
+    (void)snprintf(job_name, sizeof(job_name), TEST_JOB_NAME_PREFIX "%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
     LogInfo("Running test with job name: %s...", job_name);
 
     char full_path[MAX_PATH];
@@ -387,7 +385,7 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_from_mult
 
         /* sleep for 2 seconds to allow the child process to run */
         Sleep(2000);
-        /* try for 3 times before declaring a failure, as it may take time for a new process to get scheduled and create the job object  */
+        /* try for 3 times before declaring a failure, as it may take time for a new process to get scheduled and create the job object */
         HANDLE job_object = NULL;
         for (int j = 0; j < NUM_RETRY; ++j)
         {
@@ -397,7 +395,7 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_from_mult
                 break;
             }
             LogInfo("OpenJobObjectA failed, will retry %d", j + 1);
-            /* sleep for 1 seconds */
+            /* sleep for 1 seconds before retrying*/
             Sleep(1000);
         }
 
@@ -412,7 +410,7 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_from_mult
     }
 
     int allocation_failed_process_count = 0;
-    for (int i = 0; i < NUM_TEST_PROCESSES+4; ++i)
+    for (int i = 0; i < NUM_TEST_PROCESSES; ++i)
     {
         (void)WaitForSingleObject(pi[i].hProcess, INFINITE);
 
