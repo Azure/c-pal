@@ -37,6 +37,7 @@ if(${run_unittests})
 endif()
 
 if(${run_int_tests})
+    add_subdirectory(job_object_helper_tester)
     build_test_folder(malloc_multi_flex_int)
     build_test_folder(string_utils_int)
     build_test_folder(job_object_helper_int)

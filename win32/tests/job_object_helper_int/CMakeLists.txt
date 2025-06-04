@@ -14,3 +14,5 @@ set(${theseTestsName}_h_files
 )
 
 build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS c_pal)
+
+add_dependencies(${theseTestsName}_exe_${CMAKE_PROJECT_NAME} job_object_helper_tester)
