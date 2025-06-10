@@ -1097,6 +1097,9 @@ TEST_FUNCTION(sm_does_not_block)
     {
         for(uint32_t n_barrier_threads=0; n_barrier_threads<=nthreads; n_barrier_threads+=4)
         {
+            // This check is added to avoid excessive barrier threads when the total thread count is high.
+            // For large nthreads (>=64), running too many barrier threads (more than 60% of total) can cause the test to run very slowly and eventually timeout,
+            // especially under heavy concurrency or on systems with many cores.
             if (nthreads >= 64 && n_barrier_threads > (nthreads * 3 / 5)) // 3/5 = 60%
             {
                 continue; // Skip this iteration
