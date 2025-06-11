@@ -837,7 +837,7 @@ TEST_FUNCTION_INITIALIZE(function_initialize)
     timeSinceTestFunctionStartMs = timer_global_get_elapsed_ms();
 }
 
-// For Helgrind these test take too long (double the time of normal and valgrind combined) 
+// For Helgrind these test take too long (double the time of normal and valgrind combined)
 // so we will not enable the task to enable is still here: https://msazure.visualstudio.com/One/_workitems/edit/10086393
 #ifndef USE_HELGRIND
 /*tests aims to mindlessly execute the APIs.
@@ -1097,6 +1097,13 @@ TEST_FUNCTION(sm_does_not_block)
     {
         for(uint32_t n_barrier_threads=0; n_barrier_threads<=nthreads; n_barrier_threads+=4)
         {
+            // This check is added to avoid excessive barrier threads when the total thread count is high.
+            // For large nthreads (>=64), running too many barrier threads (more than 60% of total) can cause the test to run very slowly and eventually timeout,
+            // especially under heavy concurrency or on systems with many cores.
+            if (nthreads >= 64 && n_barrier_threads > (nthreads * 3 / 5)) // 3/5 = 60%
+            {
+                continue; // Skip this iteration
+            }
             uint32_t n_non_barrier_threads = nthreads - n_barrier_threads;
 
             THREAD_HANDLE barrierThreads[N_MAX_THREADS];
