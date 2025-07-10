@@ -14,6 +14,8 @@
 #define UUID_T_LENGTH       16
 typedef unsigned char UUID_T[UUID_T_LENGTH]; /*introduces UUID_T as "array of 16 bytes"*/
 
+typedef const UUID_T const_UUID_T;
+
 #include "macro_utils/macro_utils.h"
 
 #include "umock_c/umock_c_prod.h"
