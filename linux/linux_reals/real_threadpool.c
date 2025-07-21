@@ -15,4 +15,8 @@
 
 #include "real_interlocked_hl_renames.h"
 
+#include "real_execution_engine_linux_renames.h"
+
+#include "real_lazy_init_renames.h"
+
 #include "../src/threadpool_linux.c"
