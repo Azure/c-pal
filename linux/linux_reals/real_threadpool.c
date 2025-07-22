@@ -11,4 +11,14 @@
 
 #include "real_srw_lock_ll_renames.h"
 
+#include "real_threadapi_renames.h"
+
+#include "real_interlocked_renames.h"
+
+#include "real_interlocked_hl_renames.h"
+
+#include "real_execution_engine_linux_renames.h"
+
+#include "real_lazy_init_renames.h"
+
 #include "../src/threadpool_linux.c"
