@@ -328,45 +328,46 @@ void example_thread_usage(void)
     if (shared_obj == NULL)
     {
         LogError("Failed to create THANDLE object");
-        return;
-    }
-    
-    // Assign to variable for thread
-    THANDLE(MY_OBJECT) thread_obj = NULL;
-    THANDLE_ASSIGN(MY_OBJECT)(&thread_obj, shared_obj);
-    
-    // Pass to thread
-    THREAD_HANDLE thread;
-    if (ThreadAPI_Create(&thread, worker_thread, thread_obj) != THREADAPI_OK)
-    {
-        LogError("Failed to create thread");
-        THANDLE_ASSIGN(MY_OBJECT)(&thread_obj, NULL);  // Clean up thread reference
     }
     else
     {
-        // Wait for thread to complete
-        if (ThreadAPI_Join(thread, NULL) != THREADAPI_OK)
+        // Assign to variable for thread
+        THANDLE(MY_OBJECT) thread_obj = NULL;
+        THANDLE_ASSIGN(MY_OBJECT)(&thread_obj, shared_obj);
+        
+        // Pass to thread
+        THREAD_HANDLE thread;
+        if (ThreadAPI_Create(&thread, worker_thread, thread_obj) != THREADAPI_OK)
         {
-            LogError("Failed to join thread");
+            LogError("Failed to create thread");
+            THANDLE_ASSIGN(MY_OBJECT)(&thread_obj, NULL);  // Clean up thread reference
         }
+        else
+        {
+            // Wait for thread to complete
+            if (ThreadAPI_Join(thread, NULL) != THREADAPI_OK)
+            {
+                LogError("Failed to join thread");
+            }
+        }
+        
+        // Clean up original reference
+        THANDLE_ASSIGN(MY_OBJECT)(&shared_obj, NULL);
     }
-    
-    // Clean up original reference
-    THANDLE_ASSIGN(MY_OBJECT)(&shared_obj, NULL);
 }
 ```
 
 ### THANDLE vs Raw Pointers vs REFCOUNT
 
-| Feature | Raw Pointer | REFCOUNT | THANDLE |
-|---------|-------------|----------|---------|
-| **Memory Management** | Manual | Semi-automatic | Automatic |
-| **Type Safety** | None | Some | Strong |
-| **Null Safety** | Prone to errors | Some protection | Built-in checks |
-| **Move Semantics** | N/A | Manual | Built-in |
+| Feature | THANDLE | Raw Pointer | REFCOUNT |
+|---------|---------|-------------|----------|
+| **Memory Management** | Automatic | Manual | Semi-automatic |
+| **Type Safety** | Strong | None | Some |
+| **Null Safety** | Built-in checks | Prone to errors | Some protection |
+| **Move Semantics** | Built-in | N/A | Manual |
 | **Scope Safety** | Manual cleanup | Manual cleanup | Manual cleanup |
-| **Thread Safety** | None | Atomic ref counting | Atomic ref counting |
-| **Performance** | Fastest | Fast | Slight overhead |
+| **Thread Safety** | Atomic ref counting | None | Atomic ref counting |
+| **Performance** | Slight overhead | Fastest | Fast |
 
 ### Common THANDLE Patterns
 
