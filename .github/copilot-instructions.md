@@ -115,7 +115,7 @@ The `tools/build_all.bat` script validates all allocator combinations:
 - **GBALLOC_LL_TYPE**: PASSTHROUGH, WIN32HEAP, MIMALLOC
 - **GBALLOC_HL_TYPE**: PASSTHROUGH, METRICS  
 - **Configurations**: Debug and RelWithDebInfo
-- **Total combinations**: 6 LL × 2 HL × 2 configs = 24 test runs
+- **Total combinations**: 6 LL x 2 HL x 2 configs = 24 test runs
 
 ### Test Organization and Execution
 ```
@@ -138,14 +138,14 @@ win32/tests/component_int/       # Platform-specific integration tests
 ASYNC_SOCKET_HANDLE socket = async_socket_create(execution_engine);
 
 // Open socket with completion callback
-async_socket_open_async(socket, AF_INET, SOCK_STREAM, 0, open_complete_callback, context);
+async_socket_open_async(socket, AF_INET, SOCK_STREAM, 0, open_complete_callback, open_context);
 
 // Send data asynchronously
 BUFFER_HANDLE buffers[2] = { buffer1, buffer2 };
-async_socket_send_async(socket, buffers, 2, send_complete_callback, context);
+async_socket_send_async(socket, buffers, 2, send_complete_callback, send_context);
 
 // Receive with continuous callback pattern
-async_socket_receive_async(socket, receive_callback, context);
+async_socket_receive_async(socket, receive_callback, receive_context);
 ```
 
 ## THANDLE: Type-Safe Smart Pointers
@@ -171,7 +171,6 @@ THANDLE_TYPE_DEFINE(MY_OBJECT);
 
 // Create THANDLE instances using proper THANDLE macros
 THANDLE(MY_OBJECT) handle = THANDLE_MALLOC(MY_OBJECT)(dispose_function);  // Creates with ref count 1
-THANDLE(MY_OBJECT) null_handle = NULL;                                    // NULL handle
 
 // Create from existing content
 MY_OBJECT source = { .data = 42, .name = "test" };
@@ -226,15 +225,15 @@ THANDLE(STRING_OBJECT) flex_copy = THANDLE_CREATE_FROM_CONTENT_FLEX(STRING_OBJEC
 ```c
 // THANDLE_ASSIGN - Creates shared ownership (increments ref count)
 THANDLE(MY_OBJECT) handle1 = THANDLE_MALLOC(MY_OBJECT)(dispose_function);
-THANDLE(MY_OBJECT) handle2;
+THANDLE(MY_OBJECT) handle2 = NULL;
 THANDLE_ASSIGN(MY_OBJECT)(&handle2, handle1);    // Both point to same object, ref count = 2
 
 // THANDLE_MOVE - Transfers ownership (no ref count change)
-THANDLE(MY_OBJECT) handle3;
+THANDLE(MY_OBJECT) handle3 = NULL;
 THANDLE_MOVE(MY_OBJECT)(&handle3, &handle1);     // handle3 gets ownership, handle1 becomes NULL
 
 // THANDLE_INITIALIZE - Safe initialization from another THANDLE
-THANDLE(MY_OBJECT) handle4;
+THANDLE(MY_OBJECT) handle4 = NULL;
 THANDLE_INITIALIZE(MY_OBJECT)(&handle4, handle2); // Takes shared ownership
 ```
 
@@ -245,7 +244,8 @@ void example_function(void)
     THANDLE(MY_OBJECT) local_handle = THANDLE_MALLOC(MY_OBJECT)(dispose_function);
     
     // Use the handle
-    local_handle->data = 42;
+    MY_OBJECT* obj = THANDLE_GET_T(MY_OBJECT)(local_handle);
+    obj->data = 42;
     
     // Manual cleanup required - THANDLE does NOT have automatic scope cleanup
     THANDLE_ASSIGN(MY_OBJECT)(&local_handle, NULL);  // Decrements ref count, frees if count reaches 0
@@ -277,7 +277,7 @@ THANDLE(MY_OBJECT) create_object_with_data(int initial_data)
     THANDLE(MY_OBJECT) result = THANDLE_MALLOC(MY_OBJECT)(dispose_function);
     if (result != NULL)
     {
-        result->data = initial_data;
+        THANDLE_GET_T(MY_OBJECT)(result)->data = initial_data;
     }
     return result;  // Caller gets ownership
 }
@@ -285,50 +285,19 @@ THANDLE(MY_OBJECT) create_object_with_data(int initial_data)
 // Output parameter pattern (for optional results)
 int try_get_object(THANDLE(MY_OBJECT)* out_object)
 {
+    int result;
     THANDLE(MY_OBJECT) temp = create_some_object();
     if (temp == NULL)
     {
-        return -1;
+        result = MU_FAILURE;
+    }
+    else
+    {
+        THANDLE_MOVE(MY_OBJECT)(out_object, &temp);  // Transfer to caller
+        result = 0;
     }
     
-    THANDLE_MOVE(MY_OBJECT)(out_object, &temp);  // Transfer to caller
-    return 0;
-}
-```
-
-#### Collections and Data Structures
-```c
-// THANDLE in arrays
-typedef struct OBJECT_COLLECTION_TAG
-{
-    THANDLE(MY_OBJECT)* objects;
-    size_t count;
-    size_t capacity;
-} OBJECT_COLLECTION;
-
-void add_object_to_collection(OBJECT_COLLECTION* collection, THANDLE(MY_OBJECT) object)
-{
-    // Resize if needed
-    if (collection->count >= collection->capacity)
-    {
-        // ... resize logic ...
-    }
-    
-    // Store shared reference
-    THANDLE_ASSIGN(MY_OBJECT)(&collection->objects[collection->count], object);
-    collection->count++;
-}
-
-void cleanup_collection(OBJECT_COLLECTION* collection)
-{
-    // Clean up all handles
-    for (size_t i = 0; i < collection->count; i++)
-    {
-        THANDLE_ASSIGN(MY_OBJECT)(&collection->objects[i], NULL);  // Decrements ref count
-    }
-    free(collection->objects);
-    collection->objects = NULL;
-    collection->count = 0;
+    return result;
 }
 ```
 
@@ -337,30 +306,53 @@ void cleanup_collection(OBJECT_COLLECTION* collection)
 // THANDLE provides thread-safe reference counting
 // Multiple threads can safely share THANDLE instances
 
-typedef struct SHARED_CONTEXT_TAG
-{
-    THANDLE(MY_OBJECT) shared_object;
-    // ... other fields
-} SHARED_CONTEXT;
-
 // Worker thread function
-DWORD WINAPI worker_thread(LPVOID param)
+int worker_thread(void* param)
 {
-    SHARED_CONTEXT* context = (SHARED_CONTEXT*)param;
+    THANDLE(MY_OBJECT) obj = param;
     
-    // Create local reference to shared object
-    THANDLE(MY_OBJECT) local_ref;
-    THANDLE_ASSIGN(MY_OBJECT)(&local_ref, context->shared_object);
+    // Use the shared object
+    MY_OBJECT* data = THANDLE_GET_T(MY_OBJECT)(obj);
+    process_data(data);
     
-    // Use object safely - it won't be freed while this thread holds a reference
-    if (local_ref != NULL)
+    // Clean up by assigning to NULL
+    THANDLE_ASSIGN(MY_OBJECT)(&obj, NULL);
+    return 0;
+}
+
+// Example: Create THANDLE and pass to thread
+void example_thread_usage(void)
+{
+    // Create THANDLE
+    THANDLE(MY_OBJECT) shared_obj = THANDLE_MALLOC(MY_OBJECT)(dispose_function);
+    if (shared_obj == NULL)
     {
-        // ... work with local_ref->data ...
+        LogError("Failed to create THANDLE object");
+        return;
     }
     
-    // Manual cleanup required before thread exits
-    THANDLE_ASSIGN(MY_OBJECT)(&local_ref, NULL);
-    return 0;
+    // Assign to variable for thread
+    THANDLE(MY_OBJECT) thread_obj = NULL;
+    THANDLE_ASSIGN(MY_OBJECT)(&thread_obj, shared_obj);
+    
+    // Pass to thread
+    THREAD_HANDLE thread;
+    if (ThreadAPI_Create(&thread, worker_thread, thread_obj) != THREADAPI_OK)
+    {
+        LogError("Failed to create thread");
+        THANDLE_ASSIGN(MY_OBJECT)(&thread_obj, NULL);  // Clean up thread reference
+    }
+    else
+    {
+        // Wait for thread to complete
+        if (ThreadAPI_Join(thread, NULL) != THREADAPI_OK)
+        {
+            LogError("Failed to join thread");
+        }
+    }
+    
+    // Clean up original reference
+    THANDLE_ASSIGN(MY_OBJECT)(&shared_obj, NULL);
 }
 ```
 
@@ -381,26 +373,26 @@ DWORD WINAPI worker_thread(LPVOID param)
 #### Factory Pattern with THANDLE
 ```c
 // Factory function returning THANDLE
-THANDLE(DATABASE_CONNECTION) database_connection_create(const char* connection_string)
+THANDLE(CONNECTION) connection_create(const char* connection_string)
 {
-    THANDLE(DATABASE_CONNECTION) result = THANDLE_MALLOC(DATABASE_CONNECTION)(dispose_function);
+    THANDLE(CONNECTION) result = THANDLE_MALLOC(CONNECTION)(dispose_function);
     if (result != NULL)
     {
         if (initialize_connection(result, connection_string) != 0)
         {
-            THANDLE_ASSIGN(DATABASE_CONNECTION)(&result, NULL);  // Clean up on failure
+            THANDLE_ASSIGN(CONNECTION)(&result, NULL);  // Clean up on failure
         }
     }
     return result;
 }
 
 // Usage
-THANDLE(DATABASE_CONNECTION) db = database_connection_create("server=localhost");
-if (db != NULL)
+THANDLE(CONNECTION) conn = connection_create("server=localhost");
+if (conn != NULL)
 {
-    execute_query(db, "SELECT * FROM users");
+    send_data(conn, "Hello World");
     // Manual cleanup required
-    THANDLE_ASSIGN(DATABASE_CONNECTION)(&db, NULL);
+    THANDLE_ASSIGN(CONNECTION)(&conn, NULL);
 }
 ```
 
@@ -505,7 +497,7 @@ cleanup:
 
 ### THANDLE Best Practices
 
-#### ✅ Recommended Patterns
+#### Recommended Patterns
 ```c
 // Use THANDLE for all reference-counted objects
 THANDLE(MY_OBJECT) obj = create_object();
@@ -520,22 +512,22 @@ THANDLE_MOVE(MY_OBJECT)(&new_owner, &old_owner);
 THANDLE(MY_OBJECT) handle = NULL;  // Required because THANDLE is const
 ```
 
-#### ❌ Anti-Patterns to Avoid
+#### Anti-Patterns to Avoid
 ```c
-// ❌ Don't mix THANDLE with raw pointer operations
+// Don't mix THANDLE with raw pointer operations
 THANDLE(MY_OBJECT) handle = THANDLE_MALLOC(MY_OBJECT)(dispose_function);
 MY_OBJECT* raw = handle;  // DANGEROUS - loses reference tracking
 free(raw);                // WRONG - double-free possible
 
-// ❌ Don't manually manage reference counts with THANDLE
+// Don't manually manage reference counts with THANDLE
 THANDLE(MY_OBJECT) handle = THANDLE_MALLOC(MY_OBJECT)(dispose_function);
 THANDLE_INC_REF(MY_OBJECT)(handle);  // WRONG - THANDLE manages this automatically
 
-// ❌ Don't forget to initialize THANDLE variables
+// Don't forget to initialize THANDLE variables
 THANDLE(MY_OBJECT) handle;   // WRONG - uninitialized
 // Should be: THANDLE(MY_OBJECT) handle = NULL;
 
-// ❌ Don't mix THANDLE with REFCOUNT macros
+// Don't mix THANDLE with REFCOUNT macros
 THANDLE(MY_OBJECT) handle = THANDLE_MALLOC(MY_OBJECT)(dispose_function);
 INC_REF(MY_OBJECT, handle);  // WRONG - these are REFCOUNT macros, not THANDLE
 DEC_REF(MY_OBJECT, handle);  // WRONG - use THANDLE_ASSIGN instead
@@ -555,54 +547,63 @@ threadpool_schedule_work(threadpool, work_function, work_context);
 threadpool_close(threadpool);
 ```
 
-### File I/O with Async Operations
+### State Machine (SM) for Module Open/Close Management
+The SM module provides thread-safe lifecycle management for modules that follow the create->open->close->destroy pattern.
+
+**Intent**: Manage the open/closed state of a module with proper synchronization for concurrent API calls, barrier operations, and error handling.
+
+**Basic Features**:
 ```c
-// Create and open file
-FILE_HANDLE file = file_create(execution_engine, "path/to/file.dat");
-file_open_async(file, FILE_GENERIC_READ | FILE_GENERIC_WRITE, 
-                FILE_SHARE_READ, FILE_CREATE_ALWAYS, NULL, open_callback, context);
+// Create state machine for module lifecycle management
+SM_HANDLE sm = sm_create("my_module");
 
-// Async read/write at specific positions
-file_read_async(file, buffer, size, position, read_callback, context);
-file_write_async(file, buffer, size, position, write_callback, context);
-```
-
-### State Machine (SM) for Complex Logic
-```c
-// Define states and events
-DEFINE_ENUM(MY_STATE, IDLE, CONNECTING, CONNECTED, ERROR);
-DEFINE_ENUM(MY_EVENT, CONNECT, DATA_RECEIVED, DISCONNECT, ERROR_OCCURRED);
-
-// Create state machine with transition table
-SM_HANDLE state_machine = sm_create("my_component");
-sm_open_begin(state_machine);
-sm_add_transition(state_machine, IDLE, CONNECT, CONNECTING, connect_action);
-sm_add_transition(state_machine, CONNECTING, DATA_RECEIVED, CONNECTED, data_action);
-sm_open_end(state_machine);
-
-// Execute state machine
-sm_exec(state_machine, MY_EVENT_CONNECT);
-```
-
-### Safe List Operations (s_list)
-```c
-// Create list with item cleanup function
-S_LIST_HANDLE list = s_list_create(my_item_cleanup_function);
-
-// Add items (automatically managed memory)
-S_LIST_ENTRY* entry = s_list_add(list, my_item_data);
-
-// Thread-safe iteration
-S_LIST_ENTRY* current = s_list_head(list);
-while (current != NULL)
+// Two-phase open operation
+if (sm_open_begin(sm) == SM_EXEC_GRANTED)
 {
-    MY_ITEM* item = s_list_entry_get_data(current);
-    // Process item
-    current = s_list_next(current);
+    // Perform actual initialization work
+    bool init_success = initialize_module_resources();
+    
+    // Complete open with success/failure
+    sm_open_end(sm, init_success);
 }
 
-s_list_destroy(list);  // Automatically calls cleanup for all items
+// Regular API execution (thread-safe)
+if (sm_exec_begin(sm) == SM_EXEC_GRANTED)
+{
+    // Execute module API - can run concurrently with other APIs
+    perform_module_operation();
+    sm_exec_end(sm);
+}
+
+// Barrier operations (exclusive access)
+if (sm_barrier_begin(sm) == SM_EXEC_GRANTED)
+{
+    // Exclusive operation - waits for all exec operations to complete
+    // No other APIs can start during barrier
+    perform_exclusive_operation();
+    sm_barrier_end(sm);
+}
+
+// Two-phase close operation
+if (sm_close_begin(sm) == SM_EXEC_GRANTED)
+{
+    // All concurrent operations have drained
+    cleanup_module_resources();
+    sm_close_end(sm);
+}
+
+// Handle catastrophic errors
+sm_fault(sm);  // Puts module in terminal faulted state
+
+sm_destroy(sm);
 ```
+
+**Key Behaviors**:
+- **Concurrent exec operations**: Multiple `sm_exec_begin/end` can run simultaneously
+- **Barrier semantics**: `sm_barrier_begin` waits for all exec operations to complete, blocks new ones
+- **Close draining**: `sm_close_begin` waits for all operations to complete before proceeding
+- **Fault handling**: `sm_fault` puts module in terminal state, requires close/destroy
+- **Thread safety**: All operations are atomic and thread-safe
 
 ## Platform-Specific Features
 
@@ -721,7 +722,7 @@ TEST_FUNCTION(async_socket_performance_test)
 
 ## Common Patterns and Anti-Patterns
 
-### ✅ Recommended Patterns
+### Recommended Patterns
 ```c
 // Use execution engine for all async components
 EXECUTION_ENGINE_HANDLE engine = execution_engine_create(&params);
@@ -746,29 +747,29 @@ static CALL_ONCE_HANDLE g_once = CALL_ONCE_STATIC_INIT;
 call_once(&g_once, initialize_singleton);
 ```
 
-### ❌ Anti-Patterns to Avoid
+### Anti-Patterns to Avoid
 ```c
-// ❌ Don't create multiple execution engines unnecessarily
+// Don't create multiple execution engines unnecessarily
 EXECUTION_ENGINE_HANDLE engine1 = execution_engine_create(&params);
 EXECUTION_ENGINE_HANDLE engine2 = execution_engine_create(&params);  // Wasteful
 THREADPOOL_HANDLE pool1 = threadpool_create(engine1);
 THREADPOOL_HANDLE pool2 = threadpool_create(engine2);
 
-// ✅ Share one execution engine across components
+// GOOD: Share one execution engine across components
 EXECUTION_ENGINE_HANDLE shared_engine = execution_engine_create(&params);
 THREADPOOL_HANDLE pool = threadpool_create(shared_engine);
 ASYNC_SOCKET_HANDLE socket = async_socket_create(shared_engine);
 
-// ❌ Don't manually manage reference counts with THANDLE
+// Don't manually manage reference counts with THANDLE
 THANDLE(MY_OBJECT) handle = create_object();
 // manual_inc_ref(handle);  // WRONG - THANDLE manages this
 // manual_dec_ref(handle);  // WRONG - THANDLE manages this
 
-// ❌ Don't mix REFCOUNT and THANDLE patterns
+// Don't mix REFCOUNT and THANDLE patterns
 MY_OBJECT* obj = REFCOUNT_TYPE_CREATE(MY_OBJECT);
 THANDLE(MY_OBJECT) handle = (THANDLE(MY_OBJECT))obj;  // WRONG - type mismatch
 
-// ❌ Don't forget platform-specific cleanup
+// Don't forget platform-specific cleanup
 #ifdef WIN32
     CloseHandle(platform_handle);  // Required on Windows
 #else
@@ -818,7 +819,7 @@ This project inherits comprehensive build and coding standards from its dependen
 ### Coding Standards Compliance
 **CRITICAL**: All code must follow standards in `deps/c-build-tools/.github/general_coding_instructions.md`:
 - **Function naming**: snake_case with module prefixes (`c_pal_*`, `threadpool_*`, `async_socket_*`)
-- **Requirements traceability**: `SRS_MODULE_##_###` → `Codes_SRS_MODULE_##_###` → `Tests_SRS_MODULE_##_###`
+- **Requirements traceability**: `SRS_MODULE_##_###` -> `Codes_SRS_MODULE_##_###` -> `Tests_SRS_MODULE_##_###`
 - **Error handling**: Consistent patterns with goto cleanup and single exit points
 - **Header inclusion**: Fixed order with `macro_utils.h` first, `c_logging/logger.h` second
 - **Memory management**: Always include `c_pal/gballoc_hl_redirect.h` in source files
