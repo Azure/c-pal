@@ -398,23 +398,30 @@ if (conn != NULL)
 
 #### Resource Pool with THANDLE
 ```c
+// IMPORTANT: If a structure contains THANDLE objects, the structure should generally also be a THANDLE
+// This ensures proper lifecycle management and thread safety
+
 typedef struct CONNECTION_POOL_TAG
 {
-    THANDLE(DATABASE_CONNECTION)* connections;
+    THANDLE(CONNECTION)* connections;
     size_t pool_size;
     // ... synchronization primitives
 } CONNECTION_POOL;
 
-THANDLE(DATABASE_CONNECTION) pool_acquire_connection(CONNECTION_POOL* pool)
+THANDLE_TYPE_DECLARE(CONNECTION_POOL);
+
+THANDLE(CONNECTION) pool_acquire_connection(THANDLE(CONNECTION_POOL) pool)
 {
-    THANDLE(DATABASE_CONNECTION) result = NULL;
+    THANDLE(CONNECTION) result = NULL;
+    
+    CONNECTION_POOL* pool_data = THANDLE_GET_T(CONNECTION_POOL)(pool);
     
     // Find available connection
-    for (size_t i = 0; i < pool->pool_size; i++)
+    for (size_t i = 0; i < pool_data->pool_size; i++)
     {
-        if (is_connection_available(&pool->connections[i]))
+        if (is_connection_available(&pool_data->connections[i]))
         {
-            THANDLE_ASSIGN(DATABASE_CONNECTION)(&result, pool->connections[i]);
+            THANDLE_ASSIGN(CONNECTION)(&result, pool_data->connections[i]);
             break;
         }
     }
