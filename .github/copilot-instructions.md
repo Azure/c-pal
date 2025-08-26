@@ -651,8 +651,8 @@ SOCKET_HANDLE socket_handle = socket_handle_create(AF_INET, SOCK_STREAM, 0);
 #include "real_interlocked.h"
 #include "c_pal/refcount.h"             // Component under test
 
-// Tests_SRS_REFCOUNT_01_001: [ refcount_create shall allocate memory for the object. ]
-TEST_FUNCTION(refcount_create_succeeds)
+// Tests_SRS_EXAMPLE_01_001: [ example_function shall allocate memory for the object. ]
+TEST_FUNCTION(example_function_succeeds)
 {
     // arrange
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG))
