@@ -65,8 +65,8 @@ INC_REF(MY_OBJECT, obj);  // Increment reference
 DEC_REF(MY_OBJECT, obj);  // Decrement, auto-free when reaches 0
 
 // THANDLE - Type-safe smart pointers with move semantics
-THANDLE(MY_OBJECT) handle1 = REFCOUNT_TYPE_CREATE(MY_OBJECT);
-THANDLE(MY_OBJECT) handle2;
+THANDLE(MY_OBJECT) handle1 = THANDLE_MALLOC(MY_OBJECT)(dispose_function);
+THANDLE(MY_OBJECT) handle2 = NULL;
 THANDLE_ASSIGN(MY_OBJECT)(&handle2, handle1);     // Shared ownership
 THANDLE_MOVE(MY_OBJECT)(&handle2, &handle1);      // Transfer ownership
 // Manual cleanup required with THANDLE_ASSIGN(&handle, NULL)
@@ -444,17 +444,24 @@ THANDLE(MY_OBJECT) safe_create_object(void)
     if (result == NULL)
     {
         LogError("Failed to create MY_OBJECT");
-        goto cleanup;
     }
-    
-    if (initialize_object_data(result) != 0)
+    else
     {
-        LogError("Failed to initialize object data");
-        THANDLE_ASSIGN(MY_OBJECT)(&result, NULL);  // Clean up
-        goto cleanup;
+        if (initialize_object_data(result) != 0)
+        {
+            LogError("Failed to initialize object data");
+        }
+        else
+        {
+            // all OK
+            goto all_ok;
+        }
+
+        THANDLE_FREE(MY_OBJECT)(result);
+        result = NULL;
     }
     
-cleanup:
+all_ok:
     return result;
 }
 ```
@@ -503,14 +510,14 @@ cleanup:
 // Use THANDLE for all reference-counted objects
 THANDLE(MY_OBJECT) obj = create_object();
 
-// Prefer THANDLE_ASSIGN for sharing
+// Use THANDLE_ASSIGN for sharing
 THANDLE_ASSIGN(MY_OBJECT)(&shared_obj, obj);
 
 // Use THANDLE_MOVE for transfer of ownership
 THANDLE_MOVE(MY_OBJECT)(&new_owner, &old_owner);
 
 // Always initialize THANDLE variables
-THANDLE(MY_OBJECT) handle = NULL;  // Required for proper cleanup
+THANDLE(MY_OBJECT) handle = NULL;  // Required because THANDLE is const
 ```
 
 #### ❌ Anti-Patterns to Avoid
@@ -640,15 +647,14 @@ SOCKET_HANDLE socket_handle = socket_handle_create(AF_INET, SOCK_STREAM, 0);
 ### Unit Test Structure with umock-c
 ```c
 #include "testrunnerswitcher.h"
+#include "c_pal/interlocked.h"          // Usually not mocked - atomic operations
 
 #define ENABLE_MOCKS
 #include "c_pal/gballoc_hl.h"           // Mock memory allocation
 #include "c_pal/threadapi.h"            // Mock threading primitives
-#include "c_pal/interlocked.h"          // Mock atomic operations
 #undef ENABLE_MOCKS
 
 #include "real_gballoc_hl.h"            // Real implementations when needed
-#include "real_interlocked.h"
 #include "c_pal/refcount.h"             // Component under test
 
 // Tests_SRS_EXAMPLE_01_001: [ example_function shall allocate memory for the object. ]
@@ -791,15 +797,6 @@ THANDLE(MY_OBJECT) handle = (THANDLE(MY_OBJECT))obj;  // WRONG - type mismatch
 
 // Linux: Use strace to monitor system calls
 // strace -e trace=epoll_wait,epoll_ctl ./my_program
-```
-
-### State Machine Debugging
-```c
-// Enable state machine tracing
-sm_set_trace_enabled(state_machine, true);
-
-// Trace shows: [SM:my_component] IDLE --CONNECT--> CONNECTING
-// Helps debug unexpected state transitions
 ```
 
 ## External Dependencies & Standards
