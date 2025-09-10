@@ -691,11 +691,16 @@ typedef struct THREADS_COMMON_TAG
 
 MU_DEFINE_ENUM(THREAD_TYPE, THREAD_TYPE_VALUE)
 
+#define MAX_HAMMERS 100000
+
 static int barrier_thread(
     void* arg
 )
 {
     THREADS_COMMON* data = arg;
+
+    uint32_t hammer_count = 0; /*how many times the thread has hammered the sm APIs. After MAX_HAMMERS it will introduce ThreadAPI_Sleep*/
+
     /*a non barrier thread granted execution will interlocked increment the index, interlocked increment the source of numbers and write it*/
     while (interlocked_add(&data->current_index, 0) < ARRAY_SIZE)
     {
@@ -718,6 +723,15 @@ static int barrier_thread(
         else
         {
             (void)interlocked_increment_64(&barrier_refusals);
+            if (hammer_count < MAX_HAMMERS)
+            {
+                hammer_count++;
+            }
+            else
+            {
+                /*we hammered enough, now we will sleep a bit*/
+                ThreadAPI_Sleep(0);
+            }
         }
     }
     return 0;
@@ -728,6 +742,9 @@ static int non_barrier_thread(
 )
 {
     THREADS_COMMON* data = arg;
+
+    uint32_t hammer_count = 0; /*how many times the thread has hammered the sm APIs. After MAX_HAMMERS it will introduce ThreadAPI_Sleep*/
+
     /*a non barrier thread granted execution will interlocked increment the index, interlocked increment the source of numbers and write it*/
     while (interlocked_add(&data->current_index, 0) < ARRAY_SIZE)
     {
@@ -751,6 +768,16 @@ static int non_barrier_thread(
         {
             /*not granted execution, so just hammer*/
             (void)interlocked_increment_64(&non_barrier_refusals);
+
+            if (hammer_count < MAX_HAMMERS)
+            {
+                hammer_count++;
+            }
+            else
+            {
+                /*we hammered enough, now we will sleep a bit*/
+                ThreadAPI_Sleep(0);
+            }
         }
     }
     return 0;
