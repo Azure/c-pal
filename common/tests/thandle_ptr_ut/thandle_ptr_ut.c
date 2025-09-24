@@ -1,24 +1,7 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#include <stdlib.h>
-
-#include "macro_utils/macro_utils.h"    // IWYU pragma: keep
-
-#include "testrunnerswitcher.h"
-
-#include "c_pal/thandle_ll.h"           // for THANDLE, THANDLE_ASSIGN
-
-#define ENABLE_MOCKS
-#include "umock_c/umock_c.h"
-#include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
-
-#undef ENABLE_MOCKS
-
-#include "real_gballoc_hl.h"
-
-#include "c_pal/thandle_ptr.h"
+#include "thandle_ptr_ut_pch.h"
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
@@ -177,4 +160,3 @@ TEST_FUNCTION(THANDLE_PTR_DISPOSE_NULL_does_not_call_anything)
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
-

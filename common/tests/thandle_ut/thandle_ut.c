@@ -1,30 +1,8 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#include <stdlib.h>
-#include <string.h>
+#include "thandle_ut_pch.h"
 
-#include "macro_utils/macro_utils.h" // IWYU pragma: keep
-
-#include "testrunnerswitcher.h"
-
-#define ENABLE_MOCKS
-#include "umock_c/umock_c.h"
-#include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
-
-#undef ENABLE_MOCKS
-
-#include "real_gballoc_hl.h"
-
-#include "c_pal/thandle.h"
-#include "thandle_user.h"
-#include "thandle_user_33_characters.h" // IWYU pragma: keep
-#include "thandle_flex_user.h"
-
-#include "c_pal/thandle_ll.h"
-
-#define TEST_A_DEFINE 1
 static const int TEST_A = TEST_A_DEFINE;
 
 #define TEST_S_DEFINE "a"
@@ -1005,4 +983,3 @@ TEST_FUNCTION(THANDLE_can_be_build_from_a_33_character_type)
 
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
-

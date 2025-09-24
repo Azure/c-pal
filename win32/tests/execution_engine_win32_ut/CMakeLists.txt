@@ -1,4 +1,4 @@
-#Copyright (c) Microsoft. All rights reserved.
+﻿#Copyright (c) Microsoft. All rights reserved.
 
 set(theseTestsName execution_engine_win32_ut)
 
@@ -15,7 +15,9 @@ set(${theseTestsName}_h_files
 ../../../interfaces/inc/c_pal/execution_engine.h
 )
 
-build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS pal_interfaces pal_ll_interfaces c_pal_reals c_pal_ll_reals pal_ll_win32)
+build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS pal_interfaces pal_ll_interfaces c_pal_reals c_pal_ll_reals pal_ll_win32 
+    ENABLE_TEST_FILES_PRECOMPILED_HEADERS "${CMAKE_CURRENT_LIST_DIR}/execution_engine_win32_ut_pch.h"
+)
 
 if("${building}" STREQUAL "exe")
     set_target_properties(${theseTestsName}_exe_${CMAKE_PROJECT_NAME} PROPERTIES LINK_FLAGS "/ignore:4217")
@@ -24,4 +26,3 @@ endif()
 if("${building}" STREQUAL "dll")
     set_target_properties(${theseTestsName}_dll_${CMAKE_PROJECT_NAME} PROPERTIES LINK_FLAGS "/ignore:4217")
 endif()
-

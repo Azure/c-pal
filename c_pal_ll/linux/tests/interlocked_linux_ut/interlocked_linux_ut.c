@@ -1,18 +1,7 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdatomic.h>
-
-#include "macro_utils/macro_utils.h" // IWYU pragma: keep
-
-#include "testrunnerswitcher.h"
-
-#include "umock_c/umock_c.h"
-#include "umock_c/umocktypes_stdint.h"
-
-#include "c_pal/interlocked.h"
+#include "interlocked_linux_ut_pch.h"
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 

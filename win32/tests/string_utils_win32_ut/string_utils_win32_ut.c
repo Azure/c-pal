@@ -1,34 +1,14 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-
-#include <stdlib.h>
-#include <stddef.h>
-#include <stdbool.h>
-#include <stdarg.h>
-
-#include "windows.h"
-#include "macro_utils/macro_utils.h"
-
-#include "real_gballoc_ll.h"
-
-#include "testrunnerswitcher.h"
-#include "umock_c/umock_c.h"
-#include "umock_c/umocktypes_windows.h"
-#include "umock_c/umocktypes_bool.h"
-#include "umock_c/umock_c_negative_tests.h"
+#include "string_utils_win32_ut_pch.h"
+#undef ENABLE_MOCKS_DECL
 
 #define ENABLE_MOCKS
-
-#include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
-#include "mocks.h"
-
+#include "umock_c/umock_c_prod.h"
+MOCKABLE_FUNCTION(, BOOL, mocked_FileTimeToSystemTime, const FILETIME*, lpFileTime, LPSYSTEMTIME, lpSystemTime);
+MOCKABLE_FUNCTION(, int, mocked_vsnprintf, char*, buffer, size_t, buffer_size, const char*, format, va_list, va);
 #undef ENABLE_MOCKS
-
-#include "real_gballoc_hl.h"
-
-#include "c_pal/string_utils.h"
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
@@ -67,7 +47,6 @@ static int hook_vsnprintf(char* buffer, size_t buffer_size, const char* format, 
 {
     return vsnprintf(buffer, buffer_size, format, va);
 }
-
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 

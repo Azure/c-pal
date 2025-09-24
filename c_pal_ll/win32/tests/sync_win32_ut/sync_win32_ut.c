@@ -1,17 +1,12 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#include "sync_win32_ut_pch.h"
+#undef ENABLE_MOCKS_DECL
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <stdbool.h>
-
-#include "windows.h"
-#include "macro_utils/macro_utils.h"
-#include "testrunnerswitcher.h"
-
-#include "umock_c/umock_c.h"
-#include "umock_c/umocktypes_windows.h"
+#define ENABLE_MOCKS
+#include "mock_sync.h"
+#undef ENABLE_MOCKS
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
@@ -19,16 +14,6 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
-
-#define ENABLE_MOCKS
-#include "mock_sync.h"
-#include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
-#undef ENABLE_MOCKS
-
-#include "real_gballoc_hl.h"
-
-#include "c_pal/sync.h"
 
 TEST_DEFINE_ENUM_TYPE(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES);
 IMPLEMENT_UMOCK_C_ENUM_TYPE(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES);

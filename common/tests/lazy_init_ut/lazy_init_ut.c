@@ -1,30 +1,13 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdlib.h>
-
-
-#include "macro_utils/macro_utils.h" // IWYU pragma: keep
-
-// IWYU pragma: no_include <wchar.h>
-#include "testrunnerswitcher.h"
-
-#include "umock_c/umock_c.h"
-#include "umock_c/umocktypes.h"
-#include "umock_c/umocktypes_stdint.h"
-#include "umock_c/umocktypes_bool.h"
+#include "lazy_init_ut_pch.h"
 
 #define ENABLE_MOCKS
-#include "c_pal/call_once.h"
-#include "c_pal/interlocked.h"          // for volatile_atomic
+#undef ENABLE_MOCKS_DECL
+#include "umock_c/umock_c_prod.h"
 MOCKABLE_FUNCTION(, int, do_init, void*, params);
 #undef ENABLE_MOCKS
-
-
-#include "c_pal/lazy_init.h"
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 

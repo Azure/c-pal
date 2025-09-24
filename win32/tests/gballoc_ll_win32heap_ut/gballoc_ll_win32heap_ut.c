@@ -1,19 +1,8 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#include <stdlib.h>
-
-#include "macro_utils/macro_utils.h"
-#include "testrunnerswitcher.h"
-
-#include "windows.h"
-
-static void* TEST_MALLOC_RESULT = (void*)0x1;
-static void* TEST_REALLOC_RESULT = (void*)0x3;
-static HANDLE TEST_HEAP = (HANDLE)0x4;
-
-#include "umock_c/umock_c.h"
-#include "umock_c/umocktypes_windows.h"
+#include "gballoc_ll_win32heap_ut_pch.h"
+#undef ENABLE_MOCKS_DECL
 
 #define ENABLE_MOCKS
 #include "umock_c/umock_c_prod.h"
@@ -25,9 +14,16 @@ static HANDLE TEST_HEAP = (HANDLE)0x4;
     MOCKABLE_FUNCTION(, void*, mock_HeapReAlloc, HANDLE, hHeap, DWORD, dwFlags, LPVOID, lpMem, SIZE_T, dwBytes);
     MOCKABLE_FUNCTION(, size_t, mock_HeapSize, HANDLE, hHeap, DWORD, dwFlags, LPVOID, lpMem);
 
-
-#include "c_pal/lazy_init.h"
 #undef ENABLE_MOCKS
+
+static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
+{
+    ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
+}
+
+static void* TEST_MALLOC_RESULT = (void*)0x1;
+static void* TEST_REALLOC_RESULT = (void*)0x3;
+static HANDLE TEST_HEAP = (HANDLE)0x4;
 
 static LAZY_INIT_RESULT my_lazy_init(call_once_t* lazy, LAZY_INIT_FUNCTION do_init, void* init_params)
 {
@@ -51,15 +47,6 @@ static LAZY_INIT_RESULT my_lazy_init(call_once_t* lazy, LAZY_INIT_FUNCTION do_in
 }
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
-
-#include "real_interlocked.h"
-
-#include "c_pal/gballoc_ll.h"
-
-static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
-{
-    ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
-}
 
 TEST_DEFINE_ENUM_TYPE(LAZY_INIT_RESULT, LAZY_INIT_RESULT_RESULT);
 IMPLEMENT_UMOCK_C_ENUM_TYPE(LAZY_INIT_RESULT, LAZY_INIT_RESULT_VALUES);

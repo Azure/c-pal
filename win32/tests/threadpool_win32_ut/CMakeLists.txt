@@ -1,4 +1,4 @@
-#Copyright (c) Microsoft. All rights reserved.
+﻿#Copyright (c) Microsoft. All rights reserved.
 
 set(theseTestsName threadpool_win32_ut)
 
@@ -16,7 +16,9 @@ set(${theseTestsName}_h_files
 ../../inc/c_pal/string_utils.h
 )
 
-build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS pal_interfaces synchronization c_pal_reals pal_ll_interfaces)
+build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS pal_interfaces synchronization c_pal_reals pal_ll_interfaces 
+    ENABLE_TEST_FILES_PRECOMPILED_HEADERS "${CMAKE_CURRENT_LIST_DIR}/threadpool_win32_ut_pch.h"
+)
 
 if("${building}" STREQUAL "exe")
     set_target_properties(${theseTestsName}_exe_${CMAKE_PROJECT_NAME} PROPERTIES LINK_FLAGS "/ignore:4217")
