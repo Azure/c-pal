@@ -1,33 +1,24 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#include <stdlib.h>
-#include <stdint.h>
-
-#include "macro_utils/macro_utils.h" // IWYU pragma: keep
-#include "testrunnerswitcher.h"
+#include "gballoc_ll_passthrough_ut_pch.h"
 
 static void* TEST_MALLOC_RESULT = (void*)0x1;
 static void* TEST_CALLOC_RESULT = (void*)0x2;
 static void* TEST_REALLOC_RESULT = (void*)0x3;
 
-#include "umock_c/umock_c.h"
-
 #define ENABLE_MOCKS
+#undef ENABLE_MOCKS_DECL
 #include "umock_c/umock_c_prod.h"
-
     MOCKABLE_FUNCTION(, void*, mock_malloc, size_t, size);
     MOCKABLE_FUNCTION(, void*, mock_calloc, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, mock_realloc, void*, ptr, size_t, size);
     MOCKABLE_FUNCTION(, void, mock_free, void*, ptr);
 
     MOCKABLE_FUNCTION(, size_t, mock_malloc_usable_size, void*, ptr);
-
 #undef ENABLE_MOCKS
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
-
-#include "c_pal/gballoc_ll.h"
 
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {

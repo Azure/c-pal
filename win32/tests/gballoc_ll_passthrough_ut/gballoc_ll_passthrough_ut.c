@@ -1,10 +1,9 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#include <stdlib.h>
+#include "gballoc_ll_passthrough_ut_pch.h"
 
-#include "macro_utils/macro_utils.h"
-#include "testrunnerswitcher.h"
+#undef ENABLE_MOCKS_DECL
 
 static void* TEST_MALLOC_RESULT = (void*)0x1;
 static void* TEST_CALLOC_RESULT = (void*)0x2;

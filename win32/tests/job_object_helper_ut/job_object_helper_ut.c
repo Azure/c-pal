@@ -1,32 +1,14 @@
-// Copyright(C) Microsoft Corporation.All rights reserved.
+﻿// Copyright(C) Microsoft Corporation.All rights reserved.
 
 
-#include <stdlib.h>
 
-#include "windows.h"
-#include "jobapi2.h"
-
-#include "macro_utils/macro_utils.h"
-
-#include "testrunnerswitcher.h"
-#include "umock_c/umock_c.h"
-#include "umock_c/umock_c_negative_tests.h"
-#include "umock_c/umocktypes_stdint.h"
-#include "umock_c/umocktypes_windows.h"
-
-#include "c_pal/interlocked.h"
-#include "c_pal/interlocked_hl.h"
+#include "job_object_helper_ut_pch.h"
 
 #define ENABLE_MOCKS
-    #include "c_pal/gballoc_hl.h"
-    #include "c_pal/gballoc_hl_redirect.h"
-
+#undef ENABLE_MOCKS_DECL
+#include "umock_c/umock_c_prod.h"
     MOCKABLE_FUNCTION(, BOOL, mocked_AssignProcessToJobObject, HANDLE, hJob, HANDLE, hProcess);
-
 #undef ENABLE_MOCKS
-
-#include "real_gballoc_hl.h"
-#include "c_pal/job_object_helper.h"
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
@@ -82,21 +64,6 @@ MOCK_FUNCTION_WITH_CODE(, BOOL, mocked_SetInformationJobObject, HANDLE, hJob, JO
     }
 }
 MOCK_FUNCTION_END(TRUE)
-
-static void setup_job_object_helper_create_expectations()
-{
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mocked_CreateJobObject(NULL, NULL))
-        .SetFailReturn(NULL);
-    STRICT_EXPECTED_CALL(mocked_GetCurrentProcess())
-        .CallCannotFail();
-    STRICT_EXPECTED_CALL(mocked_AssignProcessToJobObject(IGNORED_ARG, IGNORED_ARG))
-        .SetReturn(TRUE)
-        .SetFailReturn(FALSE);
-    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
-        .SetReturn(TRUE)
-        .CallCannotFail();
-}
 
 static void setup_job_object_helper_limit_memory_expectations(void)
 {

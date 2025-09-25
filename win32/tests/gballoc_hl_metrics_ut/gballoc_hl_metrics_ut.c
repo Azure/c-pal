@@ -1,26 +1,7 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 
-#include <stddef.h>
-#include <inttypes.h>
 
-#include "macro_utils/macro_utils.h"
-#include "testrunnerswitcher.h"
-#include "windows.h"
-#include "umock_c/umock_c.h"
-#include "umock_c/umocktypes_stdint.h"
-#include "umock_c/umocktypes.h"
-
-#define ENABLE_MOCKS
-#include "c_pal/timer.h"
-#include "c_pal/gballoc_ll.h"
-#include "c_pal/lazy_init.h"
-#include "c_pal/interlocked.h"
-#undef ENABLE_MOCKS
-
-#include "real_lazy_init.h"
-#include "real_interlocked.h"
-
-#include "c_pal/gballoc_hl.h"
+#include "gballoc_hl_metrics_ut_pch.h"
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 

@@ -1,25 +1,13 @@
-// Copyright(C) Microsoft Corporation.All rights reserved.
+﻿// Copyright(C) Microsoft Corporation.All rights reserved.
 
-#include <stdint.h>
 
-#include <unistd.h>
-
-#include "macro_utils/macro_utils.h" // IWYU pragma: keep
-
-#include "testrunnerswitcher.h"
-#include "umock_c/umock_c.h"
-#include "umock_c/umocktypes_stdint.h"
+#include "sysinfo_linux_ut_pch.h"
 
 #define ENABLE_MOCKS
-
+#undef ENABLE_MOCKS_DECL
 #include "umock_c/umock_c_prod.h"
-
     MOCKABLE_FUNCTION(, long, mocked_sysconf, int, name)
-
-
 #undef ENABLE_MOCKS
-
-#include "c_pal/sysinfo.h"
 
 static const uint32_t TEST_PROC_COUNT = 4;
 

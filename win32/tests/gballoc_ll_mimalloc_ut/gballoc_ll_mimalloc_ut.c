@@ -1,33 +1,27 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#include <stdlib.h>
-#include <stddef.h>
+#include "gballoc_ll_mimalloc_ut_pch.h"
 
-#include "macro_utils/macro_utils.h"
-#include "testrunnerswitcher.h"
+#define ENABLE_MOCKS
+#undef ENABLE_MOCKS_DECL
+#include "umock_c/umock_c_prod.h"
+    MOCKABLE_FUNCTION(, void*, mock_mi_malloc, size_t, size);
+
+    MOCKABLE_FUNCTION(, void*, mock_mi_calloc, size_t, nmemb, size_t, size);
+
+    MOCKABLE_FUNCTION(, void*, mock_mi_realloc, void*, ptr, size_t, size);
+
+    MOCKABLE_FUNCTION(, void, mock_mi_free, void*, ptr);
+
+    MOCKABLE_FUNCTION(, size_t, mock_mi_usable_size, void*, ptr);
+#undef ENABLE_MOCKS
 
 static void* TEST_MALLOC_RESULT = (void*)0x1;
 static void* TEST_CALLOC_RESULT = (void*)0x2;
 static void* TEST_REALLOC_RESULT = (void*)0x3;
 
-#include "umock_c/umock_c.h"
-
-#define ENABLE_MOCKS
-#include "umock_c/umock_c_prod.h"
-
-    MOCKABLE_FUNCTION(, void*, mock_mi_malloc, size_t, size);
-    MOCKABLE_FUNCTION(, void*, mock_mi_calloc, size_t, nmemb, size_t, size);
-    MOCKABLE_FUNCTION(, void*, mock_mi_realloc, void*, ptr, size_t, size);
-    MOCKABLE_FUNCTION(, void, mock_mi_free, void*, ptr);
-
-    MOCKABLE_FUNCTION(, size_t, mock_mi_usable_size, void*, ptr);
-
-#undef ENABLE_MOCKS
-
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
-
-#include "c_pal/gballoc_ll.h"
 
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {

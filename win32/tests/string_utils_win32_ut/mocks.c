@@ -10,4 +10,7 @@
 
 #define vsnprintf mocked_vsnprintf
 
+BOOL mocked_FileTimeToSystemTime(const FILETIME* lpFileTime, LPSYSTEMTIME lpSystemTime);
+int mocked_vsnprintf(char* buffer, size_t buffer_size, const char* format, va_list va);
+
 #include "../../src/string_utils.c"

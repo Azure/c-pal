@@ -1,18 +1,8 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#include <stdlib.h>
-#include <stddef.h>
-
-#include "macro_utils/macro_utils.h"
-#include "testrunnerswitcher.h"
-
-static void* TEST_MALLOC_RESULT = (void*)0x1;
-static void* TEST_CALLOC_RESULT = (void*)0x2;
-static void* TEST_REALLOC_RESULT = (void*)0x3;
-
-#include "umock_c/umock_c.h"
-#include "umock_c/umock_c_negative_tests.h"
+#include "gballoc_ll_jemalloc_ut_pch.h"
+#undef ENABLE_MOCKS_DECL
 
 typedef void (*JEMALLOC_WRITE_CB)(void*, const char*);
 
@@ -26,30 +16,32 @@ typedef struct PRINT_FUNCTION_CB_DATA_TAG
 static size_t g_call_print_cb_count = 0;
 static PRINT_FUNCTION_CB_DATA g_call_print_cb[MAX_PRINT_FUNCTION_CB];
 
-#define NUM_ARENAS 2
-
 #define ENABLE_MOCKS
 #include "umock_c/umock_c_prod.h"
 
-    MOCKABLE_FUNCTION(, void*, mock_je_malloc, size_t, size);
-    MOCKABLE_FUNCTION(, void*, mock_je_calloc, size_t, nmemb, size_t, size);
-    MOCKABLE_FUNCTION(, void*, mock_je_realloc, void*, ptr, size_t, size);
-    MOCKABLE_FUNCTION(, void, mock_je_free, void*, ptr);
+MOCKABLE_FUNCTION(, void*, mock_je_malloc, size_t, size);
+MOCKABLE_FUNCTION(, void*, mock_je_calloc, size_t, nmemb, size_t, size);
+MOCKABLE_FUNCTION(, void*, mock_je_realloc, void*, ptr, size_t, size);
+MOCKABLE_FUNCTION(, void, mock_je_free, void*, ptr);
 
-    MOCKABLE_FUNCTION(, size_t, mock_je_malloc_usable_size, void*, ptr);
-    MOCKABLE_FUNCTION_WITH_CODE(, void, mock_je_malloc_stats_print, JEMALLOC_WRITE_CB, write_cb, void*, cbopaque, const char*, opts)
-        for (size_t i = 0; i < g_call_print_cb_count; i++)
-        {
-            write_cb(cbopaque, g_call_print_cb[i].text_to_print);
-        }
-    MOCKABLE_FUNCTION_END()
-    MOCKABLE_FUNCTION(, int, mock_je_mallctl, const char*, name, void*, oldp, size_t*, oldlenp, void*, newp, size_t, newlen);
+MOCKABLE_FUNCTION(, size_t, mock_je_malloc_usable_size, void*, ptr);
+MOCKABLE_FUNCTION_WITH_CODE(, void, mock_je_malloc_stats_print, JEMALLOC_WRITE_CB, write_cb, void*, cbopaque, const char*, opts)
+for (size_t i = 0; i < g_call_print_cb_count; i++)
+{
+    write_cb(cbopaque, g_call_print_cb[i].text_to_print);
+}
+MOCKABLE_FUNCTION_END()
+MOCKABLE_FUNCTION(, int, mock_je_mallctl, const char*, name, void*, oldp, size_t*, oldlenp, void*, newp, size_t, newlen);
 
 #undef ENABLE_MOCKS
 
-MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
+static void* TEST_MALLOC_RESULT = (void*)0x1;
+static void* TEST_CALLOC_RESULT = (void*)0x2;
+static void* TEST_REALLOC_RESULT = (void*)0x3;
 
-#include "c_pal/gballoc_ll.h"
+#define NUM_ARENAS 2
+
+MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {

@@ -1,42 +1,7 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 
-#include <stdlib.h>
-#include <inttypes.h>
-#include <sys/epoll.h>
-#include <sys/socket.h>
-#include <errno.h>
-#include <sys/types.h>                       // for ssize_t
 
-#include "macro_utils/macro_utils.h"  // IWYU pragma: keep
-
-#include "real_gballoc_ll.h"    // IWYU pragma: keep
-
-#include "testrunnerswitcher.h"
-#include "umock_c/umock_c.h"
-#include "umock_c/umocktypes.h"              // for IMPLEMENT_UMOCK_C_ENUM_TYPE
-#include "umock_c/umocktypes_stdint.h"
-#include "umock_c/umocktypes_charptr.h"
-#include "umock_c/umock_c_negative_tests.h"
-
-#define ENABLE_MOCKS
-
-#include "c_pal/completion_port_linux.h"
-#include "c_pal/execution_engine.h"
-#include "c_pal/gballoc_hl.h"        // IWYU pragma: keep
-#include "c_pal/gballoc_hl_redirect.h"
-#include "c_pal/interlocked.h"
-#include "c_pal/platform_linux.h"
-#include "c_pal/sync.h"
-#include "c_pal/socket_handle.h"
-
-#undef ENABLE_MOCKS
-
-#include "real_interlocked.h"
-#include "real_gballoc_hl.h" // IWYU pragma: keep
-
-#include "c_pal/async_socket.h"
-
-#define TEST_MAX_EVENTS_NUM     64
+#include "async_socket_linux_ut_pch.h"
 
 static SOCKET_HANDLE test_socket = (SOCKET_HANDLE)0x4242;
 static EXECUTION_ENGINE_HANDLE test_execution_engine = (EXECUTION_ENGINE_HANDLE)0x4243;

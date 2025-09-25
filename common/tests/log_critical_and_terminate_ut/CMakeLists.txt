@@ -1,4 +1,4 @@
-#Copyright (c) Microsoft. All rights reserved.
+﻿#Copyright (c) Microsoft. All rights reserved.
 #Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 set(theseTestsName log_critical_and_terminate_ut)
@@ -14,4 +14,6 @@ set(${theseTestsName}_h_files
     ../../inc/c_pal/log_critical_and_terminate.h
 )
 
-build_test_artifacts(${theseTestsName} "tests/c_pal")
+build_test_artifacts(${theseTestsName} "tests/c_pal" 
+    ENABLE_TEST_FILES_PRECOMPILED_HEADERS "${CMAKE_CURRENT_LIST_DIR}/log_critical_and_terminate_ut_pch.h"
+)

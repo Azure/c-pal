@@ -1,40 +1,13 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 
-#include <inttypes.h>
-#include <stdlib.h>
 
-#include "macro_utils/macro_utils.h" // IWYU pragma: keep
-
-#include "testrunnerswitcher.h"
-#include "umock_c/umock_c.h"
-#include "umock_c/umocktypes_stdint.h"
-#include "umock_c/umocktypes_bool.h"
-#include "umock_c/umock_c_negative_tests.h"
-
-#include "real_gballoc_ll.h"
+#include "execution_engine_linux_ut_pch.h"
 
 #define ENABLE_MOCKS
-#include "c_pal/gballoc_hl.h"
-#include "c_pal/gballoc_hl_redirect.h"
-#include "c_pal/interlocked.h"
-#include "c_pal/interlocked_hl.h"
-
-#undef ENABLE_MOCKS
-
-#include "real_interlocked.h"
-#include "real_gballoc_hl.h"
-#include "../reals/real_interlocked_hl.h"
-
-#include "c_pal/execution_engine.h"
-#include "c_pal/execution_engine_linux.h"
-
-
-#define DEFAULT_MIN_THREAD_COUNT 4
-#define DEFAULT_MAX_THREAD_COUNT 0
-#define MIN_THREAD_COUNT 5
-#define MAX_THREAD_COUNT 10
-
+#undef ENABLE_MOCKS_DECL
+#include "umock_c/umock_c_prod.h"
 EXECUTION_ENGINE_PARAMETERS test_execution_engine_parameter = {MIN_THREAD_COUNT, MAX_THREAD_COUNT};
+#undef ENABLE_MOCKS
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
