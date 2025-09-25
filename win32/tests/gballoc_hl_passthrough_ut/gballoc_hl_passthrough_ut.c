@@ -5,10 +5,6 @@
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
-#include "real_gballoc_ll.h"
-
-#include "c_pal/gballoc_hl.h"
-
 static void TEST_gballoc_hl_init(void)
 {
     STRICT_EXPECTED_CALL(gballoc_ll_init(IGNORED_ARG));

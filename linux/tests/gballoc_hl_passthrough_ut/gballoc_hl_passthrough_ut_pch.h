@@ -7,3 +7,14 @@
 #include <stdlib.h>
 #include <string.h>              // for memset, memcmp
 #include <malloc.h>
+
+#include "macro_utils/macro_utils.h"
+#include "testrunnerswitcher.h"
+
+#include "umock_c/umock_c.h"
+
+#define ENABLE_MOCKS
+#include "c_pal/gballoc_ll.h"
+#undef ENABLE_MOCKS
+
+#include "c_pal/gballoc_hl.h"

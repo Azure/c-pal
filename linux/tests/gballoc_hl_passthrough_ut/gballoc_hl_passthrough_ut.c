@@ -1,11 +1,7 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>              // for memset, memcmp
-#include <malloc.h>
+#include "gballoc_hl_passthrough_ut_pch.h"
 
 static void* stdlib_malloc(size_t size)
 {
@@ -32,18 +28,7 @@ static size_t stdlib_size(void* ptr)
     return malloc_usable_size(ptr);
 }
 
-#include "macro_utils/macro_utils.h" // IWYU pragma: keep
-#include "testrunnerswitcher.h"
-
-#include "umock_c/umock_c.h"
-
-#define ENABLE_MOCKS
-#include "c_pal/gballoc_ll.h"
-#undef ENABLE_MOCKS
-
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
-
-#include "c_pal/gballoc_hl.h"
 
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {

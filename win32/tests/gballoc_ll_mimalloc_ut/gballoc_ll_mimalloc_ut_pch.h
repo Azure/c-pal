@@ -8,3 +8,14 @@
 
 #include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
+
+#include "umock_c/umock_c.h"
+
+#define ENABLE_MOCKS
+#include "umock_c/umock_c_prod.h"
+
+
+
+#undef ENABLE_MOCKS
+
+#include "c_pal/gballoc_ll.h"

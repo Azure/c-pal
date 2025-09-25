@@ -14,3 +14,7 @@
 #define ENABLE_MOCKS
 #include "c_pal/gballoc_ll.h"
 #undef ENABLE_MOCKS
+
+#include "real_gballoc_ll.h"
+
+#include "c_pal/gballoc_hl.h"
