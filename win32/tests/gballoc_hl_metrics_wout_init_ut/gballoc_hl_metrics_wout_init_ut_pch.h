@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-
 // Precompiled header for gballoc_hl_metrics_wout_init_ut
 
 #ifndef GBALLOC_HL_METRICS_WOUT_INIT_UT_PCH_H

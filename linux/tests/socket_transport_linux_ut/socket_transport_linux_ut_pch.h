@@ -1,6 +1,5 @@
 // Copyright(C) Microsoft Corporation.All rights reserved.
 
-
 // Precompiled header for socket_transport_linux_ut
 
 #ifndef SOCKET_TRANSPORT_LINUX_UT_PCH_H

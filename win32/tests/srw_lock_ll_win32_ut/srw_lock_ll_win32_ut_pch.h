@@ -18,11 +18,6 @@
 #include "umock_c/umocktypes.h"
 #include "umock_c/umocktypes_windows.h"
 
-#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
-
-
-#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
-
 #include "c_pal/srw_lock_ll.h"
 
 #endif // SRW_LOCK_LL_WIN32_UT_PCH_H

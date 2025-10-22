@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-
 // Precompiled header for execution_engine_linux_ut
 
 #ifndef EXECUTION_ENGINE_LINUX_UT_PCH_H
@@ -33,7 +32,6 @@
 
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_linux.h"
-
 
 #define DEFAULT_MIN_THREAD_COUNT 4
 #define DEFAULT_MAX_THREAD_COUNT 0

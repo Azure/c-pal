@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-
-
 // Precompiled header for malloc_multi_flex_ut
 
 #ifndef MALLOC_MULTI_FLEX_UT_PCH_H

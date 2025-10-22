@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-
 // Precompiled header for threadpool_linux_ut
 
 #ifndef THREADPOOL_LINUX_UT_PCH_H

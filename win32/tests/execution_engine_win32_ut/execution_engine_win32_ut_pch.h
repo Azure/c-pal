@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-
-
 // Precompiled header for execution_engine_win32_ut
 
 #ifndef EXECUTION_ENGINE_WIN32_UT_PCH_H
@@ -9,7 +7,6 @@
 
 #include <stdlib.h>
 #include <inttypes.h>
-
 
 #include "windows.h"
 #include "macro_utils/macro_utils.h"

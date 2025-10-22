@@ -8,7 +8,6 @@
 
 #include <stdbool.h>
 
-
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
 // IWYU pragma: no_include <wchar.h>

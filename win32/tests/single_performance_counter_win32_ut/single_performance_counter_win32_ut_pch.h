@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-
 // Precompiled header for single_performance_counter_win32_ut
 
 #ifndef SINGLE_PERFORMANCE_COUNTER_WIN32_UT_PCH_H
@@ -34,7 +33,6 @@
 //
 // Mocks for system calls
 //
-
 
 #include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 

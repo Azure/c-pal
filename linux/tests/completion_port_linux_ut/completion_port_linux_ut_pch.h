@@ -1,6 +1,5 @@
 // Copyright(C) Microsoft Corporation.All rights reserved.
 
-
 // Precompiled header for completion_port_linux_ut
 
 #ifndef COMPLETION_PORT_LINUX_UT_PCH_H

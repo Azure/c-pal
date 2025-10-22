@@ -8,7 +8,6 @@
 
 #include <stdlib.h>
 
-
 #include "windows.h"
 
 #include "macro_utils/macro_utils.h"
@@ -22,7 +21,6 @@
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/timer.h"
-
 
 #include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
