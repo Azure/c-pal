@@ -1,5 +1,4 @@
 
-
 // Precompiled header for interlocked_macros_ut
 
 //Copyright(c) Microsoft.All rights reserved.

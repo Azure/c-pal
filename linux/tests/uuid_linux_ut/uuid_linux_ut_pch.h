@@ -19,9 +19,6 @@
 #include "umock_c/umock_c.h"
 #include "umock_c/umock_c_negative_tests.h"
 
-#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
-#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
-
 #include "c_pal/uuid.h"
 
 #define TEST_DATA_0  0x01

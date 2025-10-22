@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-
 // Precompiled header for srw_lock_linux_ut
 
 #ifndef SRW_LOCK_LINUX_UT_PCH_H

@@ -9,7 +9,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
 #include "umock_c/umock_c.h"

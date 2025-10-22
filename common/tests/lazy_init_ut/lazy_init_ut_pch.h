@@ -10,7 +10,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
 // IWYU pragma: no_include <wchar.h>
@@ -25,7 +24,6 @@
 #include "c_pal/call_once.h"
 #include "c_pal/interlocked.h"          // for volatile_atomic
 #include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
-
 
 #include "c_pal/lazy_init.h"
 

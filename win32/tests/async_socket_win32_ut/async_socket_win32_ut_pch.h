@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-
-
 // Precompiled header for async_socket_win32_ut
 
 #ifndef ASYNC_SOCKET_WIN32_UT_PCH_H
@@ -9,7 +7,6 @@
 
 #include <stdlib.h>
 #include <inttypes.h>
-
 
 #include "winsock2.h"
 #include "ws2tcpip.h"

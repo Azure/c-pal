@@ -14,12 +14,6 @@
 
 #include "umock_c/umock_c.h"
 
-#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
-
-
-
-#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
-
 #include "c_pal/gballoc_ll.h"
 
 #endif // GBALLOC_LL_PASSTHROUGH_UT_PCH_H

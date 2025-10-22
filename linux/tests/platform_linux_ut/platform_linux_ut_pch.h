@@ -1,6 +1,5 @@
 // Copyright(C) Microsoft Corporation.All rights reserved.
 
-
 // Precompiled header for platform_linux_ut
 
 #ifndef PLATFORM_LINUX_UT_PCH_H

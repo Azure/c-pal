@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-
 // Precompiled header for async_socket_linux_ut
 
 #ifndef ASYNC_SOCKET_LINUX_UT_PCH_H
