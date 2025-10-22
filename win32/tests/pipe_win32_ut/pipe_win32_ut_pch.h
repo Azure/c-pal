@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 // Precompiled header for pipe_win32_ut
@@ -15,9 +15,9 @@
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_charptr.h"
 
-#define ENABLE_MOCKS
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 #include "mock_pipe.h"
-#undef ENABLE_MOCKS
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 #include "real_gballoc_hl.h"
 

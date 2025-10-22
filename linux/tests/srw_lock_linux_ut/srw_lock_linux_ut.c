@@ -1,9 +1,9 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 
 #include "srw_lock_linux_ut_pch.h"
 
-#define ENABLE_MOCKS
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 #undef ENABLE_MOCKS_DECL
 #include "umock_c/umock_c_prod.h"
 char* sprintf_char_function(const char* format, ...)
@@ -15,7 +15,7 @@ char* sprintf_char_function(const char* format, ...)
     va_end(va);
     return result;
 }
-#undef ENABLE_MOCKS
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 

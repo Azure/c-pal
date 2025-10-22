@@ -1,4 +1,4 @@
-﻿// Copyright(C) Microsoft Corporation.All rights reserved.
+// Copyright(C) Microsoft Corporation.All rights reserved.
 
 
 // Precompiled header for platform_linux_ut
@@ -15,12 +15,12 @@
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_charptr.h"
 
-#define ENABLE_MOCKS
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 
 #include "c_pal/completion_port_linux.h"
 #include "platform_mocked.h"
 
-#undef ENABLE_MOCKS
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 #include "c_pal/platform.h"
 #include "c_pal/platform_linux.h"

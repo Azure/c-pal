@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 
 // Precompiled header for async_socket_linux_ut
@@ -21,7 +21,7 @@
 #include "umock_c/umocktypes_charptr.h"
 #include "umock_c/umock_c_negative_tests.h"
 
-#define ENABLE_MOCKS
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 
 #include "c_pal/completion_port_linux.h"
 #include "c_pal/execution_engine.h"
@@ -32,7 +32,7 @@
 #include "c_pal/sync.h"
 #include "c_pal/socket_handle.h"
 
-#undef ENABLE_MOCKS
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 #include "real_interlocked.h"
 #include "real_gballoc_hl.h" // IWYU pragma: keep

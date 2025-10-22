@@ -1,4 +1,4 @@
-﻿// Copyright(C) Microsoft Corporation.All rights reserved.
+// Copyright(C) Microsoft Corporation.All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "interlocked_hl_ut_pch.h"
@@ -11,15 +11,14 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
 
-#define ENABLE_MOCKS
-#include "umock_c/umock_c_prod.h"
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 
 MOCK_FUNCTION_WITH_CODE(, bool, TEST_IS_GREATER_32, int32_t, original_target, int32_t, exchange)
 MOCK_FUNCTION_END(original_target < exchange)
 
 MOCK_FUNCTION_WITH_CODE(, bool, TEST_IS_GREATER_64, int64_t, original_target, int64_t, exchange)
 MOCK_FUNCTION_END(original_target<exchange)
-#undef ENABLE_MOCKS
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 typedef  struct ADDEND_AND_VALUE_TAG
 {

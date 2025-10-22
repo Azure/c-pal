@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 
 
@@ -19,12 +19,12 @@
 #include "umock_c/umock_c_negative_tests.h"
 #include "c_pal/execution_engine.h"
 
-#define ENABLE_MOCKS
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h"
 
-#undef ENABLE_MOCKS
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 #include "real_gballoc_hl.h"
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 
 // Precompiled header for threadpool_win32_ut
@@ -18,7 +18,7 @@
 #include "umock_c/umocktypes_windows.h"
 #include "umock_c/umock_c_negative_tests.h"
 
-#define ENABLE_MOCKS
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h"
@@ -28,7 +28,7 @@
 #include "c_pal/ps_util.h"
 #include "c_pal/srw_lock_ll.h"
 
-#undef ENABLE_MOCKS
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 #include "c_pal/thandle.h"
 

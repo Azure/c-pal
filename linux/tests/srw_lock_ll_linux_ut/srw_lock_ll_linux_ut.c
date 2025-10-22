@@ -1,9 +1,9 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "srw_lock_ll_linux_ut_pch.h"
 
-#define ENABLE_MOCKS
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 #undef ENABLE_MOCKS_DECL
 #include "umock_c/umock_c_prod.h"
 MOCKABLE_FUNCTION(, int, mocked_pthread_rwlock_init, pthread_rwlock_t *restrict, rwlock, const pthread_rwlockattr_t *restrict, attr);
@@ -19,7 +19,7 @@ MOCKABLE_FUNCTION(, int, mocked_pthread_rwlock_rdlock, pthread_rwlock_t *, rwloc
 MOCKABLE_FUNCTION(, int, mocked_pthread_rwlock_tryrdlock, pthread_rwlock_t *, rwlock);
 
 MOCKABLE_FUNCTION(, int, mocked_pthread_rwlock_destroy, pthread_rwlock_t *, rwlock);
-#undef ENABLE_MOCKS
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 TEST_DEFINE_ENUM_TYPE(SRW_LOCK_LL_TRY_ACQUIRE_RESULT, SRW_LOCK_LL_TRY_ACQUIRE_RESULT_VALUES)
 

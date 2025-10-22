@@ -1,4 +1,4 @@
-﻿// Copyright(C) Microsoft Corporation.All rights reserved.
+// Copyright(C) Microsoft Corporation.All rights reserved.
 
 
 // Precompiled header for socket_transport_win32_ut
@@ -20,7 +20,7 @@
 #include "umock_c/umock_c_negative_tests.h"
 #include "umock_c/umocktypes_windows.h"
 
-#define ENABLE_MOCKS
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 
 #include "winsock_mocked.h"
 
@@ -32,9 +32,7 @@
 #include "c_pal/interlocked.h"
 #include "c_pal/sm.h"
 #include "c_pal/sync.h"
-#undef ENABLE_MOCKS
-
-#include "umock_c/umock_c_prod.h"
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 #include "real_gballoc_hl.h"
 #include "../reals/real_sm.h"
 

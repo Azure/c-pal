@@ -6,9 +6,9 @@
 
 #include "umock_c/umock_c.h"
 
-#define ENABLE_MOCKS
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 #include "submodule.h"
-#undef ENABLE_MOCKS
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 #include "c_pal/uuid.h"
 #include "c_pal/umocktypes_uuid_t.h"
