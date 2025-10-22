@@ -1,9 +1,14 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 // Precompiled header for gballoc_ll_passthrough_ut
+
+#ifndef GBALLOC_LL_PASSTHROUGH_UT_PCH_H
+#define GBALLOC_LL_PASSTHROUGH_UT_PCH_H
 
 #include <stdlib.h>
 
 #include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
+
+#endif // GBALLOC_LL_PASSTHROUGH_UT_PCH_H

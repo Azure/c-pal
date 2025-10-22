@@ -3,6 +3,8 @@
 
 #include "real_thandle_helper_ut_pch.h"
 
+#include "real_interlocked_renames.h" // IWYU pragma: keep
+
 typedef struct MOCKED_STRUCT_TAG
 {
     uint8_t dummy;

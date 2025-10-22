@@ -1,9 +1,9 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "gballoc_ll_mimalloc_ut_pch.h"
 
-#define ENABLE_MOCKS
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 #undef ENABLE_MOCKS_DECL
 #include "umock_c/umock_c_prod.h"
     MOCKABLE_FUNCTION(, void*, mock_mi_malloc, size_t, size);
@@ -15,7 +15,7 @@
     MOCKABLE_FUNCTION(, void, mock_mi_free, void*, ptr);
 
     MOCKABLE_FUNCTION(, size_t, mock_mi_usable_size, void*, ptr);
-#undef ENABLE_MOCKS
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 static void* TEST_MALLOC_RESULT = (void*)0x1;
 static void* TEST_CALLOC_RESULT = (void*)0x2;

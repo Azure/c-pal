@@ -1,7 +1,10 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 // Precompiled header for sync_linux_ut
+
+#ifndef SYNC_LINUX_UT_PCH_H
+#define SYNC_LINUX_UT_PCH_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -25,3 +28,5 @@
 
 // No idea why iwyu warns about this since we include time.h but...
 // IWYU pragma: no_forward_declare timespec
+
+#endif // SYNC_LINUX_UT_PCH_H

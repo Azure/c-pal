@@ -1,7 +1,10 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 
 // Precompiled header for single_performance_counter_win32_ut
+
+#ifndef SINGLE_PERFORMANCE_COUNTER_WIN32_UT_PCH_H
+#define SINGLE_PERFORMANCE_COUNTER_WIN32_UT_PCH_H
 
 #include <stdlib.h>
 #include <stddef.h>
@@ -21,7 +24,7 @@
 #include "umock_c/umocktypes_struct.h"
 #include "umock_c/umock_c_negative_tests.h"
 
-#define ENABLE_MOCKS
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/interlocked.h"
@@ -33,7 +36,7 @@
 //
 
 
-#undef ENABLE_MOCKS
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 // Must include umock_c_prod so mocks are not expanded in reals
 #include "umock_c/umock_c_prod.h"
@@ -44,3 +47,5 @@
 #include "real_srw_lock.h"
 
 #include "c_pal/single_performance_counter.h"
+
+#endif // SINGLE_PERFORMANCE_COUNTER_WIN32_UT_PCH_H

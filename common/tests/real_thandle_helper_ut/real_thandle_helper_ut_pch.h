@@ -1,7 +1,10 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 // Precompiled header for real_thandle_helper_ut
+
+#ifndef REAL_THANDLE_HELPER_UT_PCH_H
+#define REAL_THANDLE_HELPER_UT_PCH_H
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -12,7 +15,8 @@
 #include "umock_c/umocktypes_stdint.h"
 #include "testrunnerswitcher.h"
 
-#define ENABLE_MOCKS
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
+
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 #include "c_pal/interlocked.h" // IWYU pragma: keep
@@ -25,10 +29,7 @@ struct MOCKED_STRUCT_TAG; // IWYU pragma: private
 typedef struct MOCKED_STRUCT_TAG MOCKED_STRUCT; // IWYU pragma: private
 THANDLE_TYPE_DECLARE(MOCKED_STRUCT);
 
-#undef ENABLE_MOCKS
-
-#include "umock_c/umock_c_prod.h"
-
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 #include "real_gballoc_hl.h"
 #include "real_interlocked.h" // IWYU pragma: keep
@@ -36,4 +37,4 @@ THANDLE_TYPE_DECLARE(MOCKED_STRUCT);
 
 #include "real_thandle_helper.h"
 
-#include "real_interlocked_renames.h" // IWYU pragma: keep
+#endif // REAL_THANDLE_HELPER_UT_PCH_H

@@ -1,14 +1,13 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "string_utils_win32_ut_pch.h"
 #undef ENABLE_MOCKS_DECL
 
-#define ENABLE_MOCKS
-#include "umock_c/umock_c_prod.h"
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 MOCKABLE_FUNCTION(, BOOL, mocked_FileTimeToSystemTime, const FILETIME*, lpFileTime, LPSYSTEMTIME, lpSystemTime);
 MOCKABLE_FUNCTION(, int, mocked_vsnprintf, char*, buffer, size_t, buffer_size, const char*, format, va_list, va);
-#undef ENABLE_MOCKS
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 

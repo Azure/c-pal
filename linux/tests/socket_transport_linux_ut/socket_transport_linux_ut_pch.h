@@ -1,7 +1,10 @@
-﻿// Copyright(C) Microsoft Corporation.All rights reserved.
+// Copyright(C) Microsoft Corporation.All rights reserved.
 
 
 // Precompiled header for socket_transport_linux_ut
+
+#ifndef SOCKET_TRANSPORT_LINUX_UT_PCH_H
+#define SOCKET_TRANSPORT_LINUX_UT_PCH_H
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -28,7 +31,7 @@
 #include "umock_c/umocktypes.h"
 #include "umock_c/umock_c_negative_tests.h"
 
-#define ENABLE_MOCKS
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 
 #include "socket_mocked.h"
 
@@ -37,12 +40,12 @@
 #include "c_pal/socket_handle.h"
 #include "c_pal/sm.h"
 
-#undef ENABLE_MOCKS
-
-#include "umock_c/umock_c_prod.h"   // IWYU pragma: keep
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 #include "real_gballoc_hl.h"        // IWYU pragma: keep
 #include "../reals/real_sm.h"
 
 #include "c_pal/socket_transport.h"
 
 #define MAX_SOCKET_ARRAY            10
+
+#endif // SOCKET_TRANSPORT_LINUX_UT_PCH_H

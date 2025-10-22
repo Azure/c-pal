@@ -1,7 +1,10 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 
 // Precompiled header for execution_engine_linux_ut
+
+#ifndef EXECUTION_ENGINE_LINUX_UT_PCH_H
+#define EXECUTION_ENGINE_LINUX_UT_PCH_H
 
 #include <inttypes.h>
 #include <stdlib.h>
@@ -16,13 +19,13 @@
 
 #include "real_gballoc_ll.h"
 
-#define ENABLE_MOCKS
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/interlocked.h"
 #include "c_pal/interlocked_hl.h"
 
-#undef ENABLE_MOCKS
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 #include "real_interlocked.h"
 #include "real_gballoc_hl.h"
@@ -36,3 +39,5 @@
 #define DEFAULT_MAX_THREAD_COUNT 0
 #define MIN_THREAD_COUNT 5
 #define MAX_THREAD_COUNT 10
+
+#endif // EXECUTION_ENGINE_LINUX_UT_PCH_H

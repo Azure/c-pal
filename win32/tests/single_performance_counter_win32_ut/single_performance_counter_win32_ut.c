@@ -1,9 +1,9 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 
 #include "single_performance_counter_win32_ut_pch.h"
 
-#define ENABLE_MOCKS
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 #undef ENABLE_MOCKS_DECL
 #include "umock_c/umock_c_prod.h"
 MOCKABLE_FUNCTION(WINAPI, DWORD, mocked_GetCurrentProcessId);
@@ -19,7 +19,7 @@ MOCKABLE_FUNCTION(WINAPI, PDH_STATUS, mocked_PdhCollectQueryData, PDH_HQUERY, hQ
 MOCKABLE_FUNCTION(WINAPI, PDH_STATUS, mocked_PdhCloseQuery, PDH_HQUERY, hQuery);
 
 MOCKABLE_FUNCTION(WINAPI, PDH_STATUS, mocked_PdhGetFormattedCounterValue, PDH_HCOUNTER, hCounter, DWORD, dwFormat, DWORD*, lpdwType, PPDH_FMT_COUNTERVALUE, pValue);
-#undef ENABLE_MOCKS
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 IMPLEMENT_UMOCK_C_ENUM_TYPE(SINGLE_PERFORMANCE_COUNTER_SAMPLE_RESULT, SINGLE_PERFORMANCE_COUNTER_SAMPLE_RESULT_VALUES);
 

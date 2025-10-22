@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "gballoc_ll_passthrough_ut_pch.h"
@@ -11,8 +11,7 @@ static void* TEST_REALLOC_RESULT = (void*)0x3;
 
 #include "umock_c/umock_c.h"
 
-#define ENABLE_MOCKS
-#include "umock_c/umock_c_prod.h"
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 
     MOCKABLE_FUNCTION(, void*, mock_malloc, size_t, size);
     MOCKABLE_FUNCTION(, void*, mock_calloc, size_t, nmemb, size_t, size);
@@ -21,7 +20,7 @@ static void* TEST_REALLOC_RESULT = (void*)0x3;
 
     MOCKABLE_FUNCTION(, size_t, mock__msize, void*, ptr);
 
-#undef ENABLE_MOCKS
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 

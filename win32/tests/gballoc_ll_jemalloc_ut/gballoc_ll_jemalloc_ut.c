@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "gballoc_ll_jemalloc_ut_pch.h"
@@ -16,8 +16,7 @@ typedef struct PRINT_FUNCTION_CB_DATA_TAG
 static size_t g_call_print_cb_count = 0;
 static PRINT_FUNCTION_CB_DATA g_call_print_cb[MAX_PRINT_FUNCTION_CB];
 
-#define ENABLE_MOCKS
-#include "umock_c/umock_c_prod.h"
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 
 MOCKABLE_FUNCTION(, void*, mock_je_malloc, size_t, size);
 MOCKABLE_FUNCTION(, void*, mock_je_calloc, size_t, nmemb, size_t, size);
@@ -33,7 +32,7 @@ for (size_t i = 0; i < g_call_print_cb_count; i++)
 MOCKABLE_FUNCTION_END()
 MOCKABLE_FUNCTION(, int, mock_je_mallctl, const char*, name, void*, oldp, size_t*, oldlenp, void*, newp, size_t, newlen);
 
-#undef ENABLE_MOCKS
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 static void* TEST_MALLOC_RESULT = (void*)0x1;
 static void* TEST_CALLOC_RESULT = (void*)0x2;

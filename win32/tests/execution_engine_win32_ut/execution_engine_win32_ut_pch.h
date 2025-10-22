@@ -1,8 +1,11 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 
 
 // Precompiled header for execution_engine_win32_ut
+
+#ifndef EXECUTION_ENGINE_WIN32_UT_PCH_H
+#define EXECUTION_ENGINE_WIN32_UT_PCH_H
 
 #include <stdlib.h>
 #include <inttypes.h>
@@ -19,13 +22,15 @@
 #include "umock_c/umock_c_negative_tests.h"
 #include "c_pal/execution_engine.h"
 
-#define ENABLE_MOCKS
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h"
 
-#undef ENABLE_MOCKS
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 #include "real_gballoc_hl.h"
 
 #include "c_pal/execution_engine_win32.h"
+
+#endif // EXECUTION_ENGINE_WIN32_UT_PCH_H

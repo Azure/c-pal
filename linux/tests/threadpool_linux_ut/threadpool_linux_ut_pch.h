@@ -1,7 +1,10 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 
 // Precompiled header for threadpool_linux_ut
+
+#ifndef THREADPOOL_LINUX_UT_PCH_H
+#define THREADPOOL_LINUX_UT_PCH_H
 
 #include <inttypes.h>
 #include <stdlib.h>
@@ -21,7 +24,7 @@
 
 #include "real_gballoc_ll.h"
 
-#define ENABLE_MOCKS
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/threadapi.h"
@@ -36,7 +39,7 @@
 
 #include "c_pal/tqueue_threadpool_work_item.h"
 
-#undef ENABLE_MOCKS
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 #include "c_pal/thandle.h" // IWYU pragma: keep
 #include "c_pal/thandle_ll.h"
@@ -54,3 +57,5 @@
 #define MAX_THREAD_COUNT 10
 #define MAX_THREADPOOL_TIMER_COUNT 64
 #define MAX_TIMERS 1024
+
+#endif // THREADPOOL_LINUX_UT_PCH_H

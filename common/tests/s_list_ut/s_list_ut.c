@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "s_list_ut_pch.h"
@@ -11,7 +11,7 @@ typedef struct SIMPLE_ITEM_TAG
 
 #define TEST_CONTEXT ((const void*)0x0101)
 
-#define ENABLE_MOCKS
+#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 
 MOCK_FUNCTION_WITH_CODE(, bool, test_match_function, PS_LIST_ENTRY, list_entry, const void*, match_context)
 MOCK_FUNCTION_END(true);
@@ -39,7 +39,7 @@ MOCK_FUNCTION_WITH_CODE(, int, test_action_function_fail, PS_LIST_ENTRY, list_en
 SIMPLE_ITEM* item = CONTAINING_RECORD(list_entry, SIMPLE_ITEM, link);
 MOCK_FUNCTION_END(item->index == 2 ? MU_FAILURE : 0);
 
-#undef ENABLE_MOCKS
+#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 TEST_DEFINE_ENUM_TYPE(S_LIST_IS_EMPTY_RESULT, S_LIST_IS_EMPTY_RESULT_VALUES);
 
