@@ -3,6 +3,9 @@
 
 // Precompiled header for threadpool_win32_ut
 
+#ifndef THREADPOOL_WIN32_UT_PCH_H
+#define THREADPOOL_WIN32_UT_PCH_H
+
 #include <stdlib.h>
 #include <inttypes.h>
 
@@ -37,3 +40,5 @@
 
 #include "c_pal/string_utils.h"
 #include "c_pal/threadpool.h"
+
+#endif // THREADPOOL_WIN32_UT_PCH_H

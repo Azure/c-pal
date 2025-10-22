@@ -1,7 +1,10 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 // Precompiled header for reals_win32_ut
+
+#ifndef REALS_WIN32_UT_PCH_H
+#define REALS_WIN32_UT_PCH_H
 
 #include "testrunnerswitcher.h"
 
@@ -51,3 +54,5 @@
 #include "real_socket_transport.h"
 #include "real_async_socket.h"
 #include "real_job_object_helper.h"
+
+#endif // REALS_WIN32_UT_PCH_H

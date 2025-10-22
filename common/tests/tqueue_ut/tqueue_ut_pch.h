@@ -3,6 +3,9 @@
 
 // Precompiled header for tqueue_ut
 
+#ifndef TQUEUE_UT_PCH_H
+#define TQUEUE_UT_PCH_H
+
 #include <stdlib.h>
 #include <stdbool.h>
 #include <inttypes.h>
@@ -36,3 +39,5 @@
 #include "real_srw_lock_ll.h"
 
 #include "c_pal/tqueue.h"
+
+#endif // TQUEUE_UT_PCH_H

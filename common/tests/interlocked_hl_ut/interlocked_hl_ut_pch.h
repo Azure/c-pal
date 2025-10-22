@@ -3,6 +3,9 @@
 
 // Precompiled header for interlocked_hl_ut
 
+#ifndef INTERLOCKED_HL_UT_PCH_H
+#define INTERLOCKED_HL_UT_PCH_H
+
 #include <string.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -25,3 +28,5 @@
 #include "real_sync.h"
 #include "real_gballoc_hl.h"
 #include "c_pal/interlocked_hl.h"
+
+#endif // INTERLOCKED_HL_UT_PCH_H

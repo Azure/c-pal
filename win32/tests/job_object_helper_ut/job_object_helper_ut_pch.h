@@ -4,6 +4,9 @@
 
 // Precompiled header for job_object_helper_ut
 
+#ifndef JOB_OBJECT_HELPER_UT_PCH_H
+#define JOB_OBJECT_HELPER_UT_PCH_H
+
 #include <stdlib.h>
 
 #include "windows.h"
@@ -29,3 +32,5 @@
 
 #include "real_gballoc_hl.h"
 #include "c_pal/job_object_helper.h"
+
+#endif // JOB_OBJECT_HELPER_UT_PCH_H

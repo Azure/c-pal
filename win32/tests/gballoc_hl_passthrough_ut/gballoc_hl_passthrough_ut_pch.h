@@ -3,6 +3,9 @@
 
 // Precompiled header for gballoc_hl_passthrough_ut
 
+#ifndef GBALLOC_HL_PASSTHROUGH_UT_PCH_H
+#define GBALLOC_HL_PASSTHROUGH_UT_PCH_H
+
 #include <stdlib.h>
 
 #include "macro_utils/macro_utils.h"
@@ -18,3 +21,5 @@
 #include "real_gballoc_ll.h"
 
 #include "c_pal/gballoc_hl.h"
+
+#endif // GBALLOC_HL_PASSTHROUGH_UT_PCH_H

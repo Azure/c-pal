@@ -3,6 +3,9 @@
 
 // Precompiled header for gballoc_hl_metrics_wout_init_ut
 
+#ifndef GBALLOC_HL_METRICS_WOUT_INIT_UT_PCH_H
+#define GBALLOC_HL_METRICS_WOUT_INIT_UT_PCH_H
+
 #include <stdint.h>
 #include <stddef.h>
 
@@ -23,3 +26,5 @@
 #include "real_interlocked.h"
 
 #include "c_pal/gballoc_hl.h"
+
+#endif // GBALLOC_HL_METRICS_WOUT_INIT_UT_PCH_H

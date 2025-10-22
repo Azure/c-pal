@@ -3,6 +3,9 @@
 
 // Precompiled header for completion_port_linux_ut
 
+#ifndef COMPLETION_PORT_LINUX_UT_PCH_H
+#define COMPLETION_PORT_LINUX_UT_PCH_H
+
 #include <stdlib.h>
 #include <inttypes.h>
 #include <sys/epoll.h>
@@ -47,3 +50,5 @@
 
 #define TEST_COMPLETION_PORT_CALLBACK_EXECUTING  2
 #define TEST_COMPLETION_PORT_CALLBACK_EXECUTED   3
+
+#endif // COMPLETION_PORT_LINUX_UT_PCH_H

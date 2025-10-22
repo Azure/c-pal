@@ -3,6 +3,9 @@
 
 // Precompiled header for gballoc_ll_mimalloc_ut
 
+#ifndef GBALLOC_LL_MIMALLOC_UT_PCH_H
+#define GBALLOC_LL_MIMALLOC_UT_PCH_H
+
 #include <stdlib.h>
 #include <stddef.h>
 
@@ -18,3 +21,5 @@
 #include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 #include "c_pal/gballoc_ll.h"
+
+#endif // GBALLOC_LL_MIMALLOC_UT_PCH_H

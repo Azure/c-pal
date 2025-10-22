@@ -4,6 +4,9 @@
 
 // Precompiled header for malloc_multi_flex_ut
 
+#ifndef MALLOC_MULTI_FLEX_UT_PCH_H
+#define MALLOC_MULTI_FLEX_UT_PCH_H
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -27,3 +30,5 @@
 #include "real_gballoc_hl.h"
 
 #include "test_module.h"
+
+#endif // MALLOC_MULTI_FLEX_UT_PCH_H

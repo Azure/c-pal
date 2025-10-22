@@ -3,6 +3,9 @@
 
 // Precompiled header for string_utils_win32_ut
 
+#ifndef STRING_UTILS_WIN32_UT_PCH_H
+#define STRING_UTILS_WIN32_UT_PCH_H
+
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -30,3 +33,5 @@
 #include "real_gballoc_hl.h"
 
 #include "c_pal/string_utils.h"
+
+#endif // STRING_UTILS_WIN32_UT_PCH_H

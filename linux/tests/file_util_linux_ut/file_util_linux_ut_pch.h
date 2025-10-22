@@ -3,6 +3,9 @@
 
 // Precompiled header for file_util_linux_ut
 
+#ifndef FILE_UTIL_LINUX_UT_PCH_H
+#define FILE_UTIL_LINUX_UT_PCH_H
+
 #include <stdlib.h>
 #include <inttypes.h>
 #include <string.h> // IWYU pragma: keep
@@ -33,3 +36,5 @@
 #include "c_pal/windows_defines.h"
 
 #include "c_pal/file_util.h"
+
+#endif // FILE_UTIL_LINUX_UT_PCH_H

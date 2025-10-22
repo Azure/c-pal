@@ -4,6 +4,9 @@
 
 // Precompiled header for async_socket_win32_ut
 
+#ifndef ASYNC_SOCKET_WIN32_UT_PCH_H
+#define ASYNC_SOCKET_WIN32_UT_PCH_H
+
 #include <stdlib.h>
 #include <inttypes.h>
 
@@ -33,3 +36,5 @@
 #include "real_gballoc_hl.h"
 
 #include "c_pal/async_socket.h"
+
+#endif // ASYNC_SOCKET_WIN32_UT_PCH_H

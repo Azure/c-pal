@@ -3,6 +3,9 @@
 
 // Precompiled header for uuid_win32_ut
 
+#ifndef UUID_WIN32_UT_PCH_H
+#define UUID_WIN32_UT_PCH_H
+
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -31,3 +34,5 @@
 #define TEST_DATA_4_5 0xEF
 #define TEST_DATA_4_6 0xF0
 #define TEST_DATA_4_7 0x01
+
+#endif // UUID_WIN32_UT_PCH_H

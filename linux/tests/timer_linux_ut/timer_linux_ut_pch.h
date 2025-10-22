@@ -3,6 +3,9 @@
 
 // Precompiled header for timer_linux_ut
 
+#ifndef TIMER_LINUX_UT_PCH_H
+#define TIMER_LINUX_UT_PCH_H
+
 #include <stdlib.h>
 #include <time.h>
 
@@ -27,3 +30,5 @@
 
 // No idea why iwyu warns about this since we include time.h but...
 // IWYU pragma: no_forward_declare timespec
+
+#endif // TIMER_LINUX_UT_PCH_H

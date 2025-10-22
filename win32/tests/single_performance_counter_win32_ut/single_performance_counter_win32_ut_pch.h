@@ -3,6 +3,9 @@
 
 // Precompiled header for single_performance_counter_win32_ut
 
+#ifndef SINGLE_PERFORMANCE_COUNTER_WIN32_UT_PCH_H
+#define SINGLE_PERFORMANCE_COUNTER_WIN32_UT_PCH_H
+
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -44,3 +47,5 @@
 #include "real_srw_lock.h"
 
 #include "c_pal/single_performance_counter.h"
+
+#endif // SINGLE_PERFORMANCE_COUNTER_WIN32_UT_PCH_H

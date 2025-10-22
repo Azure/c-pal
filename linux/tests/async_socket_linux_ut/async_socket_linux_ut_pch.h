@@ -3,6 +3,9 @@
 
 // Precompiled header for async_socket_linux_ut
 
+#ifndef ASYNC_SOCKET_LINUX_UT_PCH_H
+#define ASYNC_SOCKET_LINUX_UT_PCH_H
+
 #include <stdlib.h>
 #include <inttypes.h>
 #include <sys/epoll.h>
@@ -40,3 +43,5 @@
 #include "c_pal/async_socket.h"
 
 #define TEST_MAX_EVENTS_NUM     64
+
+#endif // ASYNC_SOCKET_LINUX_UT_PCH_H

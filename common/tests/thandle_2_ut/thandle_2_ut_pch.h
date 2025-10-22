@@ -3,6 +3,9 @@
 
 // Precompiled header for thandle_2_ut
 
+#ifndef THANDLE_2_UT_PCH_H
+#define THANDLE_2_UT_PCH_H
+
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -24,3 +27,5 @@
 #include "t_on.h"
 
 #include "c_pal/thandle_ll.h"
+
+#endif // THANDLE_2_UT_PCH_H

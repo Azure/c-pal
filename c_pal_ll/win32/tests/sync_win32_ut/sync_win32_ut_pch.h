@@ -3,6 +3,9 @@
 
 // Precompiled header for sync_win32_ut
 
+#ifndef SYNC_WIN32_UT_PCH_H
+#define SYNC_WIN32_UT_PCH_H
+
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -22,3 +25,5 @@
 #include "real_gballoc_hl.h"
 
 #include "c_pal/sync.h"
+
+#endif // SYNC_WIN32_UT_PCH_H

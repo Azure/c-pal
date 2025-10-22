@@ -1,7 +1,10 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 // Precompiled header for platform_win32_ut
+
+#ifndef PLATFORM_WIN32_UT_PCH_H
+#define PLATFORM_WIN32_UT_PCH_H
 
 #include <stdint.h>
 
@@ -16,3 +19,4 @@
 
 #include "c_pal/platform.h"
 
+#endif // PLATFORM_WIN32_UT_PCH_H

@@ -3,6 +3,9 @@
 
 // Precompiled header for file_win32_ut
 
+#ifndef FILE_WIN32_UT_PCH_H
+#define FILE_WIN32_UT_PCH_H
+
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -30,3 +33,5 @@
 #include "real_gballoc_hl.h"
 
 #include "c_pal/file.h"
+
+#endif // FILE_WIN32_UT_PCH_H

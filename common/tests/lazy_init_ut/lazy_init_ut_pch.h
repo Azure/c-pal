@@ -3,6 +3,9 @@
 
 // Precompiled header for lazy_init_ut
 
+#ifndef LAZY_INIT_UT_PCH_H
+#define LAZY_INIT_UT_PCH_H
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -25,3 +28,5 @@
 
 
 #include "c_pal/lazy_init.h"
+
+#endif // LAZY_INIT_UT_PCH_H

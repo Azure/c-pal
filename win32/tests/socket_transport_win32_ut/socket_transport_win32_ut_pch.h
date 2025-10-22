@@ -3,6 +3,9 @@
 
 // Precompiled header for socket_transport_win32_ut
 
+#ifndef SOCKET_TRANSPORT_WIN32_UT_PCH_H
+#define SOCKET_TRANSPORT_WIN32_UT_PCH_H
+
 #include <stdlib.h>
 
 #include "winsock2.h"
@@ -37,3 +40,5 @@
 #include "../reals/real_sm.h"
 
 #include "c_pal/socket_transport.h"
+
+#endif // SOCKET_TRANSPORT_WIN32_UT_PCH_H

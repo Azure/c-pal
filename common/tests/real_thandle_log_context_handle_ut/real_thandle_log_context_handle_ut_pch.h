@@ -3,6 +3,9 @@
 
 // Precompiled header for real_thandle_log_context_handle_ut
 
+#ifndef REAL_THANDLE_LOG_CONTEXT_HANDLE_UT_PCH_H
+#define REAL_THANDLE_LOG_CONTEXT_HANDLE_UT_PCH_H
+
 #include <stdlib.h>
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
@@ -26,3 +29,5 @@
 #include "real_thandle_log_context_handle.h"
 
 #include "module.h"
+
+#endif // REAL_THANDLE_LOG_CONTEXT_HANDLE_UT_PCH_H

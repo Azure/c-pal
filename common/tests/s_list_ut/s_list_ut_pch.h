@@ -1,7 +1,10 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 // Precompiled header for s_list_ut
+
+#ifndef S_LIST_UT_PCH_H
+#define S_LIST_UT_PCH_H
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -16,3 +19,5 @@
 #include "c_pal/containing_record.h"
 
 #include "testrunnerswitcher.h"
+
+#endif // S_LIST_UT_PCH_H

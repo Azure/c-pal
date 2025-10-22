@@ -3,6 +3,9 @@
 
 // Precompiled header for sysinfo_linux_ut
 
+#ifndef SYSINFO_LINUX_UT_PCH_H
+#define SYSINFO_LINUX_UT_PCH_H
+
 #include <stdint.h>
 
 #include <unistd.h>
@@ -20,3 +23,5 @@
 #include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 #include "c_pal/sysinfo.h"
+
+#endif // SYSINFO_LINUX_UT_PCH_H

@@ -3,6 +3,9 @@
 
 // Precompiled header for srw_lock_ll_win32_ut
 
+#ifndef SRW_LOCK_LL_WIN32_UT_PCH_H
+#define SRW_LOCK_LL_WIN32_UT_PCH_H
+
 #include <stdlib.h>
 
 #include "windows.h"
@@ -21,3 +24,5 @@
 #include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 #include "c_pal/srw_lock_ll.h"
+
+#endif // SRW_LOCK_LL_WIN32_UT_PCH_H

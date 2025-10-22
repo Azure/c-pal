@@ -1,7 +1,10 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 // Precompiled header for reals_linux_ut
+
+#ifndef REALS_LINUX_UT_PCH_H
+#define REALS_LINUX_UT_PCH_H
 
 #include "testrunnerswitcher.h"
 
@@ -31,3 +34,5 @@
 #include "real_thandle_log_context_handle.h"
 #include "real_socket_transport.h"
 #include "real_async_socket.h"
+
+#endif // REALS_LINUX_UT_PCH_H

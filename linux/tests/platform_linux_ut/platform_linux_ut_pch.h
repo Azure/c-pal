@@ -3,6 +3,9 @@
 
 // Precompiled header for platform_linux_ut
 
+#ifndef PLATFORM_LINUX_UT_PCH_H
+#define PLATFORM_LINUX_UT_PCH_H
+
 #include <stdlib.h>
 
 #include <sys/types.h>
@@ -24,3 +27,5 @@
 
 #include "c_pal/platform.h"
 #include "c_pal/platform_linux.h"
+
+#endif // PLATFORM_LINUX_UT_PCH_H

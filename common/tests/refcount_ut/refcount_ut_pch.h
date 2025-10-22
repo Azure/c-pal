@@ -3,6 +3,9 @@
 
 // Precompiled header for refcount_ut
 
+#ifndef REFCOUNT_UT_PCH_H
+#define REFCOUNT_UT_PCH_H
+
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -23,3 +26,5 @@
 
 #include "real_gballoc_hl.h"
 #include "real_interlocked.h"
+
+#endif // REFCOUNT_UT_PCH_H

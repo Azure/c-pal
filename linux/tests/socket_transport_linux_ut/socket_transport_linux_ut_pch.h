@@ -3,6 +3,9 @@
 
 // Precompiled header for socket_transport_linux_ut
 
+#ifndef SOCKET_TRANSPORT_LINUX_UT_PCH_H
+#define SOCKET_TRANSPORT_LINUX_UT_PCH_H
+
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -44,3 +47,5 @@
 #include "c_pal/socket_transport.h"
 
 #define MAX_SOCKET_ARRAY            10
+
+#endif // SOCKET_TRANSPORT_LINUX_UT_PCH_H

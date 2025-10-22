@@ -3,6 +3,9 @@
 
 // Precompiled header for sm_ut
 
+#ifndef SM_UT_PCH_H
+#define SM_UT_PCH_H
+
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -30,3 +33,5 @@
 #include "real_gballoc_hl.h"
 
 #include "c_pal/sm.h"
+
+#endif // SM_UT_PCH_H

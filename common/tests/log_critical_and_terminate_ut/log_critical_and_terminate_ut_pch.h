@@ -3,6 +3,9 @@
 
 // Precompiled header for log_critical_and_terminate_ut
 
+#ifndef LOG_CRITICAL_AND_TERMINATE_UT_PCH_H
+#define LOG_CRITICAL_AND_TERMINATE_UT_PCH_H
+
 #include <inttypes.h>
 
 #include "testrunnerswitcher.h"
@@ -15,3 +18,5 @@
 #include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 #include "c_pal/log_critical_and_terminate.h"
+
+#endif // LOG_CRITICAL_AND_TERMINATE_UT_PCH_H

@@ -3,6 +3,9 @@
 
 // Precompiled header for pipe_win32_ut
 
+#ifndef PIPE_WIN32_UT_PCH_H
+#define PIPE_WIN32_UT_PCH_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -22,3 +25,5 @@
 #include "real_gballoc_hl.h"
 
 #include "c_pal/pipe.h"
+
+#endif // PIPE_WIN32_UT_PCH_H

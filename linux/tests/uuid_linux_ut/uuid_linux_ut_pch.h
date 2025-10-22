@@ -3,6 +3,9 @@
 
 // Precompiled header for uuid_linux_ut
 
+#ifndef UUID_LINUX_UT_PCH_H
+#define UUID_LINUX_UT_PCH_H
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <inttypes.h>
@@ -37,3 +40,5 @@
 #define TEST_DATA_13 0xDE
 #define TEST_DATA_14 0xEF
 #define TEST_DATA_15 0xF0
+
+#endif // UUID_LINUX_UT_PCH_H

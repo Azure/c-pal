@@ -3,6 +3,9 @@
 
 // Precompiled header for srw_lock_linux_ut
 
+#ifndef SRW_LOCK_LINUX_UT_PCH_H
+#define SRW_LOCK_LINUX_UT_PCH_H
+
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdarg.h>
@@ -29,3 +32,5 @@
 #include "real_string_utils.h"
 
 #include "c_pal/srw_lock.h"
+
+#endif // SRW_LOCK_LINUX_UT_PCH_H

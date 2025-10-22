@@ -4,6 +4,9 @@
 
 // Precompiled header for execution_engine_win32_ut
 
+#ifndef EXECUTION_ENGINE_WIN32_UT_PCH_H
+#define EXECUTION_ENGINE_WIN32_UT_PCH_H
+
 #include <stdlib.h>
 #include <inttypes.h>
 
@@ -29,3 +32,5 @@
 #include "real_gballoc_hl.h"
 
 #include "c_pal/execution_engine_win32.h"
+
+#endif // EXECUTION_ENGINE_WIN32_UT_PCH_H

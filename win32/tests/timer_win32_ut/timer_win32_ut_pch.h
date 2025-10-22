@@ -4,6 +4,9 @@
 
 // Precompiled header for timer_win32_ut
 
+#ifndef TIMER_WIN32_UT_PCH_H
+#define TIMER_WIN32_UT_PCH_H
+
 #include <stdlib.h>
 
 #include "macro_utils/macro_utils.h"
@@ -29,3 +32,5 @@
 #include "real_gballoc_hl.h"
 
 #include "c_pal/timer.h"
+
+#endif // TIMER_WIN32_UT_PCH_H

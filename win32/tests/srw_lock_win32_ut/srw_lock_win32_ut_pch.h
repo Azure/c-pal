@@ -3,6 +3,9 @@
 
 // Precompiled header for srw_lock_win32_ut
 
+#ifndef SRW_LOCK_WIN32_UT_PCH_H
+#define SRW_LOCK_WIN32_UT_PCH_H
+
 #include <stdlib.h>
 
 
@@ -25,3 +28,5 @@
 
 #include "real_gballoc_hl.h"
 #include "c_pal/srw_lock.h"
+
+#endif // SRW_LOCK_WIN32_UT_PCH_H

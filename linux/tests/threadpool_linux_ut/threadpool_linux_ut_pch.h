@@ -3,6 +3,9 @@
 
 // Precompiled header for threadpool_linux_ut
 
+#ifndef THREADPOOL_LINUX_UT_PCH_H
+#define THREADPOOL_LINUX_UT_PCH_H
+
 #include <inttypes.h>
 #include <stdlib.h>
 #include <semaphore.h>
@@ -54,3 +57,5 @@
 #define MAX_THREAD_COUNT 10
 #define MAX_THREADPOOL_TIMER_COUNT 64
 #define MAX_TIMERS 1024
+
+#endif // THREADPOOL_LINUX_UT_PCH_H

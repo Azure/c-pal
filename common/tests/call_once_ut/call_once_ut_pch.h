@@ -3,6 +3,9 @@
 
 // Precompiled header for call_once_ut
 
+#ifndef CALL_ONCE_UT_PCH_H
+#define CALL_ONCE_UT_PCH_H
+
 #include <stdbool.h>
 
 
@@ -23,3 +26,5 @@
 #include "real_interlocked.h"
 #include "real_sync.h"
 #include "c_pal/call_once.h"
+
+#endif // CALL_ONCE_UT_PCH_H

@@ -3,6 +3,9 @@
 
 // Precompiled header for thandle_ptr_ut
 
+#ifndef THANDLE_PTR_UT_PCH_H
+#define THANDLE_PTR_UT_PCH_H
+
 #include <stdlib.h>
 
 #include "macro_utils/macro_utils.h"    // IWYU pragma: keep
@@ -21,3 +24,5 @@
 #include "real_gballoc_hl.h"
 
 #include "c_pal/thandle_ptr.h"
+
+#endif // THANDLE_PTR_UT_PCH_H

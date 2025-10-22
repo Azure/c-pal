@@ -3,6 +3,9 @@
 
 // Precompiled header for real_thandle_helper_ut
 
+#ifndef REAL_THANDLE_HELPER_UT_PCH_H
+#define REAL_THANDLE_HELPER_UT_PCH_H
+
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -33,3 +36,5 @@ THANDLE_TYPE_DECLARE(MOCKED_STRUCT);
 #include "real_interlocked_hl.h" // IWYU pragma: keep
 
 #include "real_thandle_helper.h"
+
+#endif // REAL_THANDLE_HELPER_UT_PCH_H

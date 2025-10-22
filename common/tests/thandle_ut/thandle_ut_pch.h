@@ -3,6 +3,9 @@
 
 // Precompiled header for thandle_ut
 
+#ifndef THANDLE_UT_PCH_H
+#define THANDLE_UT_PCH_H
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -27,3 +30,5 @@
 #include "c_pal/thandle_ll.h"
 
 #define TEST_A_DEFINE 1
+
+#endif // THANDLE_UT_PCH_H

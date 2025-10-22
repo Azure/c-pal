@@ -3,6 +3,9 @@
 
 // Precompiled header for error_handling_linux_ut
 
+#ifndef ERROR_HANDLING_LINUX_UT_PCH_H
+#define ERROR_HANDLING_LINUX_UT_PCH_H
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <inttypes.h>
@@ -30,3 +33,5 @@
 #include "c_pal/windows_defines_errors.h"
 
 #include "c_pal/error_handling.h"
+
+#endif // ERROR_HANDLING_LINUX_UT_PCH_H

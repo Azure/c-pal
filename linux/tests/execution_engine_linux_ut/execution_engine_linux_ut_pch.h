@@ -3,6 +3,9 @@
 
 // Precompiled header for execution_engine_linux_ut
 
+#ifndef EXECUTION_ENGINE_LINUX_UT_PCH_H
+#define EXECUTION_ENGINE_LINUX_UT_PCH_H
+
 #include <inttypes.h>
 #include <stdlib.h>
 
@@ -36,3 +39,5 @@
 #define DEFAULT_MAX_THREAD_COUNT 0
 #define MIN_THREAD_COUNT 5
 #define MAX_THREAD_COUNT 10
+
+#endif // EXECUTION_ENGINE_LINUX_UT_PCH_H
