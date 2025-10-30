@@ -55,7 +55,7 @@ static void setup_sockets(SOCKET* client_socket, SOCKET* server_socket, SOCKET* 
 {
     // create a server socket
     *listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    ASSERT_ARE_NOT_EQUAL(void_ptr, INVALID_SOCKET, listen_socket);
+    ASSERT_ARE_NOT_EQUAL(SOCKET_ASSERT_TYPE, INVALID_SOCKET, listen_socket);
 
     struct sockaddr_in service;
     service.sin_family = AF_INET;
@@ -74,7 +74,7 @@ static void setup_sockets(SOCKET* client_socket, SOCKET* server_socket, SOCKET* 
 
     // create a client socket
     *client_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    ASSERT_ARE_NOT_EQUAL(void_ptr, INVALID_SOCKET, *client_socket);
+    ASSERT_ARE_NOT_EQUAL(SOCKET_ASSERT_TYPE, INVALID_SOCKET, *client_socket);
 
     char portString[16];
     ADDRINFO addrHint = { 0 };
@@ -107,7 +107,7 @@ static void setup_sockets(SOCKET* client_socket, SOCKET* server_socket, SOCKET* 
     ASSERT_ARE_NOT_EQUAL(int, SOCKET_ERROR, select_result);
 
     *server_socket = accept(*listen_socket, NULL, NULL);
-    ASSERT_ARE_NOT_EQUAL(void_ptr, INVALID_SOCKET, *server_socket);
+    ASSERT_ARE_NOT_EQUAL(SOCKET_ASSERT_TYPE, INVALID_SOCKET, *server_socket);
 
     ASSERT_ARE_EQUAL(int, 0, ioctlsocket(*server_socket, FIONBIO, &mode));
 }
