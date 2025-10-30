@@ -11,10 +11,12 @@ extern "C" {
 #ifdef WIN32
     typedef void* SOCKET_HANDLE;
     #define PRI_SOCKET "p"
+    #define SOCKET_ASSERT_TYPE void_ptr
 #else
     typedef int SOCKET_HANDLE;
     #define INVALID_SOCKET  -1
     #define PRI_SOCKET "d"
+    #define SOCKET_ASSERT_TYPE int
 #endif
 
 #ifdef __cplusplus
