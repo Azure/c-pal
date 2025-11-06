@@ -33,20 +33,17 @@ char* sprintf_char_function(const char* format, ...);
 /*produces a string as if printed by printf (will also verify arguments)*/
 #define sprintf_char(format, ...) (0?printf((format), __VA_ARGS__):0, sprintf_char_function((format), __VA_ARGS__))
 
-MOCKABLE_INTERFACE(string_utils_printf,
-    /*produces a string as if printed by vprintf*/
-    FUNCTION(, char*, vsprintf_char, const char*, format, va_list, va),
-    /*produces a string as if printed by vwprintf*/
-    FUNCTION(, wchar_t*, vsprintf_wchar, const wchar_t*, format, va_list, va)
-)
+/*produces a string as if printed by vprintf*/
+MOCKABLE_FUNCTION(, char*, vsprintf_char, const char*, format, va_list, va);
 
-MOCKABLE_INTERFACE(string_utils_convert,
-    /*produces the wchar_t* string representation of source (which is assumed to be multibyte). Returns NULL on any failure.*/
-    FUNCTION(, wchar_t*, mbs_to_wcs, const char*, source),
+/*produces a string as if printed by vwprintf*/
+MOCKABLE_FUNCTION(, wchar_t*, vsprintf_wchar, const wchar_t*, format, va_list, va);
 
-    /*produces the multibyte char* string representation of source. Returns NULL on any failure.*/
-    FUNCTION(, char*, wcs_to_mbs, const wchar_t*, source)
-)
+/*produces the wchar_t* string representation of source (which is assumed to be multibyte). Returns NULL on any failure.*/
+MOCKABLE_FUNCTION(, wchar_t*, mbs_to_wcs, const char*, source);
+
+/*produces the multibyte char* string representation of source. Returns NULL on any failure.*/
+MOCKABLE_FUNCTION(, char*, wcs_to_mbs, const wchar_t*, source);
 
 #ifdef __cplusplus
 }
