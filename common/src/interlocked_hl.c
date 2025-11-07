@@ -85,7 +85,7 @@ INTERLOCKED_HL_RESULT InterlockedHL_WaitForValue(int32_t volatile_atomic* addres
     if (address_to_check == NULL)
     {
         /* Codes_SRS_INTERLOCKED_HL_01_002: [ If address_to_check is NULL, InterlockedHL_WaitForValue shall fail and return INTERLOCKED_HL_ERROR. ] */
-        LogError("Invalid arguments int32_t volatile_atomic* address_to_check=%p, int32_t value_to_wait=%" PRId32 ", uint32_t timeout_ms=%" PRIu32,
+        LogError("Invalid arguments int32_t volatile_atomic* address_to_check=%p, int32_t value_to_wait=%" PRId32 ", uint32_t timeout_ms=%" PRIu32 "",
             address_to_check, value_to_wait, timeout_ms);
         result = INTERLOCKED_HL_ERROR;
     }
@@ -139,7 +139,7 @@ INTERLOCKED_HL_RESULT InterlockedHL_WaitForValue64(int64_t volatile_atomic* addr
     if (address_to_check == NULL)
     {
         /* Codes_SRS_INTERLOCKED_HL_05_001: [ If address_to_check is NULL, InterlockedHL_WaitForValue64 shall fail and return INTERLOCKED_HL_ERROR. ] */
-        LogError("Invalid arguments int64_t volatile_atomic* address_to_check=%p, int64_t value_to_wait=%" PRId64 ", uint32_t timeout_ms=%" PRIu32,
+        LogError("Invalid arguments int64_t volatile_atomic* address_to_check=%p, int64_t value_to_wait=%" PRId64 ", uint32_t timeout_ms=%" PRIu32 "",
             address_to_check, value_to_wait, timeout_ms);
         result = INTERLOCKED_HL_ERROR;
     }
@@ -190,7 +190,7 @@ INTERLOCKED_HL_RESULT InterlockedHL_WaitForNotValue(int32_t volatile_atomic* add
     if (address_to_check == NULL)
     {
         /* Codes_SRS_INTERLOCKED_HL_42_001: [ If address_to_check is NULL, InterlockedHL_WaitForNotValue shall fail and return INTERLOCKED_HL_ERROR. ]*/
-        LogError("Invalid arguments int32_t volatile_atomic* address_to_check=%p, int32_t value_to_wait=%" PRId32 ", uint32_t timeout_ms=%" PRIu32,
+        LogError("Invalid arguments int32_t volatile_atomic* address_to_check=%p, int32_t value_to_wait=%" PRId32 ", uint32_t timeout_ms=%" PRIu32 "",
             address_to_check, value_to_wait, timeout_ms);
         result = INTERLOCKED_HL_ERROR;
     }
@@ -243,7 +243,7 @@ INTERLOCKED_HL_RESULT InterlockedHL_WaitForNotValue64(int64_t volatile_atomic* a
     if (address_to_check == NULL)
     {
         /* Codes_SRS_INTERLOCKED_HL_05_007: [ If address_to_check is NULL, InterlockedHL_WaitForNotValue64 shall fail and return INTERLOCKED_HL_ERROR. ] */
-        LogError("Invalid arguments int64_t volatile_atomic* address_to_check=%p, int64_t value_to_wait=%" PRId64 ", uint32_t timeout_ms=%" PRIu32,
+        LogError("Invalid arguments int64_t volatile_atomic* address_to_check=%p, int64_t value_to_wait=%" PRId64 ", uint32_t timeout_ms=%" PRIu32 "",
             address_to_check, value_to_wait, timeout_ms);
         result = INTERLOCKED_HL_ERROR;
     }
