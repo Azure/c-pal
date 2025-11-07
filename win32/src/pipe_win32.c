@@ -7,11 +7,10 @@
 
 // Tell IWYU to keep macro_utils.h because we have MU_FAILURE (even though we say that can come from umock_c_prod.h)
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
-#include "umock_c/umock_c_prod.h"
 #include "c_logging/logger.h"
 #include "c_pal/pipe.h"
 
-IMPLEMENT_MOCKABLE_FUNCTION(, FILE*, pipe_popen, const char*, command)
+FILE* pipe_popen(const char* command)
 {
     FILE* result;
 
@@ -29,7 +28,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE*, pipe_popen, const char*, command)
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, int, pipe_pclose, FILE*, stream, int*, exit_code)
+int pipe_pclose(FILE* stream, int* exit_code)
 {
     int result;
 

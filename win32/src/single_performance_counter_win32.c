@@ -124,7 +124,7 @@ static int get_current_counter_path_string(const char* performance_object, const
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, SINGLE_PERFORMANCE_COUNTER_HANDLE, single_performance_counter_create, const char*, performance_object, const char*, performance_counter)
+SINGLE_PERFORMANCE_COUNTER_HANDLE single_performance_counter_create(const char* performance_object, const char* performance_counter)
 {
     SINGLE_PERFORMANCE_COUNTER_HANDLE result;
     if
@@ -211,7 +211,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, SINGLE_PERFORMANCE_COUNTER_HANDLE, single_performa
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, void, single_performance_counter_destroy, SINGLE_PERFORMANCE_COUNTER_HANDLE, handle)
+void single_performance_counter_destroy(SINGLE_PERFORMANCE_COUNTER_HANDLE handle)
 {
     if (handle == NULL)
     {
@@ -227,7 +227,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, void, single_performance_counter_destroy, SINGLE_P
     }
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, SINGLE_PERFORMANCE_COUNTER_SAMPLE_RESULT, single_performance_counter_sample_double, SINGLE_PERFORMANCE_COUNTER_HANDLE, handle, double*, sample)
+SINGLE_PERFORMANCE_COUNTER_SAMPLE_RESULT single_performance_counter_sample_double(SINGLE_PERFORMANCE_COUNTER_HANDLE handle, double* sample)
 {
     SINGLE_PERFORMANCE_COUNTER_SAMPLE_RESULT result;
     if

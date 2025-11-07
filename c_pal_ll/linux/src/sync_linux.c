@@ -13,14 +13,13 @@
 #include "sys/syscall.h"
 #include "linux/futex.h"
 
-#include "umock_c/umock_c_prod.h"
 
 #include "c_pal/interlocked.h"     // for volatile_atomic
 #include "c_pal/sync.h"
 
 MU_DEFINE_ENUM_STRINGS(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES)
 
-IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_atomic int32_t*, address, int32_t, compare_value, uint32_t, timeout_ms)
+WAIT_ON_ADDRESS_RESULT wait_on_address(volatile_atomic int32_t* address, int32_t compare_value, uint32_t timeout_ms)
 {
     WAIT_ON_ADDRESS_RESULT result;
 
@@ -65,7 +64,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address_64, volatile_atomic int64_t*, address, int64_t, compare_value, uint32_t, timeout_ms)
+WAIT_ON_ADDRESS_RESULT wait_on_address_64(volatile_atomic int64_t* address, int64_t compare_value, uint32_t timeout_ms)
 {
     WAIT_ON_ADDRESS_RESULT result;
 
@@ -104,27 +103,27 @@ IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address_64, volati
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t*, address)
+void wake_by_address_all(volatile_atomic int32_t* address)
 {
     /* Codes_SRS_SYNC_43_004: [ wake_by_address_all shall cause all the thread(s) waiting on a call to wait_on_address with argument address to continue execution. ] */
     /* Codes_SRS_SYNC_LINUX_43_005: [ wake_by_address_all shall call syscall to wake all listeners listening on address. ] */
     syscall(SYS_futex, address, FUTEX_WAKE_PRIVATE, INT_MAX, NULL, NULL, 0);
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_all_64, volatile_atomic int64_t*, address)
+void wake_by_address_all_64(volatile_atomic int64_t* address)
 {
     /* Codes_SRS_SYNC_LINUX_05_007: [ wake_by_address_all_64 shall call syscall to wake all listeners listening on address. ] */
     syscall(SYS_futex, address, FUTEX_WAKE_PRIVATE, INT_MAX, NULL, NULL, 0);
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_single, volatile_atomic int32_t*, address)
+void wake_by_address_single(volatile_atomic int32_t* address)
 {
     /* Codes_SRS_SYNC_43_005: [ wake_by_address_single shall cause one thread waiting on a call to wait_on_address with argument address to continue execution. ] */
     /* Codes_SRS_SYNC_LINUX_43_006: [ wake_by_address_single shall call syscall to wake any single listener listening on address. ] */
     syscall(SYS_futex, address, FUTEX_WAKE_PRIVATE, 1, NULL, NULL, 0);
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_single_64, volatile_atomic int64_t*, address)
+void wake_by_address_single_64(volatile_atomic int64_t* address)
 {
     /* Codes_SRS_SYNC_LINUX_05_008: [ wake_by_address_single_64 shall call syscall to wake any single listener listening on address. ] */
     syscall(SYS_futex, address, FUTEX_WAKE_PRIVATE, 1, NULL, NULL, 0);
