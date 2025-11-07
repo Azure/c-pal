@@ -35,7 +35,7 @@ int pipe_pclose(FILE* stream, int* exit_code)
     if (exit_code == NULL)
     {
         /*Codes_SRS_WIN32_PIPE_42_007: [ If exit_code is NULL then pipe_pclose shall fail and return a non-zero value. ]*/
-        LogError("Invalid args: FILE* stream = %p, int* exit_code = %p",
+        LogError("Invalid args: FILE* stream=%p, int* exit_code=%p",
             stream, exit_code);
         result = MU_FAILURE;
     }

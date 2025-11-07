@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <errno.h>
+#include <string.h>
 
 
 #include "c_logging/logger.h"
@@ -20,7 +21,7 @@ FILE* pipe_popen(const char* command)
 
     if (result == NULL)
     {
-        LogError("popen failed with %i", errno);
+        LogError("popen failed with %i (%s)", errno, strerror(errno));
     }
 
     /*Codes_SRS_LINUX_PIPE_42_002: [ pipe_popen shall return the result of popen. ]*/
@@ -34,7 +35,7 @@ int pipe_pclose(FILE* stream, int* exit_code)
     if (exit_code == NULL)
     {
         /*Codes_SRS_LINUX_PIPE_42_007: [ If exit_code is NULL then pipe_pclose shall fail and return a non-zero value. ]*/
-        LogError("Invalid args: FILE* stream = %p, int* exit_code = %p",
+        LogError("Invalid args: FILE* stream=%p, int* exit_code=%p",
             stream, exit_code);
         result = MU_FAILURE;
     }
@@ -48,7 +49,7 @@ int pipe_pclose(FILE* stream, int* exit_code)
         {
             /*Codes_SRS_PIPE_42_004: [ If any error occurs then pipe_pclose shall fail and return a non-zero value. ]*/
             /*Codes_SRS_LINUX_PIPE_42_004: [ pipe_pclose shall return a non-zero value if the return value of pclose is -1. ]*/
-            LogError("pclose failed with %i", errno);
+            LogError("pclose failed with %i (%s)", errno, strerror(errno));
             result = MU_FAILURE;
         }
         else

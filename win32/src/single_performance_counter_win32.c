@@ -148,7 +148,7 @@ SINGLE_PERFORMANCE_COUNTER_HANDLE single_performance_counter_create(const char* 
         if (perf_status != ERROR_SUCCESS)
         {
         // Codes_SRS_SINGLE_PERFORMANCE_COUNTER_45_016: [ single_performance_counter_create shall return NULL if any step fails. ]
-            LogError("Failure in PdhOpenQueryA, status = %" PRIx32"", perf_status);
+            LogError("Failure in PdhOpenQueryA, status = %" PRIx32 "", perf_status);
             result = NULL;
         }
         else
@@ -171,7 +171,7 @@ SINGLE_PERFORMANCE_COUNTER_HANDLE single_performance_counter_create(const char* 
                 if (perf_status != ERROR_SUCCESS)
                 {
                     // Codes_SRS_SINGLE_PERFORMANCE_COUNTER_45_016: [ single_performance_counter_create shall return NULL if any step fails. ]
-                    LogError("Failure in PdhAddCounterA, status = %" PRIx32"", perf_status);
+                    LogError("Failure in PdhAddCounterA, status = %" PRIx32 "", perf_status);
                     result = NULL;
                 }
                 else
@@ -181,7 +181,7 @@ SINGLE_PERFORMANCE_COUNTER_HANDLE single_performance_counter_create(const char* 
                     if (perf_status != ERROR_SUCCESS)
                     {
                         // Codes_SRS_SINGLE_PERFORMANCE_COUNTER_45_016: [ single_performance_counter_create shall return NULL if any step fails. ]
-                        LogError("Failure in PdhCollectQueryData, status = %" PRIx32"", perf_status);
+                        LogError("Failure in PdhCollectQueryData, status = %" PRIx32 "", perf_status);
                         result = NULL;
                     }
                     else
@@ -264,7 +264,7 @@ SINGLE_PERFORMANCE_COUNTER_SAMPLE_RESULT single_performance_counter_sample_doubl
             if (perf_status != ERROR_SUCCESS)
             {
                 // Codes_SRS_SINGLE_PERFORMANCE_COUNTER_45_024: [ single_performance_counter_sample_double shall return SINGLE_PERFORMANCE_COUNTER_SAMPLE_FORMAT_FAILED if PdhGetFormattedCounterValue fails. ]
-                LogError("Failure in PdhGetFormattedCounterValue, status = %" PRIx32"", perf_status);
+                LogError("Failure in PdhGetFormattedCounterValue, status = %" PRIx32 "", perf_status);
                 result = SINGLE_PERFORMANCE_COUNTER_SAMPLE_FORMAT_FAILED;
             }
             else
