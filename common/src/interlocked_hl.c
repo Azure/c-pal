@@ -4,7 +4,6 @@
 #include <inttypes.h>
 #include <stddef.h>                 // for NULL
 
-#include "umock_c/umock_c_prod.h"
 
 #include "c_logging/logger.h"
 
@@ -14,7 +13,7 @@
 
 MU_DEFINE_ENUM_STRINGS(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES)
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_Add64WithCeiling, int64_t volatile_atomic*, Addend, int64_t, Ceiling, int64_t, Value, int64_t*, originalAddend)
+INTERLOCKED_HL_RESULT InterlockedHL_Add64WithCeiling(int64_t volatile_atomic* Addend, int64_t Ceiling, int64_t Value, int64_t* originalAddend)
 {
     INTERLOCKED_HL_RESULT result;
     /*Codes_SRS_INTERLOCKED_HL_02_001: [ If Addend is NULL then InterlockedHL_Add64WithCeiling shall fail and return INTERLOCKED_HL_ERROR. ]*/
@@ -79,14 +78,14 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_Add64WithCeil
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue, int32_t volatile_atomic*, address_to_check, int32_t, value_to_wait, uint32_t, timeout_ms)
+INTERLOCKED_HL_RESULT InterlockedHL_WaitForValue(int32_t volatile_atomic* address_to_check, int32_t value_to_wait, uint32_t timeout_ms)
 {
     INTERLOCKED_HL_RESULT result = INTERLOCKED_HL_ERROR;
 
     if (address_to_check == NULL)
     {
         /* Codes_SRS_INTERLOCKED_HL_01_002: [ If address_to_check is NULL, InterlockedHL_WaitForValue shall fail and return INTERLOCKED_HL_ERROR. ] */
-        LogError("Invalid arguments InterlockedHL_WaitForValue(address=%p, value=%" PRId32 ", milliseconds=%" PRIu32 ")",
+        LogError("Invalid arguments int32_t volatile_atomic* address_to_check=%p, int32_t value_to_wait=%" PRId32 ", uint32_t timeout_ms=%" PRIu32 "",
             address_to_check, value_to_wait, timeout_ms);
         result = INTERLOCKED_HL_ERROR;
     }
@@ -133,14 +132,14 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue,
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue64, int64_t volatile_atomic*, address_to_check, int64_t, value_to_wait, uint32_t, timeout_ms)
+INTERLOCKED_HL_RESULT InterlockedHL_WaitForValue64(int64_t volatile_atomic* address_to_check, int64_t value_to_wait, uint32_t timeout_ms)
 {
     INTERLOCKED_HL_RESULT result = INTERLOCKED_HL_ERROR;
 
     if (address_to_check == NULL)
     {
         /* Codes_SRS_INTERLOCKED_HL_05_001: [ If address_to_check is NULL, InterlockedHL_WaitForValue64 shall fail and return INTERLOCKED_HL_ERROR. ] */
-        LogError("Invalid arguments InterlockedHL_WaitForValue64(address=%p, value=%" PRId64 ", milliseconds=%" PRIu32 ")",
+        LogError("Invalid arguments int64_t volatile_atomic* address_to_check=%p, int64_t value_to_wait=%" PRId64 ", uint32_t timeout_ms=%" PRIu32 "",
             address_to_check, value_to_wait, timeout_ms);
         result = INTERLOCKED_HL_ERROR;
     }
@@ -184,14 +183,14 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForValue6
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotValue, int32_t volatile_atomic*, address_to_check, int32_t, value_to_wait, uint32_t, timeout_ms)
+INTERLOCKED_HL_RESULT InterlockedHL_WaitForNotValue(int32_t volatile_atomic* address_to_check, int32_t value_to_wait, uint32_t timeout_ms)
 {
     INTERLOCKED_HL_RESULT result = INTERLOCKED_HL_ERROR;
 
     if (address_to_check == NULL)
     {
         /* Codes_SRS_INTERLOCKED_HL_42_001: [ If address_to_check is NULL, InterlockedHL_WaitForNotValue shall fail and return INTERLOCKED_HL_ERROR. ]*/
-        LogError("Invalid arguments InterlockedHL_WaitForNotValue(address=%p, value=%" PRId32 ", milliseconds=%" PRIu32 ")",
+        LogError("Invalid arguments int32_t volatile_atomic* address_to_check=%p, int32_t value_to_wait=%" PRId32 ", uint32_t timeout_ms=%" PRIu32 "",
             address_to_check, value_to_wait, timeout_ms);
         result = INTERLOCKED_HL_ERROR;
     }
@@ -237,14 +236,14 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotVal
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotValue64, int64_t volatile_atomic*, address_to_check, int64_t, value_to_wait, uint32_t, timeout_ms)
+INTERLOCKED_HL_RESULT InterlockedHL_WaitForNotValue64(int64_t volatile_atomic* address_to_check, int64_t value_to_wait, uint32_t timeout_ms)
 {
     INTERLOCKED_HL_RESULT result = INTERLOCKED_HL_ERROR;
 
     if (address_to_check == NULL)
     {
         /* Codes_SRS_INTERLOCKED_HL_05_007: [ If address_to_check is NULL, InterlockedHL_WaitForNotValue64 shall fail and return INTERLOCKED_HL_ERROR. ] */
-        LogError("Invalid arguments InterlockedHL_WaitForNotValue64(address=%p, value=%" PRId64 ", milliseconds=%" PRIu32 ")",
+        LogError("Invalid arguments int64_t volatile_atomic* address_to_check=%p, int64_t value_to_wait=%" PRId64 ", uint32_t timeout_ms=%" PRIu32 "",
             address_to_check, value_to_wait, timeout_ms);
         result = INTERLOCKED_HL_ERROR;
     }
@@ -288,7 +287,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNotVal
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_CompareExchangeIf, int32_t volatile_atomic*, target, int32_t, exchange, INTERLOCKED_COMPARE_EXCHANGE_IF, compare, int32_t*, original_target)
+INTERLOCKED_HL_RESULT InterlockedHL_CompareExchangeIf(int32_t volatile_atomic* target, int32_t exchange, INTERLOCKED_COMPARE_EXCHANGE_IF compare, int32_t* original_target)
 {
     INTERLOCKED_HL_RESULT result;
     if (
@@ -335,7 +334,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_CompareExchan
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_CompareExchange64If, int64_t volatile_atomic*, target, int64_t, exchange, INTERLOCKED_COMPARE_EXCHANGE_64_IF, compare, int64_t*, original_target)
+INTERLOCKED_HL_RESULT InterlockedHL_CompareExchange64If(int64_t volatile_atomic* target, int64_t exchange, INTERLOCKED_COMPARE_EXCHANGE_64_IF compare, int64_t* original_target)
 {
     INTERLOCKED_HL_RESULT result;
     if (
@@ -381,7 +380,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_CompareExchan
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWake, int32_t volatile_atomic*, address, int32_t, value)
+INTERLOCKED_HL_RESULT InterlockedHL_SetAndWake(int32_t volatile_atomic* address, int32_t value)
 {
     INTERLOCKED_HL_RESULT result;
     if (address == NULL)
@@ -406,7 +405,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWake, i
 
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWake64, int64_t volatile_atomic*, address, int64_t, value)
+INTERLOCKED_HL_RESULT InterlockedHL_SetAndWake64(int64_t volatile_atomic* address, int64_t value)
 {
     INTERLOCKED_HL_RESULT result;
     if (address == NULL)
@@ -431,7 +430,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWake64,
 
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWakeAll, int32_t volatile_atomic*, address, int32_t, value)
+INTERLOCKED_HL_RESULT InterlockedHL_SetAndWakeAll(int32_t volatile_atomic* address, int32_t value)
 {
     INTERLOCKED_HL_RESULT result;
     if (address == NULL)
@@ -456,7 +455,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWakeAll
 
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWakeAll64, int64_t volatile_atomic*, address, int64_t, value)
+INTERLOCKED_HL_RESULT InterlockedHL_SetAndWakeAll64(int64_t volatile_atomic* address, int64_t value)
 {
     INTERLOCKED_HL_RESULT result;
     if (address == NULL)
@@ -481,7 +480,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_SetAndWakeAll
 
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_DecrementAndWake, int32_t volatile_atomic*, address)
+INTERLOCKED_HL_RESULT InterlockedHL_DecrementAndWake(int32_t volatile_atomic* address)
 {
     INTERLOCKED_HL_RESULT result;
     if (address == NULL)
@@ -505,7 +504,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_DecrementAndW
 
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, INTERLOCKED_HL_RESULT, InterlockedHL_DecrementAndWake64, int64_t volatile_atomic*, address)
+INTERLOCKED_HL_RESULT InterlockedHL_DecrementAndWake64(int64_t volatile_atomic* address)
 {
     INTERLOCKED_HL_RESULT result;
     if (address == NULL)

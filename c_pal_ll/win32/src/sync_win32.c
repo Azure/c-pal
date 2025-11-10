@@ -12,11 +12,10 @@
 #include "c_pal/interlocked.h"
 #include "c_pal/sync.h"
 
-#include "umock_c/umock_c_prod.h"     // for IMPLEMENT_MOCKABLE_FUNCTION
 
 MU_DEFINE_ENUM_STRINGS(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES)
 
-IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_atomic int32_t*, address, int32_t, compare_value, uint32_t, timeout_ms)
+WAIT_ON_ADDRESS_RESULT wait_on_address(volatile_atomic int32_t* address, int32_t compare_value, uint32_t timeout_ms)
 {
     WAIT_ON_ADDRESS_RESULT result;
     /* Codes_SRS_SYNC_WIN32_43_001: [ wait_on_address shall call WaitOnAddress to wait on the value at 32-bit address to be different than compare_value for timeout_ms milliseconds. ] */
@@ -43,7 +42,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address_64, volatile_atomic int64_t*, address, int64_t, compare_value, uint32_t, timeout_ms)
+WAIT_ON_ADDRESS_RESULT wait_on_address_64(volatile_atomic int64_t* address, int64_t compare_value, uint32_t timeout_ms)
 {
     WAIT_ON_ADDRESS_RESULT result;
     /* Codes_SRS_SYNC_WIN32_05_001: [ wait_on_address_64 shall call WaitOnAddress to wait on the value at 64-bit address to be different than compare_value for timeout_ms milliseconds. ] */
@@ -70,25 +69,25 @@ IMPLEMENT_MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address_64, volati
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t*, address)
+void wake_by_address_all(volatile_atomic int32_t* address)
 {
     /* Codes_SRS_SYNC_WIN32_43_003: [ wake_by_address_all shall call WakeByAddressAll to notify all listeners waiting on the 32-bit address. ] */
     WakeByAddressAll((PVOID)address);
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_all_64, volatile_atomic int64_t*, address)
+void wake_by_address_all_64(volatile_atomic int64_t* address)
 {
     /* Codes_SRS_SYNC_WIN32_05_005: [ wake_by_address_all_64 shall call WakeByAddressAll to notify all listeners waiting on the 64-bit address. ] */
     WakeByAddressAll((PVOID)address);
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_single, volatile_atomic int32_t*, address)
+void wake_by_address_single(volatile_atomic int32_t* address)
 {
     /* Codes_SRS_SYNC_WIN32_43_004: [ wake_by_address_single shall call WakeByAddressSingle to notify a single listeners waiting on the 32-bit address. ] */
     WakeByAddressSingle((PVOID)address);
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, void, wake_by_address_single_64, volatile_atomic int64_t*, address)
+void wake_by_address_single_64(volatile_atomic int64_t* address)
 {
     /* Codes_SRS_SYNC_WIN32_05_006: [ wake_by_address_single_64 shall call WakeByAddressSingle to notify a single listeners waiting on the 64-bit address. ] */
     WakeByAddressSingle((PVOID)address);
