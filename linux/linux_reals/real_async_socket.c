@@ -9,7 +9,13 @@
 
 #include "real_execution_engine_linux_renames.h"
 
+#include "real_sync_renames.h"
+
 #include "real_socket_transport_renames.h"
+
+#include "real_platform_linux_renames.h"
+
+#include "real_completion_port_linux_renames.h"
 
 #include "real_async_socket_renames.h" // IWYU pragma: keep
 
