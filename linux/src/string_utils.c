@@ -8,7 +8,6 @@
 #include <string.h>
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
-#include "umock_c/umock_c_prod.h"
 
 #include "c_logging/logger.h"
 
@@ -17,7 +16,7 @@
 
 #include "c_pal/string_utils.h"
 
-IMPLEMENT_MOCKABLE_FUNCTION(, char*, vsprintf_char, const char*, format, va_list, va)
+char* vsprintf_char(const char* format, va_list va)
 {
     char* result;
     va_list va_clone;
@@ -50,7 +49,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, char*, vsprintf_char, const char*, format, va_list
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, wchar_t*, vsprintf_wchar, const wchar_t*, format, va_list, va)
+wchar_t* vsprintf_wchar(const wchar_t* format, va_list va)
 {
     wchar_t* result;
     va_list va_clone;
@@ -105,7 +104,7 @@ wchar_t* sprintf_wchar_function(const wchar_t* format, ...)
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, wchar_t*, mbs_to_wcs, const char*, source)
+wchar_t* mbs_to_wcs(const char* source)
 {
     wchar_t *result;
     if (source == NULL)
@@ -153,7 +152,7 @@ allOk:;
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, char*, wcs_to_mbs, const wchar_t*, source)
+char* wcs_to_mbs(const wchar_t* source)
 {
     char *result;
     if (source == NULL)
