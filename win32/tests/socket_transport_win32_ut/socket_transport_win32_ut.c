@@ -3,12 +3,6 @@
 
 #include "socket_transport_win32_ut_pch.h"
 
-#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
-#undef ENABLE_MOCKS_DECL
-#include "umock_c/umock_c_prod.h"
-#include "../../win32/src/string_utils.c"
-#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
-
 static const uint32_t TEST_PROC_COUNT = 4;
 static SOCKET test_socket = (SOCKET)123;
 static ADDRINFO g_addrInfo = { 0 };

@@ -87,7 +87,7 @@ static VOID NTAPI on_close_threadpool_group_member(
     (void)cleanup_context;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE, execution_engine, const char*, full_file_name, FILE_REPORT_FAULT, user_report_fault_callback, void*, user_report_fault_context)
+FILE_HANDLE file_create(EXECUTION_ENGINE_HANDLE execution_engine, const char* full_file_name, FILE_REPORT_FAULT user_report_fault_callback, void* user_report_fault_context)
 {
     FILE_HANDLE result;
     if (
@@ -226,7 +226,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE_HANDLE, file_create, EXECUTION_ENGINE_HANDLE,
 }
 
 
-IMPLEMENT_MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle)
+void file_destroy(FILE_HANDLE handle)
 {
     
     if (handle == NULL)
@@ -259,8 +259,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, void, file_destroy, FILE_HANDLE, handle)
     }
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HANDLE, handle, const unsigned char*, source, uint32_t, size, uint64_t, position, FILE_CB, user_callback, void*, user_context
-)
+FILE_WRITE_ASYNC_RESULT file_write_async(FILE_HANDLE handle, const unsigned char* source, uint32_t size, uint64_t position, FILE_CB user_callback, void* user_context)
 {
     FILE_WRITE_ASYNC_RESULT result;
     if
@@ -373,7 +372,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE_WRITE_ASYNC_RESULT, file_write_async, FILE_HA
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_HANDLE, handle, unsigned char*, destination, uint32_t, size, uint64_t,position, FILE_CB, user_callback, void*, user_context)
+FILE_READ_ASYNC_RESULT file_read_async(FILE_HANDLE handle, unsigned char* destination, uint32_t size, uint64_t position, FILE_CB user_callback, void* user_context)
 {
     FILE_READ_ASYNC_RESULT result;
     if
@@ -482,7 +481,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, FILE_READ_ASYNC_RESULT, file_read_async, FILE_HAND
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, int, file_extend, FILE_HANDLE, handle, uint64_t, desired_size)
+int file_extend(FILE_HANDLE handle, uint64_t desired_size)
 {
     (void)handle;
     (void)desired_size;

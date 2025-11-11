@@ -75,7 +75,7 @@ static char* vsprintf_char_internal(const char* format, va_list va)
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, char*, vsprintf_char, const char*, format, va_list, va)
+char* vsprintf_char(const char* format, va_list va)
 {
     char* result;
     /*Codes_SRS_STRING_UTILS_02_007: [ If format is NULL then vsprintf_char shall fail and return NULL. ]*/
@@ -124,7 +124,7 @@ static wchar_t* vsprintf_wchar_internal(const wchar_t* format, va_list va)
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, wchar_t*, vsprintf_wchar, const wchar_t*, format, va_list, va)
+wchar_t* vsprintf_wchar(const wchar_t* format, va_list va)
 {
     return vsprintf_wchar_internal(format, va);
 }
@@ -152,7 +152,7 @@ wchar_t* sprintf_wchar_function(const wchar_t* format, ...)
 }
 
 /*takes a FILETIME, returns a nice string representation of it*/
-IMPLEMENT_MOCKABLE_FUNCTION(, char*, FILETIME_toAsciiArray, const FILETIME*, fileTime)
+char* FILETIME_toAsciiArray(const FILETIME* fileTime)
 {
     char* result;
     if (fileTime == NULL)
@@ -204,7 +204,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, char*, FILETIME_toAsciiArray, const FILETIME*, fil
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, char*, FILETIME_to_string_UTC, const FILETIME*, fileTime)
+char* FILETIME_to_string_UTC(const FILETIME* fileTime)
 {
     char* result;
     /*Codes_SRS_STRING_UTILS_02_001: [ If fileTime is NULL then FILETIME_to_string_UTC shall fail and return NULL. ]*/
@@ -267,7 +267,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, char*, FILETIME_to_string_UTC, const FILETIME*, fi
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, wchar_t*, mbs_to_wcs, const char*, source)
+wchar_t* mbs_to_wcs(const char* source)
 {
     wchar_t *result;
     if (source == NULL)
@@ -315,7 +315,7 @@ allOk:;
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, char*, wcs_to_mbs, const wchar_t*, source)
+char* wcs_to_mbs(const wchar_t* source)
 {
     char *result;
     if (source == NULL)
