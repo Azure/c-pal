@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 
 
@@ -43,7 +43,7 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 
 /* Tests_SRS_MALLOC_MULTI_FLEX_STRUCT_24_002: [ DEFINE_MALLOC_MULTI_FLEX_STRUCT shall call malloc to allocate memory for the struct and its members. ]*/
 /* Tests_SRS_MALLOC_MULTI_FLEX_STRUCT_24_003: [ DEFINE_MALLOC_MULTI_FLEX_STRUCT shall assign address pointers to all the member arrays. ]*/
-/* Tests_SRS_MALLOC_MULTI_FLEX_STRUCT_24_004: [ DEFINE_MALLOC_MULTI_FLEX_STRUCT shall succeed and return the address returned by malloc. ]*/
+/* Tests_SRS_MALLOC_MULTI_FLEX_STRUCT_24_004: [ DEFINE_MALLOC_MULTI_FLEX_STRUCT shall succeed and return the address returned by malloc function. ]*/
 /* Tests_SRS_MALLOC_MULTI_FLEX_STRUCT_24_005: [ MALLOC_MULTI_FLEX_STRUCT shall expand type to the name of the malloc function in the format of: MALLOC_MULTI_FLEX_STRUCT_type. ]*/
 TEST_FUNCTION(malloc_multi_flex_succeeds)
 {

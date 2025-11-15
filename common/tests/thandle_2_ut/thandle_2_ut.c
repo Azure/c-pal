@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "thandle_2_ut_pch.h"
@@ -273,7 +273,7 @@ TEST_FUNCTION(THANDLE_CREATE_FROM_CONTENT_FLEX_WITH_MALLOC_FUNCTIONS_with_get_si
     THANDLE_ASSIGN(T_OFF_DUMMY)(&origin, NULL);
 }
 
-/*Tests_SRS_THANDLE_02_059: [ If no function can be found to allocate/free memory then THANDLE_CREATE_FROM_CONTENT_FLEX_WITH_MALLOC_FUNCTIONS shall fail and return NULL. ]*/
+/*Tests_SRS_THANDLE_02_059: [ If no function can be found to allocate/free memory then THANDLE_CREATE_FROM_CONTENT_FLEX_WITH_MALLOC_FUNCTIONS shall use malloc_flex and free. ]*/
 TEST_FUNCTION(THANDLE_CREATE_FROM_CONTENT_FLEX_WITH_MALLOC_FUNCTIONS_with_no_explicit_malloc_functions_calls_malloc_flex)
 {
     ///arrange

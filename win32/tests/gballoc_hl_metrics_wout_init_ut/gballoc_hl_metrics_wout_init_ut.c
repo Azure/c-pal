@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 
 #include "gballoc_hl_metrics_wout_init_ut_pch.h"
@@ -63,7 +63,7 @@ TEST_FUNCTION(gballoc_hl_deinit_when_not_initialized_returns)
 
 /* gballoc_hl_malloc */
 
-/* Tests_SRS_GBALLOC_HL_METRICS_01_008: [ If the module was not initialized, gballoc_malloc shall return NULL. ]*/
+/* Tests_SRS_GBALLOC_HL_METRICS_01_008: [ If the module was not initialized, gballoc_hl_malloc shall return NULL. ]*/
 TEST_FUNCTION(gballoc_malloc_when_not_initialized_returns_NULL)
 {
     // arrange
@@ -116,7 +116,7 @@ TEST_FUNCTION(gballoc_malloc_flex_when_not_initialized_returns_NULL)
 
 /* gballoc_hl_calloc */
 
-/* Tests_SRS_GBALLOC_HL_METRICS_01_011: [ If the module was not initialized, gballoc_calloc shall return NULL. ]*/
+/* Tests_SRS_GBALLOC_HL_METRICS_01_011: [ If the module was not initialized, gballoc_hl_calloc shall return NULL. ]*/
 TEST_FUNCTION(gballoc_calloc_when_not_initialized_fails)
 {
     // arrange
@@ -135,7 +135,7 @@ TEST_FUNCTION(gballoc_calloc_when_not_initialized_fails)
 
 /* gballoc_hl_realloc */
 
-/* Tests_SRS_GBALLOC_HL_METRICS_01_015: [ If the module was not initialized, gballoc_realloc shall return NULL. ]*/
+/* Tests_SRS_GBALLOC_HL_METRICS_01_015: [ If the module was not initialized, gballoc_hl_realloc shall return NULL. ]*/
 TEST_FUNCTION(gballoc_realloc_when_not_initialized_fails)
 {
     // arrange
@@ -206,7 +206,7 @@ TEST_FUNCTION(gballoc_realloc_flex_when_not_initialized_fails)
 
 /* gballoc_hl_free */
 
-/* Tests_SRS_GBALLOC_HL_METRICS_01_016: [ If the module was not initialized, gballoc_free shall return. ]*/
+/* Tests_SRS_GBALLOC_HL_METRICS_01_016: [ If the module was not initialized, gballoc_hl_free shall return. ]*/
 TEST_FUNCTION(gballoc_free_when_not_initialized_returns)
 {
     // arrange

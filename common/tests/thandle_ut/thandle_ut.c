@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "thandle_ut_pch.h"
@@ -254,7 +254,7 @@ TEST_FUNCTION(THANDLE_ASSIGN_with_t1_NULL_t2_NULL)
     ///cleanup - nothing
 }
 
-/*Tests_SRS_THANDLE_02_008: [ If *t1 is NULL and t2 is not NULL then THANDLE_ASSIGN shall increment the reference count of t2 and store t2 in *t1. ]*/
+/*Tests_SRS_THANDLE_02_008: [ If t1 is NULL and t2 is not NULL then THANDLE_ASSIGN shall increment the reference count of t2 and store t2 in t1. ]*/
 TEST_FUNCTION(THANDLE_ASSIGN_with_t1_NULL_t2_not_NULL)
 {
     ///arrange
@@ -278,7 +278,7 @@ TEST_FUNCTION(THANDLE_ASSIGN_with_t1_NULL_t2_not_NULL)
     THANDLE_ASSIGN(LL)(&t2, NULL);
 }
 
-/*Tests_SRS_THANDLE_02_009: [ If *t1 is not NULL and t2 is NULL then THANDLE_ASSIGN shall decrement the reference count of *t1 and store NULL in *t1. ]*/
+/*Tests_SRS_THANDLE_02_009: [ If t1 is not NULL and t2 is NULL then THANDLE_ASSIGN shall decrement the reference count of t1 and store NULL in *t1. ]*/
 TEST_FUNCTION(THANDLE_ASSIGN_with_t1_not_NULL_t2_NULL)
 {
     ///arrange
@@ -303,7 +303,7 @@ TEST_FUNCTION(THANDLE_ASSIGN_with_t1_not_NULL_t2_NULL)
     ///cleanup -
 }
 
-/*Tests_SRS_THANDLE_02_010: [ If *t1 is not NULL and t2 is not NULL then THANDLE_ASSIGN shall increment the reference count of t2, shall decrement the reference count of *t1 and store t2 in *t1. ]*/
+/*Tests_SRS_THANDLE_02_010: [ If t1 is not NULL and t2 is not NULL then THANDLE_ASSIGN shall increment the reference count of t2, shall decrement the reference count of t1 and store t2 in *t1. ]*/
 TEST_FUNCTION(THANDLE_ASSIGN_with_t1_not_NULL_t2_not_NULL)
 {
     ///arrange
@@ -728,7 +728,7 @@ TEST_FUNCTION(THANDLE_MOVE_with_t2_NULL_returns)
     THANDLE_ASSIGN(LL)(&ll1, NULL);
 }
 
-/*Tests_SRS_THANDLE_02_035: [ If *t1 is NULL and *t2 is NULL then THANDLE_MOVE shall return. ]*/
+/*Tests_SRS_THANDLE_02_035: [ If t1 is NULL and t2 is NULL then THANDLE_MOVE shall return. ]*/
 TEST_FUNCTION(THANDLE_MOVE_with_star_t1_NULL_and_star_t2_NULL_returns)
 {
     ///arrange
@@ -744,7 +744,7 @@ TEST_FUNCTION(THANDLE_MOVE_with_star_t1_NULL_and_star_t2_NULL_returns)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_THANDLE_02_036: [ If *t1 is NULL and *t2 is not NULL then THANDLE_MOVE shall move *t2 under t1, set *t2 to NULL and return. ]*/
+/*Tests_SRS_THANDLE_02_036: [ If t1 is NULL and t2 is not NULL then THANDLE_MOVE shall move t2 under t1, set t2 to NULL and return. ]*/
 TEST_FUNCTION(THANDLE_MOVE_with_star_t1_NULL_and_star_t2_not_NULL)
 {
     ///arrange
@@ -768,7 +768,7 @@ TEST_FUNCTION(THANDLE_MOVE_with_star_t1_NULL_and_star_t2_not_NULL)
     THANDLE_ASSIGN(LL)(&ll1, NULL);
 }
 
-/*Tests_SRS_THANDLE_02_037: [ If *t1 is not NULL and *t2 is NULL then THANDLE_MOVE shall THANDLE_DEC_REF *t1, set *t1 to NULL and return. ]*/
+/*Tests_SRS_THANDLE_02_037: [ If t1 is not NULL and t2 is NULL then THANDLE_MOVE shall THANDLE_DEC_REF t1, set t1 to NULL and return. ]*/
 TEST_FUNCTION(THANDLE_MOVE_with_star_t1_not_NULL_and_star_t2_NULL)
 {
     ///arrange
@@ -795,7 +795,7 @@ TEST_FUNCTION(THANDLE_MOVE_with_star_t1_not_NULL_and_star_t2_NULL)
     ///clean
 }
 
-/*Tests_SRS_THANDLE_02_038: [ If *t1 is not NULL and *t2 is not NULL then THANDLE_MOVE shall THANDLE_DEC_REF *t1, set *t1 to *t2, set *t2 to NULL and return. ]*/
+/*Tests_SRS_THANDLE_02_038: [ If t1 is not NULL and t2 is not NULL then THANDLE_MOVE shall THANDLE_DEC_REF t1, set t1 to t2, set t2 to NULL and return. ]*/
 TEST_FUNCTION(THANDLE_MOVE_with_star_t1_not_NULL_and_star_t2_not_NULL)
 {
     ///arrange
@@ -867,7 +867,7 @@ TEST_FUNCTION(THANDLE_INITIALIZE_MOVE_with_t2_NULL_returns)
     THANDLE_ASSIGN(LL)(&ll1, NULL);
 }
 
-/*Tests_SRS_THANDLE_01_003: [ If *t2 is NULL then THANDLE_INITIALIZE_MOVE shall set *t1 to NULL and return. ]*/
+/*Tests_SRS_THANDLE_01_003: [ If t2 is NULL then THANDLE_INITIALIZE_MOVE shall set t1 to NULL and return. ]*/
 TEST_FUNCTION(THANDLE_INITIALIZE_MOVE_with_star_t1_NULL_and_star_t2_NULL_returns)
 {
     ///arrange
@@ -883,7 +883,7 @@ TEST_FUNCTION(THANDLE_INITIALIZE_MOVE_with_star_t1_NULL_and_star_t2_NULL_returns
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_THANDLE_01_004: [ If *t2 is not NULL then THANDLE_INITIALIZE_MOVE shall set *t1 to *t2, set *t2 to NULL and return. ]*/
+/*Tests_SRS_THANDLE_01_004: [ If t2 is not NULL then THANDLE_INITIALIZE_MOVE shall set t1 to t2, set t2 to NULL and return. ]*/
 TEST_FUNCTION(THANDLE_INITIALIZE_MOVE_with_star_t1_NULL_and_star_t2_not_NULL)
 {
     ///arrange
@@ -907,7 +907,7 @@ TEST_FUNCTION(THANDLE_INITIALIZE_MOVE_with_star_t1_NULL_and_star_t2_not_NULL)
     THANDLE_ASSIGN(LL)(&ll1, NULL);
 }
 
-/*Tests_SRS_THANDLE_01_003: [ If *t2 is NULL then THANDLE_INITIALIZE_MOVE shall set *t1 to NULL and return. ]*/
+/*Tests_SRS_THANDLE_01_003: [ If t2 is NULL then THANDLE_INITIALIZE_MOVE shall set t1 to NULL and return. ]*/
 TEST_FUNCTION(THANDLE_INITIALIZE_MOVE_with_star_t1_not_NULL_and_star_t2_NULL)
 {
     ///arrange
@@ -931,7 +931,7 @@ TEST_FUNCTION(THANDLE_INITIALIZE_MOVE_with_star_t1_not_NULL_and_star_t2_NULL)
     ///clean
 }
 
-/* Tests_SRS_THANDLE_01_004: [ If *t2 is not NULL then THANDLE_INITIALIZE_MOVE shall set *t1 to *t2, set *t2 to NULL and return. ]*/
+/* Tests_SRS_THANDLE_01_004: [ If t2 is not NULL then THANDLE_INITIALIZE_MOVE shall set t1 to t2, set t2 to NULL and return. ]*/
 TEST_FUNCTION(THANDLE_INITIALIZE_MOVE_with_star_t1_not_NULL_and_star_t2_not_NULL)
 {
     ///arrange

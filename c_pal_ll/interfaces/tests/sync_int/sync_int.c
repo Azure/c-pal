@@ -141,8 +141,8 @@ TEST_FUNCTION_CLEANUP(d)
 {
 }
 
-/* Tests_SRS_SYNC_43_001: [ wait_on_address shall atomically compare *address and *compare_address.] */
-/* Tests_SRS_SYNC_43_007: [ If *address is equal to *compare_address, wait_on_address shall cause the thread to sleep. ] */
+/* Tests_SRS_SYNC_43_001: [ wait_on_address shall atomically compare address and compare_address.] */
+/* Tests_SRS_SYNC_43_007: [ If address is equal to compare_address, wait_on_address shall cause the thread to sleep. ] */
 /* Tests_SRS_SYNC_43_008: [wait_on_address shall wait indefinitely until it is woken up by a call to wake_by_address_[single/all] if timeout_ms is equal to UINT32_MAX] */
 /* Tests_SRS_SYNC_43_003: [ wait_on_address shall wait until another thread in the same process signals at address using wake_by_address_[single/all] and return true. ] */
 TEST_FUNCTION(two_threads_increment_alternately)
@@ -181,8 +181,8 @@ TEST_FUNCTION(two_threads_increment_alternately_64)
     ASSERT_ARE_EQUAL(int64_t, 99, interlocked_add_64(&var, 0), "Threads did not increment value expected number of times.");
 }
 
-/* Tests_SRS_SYNC_43_001: [ wait_on_address shall atomically compare *address and *compare_address.] */
-/* Tests_SRS_SYNC_43_007: [ If *address is equal to *compare_address, wait_on_address shall cause the thread to sleep. ] */
+/* Tests_SRS_SYNC_43_001: [ wait_on_address shall atomically compare address and compare_address.] */
+/* Tests_SRS_SYNC_43_007: [ If address is equal to compare_address, wait_on_address shall cause the thread to sleep. ] */
 /* Tests_SRS_SYNC_43_008: [wait_on_address shall wait indefinitely until it is woken up by a call to wake_by_address_[single/all] if timeout_ms is equal to UINT32_MAX] */
 /* Tests_SRS_SYNC_43_003: [ wait_on_address shall wait until another thread in the same process signals at address using wake_by_address_[single/all] and return true. ] */
 /* Tests_SRS_SYNC_43_004: [ wake_by_address_all shall cause all the thread(s) waiting on a call to wait_on_address with argument address to continue execution. ] */
@@ -280,8 +280,8 @@ TEST_FUNCTION(wake_up_all_threads_64)
 }
 
 
-/* Tests_SRS_SYNC_43_001: [ wait_on_address shall atomically compare *address and *compare_address.] */
-/* Tests_SRS_SYNC_43_002: [ wait_on_address shall immediately return true if *address is not equal to *compare_address.] */
+/* Tests_SRS_SYNC_43_001: [ wait_on_address shall atomically compare address and compare_address.] */
+/* Tests_SRS_SYNC_43_002: [ wait_on_address shall immediately return true if address is not equal to compare_address.] */
 TEST_FUNCTION(wait_on_address_returns_immediately)
 {
     //arrange
@@ -310,8 +310,8 @@ TEST_FUNCTION(wait_on_address_64_returns_immediately)
     ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_OK, return_val, "wait_on_address_64 should have returned ok");
 }
 
-/* Tests_SRS_SYNC_43_001: [ wait_on_address shall atomically compare *address and *compare_address.] */
-/* Tests_SRS_SYNC_43_002: [ wait_on_address shall immediately return true if *address is not equal to *compare_address.] */
+/* Tests_SRS_SYNC_43_001: [ wait_on_address shall atomically compare address and compare_address.] */
+/* Tests_SRS_SYNC_43_002: [ wait_on_address shall immediately return true if address is not equal to compare_address.] */
 /* Tests_SRS_SYNC_43_009: [ If timeout_ms milliseconds elapse, wait_on_address shall return false. ] */
 TEST_FUNCTION(wait_on_address_returns_after_timeout_elapses)
 {

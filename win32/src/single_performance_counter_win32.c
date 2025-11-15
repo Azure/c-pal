@@ -40,7 +40,7 @@ static int get_current_app_name(char* app_name, uint32_t app_name_size)
     }
     else
     {
-        // Codes_SRS_SINGLE_PERFORMANCE_COUNTER_45_007: [ single_performance_counter_create shall call strrchr on the executable path with '\' to get the executable name. ]
+        // Codes_SRS_SINGLE_PERFORMANCE_COUNTER_45_007: [ single_performance_counter_create shall call strrchr on the executable path with '\\' to get the executable name. ]
         const char* where_is_last_backslash = strrchr(executable_full_file_name, '\\');
         if (where_is_last_backslash == NULL)
         {

@@ -204,7 +204,7 @@ THANDLE(THREADPOOL_WORK_ITEM) threadpool_create_work_item(THANDLE(THREADPOOL) th
     {
         THREADPOOL* threadpool_ptr = THANDLE_GET_T(THREADPOOL)(threadpool);
 
-        /* Codes_SRS_THREADPOOL_WIN32_05_006: [ Otherwise threadpool_create_work_item shall allocate a context threadpool_work_item of type THREADPOOL_WORK_ITEM_HANDLE where work_function, work_function_context, and ptp_work shall be saved. ]*/
+        /* Codes_SRS_THREADPOOL_WIN32_05_006: [ Otherwise threadpool_create_work_item shall allocate a context of type THANDLE(THREADPOOL_WORK_ITEM) with the dispose function being threadpool_dispose_work_item. ]*/
         threadpool_work_item_ptr = THANDLE_MALLOC(THREADPOOL_WORK_ITEM)(threadpool_dispose_work_item);
         if (threadpool_work_item_ptr == NULL)
         {
@@ -218,7 +218,7 @@ THANDLE(THREADPOOL_WORK_ITEM) threadpool_create_work_item(THANDLE(THREADPOOL) th
 
             /* Codes_SRS_THREADPOOL_WIN32_05_008: [ threadpool_create_work_item shall create threadpool_work_item member variable ptp_work of type PTP_WORK by calling CreateThreadpoolWork to set the callback function as on_work_callback_v2. ]*/
             threadpool_work_item_ptr->ptp_work = CreateThreadpoolWork(on_work_callback_v2, threadpool_work_item_ptr, &threadpool_ptr->tp_environment);
-            /* Codes_SRS_THREADPOOL_WIN32_05_009: [ If there are no errors then this threadpool_work_item of type THREADPOOL_WORK_ITEM_HANDLE would be returned indicating a succcess to the caller. ]*/
+            /* Codes_SRS_THREADPOOL_WIN32_05_009: [ If there are no errors then this threadpool_work_item of type THANDLE(THREADPOOL_WORK_ITEM) would be returned indicating a succcess to the caller. ]*/
             if (threadpool_work_item_ptr->ptp_work == NULL)
             {
                 /* Codes_SRS_THREADPOOL_WIN32_05_010: [ If any error occurs, threadpool_create_work_item shall fail, free the newly created context and return a NULL value. ]*/
@@ -242,7 +242,7 @@ int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THANDLE(THREAD
     if (
         /* Codes_SRS_THREADPOOL_WIN32_05_011: [ If threadpool is NULL, threadpool_schedule_work_item shall fail and return a non-zero value. ]*/
         (threadpool == NULL) ||
-        /* Codes_SRS_THREADPOOL_WIN32_05_012: [ If work_item_context is NULL, threadpool_schedule_work_item shall fail and return a non-zero value. ]*/
+        /* Codes_SRS_THREADPOOL_WIN32_05_012: [ If threadpool_work_item is NULL, threadpool_schedule_work_item shall fail and return a non-zero value. ]*/
         (threadpool_work_item == NULL)
         )
     {
@@ -357,7 +357,7 @@ static void threadpool_timer_dispose(THREADPOOL_TIMER* timer)
         /* Codes_SRS_THREADPOOL_WIN32_42_012: [ threadpool_timer_dispose shall call SetThreadpoolTimer with NULL for pftDueTime and 0 for msPeriod and msWindowLength to cancel ongoing timers. ]*/
         /* Codes_SRS_THREADPOOL_WIN32_42_013: [ threadpool_timer_dispose shall call WaitForThreadpoolTimerCallbacks. ]*/
         threadpool_internal_cancel_timer_and_wait(timer->timer);
-        /* Codes_SRS_THREADPOOL_WIN32_42_014: [ threadpool_timer_destroy shall call CloseThreadpoolTimer. ]*/
+        /* Codes_SRS_THREADPOOL_WIN32_42_014: [ threadpool_timer_dispose shall call CloseThreadpoolTimer. ]*/
         CloseThreadpoolTimer(timer->timer);
     }
 
@@ -388,7 +388,7 @@ THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool,
         result = THANDLE_MALLOC(THREADPOOL_TIMER)(threadpool_timer_dispose);
         if (result == NULL)
         {
-            /* Codes_SRS_THREADPOOL_WIN32_42_008: [ If any error occurs, threadpool_timer_start shall fail and return a non-zero value. ]*/
+            /* Codes_SRS_THREADPOOL_WIN32_42_008: [ If any error occurs, threadpool_timer_start shall fail and return NULL. ]*/
             LogError("failure in THANDLE_MALLOC(THREADPOOL_TIMER)(threadpool_timer_dispose=%p)",
                     threadpool_timer_dispose);
         }
@@ -400,7 +400,7 @@ THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool,
             PTP_TIMER tp_timer = CreateThreadpoolTimer(on_timer_callback, result, &threadpool_ptr->tp_environment);
             if (tp_timer == NULL)
             {
-                /* Codes_SRS_THREADPOOL_WIN32_42_008: [ If any error occurs, threadpool_timer_start shall fail and return a non-zero value. ]*/
+                /* Codes_SRS_THREADPOOL_WIN32_42_008: [ If any error occurs, threadpool_timer_start shall fail and return NULL. ]*/
                 LogError("CreateThreadpoolTimer failed");
             }
             else

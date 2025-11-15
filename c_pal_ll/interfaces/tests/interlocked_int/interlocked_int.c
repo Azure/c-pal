@@ -28,7 +28,7 @@ TEST_FUNCTION_CLEANUP(d)
 {
 }
 
-/*Tests_SRS_INTERLOCKED_43_001: [ interlocked_add shall atomically add 32-bit integers *addend and value and store the result in *addend.]*/
+/*Tests_SRS_INTERLOCKED_43_001: [ interlocked_add shall atomically add 32-bit integers addend and value and store the result in addend.]*/
 /*Tests_SRS_INTERLOCKED_43_032: [interlocked_add shall return the result of the addition.]*/
 TEST_FUNCTION(interlocked_add_does_addition)
 {
@@ -45,7 +45,7 @@ TEST_FUNCTION(interlocked_add_does_addition)
     ASSERT_ARE_EQUAL(int32_t, -1, return_val, "Return value is incorrect");
 }
 
-/*Tests_SRS_INTERLOCKED_43_001: [ interlocked_add shall atomically add 32-bit integers *addend and value and store the result in *addend.]*/
+/*Tests_SRS_INTERLOCKED_43_001: [ interlocked_add shall atomically add 32-bit integers addend and value and store the result in addend.]*/
 /*Tests_SRS_INTERLOCKED_43_032: [interlocked_add shall return the result of the addition.]*/
 TEST_FUNCTION(interlocked_add_overflows_upper_bound)
 {
@@ -62,7 +62,7 @@ TEST_FUNCTION(interlocked_add_overflows_upper_bound)
     ASSERT_ARE_EQUAL(int32_t, INT32_MIN, return_val, "Return value is incorrect.");
 }
 
-/*Tests_SRS_INTERLOCKED_43_001: [ interlocked_add shall atomically add 32-bit integers *addend and value and store the result in *addend.]*/
+/*Tests_SRS_INTERLOCKED_43_001: [ interlocked_add shall atomically add 32-bit integers addend and value and store the result in addend.]*/
 /*Tests_SRS_INTERLOCKED_43_032: [interlocked_add shall return the result of the addition.]*/
 TEST_FUNCTION(interlocked_add_underflows_lower_bound)
 {
@@ -79,7 +79,7 @@ TEST_FUNCTION(interlocked_add_underflows_lower_bound)
     ASSERT_ARE_EQUAL(int32_t, INT32_MAX, return_val, "Return value is incorrect");
 }
 
-/*Tests_SRS_INTERLOCKED_43_065: [ interlocked_add_64 shall atomically add 64-bit integers *addend and value and store the result in *addend. ]*/
+/*Tests_SRS_INTERLOCKED_43_065: [ interlocked_add_64 shall atomically add 64-bit integers addend and value and store the result in addend. ]*/
 /*Tests_SRS_INTERLOCKED_43_066: [ interlocked_add_64 shall return the result of the addition. ]*/
 TEST_FUNCTION(interlocked_add_64_does_addition)
 {
@@ -96,7 +96,7 @@ TEST_FUNCTION(interlocked_add_64_does_addition)
     ASSERT_ARE_EQUAL(int64_t, -1, return_val, "Return value is incorrect");
 }
 
-/*Tests_SRS_INTERLOCKED_43_065: [ interlocked_add_64 shall atomically add 64-bit integers *addend and value and store the result in *addend. ]*/
+/*Tests_SRS_INTERLOCKED_43_065: [ interlocked_add_64 shall atomically add 64-bit integers addend and value and store the result in addend. ]*/
 /*Tests_SRS_INTERLOCKED_43_066: [ interlocked_add_64 shall return the result of the addition. ]*/
 TEST_FUNCTION(interlocked_add_64_overflows_upper_bound)
 {
@@ -113,7 +113,7 @@ TEST_FUNCTION(interlocked_add_64_overflows_upper_bound)
     ASSERT_ARE_EQUAL(int64_t, INT64_MIN, return_val, "Return value is incorrect");
 }
 
-/*Tests_SRS_INTERLOCKED_43_065: [ interlocked_add_64 shall atomically add 64-bit integers *addend and value and store the result in *addend. ]*/
+/*Tests_SRS_INTERLOCKED_43_065: [ interlocked_add_64 shall atomically add 64-bit integers addend and value and store the result in addend. ]*/
 /*Tests_SRS_INTERLOCKED_43_066: [ interlocked_add_64 shall return the result of the addition. ]*/
 TEST_FUNCTION(interlocked_add_64_underflows_lower_bound)
 {
@@ -130,8 +130,8 @@ TEST_FUNCTION(interlocked_add_64_underflows_lower_bound)
     ASSERT_ARE_EQUAL(int64_t, INT64_MAX, return_val, "Return value is incorrect");
 }
 
-/*Tests_SRS_INTERLOCKED_43_002: [interlocked_and shall perform an atomic bitwise AND operation on the 32 - bit integer values * destination and value and store the result in * destination.]*/
-/*Tests_SRS_INTERLOCKED_43_033: [interlocked_and shall return the initial value of * destination.]*/
+/*Tests_SRS_INTERLOCKED_43_002: [interlocked_and shall perform an atomic bitwise AND operation on the 32-bit integer values destination and value and store the result in destination.]*/
+/*Tests_SRS_INTERLOCKED_43_033: [interlocked_and shall return the initial value of *destination.]*/
 TEST_FUNCTION(interlocked_and_does_bitwise_and)
 {
     ///arrange
@@ -147,7 +147,7 @@ TEST_FUNCTION(interlocked_and_does_bitwise_and)
     ASSERT_ARE_EQUAL(uint32_t, 0xF0F0F0F0, return_val, "Return value is incorrect");
 }
 
-/*Tests_SRS_INTERLOCKED_43_003: [ interlocked_and_16 shall perform an atomic bitwise AND operation on the 16-bit integer values *destination and value and store the result in *destination.]*/
+/*Tests_SRS_INTERLOCKED_43_003: [ interlocked_and_16 shall perform an atomic bitwise AND operation on the 16-bit integer values destination and value and store the result in destination.]*/
 /*Tests_SRS_INTERLOCKED_43_034: [ interlocked_and_16 shall return the initial value of *destination.]*/
 TEST_FUNCTION(interlocked_and_16_does_bitwise_and)
 {
@@ -165,7 +165,7 @@ TEST_FUNCTION(interlocked_and_16_does_bitwise_and)
     ASSERT_ARE_EQUAL(uint16_t, 0xF0F0, return_val, "Return value is incorrect");
 }
 
-/*Tests_SRS_INTERLOCKED_43_004: [ interlocked_and_64 shall perform an atomic bitwise AND operation on the 64-bit integer values *destination and value and store the result in *destination.]*/
+/*Tests_SRS_INTERLOCKED_43_004: [ interlocked_and_64 shall perform an atomic bitwise AND operation on the 64-bit integer values destination and value and store the result in destination.]*/
 /*Tests_SRS_INTERLOCKED_43_035: [ interlocked_and_64 shall return the initial value of *destination.]*/
 TEST_FUNCTION(interlocked_and_64_does_bitwise_and)
 {
@@ -182,7 +182,7 @@ TEST_FUNCTION(interlocked_and_64_does_bitwise_and)
     ASSERT_ARE_EQUAL(uint64_t, 0xF0F0F0F0F0F0F0F0, return_val, "Return value is incorrect");
 }
 
-/*Tests_SRS_INTERLOCKED_43_005: [ interlocked_and_8 shall perform an atomic bitwise AND operation on the 8-bit integer values *destination and value and store the result in *destination]*/
+/*Tests_SRS_INTERLOCKED_43_005: [ interlocked_and_8 shall perform an atomic bitwise AND operation on the 8-bit integer values destination and value and store the result in destination]*/
 /*Tests_SRS_INTERLOCKED_43_036: [ interlocked_and_8 shall return the initial value of *destination. ]*/
 TEST_FUNCTION(interlocked_and_8_does_bitwise_and)
 {
@@ -199,7 +199,7 @@ TEST_FUNCTION(interlocked_and_8_does_bitwise_and)
     ASSERT_ARE_EQUAL(uint8_t, 0xF0, return_val, "Return value is incorrect");
 }
 
-/*Tests_SRS_INTERLOCKED_43_006: [ interlocked_compare_exchange shall compare the 32-bit integers pointed to by destination and comperand. If they are equal, *destination is set to exchange. These operations are performed atomically.*]*/
+/*Tests_SRS_INTERLOCKED_43_006: [ interlocked_compare_exchange shall compare the 32-bit integers pointed to by destination and comperand. If they are equal, destination is set to exchange. These operations are performed atomically.]*/
 /*Tests_SRS_INTERLOCKED_43_037: [ interlocked_compare_exchange shall return the initial value of *destination.]*/
 TEST_FUNCTION(interlocked_compare_exchange_exchanges_when_equal)
 {
@@ -217,7 +217,7 @@ TEST_FUNCTION(interlocked_compare_exchange_exchanges_when_equal)
     ASSERT_ARE_EQUAL(int32_t, INT32_MAX, return_val, "Return value is incorrect");
 }
 
-/*Tests_SRS_INTERLOCKED_43_006: [ interlocked_compare_exchange shall compare the 32-bit integers pointed to by destination and comperand. If they are equal, *destination is set to exchange. These operations are performed atomically.*]*/
+/*Tests_SRS_INTERLOCKED_43_006: [ interlocked_compare_exchange shall compare the 32-bit integers pointed to by destination and comperand. If they are equal, destination is set to exchange. These operations are performed atomically.]*/
 /*Tests_SRS_INTERLOCKED_43_037: [ interlocked_compare_exchange shall return the initial value of *destination.]*/
 TEST_FUNCTION(interlocked_compare_exchange_does_not_exchange_when_not_equal)
 {
@@ -236,9 +236,9 @@ TEST_FUNCTION(interlocked_compare_exchange_does_not_exchange_when_not_equal)
 }
 
 #ifdef _WIN64
-/*Tests_SRS_INTERLOCKED_43_007: [ interlocked_compare_exchange_128 shall compare *destination with *comperand_result. If they are equal, destination[0] is set to exchange_low and destination[1] is set to exchange_high. These operations are performed atomically.]*/
-/*Tests_SRS_INTERLOCKED_43_039: [ interlocked_compare_exchange_128 shall store the initial value of *destination in *comperand_result regardless of the result of the comparison. ]*/
-/*Tests_SRS_INTERLOCKED_43_038: [ interlocked_compare_exchange_128 shall return true if *comperand_result equals the original value of *destination.]*/
+/*Tests_SRS_INTERLOCKED_43_007: [ interlocked_compare_exchange_128 shall compare destination with comperand_result. If they are equal, destination[0] is set to exchange_low and destination[1] is set to exchange_high. These operations are performed atomically.]*/
+/*Tests_SRS_INTERLOCKED_43_039: [ interlocked_compare_exchange_128 shall store the initial value of destination in comperand_result regardless of the result of the comparison.` ]*/
+/*Tests_SRS_INTERLOCKED_43_038: [ interlocked_compare_exchange_128 shall return true if comperand_result equals the original value of destination.]*/
 TEST_FUNCTION(interlocked_compare_exchange_128_exchanges_when_equal)
 {
     ///arrange
@@ -271,8 +271,8 @@ TEST_FUNCTION(interlocked_compare_exchange_128_exchanges_when_equal)
 }
 
 
-/*Tests_SRS_INTERLOCKED_43_039: [ interlocked_compare_exchange_128 shall store the initial value of *destination in *comperand_result regardless of the result of the comparison. ]*/
-/*Tests_SRS_INTERLOCKED_43_063: [ interlocked_compare_exchange_128 shall return false if *comperand_result does not equal the original value of *destination. ]*/
+/*Tests_SRS_INTERLOCKED_43_039: [ interlocked_compare_exchange_128 shall store the initial value of destination in comperand_result regardless of the result of the comparison.` ]*/
+/*Tests_SRS_INTERLOCKED_43_063: [ interlocked_compare_exchange_128 shall return false if comperand_result does not equal the original value of destination. ]*/
 TEST_FUNCTION(interlocked_compare_exchange_128_does_not_exchange_when_not_equal)
 {
     ///arrange
@@ -629,7 +629,7 @@ TEST_FUNCTION(interlocked_exchange_8_sets_target)
     ASSERT_ARE_EQUAL(int8_t, INT8_MIN, return_val, "Return value is incorrect");
 }
 
-/*Tests_SRS_INTERLOCKED_43_018: [ interlocked_exchange_add shall perform an atomic addition of the 32-bit values *addend and value and store the result in *addend.]*/
+/*Tests_SRS_INTERLOCKED_43_018: [ interlocked_exchange_add shall perform an atomic addition of the 32-bit values addend and value and store the result in addend.]*/
 /*Tests_SRS_INTERLOCKED_43_050: [ interlocked_exchange_add shall return the initial value of *addend. ]*/
 TEST_FUNCTION(interlocked_exchange_add_sets_target_to_sum)
 {
@@ -646,7 +646,7 @@ TEST_FUNCTION(interlocked_exchange_add_sets_target_to_sum)
     ASSERT_ARE_EQUAL(int32_t, INT32_MIN, return_val, "Return value is incorrect");
 }
 
-/*Tests_SRS_INTERLOCKED_43_018: [ interlocked_exchange_add shall perform an atomic addition of the 32-bit values *addend and value and store the result in *addend.]*/
+/*Tests_SRS_INTERLOCKED_43_018: [ interlocked_exchange_add shall perform an atomic addition of the 32-bit values addend and value and store the result in addend.]*/
 /*Tests_SRS_INTERLOCKED_43_050: [ interlocked_exchange_add shall return the initial value of *addend. ]*/
 TEST_FUNCTION(interlocked_exchange_add_overflows_upper_bound)
 {
@@ -663,7 +663,7 @@ TEST_FUNCTION(interlocked_exchange_add_overflows_upper_bound)
     ASSERT_ARE_EQUAL(int32_t, INT32_MAX, return_val, "Return value is incorrect");
 }
 
-/*Tests_SRS_INTERLOCKED_43_018: [ interlocked_exchange_add shall perform an atomic addition of the 32-bit values *addend and value and store the result in *addend.]*/
+/*Tests_SRS_INTERLOCKED_43_018: [ interlocked_exchange_add shall perform an atomic addition of the 32-bit values addend and value and store the result in addend.]*/
 /*Tests_SRS_INTERLOCKED_43_050: [ interlocked_exchange_add shall return the initial value of *addend. ]*/
 TEST_FUNCTION(interlocked_exchange_add_underflows_lower_bound)
 {
@@ -680,7 +680,7 @@ TEST_FUNCTION(interlocked_exchange_add_underflows_lower_bound)
     ASSERT_ARE_EQUAL(int32_t, INT32_MIN, return_val, "Return value is incorrect");
 }
 
-/*Tests_SRS_INTERLOCKED_43_019: [ interlocked_exchange_add_64 shall perform an atomic addition of the 64-bit values *addend and value and store the result in *addend.]*/
+/*Tests_SRS_INTERLOCKED_43_019: [ interlocked_exchange_add_64 shall perform an atomic addition of the 64-bit values addend and value and store the result in addend.]*/
 /*Tests_SRS_INTERLOCKED_43_064: [ interlocked_exchange_add_64 shall return the initial value of *addend. ]*/
 TEST_FUNCTION(interlocked_exchange_add_64_sets_target_to_sum)
 {
@@ -697,7 +697,7 @@ TEST_FUNCTION(interlocked_exchange_add_64_sets_target_to_sum)
     ASSERT_ARE_EQUAL(int64_t, INT64_MIN, return_val, "Return value is incorrect");
 }
 
-/*Tests_SRS_INTERLOCKED_43_019: [ interlocked_exchange_add_64 shall perform an atomic addition of the 64-bit values *addend and value and store the result in *addend.]*/
+/*Tests_SRS_INTERLOCKED_43_019: [ interlocked_exchange_add_64 shall perform an atomic addition of the 64-bit values addend and value and store the result in addend.]*/
 /*Tests_SRS_INTERLOCKED_43_064: [ interlocked_exchange_add_64 shall return the initial value of *addend. ]*/
 TEST_FUNCTION(interlocked_exchange_add_64_overflows_upper_bound)
 {
@@ -714,7 +714,7 @@ TEST_FUNCTION(interlocked_exchange_add_64_overflows_upper_bound)
     ASSERT_ARE_EQUAL(int64_t, INT64_MAX, return_val, "Return value is incorrect");
 }
 
-/*Tests_SRS_INTERLOCKED_43_019: [ interlocked_exchange_add_64 shall perform an atomic addition of the 64-bit values *addend and value and store the result in *addend.]*/
+/*Tests_SRS_INTERLOCKED_43_019: [ interlocked_exchange_add_64 shall perform an atomic addition of the 64-bit values addend and value and store the result in addend.]*/
 /*Tests_SRS_INTERLOCKED_43_064: [ interlocked_exchange_add_64 shall return the initial value of *addend. ]*/
 TEST_FUNCTION(interlocked_exchange_add_64_underflows_lower_bound)
 {

@@ -28,7 +28,7 @@ static void* gballoc_ll_malloc_internal(size_t size)
 {
     void* result;
     /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_003: [ gballoc_ll_malloc shall call malloc(size) and return what malloc returned. ]*/
-    /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_009: [ gballoc_ll_malloc_2 shall call malloc(nmemb*size) and return what malloc returned. ]*/
+    /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_009: [ gballoc_ll_malloc_2 shall call malloc(nmemb*size) and returns what malloc returned. ]*/
     /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_012: [ gballoc_ll_malloc_flex shall return what malloc(base + nmemb * size) returns. ]*/
     result = malloc(size);
 
@@ -60,7 +60,7 @@ void* gballoc_ll_malloc_2(size_t nmemb, size_t size)
     }
     else
     {
-        /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_009: [ gballoc_ll_malloc_2 shall call malloc(nmemb*size) and return what malloc returned. ]*/
+        /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_009: [ gballoc_ll_malloc_2 shall call malloc(nmemb*size) and returns what malloc returned. ]*/
         result = gballoc_ll_malloc_internal(nmemb * size);
     }
     return result;
