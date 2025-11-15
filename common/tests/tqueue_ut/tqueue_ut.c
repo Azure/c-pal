@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license.See LICENSE file in the project root for full license information.
 
 #include "tqueue_ut_pch.h"
@@ -265,7 +265,7 @@ TEST_FUNCTION(TQUEUE_DISPOSE_FUNC_with_NULL_dispose_item_returns)
 
 /* Tests_SRS_TQUEUE_01_009: [ Otherwise, TQUEUE_DISPOSE_FUNC(T) shall obtain the current queue head by calling interlocked_add_64. ]*/
 /* Tests_SRS_TQUEUE_01_010: [ TQUEUE_DISPOSE_FUNC(T) shall obtain the current queue tail by calling interlocked_add_64. ]*/
-/* Tests_SRS_TQUEUE_01_011: [ For each item in the queue, dispose_item_function shall be called with dispose_function_context and a pointer to the array entry value (T*). ]*/
+/* Tests_SRS_TQUEUE_01_011: [ For each item in the queue, dispose_item_function shall be called with dispose_item_function_context and a pointer to the array entry value (T*). ]*/
 /* Tests_SRS_TQUEUE_01_056: [ The lock initialized in TQUEUE_CREATE(T) shall be de-initialized. ] */
 /* Tests_SRS_TQUEUE_01_057: [ The array backing the queue shall be freed. ] */
 TEST_FUNCTION(TQUEUE_DISPOSE_FUNC_with_non_NULL_dispose_item_with_empty_queue_does_not_call_dispose_item)
@@ -318,7 +318,7 @@ static int32_t test_queue_pop_rejected(TQUEUE(int32_t) queue)
 
 /* Tests_SRS_TQUEUE_01_009: [ Otherwise, TQUEUE_DISPOSE_FUNC(T) shall obtain the current queue head by calling interlocked_add_64. ]*/
 /* Tests_SRS_TQUEUE_01_010: [ TQUEUE_DISPOSE_FUNC(T) shall obtain the current queue tail by calling interlocked_add_64. ]*/
-/* Tests_SRS_TQUEUE_01_011: [ For each item in the queue, dispose_item_function shall be called with dispose_function_context and a pointer to the array entry value (T*). ]*/
+/* Tests_SRS_TQUEUE_01_011: [ For each item in the queue, dispose_item_function shall be called with dispose_item_function_context and a pointer to the array entry value (T*). ]*/
 /* Tests_SRS_TQUEUE_01_056: [ The lock initialized in TQUEUE_CREATE(T) shall be de-initialized. ] */
 /* Tests_SRS_TQUEUE_01_057: [ The array backing the queue shall be freed. ] */
 TEST_FUNCTION(TQUEUE_DISPOSE_FUNC_with_non_NULL_dispose_item_with_1_item_calls_dispose_item_once)
@@ -344,7 +344,7 @@ TEST_FUNCTION(TQUEUE_DISPOSE_FUNC_with_non_NULL_dispose_item_with_1_item_calls_d
 
 /* Tests_SRS_TQUEUE_01_009: [ Otherwise, TQUEUE_DISPOSE_FUNC(T) shall obtain the current queue head by calling interlocked_add_64. ]*/
 /* Tests_SRS_TQUEUE_01_010: [ TQUEUE_DISPOSE_FUNC(T) shall obtain the current queue tail by calling interlocked_add_64. ]*/
-/* Tests_SRS_TQUEUE_01_011: [ For each item in the queue, dispose_item_function shall be called with dispose_function_context and a pointer to the array entry value (T*). ]*/
+/* Tests_SRS_TQUEUE_01_011: [ For each item in the queue, dispose_item_function shall be called with dispose_item_function_context and a pointer to the array entry value (T*). ]*/
 /* Tests_SRS_TQUEUE_01_056: [ The lock initialized in TQUEUE_CREATE(T) shall be de-initialized. ] */
 /* Tests_SRS_TQUEUE_01_057: [ The array backing the queue shall be freed. ] */
 TEST_FUNCTION(TQUEUE_DISPOSE_FUNC_with_non_NULL_dispose_item_with_2_items_calls_dispose_item_2_times)
@@ -372,7 +372,7 @@ TEST_FUNCTION(TQUEUE_DISPOSE_FUNC_with_non_NULL_dispose_item_with_2_items_calls_
 
 /* Tests_SRS_TQUEUE_01_009: [ Otherwise, TQUEUE_DISPOSE_FUNC(T) shall obtain the current queue head by calling interlocked_add_64. ]*/
 /* Tests_SRS_TQUEUE_01_010: [ TQUEUE_DISPOSE_FUNC(T) shall obtain the current queue tail by calling interlocked_add_64. ]*/
-/* Tests_SRS_TQUEUE_01_011: [ For each item in the queue, dispose_item_function shall be called with dispose_function_context and a pointer to the array entry value (T*). ]*/
+/* Tests_SRS_TQUEUE_01_011: [ For each item in the queue, dispose_item_function shall be called with dispose_item_function_context and a pointer to the array entry value (T*). ]*/
 /* Tests_SRS_TQUEUE_01_056: [ The lock initialized in TQUEUE_CREATE(T) shall be de-initialized. ] */
 /* Tests_SRS_TQUEUE_01_057: [ The array backing the queue shall be freed. ] */
 TEST_FUNCTION(TQUEUE_DISPOSE_FUNC_for_a_queue_with_max_size_bigger_than_initial_size_frees_resources)
@@ -421,7 +421,7 @@ TEST_FUNCTION(TQUEUE_DISPOSE_FUNC_for_a_queue_with_max_size_bigger_than_initial_
 
 /* Tests_SRS_TQUEUE_01_009: [ Otherwise, TQUEUE_DISPOSE_FUNC(T) shall obtain the current queue head by calling interlocked_add_64. ]*/
 /* Tests_SRS_TQUEUE_01_010: [ TQUEUE_DISPOSE_FUNC(T) shall obtain the current queue tail by calling interlocked_add_64. ]*/
-/* Tests_SRS_TQUEUE_01_011: [ For each item in the queue, dispose_item_function shall be called with dispose_function_context and a pointer to the array entry value (T*). ]*/
+/* Tests_SRS_TQUEUE_01_011: [ For each item in the queue, dispose_item_function shall be called with dispose_item_function_context and a pointer to the array entry value (T*). ]*/
 /* Tests_SRS_TQUEUE_01_056: [ The lock initialized in TQUEUE_CREATE(T) shall be de-initialized. ] */
 /* Tests_SRS_TQUEUE_01_057: [ The array backing the queue shall be freed. ] */
 TEST_FUNCTION(TQUEUE_DISPOSE_FUNC_for_a_queue_that_was_grown_frees_resources)
@@ -812,7 +812,7 @@ TEST_FUNCTION(TQUEUE_PUSH_for_a_queue_with_max_higher_than_initial_size_succeeds
                 /* Tests_SRS_TQUEUE_01_077: [ TQUEUE_PUSH(T) shall move the entries between the tail index and the array end like below: ]*/            \
                 /* Tests_SRS_TQUEUE_01_078: [ Entries at the tail shall be moved to the end of the resized array ] */
             /* Tests_SRS_TQUEUE_01_065: [ TQUEUE_PUSH(T) shall release in exclusive mode the lock used to guard the growing of the queue. ] */
-            /* Tests_SRS_TQUEUE_01_066: [ TQUEUE_PUSH(T) shall acquire in shared mode the lock used to guard the growing of the queue. ] */
+            /* Tests_SRS_TQUEUE_01_066: [ TQUEUE_PUSH(T) shall acquire in shared mode the lock used to guard the growing of the queue and retry the TQUEUE_PUSH(T). ] */
     /* Tests_SRS_TQUEUE_01_017: [ Using interlocked_compare_exchange, TQUEUE_PUSH(T) shall change the head array entry state to PUSHING (from NOT_USED). ]*/
     /* Tests_SRS_TQUEUE_01_018: [ Using interlocked_compare_exchange_64, TQUEUE_PUSH(T) shall replace the head value with the head value obtained earlier + 1. ]*/
     /* Tests_SRS_TQUEUE_01_019: [ If no copy_item_function was specified in TQUEUE_CREATE(T), TQUEUE_PUSH(T) shall copy the value of item into the array entry value whose state was changed to PUSHING. ]*/
@@ -880,7 +880,7 @@ TEST_FUNCTION(TQUEUE_PUSH_twice_for_queue_size_1_resizes_the_queue_case_1)
                 /* Tests_SRS_TQUEUE_01_077: [ TQUEUE_PUSH(T) shall move the entries between the tail index and the array end like below: ]*/            \
                 /* Tests_SRS_TQUEUE_01_078: [ Entries at the tail shall be moved to the end of the resized array ] */
             /* Tests_SRS_TQUEUE_01_065: [ TQUEUE_PUSH(T) shall release in exclusive mode the lock used to guard the growing of the queue. ] */
-            /* Tests_SRS_TQUEUE_01_066: [ TQUEUE_PUSH(T) shall acquire in shared mode the lock used to guard the growing of the queue. ] */
+            /* Tests_SRS_TQUEUE_01_066: [ TQUEUE_PUSH(T) shall acquire in shared mode the lock used to guard the growing of the queue and retry the TQUEUE_PUSH(T). ] */
     /* Tests_SRS_TQUEUE_01_017: [ Using interlocked_compare_exchange, TQUEUE_PUSH(T) shall change the head array entry state to PUSHING (from NOT_USED). ]*/
     /* Tests_SRS_TQUEUE_01_018: [ Using interlocked_compare_exchange_64, TQUEUE_PUSH(T) shall replace the head value with the head value obtained earlier + 1. ]*/
     /* Tests_SRS_TQUEUE_01_019: [ If no copy_item_function was specified in TQUEUE_CREATE(T), TQUEUE_PUSH(T) shall copy the value of item into the array entry value whose state was changed to PUSHING. ]*/
@@ -1058,7 +1058,7 @@ TEST_FUNCTION(TQUEUE_POP_with_NULL_item_fails)
     /* Tests_SRS_TQUEUE_01_028: [ TQUEUE_POP(T) shall obtain the current head queue by calling interlocked_add_64. ]*/
     /* Tests_SRS_TQUEUE_01_029: [ TQUEUE_POP(T) shall obtain the current tail queue by calling interlocked_add_64. ]*/
     /* Tests_SRS_TQUEUE_01_030: [ Using interlocked_compare_exchange, TQUEUE_PUSH(T) shall set the tail array entry state to POPPING (from USED). ]*/
-    /* Tests_SRS_TQUEUE_01_031: [ TQUEUE_POP(T) shall replace the tail value with the tail value obtained earlier + 1 by using interlocked_exchange_64. ]*/
+    /* Tests_SRS_TQUEUE_01_031: [ TQUEUE_POP(T) shall replace the tail value with the tail value obtained earlier + 1 by using interlocked_compare_exchange_64. ]*/
     /* Tests_SRS_TQUEUE_01_032: [ If a copy_item_function was not specified in TQUEUE_CREATE(T): ]*/
     /* Tests_SRS_TQUEUE_01_033: [ TQUEUE_POP(T) shall copy array entry value whose state was changed to POPPING to item. ]*/
     /* Tests_SRS_TQUEUE_01_034: [ TQUEUE_POP(T) shall set the state to NOT_USED by using interlocked_exchange, succeed and return TQUEUE_POP_OK. ]*/
@@ -1095,7 +1095,7 @@ TEST_FUNCTION(TQUEUE_POP_with_NULL_copy_item_function_and_NULL_condition_functio
     /* Tests_SRS_TQUEUE_01_028: [ TQUEUE_POP(T) shall obtain the current head queue by calling interlocked_add_64. ]*/
     /* Tests_SRS_TQUEUE_01_029: [ TQUEUE_POP(T) shall obtain the current tail queue by calling interlocked_add_64. ]*/
     /* Tests_SRS_TQUEUE_01_030: [ Using interlocked_compare_exchange, TQUEUE_PUSH(T) shall set the tail array entry state to POPPING (from USED). ]*/
-    /* Tests_SRS_TQUEUE_01_031: [ TQUEUE_POP(T) shall replace the tail value with the tail value obtained earlier + 1 by using interlocked_exchange_64. ]*/
+    /* Tests_SRS_TQUEUE_01_031: [ TQUEUE_POP(T) shall replace the tail value with the tail value obtained earlier + 1 by using interlocked_compare_exchange_64. ]*/
     /* Tests_SRS_TQUEUE_01_032: [ If a copy_item_function was not specified in TQUEUE_CREATE(T): ]*/
     /* Tests_SRS_TQUEUE_01_033: [ TQUEUE_POP(T) shall copy array entry value whose state was changed to POPPING to item. ]*/
     /* Tests_SRS_TQUEUE_01_034: [ TQUEUE_POP(T) shall set the state to NOT_USED by using interlocked_exchange, succeed and return TQUEUE_POP_OK. ]*/
@@ -1515,8 +1515,8 @@ TEST_FUNCTION(TQUEUE_GET_VOLATILE_COUNT_with_empty_tqueue_returns_zero)
 }
 
 /* Tests_SRS_TQUEUE_01_080: [ TQUEUE_GET_VOLATILE_COUNT(T) shall acquire in shared mode the lock used to guard the growing of the queue. ] */
-/* Tests_SRS_TQUEUE_22_002: [ TQUEUE_GET_COUNT(T) shall obtain the current head queue by calling interlocked_add_64. ]*/
-/* Tests_SRS_TQUEUE_22_003: [ TQUEUE_GET_COUNT(T) shall obtain the current tail queue by calling interlocked_add_64. ]*/
+/* Tests_SRS_TQUEUE_22_002: [ TQUEUE_GET_VOLATILE_COUNT(T) shall obtain the current head queue by calling interlocked_add_64. ]*/
+/* Tests_SRS_TQUEUE_22_003: [ TQUEUE_GET_VOLATILE_COUNT(T) shall obtain the current tail queue by calling interlocked_add_64. ]*/
 /* Tests_SRS_TQUEUE_22_006: [ TQUEUE_GET_VOLATILE_COUNT(T) shall obtain the current tail queue again by calling interlocked_add_64 and compare with the previosuly obtained tail value.  The tail value is valid only if it has not changed. ]*/
 /* Tests_SRS_TQUEUE_22_005: [ TQUEUE_GET_VOLATILE_COUNT(T) shall return the item count of the queue. ]*/
 /* Tests_SRS_TQUEUE_01_081: [ TQUEUE_GET_VOLATILE_COUNT(T) shall release in shared mode the lock used to guard the growing of the queue. ] */
@@ -1612,10 +1612,10 @@ TEST_FUNCTION(TQUEUE_GET_VOLATILE_COUNT_with_full_queue_returns_queue_size)
 }
 
 /* Tests_SRS_TQUEUE_01_080: [ TQUEUE_GET_VOLATILE_COUNT(T) shall acquire in shared mode the lock used to guard the growing of the queue. ] */
-/* Tests_SRS_TQUEUE_22_002: [ TQUEUE_GET_COUNT(T) shall obtain the current head queue by calling interlocked_add_64. ]*/
-/* Tests_SRS_TQUEUE_22_003: [ TQUEUE_GET_COUNT(T) shall obtain the current tail queue by calling interlocked_add_64. ]*/
+/* Tests_SRS_TQUEUE_22_002: [ TQUEUE_GET_VOLATILE_COUNT(T) shall obtain the current head queue by calling interlocked_add_64. ]*/
+/* Tests_SRS_TQUEUE_22_003: [ TQUEUE_GET_VOLATILE_COUNT(T) shall obtain the current tail queue by calling interlocked_add_64. ]*/
 /* Tests_SRS_TQUEUE_22_006: [ TQUEUE_GET_VOLATILE_COUNT(T) shall obtain the current tail queue again by calling interlocked_add_64 and compare with the previosuly obtained tail value.  The tail value is valid only if it has not changed. ]*/
-/* Tests_SRS_TQUEUE_22_005: [ TQUEUE_GET_COUNT(T) shall return the item count of the queue. ]*/
+/* Tests_SRS_TQUEUE_22_005: [ TQUEUE_GET_VOLATILE_COUNT(T) shall return the item count of the queue. ]*/
 /* Tests_SRS_TQUEUE_01_081: [ TQUEUE_GET_VOLATILE_COUNT(T) shall release in shared mode the lock used to guard the growing of the queue. ] */
 TEST_FUNCTION(TQUEUE_GET_VOLATILE_COUNT_with_full_queue_pop_all_push_1_returns_1)
 {

@@ -203,7 +203,7 @@ TEST_FUNCTION(file_create_fails_on_empty_full_file_name)
 /*Tests_SRS_FILE_WIN32_43_041: [ file_create shall allocate a FILE_HANDLE. ]*/
 /*Tests_SRS_FILE_WIN32_01_001: [ file_create shall increment the reference count of execution_engine in order to hold on to it. ]*/
 /*Tests_SRS_FILE_WIN32_43_001: [ file_create shall call CreateFileA with full_file_name as lpFileName, GENERIC_READ|GENERIC_WRITE as dwDesiredAccess, FILE_SHARED_READ as dwShareMode, NULL as lpSecurityAttributes, OPEN_ALWAYS as dwCreationDisposition, FILE_FLAG_OVERLAPPED|FILE_FLAG_WRITE_THROUGH as dwFlagsAndAttributes and NULL as hTemplateFile. ]*/
-/*Tests_SRS_FILE_WIN32_43_002: [ file_create shall call SetFileCompletionNotificationModes to disable calling the completion port when an async operations finishes synchrounously. ]*/
+/*Tests_SRS_FILE_WIN32_43_002: [ file_create shall call SetFileCompletionNotificationModes to disable calling the completion port when an async operations finishes synchronously. ]*/
 /*Tests_SRS_FILE_WIN32_43_003: [ file_create shall initialize a threadpool environment by calling InitializeThreadpolEnvironment. ]*/
 /*Tests_SRS_FILE_WIN32_43_004: [ file_create shall obtain a PTP_POOL struct by calling execution_engine_win32_get_threadpool on execution_engine. ]*/
 /*Tests_SRS_FILE_WIN32_43_005: [ file_create shall register the threadpool environment by calling SetThreadpoolCallbackPool on the initialized threadpool environment and the obtained ptp_pool ]*/
@@ -271,7 +271,7 @@ TEST_FUNCTION(file_destroy_called_with_null_handle)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_FILE_WIN32_43_011: [ file_destroy shall wait for all I / O to complete by calling WaitForThreadpoolIoCallbacks.]*/
+/*Tests_SRS_FILE_WIN32_43_011: [ file_destroy shall wait for all I/O to complete by calling WaitForThreadpoolIoCallbacks.]*/
 /*Tests_SRS_FILE_WIN32_43_012: [ file_destroy shall close the cleanup group by calling CloseThreadpoolCleanupGroup.]*/
 /*Tests_SRS_FILE_WIN32_43_013: [ file_destroy shall destroy the environment by calling DestroyThreadpoolEnvironment.]*/
 /*Tests_SRS_FILE_WIN32_43_016: [ file_destroy shall call CloseHandle on the handle returned by CreateFileA. ]*/

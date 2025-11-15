@@ -16,8 +16,8 @@ uint32_t sysinfo_get_processor_count(void)
     long sysconf_result = sysconf(_SC_NPROCESSORS_ONLN);
     if (sysconf_result < 0)
     {
-        /* Codes_SRS_SYSINFO_01_002: [ If any error occurs, `sysinfo_get_processor_count` shall return 0. ]*/
-        /* Codes_SRS_SYSINFO_LINUX_01_002: [ If any error occurs, `sysinfo_get_processor_count` shall return 0. ]*/
+        /* Codes_SRS_SYSINFO_01_002: [ If any error occurs, sysinfo_get_processor_count shall return 0. ]*/
+        /* Codes_SRS_SYSINFO_LINUX_01_002: [ If any error occurs, sysinfo_get_processor_count shall return 0. ]*/
         LogError("sysconf(_SC_NPROCESSORS_ONLN) failed with %ld", sysconf_result);
         result = 0;
     }

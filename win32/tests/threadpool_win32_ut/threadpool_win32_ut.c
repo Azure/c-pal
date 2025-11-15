@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 
 #include "threadpool_win32_ut_pch.h"
@@ -1118,7 +1118,7 @@ TEST_FUNCTION(on_work_callback_v2_with_NULL_context_returns)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-/* Tests_SRS_THREADPOOL_WIN32_05_002: [ Otherwise context shall be used as the context created in thread_create_work_item. ] */
+/* Tests_SRS_THREADPOOL_WIN32_05_002: [ Otherwise context shall be used as the context created in threadpool_create_work_item. ] */
 /* Tests_SRS_THREADPOOL_WIN32_05_003: [ The work_function callback passed to threadpool_create_work_item shall be called with the work_function_context as an argument. work_function_context was set inside the threadpool_create_work_item as an argument to CreateThreadpoolContext. ] */
 TEST_FUNCTION(on_work_callback_v2_triggers_the_user_work_function)
 {
@@ -1161,7 +1161,7 @@ TEST_FUNCTION(on_work_callback_v2_triggers_the_user_work_function)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-/* Tests_SRS_THREADPOOL_WIN32_05_002: [ Otherwise context shall be used as the context created in thread_create_work_item. ] */
+/* Tests_SRS_THREADPOOL_WIN32_05_002: [ Otherwise context shall be used as the context created in threadpool_create_work_item. ] */
 /* Tests_SRS_THREADPOOL_WIN32_05_003: [ The work_function callback passed to threadpool_create_work_item shall be called with the work_function_context as an argument. work_function_context was set inside the threadpool_create_work_item as an argument to CreateThreadpoolContext. ] */
 TEST_FUNCTION(on_work_callback_v2_triggers_2_user_work_functions)
 {
@@ -1221,7 +1221,7 @@ TEST_FUNCTION(on_work_callback_v2_triggers_2_user_work_functions)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-/* Tests_SRS_THREADPOOL_WIN32_05_002: [ Otherwise context shall be used as the context created in thread_create_work_item. ] */
+/* Tests_SRS_THREADPOOL_WIN32_05_002: [ Otherwise context shall be used as the context created in threadpool_create_work_item. ] */
 /* Tests_SRS_THREADPOOL_WIN32_05_003: [ The work_function callback passed to threadpool_create_work_item shall be called with the work_function_context as an argument. work_function_context was set inside the threadpool_create_work_item as an argument to CreateThreadpoolContext. ] */
 TEST_FUNCTION(on_work_callback_v2_triggers_the_user_work_function_with_NULL_work_function_context)
 {
@@ -1336,9 +1336,9 @@ TEST_FUNCTION(when_underlying_calls_fail_threadpool_create_work_item_fails)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-/* Tests_SRS_THREADPOOL_WIN32_05_006: [ Otherwise threadpool_create_work_item shall allocate a context work_item_context of type THREADPOOL_WORK_ITEM_HANDLE where work_function, work_function_context, and ptp_work shall be saved. ] */
-/* Tests_SRS_THREADPOOL_WIN32_05_008: [ threadpool_create_work_item shall create work_item_context member variable ptp_work of type PTP_WORK by calling CreateThreadpoolWork to set the callback function as on_work_callback_v2. ] */
-/* Tests_SRS_THREADPOOL_WIN32_05_009: [ If there are no errors then this work_item_context of type THREADPOOL_WORK_ITEM_HANDLE would be returned indicating a succcess to the caller. ] */
+/* Tests_SRS_THREADPOOL_WIN32_05_006: [ Otherwise threadpool_create_work_item shall allocate a context of type THANDLE(THREADPOOL_WORK_ITEM) with the dispose function being threadpool_dispose_work_item. ] */
+/* Tests_SRS_THREADPOOL_WIN32_05_008: [ threadpool_create_work_item shall create threadpool_work_item member variable ptp_work of type PTP_WORK by calling CreateThreadpoolWork to set the callback function as on_work_callback_v2. ] */
+/* Tests_SRS_THREADPOOL_WIN32_05_009: [ If there are no errors then this threadpool_work_item of type THANDLE(THREADPOOL_WORK_ITEM) would be returned indicating a succcess to the caller. ] */
 TEST_FUNCTION(threadpool_create_work_item_succeeds)
 {
     // arrange
@@ -1386,7 +1386,7 @@ TEST_FUNCTION(threadpool_schedule_work_item_fails_for_NULL_threadpool)
     ASSERT_ARE_NOT_EQUAL(int, 0, schedule_return_status);
 }
 
-/* Tests_SRS_THREADPOOL_WIN32_05_012: [ If work_item_context is NULL, threadpool_schedule_work_item shall fail and return a non-zero value. ] */
+/* Tests_SRS_THREADPOOL_WIN32_05_012: [ If threadpool_work_item is NULL, threadpool_schedule_work_item shall fail and return a non-zero value. ] */
 TEST_FUNCTION(threadpool_schedule_work_item_fails_for_NULL_work_item_context)
 {
     // arrange
@@ -1449,7 +1449,7 @@ TEST_FUNCTION(threadpool_schedule_work_item_succeeds)
 /* threadpool_destroy_work_item */
 
 /* Tests_SRS_THREADPOOL_WIN32_05_016: [ threadpool_destroy_work_item shall call WaitForThreadpoolWorkCallbacks to wait on all outstanding tasks being scheduled on this ptp_work. ] * /
-/* Tests_SRS_THREADPOOL_WIN32_05_017: [ threadpool_destroy_work_item shall call CloseThreadpoolWork to close ptp_work. ] */
+/* Tests_SRS_THREADPOOL_WIN32_05_017: [ threadpool_dispose_work_item shall call CloseThreadpoolWork to close ptp_work. ] */
 TEST_FUNCTION(threadpool_destroy_work_item_succeeds)
 {
     // arrange

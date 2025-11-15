@@ -66,7 +66,7 @@ SRW_LOCK_LL_TRY_ACQUIRE_RESULT srw_lock_ll_try_acquire_exclusive(SRW_LOCK_LL* sr
 
     if (srw_lock_ll == NULL)
     {
-        /* Codes_SRS_SRW_LOCK_LL_01_008: [ If srw_lock_ll is NULL then srw_lock_ll_try_acquire_exclusive shall fail and return SRW_LOCK_TRY_ACQUIRE_INVALID_ARGS. ] */
+        /* Codes_SRS_SRW_LOCK_LL_01_008: [ If srw_lock_ll is NULL then srw_lock_ll_try_acquire_exclusive shall fail and return SRW_LOCK_LL_TRY_ACQUIRE_INVALID_ARGS. ] */
         LogError("Invalid arguments: SRW_LOCK_LL* srw_lock_ll=%p", srw_lock_ll);
         result = SRW_LOCK_LL_TRY_ACQUIRE_INVALID_ARGS;
     }

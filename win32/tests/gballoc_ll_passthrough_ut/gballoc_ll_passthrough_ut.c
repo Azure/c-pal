@@ -157,7 +157,7 @@ TEST_FUNCTION(gballoc_ll_malloc_2_with_overflow_fails)
     ///clean
 }
 
-/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_009: [ gballoc_ll_malloc_2 shall call malloc(nmemb*size) and return what malloc returned. ]*/
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_009: [ gballoc_ll_malloc_2 shall call malloc(nmemb*size) and returns what malloc returned. ]*/
 TEST_FUNCTION(gballoc_ll_malloc_2_with_SIZE_MAX_calls_malloc_and_succeeds)
 {
     ///arrange
@@ -175,7 +175,7 @@ TEST_FUNCTION(gballoc_ll_malloc_2_with_SIZE_MAX_calls_malloc_and_succeeds)
     ///clean
 }
 
-/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_009: [ gballoc_ll_malloc_2 shall call malloc(nmemb*size) and return what malloc returned. ]*/
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_009: [ gballoc_ll_malloc_2 shall call malloc(nmemb*size) and returns what malloc returned. ]*/
 TEST_FUNCTION(gballoc_ll_malloc_2_with_nmemb_0_calls_malloc_and_succeeds)
 {
     ///arrange
@@ -193,7 +193,7 @@ TEST_FUNCTION(gballoc_ll_malloc_2_with_nmemb_0_calls_malloc_and_succeeds)
     ///clean
 }
 
-/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_009: [ gballoc_ll_malloc_2 shall call malloc(nmemb*size) and return what malloc returned. ]*/
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_009: [ gballoc_ll_malloc_2 shall call malloc(nmemb*size) and returns what malloc returned. ]*/
 TEST_FUNCTION(gballoc_ll_malloc_2_with_SIZE_MAX_calls_malloc_and_fails)
 {
     ///arrange

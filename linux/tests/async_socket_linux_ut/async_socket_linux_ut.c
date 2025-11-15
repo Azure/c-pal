@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 
 #include "async_socket_linux_ut_pch.h"
@@ -381,7 +381,7 @@ TEST_FUNCTION(async_socket_open_async_with_NULL_async_socket_fails)
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
 }
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_open_async shall fail and return NULL. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_open_async shall fail and return non-zero value. ]
 TEST_FUNCTION(async_socket_open_async_with_INVALID_SOCKET_fails)
 {
     // arrange
@@ -883,7 +883,7 @@ TEST_FUNCTION(async_socket_send_async_with_on_send_complete_NULL_fails)
     async_socket_destroy(async_socket);
 }
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_051: [ If async_socket is not OPEN, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_NOT_OPEN. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_051: [ If async_socket is not OPEN, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ABANDONED. ]
 TEST_FUNCTION(async_socket_send_async_when_not_open_fails)
 {
     // arrange
@@ -912,7 +912,7 @@ TEST_FUNCTION(async_socket_send_async_when_not_open_fails)
     async_socket_destroy(async_socket);
 }
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_051: [ If async_socket is not OPEN, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_NOT_OPEN. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_051: [ If async_socket is not OPEN, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ABANDONED. ]
 TEST_FUNCTION(async_socket_send_async_after_close_fails)
 {
     // arrange
@@ -1023,7 +1023,7 @@ TEST_FUNCTION(async_socket_send_async_multiple_sends_succeeds)
 // Tests_SRS_ASYNC_SOCKET_LINUX_04_004: [ async_socket_send_async shall call the on_send callback to send the buffer. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_052: [ on_socket_send shall attempt to send the data by calling send with the MSG_NOSIGNAL flag to ensure SIGPIPE is not generated on errors. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_053: [ async_socket_send_async shall continue to send the data until the payload length has been sent. ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_057: [ The context shall then be added to the epoll system by calling epoll_ctl with EPOLL_CTL_MOD and `event_complete_callback` as the callback. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_057: [ The context shall then be added to the completion port system by calling completion_port_add with EPOLL_CTL_MOD and event_complete_callback as the callback. ]
 TEST_FUNCTION(async_socket_send_async_multiple_sends_WOULDBLOCK_succeeds)
 {
     // arrange
@@ -1134,7 +1134,7 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_send_async_fails)
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_054: [ If the send fails to send the data, async_socket_send_async shall do the following: ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_055: [ If the errno value is EAGAIN or EWOULDBLOCK. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_056: [ async_socket_send_async shall create a context for the send where the payload, on_send_complete and on_send_complete_context shall be stored. ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_057: [ The context shall then be added to the completion port system by calling completion_port_add with EPOLL_CTL_MOD and `event_complete_callback` as the callback. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_057: [ The context shall then be added to the completion port system by calling completion_port_add with EPOLL_CTL_MOD and event_complete_callback as the callback. ]
 TEST_FUNCTION(when_errno_for_send_returns_EWOULDBLOCK_it_uses_completion_port_treated_as_successfull)
 {
     // arrange
@@ -1172,7 +1172,7 @@ TEST_FUNCTION(when_errno_for_send_returns_EWOULDBLOCK_it_uses_completion_port_tr
     free(g_event_callback_ctx);
 }
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_059: [ If the errno value is ECONNRESET, ENOTCONN, or EPIPE shall fail and return ASYNC_SOCKET_SEND_SYNC_NOT_OPEN. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_059: [ If the errno value is ECONNRESET, ENOTCONN, or EPIPE shall fail and return ASYNC_SOCKET_SEND_SYNC_ABANDONED. ]
 TEST_FUNCTION(when_errno_for_send_returns_ECONNRESET_async_socket_send_async_returns_ABANDONED)
 {
     // arrange
@@ -1686,9 +1686,9 @@ TEST_FUNCTION(event_complete_func_context_NULL_fail)
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_082: [ If COMPLETION_PORT_EPOLL_ACTION is COMPLETION_PORT_EPOLL_EPOLLIN, event_complete_callback shall do the following: ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_083: [ Otherwise event_complete_callback shall call the on_recv callback with the recv_buffer buffer and length and do the following: ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_04_007: [ on_socket_recv shall attempt to receive data by calling the system recv socket API. ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_088: [ If the recv size < 0, then: ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_092: [ If the recv size > 0, if we have another buffer to fill then we will attempt another read, otherwise we shall call on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_OK ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_04_007: [ on_socket_recv shall attempt to receive data by calling the system socket_transport_receive socket API. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_088: [ If the socket_transport_receive size < 0, then: ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_092: [ If the socket_transport_receive size > 0, if we have another buffer to fill then we will attempt another read, otherwise we shall call on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_OK. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_093: [ event_complete_callback shall then free the io_context memory. ]
 TEST_FUNCTION(event_complete_func_EPOLLIN_action)
 {
@@ -1755,7 +1755,7 @@ TEST_FUNCTION(event_complete_func_recv_returns_EWOULDBLOCK)
     async_socket_destroy(async_socket);
 }
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_090: [ If errno is ECONNRESET, then thread_worker_func shall call the on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_ABANDONED ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_090: [ If errno is ECONNRESET, then event_complete_callback shall call the on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_ABANDONED. ]
 TEST_FUNCTION(event_complete_func_recv_returns_ECONNRESET)
 {
     // arrange
@@ -1821,7 +1821,7 @@ TEST_FUNCTION(event_complete_callback_recv_returns_any_random_error_no)
     async_socket_destroy(async_socket);
 }
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_091: [ If the recv size equals 0, then thread_worker_func shall call on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_ABANDONED ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_091: [ If the socket_transport_receive size equals 0, then event_complete_callback shall call on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_ABANDONED. ]
 TEST_FUNCTION(event_complete_func_recv_returns_0_bytes_success)
 {
     // arrange
@@ -2062,7 +2062,7 @@ TEST_FUNCTION(event_complete_func_notify_for_io_type_OUT_ERROR_calls_callback_wi
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_080: [ If COMPLETION_PORT_EPOLL_ACTION is COMPLETION_PORT_EPOLL_EPOLLRDHUP or COMPLETION_PORT_EPOLL_ABANDONED, event_complete_callback shall do the following: ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_081: [ event_complete_callback shall call either the send or recv complete callback with an ABANDONED flag when the IO type is either ASYNC_SOCKET_IO_TYPE_SEND or ASYNC_SOCKET_IO_TYPE_RECEIVE respectively. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_081: [ event_complete_callback shall call either the socket_transport_send or socket_transport_receive complete callback with an ABANDONED flag when the IO type is either ASYNC_SOCKET_IO_TYPE_SEND or ASYNC_SOCKET_IO_TYPE_RECEIVE respectively. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_084: [ Then event_complete_callback shall free the context memory. ]
 TEST_FUNCTION(event_complete_func_recv_EPOLLRDHUP_and_abandons_the_connection)
 {
@@ -2093,7 +2093,7 @@ TEST_FUNCTION(event_complete_func_recv_EPOLLRDHUP_and_abandons_the_connection)
     async_socket_destroy(async_socket);
 }
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_081: [ event_complete_callback shall call either the send or recv complete callback with an ABANDONED flag when the IO type is either ASYNC_SOCKET_IO_TYPE_SEND or ASYNC_SOCKET_IO_TYPE_RECEIVE respectively. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_081: [ event_complete_callback shall call either the socket_transport_send or socket_transport_receive complete callback with an ABANDONED flag when the IO type is either ASYNC_SOCKET_IO_TYPE_SEND or ASYNC_SOCKET_IO_TYPE_RECEIVE respectively. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_084: [ Then event_complete_callback shall free the context memory. ]
 TEST_FUNCTION(event_complete_func_send_EPOLLRDHUP_and_abandons_the_connection)
 {
@@ -2133,7 +2133,7 @@ TEST_FUNCTION(event_complete_func_send_EPOLLRDHUP_and_abandons_the_connection)
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_080: [ If COMPLETION_PORT_EPOLL_ACTION is COMPLETION_PORT_EPOLL_EPOLLRDHUP or COMPLETION_PORT_EPOLL_ABANDONED, event_complete_callback shall do the following: ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_081: [ event_complete_callback shall call either the send or recv complete callback with an ABANDONED flag when the IO type is either ASYNC_SOCKET_IO_TYPE_SEND or ASYNC_SOCKET_IO_TYPE_RECEIVE respectively. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_081: [ event_complete_callback shall call either the socket_transport_send or socket_transport_receive complete callback with an ABANDONED flag when the IO type is either ASYNC_SOCKET_IO_TYPE_SEND or ASYNC_SOCKET_IO_TYPE_RECEIVE respectively. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_084: [ Then event_complete_callback shall free the context memory. ]
 TEST_FUNCTION(event_complete_func_recv_ABANDONED_and_abandons_the_connection)
 {
@@ -2165,7 +2165,7 @@ TEST_FUNCTION(event_complete_func_recv_ABANDONED_and_abandons_the_connection)
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_080: [ If COMPLETION_PORT_EPOLL_ACTION is COMPLETION_PORT_EPOLL_EPOLLRDHUP or COMPLETION_PORT_EPOLL_ABANDONED, event_complete_callback shall do the following: ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_081: [ event_complete_callback shall call either the send or recv complete callback with an ABANDONED flag when the IO type is either ASYNC_SOCKET_IO_TYPE_SEND or ASYNC_SOCKET_IO_TYPE_RECEIVE respectively. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_081: [ event_complete_callback shall call either the socket_transport_send or socket_transport_receive complete callback with an ABANDONED flag when the IO type is either ASYNC_SOCKET_IO_TYPE_SEND or ASYNC_SOCKET_IO_TYPE_RECEIVE respectively. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_084: [ Then event_complete_callback shall free the context memory. ]
 TEST_FUNCTION(event_complete_func_send_ABANDONED_and_abandons_the_connection)
 {
@@ -2205,7 +2205,7 @@ TEST_FUNCTION(event_complete_func_send_ABANDONED_and_abandons_the_connection)
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_094: [ If the events value contains COMPLETION_PORT_EPOLL_EPOLLOUT, event_complete_callback shall the following: ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_096: [ event_complete_callback shall call send on the data in the ASYNC_SOCKET_SEND_CONTEXT buffer. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_096: [ event_complete_callback shall call socket_transport_send on the data in the ASYNC_SOCKET_SEND_CONTEXT buffer. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_100: [ Then event_complete_callback shall free the io_context memory ]
 TEST_FUNCTION(event_complete_func_send_EPOLLOUT_success)
 {
@@ -2245,7 +2245,7 @@ TEST_FUNCTION(event_complete_func_send_EPOLLOUT_success)
     async_socket_destroy(async_socket);
 }
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_097: [ If send returns value is < 0 event_complete_callback shall do the following: ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_097: [ If socket_transport_send returns value is < 0 event_complete_callback shall do the following: ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_098: [ if errno is ECONNRESET, then on_send_complete shall be called with ASYNC_SOCKET_SEND_ABANDONED. ]
 TEST_FUNCTION(event_complete_func_send_EPOLLOUT_abandoned)
 {
@@ -2328,7 +2328,7 @@ TEST_FUNCTION(event_complete_func_send_EPOLLOUT_error)
     async_socket_destroy(async_socket);
 }
 
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_101: [ If send returns a value > 0 but less than the amount to be sent, event_complete_callback shall continue to send the data until the payload length has been sent. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_101: [ If socket_transport_send returns a value > 0 but less than the amount to be sent, event_complete_callback shall continue to socket_transport_send the data until the payload length has been sent. ]
 TEST_FUNCTION(event_complete_func_EPOLLOUT_multiple_sends_success)
 {
     // arrange
@@ -2371,7 +2371,7 @@ TEST_FUNCTION(event_complete_func_EPOLLOUT_multiple_sends_success)
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_085: [ If the events value contains COMPLETION_PORT_EPOLL_ERROR, event_complete_callback shall the following: ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_11_086: [ Otherwise event_complete_callback shall call either the send or recv complete callback with an ERROR flag. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_11_086: [ Otherwise event_complete_callback shall call either the socket_transport_send or socket_transport_receive complete callback with an ERROR flag. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_087: [ Then event_complete_callback shall and free the io_context memory. ]
 TEST_FUNCTION(event_complete_func_recv_ERROR_and_error_the_connection)
 {

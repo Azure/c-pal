@@ -21,7 +21,7 @@ int32_t interlocked_add(volatile int32_t* addend, int32_t value)
 
 int64_t interlocked_add_64(volatile int64_t* addend, int64_t value)
 {
-    /* Codes_SRS_INTERLOCKED_43_065: [ interlocked_add_64 shall atomically add 64-bit integers *addend and value and store the result in *addend. ] */
+    /* Codes_SRS_INTERLOCKED_43_065: [ interlocked_add_64 shall atomically add 64-bit integers addend and value and store the result in addend. ] */
     /* Codes_SRS_INTERLOCKED_43_066: [ interlocked_add_64 shall return the result of the addition. ] */
     /* Codes_SRS_INTERLOCKED_WIN32_43_064: [ interlocked_add_64 shall call InterlockedAdd64 from windows.h. ] */
     /* Codes_SRS_INTERLOCKED_WIN32_43_065: [ interlocked_add_64 shall return the result of the addition. ] */
@@ -83,12 +83,12 @@ int32_t interlocked_compare_exchange(volatile int32_t* destination, int32_t exch
 bool interlocked_compare_exchange_128(volatile int64_t* destination, int64_t exchange_high, int64_t exchange_low, int64_t* comperand_result)
 {
     /* Codes_SRS_INTERLOCKED_43_007 [ interlocked_compare_exchange_128 shall compare *destination with *comperand_result. If they are equal, destination[0] is set to exchange_low and destination[1] is set to exchange_high. These operations are performed atomically.] */
-    /* Codes_SRS_INTERLOCKED_43_039: [ interlocked_compare_exchange_128 shall store the initial value of *destination in *comperand_result regardless of the result of the comparison. ] */
-    /* Codes_SRS_INTERLOCKED_43_038: [ interlocked_compare_exchange_128 shall return true if *comperand_result equals the original value of *destination.] */
-    /* Codes_SRS_INTERLOCKED_43_063: [ interlocked_compare_exchange_128 shall return false if *comperand_result does not equal the original value of *destination. ] */
+    /* Codes_SRS_INTERLOCKED_43_039: [ interlocked_compare_exchange_128 shall store the initial value of destination in comperand_result regardless of the result of the comparison.` ] */
+    /* Codes_SRS_INTERLOCKED_43_038: [ interlocked_compare_exchange_128 shall return true if comperand_result equals the original value of destination.] */
+    /* Codes_SRS_INTERLOCKED_43_063: [ interlocked_compare_exchange_128 shall return false if comperand_result does not equal the original value of destination. ] */
     /* Codes_SRS_INTERLOCKED_WIN32_43_013: [ interlocked_compare_exchange_128 shall call InterlockedCompareExchange128 from windows.h. ] */
-    /* Codes_SRS_INTERLOCKED_WIN32_43_014: [ interlocked_compare_exchange_128 shall return true if *comperand_result equals the original value of *destination.] */
-    /* Codes_SRS_INTERLOCKED_WIN32_43_063: [ interlocked_compare_exchange_128 shall return false if *comperand_result does not equal the original value of *destination. ] */
+    /* Codes_SRS_INTERLOCKED_WIN32_43_014: [ interlocked_compare_exchange_128 shall return true if comperand_result equals the original value of destination.] */
+    /* Codes_SRS_INTERLOCKED_WIN32_43_063: [ interlocked_compare_exchange_128 shall return false if comperand_result does not equal the original value of destination. ] */
 
     return InterlockedCompareExchange128((volatile LONG64*)destination, exchange_high, exchange_low, (LONG64*)comperand_result);
 }

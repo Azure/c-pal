@@ -29,7 +29,7 @@ EXECUTION_ENGINE_HANDLE execution_engine_create(const EXECUTION_ENGINE_PARAMETER
     }
     else
     {
-        /* Codes_SRS_EXECUTION_ENGINE_WIN32_01_002: [ execution_engine_parameters shall be interpreted as EXECUTION_ENGINE_PARAMETERS_WIN32. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_WIN32_01_002: [ execution_engine_parameters shall be interpreted as EXECUTION_ENGINE_PARAMETERS. ]*/
         parameters_to_use.min_thread_count = execution_engine_parameters->min_thread_count;
         parameters_to_use.max_thread_count = execution_engine_parameters->max_thread_count;
     }
@@ -120,7 +120,7 @@ void execution_engine_inc_ref(EXECUTION_ENGINE_HANDLE execution_engine)
 {
     if (execution_engine == NULL)
     {
-        /* Codes_SRS_EXECUTION_ENGINE_WIN32_03_003: [ If execution_engine is NULL, execution_engine_inc_ref shall return. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_WIN32_03_003: [ If execution_engine is NULL then execution_engine_inc_ref shall return. ]*/
         LogError("Invalid arguments: EXECUTION_ENGINE_HANDLE execution_engine=%p", execution_engine);
     }
     else

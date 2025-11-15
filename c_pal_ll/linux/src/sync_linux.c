@@ -23,9 +23,9 @@ WAIT_ON_ADDRESS_RESULT wait_on_address(volatile_atomic int32_t* address, int32_t
 {
     WAIT_ON_ADDRESS_RESULT result;
 
-    /* Codes_SRS_SYNC_43_001: [ wait_on_address shall atomically compare *address and *compare_address.] */
-    /* Codes_SRS_SYNC_43_002: [ wait_on_address shall immediately return true if *address is not equal to *compare_address.] */
-    /* Codes_SRS_SYNC_43_007: [ If *address is equal to *compare_address, wait_on_address shall cause the thread to sleep. ] */
+    /* Codes_SRS_SYNC_43_001: [ wait_on_address shall atomically compare address and compare_address.] */
+    /* Codes_SRS_SYNC_43_002: [ wait_on_address shall immediately return true if address is not equal to compare_address.] */
+    /* Codes_SRS_SYNC_43_007: [ If address is equal to compare_address, wait_on_address shall cause the thread to sleep. ] */
     /* Codes_SRS_SYNC_43_009: [ If timeout_ms milliseconds elapse, wait_on_address shall return false. ] */
     /* Codes_SRS_SYNC_43_008: [wait_on_address shall wait indefinitely until it is woken up by a call to wake_by_address_[single/all] if timeout_ms is equal to UINT32_MAX] */
     /* Codes_SRS_SYNC_43_003: [ wait_on_address shall wait until another thread in the same process signals at address using wake_by_address_[single/all] and return true. ] */

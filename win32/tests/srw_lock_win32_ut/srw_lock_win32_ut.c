@@ -596,7 +596,7 @@ TEST_FUNCTION(srw_lock_try_acquire_shared_succeeds)
     srw_lock_destroy(bsdlLock);
 }
 
-/*Tests_SRS_SRW_LOCK_01_007: [ Otherwise srw_lock_acquire_shared shall call TryAcquireSRWLockShared. ]*/
+/*Tests_SRS_SRW_LOCK_01_007: [ Otherwise srw_lock_acquire_exclusive shall call TryAcquireSRWLockExclusive. ]*/
 /*Tests_SRS_SRW_LOCK_01_004: [ If TryAcquireSRWLockShared returns TRUE, srw_lock_try_acquire_shared shall return SRW_LOCK_TRY_ACQUIRE_OK. ]*/
 /*Tests_SRS_SRW_LOCK_01_005: [ If do_statistics is true and the timer created has recorded more than TIME_BETWEEN_STATISTICS_LOG seconds then statistics will be logged and the timer shall be started again. ]*/
 TEST_FUNCTION(srw_lock_try_acquire_shared_with_do_statistics_false_succeeds)
