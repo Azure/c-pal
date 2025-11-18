@@ -1686,7 +1686,7 @@ TEST_FUNCTION(event_complete_func_context_NULL_fail)
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_082: [ If COMPLETION_PORT_EPOLL_ACTION is COMPLETION_PORT_EPOLL_EPOLLIN, event_complete_callback shall do the following: ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_083: [ Otherwise event_complete_callback shall call the on_recv callback with the recv_buffer buffer and length and do the following: ]
-// Tests_SRS_ASYNC_SOCKET_LINUX_04_007: [ on_socket_recv shall attempt to receive data by calling the system socket_transport_receive socket API. ]
+// Tests_SRS_ASYNC_SOCKET_LINUX_04_007: [ on_socket_recv shall attempt to receive data by calling the system recv socket API. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_088: [ If the socket_transport_receive size < 0, then: ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_092: [ If the socket_transport_receive size > 0, if we have another buffer to fill then we will attempt another read, otherwise we shall call on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_OK. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_11_093: [ event_complete_callback shall then free the io_context memory. ]

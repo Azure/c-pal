@@ -345,7 +345,7 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, SOCKET_HANDLE sock
         (async_socket == NULL) ||
         /* Codes_SRS_ASYNC_SOCKET_WIN32_01_008: [ If on_open_complete is NULL, async_socket_open_async shall fail and return a non-zero value. ]*/
         (on_open_complete == NULL) ||
-        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_034: [ If socket_transport is NULL, async_socket_open_async shall fail and return a non-zero value. ]*/
+        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_034: [ If socket_handle is INVALID_SOCKET, async_socket_open_async shall fail and return a non-zero value. ]*/
         (SOCKET)socket_handle == INVALID_SOCKET
         )
     {

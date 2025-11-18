@@ -132,14 +132,14 @@ MOCKABLE_FUNCTION(, void, async_socket_destroy, ASYNC_SOCKET_HANDLE, async_socke
 ### async_socket_open_async
 
 ```c
-MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_socket, SOCKET_TRANSPORT_HANDLE, socket_transport, ON_ASYNC_SOCKET_OPEN_COMPLETE, on_open_complete, void*, on_open_complete_context);
+MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_socket, SOCKET_HANDLE, socket_handle, ON_ASYNC_SOCKET_OPEN_COMPLETE, on_open_complete, void*, on_open_complete_context);
 ```
 
 `async_socket_open_async` opens the async socket.
 
 **SRS_ASYNC_SOCKET_WIN32_01_007: [** If `async_socket` is NULL, `async_socket_open_async` shall fail and return a non-zero value. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_034: [** If `socket_transport` is `NULL`, `async_socket_open_async` shall fail and return a non-zero value. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_034: [** If `socket_handle` is `INVALID_SOCKET`, `async_socket_open_async` shall fail and return a non-zero value. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_008: [** If `on_open_complete` is NULL, `async_socket_open_async` shall fail and return a non-zero value. **]**
 

@@ -161,7 +161,7 @@ TEST_FUNCTION(async_socket_create_with_NULL_execution_engine_fails)
     ASSERT_IS_NULL(async_socket);
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_034: [ If socket_transport is NULL, async_socket_open_async shall fail and return a non-zero value. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_034: [ If socket_handle is INVALID_SOCKET, async_socket_open_async shall fail and return a non-zero value. ]*/
 
 
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_001: [ async_socket_create shall allocate a new async socket and on success shall return a non-NULL handle. ]*/
