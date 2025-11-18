@@ -720,7 +720,7 @@ TEST_FUNCTION(async_socket_send_async_with_second_out_of_2_buffers_having_length
     async_socket_destroy(async_socket);
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_103: [ If the amount of memory needed to allocate the context and the SOCKET_BUFFER items is exceeding UINT32_MAX, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_103: [ If the amount of memory needed to allocate the context and the ASYNC_SOCKET_BUFFER items is exceeding UINT32_MAX, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
 TEST_FUNCTION(async_socket_send_async_with_UINT32_MAX_buffers_fails)
 {
     // arrange
@@ -820,11 +820,11 @@ TEST_FUNCTION(async_socket_send_async_after_close_fails)
 }
 
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_028: [ Otherwise async_socket_send_async shall create a context for the send where the payload, on_send_complete and on_send_complete_context shall be stored. ]*/
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_050: [ The context shall also allocate enough memory to keep an array of buffer_count SOCKET_BUFFER items. ]*/
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_056: [ async_socket_send_async shall set the SOCKET_BUFFER items to point to the memory/length of the buffers in payload. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_050: [ The context shall also allocate enough memory to keep an array of buffer_count WSABUF items. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_056: [ async_socket_send_async shall set the ASYNC_SOCKET_BUFFER items to point to the memory/length of the buffers in payload. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_057: [ An event to be used for the OVERLAPPED structure passed to socket_transport_send shall be created and stored in the context. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_060: [ An asynchronous IO shall be started by calling StartThreadpoolIo. ]*/
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_061: [ The SOCKET_BUFFER array associated with the context shall be sent by calling socket_transport_send and passing to it the OVERLAPPED structure with the event that was just created, dwFlags set to 0, lpNumberOfBytesSent set to NULL and lpCompletionRoutine set to NULL. ]*/
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_061: [ The ASYNC_SOCKET_BUFFER array associated with the context shall be sent by calling socket_transport_send and passing to it the OVERLAPPED structure with the event that was just created, dwFlags set to 0, lpNumberOfBytesSent set to NULL and lpCompletionRoutine set to NULL. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_045: [ On success, async_socket_send_async shall return ASYNC_SOCKET_SEND_SYNC_OK. ]*/
 TEST_FUNCTION(async_socket_send_async_succeeds)
 {
