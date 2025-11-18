@@ -161,9 +161,6 @@ TEST_FUNCTION(async_socket_create_with_NULL_execution_engine_fails)
     ASSERT_IS_NULL(async_socket);
 }
 
-/* Tests_SRS_ASYNC_SOCKET_WIN32_01_034: [ If socket_handle is INVALID_SOCKET, async_socket_open_async shall fail and return a non-zero value. ]*/
-
-
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_001: [ async_socket_create shall allocate a new async socket and on success shall return a non-NULL handle. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_42_004: [ async_socket_create shall increment the reference count on execution_engine. ]*/
 /* Tests_SRS_ASYNC_SOCKET_WIN32_01_035: [ async_socket_create shall obtain the PTP_POOL from the execution engine passed to async_socket_create by calling execution_engine_win32_get_threadpool. ]*/
@@ -309,6 +306,7 @@ TEST_FUNCTION(async_socket_open_async_with_NULL_async_socket_fails)
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
 }
 
+/* Tests_SRS_ASYNC_SOCKET_WIN32_01_034: [ If socket_handle is INVALID_SOCKET, async_socket_open_async shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(async_socket_open_async_with_INVALID_SOCKET_socket_fails)
 {
     // arrange
