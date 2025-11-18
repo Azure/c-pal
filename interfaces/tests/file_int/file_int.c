@@ -101,7 +101,7 @@ TEST_FUNCTION_CLEANUP(d)
 
 /*Tests_SRS_FILE_43_003: [If a file with name full_file_name does not exist, file_create shall create a file with that name.]*/
 /*Tests_SRS_FILE_43_001: [file_create shall open the file named full_file_name for asynchronous operations and return its handle.]*/
-/*Tests_SRS_FILE_43_006: [file_destroy shall wait for all pending I / O operations to complete.]*/
+/*Tests_SRS_FILE_43_006: [file_destroy shall wait for all pending I/O operations to complete.]*/
 /*Tests_SRS_FILE_43_007: [file_destroy shall close the file handle handle.]*/
 TEST_FUNCTION(file_create_creates_new_file)
 {
@@ -127,7 +127,7 @@ TEST_FUNCTION(file_create_creates_new_file)
 
 /*Tests_SRS_FILE_43_003: [If a file with name full_file_name does not exist, file_create shall create a file with that name.]*/
 /*Tests_SRS_FILE_43_001: [file_create shall open the file named full_file_name for asynchronous operations and return its handle.]*/
-/*Tests_SRS_FILE_43_006: [file_destroy shall wait for all pending I / O operations to complete.]*/
+/*Tests_SRS_FILE_43_006: [file_destroy shall wait for all pending I/O operations to complete.]*/
 /*Tests_SRS_FILE_43_007: [file_destroy shall close the file handle handle.]*/
 /*Tests_SRS_FILE_43_014: [file_write_async shall enqueue a write request to write source's content to the position offset in the file. ]*/
 /*Tests_SRS_FILE_43_041: [If position + size is greater than the size of the file and the call to write is successfull, file_write_async shall grow the file to accomodate the write.]*/
@@ -180,7 +180,7 @@ TEST_FUNCTION(write_to_a_file_and_read_from_it)
 
 /*Tests_SRS_FILE_43_003: [If a file with name full_file_name does not exist, file_create shall create a file with that name.]*/
 /*Tests_SRS_FILE_43_001: [file_create shall open the file named full_file_name for asynchronous operations and return its handle.]*/
-/*Tests_SRS_FILE_43_006: [file_destroy shall wait for all pending I / O operations to complete.]*/
+/*Tests_SRS_FILE_43_006: [file_destroy shall wait for all pending I/O operations to complete.]*/
 /*Tests_SRS_FILE_43_007: [file_destroy shall close the file handle handle.]*/
 /*Tests_SRS_FILE_43_014: [file_write_async shall enqueue a write request to write source's content to the position offset in the file. ]*/
 /*Tests_SRS_FILE_43_041: If position + size is greater than the size of the file and the call to write is successfull, file_write_async shall grow the file to accomodate the write.]*/
@@ -243,7 +243,7 @@ TEST_FUNCTION(write_twice_to_a_file_contiguously_and_read_from_it)
 
 /*Tests_SRS_FILE_43_003: [If a file with name full_file_name does not exist, file_create shall create a file with that name.]*/
 /*Tests_SRS_FILE_43_001: [file_create shall open the file named full_file_name for asynchronous operations and return its handle.]*/
-/*Tests_SRS_FILE_43_006: [file_destroy shall wait for all pending I / O operations to complete.]*/
+/*Tests_SRS_FILE_43_006: [file_destroy shall wait for all pending I/O operations to complete.]*/
 /*Tests_SRS_FILE_43_007: [file_destroy shall close the file handle handle.]*/
 /*Tests_SRS_FILE_43_014: [file_write_async shall enqueue a write request to write source's content to the position offset in the file. ]*/
 /*Tests_SRS_FILE_43_041: [If position + size is greater than the size of the file and the call to write is successfull, file_write_async shall grow the file to accomodate the write.]*/
@@ -325,7 +325,7 @@ TEST_FUNCTION(write_twice_to_a_file_non_contiguously_and_read_from_it)
 
 /*Tests_SRS_FILE_43_003: [If a file with name full_file_name does not exist, file_create shall create a file with that name.]*/
 /*Tests_SRS_FILE_43_001: [file_create shall open the file named full_file_name for asynchronous operations and return its handle.]*/
-/*Tests_SRS_FILE_43_006: [file_destroy shall wait for all pending I / O operations to complete.]*/
+/*Tests_SRS_FILE_43_006: [file_destroy shall wait for all pending I/O operations to complete.]*/
 /*Tests_SRS_FILE_43_007: [file_destroy shall close the file handle handle.]*/
 /*Tests_SRS_FILE_43_014: [file_write_async shall enqueue a write request to write source's content to the position offset in the file. ]*/
 /*Tests_SRS_FILE_43_041: [If position + size is greater than the size of the file and the call to write is successfull, file_write_async shall grow the file to accomodate the write.]*/
@@ -477,7 +477,7 @@ TEST_FUNCTION(read_beyond_eof_fails)
 
 /*Tests_SRS_FILE_43_003: [If a file with name full_file_name does not exist, file_create shall create a file with that name.]*/
 /*Tests_SRS_FILE_43_001: [file_create shall open the file named full_file_name for asynchronous operations and return its handle.]*/
-/*Tests_SRS_FILE_43_006: [file_destroy shall wait for all pending I / O operations to complete.]*/
+/*Tests_SRS_FILE_43_006: [file_destroy shall wait for all pending I/O operations to complete.]*/
 /*Tests_SRS_FILE_43_007: [file_destroy shall close the file handle handle.]*/
 /*Tests_SRS_FILE_43_014: [file_write_async shall enqueue a write request to write source's content to the position offset in the file. ]*/
 /*Tests_SRS_FILE_43_041: If position + size is greater than the size of the file and the call to write is successfull, file_write_async shall grow the file to accomodate the write.]*/
@@ -550,7 +550,7 @@ TEST_FUNCTION(large_simultaneous_writes_succeed)
 
 /*Tests_SRS_FILE_43_003: [If a file with name full_file_name does not exist, file_create shall create a file with that name.]*/
 /*Tests_SRS_FILE_43_001: [file_create shall open the file named full_file_name for asynchronous operations and return its handle.]*/
-/*Tests_SRS_FILE_43_006: [file_destroy shall wait for all pending I / O operations to complete.]*/
+/*Tests_SRS_FILE_43_006: [file_destroy shall wait for all pending I/O operations to complete.]*/
 /*Tests_SRS_FILE_43_007: [file_destroy shall close the file handle handle.]*/
 /*Tests_SRS_FILE_43_014: [file_write_async shall enqueue a write request to write source's content to the position offset in the file. ]*/
 /*Tests_SRS_FILE_43_041: If position + size is greater than the size of the file and the call to write is successfull, file_write_async shall grow the file to accomodate the write.]*/

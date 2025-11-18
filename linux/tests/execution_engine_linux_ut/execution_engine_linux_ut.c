@@ -228,7 +228,7 @@ TEST_FUNCTION(execution_engine_inc_ref_succeeds)
 
 /* execution_engine_get_parameters */
 
-/* Tests_SRS_EXECUTION_ENGINE_LINUX_07_012: [ If execution_engine is NULL, execution_engine_get_parameters shall fail and return NULL. ]*/
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_07_012: [ If execution_engine is NULL, execution_engine_linux_get_parameters shall fail and return NULL. ]*/
 TEST_FUNCTION(execution_engine_get_parameters_with_NULL_execution_engine_fails)
 {
     // arrange
@@ -242,7 +242,7 @@ TEST_FUNCTION(execution_engine_get_parameters_with_NULL_execution_engine_fails)
     ASSERT_IS_NULL(result);
 }
 
-/* Tests_SRS_EXECUTION_ENGINE_LINUX_07_013: [ Otherwise, execution_engine_get_parameters shall return the parameters in EXECUTION_ENGINE. ]*/
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_07_013: [ Otherwise, execution_engine_linux_get_parameters shall return the parameters in EXECUTION_ENGINE. ]*/
 TEST_FUNCTION(execution_engine_linux_get_parameters_succeeds)
 {
     // arrange

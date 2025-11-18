@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "sm_ut_pch.h"
@@ -85,7 +85,7 @@ TEST_FUNCTION(sm_create_with_name_NULL_succeeds)
     sm_destroy(sm);
 }
 
-/*Tests_SRS_SM_02_037: [ sm_create shall set state of SM_CREATED and n to 0. ]*/
+/*Tests_SRS_SM_02_037: [ sm_create shall set state to SM_CREATED and n to 0. ]*/
 /*Tests_SRS_SM_02_002: [ sm_create shall allocate memory for the instance. ]*/
 TEST_FUNCTION(sm_create_with_name_non_NULL_succeeds)
 {
@@ -522,7 +522,7 @@ TEST_FUNCTION(sm_close_begin_with_cb_with_callback_NULL_returns_SM_ERROR)
     sm_destroy(sm);
 }
 
-/* Tests_SRS_SM_28_003: [ sm_close_begin_with_cb shall call sm_close_begin_internal with callback and callback_context as arguments. ] */
+/* Tests_SRS_SM_28_003: [ sm_close_begin_with_cb shall call sm_close_begin_internal with callback, callback_context, close_while_opening_callback, and close_while_opening_context as arguments. ] */
 // Tests_SRS_SM_11_001: [ close_while_opening_callback shall be allowed to be NULL ]
 /*Tests_SRS_SM_02_045: [ sm_close_begin_internal shall set SM_CLOSE_BIT to 1. ]*/
 /*Tests_SRS_SM_02_047: [ If the state is SM_OPENED then sm_close_begin_internal shall switch it to SM_OPENED_DRAINING_TO_CLOSE. ]*/

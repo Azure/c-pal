@@ -168,7 +168,7 @@ void* gballoc_ll_malloc_flex(size_t base, size_t nmemb, size_t size)
         }
         else
         {
-            /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_036: [ gballoc_ll_malloc_flex shall return what HeapAlloc(base + nmemb * size) returns. ]*/
+            /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_036: [ gballoc_ll_malloc_flex shall return what HeapAlloc(base +  nmemb * size) returns. ]*/
             result = gballoc_ll_malloc_internal(base + nmemb * size);
         }
     }
@@ -249,7 +249,7 @@ void* gballoc_ll_realloc(void* ptr, size_t size)
     /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_026: [ gballoc_ll_realloc shall call lazy_init with parameter do_init set to heap_init. ]*/
     if (lazy_init(&g_lazy, heap_init, &the_heap) != LAZY_INIT_OK)
     {
-        /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_027: [ If lazy_init fails then gballoc_ll_reallocshall return NULL. ]*/
+        /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_027: [ If lazy_init fails then gballoc_ll_realloc shall return NULL. ]*/
         LogError("failure in lazy_init(&g_lazy=%p, heap_init=%p, &the_heap=%p)",
             &g_lazy, heap_init, &the_heap);
         result = NULL;
@@ -311,7 +311,7 @@ void* gballoc_ll_realloc_flex(void* ptr, size_t base, size_t nmemb, size_t size)
         /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_043: [ gballoc_ll_realloc_flex shall call lazy_init with parameter do_init set to heap_init. ]*/
         if (lazy_init(&g_lazy, heap_init, &the_heap) != LAZY_INIT_OK)
         {
-            /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_044: [ If gballoc_ll_realloc_flex fails then gballoc_ll_malloc_flex shall return NULL. ]*/
+            /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_044: [ If lazy_init fails then gballoc_ll_malloc_flex shall return NULL. ]*/
             LogError("failure in lazy_init(&g_lazy=%p, heap_init=%p, &the_heap=%p)",
                 &g_lazy, heap_init, &the_heap);
             result = NULL;
@@ -329,7 +329,7 @@ size_t gballoc_ll_size(void* ptr)
 {
     size_t result;
     
-    /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_017: [ gballoc_ll_size shall call HeapSize and return what HeapSize returns. ]*/
+    /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_017: [ gballoc_ll_size shall call HeapSize and returns what HeapSize returns. ]*/
     result = HeapSize(the_heap, 0, ptr);
 
     if (result == (size_t)(-1))

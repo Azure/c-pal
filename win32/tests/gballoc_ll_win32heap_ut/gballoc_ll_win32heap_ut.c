@@ -233,7 +233,7 @@ TEST_FUNCTION(gballoc_ll_malloc_succeeds)
     gballoc_ll_deinit();
 }
 
-/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_023: [ If lazy_init fails then gballoc_ll_mallocshall return NULL. ]*/
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_023: [ If lazy_init fails then gballoc_ll_malloc shall return NULL. ]*/
 TEST_FUNCTION(gballoc_ll_malloc_fails_when_lazy_init_fails)
 {
     ///arrange
@@ -389,7 +389,7 @@ TEST_FUNCTION(gballoc_ll_malloc_flex_with_overflow_fail_2)
 }
 
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_034: [ gballoc_ll_malloc_flex shall call lazy_init with parameter do_init set to heap_init. ]*/
-/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_036: [ gballoc_ll_malloc_flex shall return what HeapAlloc(base + nmemb * size) returns. ]*/
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_036: [ gballoc_ll_malloc_flex shall return what HeapAlloc(base +  nmemb * size) returns. ]*/
 TEST_FUNCTION(gballoc_ll_malloc_flex_with_SIZE_MAX_succeeds)
 {
     ///arrange
@@ -412,7 +412,7 @@ TEST_FUNCTION(gballoc_ll_malloc_flex_with_SIZE_MAX_succeeds)
 }
 
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_034: [ gballoc_ll_malloc_flex shall call lazy_init with parameter do_init set to heap_init. ]*/
-/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_036: [ gballoc_ll_malloc_flex shall return what HeapAlloc(base + nmemb * size) returns. ]*/
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_036: [ gballoc_ll_malloc_flex shall return what HeapAlloc(base +  nmemb * size) returns. ]*/
 TEST_FUNCTION(gballoc_ll_malloc_flex_with_nmemb_0_succeeds)
 {
     ///arrange
@@ -434,7 +434,7 @@ TEST_FUNCTION(gballoc_ll_malloc_flex_with_nmemb_0_succeeds)
     gballoc_ll_deinit();
 }
 
-/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_036: [ gballoc_ll_malloc_flex shall return what HeapAlloc(base + nmemb * size) returns. ]*/
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_036: [ gballoc_ll_malloc_flex shall return what HeapAlloc(base +  nmemb * size) returns. ]*/
 TEST_FUNCTION(gballoc_ll_malloc_flex_with_SIZE_MAX_returns_NULL_when_HeapAlloc_returns_NULL)
 {
     ///arrange
@@ -936,7 +936,7 @@ TEST_FUNCTION(gballoc_ll_realloc_flex_fails_when_lazy_init_fails)
 }
 
 
-/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_017: [ gballoc_ll_size shall call HeapSize and return what HeapSize returns. ]*/
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_017: [ gballoc_ll_size shall call HeapSize and returns what HeapSize returns. ]*/
 TEST_FUNCTION(gballoc_ll_size_returns_what_HeapSize_returned)
 {
     ///arrange
@@ -956,7 +956,7 @@ TEST_FUNCTION(gballoc_ll_size_returns_what_HeapSize_returned)
     gballoc_ll_deinit();
 }
 
-/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_017: [ gballoc_ll_size shall call HeapSize and return what HeapSize returns. ]*/
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_017: [ gballoc_ll_size shall call HeapSize and returns what HeapSize returns. ]*/
 TEST_FUNCTION(gballoc_ll_size_returns_what_HeapSize_returned_when_it_fails)
 {
     ///arrange

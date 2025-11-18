@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "call_once_ut_pch.h"
@@ -85,7 +85,7 @@ TEST_FUNCTION(call_once_begin_after_local_init_succeeds)
     call_once_end(&state, true);
 }
 
-/*Tests_SRS_CALL_ONCE_02_002: [ If interlocked_compare_exchange returns 2 then call_once_begin shall return CALL_ONCE_ALREADY_CALLED. ]*/
+/*Tests_SRS_CALL_ONCE_02_002: [ If interlocked_compare_exchange returns 2 then call_once_begin shall return  CALL_ONCE_ALREADY_CALLED. ]*/
 TEST_FUNCTION(call_once_begin_after_begin_end_fails)
 {
     ///arrange

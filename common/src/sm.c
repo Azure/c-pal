@@ -327,7 +327,7 @@ SM_RESULT sm_close_begin_with_cb(SM_HANDLE sm, ON_SM_CLOSING_COMPLETE_CALLBACK c
     }
     else
     {
-        /* Codes_SRS_SM_28_003: [ sm_close_begin_with_cb shall call sm_close_begin_internal with callback and callback_context as arguments. ] */
+        /* Codes_SRS_SM_28_003: [ sm_close_begin_with_cb shall call sm_close_begin_internal with callback, callback_context, close_while_opening_callback, and close_while_opening_context as arguments. ] */
         /* Codes_SRS_SM_28_004: [ sm_close_begin_with_cb shall return the returned SM_RESULT from sm_close_begin_internal. ] */
         result = sm_close_begin_internal(sm, callback, callback_context, close_while_opening_callback, close_while_opening_context);
     }

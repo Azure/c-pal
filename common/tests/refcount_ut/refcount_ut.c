@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "refcount_ut_pch.h"
@@ -100,7 +100,7 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
         Pos_Destroy(p);
     }
 
-    /* Tests_SRS_REFCOUNT_01_004: [ If any error occurrs, REFCOUNT_TYPE_CREATE shall return NULL. ]*/
+    /* Tests_SRS_REFCOUNT_01_004: [ If any error occurs, REFCOUNT_TYPE_CREATE shall return NULL. ]*/
     TEST_FUNCTION(when_malloc_fails_refcount_create_fails)
     {
         ///arrange
@@ -138,7 +138,7 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
         Pos_Destroy(p);
     }
 
-    /* Tests_SRS_REFCOUNT_01_007: [ If any error occurrs, REFCOUNT_TYPE_CREATE_WITH_EXTRA_SIZE shall return NULL. ]*/
+    /* Tests_SRS_REFCOUNT_01_007: [ If any error occurs, REFCOUNT_TYPE_CREATE_WITH_EXTRA_SIZE shall return NULL. ]*/
     TEST_FUNCTION(when_overflow_refcount_create_with_extra_size_also_fails)
     {
         ///arrange
@@ -152,7 +152,7 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     }
 
-    /* Tests_SRS_REFCOUNT_01_007: [ If any error occurrs, REFCOUNT_TYPE_CREATE_WITH_EXTRA_SIZE shall return NULL. ]*/
+    /* Tests_SRS_REFCOUNT_01_007: [ If any error occurs, REFCOUNT_TYPE_CREATE_WITH_EXTRA_SIZE shall return NULL. ]*/
     TEST_FUNCTION(when_malloc_fails_refcount_create_with_extra_size_also_fails)
     {
         ///arrange

@@ -62,7 +62,7 @@ INTERLOCKED_HL_RESULT InterlockedHL_Add64WithCeiling(int64_t volatile_atomic* Ad
                     /*Codes_SRS_INTERLOCKED_HL_02_005: [ Otherwise, InterlockedHL_Add64WithCeiling shall atomically write in Addend the sum of Addend and Value, succeed and return INTERLOCKED_HL_OK. ]*/
                     if (interlocked_compare_exchange_64(Addend, expected_operation_result, addend_copy) == addend_copy)
                     {
-                        /*Codes_SRS_INTERLOCKED_HL_02_007: [ In all failure cases InterlockedHL_Add64WithCeiling shall not modify Addend or originalAddend*/
+                        /*Codes_SRS_INTERLOCKED_HL_02_007: [ In all failure cases InterlockedHL_Add64WithCeiling shall not modify Addend or originalAddend.]*/
                         *originalAddend = addend_copy;
                         result = INTERLOCKED_HL_OK;
                         break;
@@ -95,7 +95,7 @@ INTERLOCKED_HL_RESULT InterlockedHL_WaitForValue(int32_t volatile_atomic* addres
 
         do
         {
-            /* Codes_SRS_INTERLOCKED_HL_01_007: [ When wait_on_address succeeds, the value at address shall be compared to the target value passed in value by using interlocked_add. ] */
+            /* Codes_SRS_INTERLOCKED_HL_01_007: [ When wait_on_address succeeds, InterlockedHL_WaitForValue shall again compare the value at address_to_check with value_to_wait. ] */
             current_value = interlocked_add(address_to_check, 0);
             if (current_value == value_to_wait)
             {
@@ -212,7 +212,7 @@ INTERLOCKED_HL_RESULT InterlockedHL_WaitForNotValue(int32_t volatile_atomic* add
             WAIT_ON_ADDRESS_RESULT wait_result = wait_on_address(address_to_check, current_value, timeout_ms);
             if (wait_result == WAIT_ON_ADDRESS_OK)
             {
-                /* Codes_SRS_INTERLOCKED_HL_42_005: [When wait_on_address succeeds, InterlockedHL_WaitForNotValue shall again compare the value at address_to_check with value_to_wait.]*/
+                /* Codes_SRS_INTERLOCKED_HL_42_005: [When wait_on_address succeeds, InterlockedHL_WaitForNotValue64 shall again compare the value at address_to_check with value_to_wait.]*/
                 // Loop back to check current_value and value_to_wait
                 continue;
             }
@@ -371,7 +371,7 @@ INTERLOCKED_HL_RESULT InterlockedHL_CompareExchange64If(int64_t volatile_atomic*
         }
         else
         {
-            /*Codes_SRS_INTERLOCKED_HL_02_015: [ If compare returns false then InterlockedHL_CompareExchange64If shall not perform any exchanges and return INTERLOCKED_HL_OK. ]*/
+            /*Codes_SRS_INTERLOCKED_HL_02_015: [ If compare returns false then  InterlockedHL_CompareExchange64If shall not perform any exchanges and return INTERLOCKED_HL_OK. ]*/
             result = INTERLOCKED_HL_OK;
         }
         /*Codes_SRS_INTERLOCKED_HL_02_016: [ original_target shall be set to the original value of target. ]*/

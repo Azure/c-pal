@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 
 #include "threadpool_linux_ut_pch.h"
@@ -256,7 +256,7 @@ TEST_FUNCTION(threadpool_create_with_NULL_execution_engine_fails)
 /* Tests_SRS_THREADPOOL_LINUX_07_005: [ threadpool_create shall allocate memory for an array of thread handles of size min_thread_count and on success return a non-NULL handle to it. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_01_013: [ threadpool_create shall create a queue of threadpool work items by calling TQUEUE_CREATE(THANDLE(THREADPOOL_WORK_ITEM)) with initial size 2048 and max size UINT32_MAX. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_009: [ threadpool_create shall create a shared semaphore with initialized value zero. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_020: [ threadpool_create shall create number of min_thread_count threads for threadpool using ThreadAPI_Create. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_020: [ threadpool_create shall create min_thread_count number of threads for threadpool using ThreadAPI_Create. ]*/
 TEST_FUNCTION(threadpool_create_succeeds)
 {
     //arrange
@@ -302,7 +302,7 @@ TEST_FUNCTION(when_underlying_calls_fail_threadpool_create_also_fails)
 /* Tests_SRS_THREADPOOL_LINUX_07_005: [ threadpool_create shall allocate memory for an array of thread handles of size min_thread_count and on success return a non-NULL handle to it. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_01_013: [ threadpool_create shall create a queue of threadpool work items by calling TQUEUE_CREATE(THANDLE(THREADPOOL_WORK_ITEM)) with initial size 2048 and max size UINT32_MAX. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_009: [ threadpool_create shall create a shared semaphore with initialized value zero. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_020: [ threadpool_create shall create number of min_thread_count threads for threadpool using ThreadAPI_Create. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_020: [ threadpool_create shall create min_thread_count number of threads for threadpool using ThreadAPI_Create. ]*/
 TEST_FUNCTION(creating_2_threadpool_succeeds)
 {
     // arrange
@@ -324,7 +324,7 @@ TEST_FUNCTION(creating_2_threadpool_succeeds)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool_2, NULL);
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_07_020: [ threadpool_create shall create number of min_thread_count threads for threadpool using ThreadAPI_Create. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_020: [ threadpool_create shall create min_thread_count number of threads for threadpool using ThreadAPI_Create. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_022: [ If one of the thread creation fails, threadpool_create shall fail, terminate all threads already created and return NULL. ]*/
 TEST_FUNCTION(threadpool_create_fails_when_ThreadAPI_Create_fails)
 {
@@ -716,7 +716,7 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_fails)
 
 /* Tests_SRS_THREADPOOL_LINUX_01_002: [ threadpool_timer_start shall find an unused entry in the timers table maintained by the module. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_01_001: [ If all timer entries are used, threadpool_timer_start shall fail and return NULL. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_01_003: [ 2048 timers shall be supported. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_01_003: [ 1024 timers shall be supported. ]*/
 TEST_FUNCTION(threadpool_timer_start_fails_when_no_available_slot_in_timer_table)
 {
     // arrange
@@ -763,7 +763,7 @@ TEST_FUNCTION(threadpool_timer_start_fails_when_no_available_slot_in_timer_table
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_07_058: [ threadpool_timer_start shall allocate memory for THANDLE(THREADPOOL_TIMER), passing threadpool_timer_dispose as dispose function, and store work_function and work_function_ctx in it. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_058: [ threadpool_timer_start shall allocate memory for THANDLE(THREADPOOL_TIMER), passing threadpool_timer_dispose as dispose function and store work_function and work_function_ctx in it. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_096: [ threadpool_timer_start shall call lazy_init with do_init as initialization function.  ]*/
 /* Tests_SRS_THREADPOOL_LINUX_01_004: [ do_init shall initialize the state for each timer to NOT_USED. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_099: [ do_init shall succeed and return 0. ]*/
@@ -799,7 +799,7 @@ TEST_FUNCTION(threadpool_timer_start_succeeds)
 }
 
 /* Tests_SRS_THREADPOOL_LINUX_07_057: [ work_function_ctx shall be allowed to be NULL. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_058: [ threadpool_timer_start shall allocate memory for THANDLE_MALLOC(THREADPOOL_TIMER) and store work_function and work_function_ctx in it. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_058: [ threadpool_timer_start shall allocate memory for THANDLE(THREADPOOL_TIMER), passing threadpool_timer_dispose as dispose function and store work_function and work_function_ctx in it. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_096: [ threadpool_timer_start shall call lazy_init with do_init as initialization function.  ]*/
 /* Tests_SRS_THREADPOOL_LINUX_01_004: [ do_init shall initialize the state for each timer to NOT_USED. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_099: [ do_init shall succeed and return 0. ]*/
@@ -834,7 +834,7 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_context_succeeds)
 }
 
 /* Tests_SRS_THREADPOOL_LINUX_07_057: [ work_function_ctx shall be allowed to be NULL. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_07_058: [ threadpool_timer_start shall allocate memory for THANDLE_MALLOC(THREADPOOL_TIMER) and store work_function and work_function_ctx in it. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_07_058: [ threadpool_timer_start shall allocate memory for THANDLE(THREADPOOL_TIMER), passing threadpool_timer_dispose as dispose function and store work_function and work_function_ctx in it. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_059: [ threadpool_timer_start shall call timer_create and timer_settime to schedule execution. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_07_063: [ If timer_settime fails, threadpool_timer_start shall delete the timer by calling timer_delete. ]*/
 TEST_FUNCTION(when_timer_set_time_functions_fails_threadpool_timer_start_fails)
@@ -1090,7 +1090,7 @@ TEST_FUNCTION(on_timer_callback_calls_work_function)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_45_002: [ on_timer_callback shall extract from the lower bits of timer_data.sival_ptr the information indicating which timer table entry is being triggered. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_45_002: [ on_timer_callback shall extract from the lower 10 bits of timer_data.sival_ptr the information indicating which timer table entry is being triggered. ]*/
 TEST_FUNCTION(on_timer_callback_does_nothing_after_dispose)
 {
     // arrange
@@ -1202,7 +1202,7 @@ TEST_FUNCTION(threadpool_create_work_item_with_NULL_work_function_fails)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_05_005: [ threadpool_create_work_item shall allocate memory for threadpool_work_item of type THANDLE(THREADPOOL_WORK_ITEM) . ]*/
+/* Tests_SRS_THREADPOOL_LINUX_05_005: [ threadpool_create_work_item shall allocate memory for threadpool_work_item of type THANDLE(THREADPOOL_WORK_ITEM). ]*/
 /* Tests_SRS_THREADPOOL_LINUX_05_007: [ threadpool_create_work_item shall copy the work_function and work_function_context into the threadpool work item. ]*/
 TEST_FUNCTION(threadpool_create_work_item_succeeds)
 {
@@ -1222,7 +1222,7 @@ TEST_FUNCTION(threadpool_create_work_item_succeeds)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_05_005: [ threadpool_create_work_item shall allocate memory for threadpool_work_item of type THANDLE(THREADPOOL_WORK_ITEM) . ] */
+/* Tests_SRS_THREADPOOL_LINUX_05_005: [ threadpool_create_work_item shall allocate memory for threadpool_work_item of type THANDLE(THREADPOOL_WORK_ITEM). ] */
 /* Tests_SRS_THREADPOOL_LINUX_05_007: [ threadpool_create_work_item shall copy the work_function and work_function_context into the threadpool work item. ]*/
 TEST_FUNCTION(threadpool_create_work_item_succeeds_with_NULL_work_function_context)
 {
@@ -1285,7 +1285,7 @@ TEST_FUNCTION(threadpool_schedule_work_item_with_NULL_threadpool_fails)
     ASSERT_ARE_NOT_EQUAL(int, 0, work_item_schedule_result);
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_05_011: [ If threadpool_work_item is NULL, threadpool_schedule_work_item shall fail and return a non-zero value. ] */
+/* Tests_SRS_THREADPOOL_LINUX_05_011: [ If threadpool_work_item is NULL,  threadpool_schedule_work_item shall fail and set the return variable with a non-zero value. ] */
 TEST_FUNCTION(threadpool_schedule_work_item_with_NULL_work_function_fails)
 {
     // arrange

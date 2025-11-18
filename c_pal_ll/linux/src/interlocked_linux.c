@@ -99,7 +99,7 @@ int32_t interlocked_compare_exchange(volatile_atomic int32_t* destination, int32
 {
 
     /*Codes_SRS_INTERLOCKED_LINUX_43_011: [ interlocked_compare_exchange shall call atomic_compare_exchange_strong with destination as object, &comperand as expected and exchange as desired. ]*/
-    /*Codes_SRS_INTERLOCKED_LINUX_43_012: [ interlocked_compare_exchange shall return comperand. ]*/
+    /*Codes_SRS_INTERLOCKED_LINUX_43_012: [ interlocked_compare_exchange shall return a value equal to comperand. ]*/
 #ifdef USE_VALGRIND
     ANNOTATE_HAPPENS_BEFORE(destination);
 #endif
@@ -114,7 +114,7 @@ int16_t interlocked_compare_exchange_16(volatile_atomic int16_t* destination, in
 {
 
     /*Codes_SRS_INTERLOCKED_LINUX_43_069: [ interlocked_compare_exchange_16 shall call atomic_compare_exchange_strong with destination as object, &comperand as expected and exchange as desired. ]*/
-    /*Codes_SRS_INTERLOCKED_LINUX_43_070: [ interlocked_compare_exchange_16 shall return comperand. ]*/
+    /*Codes_SRS_INTERLOCKED_LINUX_43_070: [ interlocked_compare_exchange_16 shall return a value equal to comperand. ]*/
 #ifdef USE_VALGRIND
     ANNOTATE_HAPPENS_BEFORE(destination);
 #endif
@@ -128,7 +128,7 @@ int64_t interlocked_compare_exchange_64(volatile_atomic int64_t* destination, in
 {
    
     /*Codes_SRS_INTERLOCKED_LINUX_43_074: [ interlocked_compare_exchange_64 shall call atomic_compare_exchange_strong with destination as object, &comperand as expected and exchange as desired. ]*/
-    /*Codes_SRS_INTERLOCKED_LINUX_43_075: [ interlocked_compare_exchange_64 shall return comperand. ]*/
+    /*Codes_SRS_INTERLOCKED_LINUX_43_075: [ interlocked_compare_exchange_64 shall return a value equal to comperand. ]*/
 #ifdef USE_VALGRIND
     ANNOTATE_HAPPENS_BEFORE(destination);
 #endif
@@ -143,7 +143,7 @@ void* interlocked_compare_exchange_pointer(void* volatile_atomic* destination, v
 {
 
     /*Codes_SRS_INTERLOCKED_LINUX_43_079: [ interlocked_compare_exchange_pointer shall call atomic_compare_exchange_strong with destination as object, &comperand as expected and exchange as desired. ]*/
-    /*Codes_SRS_INTERLOCKED_LINUX_43_080: [ interlocked_compare_exchange_pointer shall return comperand. ]*/
+    /*Codes_SRS_INTERLOCKED_LINUX_43_080: [ interlocked_compare_exchange_pointer shall return a value equal to comperand. ]*/
 #ifdef USE_VALGRIND
     ANNOTATE_HAPPENS_BEFORE(destination);
 #endif
