@@ -61,7 +61,7 @@ int s_list_initialize(PS_LIST_ENTRY list_head);
 
 **SRS_S_LIST_07_001: [** If `list_head` is `NULL`, `s_list_initialize` shall fail and return a non-zero value. **]**
 
-**SRS_S_LIST_07_002: [** `s_list_initialize` shall initialize the `next` pointer in `list_head` points to `NULL`and return zero on success.  **]**
+**SRS_S_LIST_07_002: [** `s_list_initialize` shall initialize the `next` pointer in `list_head` points to `NULL` and return zero on success.  **]**
 
 ### s_list_is_empty
 

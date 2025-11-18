@@ -111,7 +111,7 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNot
 
 **SRS_INTERLOCKED_HL_42_003: [** If the value at `address_to_check` is equal to `value_to_wait`, `InterlockedHL_WaitForNotValue` shall wait until the value at `address_to_check` changes by using `wait_on_address`. **]**
 
-**SRS_INTERLOCKED_HL_42_005: [** When `wait_on_address` succeeds, `InterlockedHL_WaitForNotValue64` shall again compare the value at `address_to_check` with `value_to_wait`. **]**
+**SRS_INTERLOCKED_HL_42_005: [** When `wait_on_address` succeeds, `InterlockedHL_WaitForNotValue` shall again compare the value at `address_to_check` with `value_to_wait`. **]**
 
 **SRS_INTERLOCKED_HL_11_002: [** If `wait_on_address` hits the timeout specified in timeout_ms, `InterlockedHL_WaitForNotValue` shall fail and return `INTERLOCKED_HL_TIMEOUT`. **]**
 
@@ -186,7 +186,7 @@ If `target` changes while the function executes then `InterlockedHL_CompareExcha
 
 **SRS_INTERLOCKED_HL_02_014: [** If `target` did not change meanwhile then `InterlockedHL_CompareExchange64If` shall return `INTERLOCKED_HL_OK` and shall peform the exchange of values. **]**
 
-**SRS_INTERLOCKED_HL_02_015: [** If `compare` returns `false` then  `InterlockedHL_CompareExchange64If` shall not perform any exchanges and return `INTERLOCKED_HL_OK`. **]**
+**SRS_INTERLOCKED_HL_02_015: [** If `compare` returns `false` then `InterlockedHL_CompareExchange64If` shall not perform any exchanges and return `INTERLOCKED_HL_OK`. **]**
 
 **SRS_INTERLOCKED_HL_02_016: [** `original_target` shall be set to the original value of `target`. **]**
 

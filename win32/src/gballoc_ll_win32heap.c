@@ -168,7 +168,7 @@ void* gballoc_ll_malloc_flex(size_t base, size_t nmemb, size_t size)
         }
         else
         {
-            /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_036: [ gballoc_ll_malloc_flex shall return what HeapAlloc(base +  nmemb * size) returns. ]*/
+            /*Codes_SRS_GBALLOC_LL_WIN32HEAP_02_036: [ gballoc_ll_malloc_flex shall return what HeapAlloc(base + nmemb * size) returns. ]*/
             result = gballoc_ll_malloc_internal(base + nmemb * size);
         }
     }

@@ -187,7 +187,7 @@ TEST_FUNCTION(thandle_user_create_fails_when_thandle_malloc_fails)
 /* THANDLE_MALLOC_FLEX */
 
 /*Tests_SRS_THANDLE_02_050: [ THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS shall allocate memory for the THANDLE and an additional (nmemb * size) bytes. ]*/
-/*Tests_SRS_THANDLE_02_051: [ THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS shall  initialize the reference count to 1, store dispose and free_function succeed and return a non-NULL T*. ]*/
+/*Tests_SRS_THANDLE_02_051: [ THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS shall initialize the reference count to 1, store dispose and free_function succeed and return a non-NULL T*. ]*/
 TEST_FUNCTION(thandle_flex_user_create_succeeds)
 {
     ///arrange

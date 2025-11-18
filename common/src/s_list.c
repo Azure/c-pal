@@ -23,7 +23,7 @@ int s_list_initialize(PS_LIST_ENTRY list_head)
     }
     else
     {
-        /* Codes_SRS_S_LIST_07_002: [ s_list_initialize shall initialize the next pointer in list_head points to NULLand return zero on success. ]*/
+        /* Codes_SRS_S_LIST_07_002: [ s_list_initialize shall initialize the next pointer in list_head points to NULL and return zero on success. ]*/
         list_head->next = NULL;
         result = 0;
     }
