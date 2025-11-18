@@ -345,7 +345,7 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, SOCKET_HANDLE sock
         (async_socket == NULL) ||
         /* Codes_SRS_ASYNC_SOCKET_WIN32_01_008: [ If on_open_complete is NULL, async_socket_open_async shall fail and return a non-zero value. ]*/
         (on_open_complete == NULL) ||
-        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_034: [ If socket_handle is INVALID_SOCKET, async_socket_open_async shall fail and return a non-zero value. ]*/
+        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_034: [ If socket_handle is INVALID_SOCKET, async_socket_create shall fail and return NULL. ]*/
         (SOCKET)socket_handle == INVALID_SOCKET
         )
     {
@@ -459,7 +459,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
         // limit memory needed to UINT32_MAX
         if (buffer_count > (UINT32_MAX - sizeof(ASYNC_SOCKET_IO_CONTEXT)) / sizeof(WSABUF))
         {
-            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_103: [ If the amount of memory needed to allocate the context and the ASYNC_SOCKET_BUFFER items is exceeding UINT32_MAX, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
+            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_103: [ If the amount of memory needed to allocate the context and the WSABUF items is exceeding UINT32_MAX, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ERROR. ]*/
             LogError("Buffer count too big: %" PRIu32, buffer_count);
             result = ASYNC_SOCKET_SEND_SYNC_ERROR;
         }
@@ -512,7 +512,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                 else
                 {
                     /* Codes_SRS_ASYNC_SOCKET_WIN32_01_028: [ Otherwise async_socket_send_async shall create a context for the send where the payload, on_send_complete and on_send_complete_context shall be stored. ]*/
-                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_050: [ The context shall also allocate enough memory to keep an array of buffer_count WSABUF items. ]*/
+                    /* Codes_SRS_ASYNC_SOCKET_WIN32_01_050: [ The context shall also allocate enough memory to keep an array of buffer_count SOCKET_BUFFER items. ]*/
                     ASYNC_SOCKET_IO_CONTEXT* send_context = malloc_flex(sizeof(ASYNC_SOCKET_IO_CONTEXT), buffer_count, sizeof(WSABUF));
                     if (send_context == NULL)
                     {
@@ -525,7 +525,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                     {
                         send_context->total_buffer_bytes = total_buffer_bytes;
 
-                        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_056: [ async_socket_send_async shall set the ASYNC_SOCKET_BUFFER items to point to the memory/length of the buffers in payload. ]*/
+                        /* Codes_SRS_ASYNC_SOCKET_WIN32_01_056: [ async_socket_send_async shall set the WSABUF items to point to the memory/length of the buffers in payload. ]*/
                         for (i = 0; i < buffer_count; i++)
                         {
                             send_context->wsa_buffers[i].buf = buffers[i].buffer;
@@ -558,7 +558,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                             LogVerbose("Starting send of %" PRIu32 " bytes at %lf", total_buffer_bytes, timer_global_get_elapsed_us());
 #endif
 
-                            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_061: [ The ASYNC_SOCKET_BUFFER array associated with the context shall be sent by calling socket_transport_send and passing to it the OVERLAPPED structure with the event that was just created, dwFlags set to 0, lpNumberOfBytesSent set to NULL and lpCompletionRoutine set to NULL. ]*/
+                            /* Codes_SRS_ASYNC_SOCKET_WIN32_01_061: [ The WSABUF array associated with the context shall be sent by calling WSASend and passing to it the OVERLAPPED structure with the event that was just created, dwFlags set to 0, lpNumberOfBytesSent set to NULL and lpCompletionRoutine set to NULL. ]*/
                             wsa_send_result = WSASend((SOCKET)async_socket->socket_handle, send_context->wsa_buffers, buffer_count, NULL, 0, &send_context->overlapped, NULL);
 
                             switch (wsa_send_result)

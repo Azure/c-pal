@@ -36,7 +36,7 @@ static void* gballoc_ll_malloc_internal(size_t size)
     void* result;
     /*Codes_SRS_GBALLOC_LL_JEMALLOC_01_003: [ gballoc_ll_malloc shall call je_malloc and returns what je_malloc returned. ]*/
     /*Codes_SRS_GBALLOC_LL_JEMALLOC_02_002: [ gballoc_ll_malloc_2 shall call je_malloc(nmemb*size) and returns what je_malloc returned. ]*/
-    /*Codes_SRS_GBALLOC_LL_JEMALLOC_02_005: [ gballoc_ll_malloc_flex shall return what je_malloc(base + nmemb * size) returns. ]*/
+    /*Codes_SRS_GBALLOC_LL_JEMALLOC_02_005: [ gballoc_ll_malloc_flex shall return what je_malloc(base +  nmemb * size) returns. ]*/
     result = je_malloc(size);
 
     if (result == NULL)
@@ -89,7 +89,7 @@ void* gballoc_ll_malloc_flex(size_t base, size_t nmemb, size_t size)
     }
     else
     {
-        /*Codes_SRS_GBALLOC_LL_JEMALLOC_02_005: [ gballoc_ll_malloc_flex shall return what je_malloc(base + nmemb * size) returns. ]*/
+        /*Codes_SRS_GBALLOC_LL_JEMALLOC_02_005: [ gballoc_ll_malloc_flex shall return what je_malloc(base +  nmemb * size) returns. ]*/
         result = gballoc_ll_malloc_internal(base + nmemb * size);
     }
     

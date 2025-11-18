@@ -89,7 +89,7 @@ TEST_FUNCTION(s_list_initialize_with_NULL_fails)
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
 }
 
-/* Tests_SRS_S_LIST_07_002: [ s_list_initialize shall initialize the next pointer in list_head points to NULL and return zero on success. ]*/
+/* Tests_SRS_S_LIST_07_002: [ s_list_initialize shall initialize the next pointer in list_head points to NULLand return zero on success. ]*/
 TEST_FUNCTION(s_list_initialize_succeeds)
 {
     // arrange

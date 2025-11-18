@@ -34,7 +34,7 @@ typedef struct TEST_TAG
     uint64_t low;
 }TEST;
 
-/*Tests_SRS_ARITHMETIC_02_001: [ umul64x64 shall mutiply left and right and return PAL_UINT128 as result. ]*/
+/*Tests_SRS_ARITHMETIC_02_001: [ umul64x64 shall call _umul128 and return the result as PAL_UINT128. ]*/
 TEST_FUNCTION(umul64x64_combinations) /**/
 {
     TEST all[] = {

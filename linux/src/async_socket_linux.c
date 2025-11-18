@@ -128,7 +128,7 @@ static int on_socket_recv(void* context, ASYNC_SOCKET_HANDLE async_socket, void*
     }
     else
     {
-        // Codes_SRS_ASYNC_SOCKET_LINUX_04_007: [ on_socket_recv shall attempt to receive data by calling the system recv socket API. ]
+        // Codes_SRS_ASYNC_SOCKET_LINUX_04_007: [ on_socket_recv shall attempt to receive data by calling the system socket_transport_receive socket API. ]
         result = recv(async_socket->socket_handle, buf, len, 0);
     }
 

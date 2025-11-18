@@ -244,7 +244,7 @@ TEST_FUNCTION(gballoc_ll_malloc_flex_with_overflow_fail_2)
     ///clean
 }
 
-/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_012: [ gballoc_ll_malloc_flex shall return what malloc(base + nmemb * size) returns. ]*/
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_012: [ gballoc_ll_malloc_flex shall return what malloc(base +  nmemb * size) returns. ]*/
 TEST_FUNCTION(gballoc_ll_malloc_flex_with_SIZE_MAX_succeeds)
 {
     ///arrange
@@ -262,7 +262,7 @@ TEST_FUNCTION(gballoc_ll_malloc_flex_with_SIZE_MAX_succeeds)
     ///clean
 }
 
-/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_012: [ gballoc_ll_malloc_flex shall return what malloc(base + nmemb * size) returns. ]*/
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_012: [ gballoc_ll_malloc_flex shall return what malloc(base +  nmemb * size) returns. ]*/
 TEST_FUNCTION(gballoc_ll_malloc_flex_with_nmemb_0_succeeds)
 {
     ///arrange
@@ -280,7 +280,7 @@ TEST_FUNCTION(gballoc_ll_malloc_flex_with_nmemb_0_succeeds)
     ///clean
 }
 
-/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_012: [ gballoc_ll_malloc_flex shall return what malloc(base + nmemb * size) returns. ]*/
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_012: [ gballoc_ll_malloc_flex shall return what malloc(base +  nmemb * size) returns. ]*/
 TEST_FUNCTION(gballoc_ll_malloc_flex_with_SIZE_MAX_fails)
 {
     ///arrange
