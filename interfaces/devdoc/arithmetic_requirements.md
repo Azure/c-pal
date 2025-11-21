@@ -36,4 +36,4 @@ MOCKABLE_FUNCTION(, PAL_UINT128, umul64x64, uint64_t, left, uint64_t, right);
 
 `umul64x64` multiplies `left` with `right` and outputs a `PAL_UINT128` that contains the high and low parts of the resulting 128 bit value. 
 
-**SRS_ARITHMETIC_02_001: [** `umul64x64` shall mutiply `left` and `right` and return `PAL_UINT128` as result. **]**
+**SRS_ARITHMETIC_02_001: [** `umul64x64` shall multiply `left` and `right` and return `PAL_UINT128` as result. **]**

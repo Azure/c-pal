@@ -8,7 +8,7 @@
 /*only works if compiling on 64 bits*/
 PAL_UINT128 umul64x64(uint64_t left, uint64_t right)
 {
-    /*Codes_SRS_ARITHMETIC_02_001: [ umul64x64 shall mutiply left and right and return PAL_UINT128 as result. ]*/
+    /*Codes_SRS_ARITHMETIC_02_001: [ umul64x64 shall multiply left and right and return PAL_UINT128 as result.]*/
     PAL_UINT128 result;
     unsigned __int128 temp = ((unsigned __int128)left) * right;
     
@@ -23,7 +23,7 @@ PAL_UINT128 umul64x64(uint64_t left, uint64_t right) /*see corresponding windows
 {
     PAL_UINT128 result;
 
-    /*Codes_SRS_ARITHMETIC_02_001: [ umul64x64 shall mutiply left and right and return PAL_UINT128 as result. ]*/
+    /*Codes_SRS_ARITHMETIC_02_001: [ umul64x64 shall multiply left and right and return PAL_UINT128 as result.]*/
 
 #define Hi(x) ((x)>>32)
 #define Lo(x) ((x)&0xFFFFFFFF)
