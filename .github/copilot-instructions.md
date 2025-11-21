@@ -3,6 +3,16 @@
 ## Project Overview
 c-pal is a cross-platform C library that provides a **Platform Abstraction Layer (PAL)** for Azure C libraries. It offers consistent APIs for platform-specific functionality across Windows and Linux, enabling portable code while leveraging platform-optimized implementations underneath.
 
+## External Dependencies and Standards
+All code must follow the comprehensive coding standards defined in #file:../deps/c-build-tools/.github/general_coding_instructions.md. For detailed patterns and conventions, refer to dependency-specific instructions:
+
+- **Build Infrastructure**: #file:../deps/c-build-tools/.github/copilot-instructions.md
+- **Macro Utilities**: #file:../deps/macro-utils-c/.github/copilot-instructions.md
+- **Logging Framework**: #file:../deps/c-logging/.github/copilot-instructions.md
+- **Test Framework**: #file:../deps/ctest/.github/copilot-instructions.md
+- **Test Runner**: #file:../deps/c-testrunnerswitcher/.github/copilot-instructions.md
+- **Mocking Framework**: #file:../deps/umock-c/.github/copilot-instructions.md
+
 ## Architecture Overview
 
 ### Three-Layer Architecture
@@ -825,7 +835,7 @@ This project inherits comprehensive build and coding standards from its dependen
 - **`deps/c-testrunnerswitcher/`**: Test runner abstraction layer
 
 ### Coding Standards Compliance
-**CRITICAL**: All code must follow standards in `deps/c-build-tools/.github/general_coding_instructions.md`:
+**CRITICAL**: All code must follow standards in #file:../deps/c-build-tools/.github/general_coding_instructions.md:
 - **Function naming**: snake_case with module prefixes (`c_pal_*`, `threadpool_*`, `async_socket_*`)
 - **Requirements traceability**: `SRS_MODULE_##_###` -> `Codes_SRS_MODULE_##_###` -> `Tests_SRS_MODULE_##_###`
 - **Error handling**: Consistent patterns with goto cleanup and single exit points
