@@ -864,7 +864,7 @@ TEST_FUNCTION(on_file_io_complete_win32_calls_callback_unsuccessfully_for_write_
 }
 
 /*Tests_SRS_FILE_WIN32_43_034: [on_file_io_complete_win32 shall recover the file handle, the number of bytes requested by the user, user_callback and user_context from the context containing overlapped.]*/
-/*Tests_SRS_FILE_WIN32_43_068 : [If either GetOverlappedResult returns false or number_of_bytes_transferred is not equal to the bytes requested by the user, on_file_io_complete_win32 shall return false.]*/
+/*Tests_SRS_FILE_WIN32_43_068 : [If either io_result is not equal to NO_ERROR or number_of_bytes_transferred is not equal to the bytes requested by the user, on_file_io_complete_win32 shall return false.]*/
 TEST_FUNCTION(on_file_io_complete_win32_calls_callback_unsuccessfully_for_write_because_num_bytes_is_less)
 {
     ///arrange
@@ -951,7 +951,7 @@ TEST_FUNCTION(on_file_io_complete_win32_calls_callback_unsuccessfully_for_read_b
 }
 
 /*Tests_SRS_FILE_WIN32_43_034: [on_file_io_complete_win32 shall recover the file handle, the number of bytes requested by the user, user_callback and user_context from the context containing overlapped.]*/
-/*Tests_SRS_FILE_WIN32_43_068 : [If either GetOverlappedResult returns false or number_of_bytes_transferred is not equal to the bytes requested by the user, on_file_io_complete_win32 shall return false.]*/
+/*Tests_SRS_FILE_WIN32_43_068 : [If either io_result is not equal to NO_ERROR or number_of_bytes_transferred is not equal to the bytes requested by the user, on_file_io_complete_win32 shall return false.]*/
 TEST_FUNCTION(on_file_io_complete_win32_calls_callback_unsuccessfully_for_read_because_num_bytes_is_less)
 {
     ///arrange

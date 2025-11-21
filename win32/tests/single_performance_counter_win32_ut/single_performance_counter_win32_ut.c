@@ -231,7 +231,7 @@ TEST_FUNCTION(single_performance_counter_create_returns_null_if_performance_coun
 // Tests_SRS_SINGLE_PERFORMANCE_COUNTER_45_012 : [single_performance_counter_create shall call PdhAddCounterA to add the counter to the query.]
 // Tests_SRS_SINGLE_PERFORMANCE_COUNTER_45_013 : [single_performance_counter_create shall call PdhCollectQueryData to prime the query.]
 // Tests_SRS_SINGLE_PERFORMANCE_COUNTER_45_014 : [single_performance_counter_create shall save PDH_HQUERY handle, and counter HCOUNTER in the SINGLE_PERFORMANCE_COUNTER struct.]
-// Tests_SRS_SINGLE_PERFORMANCE_COUNTER_45_015 : [single_performance_counter_create shall return a non - null to the SINGLE_PERFORMANCE_COUNTER_HANDLE struct on success.]
+// Tests_SRS_SINGLE_PERFORMANCE_COUNTER_45_015 : [single_performance_counter_create shall return a non-null to the SINGLE_PERFORMANCE_COUNTER_HANDLE struct on success.]
 TEST_FUNCTION(single_performance_counter_create_succeeds)
 {
     // arrange

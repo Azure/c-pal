@@ -79,7 +79,7 @@ TEST_FUNCTION(interlocked_add_64_calls_InterlockedAdd64)
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_003: [interlocked_and shall call InterlockedAnd from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_004 : [interlocked_and shall return the initial value of * destination.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_004 : [interlocked_and shall return the initial value of *destination.]*/
 TEST_FUNCTION(interlocked_and_calls_InterlockedAnd)
 {
     ///arrange
@@ -98,7 +98,7 @@ TEST_FUNCTION(interlocked_and_calls_InterlockedAnd)
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_005: [interlocked_and_16 shall call InterlockedAnd16 from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_006 : [interlocked_and_16 shall return the initial value of * destination.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_006 : [interlocked_and_16 shall return the initial value of *destination.]*/
 TEST_FUNCTION(interlocked_and_16_calls_InterlockedAnd16)
 {
     ///arrange
@@ -117,7 +117,7 @@ TEST_FUNCTION(interlocked_and_16_calls_InterlockedAnd16)
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_007: [interlocked_and_64 shall call InterlockedAnd64 from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_008 : [interlocked_and_64 shall return the initial value of * destination.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_008 : [interlocked_and_64 shall return the initial value of *destination.]*/
 TEST_FUNCTION(interlocked_and_64_calls_InterlockedAnd64)
 {
     ///arrange
@@ -136,7 +136,7 @@ TEST_FUNCTION(interlocked_and_64_calls_InterlockedAnd64)
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_009: [interlocked_and_8 shall call InterlockedAnd8 from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_010 : [interlocked_and_8 shall return the initial value of * destination.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_010 : [interlocked_and_8 shall return the initial value of *destination.]*/
 TEST_FUNCTION(interlocked_and_8_calls_InterlockedAdd8)
 {
     ///arrange
@@ -155,7 +155,7 @@ TEST_FUNCTION(interlocked_and_8_calls_InterlockedAdd8)
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_011: [interlocked_compare_exchange shall call InterlockedCompareExchange from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_012 : [interlocked_compare_exchange shall return the initial value of * destination.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_012 : [interlocked_compare_exchange shall return the initial value of *destination.]*/
 TEST_FUNCTION(interlocked_compare_exchange_calls_InterlockedCompareExchange)
 {
     ///arrange
@@ -176,7 +176,7 @@ TEST_FUNCTION(interlocked_compare_exchange_calls_InterlockedCompareExchange)
 
 #ifdef _WIN64
 /*Tests_SRS_INTERLOCKED_WIN32_43_013: [interlocked_compare_exchange_128 shall call InterlockedCompareExchange128 from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_014 : [interlocked_compare_exchange_128 shall return true if* comperand_result equals the original value of* destination.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_014 : [interlocked_compare_exchange_128 shall return true if *comperand_result equals the original value of *destination.]*/
 TEST_FUNCTION(interlocked_compare_exchange_128_calls_InterlockedCompareExchange128_true_case)
 {
     ///arrange
@@ -210,7 +210,7 @@ TEST_FUNCTION(interlocked_compare_exchange_128_calls_InterlockedCompareExchange1
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_013: [interlocked_compare_exchange_128 shall call InterlockedCompareExchange128 from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_063 : [interlocked_compare_exchange_128 shall return false if* comperand_result does not equal the original value of* destination.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_063 : [interlocked_compare_exchange_128 shall return false if *comperand_result does not equal the original value of *destination.]*/
 TEST_FUNCTION(interlocked_compare_exchange_128_calls_InterlockedCompareExchange128_false_case)
 {
     ///arrange
@@ -244,7 +244,7 @@ TEST_FUNCTION(interlocked_compare_exchange_128_calls_InterlockedCompareExchange1
 #endif
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_015: [interlocked_compare_exchange_16 shall call InterlockedCompareExchange16 from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_016 : [interlocked_compare_exchange_16 shall return the initial value of * destination.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_016 : [interlocked_compare_exchange_16 shall return the initial value of *destination.]*/
 TEST_FUNCTION(interlocked_compare_exchange_16_calls_InterlockedCompareExchange16)
 {
     ///arrange
@@ -264,7 +264,7 @@ TEST_FUNCTION(interlocked_compare_exchange_16_calls_InterlockedCompareExchange16
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_017: [interlocked_compare_exchange_64 shall call InterlockedCompareExchange64 from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_018 : [interlocked_compare_exchange_64 shall return the initial value of * destination.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_018 : [interlocked_compare_exchange_64 shall return the initial value of *destination.]*/
 TEST_FUNCTION(interlocked_compare_exchange_64_calls_InterlockedCompareExchange64)
 {
     ///arrange
@@ -284,7 +284,7 @@ TEST_FUNCTION(interlocked_compare_exchange_64_calls_InterlockedCompareExchange64
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_019: [interlocked_compare_exchange_pointer shall call InterlockedCompareExchangePointer from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_020 : [interlocked_compare_exchange_pointer shall return the initial value of * destination.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_020 : [interlocked_compare_exchange_pointer shall return the initial value of *destination.]*/
 TEST_FUNCTION(interlocked_compare_exchange_pointer_calls_InterlockedCompareExchangePointer)
 {
     ///arrange
@@ -306,7 +306,7 @@ TEST_FUNCTION(interlocked_compare_exchange_pointer_calls_InterlockedCompareExcha
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_021: [interlocked_decrement shall call InterlockedDecrement from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_022 : [interlocked_decrement shall return the resulting 32 - bit integer value.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_022 : [interlocked_decrement shall return the resulting 32-bit integer value.]*/
 TEST_FUNCTION(interlocked_decrement_calls_InterlockedDecrement)
 {
     ///arrange
@@ -324,7 +324,7 @@ TEST_FUNCTION(interlocked_decrement_calls_InterlockedDecrement)
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_023: [interlocked_decrement_16 shall call InterlockedDecrement16 from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_024 : [interlocked_decrement_16 shall return the resulting 16 - bit integer value.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_024 : [interlocked_decrement_16 shall return the resulting 16-bit integer value.]*/
 TEST_FUNCTION(interlocked_decrement_16_calls_InterlockedDecrement16)
 {
     ///arrange
@@ -342,7 +342,7 @@ TEST_FUNCTION(interlocked_decrement_16_calls_InterlockedDecrement16)
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_025: [interlocked_decrement_64 shall call InterlockedDecrement64 from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_026 : [interlocked_decrement_64 shall return the resulting 64 - bit integer value.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_026 : [interlocked_decrement_64 shall return the resulting 64-bit integer value.]*/
 TEST_FUNCTION(interlocked_decrement_64_calls_InterlockedDecrement64)
 {
     ///arrange
@@ -436,7 +436,7 @@ TEST_FUNCTION(interlocked_exchange_8_calls_InterlockedExchange8)
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_035: [interlocked_exchange_add shall call InterlockedExchangeAdd from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_036 : [interlocked_exchange_add shall return the initial value of * addend.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_036 : [interlocked_exchange_add shall return the initial value of *addend.]*/
 TEST_FUNCTION(interlocked_exchange_add_calls_InterlockedExchangeAdd)
 {
     ///arrange
@@ -455,7 +455,7 @@ TEST_FUNCTION(interlocked_exchange_add_calls_InterlockedExchangeAdd)
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_037: [interlocked_exchange_add_64 shall call InterlockedExchangeAdd64 from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_038 : [interlocked_exchange_add_64 shall return the initial value of * addend.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_038 : [interlocked_exchange_add_64 shall return the initial value of *addend.]*/
 TEST_FUNCTION(interlocked_exchange_add_64_calls_InterlockedExchangeAdd64)
 {
     ///arrange
@@ -494,7 +494,7 @@ TEST_FUNCTION(interlocked_exchange_pointer_calls_InterlockedExchagePointer)
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_041: [interlocked_increment shall call InterlockedIncrement from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_042 : [interlocked_increment shall return the incremented 32 - bit integer.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_042 : [interlocked_increment shall return the incremented 32-bit integer.]*/
 TEST_FUNCTION(interlocked_increment_calls_InterlockedIncrement)
 {
     ///arrange
@@ -513,7 +513,7 @@ TEST_FUNCTION(interlocked_increment_calls_InterlockedIncrement)
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_043: [interlocked_increment_16 shall call InterlockedIncrement16 from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_044 : [interlocked_increment_16 shall return the incremented 16 - bit integer.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_044 : [interlocked_increment_16 shall return the incremented 16-bit integer.]*/
 TEST_FUNCTION(interlocked_increment_16_calls_InterlockedIncrement16)
 {
     ///arrange
@@ -532,7 +532,7 @@ TEST_FUNCTION(interlocked_increment_16_calls_InterlockedIncrement16)
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_045: [interlocked_increment_64 shall call InterlockedIncrement64 from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_046 : [interlocked_increment_64 shall return the incremented 64 - bit integer.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_046 : [interlocked_increment_64 shall return the incremented 64-bit integer.]*/
 TEST_FUNCTION(interlocked_increment_64_calls_InterlockedIncrement64)
 {
     ///arrange
@@ -551,7 +551,7 @@ TEST_FUNCTION(interlocked_increment_64_calls_InterlockedIncrement64)
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_047: [interlocked_or shall call InterlockedOr from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_048 : [interlocked_or shall return the initial value of * destination.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_048 : [interlocked_or shall return the initial value of *destination.]*/
 TEST_FUNCTION(interlocked_or_calls_InterlockedOr)
 {
     ///arrange
@@ -570,7 +570,7 @@ TEST_FUNCTION(interlocked_or_calls_InterlockedOr)
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_049: [interlocked_or_16 shall call InterlockedOr16 from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_050 : [interlocked_or_16 shall return the initial value of * destination.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_050 : [interlocked_or_16 shall return the initial value of *destination.]*/
 TEST_FUNCTION(interlocked_or_16_calls_InterlockedOr16)
 {
     ///arrange
@@ -589,7 +589,7 @@ TEST_FUNCTION(interlocked_or_16_calls_InterlockedOr16)
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_051: [interlocked_or_64 shall call InterlockedOr64 from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_052 : [interlocked_or_64 shall return the initial value of * destination.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_052 : [interlocked_or_64 shall return the initial value of *destination.]*/
 TEST_FUNCTION(interlocked_or_64_calls_InterlockedOr64)
 {
     ///arrange
@@ -608,7 +608,7 @@ TEST_FUNCTION(interlocked_or_64_calls_InterlockedOr64)
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_053: [interlocked_or_8 shall call InterlockedOr8 from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_054 : [interlocked_or_8 shall return the initial value of * destination.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_054 : [interlocked_or_8 shall return the initial value of *destination.]*/
 TEST_FUNCTION(interlocked_or_8_calls_InterlockedOr8)
 {
     ///arrange
@@ -627,7 +627,7 @@ TEST_FUNCTION(interlocked_or_8_calls_InterlockedOr8)
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_055: [interlocked_xor shall call InterlockedXor from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_056 : [interlocked_xor shall return the initial value of * destination.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_056 : [interlocked_xor shall return the initial value of *destination.]*/
 TEST_FUNCTION(interlocked_xor_calls_InterlockedXor)
 {
     ///arrange
@@ -646,7 +646,7 @@ TEST_FUNCTION(interlocked_xor_calls_InterlockedXor)
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_057: [interlocked_xor_16 shall call InterlockedXor16 from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_058 : [interlocked_xor_16 shall return the initial value of * destination.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_058 : [interlocked_xor_16 shall return the initial value of *destination.]*/
 TEST_FUNCTION(interlocked_xor_16_calls_InterlockedXor16)
 {
     ///arrange
@@ -665,7 +665,7 @@ TEST_FUNCTION(interlocked_xor_16_calls_InterlockedXor16)
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_059: [interlocked_xor_64 shall call InterlockedXor64 from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_060 : [interlocked_xor_64 shall return the initial value of * destination.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_060 : [interlocked_xor_64 shall return the initial value of *destination.]*/
 TEST_FUNCTION(interlocked_xor_64_calls_InterlockedXor64)
 {
     ///arrange
@@ -684,7 +684,7 @@ TEST_FUNCTION(interlocked_xor_64_calls_InterlockedXor64)
 }
 
 /*Tests_SRS_INTERLOCKED_WIN32_43_061: [interlocked_xor_8 shall call InterlockedXor8 from windows.h.]*/
-/*Tests_SRS_INTERLOCKED_WIN32_43_062 : [interlocked_xor_8 shall return the initial value of * destination.]*/
+/*Tests_SRS_INTERLOCKED_WIN32_43_062 : [interlocked_xor_8 shall return the initial value of *destination.]*/
 TEST_FUNCTION(interlocked_xor_8_calls_InterlockedXor8)
 {
     ///arrange
