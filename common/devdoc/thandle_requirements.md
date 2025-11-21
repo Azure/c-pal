@@ -135,7 +135,7 @@ static T* THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS(C)(void(*dispose)(T*), size_
 
 **SRS_THANDLE_02_050: [** `THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS` shall allocate memory for the `THANDLE` and an additional (`nmemb` * `size`) bytes. **]**
 
-**SRS_THANDLE_02_051: [** `THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS` shall  initialize the reference count to 1, store `dispose` and `free_function` succeed and return a non-`NULL` `T*`. **]**
+**SRS_THANDLE_02_051: [** `THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS` shall initialize the reference count to 1, store `dispose` and `free_function` succeed and return a non-`NULL` `T*`. **]**
 
 **SRS_THANDLE_02_052: [** If allocating memory fails then `THANDLE_MALLOC_FLEX_WITH_MALLOC_FUNCTIONS` shall fail and return `NULL`. **]**
 

@@ -72,7 +72,7 @@ TEST_FUNCTION(srw_lock_ll_init_with_NULL_srw_lock_ll_fails)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-// Tests_SRS_SRW_LOCK_LL_11_002: [ Otherwise, srw_lock_ll_init shall call InitializeSRWLock. ]
+// Tests_SRS_SRW_LOCK_LL_11_002: [ Otherwise, srw_lock_ll_init shall call pthread_rwlock_init. ]
 // Tests_SRS_SRW_LOCK_LL_11_003: [ Otherwise, srw_lock_ll_init shall succeed and return 0. ]
 TEST_FUNCTION(srw_lock_ll_init_succeeds)
 {
@@ -120,7 +120,7 @@ TEST_FUNCTION(srw_lock_ll_deinit_with_NULL_srw_lock_ll_returns)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-// Tests_SRS_SRW_LOCK_LL_11_005: [ Otherwise, srw_lock_ll_deinit shall return. ]
+// Tests_SRS_SRW_LOCK_LL_11_005: [ Otherwise, srw_lock_ll_deinit shall call pthread_rwlock_destroy and return. ]
 TEST_FUNCTION(srw_lock_ll_deinit_returns)
 {
     ///arrange
@@ -135,7 +135,7 @@ TEST_FUNCTION(srw_lock_ll_deinit_returns)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-// Tests_SRS_SRW_LOCK_LL_11_005: [ Otherwise, srw_lock_ll_deinit shall return. ]
+// Tests_SRS_SRW_LOCK_LL_11_005: [ Otherwise, srw_lock_ll_deinit shall call pthread_rwlock_destroy and return. ]
 TEST_FUNCTION(srw_lock_ll_deinit_on_an_initialized_lock_returns)
 {
     ///arrange
@@ -166,7 +166,7 @@ TEST_FUNCTION(srw_lock_ll_acquire_exclusive_with_NULL_srw_lock_ll_returns)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-// Tests_SRS_SRW_LOCK_LL_11_007: [ srw_lock_ll_acquire_exclusive shall call AcquireSRWLockExclusive. ]
+// Tests_SRS_SRW_LOCK_LL_11_007: [ srw_lock_ll_acquire_exclusive shall call pthread_rwlock_wrlock. ]
 TEST_FUNCTION(srw_lock_ll_acquire_exclusive_acquires_lock)
 {
     ///arrange
@@ -198,8 +198,8 @@ TEST_FUNCTION(srw_lock_ll_try_acquire_exclusive_with_NULL_srw_lock_ll_fails)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-// Tests_SRS_SRW_LOCK_LL_11_009: [ Otherwise srw_lock_ll_try_acquire_exclusive shall call pthread_rwlock_wrlock. ]
-// Tests_SRS_SRW_LOCK_LL_11_010: [ If pthread_rwlock_trywrlock returns non-zero, srw_lock_ll_try_acquire_exclusive shall return SRW_LOCK_LL_TRY_ACQUIRE_OK. ]
+// Tests_SRS_SRW_LOCK_LL_11_009: [ Otherwise srw_lock_ll_try_acquire_exclusive shall call pthread_rwlock_trywrlock. ]
+// Tests_SRS_SRW_LOCK_LL_11_010: [ If pthread_rwlock_trywrlock returns zero, srw_lock_ll_try_acquire_exclusive shall return SRW_LOCK_LL_TRY_ACQUIRE_OK. ]
 TEST_FUNCTION(srw_lock_ll_try_acquire_exclusive_tries_to_acquire_lock_and_succeeds)
 {
     ///arrange
@@ -315,7 +315,7 @@ TEST_FUNCTION(srw_lock_ll_try_acquire_shared_with_NULL_srw_lock_ll_fails)
 }
 
 // Tests_SRS_SRW_LOCK_LL_11_017: [ Otherwise srw_lock_ll_try_acquire_shared shall call pthread_rwlock_tryrdlock. ]
-// Tests_SRS_SRW_LOCK_LL_11_019: [ If pthread_rwlock_tryrdlock returns TRUE, srw_lock_ll_try_acquire_shared shall return SRW_LOCK_LL_TRY_ACQUIRE_OK. ]
+// Tests_SRS_SRW_LOCK_LL_11_019: [ If pthread_rwlock_tryrdlock returns zero, srw_lock_ll_try_acquire_shared shall return SRW_LOCK_LL_TRY_ACQUIRE_OK. ]
 TEST_FUNCTION(srw_lock_ll_try_acquire_shared_tries_to_acquire_lock_and_succeeds)
 {
     ///arrange

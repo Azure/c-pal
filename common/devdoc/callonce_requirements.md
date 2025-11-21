@@ -62,7 +62,7 @@ MOCKABLE_FUNCTION(, CALL_ONCE_RESULT, call_once_begin, call_once_t*, state);
 
 **SRS_CALL_ONCE_02_001: [** `call_once_begin` shall use `interlocked_compare_exchange(state, 1, 0)` to determine if user has alredy indicated that the init code was executed with success. **]**
 
-**SRS_CALL_ONCE_02_002: [** If `interlocked_compare_exchange` returns `2` then `call_once_begin` shall return  `CALL_ONCE_ALREADY_CALLED`. **]**
+**SRS_CALL_ONCE_02_002: [** If `interlocked_compare_exchange` returns `2` then `call_once_begin` shall return `CALL_ONCE_ALREADY_CALLED`. **]**
 
 **SRS_CALL_ONCE_02_003: [** If `interlocked_compare_exchange` returns `1` then `call_once_begin` shall call `wait_on_address(state)` with timeout `UINT32_MAX` and call again `interlocked_compare_exchange(state, 1, 0)`. **]**
 

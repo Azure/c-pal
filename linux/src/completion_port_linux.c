@@ -275,7 +275,7 @@ void completion_port_dec_ref(COMPLETION_PORT_HANDLE completion_port)
         // Codes_SRS_COMPLETION_PORT_LINUX_11_009: [ completion_port_dec_ref shall decrement the reference count for completion_port. ]
         if (DEC_REF(COMPLETION_PORT, completion_port) == 0)
         {
-            // Codes_SRS_COMPLETION_PORT_LINUX_11_012: [ - increment the flag signaling that the threads can complete. ]
+            // Codes_SRS_COMPLETION_PORT_LINUX_11_012: [ increment the flag signaling that the threads can complete. ]
             (void)interlocked_increment(&completion_port->worker_thread_continue);
 
             // Codes_SRS_COMPLETION_PORT_LINUX_11_010: [ If the reference count reaches 0, completion_port_dec_ref shall do the following: ]
@@ -321,11 +321,11 @@ int completion_port_add(COMPLETION_PORT_HANDLE completion_port, int epoll_op, SO
 {
     int result;
     if (
-        // Codes_SRS_COMPLETION_PORT_LINUX_11_016: [ If completion_port is NULL, completion_port_add shall return a non-NULL value. ]
+        // Codes_SRS_COMPLETION_PORT_LINUX_11_016: [ If completion_port is NULL, completion_port_add shall return a non-zero value. ]
         completion_port == NULL ||
-        // Codes_SRS_COMPLETION_PORT_LINUX_11_017: [ If socket is INVALID_SOCKET, completion_port_add shall return a non-NULL value. ]
+        // Codes_SRS_COMPLETION_PORT_LINUX_11_017: [ If socket is INVALID_SOCKET, completion_port_add shall return a non-zero value. ]
         socket == INVALID_SOCKET ||
-        // Codes_SRS_COMPLETION_PORT_LINUX_11_018: [ If event_callback is NULL, completion_port_add shall return a non-NULL value. ]
+        // Codes_SRS_COMPLETION_PORT_LINUX_11_018: [ If event_callback is NULL, completion_port_add shall return a non-zero value. ]
         event_callback == NULL)
     {
         LogError("Invalid arguments: COMPLETION_PORT_HANDLE completion_port=%p, epoll_op=%d, SOCKET_HANDLE socket=%" PRI_SOCKET ", ON_COMPLETION_PORT_EVENT_COMPLETE event_callback=%p, void* event_callback_ctx=%p",

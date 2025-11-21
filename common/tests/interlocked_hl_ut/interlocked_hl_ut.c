@@ -101,7 +101,7 @@ TEST_FUNCTION_CLEANUP(d)
 }
 
 /* Tests_SRS_INTERLOCKED_HL_02_001: [ If Addend is NULL then InterlockedHL_Add64WithCeiling shall fail and return INTERLOCKED_HL_ERROR. ] */
-/* Tests_SRS_INTERLOCKED_HL_02_007: [ In all failure cases InterlockedHL_Add64WithCeiling shall not modify Addend or originalAddend*/
+/* Tests_SRS_INTERLOCKED_HL_02_007: [ In all failure cases InterlockedHL_Add64WithCeiling shall not modify Addend or originalAddend.]*/
 TEST_FUNCTION(InterlockedHL_Add64WithCeiling_with_Addend_NULL_fails)
 {
     ///arrange
@@ -348,7 +348,7 @@ TEST_FUNCTION(when_the_value_equals_target_value_after_waiting_InterlockedHL_Wai
 }
 
 /* Tests_SRS_INTERLOCKED_HL_01_003: [ If the value at address_to_check is equal to value_to_wait, InterlockedHL_WaitForValue shall return INTERLOCKED_HL_OK. ] */
-/* Tests_SRS_INTERLOCKED_HL_01_007: [ When wait_on_address succeeds, the value at address shall be compared to the target value passed in value by using interlocked_add. ] */
+/* Tests_SRS_INTERLOCKED_HL_01_007: [ When wait_on_address succeeds, InterlockedHL_WaitForValue shall again compare the value at address_to_check with value_to_wait. ] */
 TEST_FUNCTION(when_the_value_after_a_succesfull_wait_on_address_does_not_equal_target_a_new_wait_for_address_shall_be_issued)
 {
     // arrange
@@ -1037,7 +1037,7 @@ TEST_FUNCTION(InterlockedHL_CompareExchange64If_with_compare_true_changed_true_s
 }
 
 /* Tests_SRS_INTERLOCKED_HL_02_011: [ InterlockedHL_CompareExchange64If shall acquire the initial value of target. ] */
-/* Tests_SRS_INTERLOCKED_HL_02_015: [ If compare returns false then  InterlockedHL_CompareExchange64If shall not perform any exchanges and return INTERLOCKED_HL_OK. ] */
+/* Tests_SRS_INTERLOCKED_HL_02_015: [ If compare returns false then InterlockedHL_CompareExchange64If shall not perform any exchanges and return INTERLOCKED_HL_OK. ] */
 /* Tests_SRS_INTERLOCKED_HL_02_013: [ If target changed meanwhile then InterlockedHL_CompareExchange64If shall return INTERLOCKED_HL_CHANGED and shall not peform any exchange of values. ] */
 /* Tests_SRS_INTERLOCKED_HL_02_016: [ original_target shall be set to the original value of target. ] */
 TEST_FUNCTION(InterlockedHL_CompareExchange64If_with_compare_false_succeeds)

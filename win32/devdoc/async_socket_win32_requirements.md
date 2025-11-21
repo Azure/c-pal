@@ -132,14 +132,14 @@ MOCKABLE_FUNCTION(, void, async_socket_destroy, ASYNC_SOCKET_HANDLE, async_socke
 ### async_socket_open_async
 
 ```c
-MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_socket, SOCKET_TRANSPORT_HANDLE, socket_transport, ON_ASYNC_SOCKET_OPEN_COMPLETE, on_open_complete, void*, on_open_complete_context);
+MOCKABLE_FUNCTION(, int, async_socket_open_async, ASYNC_SOCKET_HANDLE, async_socket, SOCKET_HANDLE, socket_handle, ON_ASYNC_SOCKET_OPEN_COMPLETE, on_open_complete, void*, on_open_complete_context);
 ```
 
 `async_socket_open_async` opens the async socket.
 
 **SRS_ASYNC_SOCKET_WIN32_01_007: [** If `async_socket` is NULL, `async_socket_open_async` shall fail and return a non-zero value. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_034: [** If `socket_transport` is `NULL`, `async_socket_open_async` shall fail and return a non-zero value. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_034: [** If `socket_handle` is `INVALID_SOCKET`, `async_socket_open_async` shall fail and return a non-zero value. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_008: [** If `on_open_complete` is NULL, `async_socket_open_async` shall fail and return a non-zero value. **]**
 
@@ -217,17 +217,17 @@ MOCKABLE_FUNCTION(, ASYNC_SOCKET_SEND_SYNC_RESULT, async_socket_send_async, ASYN
 
 **SRS_ASYNC_SOCKET_WIN32_01_028: [** Otherwise `async_socket_send_async` shall create a context for the send where the `payload`, `on_send_complete` and `on_send_complete_context` shall be stored. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_050: [** The context shall also allocate enough memory to keep an array of `buffer_count` `SOCKET_BUFFER` items. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_050: [** The context shall also allocate enough memory to keep an array of `buffer_count` `WSABUF` items. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_103: [** If the amount of memory needed to allocate the context and the `SOCKET_BUFFER` items is exceeding UINT32_MAX, `async_socket_send_async` shall fail and return `ASYNC_SOCKET_SEND_SYNC_ERROR`. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_103: [** If the amount of memory needed to allocate the context and the `ASYNC_SOCKET_BUFFER` items is exceeding UINT32_MAX, `async_socket_send_async` shall fail and return `ASYNC_SOCKET_SEND_SYNC_ERROR`. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_056: [** `async_socket_send_async` shall set the `SOCKET_BUFFER` items to point to the memory/length of the buffers in `payload`. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_056: [** `async_socket_send_async` shall set the `ASYNC_SOCKET_BUFFER` items to point to the memory/length of the buffers in `payload`. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_057: [** An event to be used for the `OVERLAPPED` structure passed to `socket_transport_send` shall be created and stored in the context. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_060: [** An asynchronous IO shall be started by calling `StartThreadpoolIo`. **]**
 
-**SRS_ASYNC_SOCKET_WIN32_01_061: [** The `SOCKET_BUFFER` array associated with the context shall be sent by calling `socket_transport_send` and passing to it the `OVERLAPPED` structure with the event that was just created, `dwFlags` set to 0, `lpNumberOfBytesSent` set to NULL and `lpCompletionRoutine` set to NULL. **]**
+**SRS_ASYNC_SOCKET_WIN32_01_061: [** The `ASYNC_SOCKET_BUFFER` array associated with the context shall be sent by calling `socket_transport_send` and passing to it the `OVERLAPPED` structure with the event that was just created, `dwFlags` set to 0, `lpNumberOfBytesSent` set to NULL and `lpCompletionRoutine` set to NULL. **]**
 
 **SRS_ASYNC_SOCKET_WIN32_01_062: [** If `socket_transport_send` fails, `async_socket_send_async` shall call `WSAGetLastError`. **]**
 

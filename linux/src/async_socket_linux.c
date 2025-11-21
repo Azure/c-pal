@@ -171,7 +171,7 @@ static int send_data(ASYNC_SOCKET* async_socket, const ASYNC_SOCKET_BUFFER* buff
             data_sent += send_size;
         }
         // Codes_SRS_ASYNC_SOCKET_LINUX_11_053: [ async_socket_send_async shall continue to send the data until the payload length has been sent. ]
-        // Codes_SRS_ASYNC_SOCKET_LINUX_11_101: [ If send returns a value > 0 but less than the amount to be sent, event_complete_callback shall continue to send the data until the payload length has been sent. ]
+        // Codes_SRS_ASYNC_SOCKET_LINUX_11_101: [ If socket_transport_send returns a value > 0 but less than the amount to be sent, event_complete_callback shall continue to socket_transport_send the data until the payload length has been sent. ]
     } while(data_sent < buff_data->length);
     *total_data_sent = data_sent;
     return result;
@@ -193,7 +193,7 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
             case COMPLETION_PORT_EPOLL_ABANDONED:
             case COMPLETION_PORT_EPOLL_EPOLLRDHUP:
             {
-                // Codes_SRS_ASYNC_SOCKET_LINUX_11_081: [ event_complete_callback shall call either the send or recv complete callback with an ABANDONED flag when the IO type is either ASYNC_SOCKET_IO_TYPE_SEND or ASYNC_SOCKET_IO_TYPE_RECEIVE respectively. ]
+                // Codes_SRS_ASYNC_SOCKET_LINUX_11_081: [ event_complete_callback shall call either the socket_transport_send or socket_transport_receive complete callback with an ABANDONED flag when the IO type is either ASYNC_SOCKET_IO_TYPE_SEND or ASYNC_SOCKET_IO_TYPE_RECEIVE respectively. ]
                 if (io_context->io_type == ASYNC_SOCKET_IO_TYPE_RECEIVE)
                 {
                     LogError("Receive socket has encountered %" PRI_MU_ENUM "", MU_ENUM_VALUE(COMPLETION_PORT_EPOLL_ACTION, action));
@@ -233,7 +233,7 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
                     {
                         // Codes_SRS_ASYNC_SOCKET_LINUX_11_083: [ Otherwise event_complete_callback shall call the on_recv callback with the recv_buffer buffer and length and do the following: ]
                         ssize_t recv_size = io_context->async_socket->on_recv(io_context->async_socket->on_recv_context, io_context->async_socket, io_context->data.recv_ctx.recv_buffers[index].buffer, io_context->data.recv_ctx.recv_buffers[index].length);
-                        // Codes_SRS_ASYNC_SOCKET_LINUX_11_088: [ If the recv size < 0, then: ]
+                        // Codes_SRS_ASYNC_SOCKET_LINUX_11_088: [ If the socket_transport_receive size < 0, then: ]
                         if (recv_size < 0)
                         {
                             if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -248,7 +248,7 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
                                 recv_size = 0;
                                 if (errno == ECONNRESET)
                                 {
-                                    // Codes_SRS_ASYNC_SOCKET_LINUX_11_090: [ If errno is ECONNRESET, then thread_worker_func shall call the on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_ABANDONED. ]
+                                    // Codes_SRS_ASYNC_SOCKET_LINUX_11_090: [ If errno is ECONNRESET, then event_complete_callback shall call the on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_ABANDONED. ]
                                     receive_result = ASYNC_SOCKET_RECEIVE_ABANDONED;
                                     LogError("A reset on the recv socket has been encountered");
                                 }
@@ -263,7 +263,7 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
                         }
                         else if (recv_size == 0)
                         {
-                            // Codes_SRS_ASYNC_SOCKET_LINUX_11_091: [ If the recv size equals 0, then event_complete_callback shall call on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_ABANDONED. ]
+                            // Codes_SRS_ASYNC_SOCKET_LINUX_11_091: [ If the socket_transport_receive size equals 0, then event_complete_callback shall call on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_ABANDONED. ]
                             LogError("Socket received 0 bytes, assuming socket is closed");
                             receive_result = ASYNC_SOCKET_RECEIVE_ABANDONED;
                             break;
@@ -280,7 +280,7 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
                             }
                             else
                             {
-                                // Codes_SRS_ASYNC_SOCKET_LINUX_11_092: [ If the recv size > 0, if we have another buffer to fill then we will attempt another read, otherwise we shall call on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_OK ]
+                                // Codes_SRS_ASYNC_SOCKET_LINUX_11_092: [ If the socket_transport_receive size > 0, if we have another buffer to fill then we will attempt another read, otherwise we shall call on_receive_complete callback with the on_receive_complete_context and ASYNC_SOCKET_RECEIVE_OK. ]
                                 total_recv_size += recv_size;
                                 if (index + 1 >= io_context->data.recv_ctx.total_buffer_count || recv_size <= io_context->data.recv_ctx.recv_buffers[index].length)
                                 {
@@ -320,10 +320,10 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
 
                     int error_no;
                     ssize_t total_data_sent;
-                    // Codes_SRS_ASYNC_SOCKET_LINUX_11_096: [ event_complete_callback shall call send on the data in the ASYNC_SOCKET_SEND_CONTEXT buffer. ]
+                    // Codes_SRS_ASYNC_SOCKET_LINUX_11_096: [ event_complete_callback shall call socket_transport_send on the data in the ASYNC_SOCKET_SEND_CONTEXT buffer. ]
                     if (send_data(io_context->async_socket, &io_context->data.send_ctx.socket_buffer, &total_data_sent, &error_no) != 0)
                     {
-                        // Codes_SRS_ASYNC_SOCKET_LINUX_11_097: [ If send returns value is < 0 event_complete_callback shall do the following: ]
+                        // Codes_SRS_ASYNC_SOCKET_LINUX_11_097: [ If socket_transport_send returns value is < 0 event_complete_callback shall do the following: ]
                         if (error_no == ECONNRESET)
                         {
                             // Codes_SRS_ASYNC_SOCKET_LINUX_11_098: [ if errno is ECONNRESET, then on_send_complete shall be called with ASYNC_SOCKET_SEND_ABANDONED. ]
@@ -356,7 +356,7 @@ static void event_complete_callback(void* context, COMPLETION_PORT_EPOLL_ACTION 
             case COMPLETION_PORT_EPOLL_ERROR:
             default:
             {
-                // Codes_SRS_ASYNC_SOCKET_LINUX_11_086: [ Otherwise event_complete_callback shall call either the send or recv complete callback with an ERROR flag. ]
+                // Codes_SRS_ASYNC_SOCKET_LINUX_11_086: [ Otherwise event_complete_callback shall call either the socket_transport_send or socket_transport_receive complete callback with an ERROR flag. ]
                 if (io_context->io_type == ASYNC_SOCKET_IO_TYPE_RECEIVE)
                 {
                     LogError("Receive socket has encountered COMPLETION_PORT_EPOLL_ERROR");
@@ -502,7 +502,7 @@ int async_socket_open_async(ASYNC_SOCKET_HANDLE async_socket, SOCKET_HANDLE sock
         async_socket == NULL ||
         // Codes_SRS_ASYNC_SOCKET_LINUX_11_025: [ If on_open_complete is NULL, async_socket_open_async shall fail and return a non-zero value. ]
         on_open_complete == NULL ||
-        // Codes_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_open_async shall fail and return a non-zero value. ]
+        // Codes_SRS_ASYNC_SOCKET_LINUX_11_003: [ If socket_handle is INVALID_SOCKET, async_socket_open_async shall fail and return non-zero value. ]
         socket_handle == INVALID_SOCKET
        )
     {
@@ -625,7 +625,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
             (void)interlocked_increment(&async_socket->pending_api_calls);
 
             ASYNC_SOCKET_LINUX_STATE current_state;
-            // Codes_SRS_ASYNC_SOCKET_LINUX_11_051: [ If async_socket is not OPEN, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_NOT_OPEN. ]
+            // Codes_SRS_ASYNC_SOCKET_LINUX_11_051: [ If async_socket is not OPEN, async_socket_send_async shall fail and return ASYNC_SOCKET_SEND_SYNC_ABANDONED. ]
             if ((current_state = interlocked_add(&async_socket->state, 0)) != ASYNC_SOCKET_LINUX_STATE_OPEN)
             {
                 LogWarning("Not open, current state is %" PRI_MU_ENUM "", MU_ENUM_VALUE(ASYNC_SOCKET_LINUX_STATE, current_state));
@@ -669,7 +669,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                                 io_context->data.send_ctx.socket_buffer.buffer = buffers[index].buffer + total_data_sent;
                                 io_context->data.send_ctx.socket_buffer.length = buffers[index].length - total_data_sent;
 
-                                // Codes_SRS_ASYNC_SOCKET_LINUX_11_057: [ The context shall then be added to the completion port system by calling completion_port_add with EPOLL_CTL_MOD and `event_complete_callback` as the callback. ]
+                                // Codes_SRS_ASYNC_SOCKET_LINUX_11_057: [ The context shall then be added to the completion port system by calling completion_port_add with EPOLL_CTL_MOD and event_complete_callback as the callback. ]
                                 if (completion_port_add(async_socket->completion_port, EPOLLOUT, async_socket->socket_handle, event_complete_callback, io_context) != 0)
                                 {
                                     LogError("failure with completion_port_add");
@@ -683,7 +683,7 @@ ASYNC_SOCKET_SEND_SYNC_RESULT async_socket_send_async(ASYNC_SOCKET_HANDLE async_
                                 }
                             }
                         }
-                        // Codes_SRS_ASYNC_SOCKET_LINUX_11_059: [ If the errno value is ECONNRESET, ENOTCONN, or EPIPE shall fail and return ASYNC_SOCKET_SEND_SYNC_NOT_OPEN. ]
+                        // Codes_SRS_ASYNC_SOCKET_LINUX_11_059: [ If the errno value is ECONNRESET, ENOTCONN, or EPIPE shall fail and return ASYNC_SOCKET_SEND_SYNC_ABANDONED. ]
                         else if (error_no == ECONNRESET || error_no == ENOTCONN || error_no == EPIPE)
                         {
                             LOGGER_LOG_EX(LOG_LEVEL_WARNING, LOG_ERRNO(), LOG_MESSAGE("The connection was forcibly closed by the peer"));

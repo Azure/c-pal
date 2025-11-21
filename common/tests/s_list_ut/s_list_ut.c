@@ -198,7 +198,7 @@ TEST_FUNCTION(s_list_add_with_add_entry_NULL_fails)
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
 }
 
-/* Tests_SRS_S_LIST_07_007: [ s_list_add shall add one entry to the tail of the list and return zero on success. ]*/
+/* Tests_SRS_S_LIST_07_007: [ s_list_add shall add one entry to the head of the list and return zero on success. ]*/
 TEST_FUNCTION(s_list_add_with_empty_list_succeeds)
 {
     // arrange
@@ -214,7 +214,7 @@ TEST_FUNCTION(s_list_add_with_empty_list_succeeds)
     ASSERT_ARE_EQUAL(void_ptr, head.next, &(simp1.link));
 }
 
-/* Tests_SRS_S_LIST_07_007: [ s_list_add shall add one entry to the tail of the list and return zero on success. ]*/
+/* Tests_SRS_S_LIST_07_007: [ s_list_add shall add one entry to the head of the list and return zero on success. ]*/
 TEST_FUNCTION(s_list_add_with_multiple_entries_in_the_list_succeeds)
 {
     // arrange
@@ -312,7 +312,7 @@ TEST_FUNCTION(s_list_add_head_with_multiple_entries_in_the_list_succeeds)
 
 /*s_list_remove*/
 
-/* Tests_SRS_S_LIST_07_011: [ If list_head is NULL, s_list_remove shall fail and a non-zero value. ]*/
+/* Tests_SRS_S_LIST_07_011: [ If list_head is NULL, s_list_remove shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(s_list_remove_with_head_NULL_fails)
 {
     // arrange
@@ -325,7 +325,7 @@ TEST_FUNCTION(s_list_remove_with_head_NULL_fails)
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
 }
 
-/* Tests_SRS_S_LIST_07_012: [ If list_entry is NULL, s_list_remove shall fail and a non-zero value. ]*/
+/* Tests_SRS_S_LIST_07_012: [ If list_entry is NULL, s_list_remove shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(s_list_remove_with_delete_entry_NULL_fails)
 {
     //arrange
@@ -991,7 +991,7 @@ TEST_FUNCTION(s_list_remove_if_with_continue_processing_false_returns_original_h
 
 /*s_list_for_each*/
 
-/* Tests_SRS_S_LIST_07_033: [ If list_head is NULL, s_list_for_each shall fail and return a non - zero value. ]*/
+/* Tests_SRS_S_LIST_07_033: [ If list_head is NULL, s_list_for_each shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(s_list_for_each_with_NULL_list_fails_with_NULL)
 {
     //arrange
@@ -1004,7 +1004,7 @@ TEST_FUNCTION(s_list_for_each_with_NULL_list_fails_with_NULL)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/* Tests_SRS_S_LIST_07_034: [ If action_function is NULL, s_list_for_each shall fail and return a non - zero value. ]*/
+/* Tests_SRS_S_LIST_07_034: [ If action_function is NULL, s_list_for_each shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(s_list_for_each_with_NULL_action_function_fails_with_NULL)
 {
     // arrange
@@ -1022,7 +1022,7 @@ TEST_FUNCTION(s_list_for_each_with_NULL_action_function_fails_with_NULL)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/* Tests_SRS_S_LIST_07_035: [ s_list_for_each shall iterate through all entries in the list, invoke action_function for each one of themand return zero on success. ]*/
+/* Tests_SRS_S_LIST_07_035: [ s_list_for_each shall iterate through all entries in the list, invoke action_function for each one of them and return zero on success. ]*/
 TEST_FUNCTION(s_list_for_each_succeeds)
 {
     // arrange
@@ -1079,7 +1079,7 @@ TEST_FUNCTION(s_list_for_each_with_continue_processing_false_stops_processing)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/* Tests_SRS_S_LIST_07_036: [ If the action_function fails, s_list_for_each shall fail and return a non - zero value. ]*/
+/* Tests_SRS_S_LIST_07_036: [ If the action_function fails, s_list_for_each shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(s_list_for_each_fails_when_continue_processing_fails)
 {
     // arrange

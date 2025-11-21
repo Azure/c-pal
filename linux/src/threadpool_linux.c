@@ -309,7 +309,7 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
                             uint32_t index;
                             for (index = 0; index < result->used_thread_count; index++)
                             {
-                                /* Codes_SRS_THREADPOOL_LINUX_07_020: [ threadpool_create shall create number of min_thread_count threads for threadpool using ThreadAPI_Create. ]*/
+                                /* Codes_SRS_THREADPOOL_LINUX_07_020: [ threadpool_create shall create min_thread_count number of threads for threadpool using ThreadAPI_Create. ]*/
                                 if (ThreadAPI_Create(&result->thread_handle_array[index], threadpool_work_func, result) != THREADAPI_OK)
                                 {
                                     /* Codes_SRS_THREADPOOL_LINUX_07_011: [ If any error occurs, threadpool_create shall fail and return NULL. ]*/
@@ -462,7 +462,7 @@ THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool,
     }
     else
     {
-        /* Codes_SRS_THREADPOOL_LINUX_07_058: [ threadpool_timer_start shall allocate memory for THANDLE(THREADPOOL_TIMER), passing threadpool_timer_dispose as dispose function, and store work_function and work_function_ctx in it. ]*/
+        /* Codes_SRS_THREADPOOL_LINUX_07_058: [ threadpool_timer_start shall allocate memory for THANDLE(THREADPOOL_TIMER), passing threadpool_timer_dispose as dispose function and store work_function and work_function_ctx in it. ]*/
         result = THANDLE_MALLOC(THREADPOOL_TIMER)(threadpool_timer_dispose);
         if (result == NULL)
         {
@@ -656,7 +656,7 @@ THANDLE(THREADPOOL_WORK_ITEM) threadpool_create_work_item(THANDLE(THREADPOOL) th
     }
     else
     {
-        /* Codes_SRS_THREADPOOL_LINUX_05_005: [ threadpool_create_work_item shall allocate memory for threadpool_work_item of type THREADPOOL_WORK_ITEM_HANDLE. ] */
+        /* Codes_SRS_THREADPOOL_LINUX_05_005: [ threadpool_create_work_item shall allocate memory for threadpool_work_item of type THANDLE(THREADPOOL_WORK_ITEM). ] */
         threadpool_work_item_ptr = THANDLE_MALLOC(THREADPOOL_WORK_ITEM)(NULL);
 
         if (threadpool_work_item_ptr == NULL)
@@ -680,7 +680,7 @@ int threadpool_schedule_work_item(THANDLE(THREADPOOL) threadpool, THANDLE(THREAD
     if (
         /* Codes_SRS_THREADPOOL_LINUX_05_010: [ If threadpool is NULL, threadpool_schedule_work_item shall fail and return a non-zero value. ]*/
         (threadpool == NULL) ||
-        /* Codes_SRS_THREADPOOL_LINUX_05_011: [ If threadpool_work_item is NULL, threadpool_schedule_work_item shall fail and return a non-zero value. ] */
+        /* Codes_SRS_THREADPOOL_LINUX_05_011: [ If threadpool_work_item is NULL,  threadpool_schedule_work_item shall fail and set the return variable with a non-zero value. ] */
         (threadpool_work_item == NULL)
         )
     {

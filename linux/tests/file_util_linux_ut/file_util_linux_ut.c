@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "file_util_linux_ut_pch.h"
@@ -282,7 +282,7 @@ TEST_FUNCTION(file_util_close_file_Succeeds)
 }
 
 /*Tests_SRS_FILE_UTIL_LINUX_09_019: [ file_util_close_file shall call close on the given handle_input. ]*/
-/*Tests_SRS_FILE_UTIL_LINUX_09_009: [ If there are any failures, `file_util_close_file` shall fail and return false. ]*/
+/*Tests_SRS_FILE_UTIL_LINUX_09_009: [ If there are any failures, file_util_close_file shall fail and return false. ]*/
 TEST_FUNCTION(file_util_close_file_FAILS)
 {
     HANDLE handle_input;

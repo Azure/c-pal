@@ -71,8 +71,8 @@ static VOID CALLBACK on_file_io_complete_win32(PTP_CALLBACK_INSTANCE instance, P
         }
         free(io_context);
 
-        /*Codes_SRS_FILE_WIN32_43_066: [ on_file_io_complete_win32 shall call user_callback with is_successful as true if and only if GetOverlappedResult returns true and number_of_bytes_transferred is equal to the number of bytes requested by the user. ]*/
-        /*Codes_SRS_FILE_WIN32_43_068: [ If either GetOverlappedResult returns false or number_of_bytes_transferred is not equal to the bytes requested by the user, on_file_io_complete_win32 shall return false. ]*/
+        /*Codes_SRS_FILE_WIN32_43_066: [ on_file_io_complete_win32 shall call user_callback with is_successful as true if and only if io_result is equal to NO_ERROR and number_of_bytes_transferred is equal to the number of bytes requested by the user. ]*/
+        /*Codes_SRS_FILE_WIN32_43_068: [ If either io_result is not equal to NO_ERROR or number_of_bytes_transferred is not equal to the bytes requested by the user, on_file_io_complete_win32 shall return false. ]*/
         user_callback(user_callback_context, io_result == NO_ERROR && all_bytes_were_transferred);
     }
 }
@@ -144,7 +144,7 @@ FILE_HANDLE file_create(EXECUTION_ENGINE_HANDLE execution_engine, const char* fu
             }
             else
             {
-                /*Codes_SRS_FILE_WIN32_43_002: [ file_create shall call SetFileCompletionNotificationModes to disable calling the completion port when an async operations finishes synchrounously.]*/
+                /*Codes_SRS_FILE_WIN32_43_002: [ file_create shall call SetFileCompletionNotificationModes to disable calling the completion port when an async operations finishes synchronously.]*/
                 if (!SetFileCompletionNotificationModes(result->h_file, FILE_SKIP_COMPLETION_PORT_ON_SUCCESS))
                 {
                     /*Codes_SRS_FILE_43_034: [ If there are any failures, file_create shall fail and return NULL. ]*/
@@ -189,7 +189,7 @@ FILE_HANDLE file_create(EXECUTION_ENGINE_HANDLE execution_engine, const char* fu
                         }
                         else
                         {
-                            /*Codes_SRS_FILE_WIN32_43_009: [ file_create shall succeed and return a non - NULL value.]*/
+                            /*Codes_SRS_FILE_WIN32_43_009: [ file_create shall succeed and return a non-NULL value.]*/
                             succeeded = true;
                             result->user_report_fault_callback = user_report_fault_callback;
                             result->user_report_fault_context = user_report_fault_context;
@@ -449,7 +449,7 @@ FILE_READ_ASYNC_RESULT file_read_async(FILE_HANDLE handle, unsigned char* destin
                     else
                     {
                         /*Codes_SRS_FILE_43_036: [ If the call to read the file fails, file_read_async shall fail and return FILE_READ_ASYNC_READ_ERROR. ]*/
-                        /*Codes_SRS_FILE_WIN32_43_031: [ If ReadFile fails synchronously and GetLastError does not indicate ERROR_IO_PENDING then file_read_async shall fail, call CancelThreadpoolIo and return FILE_READ_ASYNC_WRITE_ERROR. ]*/
+                        /*Codes_SRS_FILE_WIN32_43_031: [ If ReadFile fails synchronously and GetLastError does not indicate ERROR_IO_PENDING then file_read_async shall fail, call CancelThreadpoolIo and return FILE_READ_ASYNC_READ_ERROR. ]*/
                         LogLastError("Failure in ReadFile");
                         CancelThreadpoolIo(handle->ptp_io);
                         result = FILE_READ_ASYNC_READ_ERROR;

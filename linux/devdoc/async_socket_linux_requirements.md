@@ -262,7 +262,7 @@ static int on_socket_recv(void* context, ASYNC_SOCKET_HANDLE async_socket, void*
 
 `on_socket_recv` is the default recv callback used when `async_socket_create` is called. This implementation calls the system socket `socket_transport_receive` API.
 
-**SRS_ASYNC_SOCKET_LINUX_04_007: [** `on_socket_recv` shall attempt to receive data by calling the system `socket_transport_receive` socket API. **]**
+**SRS_ASYNC_SOCKET_LINUX_04_007: [** `on_socket_recv` shall attempt to receive data by calling the system `recv` socket API. **]**
 
 ### async_socket_receive_async
 

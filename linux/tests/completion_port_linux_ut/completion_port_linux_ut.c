@@ -1,4 +1,4 @@
-﻿// Copyright(C) Microsoft Corporation.All rights reserved.
+// Copyright(C) Microsoft Corporation.All rights reserved.
 
 
 #include "completion_port_linux_ut_pch.h"
@@ -343,7 +343,7 @@ TEST_FUNCTION(completion_port_dec_ref_remove_item_success)
 
 // completion_port_add
 
-// Tests_SRS_COMPLETION_PORT_LINUX_11_016: [ If completion_port is NULL, completion_port_add shall return a non-NULL value. ]
+// Tests_SRS_COMPLETION_PORT_LINUX_11_016: [ If completion_port is NULL, completion_port_add shall return a non-zero value. ]
 TEST_FUNCTION(completion_port_add_handle_NULL_fail)
 {
     //arrange
@@ -358,7 +358,7 @@ TEST_FUNCTION(completion_port_add_handle_NULL_fail)
     // cleanup
 }
 
-// Tests_SRS_COMPLETION_PORT_LINUX_11_018: [ If event_callback is NULL, completion_port_add shall return a non-NULL value. ]
+// Tests_SRS_COMPLETION_PORT_LINUX_11_018: [ If event_callback is NULL, completion_port_add shall return a non-zero value. ]
 TEST_FUNCTION(completion_port_add_event_callback_NULL_fail)
 {
     //arrange
@@ -377,7 +377,7 @@ TEST_FUNCTION(completion_port_add_event_callback_NULL_fail)
     completion_port_dec_ref(port_handle);
 }
 
-// Tests_SRS_COMPLETION_PORT_LINUX_11_017: [ If socket is INVALID_SOCKET, completion_port_add shall return a non-NULL value. ]
+// Tests_SRS_COMPLETION_PORT_LINUX_11_017: [ If socket is INVALID_SOCKET, completion_port_add shall return a non-zero value. ]
 TEST_FUNCTION(completion_port_add_socket_handle_INVALID_fail)
 {
     //arrange

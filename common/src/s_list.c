@@ -106,9 +106,9 @@ int s_list_remove(PS_LIST_ENTRY list_head, PS_LIST_ENTRY list_entry)
 {
     int result;
     if (
-    /* Codes_SRS_S_LIST_07_011: [ If list_head is NULL, s_list_remove shall fail and a non-zero value. ]*/
+    /* Codes_SRS_S_LIST_07_011: [ If list_head is NULL, s_list_remove shall fail and return a non-zero value. ]*/
     (list_head == NULL) ||
-    /* Codes_SRS_S_LIST_07_012: [ If list_entry is NULL, s_list_remove shall fail and a non-zero value. ]*/
+    /* Codes_SRS_S_LIST_07_012: [ If list_entry is NULL, s_list_remove shall fail and return a non-zero value. ]*/
     (list_entry == NULL))
     {
         LogError("Invalid arguments (list_head=%p, list_entry=%p)", list_head, list_entry);
@@ -288,9 +288,9 @@ int s_list_for_each(PS_LIST_ENTRY list_head, S_LIST_ACTION_FUNCTION action_funct
     int result;
 
     if (
-    /* Codes_SRS_S_LIST_07_033: [ If list_head is NULL, s_list_for_each shall fail and return a non - zero value. ]*/
+    /* Codes_SRS_S_LIST_07_033: [ If list_head is NULL, s_list_for_each shall fail and return a non-zero value. ]*/
     (list_head == NULL) ||
-    /* Codes_SRS_S_LIST_07_034: [ If action_function is NULL, s_list_for_each shall fail and return a non - zero value. ]*/
+    /* Codes_SRS_S_LIST_07_034: [ If action_function is NULL, s_list_for_each shall fail and return a non-zero value. ]*/
     (action_function == NULL))
     {
         LogError("Invalid arguments (list_head=%p, action_function=%p)", list_head, action_function);
@@ -300,14 +300,14 @@ int s_list_for_each(PS_LIST_ENTRY list_head, S_LIST_ACTION_FUNCTION action_funct
     {
         PS_LIST_ENTRY current_item = list_head->next;
 
-        /* Codes_SRS_S_LIST_07_035: [ s_list_for_each shall iterate through all entries in the list, invoke action_function for each one of themand return zero on success. ]*/
+        /* Codes_SRS_S_LIST_07_035: [ s_list_for_each shall iterate through all entries in the list, invoke action_function for each one of them and return zero on success. ]*/
         while (current_item != NULL)
         {
             bool continue_processing = false;
 
             if (action_function(current_item, action_context, &continue_processing) != 0)
             {
-                /* Codes_SRS_S_LIST_07_036: [ If the action_function fails, s_list_for_each shall fail and return a non - zero value. ]*/
+                /* Codes_SRS_S_LIST_07_036: [ If the action_function fails, s_list_for_each shall fail and return a non-zero value. ]*/
                 LogError("failure in actionFunction(current_item = %p, action_context = %p, &continue_processing = %p)", current_item, action_context, &continue_processing);
                 result = MU_FAILURE;
                 break;

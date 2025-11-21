@@ -143,7 +143,7 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 
 /* Tests_SRS_SRW_LOCK_LINUX_07_001: [ srw_lock_create shall allocate memory for SRW_LOCK_HANDLE_DATA. ]*/
 /* Tests_SRS_SRW_LOCK_LINUX_07_002: [ srw_lock_create shall copy the lock_name. ]*/
-/* Tests_SRS_SRW_LOCK_LINUX_07_003: [ srw_lock_create shall initialized the SRWLOCK by calling pthread_rwlock_init. ]*/
+/* Tests_SRS_SRW_LOCK_LINUX_07_003: [ srw_lock_create shall initialized the pthread_rwlock_t  by calling pthread_rwlock_init. ]*/
 /* Tests_SRS_SRW_LOCK_LINUX_07_004: [ srw_lock_create shall succeed and return a non-NULL value. ]*/
 TEST_FUNCTION(srw_lock_create_succeeds)
 {
@@ -205,8 +205,8 @@ TEST_FUNCTION(srw_lock_create_fails_when_copy_lock_name_fails)
 
 /* Tests_SRS_SRW_LOCK_LINUX_07_001: [ srw_lock_create shall allocate memory for SRW_LOCK_HANDLE_DATA. ]*/
 /* Tests_SRS_SRW_LOCK_LINUX_07_002: [ srw_lock_create shall copy the lock_name. ]*/
-/* Tests_SRS_SRW_LOCK_LINUX_07_003: [ srw_lock_create shall initialized the SRWLOCK by calling pthread_rwlock_init. ]*/
-/* Tests_SRS_SRW_LOCK_LINUX_07_006: [ If initializing lock failed, srw_lock_create shall fail and return NULL. ]*/
+/* Tests_SRS_SRW_LOCK_LINUX_07_003: [ srw_lock_create shall initialized the pthread_rwlock_t  by calling pthread_rwlock_init. ]*/
+/* Tests_SRS_SRW_LOCK_LINUX_07_006: [ If initializing the lock failed, srw_lock_create shall fail and return NULL. ]*/
 TEST_FUNCTION(srw_lock_create_fails_when_intializing_lock_fails)
 {
     //arrange
@@ -229,7 +229,7 @@ TEST_FUNCTION(srw_lock_create_fails_when_intializing_lock_fails)
 
 /* Tests_SRS_SRW_LOCK_LINUX_07_001: [ srw_lock_create shall allocate memory for SRW_LOCK_HANDLE_DATA. ]*/
 /* Tests_SRS_SRW_LOCK_LINUX_07_002: [ srw_lock_create shall copy the lock_name. ]*/
-/* Tests_SRS_SRW_LOCK_LINUX_07_003: [ srw_lock_create shall initialized the SRWLOCK by calling pthread_rwlock_init. ]*/
+/* Tests_SRS_SRW_LOCK_LINUX_07_003: [ srw_lock_create shall initialized the pthread_rwlock_t  by calling pthread_rwlock_init. ]*/
 /* Tests_SRS_SRW_LOCK_LINUX_07_005: [ If there are any failures, srw_lock_create shall fail and return NULL. ]*/
 TEST_FUNCTION(srw_lock_create_fails_when_underlying_calls_fails)
 {
@@ -273,7 +273,7 @@ TEST_FUNCTION(srw_lock_acquire_exclusive_with_handle_NULL_returns)
     //clean
 }
 
-/* Tests_SRS_SRW_LOCK_LINUX_07_008: [ srw_lock_acquire_exclusive shall lock the SRWLOCK for writing by calling pthread_rwlock_wrlock. ]*/
+/* Tests_SRS_SRW_LOCK_LINUX_07_008: [ srw_lock_acquire_exclusive shall lock the pthread_rwlock_t  for writing by calling pthread_rwlock_wrlock. ]*/
 TEST_FUNCTION(srw_lock_acquire_exclusive_succeeds)
 {
     //arrange
@@ -306,7 +306,7 @@ TEST_FUNCTION(srw_lock_try_acquire_exclusive_with_handle_NULL_returns_SRW_LOCK_T
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/* Tests_SRS_SRW_LOCK_LINUX_07_010: [ Otherwise srw_lock_acquire_exclusive shall apply a write lock on SRWLOCK only if no other threads are currently holding the SRWLOCK by calling pthread_rwlock_trywrlock. ]*/
+/* Tests_SRS_SRW_LOCK_LINUX_07_010: [ Otherwise srw_lock_acquire_exclusive shall apply a write lock on pthread_rwlock_t  only if no other threads are currently holding the pthread_rwlock_t  by calling pthread_rwlock_trywrlock. ]*/
 /* Tests_SRS_SRW_LOCK_LINUX_07_011: [ If pthread_rwlock_trywrlock returns 0, srw_lock_acquire_exclusive shall return SRW_LOCK_TRY_ACQUIRE_OK. ]*/
 TEST_FUNCTION(srw_lock_try_acquire_exclusive_succeeds)
 {
@@ -327,7 +327,7 @@ TEST_FUNCTION(srw_lock_try_acquire_exclusive_succeeds)
     srw_lock_destroy(srw_lock);
 }
 
-/* Tests_SRS_SRW_LOCK_LINUX_07_010: [ Otherwise srw_lock_acquire_exclusive shall apply a write lock on SRWLOCK only if no other threads are currently holding the SRWLOCK by calling pthread_rwlock_trywrlock. ]*/
+/* Tests_SRS_SRW_LOCK_LINUX_07_010: [ Otherwise srw_lock_acquire_exclusive shall apply a write lock on pthread_rwlock_t  only if no other threads are currently holding the pthread_rwlock_t  by calling pthread_rwlock_trywrlock. ]*/
 /* Tests_SRS_SRW_LOCK_LINUX_07_012: [ Otherwise, srw_lock_acquire_exclusive shall return SRW_LOCK_TRY_ACQUIRE_COULD_NOT_ACQUIRE. ]*/
 TEST_FUNCTION(srw_lock_try_acquire_exclusive_fails_when_apply_write_lock_fails)
 {
@@ -397,7 +397,7 @@ TEST_FUNCTION(srw_lock_acquire_shared_with_handle_NULL_returns)
 
 }
 
-/* Tests_SRS_SRW_LOCK_LINUX_07_016: [ srw_lock_acquire_shared shall apply a read lock to SRWLOCK by calling pthread_rwlock_rdlock. ]*/
+/* Tests_SRS_SRW_LOCK_LINUX_07_016: [ srw_lock_acquire_shared shall apply a read lock to pthread_rwlock_t  by calling pthread_rwlock_rdlock. ]*/
 TEST_FUNCTION(srw_lock_acquire_shared_succeeds)
 {
     //arrange
@@ -417,7 +417,7 @@ TEST_FUNCTION(srw_lock_acquire_shared_succeeds)
 
 /* srw_lock_try_acquire_shared */
 
-/* Tests_SRS_SRW_LOCK_LINUX_07_017: [ If handle is NULL, srw_lock_try_acquire_shared shall fail and return SRW_LOCK_TRY_ACQUIRE_INVALID_ARGS. ]*/
+/* Tests_SRS_SRW_LOCK_LINUX_07_017: [ If handle is NULL then srw_lock_try_acquire_shared shall fail and return SRW_LOCK_TRY_ACQUIRE_INVALID_ARGS. ]*/
 TEST_FUNCTION(srw_lock_try_acquire_shared_with_handle_NULL_returns_SRW_LOCK_TRY_ACQUIRE_INVALID_ARGS)
 {
     //arrange
@@ -430,7 +430,7 @@ TEST_FUNCTION(srw_lock_try_acquire_shared_with_handle_NULL_returns_SRW_LOCK_TRY_
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/* Tests_SRS_SRW_LOCK_LINUX_07_018: [ Otherwise srw_lock_try_acquire_shared shall apply a read lock on SRWLOCK if there's no writers hold the lock and no writers blocked on the lock by calling pthread_rwlock_tryrdlock. ]*/
+/* Tests_SRS_SRW_LOCK_LINUX_07_018: [ Otherwise srw_lock_try_acquire_shared shall apply a read lock on pthread_rwlock_t  if there's no writers hold the lock and no writers blocked on the lock by calling pthread_rwlock_tryrdlock. ]*/
 /* Tests_SRS_SRW_LOCK_LINUX_07_019: [ If pthread_rwlock_tryrdlock returns 0, srw_lock_try_acquire_shared shall return SRW_LOCK_TRY_ACQUIRE_OK. ]*/
 TEST_FUNCTION(srw_lock_try_acquire_shared_succeeds)
 {
@@ -450,7 +450,7 @@ TEST_FUNCTION(srw_lock_try_acquire_shared_succeeds)
     srw_lock_destroy(srw_lock);
 }
 
-/* Tests_SRS_SRW_LOCK_LINUX_07_018: [ Otherwise srw_lock_try_acquire_shared shall apply a read lock on SRWLOCK if there's no writers hold the lock and no writers blocked on the lock by calling pthread_rwlock_tryrdlock. ]*/
+/* Tests_SRS_SRW_LOCK_LINUX_07_018: [ Otherwise srw_lock_try_acquire_shared shall apply a read lock on pthread_rwlock_t  if there's no writers hold the lock and no writers blocked on the lock by calling pthread_rwlock_tryrdlock. ]*/
 /* Tests_SRS_SRW_LOCK_LINUX_07_020: [ Otherwise, srw_lock_try_acquire_shared shall return SRW_LOCK_TRY_ACQUIRE_COULD_NOT_ACQUIRE. ]*/
 TEST_FUNCTION(srw_lock_try_acquire_shared_fails_when_apply_read_lock_fails)
 {
@@ -514,8 +514,8 @@ TEST_FUNCTION(srw_lock_destroy_with_handle_NULL_returns)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/* Tests_SRS_SRW_LOCK_LINUX_07_024: [ srw_lock_destroy shall free stored lock name. ]*/
-/* Tests_SRS_SRW_LOCK_LINUX_07_025: [ srw_lock_destroy shall destroy the SRWLOCK by calling pthread_rwlock_destroy. ]*/
+/* Tests_SRS_SRW_LOCK_LINUX_07_024: [ srw_lock_destroy shall free the stored lock name. ]*/
+/* Tests_SRS_SRW_LOCK_LINUX_07_025: [ srw_lock_destroy shall destroy the pthread_rwlock_t  by calling pthread_rwlock_destroy. ]*/
 /* Tests_SRS_SRW_LOCK_LINUX_07_026: [ srw_lock_destroy shall free the lock handle. ]*/
 TEST_FUNCTION(srw_lock_destroy_free_used_resources)
 {

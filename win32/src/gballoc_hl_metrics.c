@@ -134,7 +134,7 @@ static call_once_t g_lazy = LAZY_INIT_NOT_DONE;
 static int do_init(void* ll_params)
 {
     int result;
-    /* Codes_SRS_GBALLOC_HL_METRICS_02_005: [ do_init shall call gballoc_ll_init(ll_params) ]*/
+    /* Codes_SRS_GBALLOC_HL_METRICS_02_005: [ do_init shall call gballoc_ll_init(ll_params). ]*/
     if (gballoc_ll_init(ll_params) != 0)
     {
         /*Codes_SRS_GBALLOC_HL_METRICS_02_007: [ If gballoc_ll_init fails then do_init shall return a non-zero value. ]*/
@@ -272,7 +272,7 @@ int gballoc_hl_get_free_latency_buckets(GBALLOC_LATENCY_BUCKETS* latency_buckets
 
 const GBALLOC_LATENCY_BUCKET_METADATA* gballoc_hl_get_latency_bucket_metadata(void)
 {
-    /* Codes_SRS_GBALLOC_HL_METRICS_01_037: [ gballoc_hl_get_latency_bucket_metadata shall return an array of size GBALLOC_LATENCY_BUCKET_COUNT that contains the metadata for each latency bucket. ]*/
+    /* Codes_SRS_GBALLOC_HL_METRICS_01_037: [ gballoc_hl_get_latency_bucket_metadata shall return an array of size LATENCY_BUCKET_COUNT that contains the metadata for each latency bucket. ]*/
     return latency_buckets_metadata;
 }
 
