@@ -10,7 +10,7 @@
 /*only works if compiling on 64 bits*/
 PAL_UINT128 umul64x64(uint64_t left, uint64_t right)
 {
-    /*Codes_/*Codes_SRS_ARITHMETIC_02_001: [ umul64x64 shall multiply left and right and return PAL_UINT128 as result.]*/
+    /*Codes_SRS_ARITHMETIC_02_001: [ umul64x64 shall multiply left and right and return PAL_UINT128 as result.]*/
     PAL_UINT128 result;
     result.low = _umul128(left, right, &result.high);
     return result;
