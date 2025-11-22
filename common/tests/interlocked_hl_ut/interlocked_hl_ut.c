@@ -447,7 +447,7 @@ TEST_FUNCTION(when_the_value_equals_target_value_InterlockedHL_WaitForValue64_re
 }
 
 /* Tests_SRS_INTERLOCKED_HL_05_003: [ If the value at address_to_check is not equal to value_to_wait, InterlockedHL_WaitForValue64 shall wait until the value at address_to_check changes using wait_on_address_64. ] */
-/* Tests_SRS_INTERLOCKED_HL_05_004: [ When wait_on_address_64 succeeds, InterlockedHL_WaitForValue64 shall again compare the value at address_to_check with value_to_wait. */
+/* Tests_SRS_INTERLOCKED_HL_05_004: [ When wait_on_address_64 succeeds, InterlockedHL_WaitForValue64 shall again compare the value at address_to_check with value_to_wait. ] */
 /* Tests_SRS_INTERLOCKED_HL_05_002: [ If the value at address_to_check is equal to value_to_wait, InterlockedHL_WaitForValue64 shall return INTERLOCKED_HL_OK. ] */
 TEST_FUNCTION(when_the_value_equals_target_value_after_waiting_InterlockedHL_WaitForValue64_returns_OK)
 {
@@ -470,7 +470,7 @@ TEST_FUNCTION(when_the_value_equals_target_value_after_waiting_InterlockedHL_Wai
 }
 
 /* Tests_SRS_INTERLOCKED_HL_05_003: [ If the value at address_to_check is not equal to value_to_wait, InterlockedHL_WaitForValue64 shall wait until the value at address_to_check changes using wait_on_address_64. ] */
-/* Tests_SRS_INTERLOCKED_HL_05_004: [ When wait_on_address_64 succeeds, InterlockedHL_WaitForValue64 shall again compare the value at address_to_check with value_to_wait. */
+/* Tests_SRS_INTERLOCKED_HL_05_004: [ When wait_on_address_64 succeeds, InterlockedHL_WaitForValue64 shall again compare the value at address_to_check with value_to_wait. ] */
 /* Tests_SRS_INTERLOCKED_HL_05_002: [ If the value at address_to_check is equal to value_to_wait, InterlockedHL_WaitForValue64 shall return INTERLOCKED_HL_OK. ] */
 TEST_FUNCTION(when_the_value_after_a_succesfull_wait_on_address_64_does_not_equal_target_a_new_wait_for_address_64_shall_be_issued)
 {
