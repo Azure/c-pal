@@ -160,7 +160,7 @@ INTERLOCKED_HL_RESULT InterlockedHL_WaitForValue64(int64_t volatile_atomic* addr
             WAIT_ON_ADDRESS_RESULT wait_result = wait_on_address_64(address_to_check, current_value, timeout_ms);
             if (wait_result == WAIT_ON_ADDRESS_OK)
             {
-                /* Codes_SRS_INTERLOCKED_HL_05_004: [ When wait_on_address_64 succeeds, InterlockedHL_WaitForValue64 shall again compare the value at address_to_check with value_to_wait. */
+                /* Codes_SRS_INTERLOCKED_HL_05_004: [ When wait_on_address_64 succeeds, InterlockedHL_WaitForValue64 shall again compare the value at address_to_check with value_to_wait. ] */
                 // Loop back to check current_value and value_to_wait
                 continue;
             }
