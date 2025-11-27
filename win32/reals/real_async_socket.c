@@ -11,6 +11,8 @@
 
 #include "real_socket_transport_renames.h"
 
+#include "real_timer_renames.h"
+
 #include "real_async_socket_renames.h" // IWYU pragma: keep
 
 #include "../src/async_socket_win32.c"
