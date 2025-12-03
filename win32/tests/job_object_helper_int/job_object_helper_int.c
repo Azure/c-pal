@@ -111,7 +111,7 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process)
     */
 
     UUID_T job_name_uuid;
-    (void)uuid_produce(job_name_uuid);
+    (void)uuid_produce(&job_name_uuid);
 
     char job_name[64];
     (void)snprintf(job_name, sizeof(job_name), TEST_JOB_NAME_PREFIX "%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
@@ -211,7 +211,7 @@ void get_job_object_helper_tester_excutable_path(char* full_path, size_t full_pa
 TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_from_multiple_processes)
 {
     UUID_T job_name_uuid;
-    (void)uuid_produce(job_name_uuid);
+    (void)uuid_produce(&job_name_uuid);
 
     char job_name[64];
     (void)snprintf(job_name, sizeof(job_name), TEST_JOB_NAME_PREFIX "%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
@@ -292,7 +292,7 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_from_mult
 TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_check_memory_limits)
 {
     UUID_T job_name_uuid;
-    (void)uuid_produce(job_name_uuid);
+    (void)uuid_produce(&job_name_uuid);
 
     char job_name[64];
     (void)snprintf(job_name, sizeof(job_name), TEST_JOB_NAME_PREFIX "%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
@@ -343,7 +343,7 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_check_mem
 TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_from_multiple_processes_memory_limit_validation)
 {
     UUID_T job_name_uuid;
-    (void)uuid_produce(job_name_uuid);
+    (void)uuid_produce(&job_name_uuid);
 
     char job_name[64];
     (void)snprintf(job_name, sizeof(job_name), TEST_JOB_NAME_PREFIX "%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));

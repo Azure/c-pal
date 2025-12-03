@@ -41,7 +41,7 @@ static char* umock_stringify_uuid_t(const uuid_t* value)
     char* result;
     result = malloc(37);
     ASSERT_IS_NOT_NULL(result);
-    (void)sprintf(result, "%" PRI_UUID_T "", UUID_T_VALUES(*value));
+    (void)sprintf(result, "%" PRI_UUID_T "", UUID_T_VALUES(*(UUID_T*)value));
     return result;
 }
 
@@ -145,49 +145,36 @@ TEST_FUNCTION(uuid_produce_succeeds)
     STRICT_EXPECTED_CALL(mocked_uuid_generate(IGNORED_ARG));
 
     ///act
-    result = uuid_produce(u);
+    result = uuid_produce(&u);
 
     ///assert
     ASSERT_ARE_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_0,  u[0]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_1,  u[1]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_2,  u[2]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_3,  u[3]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4,  u[4]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_5,  u[5]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_6,  u[6]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_7,  u[7]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_8,  u[8]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_9,  u[9]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_10, u[10]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_11, u[11]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_12, u[12]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_13, u[13]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_14, u[14]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_15, u[15]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_0,  u.bytes[0]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_1,  u.bytes[1]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_2,  u.bytes[2]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_3,  u.bytes[3]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4,  u.bytes[4]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_5,  u.bytes[5]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_6,  u.bytes[6]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_7,  u.bytes[7]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_8,  u.bytes[8]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_9,  u.bytes[9]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_10, u.bytes[10]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_11, u.bytes[11]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_12, u.bytes[12]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_13, u.bytes[13]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_14, u.bytes[14]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_15, u.bytes[15]);
 }
 
 // is_uuid_nil
-
-// Tests_SRS_UUID_LINUX_11_001: [ if uuid_value is NULL then is_uuid_nil shall fail and return true. ]
-TEST_FUNCTION(is_uuid_nil_uuid_is_NULL)
-{
-    ///arrange
-
-    ///act
-    bool result = is_uuid_nil(NULL);
-
-    ///assert
-    ASSERT_IS_TRUE(result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
 
 // Tests_SRS_UUID_LINUX_11_002: [ If all the values of is_uuid_nil are 0 then is_uuid_nil shall return true. ]
 TEST_FUNCTION(is_uuid_nil_on_valid_uuid)
 {
     ///arrange
     UUID_T valid_uuid;
-    hook_uuid_generate(valid_uuid);
+    hook_uuid_generate((void*)&valid_uuid);
 
     ///act
     bool result = is_uuid_nil(valid_uuid);
