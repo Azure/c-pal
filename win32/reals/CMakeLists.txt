@@ -26,6 +26,7 @@ set(reals_win32_c_files
     ../../common/reals/real_threadpool_thandle.c
     ../../common/reals/real_threadpool_timer_thandle.c
     ../../common/reals/real_threadpool_work_item_thandle.c
+    ../../common/src/nil_uuid.c
     real_job_object_helper.c
 )
 

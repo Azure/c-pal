@@ -92,6 +92,8 @@ PartitionId=316132b8-96a0-4bc7-aecc-a16e7c5a6bf6
     ((uuid) == NULL) ? 0 : (uuid)->bytes[8],  ((uuid) == NULL) ? 0 : (uuid)->bytes[9],  ((uuid) == NULL) ? 0 : (uuid)->bytes[10], ((uuid) == NULL) ? 0 : (uuid)->bytes[11], \
     ((uuid) == NULL) ? 0 : (uuid)->bytes[12], ((uuid) == NULL) ? 0 : (uuid)->bytes[13], ((uuid) == NULL) ? 0 : (uuid)->bytes[14], ((uuid) == NULL) ? 0 : (uuid)->bytes[15] \
 
+extern const UUID_T NIL_UUID;
+
 #ifdef __cplusplus
 }
 #endif
