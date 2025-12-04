@@ -28,6 +28,7 @@ extern "C" {
     void umocktypes_free_UUID_T(UUID_T* value);
 
     CTEST_DECLARE_EQUALITY_ASSERTION_FUNCTIONS_FOR_TYPE(uuid_ptr);
+    CTEST_DECLARE_EQUALITY_ASSERTION_FUNCTIONS_FOR_TYPE(UUID_T);
 
 #ifdef __cplusplus
 }
