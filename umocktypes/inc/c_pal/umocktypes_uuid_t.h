@@ -30,6 +30,9 @@ extern "C" {
     CTEST_DECLARE_EQUALITY_ASSERTION_FUNCTIONS_FOR_TYPE(uuid_ptr);
     CTEST_DECLARE_EQUALITY_ASSERTION_FUNCTIONS_FOR_TYPE(UUID_T);
 
+/*mark UUID_T as non-castable for the purposes of CTEST*/
+#define CTEST_TYPE_IS_CASTABLE_UUID_T 0
+
 #ifdef __cplusplus
 }
 #endif
