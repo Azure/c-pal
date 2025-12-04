@@ -98,13 +98,9 @@ int umocktypes_copy_UUID_T(UUID_T* destination, const UUID_T* source)
     return result;
 }
 
-void umocktypes_free_UUID_T(UUID_T** value)
+void umocktypes_free_UUID_T(UUID_T* value)
 {
     (void)value;
-    //vld.h remove if no leaks if (value)
-    //vld.h remove if no leaks {
-    //vld.h remove if no leaks     free(*value);
-    //vld.h remove if no leaks }
 }
 
 int umocktypes_UUID_T_register_types(void)
