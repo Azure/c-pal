@@ -30,10 +30,12 @@ MU_STATIC_ASSERT(sizeof(UUID_T) == 16);
 MU_STATIC_ASSERT(alignof(UUID_T) == 8);
 
 #define UUID_T_IS_EQUAL(a, b) \
+    /* //CodeQL [SM01947] CodeQL is wrong to fire SM01947 here, both me and AI and valgrind believe that CodeQL is just overly zealous in finding things that are not there*/ \
     ((((const uint64_t*)&(a))[0] == ((const uint64_t*)&(b))[0]) && \
      (((const uint64_t*)&(a))[1] == ((const uint64_t*)&(b))[1]))
 
 #define UUID_T_IS_NIL(a) \
+    /* //CodeQL [SM01947] CodeQL is wrong to fire SM01947 here, both me and AI and valgrind believe that CodeQL is just overly zealous in finding things that are not there*/ \
     ((((const uint64_t*)&(a))[0] == 0) && \
      (((const uint64_t*)&(a))[1] == 0))
 
@@ -83,12 +85,12 @@ PartitionId=316132b8-96a0-4bc7-aecc-a16e7c5a6bf6
 #define PRI_UUID_T        "02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x"
 
 #define UUID_T_VALUES(uuid) \
-    /*CodeQL [SM01947] CodeQL is wrong to fire SM01947 here, both me and AI and valgrind believe that CodeQL is just overly zealous in finding things that are not there*/ \
+    /* //CodeQL [SM01947] CodeQL is wrong to fire SM01947 here, both me and AI and valgrind believe that CodeQL is just overly zealous in finding things that are not there*/ \
     (uuid).bytes[0], (uuid).bytes[1], (uuid).bytes[2],  (uuid).bytes[3],  (uuid).bytes[4],  (uuid).bytes[5],  (uuid).bytes[6],  (uuid).bytes[7], \
     (uuid).bytes[8], (uuid).bytes[9], (uuid).bytes[10], (uuid).bytes[11], (uuid).bytes[12], (uuid).bytes[13], (uuid).bytes[14], (uuid).bytes[15]
 
 #define PUUID_T_VALUES_OR_NULL(uuid) \
-    /*CodeQL [SM01947] CodeQL is wrong to fire SM01947 here, both me and AI and valgrind believe that CodeQL is just overly zealous in finding things that are not there*/ \
+    /* //CodeQL [SM01947] CodeQL is wrong to fire SM01947 here, both me and AI and valgrind believe that CodeQL is just overly zealous in finding things that are not there*/ \
     ((uuid) == NULL) ? 0 : (uuid)->bytes[0],  ((uuid) == NULL) ? 0 : (uuid)->bytes[1],  ((uuid) == NULL) ? 0 : (uuid)->bytes[2],  ((uuid) == NULL) ? 0 : (uuid)->bytes[3], \
     ((uuid) == NULL) ? 0 : (uuid)->bytes[4],  ((uuid) == NULL) ? 0 : (uuid)->bytes[5],  ((uuid) == NULL) ? 0 : (uuid)->bytes[6],  ((uuid) == NULL) ? 0 : (uuid)->bytes[7], \
     ((uuid) == NULL) ? 0 : (uuid)->bytes[8],  ((uuid) == NULL) ? 0 : (uuid)->bytes[9],  ((uuid) == NULL) ? 0 : (uuid)->bytes[10], ((uuid) == NULL) ? 0 : (uuid)->bytes[11], \
