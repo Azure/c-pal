@@ -9,22 +9,30 @@
 
 #define R2(X) REGISTER_GLOBAL_MOCK_HOOK(X, real_##X);
 
+#ifdef WIN32
+#define WIN32_UUID_FUNCTIONS uuid_from_GUID, GUID_from_uuid,
+#else
+#define WIN32_UUID_FUNCTIONS
+#endif
+
 #define REGISTER_UUID_GLOBAL_MOCK_HOOK()        \
     MU_FOR_EACH_1(R2,                           \
         uuid_produce,                           \
+        WIN32_UUID_FUNCTIONS                    \
         is_uuid_nil                             \
     )
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-    int real_uuid_produce(UUID_T destination);
-    bool real_is_uuid_nil(const UUID_T uuid_value);
+    int real_uuid_produce(UUID_T* destination);
+    bool real_is_uuid_nil(UUID_T uuid_value);
 
 #ifdef WIN32 /*some functions only exists in Windows realm*/
-    int real_uuid_from_GUID(UUID_T destination, const GUID* source);
-    int real_GUID_from_uuid(GUID* destination, const UUID_T source);
+    int real_uuid_from_GUID(UUID_T* destination, const GUID* source);
+    int real_GUID_from_uuid(GUID* destination, UUID_T source);
 #endif
 
 #ifdef __cplusplus

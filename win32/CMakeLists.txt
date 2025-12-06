@@ -25,6 +25,7 @@ set(pal_common_c_files
     ../common/src/sm.c
     ../common/src/thandle_log_context_handle.c
     ../common/src/tqueue.c
+    ../common/src/nil_uuid.c
 )
 
 #determining which one of the GBALLOC_LL implementations to use. By convention the file is called "gballoc_ll_" followed by "type".
