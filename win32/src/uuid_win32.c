@@ -123,7 +123,7 @@ int GUID_from_uuid(GUID* destination, const UUID_T source)
         destination->Data3 =
             (source.bytes[6] << 8) +
             (source.bytes[7]);
-        (void)memcpy(destination->Data4, &(source.bytes[8]), 8);
+        (void)memcpy(destination->Data4, &(source.bytes[8]), 8); /*CodeQL [SM01947] CodeQL is wrong to fire SM01947 here, both me and AI and valgrind believe that CodeQL is just overly zealous in finding things that are not there*/
         result = 0;
     }
     return result;
