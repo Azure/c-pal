@@ -19,7 +19,7 @@
 extern "C" {
 #endif
 
-    int real_uuid_produce(UUID_T destination);
+    int real_uuid_produce(UUID_T* destination);
     bool real_is_uuid_nil(const UUID_T uuid_value);
 
 #ifdef __cplusplus

@@ -52,13 +52,13 @@ TEST_FUNCTION(uuid_produce_succeeds_and_generates_different_UUIDs)
     int result1, result2;
 
     ///act
-    result1 = uuid_produce(one);
-    result2 = uuid_produce(two);
+    result1 = uuid_produce(&one);
+    result2 = uuid_produce(&two);
 
     ///assert
     ASSERT_ARE_EQUAL(int, 0, result1);
     ASSERT_ARE_EQUAL(int, 0, result2);
-    ASSERT_IS_TRUE(memcmp(one, two, sizeof(UUID_T)) != 0);
+    ASSERT_IS_FALSE(UUID_T_IS_EQUAL(one, two));
 }
 
 #ifdef WIN32
@@ -72,36 +72,36 @@ TEST_FUNCTION(uuid_from_GUID_succeeds)
     int result;
 
     ///act
-    result = uuid_from_GUID(destination, &g);
+    result = uuid_from_GUID(&destination, &g);
 
     ///assert
     ASSERT_ARE_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(uint8_t, (g.Data1 >> 24) & 0xFF, destination[0]);
-    ASSERT_ARE_EQUAL(uint8_t, (g.Data1 >> 16) & 0xFF, destination[1]);
-    ASSERT_ARE_EQUAL(uint8_t, (g.Data1 >> 8) & 0xFF, destination[2]);
-    ASSERT_ARE_EQUAL(uint8_t, (g.Data1) & 0xFF, destination[3]);
+    ASSERT_ARE_EQUAL(uint8_t, (g.Data1 >> 24) & 0xFF, destination.bytes[0]);
+    ASSERT_ARE_EQUAL(uint8_t, (g.Data1 >> 16) & 0xFF, destination.bytes[1]);
+    ASSERT_ARE_EQUAL(uint8_t, (g.Data1 >>  8) & 0xFF, destination.bytes[2]);
+    ASSERT_ARE_EQUAL(uint8_t, (g.Data1      ) & 0xFF, destination.bytes[3]);
 
-    ASSERT_ARE_EQUAL(uint8_t, (g.Data2>> 8) & 0xFF, destination[4]);
-    ASSERT_ARE_EQUAL(uint8_t, (g.Data2) & 0xFF, destination[5]);
+    ASSERT_ARE_EQUAL(uint8_t, (g.Data2>> 8) & 0xFF, destination.bytes[4]);
+    ASSERT_ARE_EQUAL(uint8_t, (g.Data2    ) & 0xFF, destination.bytes[5]);
 
-    ASSERT_ARE_EQUAL(uint8_t, (g.Data3 >> 8) & 0xFF, destination[6]);
-    ASSERT_ARE_EQUAL(uint8_t, (g.Data3 ) & 0xFF, destination[7]);
+    ASSERT_ARE_EQUAL(uint8_t, (g.Data3 >> 8) & 0xFF, destination.bytes[6]);
+    ASSERT_ARE_EQUAL(uint8_t, (g.Data3     ) & 0xFF, destination.bytes[7]);
 
-    ASSERT_ARE_EQUAL(uint8_t, g.Data4[0], destination[8]);
-    ASSERT_ARE_EQUAL(uint8_t, g.Data4[1], destination[9]);
-    ASSERT_ARE_EQUAL(uint8_t, g.Data4[2], destination[10]);
-    ASSERT_ARE_EQUAL(uint8_t, g.Data4[3], destination[11]);
-    ASSERT_ARE_EQUAL(uint8_t, g.Data4[4], destination[12]);
-    ASSERT_ARE_EQUAL(uint8_t, g.Data4[5], destination[13]);
-    ASSERT_ARE_EQUAL(uint8_t, g.Data4[6], destination[14]);
-    ASSERT_ARE_EQUAL(uint8_t, g.Data4[7], destination[15]);
+    ASSERT_ARE_EQUAL(uint8_t, g.Data4[0], destination.bytes[8]);
+    ASSERT_ARE_EQUAL(uint8_t, g.Data4[1], destination.bytes[9]);
+    ASSERT_ARE_EQUAL(uint8_t, g.Data4[2], destination.bytes[10]);
+    ASSERT_ARE_EQUAL(uint8_t, g.Data4[3], destination.bytes[11]);
+    ASSERT_ARE_EQUAL(uint8_t, g.Data4[4], destination.bytes[12]);
+    ASSERT_ARE_EQUAL(uint8_t, g.Data4[5], destination.bytes[13]);
+    ASSERT_ARE_EQUAL(uint8_t, g.Data4[6], destination.bytes[14]);
+    ASSERT_ARE_EQUAL(uint8_t, g.Data4[7], destination.bytes[15]);
 }
 
 TEST_FUNCTION(GUID_from_uuid_succeeds)
 {
     ///arrange
     UUID_T u;
-    (void)uuid_produce(u);
+    (void)uuid_produce(&u);
 
     GUID destination = { 0 };
     int result;
@@ -111,22 +111,22 @@ TEST_FUNCTION(GUID_from_uuid_succeeds)
 
     ///assert
     ASSERT_ARE_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(uint8_t, u[0],(destination.Data1>>24) & 0xFF);
-    ASSERT_ARE_EQUAL(uint8_t, u[1], (destination.Data1 >> 16) & 0xFF);
-    ASSERT_ARE_EQUAL(uint8_t, u[2], (destination.Data1 >> 8) & 0xFF);
-    ASSERT_ARE_EQUAL(uint8_t, u[3], (destination.Data1     ) & 0xFF);
-    ASSERT_ARE_EQUAL(uint8_t, u[4], (destination.Data2 >> 8) & 0xFF);
-    ASSERT_ARE_EQUAL(uint8_t, u[5], (destination.Data2     ) & 0xFF);
-    ASSERT_ARE_EQUAL(uint8_t, u[6], (destination.Data3 >> 8) & 0xFF);
-    ASSERT_ARE_EQUAL(uint8_t, u[7], (destination.Data3     ) & 0xFF);
-    ASSERT_ARE_EQUAL(uint8_t, u[8], destination.Data4[0]);
-    ASSERT_ARE_EQUAL(uint8_t, u[9], destination.Data4[1]);
-    ASSERT_ARE_EQUAL(uint8_t, u[10],destination.Data4[2]);
-    ASSERT_ARE_EQUAL(uint8_t, u[11],destination.Data4[3]);
-    ASSERT_ARE_EQUAL(uint8_t, u[12],destination.Data4[4]);
-    ASSERT_ARE_EQUAL(uint8_t, u[13],destination.Data4[5]);
-    ASSERT_ARE_EQUAL(uint8_t, u[14],destination.Data4[6]);
-    ASSERT_ARE_EQUAL(uint8_t, u[15],destination.Data4[7]);
+    ASSERT_ARE_EQUAL(uint8_t, u.bytes[0], (destination.Data1>>24) & 0xFF);
+    ASSERT_ARE_EQUAL(uint8_t, u.bytes[1], (destination.Data1 >> 16) & 0xFF);
+    ASSERT_ARE_EQUAL(uint8_t, u.bytes[2], (destination.Data1 >> 8) & 0xFF);
+    ASSERT_ARE_EQUAL(uint8_t, u.bytes[3], (destination.Data1     ) & 0xFF);
+    ASSERT_ARE_EQUAL(uint8_t, u.bytes[4], (destination.Data2 >> 8) & 0xFF);
+    ASSERT_ARE_EQUAL(uint8_t, u.bytes[5], (destination.Data2     ) & 0xFF);
+    ASSERT_ARE_EQUAL(uint8_t, u.bytes[6], (destination.Data3 >> 8) & 0xFF);
+    ASSERT_ARE_EQUAL(uint8_t, u.bytes[7], (destination.Data3     ) & 0xFF);
+    ASSERT_ARE_EQUAL(uint8_t, u.bytes[8],  destination.Data4[0]);
+    ASSERT_ARE_EQUAL(uint8_t, u.bytes[9],  destination.Data4[1]);
+    ASSERT_ARE_EQUAL(uint8_t, u.bytes[10], destination.Data4[2]);
+    ASSERT_ARE_EQUAL(uint8_t, u.bytes[11], destination.Data4[3]);
+    ASSERT_ARE_EQUAL(uint8_t, u.bytes[12], destination.Data4[4]);
+    ASSERT_ARE_EQUAL(uint8_t, u.bytes[13], destination.Data4[5]);
+    ASSERT_ARE_EQUAL(uint8_t, u.bytes[14], destination.Data4[6]);
+    ASSERT_ARE_EQUAL(uint8_t, u.bytes[15], destination.Data4[7]);
 }
 
 TEST_FUNCTION(PRI_GUID_succeeds)
@@ -209,7 +209,7 @@ TEST_FUNCTION(PRI_UUID_T_compiles)
 {
     ///arrange
     UUID_T u;
-    ASSERT_ARE_EQUAL(int, 0, uuid_produce(u));
+    ASSERT_ARE_EQUAL(int, 0, uuid_produce(&u));
 
     ///act (well - it compiles)
     LogInfo("u=%" PRI_UUID_T "", UUID_T_VALUES(u));
@@ -219,27 +219,21 @@ TEST_FUNCTION(PRI_UUID_T_compiles)
 
 static void UUID_T_VALUES_OR_NULL_helper(UUID_T u)
 {
-    LogInfo("u=%" PRI_UUID_T "", UUID_T_VALUES_OR_NULL(u));
+    LogInfo("u=%" PRI_UUID_T "", UUID_T_VALUES(u));
 }
 
 TEST_FUNCTION(UUID_T_VALUES_OR_NULL_compiles)
 {
     ///arrange
     UUID_T u;
-    ASSERT_ARE_EQUAL(int, 0, uuid_produce(u));
+    ASSERT_ARE_EQUAL(int, 0, uuid_produce(&u));
 
     ///act 1 (well - it compiles, doesn't crash at runtime)
-    UUID_T_VALUES_OR_NULL_helper(NULL); /*needs a helper to decay array into pointer*/
+    LogInfo("NULL UUID_T*=%" PRI_UUID_T "", PUUID_T_VALUES_OR_NULL((UUID_T*)NULL));
 
     ///act 2 (well - it compiles, doesn't crash at runtime)
-    LogInfo("some UUID_T=%" PRI_UUID_T "", UUID_T_VALUES_OR_NULL(*(UUID_T*)NULL));
+    LogInfo("u=%" PRI_UUID_T "", UUID_T_VALUES(u));
 
-    ///act 3 (well - it compiles, doesn't crash at runtime)
-    UUID_T_VALUES_OR_NULL_helper(u); /*needs a helper to decay array into pointer*/
-
-    ///act 4 (well - it compiles, doesn't crash at runtime)
-    LogInfo("u=%" PRI_UUID_T "", UUID_T_VALUES_OR_NULL(u));
-   
     ///assert - none
 }
 

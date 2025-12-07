@@ -89,29 +89,29 @@ TEST_FUNCTION(uuid_produce_succeeds_1) /*when it returns default RPC_S_OK*/
     STRICT_EXPECTED_CALL(mocked_UuidCreate(IGNORED_ARG));
 
     ///act
-    result = uuid_produce(u);
+    result = uuid_produce(&u);
 
     ///assert
     ASSERT_ARE_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1 >> 24) & 0xFF, u[0]);
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1 >> 16) & 0xFF, u[1]);
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1 >>  8) & 0xFF, u[2]);
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1      ) & 0xFF, u[3]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1 >> 24) & 0xFF, u.bytes[0]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1 >> 16) & 0xFF, u.bytes[1]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1 >>  8) & 0xFF, u.bytes[2]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1      ) & 0xFF, u.bytes[3]);
 
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_2 >>  8) & 0xFF, u[4]);
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_2      ) & 0xFF, u[5]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_2 >>  8) & 0xFF, u.bytes[4]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_2      ) & 0xFF, u.bytes[5]);
 
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_3 >>  8) & 0xFF, u[6]);
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_3      ) & 0xFF, u[7]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_3 >>  8) & 0xFF, u.bytes[6]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_3      ) & 0xFF, u.bytes[7]);
 
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_0, u[8]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_1, u[9]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_2, u[10]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_3, u[11]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_4, u[12]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_5, u[13]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_6, u[14]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_7, u[15]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_0, u.bytes[8]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_1, u.bytes[9]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_2, u.bytes[10]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_3, u.bytes[11]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_4, u.bytes[12]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_5, u.bytes[13]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_6, u.bytes[14]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_7, u.bytes[15]);
 
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
@@ -129,29 +129,29 @@ TEST_FUNCTION(uuid_produce_succeeds_2) /*when it returns default RPC_S_UUID_LOCA
     STRICT_EXPECTED_CALL(mocked_UuidCreate(IGNORED_ARG));
 
     ///act
-    result = uuid_produce(u);
+    result = uuid_produce(&u);
 
     ///assert
     ASSERT_ARE_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1 >> 24) & 0xFF, u[0]);
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1 >> 16) & 0xFF, u[1]);
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1 >> 8) & 0xFF, u[2]);
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1) & 0xFF, u[3]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1 >> 24) & 0xFF, u.bytes[0]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1 >> 16) & 0xFF, u.bytes[1]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1 >> 8 ) & 0xFF, u.bytes[2]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1      ) & 0xFF, u.bytes[3]);
 
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_2 >> 8) & 0xFF, u[4]);
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_2) & 0xFF, u[5]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_2 >> 8) & 0xFF, u.bytes[4]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_2     ) & 0xFF, u.bytes[5]);
 
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_3 >> 8) & 0xFF, u[6]);
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_3) & 0xFF, u[7]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_3 >> 8) & 0xFF, u.bytes[6]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_3     ) & 0xFF, u.bytes[7]);
 
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_0, u[8]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_1, u[9]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_2, u[10]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_3, u[11]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_4, u[12]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_5, u[13]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_6, u[14]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_7, u[15]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_0, u.bytes[8]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_1, u.bytes[9]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_2, u.bytes[10]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_3, u.bytes[11]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_4, u.bytes[12]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_5, u.bytes[13]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_6, u.bytes[14]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_7, u.bytes[15]);
 
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
@@ -167,7 +167,7 @@ TEST_FUNCTION(uuid_produce_unhappy_path) /*when it returns RPC_S_UUID_LOCAL_ONLY
     STRICT_EXPECTED_CALL(mocked_UuidCreate(IGNORED_ARG));
 
     ///act
-    result = uuid_produce(u);
+    result = uuid_produce(&u);
 
     ///assert
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
@@ -197,7 +197,7 @@ TEST_FUNCTION(uuid_from_GUID_with_source_NULL_fails)
     UUID_T destination;
 
     ///act
-    result = uuid_from_GUID(destination, NULL);
+    result = uuid_from_GUID(&destination, NULL);
 
     ///assert
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
@@ -213,29 +213,29 @@ TEST_FUNCTION(uuid_from_GUID_succeeds)
     UUID_T destination;
 
     ///act
-    result = uuid_from_GUID(destination,&source);
+    result = uuid_from_GUID(&destination,&source);
 
     ///assert
     ASSERT_ARE_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1 >> 24) & 0xFF, destination[0]);
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1 >> 16) & 0xFF, destination[1]);
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1 >> 8) & 0xFF, destination[2]);
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1) & 0xFF, destination[3]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1 >> 24) & 0xFF, destination.bytes[0]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1 >> 16) & 0xFF, destination.bytes[1]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1 >>  8) & 0xFF, destination.bytes[2]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_1      ) & 0xFF, destination.bytes[3]);
 
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_2 >> 8) & 0xFF, destination[4]);
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_2) & 0xFF, destination[5]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_2 >> 8) & 0xFF, destination.bytes[4]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_2     ) & 0xFF, destination.bytes[5]);
 
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_3 >> 8) & 0xFF, destination[6]);
-    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_3) & 0xFF, destination[7]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_3 >> 8) & 0xFF, destination.bytes[6]);
+    ASSERT_ARE_EQUAL(uint8_t, (TEST_DATA_3     ) & 0xFF, destination.bytes[7]);
 
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_0, destination[8]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_1, destination[9]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_2, destination[10]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_3, destination[11]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_4, destination[12]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_5, destination[13]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_6, destination[14]);
-    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_7, destination[15]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_0, destination.bytes[8]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_1, destination.bytes[9]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_2, destination.bytes[10]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_3, destination.bytes[11]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_4, destination.bytes[12]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_5, destination.bytes[13]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_6, destination.bytes[14]);
+    ASSERT_ARE_EQUAL(uint8_t, TEST_DATA_4_7, destination.bytes[15]);
 }
 
 /*Tests_SRS_UUID_WIN32_02_009: [ If destination is NULL then GUID_from_uuid shall fail and return a non-zero value. ]*/
@@ -253,31 +253,16 @@ TEST_FUNCTION(GUID_from_uuid_with_NULL_destination_fails)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_UUID_WIN32_02_010: [ If source is NULL then GUID_from_uuid shall fail and return a non-zero value. ]*/
-TEST_FUNCTION(GUID_from_uuid_with_NULL_source_fails)
-{
-    ///arrange
-    int result;
-    GUID destination;
-
-    ///act
-    result = GUID_from_uuid(&destination, NULL);
-
-    ///assert
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
 /*Tests_SRS_UUID_WIN32_02_011: [ GUID_from_uuid shall convert UUID_T to GUID, succeed and return 0. ]*/
 TEST_FUNCTION(GUID_from_uuid_succeeds)
 {
     ///arrange
     int result;
-    UUID_T source = { 
+    UUID_T source = {
         ((TEST_DATA_1 >> 24) & 0xFF),
-        ((TEST_DATA_1 >> 16) & 0xFF), 
-        ((TEST_DATA_1 >>  8) & 0xFF), 
-        ((TEST_DATA_1      ) & 0xFF), 
+        ((TEST_DATA_1 >> 16) & 0xFF),
+        ((TEST_DATA_1 >>  8) & 0xFF),
+        ((TEST_DATA_1      ) & 0xFF),
         ((TEST_DATA_2 >>  8) &0xFF),
         ((TEST_DATA_2      ) & 0xFF),
         ((TEST_DATA_3 >>  8) & 0xFF),
@@ -293,24 +278,11 @@ TEST_FUNCTION(GUID_from_uuid_succeeds)
     ASSERT_IS_TRUE(TEST_DATA_1 == destination.Data1);
     ASSERT_IS_TRUE(TEST_DATA_2 == destination.Data2);
     ASSERT_IS_TRUE(TEST_DATA_3 == destination.Data3);
-    ASSERT_IS_TRUE(0 == memcmp(source+8, destination.Data4, 8));
+    ASSERT_IS_TRUE(0 == memcmp(&source.bytes[8], destination.Data4, 8));
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 // is_uuid_nil
-
-// Tests_SRS_UUID_WIN32_11_001: [ if uuid_value is NULL then is_uuid_nil shall fail and return true. ]
-TEST_FUNCTION(is_uuid_nil_uuid_is_NULL)
-{
-    ///arrange
-
-    ///act
-    bool result = is_uuid_nil(NULL);
-
-    ///assert
-    ASSERT_IS_TRUE(result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
 
 // Tests_SRS_UUID_WIN32_11_002: [ If all the values of is_uuid_nil are 0 then is_uuid_nil shall return true. ]
 TEST_FUNCTION(is_uuid_nil_on_valid_uuid)
@@ -356,7 +328,7 @@ TEST_FUNCTION(is_uuid_nil_on_individual_valid_uuid)
     {
         UUID_T valid_uuid = { 0 };
 
-        valid_uuid[index] = 0x2;
+        valid_uuid.bytes[index] = 0x2;
 
         ///act
         bool result = is_uuid_nil(valid_uuid);

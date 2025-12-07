@@ -18,27 +18,27 @@ static int is_UUID_T_and_UUID_same_size[sizeof(UUID_T) == sizeof(UUID)]; /*just 
 /*Codes_SRS_UUID_02_002: [ uuid_produce shall generate in destination the representation of a UUID (as per RFC 4122). ]*/
 /*Codes_SRS_UUID_02_004: [ uuid_produce shall succeed and return 0. ]*/
 
-static void GUID_to_UUID_T(const GUID* guid, UUID_T uuid)
+static void GUID_to_UUID_T(const GUID* guid, UUID_T* uuid)
 {
-    uuid[0] = (guid->Data1 >> 24) & 0xFF;
-    uuid[1] = (guid->Data1 >> 16) & 0xFF;
-    uuid[2] = (guid->Data1 >> 8) & 0xFF;
-    uuid[3] = (guid->Data1) & 0xFF;
-    uuid[4] = (guid->Data2 >> 8) & 0xFF;
-    uuid[5] = (guid->Data2) & 0xFF;
-    uuid[6] = (guid->Data3 >> 8) & 0xFF;
-    uuid[7] = (guid->Data3) & 0xFF;
-    uuid[8] = guid->Data4[0];
-    uuid[9] = guid->Data4[1];
-    uuid[10] = guid->Data4[2];
-    uuid[11] = guid->Data4[3];
-    uuid[12] = guid->Data4[4];
-    uuid[13] = guid->Data4[5];
-    uuid[14] = guid->Data4[6];
-    uuid[15] = guid->Data4[7];
+    uuid->bytes[0] = (guid->Data1 >> 24) & 0xFF;
+    uuid->bytes[1] = (guid->Data1 >> 16) & 0xFF;
+    uuid->bytes[2] = (guid->Data1 >> 8) & 0xFF;
+    uuid->bytes[3] = (guid->Data1) & 0xFF;
+    uuid->bytes[4] = (guid->Data2 >> 8) & 0xFF;
+    uuid->bytes[5] = (guid->Data2) & 0xFF;
+    uuid->bytes[6] = (guid->Data3 >> 8) & 0xFF;
+    uuid->bytes[7] = (guid->Data3) & 0xFF;
+    uuid->bytes[8] = guid->Data4[0];
+    uuid->bytes[9] = guid->Data4[1];
+    uuid->bytes[10] = guid->Data4[2];
+    uuid->bytes[11] = guid->Data4[3];
+    uuid->bytes[12] = guid->Data4[4];
+    uuid->bytes[13] = guid->Data4[5];
+    uuid->bytes[14] = guid->Data4[6];
+    uuid->bytes[15] = guid->Data4[7];
 }
 
-int uuid_produce(UUID_T destination)
+int uuid_produce(UUID_T* destination)
 {
     int result;
     /*Codes_SRS_UUID_02_001: [ If destination is NULL then uuid_produce shall fail and return a non-zero value. ]*/
@@ -76,7 +76,7 @@ int uuid_produce(UUID_T destination)
     return result;
 }
 
-int uuid_from_GUID(UUID_T destination, const GUID* source)
+int uuid_from_GUID(UUID_T* destination, const GUID* source)
 {
     int result;
     if (
@@ -103,29 +103,27 @@ int GUID_from_uuid(GUID* destination, const UUID_T source)
     int result;
     if (
         /*Codes_SRS_UUID_WIN32_02_009: [ If destination is NULL then GUID_from_uuid shall fail and return a non-zero value. ]*/
-        (destination == NULL) ||
-        /*Codes_SRS_UUID_WIN32_02_010: [ If source is NULL then GUID_from_uuid shall fail and return a non-zero value. ]*/
-        (source == NULL)
+        (destination == NULL)
         )
     {
-        LogError("invalid argument GUID* destination=%" PRI_GUID ", const UUID_T source=%" PRI_UUID_T "", GUID_VALUES_OR_NULL(destination), UUID_T_VALUES_OR_NULL(source));
+        LogError("invalid argument GUID* destination=%" PRI_GUID ", const UUID_T source=%" PRI_UUID_T "", GUID_VALUES_OR_NULL(destination), UUID_T_VALUES(source));
         result = MU_FAILURE;
     }
     else
     {
         /*Codes_SRS_UUID_WIN32_02_011: [ GUID_from_uuid shall convert UUID_T to GUID, succeed and return 0. ]*/
         destination->Data1 =
-            (source[0] << 24) +
-            (source[1] << 16) +
-            (source[2] << 8) +
-            (source[3]);
+            (source.bytes[0] << 24) +
+            (source.bytes[1] << 16) +
+            (source.bytes[2] << 8) +
+            (source.bytes[3]);
         destination->Data2 =
-            (source[4] << 8) +
-            (source[5]);
+            (source.bytes[4] << 8) +
+            (source.bytes[5]);
         destination->Data3 =
-            (source[6] << 8) +
-            (source[7]);
-        (void)memcpy(destination->Data4, source + 8, 8);
+            (source.bytes[6] << 8) +
+            (source.bytes[7]);
+        (void)memcpy(destination->Data4, &(source.bytes[8]), 8); /*CodeQL [SM01947] CodeQL is wrong to fire SM01947 here, both me and AI and valgrind believe that CodeQL is just overly zealous in finding things that are not there*/
         result = 0;
     }
     return result;
@@ -133,42 +131,7 @@ int GUID_from_uuid(GUID* destination, const UUID_T source)
 
 bool is_uuid_nil(const UUID_T uuid_value)
 {
-    bool result;
-    // Codes_SRS_UUID_WIN32_11_001: [ if uuid_value is NULL then is_uuid_nil shall fail and return true. ]
-    if (uuid_value == NULL)
-    {
-        LogError("invalid argument UUID_T uuid_value=%p", uuid_value);
-        result = true;
-    }
-    else
-    {
-        if (
-            uuid_value[0] == 0 &&
-            uuid_value[1] == 0 &&
-            uuid_value[2] == 0 &&
-            uuid_value[3] == 0 &&
-            uuid_value[4] == 0 &&
-            uuid_value[5] == 0 &&
-            uuid_value[6] == 0 &&
-            uuid_value[7] == 0 &&
-            uuid_value[8] == 0 &&
-            uuid_value[9] == 0 &&
-            uuid_value[10] == 0 &&
-            uuid_value[11] == 0 &&
-            uuid_value[12] == 0 &&
-            uuid_value[13] == 0 &&
-            uuid_value[14] == 0 &&
-            uuid_value[15] == 0
-            )
-        {
-            // Codes_SRS_UUID_WIN32_11_002: [ If all the values of is_uuid_nil are 0 then is_uuid_nil shall return true. ]
-            result = true;
-        }
-        else
-        {
-            // Codes_SRS_UUID_WIN32_11_003: [ If any the values of is_uuid_nil are not 0 then is_uuid_nil shall return false. ]
-            result = false;
-        }
-    }
-    return result;
+    // Codes_SRS_UUID_WIN32_11_002: [ If all the values of is_uuid_nil are 0 then is_uuid_nil shall return true. ]
+    // Codes_SRS_UUID_WIN32_11_003: [ If any the values of is_uuid_nil are not 0 then is_uuid_nil shall return false. ]
+    return UUID_T_IS_NIL(uuid_value);
 }

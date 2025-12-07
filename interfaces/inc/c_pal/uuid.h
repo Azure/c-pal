@@ -4,31 +4,54 @@
 #ifndef UUID_H
 #define UUID_H
 
+#ifdef __cplusplus
+#include <cinttypes>
+#include <cstdbool>
+#include <cstdalign>
+#else
 #include <inttypes.h>
 #include <stdbool.h>
+#include <stdalign.h>
+#endif
 
 #ifdef WIN32
 #include "windows.h"
 #endif
 
-#define UUID_T_LENGTH       16
-typedef unsigned char UUID_T[UUID_T_LENGTH]; /*introduces UUID_T as "array of 16 bytes"*/
+#include "macro_utils/macro_utils.h"
+
+typedef struct UUID_T_TAG
+{
+    alignas(8) uint8_t bytes[16];
+} UUID_T;
+
+/*cannot function without these basic asserts*/
+MU_STATIC_ASSERT(sizeof(UUID_T) == 16);
+MU_STATIC_ASSERT(alignof(UUID_T) == 8);
+
+#define UUID_T_IS_EQUAL(a, b) \
+    /* //CodeQL [SM01947] CodeQL is wrong to fire SM01947 here, both me and AI and valgrind believe that CodeQL is just overly zealous in finding things that are not there*/ \
+    ((((const uint64_t*)&(a))[0] == ((const uint64_t*)&(b))[0]) && \
+     (((const uint64_t*)&(a))[1] == ((const uint64_t*)&(b))[1]))
+
+#define UUID_T_IS_NIL(a) \
+    /* //CodeQL [SM01947] CodeQL is wrong to fire SM01947 here, both me and AI and valgrind believe that CodeQL is just overly zealous in finding things that are not there*/ \
+    ((((const uint64_t*)&(a))[0] == 0) && \
+     (((const uint64_t*)&(a))[1] == 0))
 
 typedef const UUID_T const_UUID_T;
-
-#include "macro_utils/macro_utils.h"
 
 #include "umock_c/umock_c_prod.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-    MOCKABLE_FUNCTION_WITH_RETURNS(, int, uuid_produce, UUID_T, destination)(0, MU_FAILURE);
-    MOCKABLE_FUNCTION(, bool, is_uuid_nil, const UUID_T, uuid_value);
+    MOCKABLE_FUNCTION_WITH_RETURNS(, int, uuid_produce, UUID_T*, destination)(0, MU_FAILURE);
+    MOCKABLE_FUNCTION(, bool, is_uuid_nil, UUID_T, uuid_value);
 
 #ifdef WIN32 /*some functions, format specifiers only exists in Windows realm*/
-    MOCKABLE_FUNCTION(, int, uuid_from_GUID, UUID_T, destination, const GUID*, source);
-    MOCKABLE_FUNCTION(, int, GUID_from_uuid, GUID*, destination, const UUID_T, source);
+    MOCKABLE_FUNCTION(, int, uuid_from_GUID, UUID_T*, destination, const GUID*, source);
+    MOCKABLE_FUNCTION(, int, GUID_from_uuid, GUID*, destination, UUID_T, source);
 
 /*
 below macros can be used with printf. example:
@@ -62,14 +85,18 @@ PartitionId=316132b8-96a0-4bc7-aecc-a16e7c5a6bf6
 #define PRI_UUID_T        "02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x"
 
 #define UUID_T_VALUES(uuid) \
-    (uuid)[0], (uuid)[1], (uuid)[2], (uuid)[3], (uuid)[4], (uuid)[5], (uuid)[6], (uuid)[7], \
-    (uuid)[8], (uuid)[9], (uuid)[10], (uuid)[11], (uuid)[12], (uuid)[13], (uuid)[14], (uuid)[15]
+    /* //CodeQL [SM01947] CodeQL is wrong to fire SM01947 here, both me and AI and valgrind believe that CodeQL is just overly zealous in finding things that are not there*/ \
+    (uuid).bytes[0], (uuid).bytes[1], (uuid).bytes[2],  (uuid).bytes[3],  (uuid).bytes[4],  (uuid).bytes[5],  (uuid).bytes[6],  (uuid).bytes[7], \
+    (uuid).bytes[8], (uuid).bytes[9], (uuid).bytes[10], (uuid).bytes[11], (uuid).bytes[12], (uuid).bytes[13], (uuid).bytes[14], (uuid).bytes[15]
 
-#define UUID_T_VALUES_OR_NULL(uuid) \
-    ((uuid) == NULL) ? 0 : (uuid)[0], ((uuid) == NULL) ? 0 : (uuid)[1], ((uuid) == NULL) ? 0 : (uuid)[2], ((uuid) == NULL) ? 0 : (uuid)[3], \
-    ((uuid) == NULL) ? 0 : (uuid)[4], ((uuid) == NULL) ? 0 : (uuid)[5], ((uuid) == NULL) ? 0 : (uuid)[6], ((uuid) == NULL) ? 0 : (uuid)[7], \
-    ((uuid) == NULL) ? 0 : (uuid)[8], ((uuid) == NULL) ? 0 : (uuid)[9], ((uuid) == NULL) ? 0 : (uuid)[10], ((uuid) == NULL) ? 0 : (uuid)[11], \
-    ((uuid) == NULL) ? 0 : (uuid)[12], ((uuid) == NULL) ? 0 : (uuid)[13], ((uuid) == NULL) ? 0 : (uuid)[14], ((uuid) == NULL) ? 0 : (uuid)[15] \
+#define PUUID_T_VALUES_OR_NULL(uuid) \
+    /* //CodeQL [SM01947] CodeQL is wrong to fire SM01947 here, both me and AI and valgrind believe that CodeQL is just overly zealous in finding things that are not there*/ \
+    ((uuid) == NULL) ? 0 : (uuid)->bytes[0],  ((uuid) == NULL) ? 0 : (uuid)->bytes[1],  ((uuid) == NULL) ? 0 : (uuid)->bytes[2],  ((uuid) == NULL) ? 0 : (uuid)->bytes[3], \
+    ((uuid) == NULL) ? 0 : (uuid)->bytes[4],  ((uuid) == NULL) ? 0 : (uuid)->bytes[5],  ((uuid) == NULL) ? 0 : (uuid)->bytes[6],  ((uuid) == NULL) ? 0 : (uuid)->bytes[7], \
+    ((uuid) == NULL) ? 0 : (uuid)->bytes[8],  ((uuid) == NULL) ? 0 : (uuid)->bytes[9],  ((uuid) == NULL) ? 0 : (uuid)->bytes[10], ((uuid) == NULL) ? 0 : (uuid)->bytes[11], \
+    ((uuid) == NULL) ? 0 : (uuid)->bytes[12], ((uuid) == NULL) ? 0 : (uuid)->bytes[13], ((uuid) == NULL) ? 0 : (uuid)->bytes[14], ((uuid) == NULL) ? 0 : (uuid)->bytes[15]
+
+extern const UUID_T NIL_UUID;
 
 #ifdef __cplusplus
 }

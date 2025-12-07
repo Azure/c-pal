@@ -17,25 +17,25 @@
 
 void uuid_ptr_ToString(char* string, size_t bufferSize, const UUID_T* val)
 {
-    (void)snprintf(string, bufferSize, "%" PRI_UUID_T "", UUID_T_VALUES_OR_NULL(*val));
+    (void)snprintf(string, bufferSize, "%" PRI_UUID_T "", UUID_T_VALUES(*val));
 }
 
 int uuid_ptr_Compare(const UUID_T* left, const UUID_T* right)
 {
-    return memcmp(*left, *right, sizeof(UUID_T));
+    return !UUID_T_IS_EQUAL(*left, *right);
 }
 
 void UUID_T_ToString(char* string, size_t bufferSize, const UUID_T val)
 {
-    (void)snprintf(string, bufferSize, "%" PRI_UUID_T "", UUID_T_VALUES_OR_NULL(val));
+    (void)snprintf(string, bufferSize, "%" PRI_UUID_T "", UUID_T_VALUES(val));
 }
 
 int UUID_T_Compare(const UUID_T left, const UUID_T right)
 {
-    return memcmp(left, right, sizeof(UUID_T));
+    return UUID_T_IS_EQUAL(left, right) ? 0 : 1;
 }
 
-char* umocktypes_stringify_UUID_T(const UUID_T** value)
+char* umocktypes_stringify_UUID_T(const UUID_T* value)
 {
     char* result;
 
@@ -46,34 +46,23 @@ char* umocktypes_stringify_UUID_T(const UUID_T** value)
     }
     else
     {
-        if (*value == NULL)
+        // 2 characters per byte plus 4 dashes
+        size_t length = sizeof(UUID_T) * 2 + 4;
+        result = malloc(length + 1);
+        if (result == NULL)
         {
-            result = malloc(sizeof("NULL"));
-            if (result != NULL)
-            {
-                (void)memcpy(result, "NULL", sizeof("NULL"));
-            }
+            UMOCK_LOG("umocktypes_stringify_uuid: Cannot allocate memory for result.");
         }
         else
         {
-            // 2 characters per byte plus 4 dashes
-            size_t length = sizeof(UUID_T) * 2 + 4;
-            result = malloc(length + 1);
-            if (result == NULL)
-            {
-                UMOCK_LOG("umocktypes_stringify_uuid: Cannot allocate memory for result.");
-            }
-            else
-            {
-                (void)snprintf(result, length + 1, "%" PRI_UUID_T, UUID_T_VALUES_OR_NULL(**value));
-            }
+            (void)snprintf(result, length + 1, "%" PRI_UUID_T, UUID_T_VALUES(*value));
         }
     }
 
     return result;
 }
 
-int umocktypes_are_equal_UUID_T(const UUID_T** left, const UUID_T** right)
+int umocktypes_are_equal_UUID_T(const UUID_T* left, const UUID_T* right)
 {
     int result;
 
@@ -82,34 +71,15 @@ int umocktypes_are_equal_UUID_T(const UUID_T** left, const UUID_T** right)
         UMOCK_LOG("umocktypes_are_equal_uuid: Bad arguments:left = %p, right = %p.", left, right);
         result = -1;
     }
-    else if ((*left == NULL) || (*right == NULL))
-    {
-        if (*left == *right)
-        {
-            result = 1;
-        }
-        else
-        {
-            result = 0;
-        }
-    }
-    else if (**left == **right)
-    {
-        result = 1;
-    }
-    else if ((**left == NULL) || (**right == NULL))
-    {
-        result = 0;
-    }
     else
     {
-        result = (memcmp(**left, **right, sizeof(UUID_T)) == 0) ? 1 : 0;
+        result = UUID_T_IS_EQUAL(*left, *right) ? 1 : 0;
     }
 
     return result;
 }
 
-int umocktypes_copy_UUID_T(UUID_T** destination, const UUID_T** source)
+int umocktypes_copy_UUID_T(UUID_T* destination, const UUID_T* source)
 {
     int result;
 
@@ -121,28 +91,16 @@ int umocktypes_copy_UUID_T(UUID_T** destination, const UUID_T** source)
     }
     else
     {
-        if (*source == NULL)
-        {
-            *destination = NULL;
-            result = 0;
-        }
-        else
-        {
-            *destination = malloc(sizeof(UUID_T));
-            (void)memcpy(**destination, **source, sizeof(UUID_T));
-            result = 0;
-        }
+        *destination = *source;
+        result = 0;
     }
 
     return result;
 }
 
-void umocktypes_free_UUID_T(UUID_T** value)
+void umocktypes_free_UUID_T(UUID_T* value)
 {
-    if (value)
-    {
-        free(*value);
-    }
+    (void)value;
 }
 
 int umocktypes_UUID_T_register_types(void)
@@ -167,3 +125,4 @@ int umocktypes_UUID_T_register_types(void)
 }
 
 CTEST_DEFINE_EQUALITY_ASSERTION_FUNCTIONS_FOR_TYPE(uuid_ptr, );
+CTEST_DEFINE_EQUALITY_ASSERTION_FUNCTIONS_FOR_TYPE(UUID_T, );
