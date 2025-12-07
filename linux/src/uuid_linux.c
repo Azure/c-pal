@@ -29,7 +29,7 @@ int uuid_produce(UUID_T* destination)
     {
         /*Codes_SRS_UUID_02_002: [ uuid_produce shall generate in destination the representation of a UUID (as per RFC 4122). ]*/
         /*Codes_SRS_UUID_LINUX_02_002: [ uuid_produce shall call uuid_generate to generate a UUID. ]*/
-        uuid_generate((void*)destination);
+        uuid_generate(&destination);
 
         /*Codes_SRS_UUID_02_004: [ uuid_produce shall succeed and return 0. ]*/
         /*Codes_SRS_UUID_LINUX_02_004: [ uuid_produce shall succeed and return 0. ]*/

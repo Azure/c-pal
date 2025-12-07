@@ -229,7 +229,7 @@ TEST_FUNCTION(UUID_T_VALUES_OR_NULL_compiles)
     ASSERT_ARE_EQUAL(int, 0, uuid_produce(&u));
 
     ///act 1 (well - it compiles, doesn't crash at runtime)
-    LogInfo("NULL UUID_T*=%" PRI_UUID_T "", PUUID_T_VALUES_OR_NULL((UUID_T*)NULL));
+    LogInfo("NULL UUID_T*=%" PRI_UUID_T "", PUUID_T_VALUES_OR_NULL(NULL));
 
     ///act 2 (well - it compiles, doesn't crash at runtime)
     LogInfo("u=%" PRI_UUID_T "", UUID_T_VALUES(u));
