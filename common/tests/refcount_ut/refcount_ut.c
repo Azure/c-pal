@@ -244,7 +244,7 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     }
 
-    TEST_FUNCTION(refcount_INC_REF_and_DEC_REF_after_create_says_we_should_not_free)
+    TEST_FUNCTION(refcount_INC_REF_and_DEC_REF_after_create_says_we_should_not_free) // no-srs
     {
         ///arrange
         POS_HANDLE p, clone_of_p;
@@ -264,7 +264,7 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
         Pos_Destroy(p);
     }
 
-    TEST_FUNCTION(refcount_after_clone_it_takes_2_destroys_to_free)
+    TEST_FUNCTION(refcount_after_clone_it_takes_2_destroys_to_free) // no-srs
     {
         ///arrange
         POS_HANDLE p, clone_of_p;

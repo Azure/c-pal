@@ -321,7 +321,7 @@ TEST_FUNCTION(is_uuid_nil_on_nil_uuid)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-TEST_FUNCTION(is_uuid_nil_on_individual_valid_uuid)
+TEST_FUNCTION(is_uuid_nil_on_individual_valid_uuid) // no-srs
 {
     ///arrange
     for (size_t index = 0; index < 16; index++)

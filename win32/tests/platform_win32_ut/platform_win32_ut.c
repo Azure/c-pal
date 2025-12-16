@@ -51,7 +51,7 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
 {
 }
 
-TEST_FUNCTION(platform_init_success)
+TEST_FUNCTION(platform_init_success) // no-srs
 {
     int result;
 
@@ -68,7 +68,7 @@ TEST_FUNCTION(platform_init_success)
     // cleanup
 }
 
-TEST_FUNCTION(platform_init_WSAStartup_0_fail)
+TEST_FUNCTION(platform_init_WSAStartup_0_fail) // no-srs
 {
     int result;
 
@@ -85,7 +85,7 @@ TEST_FUNCTION(platform_init_WSAStartup_0_fail)
     // cleanup
 }
 
-TEST_FUNCTION(platform_deinit_success)
+TEST_FUNCTION(platform_deinit_success) // no-srs
 {
     //arrange
     STRICT_EXPECTED_CALL(mocked_WSACleanup());

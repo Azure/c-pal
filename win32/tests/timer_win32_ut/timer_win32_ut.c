@@ -61,7 +61,7 @@ TEST_FUNCTION_CLEANUP(cleanup)
 }
 
 /* timer_create_new */
-TEST_FUNCTION(timer_create_malloc_fails)
+TEST_FUNCTION(timer_create_malloc_fails) // no-srs
 {
     //arrange
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG))
@@ -86,7 +86,7 @@ static void test_timer_create_success_expectations(void)
         .CopyOutArgumentBuffer_lpPerformanceCount(&start_time, sizeof(start_time));
 }
 
-TEST_FUNCTION(timer_create_succeeds)
+TEST_FUNCTION(timer_create_succeeds) // no-srs
 {
     //arrange
     test_timer_create_success_expectations();
@@ -103,7 +103,7 @@ TEST_FUNCTION(timer_create_succeeds)
 }
 
 /* timer_start*/
-TEST_FUNCTION(timer_start_returns_if_timer_is_null)
+TEST_FUNCTION(timer_start_returns_if_timer_is_null) // no-srs
 {
     //arrange
     //act
@@ -113,7 +113,7 @@ TEST_FUNCTION(timer_start_returns_if_timer_is_null)
      ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-TEST_FUNCTION(timer_start_succeeds)
+TEST_FUNCTION(timer_start_succeeds) // no-srs
 {
     //arrange
     LARGE_INTEGER stop_time;
@@ -135,7 +135,7 @@ TEST_FUNCTION(timer_start_succeeds)
 }
 
 /*timer_get_elapsed*/
-TEST_FUNCTION(timer_get_elapsed_fails_if_timer_is_null)
+TEST_FUNCTION(timer_get_elapsed_fails_if_timer_is_null) // no-srs
 {
     //arrange
     //act
@@ -145,7 +145,7 @@ TEST_FUNCTION(timer_get_elapsed_fails_if_timer_is_null)
     ASSERT_ARE_EQUAL(double, -1, start);
 }
 
-TEST_FUNCTION(timer_get_elapsed_success)
+TEST_FUNCTION(timer_get_elapsed_success) // no-srs
 {
     //arrange
     LARGE_INTEGER stop_time;
@@ -167,7 +167,7 @@ TEST_FUNCTION(timer_get_elapsed_success)
 }
 
 /*timer_get_elapsed_ms*/
-TEST_FUNCTION(timer_get_elapsed_ms_fails_if_timer_is_null)
+TEST_FUNCTION(timer_get_elapsed_ms_fails_if_timer_is_null) // no-srs
 {
     //arrange
     //act
@@ -177,7 +177,7 @@ TEST_FUNCTION(timer_get_elapsed_ms_fails_if_timer_is_null)
     ASSERT_ARE_EQUAL(double, -1, elapsed_time_ms);
 }
 
-TEST_FUNCTION(timer_get_elapsed_ms_success)
+TEST_FUNCTION(timer_get_elapsed_ms_success) // no-srs
 {
     //arrange
     LARGE_INTEGER stop_time;
@@ -199,7 +199,7 @@ TEST_FUNCTION(timer_get_elapsed_ms_success)
 }
 
 /*timer_destroy*/
-TEST_FUNCTION(timer_destroy_returns_if_timer_is_NULL)
+TEST_FUNCTION(timer_destroy_returns_if_timer_is_NULL) // no-srs
 {
     //arrange
     //act
@@ -209,7 +209,7 @@ TEST_FUNCTION(timer_destroy_returns_if_timer_is_NULL)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-TEST_FUNCTION(timer_destroy_frees_handle)
+TEST_FUNCTION(timer_destroy_frees_handle) // no-srs
 {
     //arrange
     test_timer_create_success_expectations();
@@ -257,7 +257,7 @@ TEST_FUNCTION(g_timer_get_elapsed_in_seconds_succeeds)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-TEST_FUNCTION(g_timer_get_elapsed_in_ms_succeeds)
+TEST_FUNCTION(g_timer_get_elapsed_in_ms_succeeds) // no-srs
 {
     ///arrange
     LARGE_INTEGER pretendFreq;
@@ -289,7 +289,7 @@ TEST_FUNCTION(g_timer_get_elapsed_in_ms_succeeds)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-TEST_FUNCTION(g_timer_get_elapsed_in_us_succeeds)
+TEST_FUNCTION(g_timer_get_elapsed_in_us_succeeds) // no-srs
 {
 
     ///arrange

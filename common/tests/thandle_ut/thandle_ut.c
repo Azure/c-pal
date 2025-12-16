@@ -481,7 +481,7 @@ static void builds_out_arg(THANDLE(LL)** x)
 }
 
 /*this test wants to see that an array of THANDLE(LL) can be returned from some constructor as out argument*/
-TEST_FUNCTION(THANDLE_T_can_build_an_array)
+TEST_FUNCTION(THANDLE_T_can_build_an_array) // no-srs
 {
     THANDLE(LL)* arr;
     builds_out_arg(&arr); /*arr points to an array of 2 THANDLE(LL)s*/
@@ -959,7 +959,7 @@ TEST_FUNCTION(THANDLE_INITIALIZE_MOVE_with_star_t1_not_NULL_and_star_t2_not_NULL
 }
 
 #if defined(_DEBUG) || defined (DEBUG)
-TEST_FUNCTION(THANDLE_can_be_build_from_a_33_character_type)
+TEST_FUNCTION(THANDLE_can_be_build_from_a_33_character_type) // no-srs
 {
     ///arrange
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
