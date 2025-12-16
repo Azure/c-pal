@@ -51,7 +51,9 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
 {
 }
 
-TEST_FUNCTION(platform_init_success) // no-srs
+/*Tests_SRS_PLATFORM_WIN32_01_001: [ platform_init shall call WSAStartup to initialize the Windows Sockets library with version 2.2. ]*/
+/*Tests_SRS_PLATFORM_WIN32_01_003: [ If WSAStartup succeeds, platform_init shall return 0. ]*/
+TEST_FUNCTION(platform_init_success)
 {
     int result;
 
@@ -68,7 +70,9 @@ TEST_FUNCTION(platform_init_success) // no-srs
     // cleanup
 }
 
-TEST_FUNCTION(platform_init_WSAStartup_0_fail) // no-srs
+/*Tests_SRS_PLATFORM_WIN32_01_001: [ platform_init shall call WSAStartup to initialize the Windows Sockets library with version 2.2. ]*/
+/*Tests_SRS_PLATFORM_WIN32_01_002: [ If WSAStartup fails, platform_init shall return a non-zero value. ]*/
+TEST_FUNCTION(platform_init_WSAStartup_0_fail)
 {
     int result;
 
@@ -85,7 +89,8 @@ TEST_FUNCTION(platform_init_WSAStartup_0_fail) // no-srs
     // cleanup
 }
 
-TEST_FUNCTION(platform_deinit_success) // no-srs
+/*Tests_SRS_PLATFORM_WIN32_01_004: [ platform_deinit shall call WSACleanup to clean up the Windows Sockets library. ]*/
+TEST_FUNCTION(platform_deinit_success)
 {
     //arrange
     STRICT_EXPECTED_CALL(mocked_WSACleanup());

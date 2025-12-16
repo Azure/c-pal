@@ -307,7 +307,7 @@ TEST_FUNCTION(is_uuid_nil_on_valid_uuid)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-// Tests_SRS_UUID_WIN32_11_003: [ If any the values of is_uuid_nil are not 0 then is_uuid_nil shall return false. ]
+// Tests_SRS_UUID_WIN32_11_002: [ If all the values of is_uuid_nil are 0 then is_uuid_nil shall return true. ]
 TEST_FUNCTION(is_uuid_nil_on_nil_uuid)
 {
     ///arrange
@@ -321,7 +321,8 @@ TEST_FUNCTION(is_uuid_nil_on_nil_uuid)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-TEST_FUNCTION(is_uuid_nil_on_individual_valid_uuid) // no-srs
+// Tests_SRS_UUID_WIN32_11_003: [ If any the values of is_uuid_nil are not 0 then is_uuid_nil shall return false. ]
+TEST_FUNCTION(is_uuid_nil_on_individual_valid_uuid)
 {
     ///arrange
     for (size_t index = 0; index < 16; index++)

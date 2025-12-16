@@ -61,7 +61,9 @@ TEST_FUNCTION_CLEANUP(cleanup)
 }
 
 /* timer_create_new */
-TEST_FUNCTION(timer_create_malloc_fails) // no-srs
+/*Tests_SRS_TIMER_WIN32_01_001: [ timer_create_new shall allocate memory for a new timer handle. ]*/
+/*Tests_SRS_TIMER_WIN32_01_002: [ If memory allocation fails, timer_create_new shall return NULL. ]*/
+TEST_FUNCTION(timer_create_malloc_fails)
 {
     //arrange
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG))
@@ -86,7 +88,10 @@ static void test_timer_create_success_expectations(void)
         .CopyOutArgumentBuffer_lpPerformanceCount(&start_time, sizeof(start_time));
 }
 
-TEST_FUNCTION(timer_create_succeeds) // no-srs
+/*Tests_SRS_TIMER_01_001: [ timer_create_new shall create a new timer and on success return a non-NULL handle to it. ]*/
+/*Tests_SRS_TIMER_WIN32_01_003: [ timer_create_new shall call QueryPerformanceFrequency to obtain the timer frequency. ]*/
+/*Tests_SRS_TIMER_WIN32_01_004: [ timer_create_new shall call QueryPerformanceCounter to record the start time. ]*/
+TEST_FUNCTION(timer_create_succeeds)
 {
     //arrange
     test_timer_create_success_expectations();
@@ -103,7 +108,8 @@ TEST_FUNCTION(timer_create_succeeds) // no-srs
 }
 
 /* timer_start*/
-TEST_FUNCTION(timer_start_returns_if_timer_is_null) // no-srs
+/*Tests_SRS_TIMER_01_004: [ If timer is NULL, timer_start shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(timer_start_returns_if_timer_is_null)
 {
     //arrange
     //act
@@ -113,7 +119,9 @@ TEST_FUNCTION(timer_start_returns_if_timer_is_null) // no-srs
      ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-TEST_FUNCTION(timer_start_succeeds) // no-srs
+/*Tests_SRS_TIMER_01_005: [ Otherwise, timer_start shall record the start time (used for computing the elapsed time). ]*/
+/*Tests_SRS_TIMER_WIN32_01_005: [ timer_start shall call QueryPerformanceCounter to record the current time as the start time. ]*/
+TEST_FUNCTION(timer_start_succeeds)
 {
     //arrange
     LARGE_INTEGER stop_time;
@@ -135,7 +143,8 @@ TEST_FUNCTION(timer_start_succeeds) // no-srs
 }
 
 /*timer_get_elapsed*/
-TEST_FUNCTION(timer_get_elapsed_fails_if_timer_is_null) // no-srs
+/*Tests_SRS_TIMER_01_006: [ If timer is NULL, timer_get_elapsed shall return -1. ]*/
+TEST_FUNCTION(timer_get_elapsed_fails_if_timer_is_null)
 {
     //arrange
     //act
@@ -145,7 +154,8 @@ TEST_FUNCTION(timer_get_elapsed_fails_if_timer_is_null) // no-srs
     ASSERT_ARE_EQUAL(double, -1, start);
 }
 
-TEST_FUNCTION(timer_get_elapsed_success) // no-srs
+/*Tests_SRS_TIMER_01_007: [ Otherwise timer_get_elapsed shall return the time difference in seconds between the current time and the start time of the timer. ]*/
+TEST_FUNCTION(timer_get_elapsed_success)
 {
     //arrange
     LARGE_INTEGER stop_time;
@@ -167,7 +177,8 @@ TEST_FUNCTION(timer_get_elapsed_success) // no-srs
 }
 
 /*timer_get_elapsed_ms*/
-TEST_FUNCTION(timer_get_elapsed_ms_fails_if_timer_is_null) // no-srs
+/*Tests_SRS_TIMER_01_008: [ if timer is NULL, timer_get_elapsed_ms shall return -1. ]*/
+TEST_FUNCTION(timer_get_elapsed_ms_fails_if_timer_is_null)
 {
     //arrange
     //act
@@ -177,7 +188,8 @@ TEST_FUNCTION(timer_get_elapsed_ms_fails_if_timer_is_null) // no-srs
     ASSERT_ARE_EQUAL(double, -1, elapsed_time_ms);
 }
 
-TEST_FUNCTION(timer_get_elapsed_ms_success) // no-srs
+/*Tests_SRS_TIMER_01_009: [ Otherwise timer_get_elapsed_ms shall return the time difference in milliseconds between the current time and the start time of the timer. ]*/
+TEST_FUNCTION(timer_get_elapsed_ms_success)
 {
     //arrange
     LARGE_INTEGER stop_time;
@@ -199,7 +211,8 @@ TEST_FUNCTION(timer_get_elapsed_ms_success) // no-srs
 }
 
 /*timer_destroy*/
-TEST_FUNCTION(timer_destroy_returns_if_timer_is_NULL) // no-srs
+/*Tests_SRS_TIMER_01_002: [ If timer is NULL, timer_destroy shall return. ]*/
+TEST_FUNCTION(timer_destroy_returns_if_timer_is_NULL)
 {
     //arrange
     //act
@@ -209,7 +222,8 @@ TEST_FUNCTION(timer_destroy_returns_if_timer_is_NULL) // no-srs
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-TEST_FUNCTION(timer_destroy_frees_handle) // no-srs
+/*Tests_SRS_TIMER_01_003: [ Otherwise, timer_destroy shall free the memory associated with timer. ]*/
+TEST_FUNCTION(timer_destroy_frees_handle)
 {
     //arrange
     test_timer_create_success_expectations();
@@ -257,7 +271,8 @@ TEST_FUNCTION(g_timer_get_elapsed_in_seconds_succeeds)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-TEST_FUNCTION(g_timer_get_elapsed_in_ms_succeeds) // no-srs
+/*Tests_SRS_TIMER_01_010: [ timer_global_get_elapsed_ms shall return the elapsed time in milliseconds from a start time in the past. ]*/
+TEST_FUNCTION(g_timer_get_elapsed_in_ms_succeeds)
 {
     ///arrange
     LARGE_INTEGER pretendFreq;
@@ -289,7 +304,8 @@ TEST_FUNCTION(g_timer_get_elapsed_in_ms_succeeds) // no-srs
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-TEST_FUNCTION(g_timer_get_elapsed_in_us_succeeds) // no-srs
+/*Tests_SRS_TIMER_01_011: [ timer_global_get_elapsed_us shall return the elapsed time in microseconds from a start time in the past. ]*/
+TEST_FUNCTION(g_timer_get_elapsed_in_us_succeeds)
 {
 
     ///arrange

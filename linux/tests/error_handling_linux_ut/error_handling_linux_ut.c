@@ -41,9 +41,9 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
     umock_c_negative_tests_deinit();
 }
 
-/*Tests_SRS_ERROR_HANDLING_LINUX09_002: [ error_handling_linux_set_last_error shall assign a non-NULL value to last_error_code. ]*/
-/*Tests_SRS_ERROR_HANDLING_LINUX09_003: [ error_handling_linux_set_last_error shall call interlocked_exchange_32 with err_code and last_error_code. ]*/
-TEST_FUNCTION(set_last_error_code_SUCCESS) // no-srs
+/*Tests_SRS_ERROR_HANDLING_LINUX_09_002: [ error_handling_linux_set_last_error shall assign a non-NULL value to last_error_code. ]*/
+/*Tests_SRS_ERROR_HANDLING_LINUX_09_003: [ error_handling_linux_set_last_error shall call interlocked_exchange_32 with err_code and last_error_code. ]*/
+TEST_FUNCTION(set_last_error_code_SUCCESS)
 {
     ///arrange
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, ERROR_INVALID_ACCESS));
@@ -55,9 +55,9 @@ TEST_FUNCTION(set_last_error_code_SUCCESS) // no-srs
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 } 
 
-/*Tests_SRS_ERROR_HANDLING_LINUX09_005: [ On success, error_handling_linux_get_last_error shall return the value last set through set_last_error or zero ]*/
-/*Tests_SRS_ERROR_HANDLING_LINUX09_006: [ error_handling_linux_get_last_error shall call interlocked_add with last_error_code and zero. ]*/
-TEST_FUNCTION(get_last_error_SUCCEEDS) // no-srs
+/*Tests_SRS_ERROR_HANDLING_LINUX_09_005: [ On success, error_handling_linux_get_last_error shall return the value last set through set_last_error or zero ]*/
+/*Tests_SRS_ERROR_HANDLING_LINUX_09_006: [ error_handling_linux_get_last_error shall call interlocked_add with last_error_code and zero. ]*/
+TEST_FUNCTION(get_last_error_SUCCEEDS)
 {
     ///arrange
     error_handling_linux_set_last_error(ERROR_LOG_DEDICATED);
@@ -74,7 +74,9 @@ TEST_FUNCTION(get_last_error_SUCCEEDS) // no-srs
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 } 
 
-TEST_FUNCTION(get_last_error_equals_set_last_error) // no-srs
+/*Tests_SRS_ERROR_HANDLING_LINUX_09_002: [ error_handling_linux_set_last_error shall assign a non-NULL value to last_error_code. ]*/
+/*Tests_SRS_ERROR_HANDLING_LINUX_09_005: [ On success, error_handling_linux_get_last_error shall return the value last set through set_last_error or zero ]*/
+TEST_FUNCTION(get_last_error_equals_set_last_error)
 {
     ///arrange
     error_handling_linux_set_last_error(ERROR_LOG_MULTIPLEXED);
