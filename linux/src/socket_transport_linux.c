@@ -139,7 +139,7 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create_client(void)
 {
     SOCKET_TRANSPORT* result;
 
-    // Codes_SOCKET_TRANSPORT_WIN32_11_002: [ socket_transport_create_client shall allocate a new SOCKET_TRANSPORT object. ]
+    // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_002: [ socket_transport_create_client shall allocate a new SOCKET_TRANSPORT object. ]
     result = malloc(sizeof(SOCKET_TRANSPORT));
     if (result == NULL)
     {
@@ -191,11 +191,11 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create_server(void)
             goto all_ok;
         }
         free(result);
-        // Codes_SOCKET_TRANSPORT_WIN32_11_081: [ On any failure socket_transport_create shall return NULL. ]
+        // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_081: [ On any failure socket_transport_create_server shall return NULL. ]
         result = NULL;
     }
 all_ok:
-    // Codes_SOCKET_TRANSPORT_WIN32_11_082: [ On success socket_transport_create shall return SOCKET_TRANSPORT_HANDLE. ]
+    // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_082: [ On success socket_transport_create_server shall return SOCKET_TRANSPORT_HANDLE. ]
     return result;
 }
 
@@ -219,14 +219,14 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create_from_socket(SOCKET_HANDLE socket
         else
         {
             // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_088: [ socket_transport_create_from_socket shall call sm_create to create a sm_object with the type set to SOCKET_CLIENT. ]
-            result->sm = sm_create("Socket_transport_win32");
+            result->sm = sm_create("Socket_transport_linux");
             if (result->sm == NULL)
             {
                 LogError("sm_create failed.");
             }
             else
             {
-                // Codes_SOCKET_TRANSPORT_WIN32_11_014: [ If sm_open_begin does not return SM_EXEC_GRANTED, socket_transport_create_from_socket shall fail and return NULL. ]
+                // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_097: [ If sm_open_begin does not return SM_EXEC_GRANTED, socket_transport_create_from_socket shall fail and return NULL. ]
                 SM_RESULT open_result = sm_open_begin(result->sm);
                 if (open_result == SM_EXEC_GRANTED)
                 {
