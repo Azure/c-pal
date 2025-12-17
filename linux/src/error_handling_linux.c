@@ -8,7 +8,7 @@
 
 static volatile_atomic int32_t last_error_code;
 
-/*Codes_SRS_ERROR_HANDLING_LINUX_09_002: [ error_handling_linux_set_last_error shall assign a non-NULL value to last_error_code. ]*/
+/*Codes_SRS_ERROR_HANDLING_LINUX_09_002: [ error_handling_linux_set_last_error shall assign the value to last_error_code.]*/
 void error_handling_linux_set_last_error(uint32_t err_code)
 {   
     /*Codes_SRS_ERROR_HANDLING_LINUX_09_003: [ error_handling_linux_set_last_error shall call interlocked_exchange_32 with err_code and last_error_code. ]*/

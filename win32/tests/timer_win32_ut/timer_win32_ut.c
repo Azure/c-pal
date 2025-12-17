@@ -155,6 +155,8 @@ TEST_FUNCTION(timer_get_elapsed_fails_if_timer_is_null)
 }
 
 /*Tests_SRS_TIMER_01_007: [ Otherwise timer_get_elapsed shall return the time difference in seconds between the current time and the start time of the timer. ]*/
+/*Tests_SRS_TIMER_WIN32_88_006: [ timer_get_elapsed shall call QueryPerformanceCounter to get the current time. ]*/
+/*Tests_SRS_TIMER_WIN32_88_007: [ timer_get_elapsed shall compute and return the elapsed time in seconds. ]*/
 TEST_FUNCTION(timer_get_elapsed_success)
 {
     //arrange
@@ -189,6 +191,7 @@ TEST_FUNCTION(timer_get_elapsed_ms_fails_if_timer_is_null)
 }
 
 /*Tests_SRS_TIMER_01_009: [ Otherwise timer_get_elapsed_ms shall return the time difference in milliseconds between the current time and the start time of the timer. ]*/
+/*Tests_SRS_TIMER_WIN32_88_008: [ timer_get_elapsed_ms shall return the elapsed time in milliseconds by multiplying the result of timer_get_elapsed by 1000. ]*/
 TEST_FUNCTION(timer_get_elapsed_ms_success)
 {
     //arrange
@@ -223,6 +226,7 @@ TEST_FUNCTION(timer_destroy_returns_if_timer_is_NULL)
 }
 
 /*Tests_SRS_TIMER_01_003: [ Otherwise, timer_destroy shall free the memory associated with timer. ]*/
+/*Tests_SRS_TIMER_WIN32_88_009: [ timer_destroy shall free the memory allocated for the timer handle. ]*/
 TEST_FUNCTION(timer_destroy_frees_handle)
 {
     //arrange
@@ -239,6 +243,7 @@ TEST_FUNCTION(timer_destroy_frees_handle)
 }
 
 /* Tests_SRS_TIMER_27_001: [timer_global_get_elapsed_s shall return the elapsed time in seconds from a start time in the past.] */
+/*Tests_SRS_TIMER_WIN32_88_010: [ timer_global_get_elapsed_s shall call QueryPerformanceFrequency and QueryPerformanceCounter to compute the elapsed time in seconds. ]*/
 TEST_FUNCTION(g_timer_get_elapsed_in_seconds_succeeds)
 {
     ///arrange
@@ -272,6 +277,7 @@ TEST_FUNCTION(g_timer_get_elapsed_in_seconds_succeeds)
 }
 
 /*Tests_SRS_TIMER_01_010: [ timer_global_get_elapsed_ms shall return the elapsed time in milliseconds from a start time in the past. ]*/
+/*Tests_SRS_TIMER_WIN32_88_011: [ timer_global_get_elapsed_ms shall call QueryPerformanceFrequency and QueryPerformanceCounter to compute the elapsed time in milliseconds. ]*/
 TEST_FUNCTION(g_timer_get_elapsed_in_ms_succeeds)
 {
     ///arrange
@@ -305,6 +311,7 @@ TEST_FUNCTION(g_timer_get_elapsed_in_ms_succeeds)
 }
 
 /*Tests_SRS_TIMER_01_011: [ timer_global_get_elapsed_us shall return the elapsed time in microseconds from a start time in the past. ]*/
+/*Tests_SRS_TIMER_WIN32_88_012: [ timer_global_get_elapsed_us shall call QueryPerformanceFrequency and QueryPerformanceCounter to compute the elapsed time in microseconds. ]*/
 TEST_FUNCTION(g_timer_get_elapsed_in_us_succeeds)
 {
 
