@@ -202,6 +202,8 @@ TEST_FUNCTION(socket_transport_create_client_fail)
     //cleanup
 }
 
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_002: [ socket_transport_create_client shall allocate a new SOCKET_TRANSPORT object. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_003: [ socket_transport_create_client shall call sm_create to create a sm object with the type set to SOCKET_CLIENT. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_005: [ On success socket_transport_create_client shall return SOCKET_TRANSPORT_HANDLE. ]*/
 TEST_FUNCTION(socket_transport_create_client_succeed)
 {
@@ -246,6 +248,8 @@ TEST_FUNCTION(socket_transport_create_server_fail)
     //cleanup
 }
 
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_087: [ socket_transport_create_server shall allocate a new SOCKET_TRANSPORT object. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_088: [ socket_transport_create_server shall call sm_create to create a sm object with the type set to SOCKET_BINDING. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_090: [ On success socket_transport_create_server shall return SOCKET_TRANSPORT_HANDLE. ]*/
 TEST_FUNCTION(socket_transport_create_server_succeeds)
 {
@@ -583,7 +587,10 @@ TEST_FUNCTION(socket_transport_connect_fail)
     socket_transport_destroy(socket_handle);
 }
 
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_020: [ If the connect call fails, connect_to_endpoint shall check to WSAGetLastError for WSAEWOULDBLOCK. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_021: [ On WSAEWOULDBLOCK connect_to_endpoint shall call the select API with the connection_timeout_ms and check the return value: ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_024: [ Any other value this indicates a possible success and connect_to_endpoint shall test if the socket is writable by calling FD_ISSET. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_025: [ If the socket is writable connect_to_endpoint shall succeed and return a 0 value. ]*/
 TEST_FUNCTION(socket_transport_connect_fd_isset_succeeds)
 {
     //arrange
@@ -619,7 +626,10 @@ TEST_FUNCTION(socket_transport_connect_fd_isset_succeeds)
 }
 
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_013: [ socket_transport_connect shall call sm_open_begin to begin the open. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_015: [ socket_transport_connect shall call socket with the params AF_INET, SOCK_STREAM and IPPROTO_TCP. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_016: [ socket_transport_connect shall call connect_to_endpoint with the connection_timeout_ms to connect to the endpoint. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_017: [ If successful socket_transport_connect shall call sm_open_end with true. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_019: [ connect_to_endpoint shall call connect using connection_timeout_ms as a timeout for the connection. ]*/
 TEST_FUNCTION(socket_transport_connect_succeed)
 {
     //arrange
@@ -780,9 +790,10 @@ TEST_FUNCTION(socket_transport_disconnect_sm_close_fail)
     socket_transport_destroy(socket_handle);
 }
 
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_028: [ socket_transport_disconnect shall call sm_close_begin to begin the closing process. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_029: [ If sm_close_begin does not return SM_EXEC_GRANTED, socket_transport_disconnect shall fail and return. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_030: [ socket_transport_disconnect shall call closesocket to disconnect the connected socket. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_031: [ socket_transport_disconnect shall call sm_close_end. ]*/
-/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_029: [ If sm_close_begin does not return SM_EXEC_GRANTED, socket_transport_disconnect shall fail and return. ]*/
 TEST_FUNCTION(socket_transport_disconnect_succeed)
 {
     //arrange
@@ -951,6 +962,7 @@ TEST_FUNCTION(socket_transport_send_fail_WSASend)
 
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_035: [ socket_transport_send shall call sm_exec_begin. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_037: [ socket_transport_send shall call WSASend to send data with flags and the overlapped_data. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_038: [ If WSASend returns 0, socket_transport_send shall store the bytes written in bytes_written (if non-NULL) and return SOCKET_SEND_OK. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_040: [ socket_transport_send shall call sm_exec_end. ]*/
 TEST_FUNCTION(socket_transport_send_succeed)
 {
@@ -1077,6 +1089,7 @@ TEST_FUNCTION(socket_transport_receive_sm_exec_begin_fail)
     socket_transport_destroy(socket_handle);
 }
 
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_050: [ If WSARecv returns an non-zero value, socket_transport_receive shall do the following: ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_051: [ If WSAGetLastError returns WSA_IO_PENDING, and bytes_recv is not NULL, socket_transport_receive shall set bytes_recv to 0. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_049: [ socket_transport_receive shall return SOCKET_RECEIVE_OK. ]*/
 TEST_FUNCTION(socket_transport_receive_socket_receive_would_block)
@@ -1435,6 +1448,7 @@ TEST_FUNCTION(socket_transport_listen_fail)
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_072: [ socket_transport_accept shall call accept to accept the incoming socket connection. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_074: [ socket_transport_accept shall allocate a SOCKET_TRANSPORT for the incoming connection and call sm_create and sm_open on the connection. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_075: [ If successful socket_transport_accept shall return SOCKET_ACCEPT_OK. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_077: [ socket_transport_accept shall call sm_exec_end. ]*/
 TEST_FUNCTION(socket_transport_accept_succeed)
 {
     //arrange
@@ -1868,6 +1882,7 @@ TEST_FUNCTION(socket_transport_get_underlying_socket_succeed)
 }
 
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_078: [ If socket_transport is NULL, socket_transport_get_underlying_socket shall fail and return INVALID_SOCKET. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_080: [ If sm_exec_begin does not return SM_EXEC_GRANTED, socket_transport_get_underlying_socket shall fail and return INVALID_SOCKET. ]*/
 TEST_FUNCTION(socket_transport_get_underlying_socket_smexecbegin_fail)
 {
     //arrange
@@ -1989,6 +2004,7 @@ TEST_FUNCTION(socket_transport_is_valid_socket_NULL_input)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_092: [ socket_transport_is_valid_socket checks that the internal socket is valid. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_095: [ On success, socket_transport_is_valid_socket shall return true.
 TEST_FUNCTION(socket_transport_is_valid_socket_succeeds)
 {
@@ -2222,6 +2238,7 @@ TEST_FUNCTION(socket_transport_get_local_address_no_address_list_success)
 }
 
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_11_010: [ On success socket_transport_get_local_address shall return 0. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_11_011: [ If any failure is encountered, socket_transport_get_local_address shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(socket_transport_get_local_address_fail)
 {
     //arrange

@@ -382,6 +382,7 @@ TEST_FUNCTION(socket_transport_connect_invalid_client_type_fail)
 
 /*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_013: [ socket_transport_connect shall call sm_open_begin to begin the open. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_015: [ socket_transport_connect shall call socket with the params AF_INET, SOCK_STREAM and 0. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_016: [ socket_transport_connect shall call connect to connect to the endpoint. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_017: [ socket_transport_connect shall set the socket to non-blocking by calling fcntl with O_NONBLOCK. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_018: [ If successful socket_transport_connect shall call sm_open_end with true. ]*/
 TEST_FUNCTION(socket_transport_connect_succeed)
@@ -613,6 +614,8 @@ TEST_FUNCTION(socket_transport_send_count_0_fail)
 
 /*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_030: [ socket_transport_send shall call sm_exec_begin. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_032: [ For each buffer count in payload socket_transport_send shall call send to send data with flags as a parameter. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_036: [ If bytes_sent is not NULL, socket_transport_send shall set bytes_sent the total bytes sent. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_037: [ socket_transport_send shall call sm_exec_end. ]*/
 TEST_FUNCTION(socket_transport_send_succeed)
 {
     //arrange
@@ -839,6 +842,7 @@ TEST_FUNCTION(socket_transport_receive_buffer_count_0_fail)
 /*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_049: [ Else socket_transport_receive shall do the following: ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_050: [ socket_transport_receive shall test that the total recv size will not overflow. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_051: [ socket_transport_receive shall store the received byte size. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_052: [ If bytes_recv is not NULL, socket_transport_send shall set bytes_recv the total bytes received. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_053: [ socket_transport_receive shall call sm_exec_end. ]*/
 TEST_FUNCTION(socket_transport_receive_succeed)
 {
@@ -1417,6 +1421,7 @@ TEST_FUNCTION(socket_transport_accept_accept_returns_EWOULDBLOCK)
 /*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_074: [ socket_transport_accept shall set the incoming socket to non-blocking. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_075: [ socket_transport_accept shall allocate a SOCKET_TRANSPORT for the incoming connection and call sm_create and sm_open on the connection. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_076: [ If successful socket_transport_accept shall assign accepted_socket to be the allocated incoming SOCKET_TRANSPORT and return SOCKET_ACCEPT_OK. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_078: [ socket_transport_accept shall call sm_exec_end. ]*/
 TEST_FUNCTION(socket_transport_accept_succeed)
 {
     //arrange
