@@ -171,7 +171,7 @@ SOCKET_TRANSPORT_HANDLE socket_transport_create_server(void)
 {
     SOCKET_TRANSPORT* result;
 
-    // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_079: [ socket_transport_create shall allocate a new SOCKET_TRANSPORT object. ]
+    // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_079: [ socket_transport_create_server shall allocate a new SOCKET_TRANSPORT object. ]
     result = malloc(sizeof(SOCKET_TRANSPORT));
     if (result == NULL)
     {
@@ -545,7 +545,7 @@ SOCKET_RECEIVE_RESULT socket_transport_receive(SOCKET_TRANSPORT_HANDLE socket_tr
             if (result == SOCKET_RECEIVE_OK)
             {
                 // Success
-                // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_052: [ If bytes_recv is not NULL, socket_transport_receive shall set bytes_recv the total bytes received. ]
+                // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_052: [ If bytes_recv is not NULL, socket_transport_send shall set bytes_recv the total bytes received. ]
                 if (bytes_recv != NULL)
                 {
                     *bytes_recv = total_recv_size;
