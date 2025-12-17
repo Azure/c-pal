@@ -61,8 +61,8 @@ TEST_FUNCTION_CLEANUP(cleanup)
 }
 
 /* timer_create_new */
-/*Tests_SRS_TIMER_WIN32_01_001: [ timer_create_new shall allocate memory for a new timer handle. ]*/
-/*Tests_SRS_TIMER_WIN32_01_002: [ If memory allocation fails, timer_create_new shall return NULL. ]*/
+/*Tests_SRS_TIMER_WIN32_88_001: [ timer_create_new shall allocate memory for a new timer handle. ]*/
+/*Tests_SRS_TIMER_WIN32_88_002: [ If memory allocation fails, timer_create_new shall return NULL. ]*/
 TEST_FUNCTION(timer_create_malloc_fails)
 {
     //arrange
@@ -89,8 +89,8 @@ static void test_timer_create_success_expectations(void)
 }
 
 /*Tests_SRS_TIMER_01_001: [ timer_create_new shall create a new timer and on success return a non-NULL handle to it. ]*/
-/*Tests_SRS_TIMER_WIN32_01_003: [ timer_create_new shall call QueryPerformanceFrequency to obtain the timer frequency. ]*/
-/*Tests_SRS_TIMER_WIN32_01_004: [ timer_create_new shall call QueryPerformanceCounter to record the start time. ]*/
+/*Tests_SRS_TIMER_WIN32_88_003: [ timer_create_new shall call QueryPerformanceFrequency to obtain the timer frequency. ]*/
+/*Tests_SRS_TIMER_WIN32_88_004: [ timer_create_new shall call QueryPerformanceCounter to record the start time. ]*/
 TEST_FUNCTION(timer_create_succeeds)
 {
     //arrange
@@ -120,7 +120,7 @@ TEST_FUNCTION(timer_start_returns_if_timer_is_null)
 }
 
 /*Tests_SRS_TIMER_01_005: [ Otherwise, timer_start shall record the start time (used for computing the elapsed time). ]*/
-/*Tests_SRS_TIMER_WIN32_01_005: [ timer_start shall call QueryPerformanceCounter to record the current time as the start time. ]*/
+/*Tests_SRS_TIMER_WIN32_88_005: [ timer_start shall call QueryPerformanceCounter to record the current time as the start time. ]*/
 TEST_FUNCTION(timer_start_succeeds)
 {
     //arrange

@@ -19,11 +19,11 @@ MOCKABLE_FUNCTION(, int, platform_init);
 
 `platform_init` initializes the platform-specific resources required for the application.
 
-**SRS_PLATFORM_WIN32_01_001: [** `platform_init` shall call `WSAStartup` to initialize the Windows Sockets library with version 2.2. **]**
+**SRS_PLATFORM_WIN32_88_001: [** `platform_init` shall call `WSAStartup` to initialize the Windows Sockets library with version 2.2. **]**
 
-**SRS_PLATFORM_WIN32_01_002: [** If `WSAStartup` fails, `platform_init` shall return a non-zero value. **]**
+**SRS_PLATFORM_WIN32_88_002: [** If `WSAStartup` fails, `platform_init` shall return a non-zero value. **]**
 
-**SRS_PLATFORM_WIN32_01_003: [** If `WSAStartup` succeeds, `platform_init` shall return 0. **]**
+**SRS_PLATFORM_WIN32_88_003: [** If `WSAStartup` succeeds, `platform_init` shall return 0. **]**
 
 ### platform_deinit
 
@@ -33,4 +33,4 @@ MOCKABLE_FUNCTION(, void, platform_deinit);
 
 `platform_deinit` deinitializes the platform-specific resources.
 
-**SRS_PLATFORM_WIN32_01_004: [** `platform_deinit` shall call `WSACleanup` to clean up the Windows Sockets library. **]**
+**SRS_PLATFORM_WIN32_88_004: [** `platform_deinit` shall call `WSACleanup` to clean up the Windows Sockets library. **]**
