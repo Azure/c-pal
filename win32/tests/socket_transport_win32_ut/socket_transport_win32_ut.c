@@ -1945,8 +1945,8 @@ TEST_FUNCTION(socket_transport_create_from_socket_invalid_input)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_014: [ If sm_open_begin does not return SM_EXEC_GRANTED, socket_transport_create_from_socket shall fail and return NULL. ]*/
-/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_102: [ On any failure socket_transport_create_from_socket shall return NULL. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_103: [ If sm_open_begin does not return SM_EXEC_GRANTED, socket_transport_create_from_socket shall fail and return NULL. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_100: [ On any failure socket_transport_create_from_socket shall return NULL. ]*/
 TEST_FUNCTION(socket_transport_create_from_socket_fail)
 {
     //arrange
@@ -2036,7 +2036,7 @@ TEST_FUNCTION(socket_transport_is_valid_socket_INVALID_SOCKET)
 
 // socket_transport_get_local_address
 
-/*Tests_SRS_SOCKET_TRANSPORT_WIN32_11_001: [ If socket_transport is NULL, socket_transport_get_local_address shall fail and return a non-zero value. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_11_012: [ If socket_transport is NULL, socket_transport_get_local_address shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(socket_transport_get_local_address_handle_NULL_fail)
 {
     //arrange
@@ -2054,7 +2054,7 @@ TEST_FUNCTION(socket_transport_get_local_address_handle_NULL_fail)
     // Cleanup
 }
 
-/*Tests_SRS_SOCKET_TRANSPORT_WIN32_11_002: [ If hostname is NULL, socket_transport_get_local_address shall fail and return a non-zero value. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_11_013: [ If hostname is NULL, socket_transport_get_local_address shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(socket_transport_get_local_address_hostname_NULL_fail)
 {
     //arrange
@@ -2078,7 +2078,7 @@ TEST_FUNCTION(socket_transport_get_local_address_hostname_NULL_fail)
     socket_transport_destroy(socket_handle);
 }
 
-/*Tests_SRS_SOCKET_TRANSPORT_WIN32_11_003: [ If local_address_list is not NULL and address_count is NULL, socket_transport_get_local_address shall fail and return a non-zero value. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_11_014: [ If local_address_list is not NULL and address_count is NULL, socket_transport_get_local_address shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(socket_transport_get_local_address_address_count_NULL_fail)
 {
     //arrange
@@ -2102,7 +2102,7 @@ TEST_FUNCTION(socket_transport_get_local_address_address_count_NULL_fail)
     socket_transport_destroy(socket_handle);
 }
 
-/*Tests_SRS_SOCKET_TRANSPORT_WIN32_11_004: [ socket_transport_get_local_address shall call sm_exec_begin ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_11_015: [ socket_transport_get_local_address shall call sm_exec_begin ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_11_005: [ socket_transport_get_local_address shall get the hostname by calling gethostname. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_11_006: [ If local_address_list is not NULL, socket_transport_get_local_address shall call gethostbyname to get the addresses in a hostent object. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_11_007: [ socket_transport_get_local_address shall allocate a LOCAL_ADDRESS array. ]*/
