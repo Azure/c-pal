@@ -61,6 +61,7 @@ TEST_FUNCTION_CLEANUP(cleanup)
 }
 
 /* timer_create_new */
+
 /*Tests_SRS_TIMER_WIN32_88_001: [ timer_create_new shall allocate memory for a new timer handle. ]*/
 /*Tests_SRS_TIMER_WIN32_88_002: [ If memory allocation fails, timer_create_new shall return NULL. ]*/
 TEST_FUNCTION(timer_create_malloc_fails)
@@ -107,7 +108,8 @@ TEST_FUNCTION(timer_create_succeeds)
     timer_destroy(timer);
 }
 
-/* timer_start*/
+/* timer_start */
+
 /*Tests_SRS_TIMER_01_004: [ If timer is NULL, timer_start shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(timer_start_returns_if_timer_is_null)
 {
@@ -142,7 +144,8 @@ TEST_FUNCTION(timer_start_succeeds)
     timer_destroy(timer);
 }
 
-/*timer_get_elapsed*/
+/* timer_get_elapsed */
+
 /*Tests_SRS_TIMER_01_006: [ If timer is NULL, timer_get_elapsed shall return -1. ]*/
 TEST_FUNCTION(timer_get_elapsed_fails_if_timer_is_null)
 {
@@ -178,7 +181,8 @@ TEST_FUNCTION(timer_get_elapsed_success)
     timer_destroy(timer);
 }
 
-/*timer_get_elapsed_ms*/
+/* timer_get_elapsed_ms */
+
 /*Tests_SRS_TIMER_01_008: [ if timer is NULL, timer_get_elapsed_ms shall return -1. ]*/
 TEST_FUNCTION(timer_get_elapsed_ms_fails_if_timer_is_null)
 {
@@ -213,7 +217,8 @@ TEST_FUNCTION(timer_get_elapsed_ms_success)
     timer_destroy(timer);
 }
 
-/*timer_destroy*/
+/* timer_destroy */
+
 /*Tests_SRS_TIMER_01_002: [ If timer is NULL, timer_destroy shall return. ]*/
 TEST_FUNCTION(timer_destroy_returns_if_timer_is_NULL)
 {
