@@ -224,7 +224,7 @@ TEST_FUNCTION(socket_transport_create_client_fail)
 }
 
 /*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_079: [ socket_transport_create_server shall allocate a new SOCKET_TRANSPORT object. ]*/
-/*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_080: [ socket_transport_create_server shall call sm_create to create a sm object to create a sm object with the type set to SOCKET_BINDING. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_080: [ socket_transport_create_server shall call sm_create to create a sm object with the type set to SOCKET_BINDING.]*/
 /*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_082: [ On success socket_transport_create_server shall return SOCKET_TRANSPORT_HANDLE. ]*/
 TEST_FUNCTION(socket_transport_create_server_succeed)
 {

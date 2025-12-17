@@ -462,7 +462,7 @@ TEST_FUNCTION(socket_transport_connect_socket_transport_NULL_fail)
     socket_transport_destroy(socket_handle);
 }
 
-/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_010: [If hostname is NULL, socket_transport_connect shall fail and return a non - zero value.]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_010: [If hostname is NULL, socket_transport_connect shall fail and return a non-zero value.]*/
 TEST_FUNCTION(socket_transport_connect_invalid_arguments_hostname)
 {
     //arrange
@@ -664,7 +664,7 @@ TEST_FUNCTION(socket_transport_disconnect_invalid_arguments)
 
 }
 
-/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_083: [ If shutdown does not return 0, the socket is not valid therefore socket_transport_disconnect shall not call close ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_083: [ If shutdown does not return 0 on a socket that is not a binding socket, the socket is not valid therefore socket_transport_disconnect shall not call close]*/
 TEST_FUNCTION(socket_transport_disconnect_shutdown_fail)
 {
     //arrange
@@ -983,7 +983,7 @@ TEST_FUNCTION(socket_transport_send_succeed)
 
 // socket_transport_receive
 
-/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_041: [ If socket_transport is NULL, socket_transport_receive shall fail and return SOCKET_RECEIVE_ERROR. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_041: [ If socket_transport is NULL, socket_transport_receive shall fail and return SOCKET_RECEIVE_INVALID_ARG.]*/
 TEST_FUNCTION(socket_transport_receive_socket_transport_NULL_fail)
 {
     //arrange
@@ -1000,7 +1000,7 @@ TEST_FUNCTION(socket_transport_receive_socket_transport_NULL_fail)
     //cleanup
 }
 
-/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_042: [ If payload is NULL, socket_transport_receive shall fail and return SOCKET_RECEIVE_ERROR. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_042: [ If payload is NULL, socket_transport_receive shall fail and return SOCKET_RECEIVE_INVALID_ARG.]*/
 TEST_FUNCTION(socket_transport_receive_payload_NULL_fail)
 {
     //arrange
@@ -1023,7 +1023,7 @@ TEST_FUNCTION(socket_transport_receive_payload_NULL_fail)
     socket_transport_destroy(socket_handle);
 }
 
-/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_043: [ If buffer_count is 0, socket_transport_receive shall fail and return SOCKET_RECEIVE_ERROR. ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_043: [ If buffer_count is 0, socket_transport_receive shall fail and return SOCKET_RECEIVE_INVALID_ARG.]*/
 TEST_FUNCTION(socket_transport_receive_buffer_count_0_fail)
 {
     //arrange
@@ -2102,7 +2102,7 @@ TEST_FUNCTION(socket_transport_get_local_address_address_count_NULL_fail)
     socket_transport_destroy(socket_handle);
 }
 
-/*Tests_SRS_SOCKET_TRANSPORT_WIN32_11_015: [ socket_transport_get_local_address shall call sm_exec_begin ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_11_015: [ socket_transport_get_local_address shall call sm_exec_begin.]*/
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_11_005: [ socket_transport_get_local_address shall get the hostname by calling gethostname. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_11_006: [ If local_address_list is not NULL, socket_transport_get_local_address shall call gethostbyname to get the addresses in a hostent object. ]*/
 /*Tests_SRS_SOCKET_TRANSPORT_WIN32_11_007: [ socket_transport_get_local_address shall allocate a LOCAL_ADDRESS array. ]*/
