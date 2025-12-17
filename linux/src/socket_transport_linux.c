@@ -332,7 +332,9 @@ void socket_transport_disconnect(SOCKET_TRANSPORT_HANDLE socket_transport)
     }
     else
     {
+        // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_021: [ socket_transport_disconnect shall call sm_close_begin to begin the closing process. ]
         SM_RESULT close_result = sm_close_begin(socket_transport->sm);
+        // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_022: [ If sm_close_begin does not return SM_EXEC_GRANTED, socket_transport_disconnect shall fail and return. ]
         if (close_result == SM_EXEC_GRANTED)
         {
             // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_025: [ socket_transport_disconnect shall call shutdown to stop both the transmit and reception of the connected socket. ]
@@ -430,10 +432,12 @@ SOCKET_SEND_RESULT socket_transport_send(SOCKET_TRANSPORT_HANDLE socket_transpor
                     }
                 }
             }
+            // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_036: [ If bytes_sent is not NULL, socket_transport_send shall set bytes_sent the total bytes sent. ]
             if (bytes_sent != NULL)
             {
                 *bytes_sent = total_send_size;
             }
+            // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_037: [ socket_transport_send shall call sm_exec_end. ]
             sm_exec_end(socket_transport->sm);
         }
     }
@@ -541,6 +545,7 @@ SOCKET_RECEIVE_RESULT socket_transport_receive(SOCKET_TRANSPORT_HANDLE socket_tr
             if (result == SOCKET_RECEIVE_OK)
             {
                 // Success
+                // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_052: [ If bytes_recv is not NULL, socket_transport_receive shall set bytes_recv the total bytes received. ]
                 if (bytes_recv != NULL)
                 {
                     *bytes_recv = total_recv_size;
@@ -625,7 +630,7 @@ int socket_transport_listen(SOCKET_TRANSPORT_HANDLE socket_transport, uint16_t p
                         }
                         else
                         {
-                            // Codess_SOCKET_TRANSPORT_LINUX_11_062: [ If successful socket_transport_listen shall call sm_open_end with true. ]
+                            // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_062: [ If successful socket_transport_listen shall call sm_open_end with true. ]
                             sm_open_end(socket_transport->sm, true);
                             result = 0;
                             goto all_ok;
@@ -794,6 +799,7 @@ SOCKET_HANDLE socket_transport_get_underlying_socket(SOCKET_TRANSPORT_HANDLE soc
 bool socket_transport_is_valid_socket(SOCKET_TRANSPORT_HANDLE socket_transport_handle)
 {
     bool result;
+    // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_093: [ If socket_transport_handle is NULL, socket_transport_is_valid_socket shall fail and return false. ]
     if (socket_transport_handle == NULL)
     {
         result = false;
@@ -801,6 +807,7 @@ bool socket_transport_is_valid_socket(SOCKET_TRANSPORT_HANDLE socket_transport_h
     }
     else
     {
+        // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_094: [ If the socket inside socket_transport_handle is an INVALID_SOCKET, socket_transport_is_valid_socket shall fail and return false. ]
         if (socket_transport_handle->socket == INVALID_SOCKET)
         {
             result = false;
@@ -808,6 +815,7 @@ bool socket_transport_is_valid_socket(SOCKET_TRANSPORT_HANDLE socket_transport_h
         }
         else
         {
+            // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_095: [ On success, socket_transport_is_valid_socket shall return true. ]
             result = true;
         }
     }
