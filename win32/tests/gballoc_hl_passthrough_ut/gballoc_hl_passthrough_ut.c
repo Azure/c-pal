@@ -167,7 +167,7 @@ TEST_FUNCTION(gballoc_hl_malloc_2_succeeds)
     TEST_gballoc_hl_deinit();
 }
 
-/*Codes_SRS_GBALLOC_HL_PASSTHROUGH_02_030: [ gballoc_hl_malloc_2 shall call gballoc_ll_malloc_2(size) and return what gballoc_ll_malloc_2 returned. ]*/
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_030: [ gballoc_hl_malloc_2 shall call gballoc_ll_malloc_2(size) and return what gballoc_ll_malloc_2 returned. ]*/
 TEST_FUNCTION(gballoc_hl_malloc_2_unhappy_path_1)
 {
     ///arrange

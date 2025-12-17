@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "error_handling_linux_ut_pch.h"
@@ -41,8 +41,8 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
     umock_c_negative_tests_deinit();
 }
 
-/*Tests_SRS_ERROR_HANDLING_LINUX09_002: [ error_handling_linux_set_last_error shall assign a non-NULL value to last_error_code. ]*/
-/*Tests_SRS_ERROR_HANDLING_LINUX09_003: [ error_handling_linux_set_last_error shall call interlocked_exchange_32 with err_code and last_error_code. ]*/
+/*Tests_SRS_ERROR_HANDLING_LINUX_09_002: [ error_handling_linux_set_last_error shall assign the value to last_error_code. ]*/
+/*Tests_SRS_ERROR_HANDLING_LINUX_09_003: [ error_handling_linux_set_last_error shall call interlocked_exchange_32 with err_code and last_error_code. ]*/
 TEST_FUNCTION(set_last_error_code_SUCCESS)
 {
     ///arrange
@@ -55,8 +55,8 @@ TEST_FUNCTION(set_last_error_code_SUCCESS)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 } 
 
-/*Tests_SRS_ERROR_HANDLING_LINUX09_005: [ On success, error_handling_linux_get_last_error shall return the value last set through set_last_error or zero ]*/
-/*Tests_SRS_ERROR_HANDLING_LINUX09_006: [ error_handling_linux_get_last_error shall call interlocked_add with last_error_code and zero. ]*/
+/*Tests_SRS_ERROR_HANDLING_LINUX_09_005: [ On success, error_handling_linux_get_last_error shall return the value last set through set_last_error or zero ]*/
+/*Tests_SRS_ERROR_HANDLING_LINUX_09_006: [ error_handling_linux_get_last_error shall call interlocked_add with last_error_code and zero. ]*/
 TEST_FUNCTION(get_last_error_SUCCEEDS)
 {
     ///arrange
@@ -74,6 +74,8 @@ TEST_FUNCTION(get_last_error_SUCCEEDS)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 } 
 
+/*Tests_SRS_ERROR_HANDLING_LINUX_09_002: [ error_handling_linux_set_last_error shall assign the value to last_error_code. ]*/
+/*Tests_SRS_ERROR_HANDLING_LINUX_09_005: [ On success, error_handling_linux_get_last_error shall return the value last set through set_last_error or zero ]*/
 TEST_FUNCTION(get_last_error_equals_set_last_error)
 {
     ///arrange

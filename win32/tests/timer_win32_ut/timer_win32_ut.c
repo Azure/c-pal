@@ -61,6 +61,9 @@ TEST_FUNCTION_CLEANUP(cleanup)
 }
 
 /* timer_create_new */
+
+/*Tests_SRS_TIMER_WIN32_88_001: [ timer_create_new shall allocate memory for a new timer handle. ]*/
+/*Tests_SRS_TIMER_WIN32_88_002: [ If memory allocation fails, timer_create_new shall return NULL. ]*/
 TEST_FUNCTION(timer_create_malloc_fails)
 {
     //arrange
@@ -86,6 +89,9 @@ static void test_timer_create_success_expectations(void)
         .CopyOutArgumentBuffer_lpPerformanceCount(&start_time, sizeof(start_time));
 }
 
+/*Tests_SRS_TIMER_01_001: [ timer_create_new shall create a new timer and on success return a non-NULL handle to it. ]*/
+/*Tests_SRS_TIMER_WIN32_88_003: [ timer_create_new shall call QueryPerformanceFrequency to obtain the timer frequency. ]*/
+/*Tests_SRS_TIMER_WIN32_88_004: [ timer_create_new shall call QueryPerformanceCounter to record the start time. ]*/
 TEST_FUNCTION(timer_create_succeeds)
 {
     //arrange
@@ -102,7 +108,9 @@ TEST_FUNCTION(timer_create_succeeds)
     timer_destroy(timer);
 }
 
-/* timer_start*/
+/* timer_start */
+
+/*Tests_SRS_TIMER_01_004: [ If timer is NULL, timer_start shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(timer_start_returns_if_timer_is_null)
 {
     //arrange
@@ -113,6 +121,8 @@ TEST_FUNCTION(timer_start_returns_if_timer_is_null)
      ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
+/*Tests_SRS_TIMER_01_005: [ Otherwise, timer_start shall record the start time (used for computing the elapsed time). ]*/
+/*Tests_SRS_TIMER_WIN32_88_005: [ timer_start shall call QueryPerformanceCounter to record the current time as the start time. ]*/
 TEST_FUNCTION(timer_start_succeeds)
 {
     //arrange
@@ -134,7 +144,9 @@ TEST_FUNCTION(timer_start_succeeds)
     timer_destroy(timer);
 }
 
-/*timer_get_elapsed*/
+/* timer_get_elapsed */
+
+/*Tests_SRS_TIMER_01_006: [ If timer is NULL, timer_get_elapsed shall return -1. ]*/
 TEST_FUNCTION(timer_get_elapsed_fails_if_timer_is_null)
 {
     //arrange
@@ -145,6 +157,9 @@ TEST_FUNCTION(timer_get_elapsed_fails_if_timer_is_null)
     ASSERT_ARE_EQUAL(double, -1, start);
 }
 
+/*Tests_SRS_TIMER_01_007: [ Otherwise timer_get_elapsed shall return the time difference in seconds between the current time and the start time of the timer. ]*/
+/*Tests_SRS_TIMER_WIN32_88_006: [ timer_get_elapsed shall call QueryPerformanceCounter to get the current time. ]*/
+/*Tests_SRS_TIMER_WIN32_88_007: [ timer_get_elapsed shall compute and return the elapsed time in seconds. ]*/
 TEST_FUNCTION(timer_get_elapsed_success)
 {
     //arrange
@@ -166,7 +181,9 @@ TEST_FUNCTION(timer_get_elapsed_success)
     timer_destroy(timer);
 }
 
-/*timer_get_elapsed_ms*/
+/* timer_get_elapsed_ms */
+
+/*Tests_SRS_TIMER_01_008: [ if timer is NULL, timer_get_elapsed_ms shall return -1. ]*/
 TEST_FUNCTION(timer_get_elapsed_ms_fails_if_timer_is_null)
 {
     //arrange
@@ -177,6 +194,8 @@ TEST_FUNCTION(timer_get_elapsed_ms_fails_if_timer_is_null)
     ASSERT_ARE_EQUAL(double, -1, elapsed_time_ms);
 }
 
+/*Tests_SRS_TIMER_01_009: [ Otherwise timer_get_elapsed_ms shall return the time difference in milliseconds between the current time and the start time of the timer. ]*/
+/*Tests_SRS_TIMER_WIN32_88_008: [ timer_get_elapsed_ms shall return the elapsed time in milliseconds by multiplying the result of timer_get_elapsed by 1000. ]*/
 TEST_FUNCTION(timer_get_elapsed_ms_success)
 {
     //arrange
@@ -198,7 +217,9 @@ TEST_FUNCTION(timer_get_elapsed_ms_success)
     timer_destroy(timer);
 }
 
-/*timer_destroy*/
+/* timer_destroy */
+
+/*Tests_SRS_TIMER_01_002: [ If timer is NULL, timer_destroy shall return. ]*/
 TEST_FUNCTION(timer_destroy_returns_if_timer_is_NULL)
 {
     //arrange
@@ -209,6 +230,8 @@ TEST_FUNCTION(timer_destroy_returns_if_timer_is_NULL)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
+/*Tests_SRS_TIMER_01_003: [ Otherwise, timer_destroy shall free the memory associated with timer. ]*/
+/*Tests_SRS_TIMER_WIN32_88_009: [ timer_destroy shall free the memory allocated for the timer handle. ]*/
 TEST_FUNCTION(timer_destroy_frees_handle)
 {
     //arrange
@@ -225,6 +248,7 @@ TEST_FUNCTION(timer_destroy_frees_handle)
 }
 
 /* Tests_SRS_TIMER_27_001: [timer_global_get_elapsed_s shall return the elapsed time in seconds from a start time in the past.] */
+/*Tests_SRS_TIMER_WIN32_88_010: [ timer_global_get_elapsed_s shall call QueryPerformanceFrequency and QueryPerformanceCounter to compute the elapsed time in seconds. ]*/
 TEST_FUNCTION(g_timer_get_elapsed_in_seconds_succeeds)
 {
     ///arrange
@@ -257,6 +281,8 @@ TEST_FUNCTION(g_timer_get_elapsed_in_seconds_succeeds)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
+/*Tests_SRS_TIMER_01_010: [ timer_global_get_elapsed_ms shall return the elapsed time in milliseconds from a start time in the past. ]*/
+/*Tests_SRS_TIMER_WIN32_88_011: [ timer_global_get_elapsed_ms shall call QueryPerformanceFrequency and QueryPerformanceCounter to compute the elapsed time in milliseconds. ]*/
 TEST_FUNCTION(g_timer_get_elapsed_in_ms_succeeds)
 {
     ///arrange
@@ -289,6 +315,8 @@ TEST_FUNCTION(g_timer_get_elapsed_in_ms_succeeds)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
+/*Tests_SRS_TIMER_01_011: [ timer_global_get_elapsed_us shall return the elapsed time in microseconds from a start time in the past. ]*/
+/*Tests_SRS_TIMER_WIN32_88_012: [ timer_global_get_elapsed_us shall call QueryPerformanceFrequency and QueryPerformanceCounter to compute the elapsed time in microseconds. ]*/
 TEST_FUNCTION(g_timer_get_elapsed_in_us_succeeds)
 {
 

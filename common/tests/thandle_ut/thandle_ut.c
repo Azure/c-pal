@@ -480,6 +480,8 @@ static void builds_out_arg(THANDLE(LL)** x)
     ASSERT_IS_NOT_NULL(*x);
 }
 
+/*Tests_SRS_THANDLE_02_012: [ THANDLE_INITIALIZE shall increment the reference count of rvalue and store it in *lvalue. ]*/
+/*Tests_SRS_THANDLE_02_009: [ If *t1 is not NULL and t2 is NULL then THANDLE_ASSIGN shall decrement the reference count of *t1 and store NULL in *t1. ]*/
 /*this test wants to see that an array of THANDLE(LL) can be returned from some constructor as out argument*/
 TEST_FUNCTION(THANDLE_T_can_build_an_array)
 {
@@ -959,6 +961,8 @@ TEST_FUNCTION(THANDLE_INITIALIZE_MOVE_with_star_t1_not_NULL_and_star_t2_not_NULL
 }
 
 #if defined(_DEBUG) || defined (DEBUG)
+/*Tests_SRS_THANDLE_02_043: [ THANDLE_MALLOC_WITH_MALLOC_FUNCTIONS shall allocate memory. ]*/
+/*Tests_SRS_THANDLE_02_044: [ THANDLE_MALLOC_WITH_MALLOC_FUNCTIONS shall initialize the reference count to 1, store dispose and free_function and return a T* ]*/
 TEST_FUNCTION(THANDLE_can_be_build_from_a_33_character_type)
 {
     ///arrange
