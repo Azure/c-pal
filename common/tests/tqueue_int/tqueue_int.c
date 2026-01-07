@@ -50,10 +50,16 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
+    ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
+    // Print out the random seed to recreate issues if any arise
+    time_t seed = time(NULL);
+    LogInfo("Test using random seed = %u", (unsigned int)seed);
+    srand((unsigned int)seed);
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
 {
+    gballoc_hl_deinit();
 }
 
 TEST_FUNCTION_INITIALIZE(method_init)
@@ -451,7 +457,7 @@ static void test_and_terminate_chaos_test(TQUEUE_CHAOS_TEST_THANDLE_CONTEXT *tes
         int64_t current_successful_push_count = interlocked_add_64(&test_context->successful_push_count, 0);
         int64_t current_successful_pop_count = interlocked_add_64(&test_context->successful_pop_count, 0);
         int64_t current_successful_get_volatile_count = interlocked_add_64(&test_context->successful_get_volatile_count, 0);
-        
+
         current_time = timer_global_get_elapsed_ms();
 
         LogInfo("%.02f seconds elapsed, successful push count=%" PRId64 ", successful pop count=%" PRId64 ", successful get_count count=%" PRId64 ", active_chaos_threads=%" PRId32 "",
