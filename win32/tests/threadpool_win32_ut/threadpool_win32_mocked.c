@@ -29,6 +29,6 @@ void mocked_SubmitThreadpoolWork(PTP_WORK pwk);
 void mocked_WaitForThreadpoolWorkCallbacks(PTP_WORK pwk, BOOL fCancelPendingCallbacks);
 
 // Timer mock prototypes from shared header
-#include "mock_threadpool_timer.h"
+#include "../mocked/inc/mock_threadpool_timer.h"
 
 #include "../../src/threadpool_win32.c"

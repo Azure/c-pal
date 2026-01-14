@@ -13,11 +13,29 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
 
+static PTP_TIMER hook_CreateThreadpoolTimer(PTP_TIMER_CALLBACK pfnti, PVOID pv, PTP_CALLBACK_ENVIRON pcbe)
+{
+    (void)pv;
+    (void)pcbe;
+    g_captured_timer_callback = pfnti;
+    return g_test_timer;
+}
+
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
 {
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error));
+
+    REGISTER_UMOCK_ALIAS_TYPE(PTP_TIMER, void*);
+    REGISTER_UMOCK_ALIAS_TYPE(PTP_TIMER_CALLBACK, void*);
+    REGISTER_UMOCK_ALIAS_TYPE(PTP_CALLBACK_ENVIRON, void*);
+    REGISTER_UMOCK_ALIAS_TYPE(PVOID, void*);
+    REGISTER_UMOCK_ALIAS_TYPE(PFILETIME, void*);
+    REGISTER_UMOCK_ALIAS_TYPE(DWORD, unsigned long);
+    REGISTER_UMOCK_ALIAS_TYPE(BOOL, int);
+
+    REGISTER_GLOBAL_MOCK_HOOK(mocked_CreateThreadpoolTimer, hook_CreateThreadpoolTimer);
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
@@ -33,6 +51,8 @@ TEST_FUNCTION_INITIALIZE(method_init)
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
 {
+    // Reset watchdog state between tests
+    test_watchdog_deinit();
 }
 
 // Tests_SRS_TEST_WATCHDOG_43_001: [ If the watchdog timer is already initialized, test_watchdog_init shall fail and return a non-zero value. ]

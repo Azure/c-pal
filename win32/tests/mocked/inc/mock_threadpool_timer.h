@@ -9,7 +9,8 @@
 extern "C" {
 #endif
 
-// Forward declarations for Windows threadpool timer types
+// Only define types if windows.h is not included
+#ifndef _WINDOWS_
 typedef void VOID;
 #define CALLBACK
 typedef void* PTP_TIMER;
@@ -20,6 +21,7 @@ typedef void* PFILETIME;
 typedef VOID (CALLBACK *PTP_TIMER_CALLBACK)(PTP_CALLBACK_INSTANCE, PVOID, PTP_TIMER);
 typedef unsigned long DWORD;
 typedef long BOOL;
+#endif
 
 #define CreateThreadpoolTimer mocked_CreateThreadpoolTimer
 #define SetThreadpoolTimer mocked_SetThreadpoolTimer
