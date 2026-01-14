@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-// Precompiled header for test_watchdog_linux_ut
+// Precompiled header for process_watchdog_linux_ut
 
-#ifndef TEST_WATCHDOG_LINUX_UT_PCH_H
-#define TEST_WATCHDOG_LINUX_UT_PCH_H
+#ifndef PROCESS_WATCHDOG_LINUX_UT_PCH_H
+#define PROCESS_WATCHDOG_LINUX_UT_PCH_H
 
 #include <stdlib.h>
 #include <inttypes.h>
@@ -18,12 +18,14 @@
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umock_c_negative_tests.h"
 
+#include "c_pal/interlocked.h"
+
 #include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 
 #include "mock_timer.h"
 
 #include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
-#include "c_pal/test_watchdog.h"
+#include "c_pal/process_watchdog.h"
 
-#endif // TEST_WATCHDOG_LINUX_UT_PCH_H
+#endif // PROCESS_WATCHDOG_LINUX_UT_PCH_H

@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#include "test_watchdog_win32_ut_pch.h"
+#include "process_watchdog_win32_ut_pch.h"
 
 // Test timer handle
 static PTP_TIMER g_test_timer = (PTP_TIMER)0x1234;
@@ -52,103 +52,109 @@ TEST_FUNCTION_INITIALIZE(method_init)
 TEST_FUNCTION_CLEANUP(method_cleanup)
 {
     // Reset watchdog state between tests
-    test_watchdog_deinit();
+    process_watchdog_deinit();
 }
 
-// Tests_SRS_TEST_WATCHDOG_43_001: [ If the watchdog timer is already initialized, test_watchdog_init shall fail and return a non-zero value. ]
-TEST_FUNCTION(test_watchdog_init_when_already_initialized_fails)
+// Tests_SRS_PROCESS_WATCHDOG_43_001: [ process_watchdog_init shall call interlocked_compare_exchange to atomically check if the watchdog is already initialized. ]
+// Tests_SRS_PROCESS_WATCHDOG_43_002: [ If the watchdog is already initialized, process_watchdog_init shall fail and return a non-zero value. ]
+TEST_FUNCTION(process_watchdog_init_when_already_initialized_fails)
 {
     // arrange
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
-    (void)test_watchdog_init(1000);
+    (void)process_watchdog_init(1000);
     umock_c_reset_all_calls();
 
     // act
-    int result = test_watchdog_init(1000);
+    int result = process_watchdog_init(1000);
 
     // assert
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
-    test_watchdog_deinit();
+    process_watchdog_deinit();
 }
 
-// Tests_SRS_TEST_WATCHDOG_43_002: [ test_watchdog_init shall create a timer by calling CreateThreadpoolTimer with on_timer_expired as callback. ]
-// Tests_SRS_TEST_WATCHDOG_43_003: [ test_watchdog_init shall start the timer by calling SetThreadpoolTimer with the timeout_ms converted to negative FILETIME. ]
-// Tests_SRS_TEST_WATCHDOG_43_004: [ test_watchdog_init shall succeed and return zero. ]
-TEST_FUNCTION(test_watchdog_init_succeeds)
+// Tests_SRS_PROCESS_WATCHDOG_43_003: [ process_watchdog_init shall create a timer that expires after timeout_ms milliseconds and calls on_timer_expired. ]
+// Tests_SRS_PROCESS_WATCHDOG_WIN32_43_001: [ process_watchdog_init shall call CreateThreadpoolTimer to create a timer with on_timer_expired as the callback. ]
+// Tests_SRS_PROCESS_WATCHDOG_WIN32_43_003: [ process_watchdog_init shall call SetThreadpoolTimer to start the timer with the specified timeout_ms. ]
+// Tests_SRS_PROCESS_WATCHDOG_43_005: [ On success, process_watchdog_init shall return zero. ]
+TEST_FUNCTION(process_watchdog_init_succeeds)
 {
     // arrange
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
 
     // act
-    int result = test_watchdog_init(60000);
+    int result = process_watchdog_init(60000);
 
     // assert
     ASSERT_ARE_EQUAL(int, 0, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
-    test_watchdog_deinit();
+    process_watchdog_deinit();
 }
 
-// Tests_SRS_TEST_WATCHDOG_43_002: [ test_watchdog_init shall create a timer by calling CreateThreadpoolTimer with on_timer_expired as callback. ]
-TEST_FUNCTION(test_watchdog_init_when_CreateThreadpoolTimer_fails_returns_error)
+// Tests_SRS_PROCESS_WATCHDOG_WIN32_43_002: [ If CreateThreadpoolTimer fails, process_watchdog_init shall fail and return a non-zero value. ]
+// Tests_SRS_PROCESS_WATCHDOG_43_004: [ If creating the timer fails, process_watchdog_init shall call interlocked_exchange to atomically mark the watchdog as not initialized and return a non-zero value. ]
+TEST_FUNCTION(process_watchdog_init_when_CreateThreadpoolTimer_fails_returns_error)
 {
     // arrange
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .SetReturn(NULL);
 
     // act
-    int result = test_watchdog_init(60000);
+    int result = process_watchdog_init(60000);
 
     // assert
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-// Tests_SRS_TEST_WATCHDOG_43_005: [ on_timer_expired shall call ps_util_terminate_process. ]
+// Tests_SRS_PROCESS_WATCHDOG_43_006: [ on_timer_expired shall call LogCriticalAndTerminate to terminate the process. ]
 // Note: This test verifies the callback is captured correctly. Actually calling it would terminate the process.
-TEST_FUNCTION(test_watchdog_init_captures_timer_callback)
+TEST_FUNCTION(process_watchdog_init_captures_timer_callback)
 {
     // arrange
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
 
     // act
-    int result = test_watchdog_init(60000);
+    int result = process_watchdog_init(60000);
 
     // assert
     ASSERT_ARE_EQUAL(int, 0, result);
     ASSERT_IS_NOT_NULL(g_captured_timer_callback);
 
     // cleanup
-    test_watchdog_deinit();
+    process_watchdog_deinit();
 }
 
-// Tests_SRS_TEST_WATCHDOG_43_006: [ If the watchdog timer is not initialized, test_watchdog_deinit shall return. ]
-TEST_FUNCTION(test_watchdog_deinit_when_not_initialized_returns)
+// Tests_SRS_PROCESS_WATCHDOG_43_007: [ process_watchdog_deinit shall call interlocked_compare_exchange to atomically check if the watchdog is initialized and mark it as not initialized. ]
+// Tests_SRS_PROCESS_WATCHDOG_43_008: [ If the watchdog is not initialized, process_watchdog_deinit shall return. ]
+TEST_FUNCTION(process_watchdog_deinit_when_not_initialized_returns)
 {
     // arrange
 
     // act
-    test_watchdog_deinit();
+    process_watchdog_deinit();
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-// Tests_SRS_TEST_WATCHDOG_43_007: [ test_watchdog_deinit shall stop the timer by calling SetThreadpoolTimer with NULL due time. ]
-// Tests_SRS_TEST_WATCHDOG_43_008: [ test_watchdog_deinit shall wait for any pending callbacks and close the timer. ]
-TEST_FUNCTION(test_watchdog_deinit_stops_and_closes_timer)
+// Tests_SRS_PROCESS_WATCHDOG_43_009: [ process_watchdog_deinit shall cancel and delete the timer. ]
+// Tests_SRS_PROCESS_WATCHDOG_WIN32_43_004: [ process_watchdog_deinit shall call SetThreadpoolTimer with NULL to stop the timer. ]
+// Tests_SRS_PROCESS_WATCHDOG_WIN32_43_005: [ process_watchdog_deinit shall call WaitForThreadpoolTimerCallbacks to wait for any pending callbacks to complete. ]
+// Tests_SRS_PROCESS_WATCHDOG_WIN32_43_006: [ process_watchdog_deinit shall call CloseThreadpoolTimer to delete the timer. ]
+TEST_FUNCTION(process_watchdog_deinit_stops_and_closes_timer)
 {
     // arrange
     STRICT_EXPECTED_CALL(mocked_CreateThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
-    (void)test_watchdog_init(60000);
+    (void)process_watchdog_init(60000);
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(g_test_timer, NULL, 0, 0));
@@ -156,7 +162,7 @@ TEST_FUNCTION(test_watchdog_deinit_stops_and_closes_timer)
     STRICT_EXPECTED_CALL(mocked_CloseThreadpoolTimer(g_test_timer));
 
     // act
-    test_watchdog_deinit();
+    process_watchdog_deinit();
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
