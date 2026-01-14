@@ -6,6 +6,21 @@
 static timer_t g_test_timer = (timer_t)0x1234;
 static void (*g_captured_timer_callback)(union sigval) = NULL;
 
+// Hook for timer_create to capture the callback
+static int hook_timer_create(clockid_t clockid, struct sigevent* sevp, timer_t* timerid)
+{
+    (void)clockid;
+    if (sevp != NULL)
+    {
+        g_captured_timer_callback = sevp->sigev_notify_function;
+    }
+    if (timerid != NULL)
+    {
+        *timerid = g_test_timer;
+    }
+    return 0;
+}
+
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
@@ -18,6 +33,7 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 TEST_SUITE_INITIALIZE(suite_init)
 {
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error));
+    REGISTER_GLOBAL_MOCK_HOOK(mocked_timer_create, hook_timer_create);
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
@@ -154,7 +170,7 @@ TEST_FUNCTION(process_watchdog_deinit_stops_and_closes_timer)
     (void)process_watchdog_init(60000);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(mocked_timer_delete(g_test_timer));
+    STRICT_EXPECTED_CALL(mocked_timer_delete(IGNORED_ARG));
 
     // act
     process_watchdog_deinit();

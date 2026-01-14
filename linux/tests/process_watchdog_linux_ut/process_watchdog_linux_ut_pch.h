@@ -23,6 +23,7 @@
 #include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 
 #include "mock_timer.h"
+#include "c_pal/ps_util.h"
 
 #include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
