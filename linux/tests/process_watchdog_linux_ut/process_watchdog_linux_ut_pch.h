@@ -18,14 +18,16 @@
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umock_c_negative_tests.h"
 
-#include "c_pal/interlocked.h"
-
 #include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 
-#include "mock_timer.h"
+#include "c_pal/interlocked.h"
 #include "c_pal/ps_util.h"
 
+#include "mock_timer.h"
+
 #include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
+
+#include "real_interlocked.h"
 
 #include "c_pal/process_watchdog.h"
 

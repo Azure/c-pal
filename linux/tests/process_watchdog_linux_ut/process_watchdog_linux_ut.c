@@ -33,6 +33,10 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 TEST_SUITE_INITIALIZE(suite_init)
 {
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error));
+    ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types());
+
+    REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK();
+
     REGISTER_GLOBAL_MOCK_HOOK(mocked_timer_create, hook_timer_create);
 }
 
@@ -57,11 +61,15 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 // Tests_SRS_PROCESS_WATCHDOG_43_002: [ If the watchdog is already initialized, process_watchdog_init shall fail and return a non-zero value. ]
 TEST_FUNCTION(process_watchdog_init_when_already_initialized_fails)
 {
-    // arrange
+    // arrange - first init succeeds
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     (void)process_watchdog_init(1000);
     umock_c_reset_all_calls();
+
+    // Second init should fail - state check will find already initialized
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
 
     // act
     int result = process_watchdog_init(1000);
@@ -81,6 +89,7 @@ TEST_FUNCTION(process_watchdog_init_when_already_initialized_fails)
 TEST_FUNCTION(process_watchdog_init_succeeds)
 {
     // arrange
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
 
@@ -100,8 +109,10 @@ TEST_FUNCTION(process_watchdog_init_succeeds)
 TEST_FUNCTION(process_watchdog_init_when_timer_create_fails_returns_error)
 {
     // arrange
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .SetReturn(-1);
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
 
     // act
     int result = process_watchdog_init(60000);
@@ -115,10 +126,12 @@ TEST_FUNCTION(process_watchdog_init_when_timer_create_fails_returns_error)
 TEST_FUNCTION(process_watchdog_init_when_timer_settime_fails_returns_error)
 {
     // arrange
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
         .SetReturn(-1);
     STRICT_EXPECTED_CALL(mocked_timer_delete(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, IGNORED_ARG));
 
     // act
     int result = process_watchdog_init(60000);
@@ -133,6 +146,7 @@ TEST_FUNCTION(process_watchdog_init_when_timer_settime_fails_returns_error)
 TEST_FUNCTION(process_watchdog_init_captures_timer_callback)
 {
     // arrange
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
 
@@ -152,6 +166,7 @@ TEST_FUNCTION(process_watchdog_init_captures_timer_callback)
 TEST_FUNCTION(process_watchdog_deinit_when_not_initialized_returns)
 {
     // arrange
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
 
     // act
     process_watchdog_deinit();
@@ -164,12 +179,13 @@ TEST_FUNCTION(process_watchdog_deinit_when_not_initialized_returns)
 // Tests_SRS_PROCESS_WATCHDOG_LINUX_43_005: [ process_watchdog_deinit shall call timer_delete to stop and delete the timer. ]
 TEST_FUNCTION(process_watchdog_deinit_stops_and_closes_timer)
 {
-    // arrange
+    // arrange - first init
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_create(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_settime(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     (void)process_watchdog_init(60000);
-    umock_c_reset_all_calls();
 
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_timer_delete(IGNORED_ARG));
 
     // act

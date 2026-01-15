@@ -16,7 +16,7 @@ set(${theseTestsName}_h_files
     ../mocked/inc/mock_timer.h
 )
 
-build_test_artifacts(${theseTestsName} "tests/c_pal/linux" ADDITIONAL_LIBS pal_interfaces c_pal_reals pal_ll_interfaces
+build_test_artifacts(${theseTestsName} "tests/c_pal/linux" ADDITIONAL_LIBS pal_interfaces c_pal_reals c_pal_ll_reals pal_ll_interfaces
     ENABLE_TEST_FILES_PRECOMPILED_HEADERS "${CMAKE_CURRENT_LIST_DIR}/process_watchdog_linux_ut_pch.h"
 )
 

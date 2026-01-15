@@ -1,3 +1,0 @@
-MSBuild version 18.0.5+e22287bf1 for .NET Framework
-MSBUILD : error MSB1009: Project file does not exist.
-Switch: process_watchdog_win32_ut_exe_c_pal.vcxproj

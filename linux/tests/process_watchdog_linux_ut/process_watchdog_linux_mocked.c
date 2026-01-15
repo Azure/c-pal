@@ -11,7 +11,4 @@
 // Timer mock prototypes from shared header
 #include "mock_timer.h"
 
-// Include real interlocked implementation directly (not mocked)
-#include "../../../c_pal_ll/linux/src/interlocked_linux.c"
-
 #include "../../src/process_watchdog_linux.c"

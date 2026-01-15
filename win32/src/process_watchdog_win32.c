@@ -12,8 +12,7 @@
 #include "c_pal/process_watchdog.h"
 
 #define WATCHDOG_STATE_NOT_INITIALIZED 0
-#define WATCHDOG_STATE_INITIALIZING 1
-#define WATCHDOG_STATE_INITIALIZED 2
+#define WATCHDOG_STATE_INITIALIZED 1
 
 static volatile_atomic int32_t g_watchdog_state = WATCHDOG_STATE_NOT_INITIALIZED;
 static PTP_TIMER g_watchdog_timer = NULL;
@@ -34,7 +33,7 @@ int process_watchdog_init(uint32_t timeout_ms)
     int result;
 
     /*Codes_SRS_PROCESS_WATCHDOG_43_001: [ process_watchdog_init shall call interlocked_compare_exchange to atomically check if the watchdog is already initialized. ]*/
-    int32_t previous_state = interlocked_compare_exchange(&g_watchdog_state, WATCHDOG_STATE_INITIALIZING, WATCHDOG_STATE_NOT_INITIALIZED);
+    int32_t previous_state = interlocked_compare_exchange(&g_watchdog_state, WATCHDOG_STATE_INITIALIZED, WATCHDOG_STATE_NOT_INITIALIZED);
 
     /*Codes_SRS_PROCESS_WATCHDOG_43_002: [ If the watchdog is already initialized, process_watchdog_init shall fail and return a non-zero value. ]*/
     if (previous_state != WATCHDOG_STATE_NOT_INITIALIZED)
@@ -52,8 +51,6 @@ int process_watchdog_init(uint32_t timeout_ms)
         if (g_watchdog_timer == NULL)
         {
             LogError("CreateThreadpoolTimer failed");
-            /*Codes_SRS_PROCESS_WATCHDOG_43_004: [ If creating the timer fails, process_watchdog_init shall call interlocked_exchange to atomically mark the watchdog as not initialized and return a non-zero value. ]*/
-            (void)interlocked_exchange(&g_watchdog_state, WATCHDOG_STATE_NOT_INITIALIZED);
             result = MU_FAILURE;
         }
         else
@@ -70,13 +67,16 @@ int process_watchdog_init(uint32_t timeout_ms)
             /*Codes_SRS_PROCESS_WATCHDOG_WIN32_43_003: [ process_watchdog_init shall call SetThreadpoolTimer to start the timer with the specified timeout_ms. ]*/
             SetThreadpoolTimer(g_watchdog_timer, &filetime_due_time, 0, 0);
 
-            (void)interlocked_exchange(&g_watchdog_state, WATCHDOG_STATE_INITIALIZED);
-
             /*Codes_SRS_PROCESS_WATCHDOG_43_005: [ On success, process_watchdog_init shall return zero. ]*/
             result = 0;
+            goto all_ok;
         }
+
+        /*Codes_SRS_PROCESS_WATCHDOG_43_004: [ If creating the timer fails, process_watchdog_init shall call interlocked_exchange to atomically mark the watchdog as not initialized and return a non-zero value. ]*/
+        (void)interlocked_exchange(&g_watchdog_state, WATCHDOG_STATE_NOT_INITIALIZED);
     }
 
+all_ok:
     return result;
 }
 
