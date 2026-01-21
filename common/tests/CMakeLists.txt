@@ -22,6 +22,7 @@ if(${run_unittests})
     build_test_folder(thandle_ptr_ut)
     build_test_folder(real_thandle_log_context_handle_ut)
     build_test_folder(tqueue_ut)
+    add_subdirectory(timed_test_suite_ut)
 endif()
 
 if(${run_int_tests})
