@@ -25,6 +25,9 @@ int process_watchdog_init(uint32_t timeout_ms)
     return 0;
 }
 
+/*Tests_SRS_TIMED_TEST_SUITE_43_005: [ TIMED_TEST_SUITE_CLEANUP shall create a static fixture function that calls process_watchdog_deinit. ]*/
+/*Tests_SRS_TIMED_TEST_SUITE_43_006: [ TIMED_TEST_SUITE_CLEANUP shall call TEST_SUITE_CLEANUP with any additional fixtures passed via variadic arguments, followed by the watchdog deinit fixture as the last fixture. ]*/
+/*Tests_SRS_TIMED_TEST_SUITE_43_007: [ The watchdog deinit fixture shall execute after the user's cleanup code. ]*/
 void process_watchdog_deinit(void)
 {
     watchdog_deinit_call_order = ++call_counter;
@@ -68,6 +71,10 @@ TIMED_TEST_SUITE_CLEANUP(TestCleanup)
         "watchdog_deinit should not be called yet during user cleanup");
 }
 
+/*Tests_SRS_TIMED_TEST_SUITE_43_001: [ TIMED_TEST_DEFAULT_TIMEOUT_MS shall be defined as 600000 (10 minutes). ]*/
+/*Tests_SRS_TIMED_TEST_SUITE_43_002: [ TIMED_TEST_SUITE_INITIALIZE shall create a static fixture function that calls process_watchdog_init with timeout_ms. ]*/
+/*Tests_SRS_TIMED_TEST_SUITE_43_003: [ TIMED_TEST_SUITE_INITIALIZE shall call TEST_SUITE_INITIALIZE with the watchdog init fixture as the first fixture, followed by any additional fixtures passed via variadic arguments. ]*/
+/*Tests_SRS_TIMED_TEST_SUITE_43_004: [ The watchdog init fixture shall execute before the user's initialization code. ]*/
 TEST_FUNCTION(timed_test_suite_watchdog_init_called_before_user_init)
 {
     // arrange/act is done by suite initialization
