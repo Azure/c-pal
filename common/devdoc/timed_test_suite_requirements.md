@@ -19,10 +19,6 @@
 #define TIMED_TEST_SUITE_CLEANUP(name, ...)
 ```
 
-### TIMED_TEST_DEFAULT_TIMEOUT_MS
-
-**SRS_TIMED_TEST_SUITE_43_001: [** `TIMED_TEST_DEFAULT_TIMEOUT_MS` shall be defined as `600000` (10 minutes). **]**
-
 ### TIMED_TEST_SUITE_INITIALIZE
 
 ```c

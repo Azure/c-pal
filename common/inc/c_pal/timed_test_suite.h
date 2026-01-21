@@ -7,7 +7,6 @@
 #include "c_pal/process_watchdog.h"
 
 // Default timeout: 10 minutes
-/*Codes_SRS_TIMED_TEST_SUITE_43_001: [ TIMED_TEST_DEFAULT_TIMEOUT_MS shall be defined as 600000 (10 minutes). ]*/
 #define TIMED_TEST_DEFAULT_TIMEOUT_MS 600000
 
 // Timed test suite initialize - timeout_ms is required parameter
