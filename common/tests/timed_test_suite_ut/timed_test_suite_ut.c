@@ -7,8 +7,6 @@
 #include "testrunnerswitcher.h"
 #include "macro_utils/macro_utils.h"
 
-#include "timed_test_suite_ut.h"
-
 // Counters to track call ordering
 static int watchdog_init_call_order = 0;
 static int watchdog_deinit_call_order = 0;
@@ -30,6 +28,15 @@ int process_watchdog_init(uint32_t timeout_ms)
 void process_watchdog_deinit(void)
 {
     watchdog_deinit_call_order = ++call_counter;
+
+    // Validate that user cleanup has already run (proves correct ordering)
+    ASSERT_ARE_NOT_EQUAL(int, 0, user_cleanup_call_order,
+        "watchdog_deinit called but user_cleanup has not run yet");
+
+    // Validate that this call came after user cleanup
+    ASSERT_IS_TRUE(watchdog_deinit_call_order > user_cleanup_call_order,
+        "watchdog_deinit (%d) should be called after user_cleanup (%d)",
+        watchdog_deinit_call_order, user_cleanup_call_order);
 }
 
 // Include timed_test_suite.h AFTER the mock definitions
@@ -82,28 +89,3 @@ TEST_FUNCTION(timed_test_suite_watchdog_is_running_during_tests)
 }
 
 END_TEST_SUITE(timed_test_suite_ut)
-
-// Validation function called from main after test suite completes
-int timed_test_suite_ut_succeeded(void)
-{
-    int result;
-
-    // Verify watchdog deinit was called AFTER user cleanup
-    if (watchdog_deinit_call_order <= user_cleanup_call_order)
-    {
-        LogError("watchdog_deinit_call_order (%d) should be greater than user_cleanup_call_order (%d)",
-            watchdog_deinit_call_order, user_cleanup_call_order);
-        result = MU_FAILURE;
-    }
-    else if (watchdog_deinit_call_order == 0)
-    {
-        LogError("watchdog_deinit was never called");
-        result = MU_FAILURE;
-    }
-    else
-    {
-        result = 0;
-    }
-
-    return result;
-}

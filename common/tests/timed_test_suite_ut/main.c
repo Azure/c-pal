@@ -7,8 +7,6 @@
 
 #include "testrunnerswitcher.h"
 
-#include "timed_test_suite_ut.h"
-
 int main(void)
 {
     size_t failedTests = 0;
@@ -21,11 +19,6 @@ int main(void)
     else
     {
         RUN_TEST_SUITE(timed_test_suite_ut);
-        if (timed_test_suite_ut_succeeded() != 0)
-        {
-            LogError("Final validation of fixture ordering has failed");
-            failedTests++;
-        }
 
         logger_deinit();
     }

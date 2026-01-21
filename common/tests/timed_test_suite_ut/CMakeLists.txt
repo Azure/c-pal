@@ -7,8 +7,4 @@ set(${theseTestsName}_test_files
     main.c
 )
 
-set(${theseTestsName}_h_files
-    ${theseTestsName}.h
-)
-
 build_test_artifacts(${theseTestsName} "tests/c_pal/common" ADDITIONAL_LIBS ${PAL_OS} c_logging_v2)
