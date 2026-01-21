@@ -1,7 +1,8 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 
-#include <stdio.h>
 #include <stdint.h>
+
+#include "c_logging/logger.h"
 
 #include "testrunnerswitcher.h"
 #include "macro_utils/macro_utils.h"
@@ -90,13 +91,13 @@ int timed_test_suite_ut_succeeded(void)
     // Verify watchdog deinit was called AFTER user cleanup
     if (watchdog_deinit_call_order <= user_cleanup_call_order)
     {
-        (void)printf("ERROR: watchdog_deinit_call_order (%d) should be greater than user_cleanup_call_order (%d)\r\n",
+        LogError("watchdog_deinit_call_order (%d) should be greater than user_cleanup_call_order (%d)",
             watchdog_deinit_call_order, user_cleanup_call_order);
         result = MU_FAILURE;
     }
     else if (watchdog_deinit_call_order == 0)
     {
-        (void)printf("ERROR: watchdog_deinit was never called\r\n");
+        LogError("watchdog_deinit was never called");
         result = MU_FAILURE;
     }
     else
