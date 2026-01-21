@@ -13,6 +13,7 @@ int main(void)
 
     if (logger_init() != 0)
     {
+        // using printf because logger_init failed
         (void)printf("logger_init failed\r\n");
         failedTests++;
     }
