@@ -176,7 +176,6 @@ TEST_FUNCTION(process_watchdog_terminates_on_timeout)
         "Process terminated too late: %.0f ms > %d ms", elapsed_ms, WATCHDOG_TIMEOUT_MS + TOLERANCE_MS);
 
     // The child should NOT have exited cleanly (it was terminated by watchdog)
-    // On Linux, the watchdog calls abort() which terminates the process with SIGABRT (exit code 134 = 128 + 6)
     ASSERT_ARE_NOT_EQUAL(int, CHILD_EXIT_CODE_SURVIVED_TIMEOUT, exit_code,
         "Child process survived the timeout - watchdog did not terminate it");
 }
