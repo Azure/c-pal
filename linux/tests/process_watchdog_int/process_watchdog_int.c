@@ -56,13 +56,22 @@ static int launch_and_wait_for_child(const char* exe_path, uint32_t timeout_ms, 
     else if (pid == 0)
     {
         // Child process - exec the test program
+        // Note: Cannot use ASSERT macros in forked child as they would affect child process, not the test
         char timeout_str[32];
-        (void)snprintf(timeout_str, sizeof(timeout_str), "%" PRIu32, timeout_ms);
-        execl(exe_path, exe_path, timeout_str, NULL);
+        int snprintf_result = snprintf(timeout_str, sizeof(timeout_str), "%" PRIu32, timeout_ms);
+        if (snprintf_result < 0 || (size_t)snprintf_result >= sizeof(timeout_str))
+        {
+            (void)fprintf(stderr, "snprintf failed for timeout_ms\n");
+            _exit(126);
+        }
+        else
+        {
+            execl(exe_path, exe_path, timeout_str, NULL);
 
-        // If execl returns, it failed
-        (void)fprintf(stderr, "execl failed: %s\n", strerror(errno));
-        _exit(127);
+            // If execl returns, it failed. fprintf return value is ignored since we're exiting immediately
+            (void)fprintf(stderr, "execl failed: %s\n", strerror(errno));
+            _exit(127);
+        }
     }
     else
     {
@@ -78,16 +87,20 @@ static int launch_and_wait_for_child(const char* exe_path, uint32_t timeout_ms, 
             LogError("waitpid failed with error: %s", strerror(errno));
             result = -1;
         }
+        // WIFEXITED: returns true if child terminated normally (via exit() or return from main)
         else if (WIFEXITED(status))
         {
+            // WEXITSTATUS: extracts the exit code passed to exit() or returned from main
             result = WEXITSTATUS(status);
             LogInfo("Child process exited with status %d", result);
         }
+        // WIFSIGNALED: returns true if child was terminated by a signal
         else if (WIFSIGNALED(status))
         {
+            // WTERMSIG: extracts the signal number that caused termination
             int sig = WTERMSIG(status);
             LogInfo("Child process was terminated by signal %d", sig);
-            // Return signal number + 128 to indicate signal termination
+            // Return signal number + 128 to indicate signal termination (standard shell convention)
             result = 128 + sig;
         }
         else
@@ -100,15 +113,23 @@ static int launch_and_wait_for_child(const char* exe_path, uint32_t timeout_ms, 
     return result;
 }
 
+// Constructs the path to the child test executable.
+// The child executable is built in a sibling directory to this test:
+//   test_exe:   BUILD_DIR/process_watchdog_int/process_watchdog_int
+//   child_exe:  BUILD_DIR/process_watchdog_int_child/process_watchdog_int_child
+// This function reads /proc/self/exe to get the current executable path,
+// extracts its directory, then navigates to the sibling child directory.
 static void get_child_exe_path(char* buffer, size_t buffer_size)
 {
-    // Get the directory of the current executable
+    // readlink: reads the symbolic link /proc/self/exe which points to the current executable
     char exe_path[1024];
     ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
     ASSERT_IS_TRUE(len > 0);
     exe_path[len] = '\0';
+    // dirname: extracts the directory portion of the path
     char* dir = dirname(exe_path);
     ASSERT_IS_NOT_NULL(dir);
+    // Navigate up one level (..) then into the child test directory
     int snprintf_result = snprintf(buffer, buffer_size, "%s/../process_watchdog_int_child/process_watchdog_int_child", dir);
     ASSERT_IS_TRUE(snprintf_result > 0 && (size_t)snprintf_result < buffer_size);
 }
@@ -155,7 +176,7 @@ TEST_FUNCTION(process_watchdog_terminates_on_timeout)
         "Process terminated too late: %.0f ms > %d ms", elapsed_ms, WATCHDOG_TIMEOUT_MS + TOLERANCE_MS);
 
     // The child should NOT have exited cleanly (it was terminated by watchdog)
-    // On Linux, it may exit via abort() or similar
+    // On Linux, the watchdog calls abort() which terminates the process with SIGABRT (exit code 134 = 128 + 6)
     ASSERT_ARE_NOT_EQUAL(int, CHILD_EXIT_CODE_SURVIVED_TIMEOUT, exit_code,
         "Child process survived the timeout - watchdog did not terminate it");
 }
