@@ -6,6 +6,8 @@ set(process_watchdog_int_child_c_files
 
 add_executable(process_watchdog_int_child ${process_watchdog_int_child_c_files})
 
+target_include_directories(process_watchdog_int_child PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../../../interfaces/tests/process_watchdog_int_common)
+
 target_link_libraries(process_watchdog_int_child c_pal c_logging_v2)
 
 set_output_folder_properties(process_watchdog_int_child)

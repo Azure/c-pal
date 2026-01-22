@@ -21,6 +21,9 @@
 
 #include "c_pal/timer.h"
 
+// Shared exit codes between parent and child
+#include "process_watchdog_int_common.h"
+
 // Timeout for the child process watchdog (3 seconds)
 #define WATCHDOG_TIMEOUT_MS 3000
 
@@ -28,11 +31,8 @@
 // Allow variance for process startup, VLD initialization/shutdown, and scheduling
 #define TOLERANCE_MS 5000
 
-// Maximum time to wait for child (should be much more than timeout + tolerance)
-#define MAX_WAIT_MS 10000
-
-// Child exit code when it survives the timeout (indicates failure)
-#define CHILD_EXIT_CODE_SURVIVED_TIMEOUT 2
+// Maximum time to wait for child (computed from timeout + tolerance)
+#define MAX_WAIT_MS (WATCHDOG_TIMEOUT_MS + TOLERANCE_MS)
 
 static int launch_and_wait_for_child(const char* exe_path, uint32_t timeout_ms, double* out_elapsed_ms)
 {
@@ -41,7 +41,8 @@ static int launch_and_wait_for_child(const char* exe_path, uint32_t timeout_ms, 
     PROCESS_INFORMATION pi = { 0 };
     char cmd_line[512];
 
-    (void)snprintf(cmd_line, sizeof(cmd_line), "\"%s\" %" PRIu32, exe_path, timeout_ms);
+    int snprintf_result = snprintf(cmd_line, sizeof(cmd_line), "\"%s\" %" PRIu32, exe_path, timeout_ms);
+    ASSERT_IS_TRUE(snprintf_result > 0 && (size_t)snprintf_result < sizeof(cmd_line));
 
     LogInfo("Launching child process: %s", cmd_line);
 
@@ -97,17 +98,17 @@ static void get_child_exe_path(char* buffer, size_t buffer_size)
 {
     // Get the directory of the current executable
     char module_path[MAX_PATH];
-    GetModuleFileNameA(NULL, module_path, MAX_PATH);
+    DWORD path_len = GetModuleFileNameA(NULL, module_path, MAX_PATH);
+    ASSERT_IS_TRUE(path_len > 0 && path_len < MAX_PATH);
 
     // Find the last backslash
     char* last_slash = strrchr(module_path, '\\');
-    if (last_slash != NULL)
-    {
-        *last_slash = '\0';
-    }
+    ASSERT_IS_NOT_NULL(last_slash);
+    *last_slash = '\0';
 
     // Construct the child executable path (child is in sibling folder)
-    (void)snprintf(buffer, buffer_size, "%s\\..\\process_watchdog_int_child\\process_watchdog_int_child.exe", module_path);
+    int snprintf_result = snprintf(buffer, buffer_size, "%s\\..\\process_watchdog_int_child\\process_watchdog_int_child.exe", module_path);
+    ASSERT_IS_TRUE(snprintf_result > 0 && (size_t)snprintf_result < buffer_size);
 }
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

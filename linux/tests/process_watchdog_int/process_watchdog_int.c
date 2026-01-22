@@ -26,6 +26,9 @@
 
 #include "c_pal/timer.h"
 
+// Shared exit codes between parent and child
+#include "process_watchdog_int_common.h"
+
 // Timeout for the child process watchdog (3 seconds)
 #define WATCHDOG_TIMEOUT_MS 3000
 
@@ -33,11 +36,8 @@
 // Allow variance for process startup and scheduling
 #define TOLERANCE_MS 5000
 
-// Maximum time to wait for child (should be much more than timeout + tolerance)
-#define MAX_WAIT_MS 10000
-
-// Child exit code when it survives the timeout (indicates failure)
-#define CHILD_EXIT_CODE_SURVIVED_TIMEOUT 2
+// Maximum time to wait for child (computed from timeout + tolerance)
+#define MAX_WAIT_MS (WATCHDOG_TIMEOUT_MS + TOLERANCE_MS)
 
 static int launch_and_wait_for_child(const char* exe_path, uint32_t timeout_ms, double* out_elapsed_ms)
 {
@@ -105,17 +105,12 @@ static void get_child_exe_path(char* buffer, size_t buffer_size)
     // Get the directory of the current executable
     char exe_path[1024];
     ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
-    if (len > 0)
-    {
-        exe_path[len] = '\0';
-        char* dir = dirname(exe_path);
-        (void)snprintf(buffer, buffer_size, "%s/../process_watchdog_int_child/process_watchdog_int_child", dir);
-    }
-    else
-    {
-        // Fallback: assume child is in current directory
-        (void)snprintf(buffer, buffer_size, "./process_watchdog_int_child");
-    }
+    ASSERT_IS_TRUE(len > 0);
+    exe_path[len] = '\0';
+    char* dir = dirname(exe_path);
+    ASSERT_IS_NOT_NULL(dir);
+    int snprintf_result = snprintf(buffer, buffer_size, "%s/../process_watchdog_int_child/process_watchdog_int_child", dir);
+    ASSERT_IS_TRUE(snprintf_result > 0 && (size_t)snprintf_result < buffer_size);
 }
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

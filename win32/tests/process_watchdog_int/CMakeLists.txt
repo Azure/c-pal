@@ -10,7 +10,10 @@ set(${theseTestsName}_c_files
 )
 
 set(${theseTestsName}_h_files
+    ${CMAKE_CURRENT_LIST_DIR}/../../../interfaces/tests/process_watchdog_int_common/process_watchdog_int_common.h
 )
+
+include_directories(${CMAKE_CURRENT_LIST_DIR}/../../../interfaces/tests/process_watchdog_int_common)
 
 build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS c_pal c_logging_v2)
 
