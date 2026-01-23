@@ -20,6 +20,8 @@
 #include <string.h>
 #include <libgen.h>
 
+#include "macro_utils/macro_utils.h"
+
 #include "testrunnerswitcher.h"
 
 #include "c_logging/logger.h"
@@ -43,14 +45,14 @@ static int launch_and_wait_for_child(const char* exe_path, uint32_t timeout_ms, 
 {
     int result;
 
-    LogInfo("Launching child process: %s %" PRIu32, exe_path, timeout_ms);
+    LogInfo("Launching child process: %s %" PRIu32 "", exe_path, timeout_ms);
 
     double start_ms = timer_global_get_elapsed_ms();
 
     pid_t pid = fork();
     if (pid < 0)
     {
-        LogError("fork failed with error: %s", strerror(errno));
+        LogErrorNo("fork failed");
         result = -1;
     }
     else if (pid == 0)
@@ -61,16 +63,19 @@ static int launch_and_wait_for_child(const char* exe_path, uint32_t timeout_ms, 
         int snprintf_result = snprintf(timeout_str, sizeof(timeout_str), "%" PRIu32, timeout_ms);
         if (snprintf_result < 0 || (size_t)snprintf_result >= sizeof(timeout_str))
         {
-            (void)fprintf(stderr, "snprintf failed for timeout_ms\n");
-            _exit(126);
+            // Using printf because logger_init may not have been called in child process
+            (void)printf("snprintf failed for timeout_ms\n");
+            _exit(MU_FAILURE);
         }
         else
         {
-            execl(exe_path, exe_path, timeout_str, NULL);
-
-            // If execl returns, it failed. fprintf return value is ignored since we're exiting immediately
-            (void)fprintf(stderr, "execl failed: %s\n", strerror(errno));
-            _exit(127);
+            // execl only returns on error (-1), on success it never returns
+            if (execl(exe_path, exe_path, timeout_str, NULL) == -1)
+            {
+                // Using printf because logger_init may not have been called in child process
+                (void)printf("execl failed: %s\n", strerror(errno));
+            }
+            _exit(MU_FAILURE);
         }
     }
     else
@@ -114,11 +119,11 @@ static int launch_and_wait_for_child(const char* exe_path, uint32_t timeout_ms, 
 }
 
 // Constructs the path to the child test executable.
-// The child executable is built in a sibling directory to this test:
-//   test_exe:   BUILD_DIR/process_watchdog_int/process_watchdog_int
-//   child_exe:  BUILD_DIR/process_watchdog_int_child/process_watchdog_int_child
+// The child executable is built in the same directory as this test (via CMake configuration):
+//   test_exe:   BUILD_DIR/process_watchdog_int_exe_<project>/process_watchdog_int_exe_<project>
+//   child_exe:  BUILD_DIR/process_watchdog_int_exe_<project>/process_watchdog_int_child
 // This function reads /proc/self/exe to get the current executable path,
-// extracts its directory, then navigates to the sibling child directory.
+// then looks for the child executable in the same directory.
 static void get_child_exe_path(char* buffer, size_t buffer_size)
 {
     // readlink: reads the symbolic link /proc/self/exe which points to the current executable
@@ -129,8 +134,8 @@ static void get_child_exe_path(char* buffer, size_t buffer_size)
     // dirname: extracts the directory portion of the path
     char* dir = dirname(exe_path);
     ASSERT_IS_NOT_NULL(dir);
-    // Navigate up one level (..) then into the child test directory
-    int snprintf_result = snprintf(buffer, buffer_size, "%s/../process_watchdog_int_child/process_watchdog_int_child", dir);
+    // Child exe is in the same directory
+    int snprintf_result = snprintf(buffer, buffer_size, "%s/process_watchdog_int_child", dir);
     ASSERT_IS_TRUE(snprintf_result > 0 && (size_t)snprintf_result < buffer_size);
 }
 

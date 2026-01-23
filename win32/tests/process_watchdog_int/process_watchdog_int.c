@@ -100,11 +100,11 @@ static int launch_and_wait_for_child(const char* exe_path, uint32_t timeout_ms, 
 }
 
 // Constructs the path to the child test executable.
-// The child executable is built in a sibling directory to this test:
-//   test_exe:   BUILD_DIR\process_watchdog_int\process_watchdog_int.exe
-//   child_exe:  BUILD_DIR\process_watchdog_int_child\process_watchdog_int_child.exe
+// The child executable is built in the same directory as this test (via CMake configuration):
+//   test_exe:   BUILD_DIR/process_watchdog_int_exe_<project>/process_watchdog_int_exe_<project>.exe
+//   child_exe:  BUILD_DIR/process_watchdog_int_exe_<project>/process_watchdog_int_child.exe
 // This function uses GetModuleFileNameA to get the current executable path,
-// extracts its directory, then navigates to the sibling child directory.
+// then looks for the child executable in the same directory.
 static void get_child_exe_path(char* buffer, size_t buffer_size)
 {
     // GetModuleFileNameA: retrieves the full path of the current executable (NULL = current process)
@@ -117,8 +117,8 @@ static void get_child_exe_path(char* buffer, size_t buffer_size)
     ASSERT_IS_NOT_NULL(last_slash);
     *last_slash = '\0';
 
-    // Navigate up one level (..) then into the child test directory
-    int snprintf_result = snprintf(buffer, buffer_size, "%s\\..\\process_watchdog_int_child\\process_watchdog_int_child.exe", module_path);
+    // Child exe is in the same directory
+    int snprintf_result = snprintf(buffer, buffer_size, "%s\\process_watchdog_int_child.exe", module_path);
     ASSERT_IS_TRUE(snprintf_result > 0 && (size_t)snprintf_result < buffer_size);
 }
 

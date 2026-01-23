@@ -10,9 +10,9 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
-#include <unistd.h>
-
 #include "c_logging/logger.h"
+
+#include "c_pal/threadapi.h"
 
 #include "c_pal/process_watchdog.h"
 
@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
     }
     else
     {
-        if (argc < 2)
+        if (argc < 2 || argv[1] == NULL)
         {
             LogError("Usage: process_watchdog_int_child <timeout_ms>");
             result = CHILD_EXIT_CODE_INIT_FAILED;
@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
 
                 // Sleep longer than the timeout - the watchdog should terminate us
                 uint32_t sleep_time_ms = timeout_ms * 2;
-                usleep(sleep_time_ms * 1000);
+                ThreadAPI_Sleep(sleep_time_ms);
 
                 // If we reach here, the watchdog did NOT terminate the process
                 LogError("Watchdog did not terminate process after timeout!");
