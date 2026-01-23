@@ -15,7 +15,7 @@
 /*Codes_SRS_TIMED_TEST_SUITE_43_003: [ TIMED_TEST_SUITE_INITIALIZE shall call TEST_SUITE_INITIALIZE with the watchdog init fixture as the first fixture, followed by any additional fixtures passed via variadic arguments. ]*/
 /*Codes_SRS_TIMED_TEST_SUITE_43_004: [ The watchdog init fixture shall execute before the user's initialization code. ]*/
 #define TIMED_TEST_SUITE_INITIALIZE(name, timeout_ms, ...) \
-    static void MU_C2(timed_test_watchdog_init_, name)(void) { if (process_watchdog_init(timeout_ms) != 0) { (void)printf("ERROR: process_watchdog_init failed\n"); } } \
+    static void MU_C2(timed_test_watchdog_init_, name)(void) { ASSERT_ARE_EQUAL(int, 0, process_watchdog_init(timeout_ms)); } \
     TEST_SUITE_INITIALIZE(name, MU_C2(timed_test_watchdog_init_, name), ##__VA_ARGS__)
 
 // Cleanup - stops the watchdog after user cleanup code runs
