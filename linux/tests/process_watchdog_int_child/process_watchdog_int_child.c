@@ -1,9 +1,10 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 
 // This is a child process (Linux version) that:
-// 1. Initializes process_watchdog with a short timeout
-// 2. Sleeps longer than the timeout
-// 3. Gets terminated by the watchdog when timeout fires
+// 1. Initializes process_watchdog with the specified timeout
+// 2. Sleeps for the specified duration (or timeout*2 if not specified)
+// 3. If sleep < timeout: completes successfully before watchdog fires
+// 4. If sleep >= timeout: gets terminated by the watchdog
 // The parent process (process_watchdog_int.c) launches this and verifies timing.
 
 #include <stdio.h>
@@ -31,14 +32,16 @@ int main(int argc, char* argv[])
     {
         if (argc < 2 || argv[1] == NULL)
         {
-            LogError("Usage: process_watchdog_int_child <timeout_ms>");
+            LogError("Usage: process_watchdog_int_child <timeout_ms> [sleep_ms]");
             result = CHILD_EXIT_CODE_INIT_FAILED;
         }
         else
         {
             uint32_t timeout_ms = (uint32_t)atoi(argv[1]);
+            // If sleep_ms is provided, use it; otherwise default to timeout_ms * 2
+            uint32_t sleep_time_ms = (argc >= 3 && argv[2] != NULL) ? (uint32_t)atoi(argv[2]) : timeout_ms * 2;
 
-            LogInfo("Child process starting with timeout_ms=%" PRIu32, timeout_ms);
+            LogInfo("Child process starting with timeout_ms=%" PRIu32 ", sleep_ms=%" PRIu32, timeout_ms, sleep_time_ms);
 
             if (process_watchdog_init(timeout_ms) != 0)
             {
@@ -47,17 +50,25 @@ int main(int argc, char* argv[])
             }
             else
             {
-                LogInfo("Watchdog initialized, waiting for timeout...");
+                LogInfo("Watchdog initialized, sleeping for %" PRIu32 " ms...", sleep_time_ms);
 
-                // Sleep longer than the timeout - the watchdog should terminate us
-                uint32_t sleep_time_ms = timeout_ms * 2;
                 ThreadAPI_Sleep(sleep_time_ms);
 
                 // If we reach here, the watchdog did NOT terminate the process
-                LogError("Watchdog did not terminate process after timeout!");
-
-                process_watchdog_deinit();
-                result = CHILD_EXIT_CODE_SURVIVED_TIMEOUT;
+                if (sleep_time_ms < timeout_ms)
+                {
+                    // Expected: child completed before watchdog timeout
+                    LogInfo("Child completed successfully before watchdog timeout");
+                    process_watchdog_deinit();
+                    result = CHILD_EXIT_CODE_SUCCESS;
+                }
+                else
+                {
+                    // Unexpected: watchdog should have terminated us
+                    LogError("Watchdog did not terminate process after timeout!");
+                    process_watchdog_deinit();
+                    result = CHILD_EXIT_CODE_SURVIVED_TIMEOUT;
+                }
             }
         }
 
