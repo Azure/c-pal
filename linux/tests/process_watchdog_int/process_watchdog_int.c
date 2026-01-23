@@ -19,6 +19,7 @@
 #include <errno.h>
 #include <string.h>
 #include <libgen.h>
+#include <spawn.h>
 
 #include "macro_utils/macro_utils.h"
 
@@ -45,73 +46,66 @@ static int launch_and_wait_for_child(const char* exe_path, uint32_t timeout_ms, 
 {
     int result;
 
-    LogInfo("Launching child process: %s %" PRIu32 "", exe_path, timeout_ms);
-
-    double start_ms = timer_global_get_elapsed_ms();
-
-    pid_t pid = fork();
-    if (pid < 0)
+    // Build argv array for posix_spawn
+    char timeout_str[32];
+    int snprintf_result = snprintf(timeout_str, sizeof(timeout_str), "%" PRIu32, timeout_ms);
+    if (snprintf_result < 0 || (size_t)snprintf_result >= sizeof(timeout_str))
     {
-        LogErrorNo("fork failed");
+        LogError("snprintf failed for timeout_ms");
         result = -1;
-    }
-    else if (pid == 0)
-    {
-        // Child process - exec the test program
-        // Note: Cannot use ASSERT macros in forked child as they would affect child process, not the test
-        char timeout_str[32];
-        int snprintf_result = snprintf(timeout_str, sizeof(timeout_str), "%" PRIu32, timeout_ms);
-        if (snprintf_result < 0 || (size_t)snprintf_result >= sizeof(timeout_str))
-        {
-            // Using printf because logger_init may not have been called in child process
-            (void)printf("snprintf failed for timeout_ms\n");
-            _exit(MU_FAILURE);
-        }
-        else
-        {
-            // execl only returns on error (-1), on success it never returns
-            if (execl(exe_path, exe_path, timeout_str, NULL) == -1)
-            {
-                // Using printf because logger_init may not have been called in child process
-                (void)printf("execl failed: %s\n", strerror(errno));
-            }
-            _exit(MU_FAILURE);
-        }
     }
     else
     {
-        // Parent process - wait for child
-        int status;
-        pid_t wait_result = waitpid(pid, &status, 0);
+        // posix_spawn argv: program name, arguments, NULL terminator
+        char* argv[] = { (char*)exe_path, timeout_str, NULL };
 
-        double end_ms = timer_global_get_elapsed_ms();
-        *out_elapsed_ms = end_ms - start_ms;
+        LogInfo("Launching child process: %s %" PRIu32 "", exe_path, timeout_ms);
 
-        if (wait_result < 0)
+        double start_ms = timer_global_get_elapsed_ms();
+
+        // posix_spawn creates a new process without fork(), avoiding inherited state issues
+        pid_t pid;
+        int spawn_result = posix_spawn(&pid, exe_path, NULL, NULL, argv, NULL);
+        if (spawn_result != 0)
         {
-            LogError("waitpid failed with error: %s", strerror(errno));
+            LogError("posix_spawn failed with error %d: %s", spawn_result, strerror(spawn_result));
             result = -1;
-        }
-        // WIFEXITED: returns true if child terminated normally (via exit() or return from main)
-        else if (WIFEXITED(status))
-        {
-            // WEXITSTATUS: extracts the exit code passed to exit() or returned from main
-            result = WEXITSTATUS(status);
-            LogInfo("Child process exited with status %d", result);
-        }
-        // WIFSIGNALED: returns true if child was terminated by a signal
-        else if (WIFSIGNALED(status))
-        {
-            // WTERMSIG: extracts the signal number that caused termination
-            int sig = WTERMSIG(status);
-            LogInfo("Child process was terminated by signal %d", sig);
-            // Return signal number + 128 to indicate signal termination (standard shell convention)
-            result = 128 + sig;
         }
         else
         {
-            LogError("Child process terminated abnormally");
-            result = -1;
+            // Wait for child process
+            int status;
+            pid_t wait_result = waitpid(pid, &status, 0);
+
+            double end_ms = timer_global_get_elapsed_ms();
+            *out_elapsed_ms = end_ms - start_ms;
+
+            if (wait_result < 0)
+            {
+                LogError("waitpid failed with error: %s", strerror(errno));
+                result = -1;
+            }
+            // WIFEXITED: returns true if child terminated normally (via exit() or return from main)
+            else if (WIFEXITED(status))
+            {
+                // WEXITSTATUS: extracts the exit code passed to exit() or returned from main
+                result = WEXITSTATUS(status);
+                LogInfo("Child process exited with status %d", result);
+            }
+            // WIFSIGNALED: returns true if child was terminated by a signal
+            else if (WIFSIGNALED(status))
+            {
+                // WTERMSIG: extracts the signal number that caused termination
+                int sig = WTERMSIG(status);
+                LogInfo("Child process was terminated by signal %d", sig);
+                // Return signal number + 128 to indicate signal termination (standard shell convention)
+                result = 128 + sig;
+            }
+            else
+            {
+                LogError("Child process terminated abnormally");
+                result = -1;
+            }
         }
     }
 
