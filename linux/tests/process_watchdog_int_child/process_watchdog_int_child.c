@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
             // If sleep_ms is provided, use it; otherwise default to timeout_ms * 2
             uint32_t sleep_time_ms = (argc >= 3 && argv[2] != NULL) ? (uint32_t)atoi(argv[2]) : timeout_ms * 2;
 
-            LogInfo("Child process starting with timeout_ms=%" PRIu32 ", sleep_ms=%" PRIu32, timeout_ms, sleep_time_ms);
+            LogInfo("Child process starting with timeout_ms=%" PRIu32 "" ", sleep_ms=%" PRIu32 "", timeout_ms, sleep_time_ms);
 
             if (process_watchdog_init(timeout_ms) != 0)
             {
@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
             }
             else
             {
-                LogInfo("Watchdog initialized, sleeping for %" PRIu32 " ms...", sleep_time_ms);
+                LogInfo("Watchdog initialized, sleeping for %" PRIu32 "" " ms...", sleep_time_ms);
 
                 ThreadAPI_Sleep(sleep_time_ms);
 

@@ -3,18 +3,6 @@
 // Integration test for process_watchdog module (Windows version).
 // This test verifies that the watchdog correctly terminates a process after timeout
 // and also verifies that the process completes successfully when it finishes before timeout.
-//
-// Test strategy for timeout test:
-// 1. Launch a child process that initializes watchdog with a short timeout
-// 2. The child sleeps longer than the timeout
-// 3. The watchdog should terminate the child
-// 4. Verify that the child was terminated within the expected time window
-//
-// Test strategy for no-timeout test:
-// 1. Launch a child process that initializes watchdog with a long timeout
-// 2. The child sleeps for a short duration (less than timeout)
-// 3. The child should complete successfully before watchdog fires
-// 4. Verify that the child exited with success code
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -52,7 +40,7 @@ static int launch_and_wait_for_child(const char* exe_path, uint32_t timeout_ms, 
     PROCESS_INFORMATION pi = { 0 };
     char cmd_line[512];
 
-    int snprintf_result = snprintf(cmd_line, sizeof(cmd_line), "\"%s\" %" PRIu32 " %" PRIu32, exe_path, timeout_ms, sleep_ms);
+    int snprintf_result = snprintf(cmd_line, sizeof(cmd_line), "\"%s\" %" PRIu32 "" " %" PRIu32 "", exe_path, timeout_ms, sleep_ms);
     ASSERT_IS_TRUE(snprintf_result > 0 && (size_t)snprintf_result < sizeof(cmd_line));
 
     LogInfo("Launching child process: %s", cmd_line);
@@ -61,7 +49,7 @@ static int launch_and_wait_for_child(const char* exe_path, uint32_t timeout_ms, 
 
     if (!CreateProcessA(NULL, cmd_line, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
     {
-        LogError("CreateProcessA failed with error %" PRIu32, GetLastError());
+        LogError("CreateProcessA failed with error %" PRIu32 "", GetLastError());
         result = -1;
     }
     else
@@ -83,7 +71,7 @@ static int launch_and_wait_for_child(const char* exe_path, uint32_t timeout_ms, 
         // WAIT_FAILED: the wait function failed
         else if (wait_result == WAIT_FAILED)
         {
-            LogError("WaitForSingleObject failed with error %" PRIu32, GetLastError());
+            LogError("WaitForSingleObject failed with error %" PRIu32 "", GetLastError());
             result = -1;
         }
         // WAIT_OBJECT_0: the process handle was signaled (process terminated)
@@ -93,12 +81,12 @@ static int launch_and_wait_for_child(const char* exe_path, uint32_t timeout_ms, 
             // GetExitCodeProcess: retrieves the exit code of the terminated process
             if (!GetExitCodeProcess(pi.hProcess, &exit_code))
             {
-                LogError("GetExitCodeProcess failed with error %" PRIu32, GetLastError());
+                LogError("GetExitCodeProcess failed with error %" PRIu32 "", GetLastError());
                 result = -1;
             }
             else
             {
-                LogInfo("Child process terminated with exit code %" PRIu32, exit_code);
+                LogInfo("Child process terminated with exit code %" PRIu32 "", exit_code);
                 result = (int)exit_code;
             }
         }
@@ -111,11 +99,11 @@ static int launch_and_wait_for_child(const char* exe_path, uint32_t timeout_ms, 
 }
 
 // Constructs the path to the child test executable.
-// The child executable is built in the parent directory of this test:
+// The child executable is built in a sibling directory of this test:
 //   test_exe:   BUILD_DIR/process_watchdog_int_exe_<project>/process_watchdog_int_exe_<project>.exe
-//   child_exe:  BUILD_DIR/process_watchdog_int_child.exe
+//   child_exe:  BUILD_DIR/process_watchdog_int_child/process_watchdog_int_child.exe
 // This function uses GetModuleFileNameA to get the current executable path,
-// then looks for the child executable in the parent directory.
+// then looks for the child executable in its sibling directory.
 static void get_child_exe_path(char* buffer, size_t buffer_size)
 {
     // GetModuleFileNameA: retrieves the full path of the current executable (NULL = current process)
@@ -128,8 +116,8 @@ static void get_child_exe_path(char* buffer, size_t buffer_size)
     ASSERT_IS_NOT_NULL(last_slash);
     *last_slash = '\0';
 
-    // Go up one level to BUILD_DIR where the child executable is located
-    int snprintf_result = snprintf(buffer, buffer_size, "%s\\..\\process_watchdog_int_child.exe", module_path);
+    // Go up one level to BUILD_DIR, then into child's directory
+    int snprintf_result = snprintf(buffer, buffer_size, "%s\\..\\process_watchdog_int_child\\process_watchdog_int_child.exe", module_path);
     ASSERT_IS_TRUE(snprintf_result > 0 && (size_t)snprintf_result < buffer_size);
 }
 
@@ -152,6 +140,11 @@ TEST_FUNCTION_CLEANUP(function_cleanup)
 }
 
 // Test that process_watchdog terminates a process after timeout
+// Test strategy:
+// 1. Launch a child process that initializes watchdog with a short timeout (WATCHDOG_TIMEOUT_MS)
+// 2. The child sleeps longer than the timeout (sleep_ms = timeout * 2)
+// 3. The watchdog should terminate the child
+// 4. Verify that the child was terminated within the expected time window
 TEST_FUNCTION(process_watchdog_terminates_on_timeout)
 {
     // arrange
@@ -160,16 +153,16 @@ TEST_FUNCTION(process_watchdog_terminates_on_timeout)
     LogInfo("Child executable path: %s", child_exe_path);
 
     double elapsed_ms = 0;
-    // Sleep for twice the timeout to ensure watchdog triggers
+    // 1. Launch child with short timeout, 2. child sleeps longer than timeout
     uint32_t sleep_ms = WATCHDOG_TIMEOUT_MS * 2;
 
-    // act - launch child and wait for termination
+    // act - 3. launch child and wait for watchdog to terminate it
     int exit_code = launch_and_wait_for_child(child_exe_path, WATCHDOG_TIMEOUT_MS, sleep_ms, &elapsed_ms);
 
     LogInfo("Child process elapsed time: %.0f ms", elapsed_ms);
     LogInfo("Child process exit code: %d", exit_code);
 
-    // assert - verify timing
+    // assert - 4. verify timing and termination
     // The process should terminate after the timeout but within tolerance
     ASSERT_IS_TRUE(elapsed_ms >= WATCHDOG_TIMEOUT_MS,
         "Process terminated too early: %.0f ms < %d ms", elapsed_ms, WATCHDOG_TIMEOUT_MS);
@@ -182,6 +175,11 @@ TEST_FUNCTION(process_watchdog_terminates_on_timeout)
 }
 
 // Test that process_watchdog does NOT terminate a process that completes before timeout
+// Test strategy:
+// 1. Launch a child process that initializes watchdog with a long timeout (LONG_TIMEOUT_MS)
+// 2. The child sleeps for a short duration (SHORT_SLEEP_MS, less than timeout)
+// 3. The child should complete successfully before watchdog fires
+// 4. Verify that the child exited with success code
 TEST_FUNCTION(process_watchdog_does_not_terminate_before_timeout)
 {
     // arrange
@@ -191,14 +189,14 @@ TEST_FUNCTION(process_watchdog_does_not_terminate_before_timeout)
 
     double elapsed_ms = 0;
 
-    // act - launch child with long timeout but short sleep
-    // Child should complete successfully before watchdog fires
+    // act - 1. launch child with long timeout, 2. child sleeps for short duration
+    // 3. child should complete successfully before watchdog fires
     int exit_code = launch_and_wait_for_child(child_exe_path, LONG_TIMEOUT_MS, SHORT_SLEEP_MS, &elapsed_ms);
 
     LogInfo("Child process elapsed time: %.0f ms", elapsed_ms);
     LogInfo("Child process exit code: %d", exit_code);
 
-    // assert - verify timing
+    // assert - 4. verify timing and successful completion
     // The process should complete around SHORT_SLEEP_MS (with some tolerance for startup)
     ASSERT_IS_TRUE(elapsed_ms >= SHORT_SLEEP_MS,
         "Process completed too early: %.0f ms < %d ms", elapsed_ms, SHORT_SLEEP_MS);
