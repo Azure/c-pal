@@ -2,7 +2,7 @@
 
 // This is a child process (Windows version) that:
 // 1. Initializes process_watchdog with the specified timeout
-// 2. Sleeps for the specified duration (or timeout*2 if not specified)
+// 2. Sleeps for the specified duration
 // 3. If sleep < timeout: completes successfully before watchdog fires
 // 4. If sleep >= timeout: gets terminated by the watchdog
 // The parent process (process_watchdog_int.c) launches this and verifies timing.
@@ -30,16 +30,15 @@ int main(int argc, char* argv[])
     }
     else
     {
-        if (argc < 2 || argv[1] == NULL)
+        if (argc < 3 || argv[1] == NULL || argv[2] == NULL)
         {
-            LogError("Usage: process_watchdog_int_child <timeout_ms> [sleep_ms]");
+            LogError("Usage: process_watchdog_int_child <timeout_ms> <sleep_ms>");
             result = CHILD_EXIT_CODE_INIT_FAILED;
         }
         else
         {
             uint32_t timeout_ms = (uint32_t)atoi(argv[1]);
-            // If sleep_ms is provided, use it; otherwise default to timeout_ms * 2
-            uint32_t sleep_time_ms = (argc >= 3 && argv[2] != NULL) ? (uint32_t)atoi(argv[2]) : timeout_ms * 2;
+            uint32_t sleep_time_ms = (uint32_t)atoi(argv[2]);
 
             LogInfo("Child process starting with timeout_ms=%" PRIu32 "" ", sleep_ms=%" PRIu32 "", timeout_ms, sleep_time_ms);
 
