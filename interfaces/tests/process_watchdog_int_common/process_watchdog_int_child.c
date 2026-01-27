@@ -1,6 +1,6 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 
-// This is a child process (Windows version) that:
+// This is a child process that:
 // 1. Initializes process_watchdog with the specified timeout
 // 2. Sleeps for the specified duration
 // 3. If sleep < timeout: completes successfully before watchdog fires
