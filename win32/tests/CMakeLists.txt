@@ -39,9 +39,11 @@ endif()
 
 if(${run_int_tests})
     add_subdirectory(job_object_helper_tester)
+    add_subdirectory(process_watchdog_int_child)
     build_test_folder(malloc_multi_flex_int)
     build_test_folder(string_utils_int)
     build_test_folder(job_object_helper_int)
+    build_test_folder(process_watchdog_int)
 
     if((${GBALLOC_LL_TYPE} STREQUAL "MIMALLOC"))
         build_test_folder(gballoc_ll_mimalloc_int)
