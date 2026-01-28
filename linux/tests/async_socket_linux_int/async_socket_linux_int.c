@@ -207,7 +207,7 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 
 TEST_FUNCTION(connect_no_send_succeeds)
 {
-    // assert
+    // arrange
     // create an execution engine
     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
@@ -238,6 +238,11 @@ TEST_FUNCTION(connect_no_send_succeeds)
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(client_async_socket, receive_payload_buffers, 1, on_receive_abandoned_complete, NULL));
     ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(server_async_socket, receive_payload_buffers, 1, on_receive_abandoned_complete, NULL));
 
+    // act
+
+    // assert
+
+    // cleanup
     async_socket_close(server_async_socket);
     async_socket_close(client_async_socket);
     async_socket_destroy(server_async_socket);
@@ -248,7 +253,7 @@ TEST_FUNCTION(connect_no_send_succeeds)
 
 TEST_FUNCTION(send_and_receive_1_byte_succeeds)
 {
-    // assert
+    // arrange
     // create an execution engine
     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
@@ -296,6 +301,7 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
 
     ASSERT_ARE_EQUAL(int, 0, memcmp(receive_payload_buffers[0].buffer, send_payload_buffers[0].buffer, sizeof(data_payload)));
 
+    // cleanup
     async_socket_close(server_async_socket);
     async_socket_close(client_async_socket);
     close(listen_socket);
@@ -306,7 +312,7 @@ TEST_FUNCTION(send_and_receive_1_byte_succeeds)
 
 TEST_FUNCTION(receive_and_send_2_buffers_succeeds)
 {
-    // assert
+    // arrange
     // create an execution engine
     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
@@ -369,7 +375,7 @@ TEST_FUNCTION(receive_and_send_2_buffers_succeeds)
 
 TEST_FUNCTION(when_server_socket_is_closed_receive_errors_on_client_side)
 {
-    // assert
+    // arrange
     // create an execution engine
     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
@@ -414,7 +420,7 @@ TEST_FUNCTION(when_server_socket_is_closed_receive_errors_on_client_side)
 
 TEST_FUNCTION(multiple_sends_and_receives_succeeds)
 {
-    // assert
+    // arrange
     // create an execution engine
     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
@@ -469,6 +475,7 @@ TEST_FUNCTION(multiple_sends_and_receives_succeeds)
     wait_for_value(&send_counter, 3);
     wait_for_value(&recv_counter, expected_recv_size);
 
+    // cleanup
     async_socket_close(server_async_socket);
     async_socket_close(client_async_socket);
     close(listen_socket);
@@ -481,6 +488,7 @@ TEST_FUNCTION(multiple_sends_and_receives_succeeds)
 
 TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _sockets_items))
 {
+    // arrange
     // create an execution engine
     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
@@ -525,9 +533,10 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _sockets_items))
     interlocked_exchange(&send_counter, 0);
     interlocked_exchange(&recv_size, 0);
 
+    // act
     for (uint32_t index = 0; index < socket_count; index++)
     {
-        // act (send bytes and receive it)
+        // send bytes and receive it
         ASSERT_ARE_EQUAL(ASYNC_SOCKET_SEND_SYNC_RESULT, ASYNC_SOCKET_SEND_SYNC_OK, async_socket_send_async(server_async_socket[index], send_payload_buffers, 1, on_send_complete, (void*)&send_counter), "Failure sending socket 1");
         expected_recv_size += send_payload_buffers[0].length;
         ASSERT_ARE_EQUAL(int, 0, async_socket_receive_async(client_async_socket[index], receive_payload_buffers, 1, on_receive_and_accumulate_complete, (void*)&recv_size));
@@ -537,6 +546,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _sockets_items))
     wait_for_value(&send_counter, socket_count);
     wait_for_value(&recv_size, expected_recv_size);
 
+    // cleanup
     close(listen_socket);
     for (uint32_t index = 0; index < socket_count; index++)
     {

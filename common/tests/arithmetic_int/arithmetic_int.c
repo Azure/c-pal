@@ -37,6 +37,7 @@ typedef struct TEST_TAG
 /*Tests_SRS_ARITHMETIC_02_001: [ umul64x64 shall multiply left and right and return PAL_UINT128 as result.]*/
 TEST_FUNCTION(umul64x64_combinations) /**/
 {
+    // arrange
     TEST all[] = {
         {.left = 0, .right = 0, .high = 0, .low = 0},
         {.left = 1, .right = 0, .high = 0, .low = 0},
@@ -1058,7 +1059,10 @@ TEST_FUNCTION(umul64x64_combinations) /**/
 
     for (uint32_t i = 0; i < sizeof(all) / sizeof(all[0]); i++)
     {
+        // act
         PAL_UINT128 result = umul64x64(all[i].left, all[i].right);
+
+        // assert
         ASSERT_ARE_EQUAL(uint64_t, all[i].high, result.high);
         ASSERT_ARE_EQUAL(uint64_t, all[i].low, result.low);
     }

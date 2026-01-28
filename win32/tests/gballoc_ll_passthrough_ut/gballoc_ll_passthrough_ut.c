@@ -59,6 +59,7 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
 /*Tests_SRS_GBALLOC_LL_PASSTHROUGH_02_001: [ gballoc_ll_init shall return 0. ]*/
 TEST_FUNCTION(gballoc_ll_init_returns_0)
 {
+    ///arrange
     int result;
     
     ///act

@@ -52,8 +52,9 @@ TEST_FUNCTION(set_last_error_code_SUCCESS)
     uint32_t err_code = ERROR_INVALID_ACCESS;
     error_handling_linux_set_last_error(err_code);
 
+    ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-} 
+}
 
 /*Tests_SRS_ERROR_HANDLING_LINUX_09_005: [ On success, error_handling_linux_get_last_error shall return the value last set through set_last_error or zero ]*/
 /*Tests_SRS_ERROR_HANDLING_LINUX_09_006: [ error_handling_linux_get_last_error shall call interlocked_add with last_error_code and zero. ]*/

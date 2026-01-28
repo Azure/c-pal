@@ -475,6 +475,8 @@ TEST_FUNCTION(srw_lock_try_acquire_shared_fails_when_apply_read_lock_fails)
 /* Tests_SRS_SRW_LOCK_LINUX_07_021: [ If handle is NULL, srw_lock_release_shared shall return. ]*/
 TEST_FUNCTION(srw_lock_release_shared_with_handle_NULL_returns)
 {
+    //arrange
+
     //act
     srw_lock_release_shared(NULL);
 
@@ -506,6 +508,7 @@ TEST_FUNCTION(srw_lock_release_shared_succeeds)
 /* Tests_SRS_SRW_LOCK_LINUX_07_023: [ If handle is NULL then srw_lock_destroy shall return. ]*/
 TEST_FUNCTION(srw_lock_destroy_with_handle_NULL_returns)
 {
+    //arrange
 
     //act
     srw_lock_destroy(NULL);

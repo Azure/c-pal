@@ -226,6 +226,7 @@ TEST_FUNCTION(wake_up_all_threads)
         wake_by_address_all(&var);
     } while (interlocked_add(&woken_threads, 0) < 100);
 
+    // assert
     LogInfo("Joining threads");
     for (int i = 0; i < 100; ++i)
     {
@@ -272,6 +273,7 @@ TEST_FUNCTION(wake_up_all_threads_64)
         wake_by_address_all_64(&var);
     } while (interlocked_add_64(&woken_threads_64, 0) < 100);
 
+    // assert
     LogInfo("Joining threads");
     for (int i = 0; i < 100; ++i)
     {

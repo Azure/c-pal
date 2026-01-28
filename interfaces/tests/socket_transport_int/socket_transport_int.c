@@ -77,13 +77,12 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 #if WIN32
 TEST_FUNCTION(connect_to_endpoint_timesout)
 {
-    // assert;
-
+    // arrange
     // create the async socket object
     SOCKET_TRANSPORT_HANDLE client_socket = socket_transport_create_client();
     ASSERT_IS_NOT_NULL(client_socket);
 
-
+    // act
     double start_time = timer_global_get_elapsed_ms();
     ASSERT_ARE_NOT_EQUAL(int, 0, socket_transport_connect(client_socket, "localhost", g_port_num, TEST_CONN_TIMEOUT));
     double time_elapsed = timer_global_get_elapsed_ms() - start_time;
@@ -92,11 +91,11 @@ TEST_FUNCTION(connect_to_endpoint_timesout)
     // not exact
     time_elapsed += 500;
 
+    // assert
     // Ensure that the elapsed time is greater than or equal to the connection timeout
     ASSERT_IS_TRUE(time_elapsed >= TEST_CONN_TIMEOUT, "Connection did not time out correctly: expected timeout: %" PRId32 " actual time: %f", TEST_CONN_TIMEOUT, time_elapsed);
 
     // cleanup
-
     socket_transport_disconnect(client_socket);
     socket_transport_destroy(client_socket);
 
@@ -104,6 +103,7 @@ TEST_FUNCTION(connect_to_endpoint_timesout)
 
 TEST_FUNCTION(socket_transport_accept_timesout)
 {
+    // arrange
     SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(listen_socket);
 
@@ -111,8 +111,7 @@ TEST_FUNCTION(socket_transport_accept_timesout)
 
     socket_transport_listen(listen_socket, (uint16_t) - 1);
 
-    // assert
-
+    // act
     SOCKET_TRANSPORT_HANDLE incoming_socket;
     double start_time = timer_global_get_elapsed_ms();
     ASSERT_ARE_NOT_EQUAL(SOCKET_ACCEPT_RESULT, SOCKET_ACCEPT_OK, socket_transport_accept(listen_socket, &incoming_socket, TEST_CONN_TIMEOUT));
@@ -120,8 +119,10 @@ TEST_FUNCTION(socket_transport_accept_timesout)
 
     time_elapsed += 500;
 
+    // assert
     ASSERT_IS_TRUE(time_elapsed >= TEST_CONN_TIMEOUT, "Connection did not time out correctly: expected timeout: %" PRId32 " actual time: %f", TEST_CONN_TIMEOUT, time_elapsed);
 
+    // cleanup
     socket_transport_disconnect(listen_socket);
     socket_transport_destroy(listen_socket);
 
@@ -130,7 +131,7 @@ TEST_FUNCTION(socket_transport_accept_timesout)
 
 TEST_FUNCTION(send_and_receive_2_buffer_of_2_byte_succeeds)
 {
-    // assert
+    // arrange
     SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(listen_socket);
 
@@ -171,6 +172,7 @@ TEST_FUNCTION(send_and_receive_2_buffer_of_2_byte_succeeds)
 
     uint32_t flag = SOCKET_SEND_FLAG;
 
+    // act
     // Send data back and forth
     ASSERT_ARE_EQUAL(SOCKET_SEND_RESULT, SOCKET_SEND_OK, socket_transport_send(client_socket, send_data, 2, &bytes_written, flag, NULL));
     ASSERT_ARE_EQUAL(int, total_bytes_sent, bytes_written);
@@ -178,9 +180,11 @@ TEST_FUNCTION(send_and_receive_2_buffer_of_2_byte_succeeds)
     ASSERT_ARE_EQUAL(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_OK, socket_transport_receive(incoming_socket, recv_data, 2, &bytes_recv, 0, NULL));
     ASSERT_ARE_EQUAL(int, total_bytes_sent, bytes_recv);
 
+    // assert
     ASSERT_ARE_EQUAL(int, 0, memcmp(send_payload_1, recv_buffer_1, send_data[0].length));
     ASSERT_ARE_EQUAL(int, 0, memcmp(send_payload_2, recv_buffer_2, send_data[1].length));
 
+    // cleanup
     socket_transport_disconnect(incoming_socket);
     socket_transport_destroy(incoming_socket);
 
@@ -235,7 +239,7 @@ static uint32_t make_send_recv_buffer(uint8_t item_count, uint32_t data_size, SO
 /* 2. */
 TEST_FUNCTION(send_and_receive_random_buffer_of_random_byte_succeeds)
 {
-    // assert
+    // arrange
     SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(listen_socket);
 
@@ -264,6 +268,7 @@ TEST_FUNCTION(send_and_receive_random_buffer_of_random_byte_succeeds)
     uint32_t bytes_sent;
     uint32_t flag = SOCKET_SEND_FLAG;
 
+    // act
     // Send data back and forth
     ASSERT_ARE_EQUAL(SOCKET_SEND_RESULT, SOCKET_SEND_OK, socket_transport_send(client_socket, send_data, buffer_count, &bytes_sent, flag, NULL));
     ASSERT_ARE_EQUAL(int, total_bytes, bytes_sent);
@@ -271,6 +276,7 @@ TEST_FUNCTION(send_and_receive_random_buffer_of_random_byte_succeeds)
     ASSERT_ARE_EQUAL(SOCKET_RECEIVE_RESULT, SOCKET_RECEIVE_OK, socket_transport_receive(incoming_socket, recv_data, buffer_count, &bytes_recv, 0, NULL));
     ASSERT_ARE_EQUAL(int, total_bytes, bytes_recv);
 
+    // assert
     for (uint32_t inner = 0; inner < buffer_count; inner++)
     {
         ASSERT_ARE_EQUAL(int, 0, memcmp(send_data[inner].buffer, recv_data[inner].buffer, send_data[inner].length), "mismatch data from array index %" PRIu32 "", inner);
@@ -281,6 +287,7 @@ TEST_FUNCTION(send_and_receive_random_buffer_of_random_byte_succeeds)
     free(send_data);
     free(recv_data);
 
+    // cleanup
     socket_transport_disconnect(incoming_socket);
     socket_transport_destroy(incoming_socket);
 
@@ -322,6 +329,7 @@ static int connect_and_listen_func(void* parameter)
 */
 TEST_FUNCTION(socket_transport_chaos_knight_test)
 {
+    // arrange
     CHAOS_TEST_SOCKETS chaos_knight_test;
     chaos_knight_test.failed_server_num = rand() % CHAOS_THREAD_COUNT + 0;
 
@@ -335,6 +343,7 @@ TEST_FUNCTION(socket_transport_chaos_knight_test)
 
     connect_and_listen_func(&chaos_knight_test);
 
+    // act
     // disconnect random server on second run
     for (size_t runs = 0; runs < 2; runs++)
     {
@@ -343,6 +352,7 @@ TEST_FUNCTION(socket_transport_chaos_knight_test)
             socket_transport_disconnect(chaos_knight_test.incoming_socket_handles[chaos_knight_test.failed_server_num]);
         }
 
+        // assert
         for (size_t i = 0; i < CHAOS_THREAD_COUNT; i++)
         {
             uint8_t buffer_count = 8;
@@ -420,7 +430,7 @@ TEST_FUNCTION(socket_transport_chaos_knight_test)
 
 TEST_FUNCTION(get_local_socket_address_test)
 {
-    // assert
+    // arrange
     SOCKET_TRANSPORT_HANDLE listen_socket = socket_transport_create_server();
     ASSERT_IS_NOT_NULL(listen_socket);
 
@@ -443,6 +453,8 @@ TEST_FUNCTION(get_local_socket_address_test)
     LOCAL_ADDRESS* client_local_address_list;
     uint32_t server_list_count;
     uint32_t client_list_count;
+
+    // act
     ASSERT_ARE_EQUAL(int, 0, socket_transport_get_local_address(incoming_socket, server_hostname, &server_local_address_list, &server_list_count));
     ASSERT_ARE_EQUAL(int, 0, socket_transport_get_local_address(client_socket, client_hostname, &client_local_address_list, &client_list_count));
 
@@ -457,9 +469,11 @@ TEST_FUNCTION(get_local_socket_address_test)
         LogVerbose("\tType: %" PRI_MU_ENUM ", Address: %s", MU_ENUM_VALUE(ADDRESS_TYPE, server_local_address_list[0].address_type), server_local_address_list[0].address);
     }
 
+    // assert
     ASSERT_ARE_EQUAL(char_ptr, server_hostname, client_hostname);
     ASSERT_ARE_EQUAL(uint32_t, server_list_count, client_list_count);
 
+    // cleanup
     socket_transport_disconnect(client_socket);
     socket_transport_destroy(client_socket);
 

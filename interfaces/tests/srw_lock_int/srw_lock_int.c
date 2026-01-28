@@ -32,6 +32,8 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 
 TEST_FUNCTION(srw_lock_create_succeeds)
 {
+    ///arrange
+
     ///act
     SRW_LOCK_HANDLE lock_handle = srw_lock_create(false, TEST_LOCK_NAME);
 
@@ -54,6 +56,8 @@ TEST_FUNCTION(srw_lock_create_succeeds)
 
 TEST_FUNCTION(srw_lock_shared_lock)
 {
+    ///arrange
+
     ///act
     SRW_LOCK_HANDLE lock_handle = srw_lock_create(false, TEST_LOCK_NAME);
 
@@ -64,7 +68,6 @@ TEST_FUNCTION(srw_lock_shared_lock)
 
     ASSERT_ARE_EQUAL(int, SRW_LOCK_TRY_ACQUIRE_OK, srw_lock_try_acquire_shared(lock_handle));
 
-    ///assert
     srw_lock_release_shared(lock_handle);
 
     ASSERT_ARE_EQUAL(int, SRW_LOCK_TRY_ACQUIRE_COULD_NOT_ACQUIRE, srw_lock_try_acquire_exclusive(lock_handle));

@@ -71,10 +71,12 @@ TEST_FUNCTION(file_util_open_file_full_file_name_NULL_Fail)
 /*Tests_SRS_FILE_UTIL_LINUX_09_008: [ If there are any failures, file_util_open_file shall fail and return INVALID_HANDLE_VALUE. ]*/
 TEST_FUNCTION(file_util_open_file_malloc_Fail)
 {
+    ///arrange
     HANDLE result;
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG))
         .SetReturn(NULL);
 
+    ///act
     uint32_t desired_access = GENERIC_READ;
     uint32_t share_mode = FILE_SHARE_READ;
     uint32_t creation_disposition = 1;
@@ -261,6 +263,7 @@ TEST_FUNCTION(file_util_open_file_create_disposition_NEW_desired_access_Succeeds
 /*Tests_SRS_FILE_UTIL_LINUX_09_019: [ file_util_close_file shall call close on the given handle_input. ]*/
 TEST_FUNCTION(file_util_close_file_Succeeds)
 {
+    ///arrange
     HANDLE handle_input;
     uint32_t desired_access = GENERIC_READ;
     uint32_t share_mode = FILE_SHARE_READ;
@@ -274,6 +277,7 @@ TEST_FUNCTION(file_util_close_file_Succeeds)
     STRICT_EXPECTED_CALL(mocked_close(IGNORED_ARG));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
+    ///act
     result = file_util_close_file(handle_input);
     
     //assert
@@ -285,6 +289,7 @@ TEST_FUNCTION(file_util_close_file_Succeeds)
 /*Tests_SRS_FILE_UTIL_LINUX_09_009: [ If there are any failures, file_util_close_file shall fail and return false. ]*/
 TEST_FUNCTION(file_util_close_file_FAILS)
 {
+    ///arrange
     HANDLE handle_input;
     uint32_t desired_access = GENERIC_READ;
     uint32_t share_mode = FILE_SHARE_READ;
@@ -299,6 +304,7 @@ TEST_FUNCTION(file_util_close_file_FAILS)
         .SetReturn(1);
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
+    ///act
     result = file_util_close_file(handle_input);
     
     //assert

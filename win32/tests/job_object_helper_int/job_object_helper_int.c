@@ -104,6 +104,7 @@ TEST_FUNCTION_CLEANUP(cleanup)
 
 TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process)
 {
+    // arrange
     /* Check that calling job_object_helper_set_job_limits_to_current_process
     *  1. creates the job object
     *  2. assigns the current process to the job object
@@ -117,7 +118,10 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process)
     (void)snprintf(job_name, sizeof(job_name), TEST_JOB_NAME_PREFIX "%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
     LogInfo("Running test with job name: %s...", job_name);
 
+    // act
     THANDLE(JOB_OBJECT_HELPER) result = job_object_helper_set_job_limits_to_current_process(job_name, 50, 1);
+
+    // assert
     ASSERT_IS_NOT_NULL(result);
 
     /* Check that the job object was created */
@@ -156,6 +160,7 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process)
     ASSERT_ARE_EQUAL(size_t, job_info.JobMemoryLimit / MEGABYTE, one_percent_of_total_memory_in_MB, "Job object should have job memory limit set to 1%% of total physical memory");
     ASSERT_ARE_EQUAL(size_t, job_info.ProcessMemoryLimit / MEGABYTE, one_percent_of_total_memory_in_MB, "Job object should have process memory limit set to 1%% of total physical memory");
 
+    // cleanup
     /* Performing the same action from the same process shall not change anything */
     THANDLE(JOB_OBJECT_HELPER) result_1 = job_object_helper_set_job_limits_to_current_process(job_name, 50, 1);
     ASSERT_IS_NOT_NULL(result_1);
@@ -210,6 +215,7 @@ void get_job_object_helper_tester_excutable_path(char* full_path, size_t full_pa
 
 TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_from_multiple_processes)
 {
+    // arrange
     UUID_T job_name_uuid;
     (void)uuid_produce(&job_name_uuid);
 
@@ -232,6 +238,7 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_from_mult
     char cmd_line[512];
     (void)snprintf(cmd_line, sizeof(cmd_line), "\"%s\" %s %d %d", full_path, job_name, 50, 1);
 
+    // act
     for (int i = 0; i < NUM_TEST_PROCESSES; ++i)
     {
         LogInfo("Starting process: %d", i);
@@ -263,9 +270,11 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_from_mult
         ZeroMemory(&pid_list, sizeof(pid_list));
         /* Ignoring return value as this will return an error ERROR_MORE_DATA*/
         (void)QueryInformationJobObject(job_object, JobObjectBasicProcessIdList, &pid_list, sizeof(pid_list), &return_length);
+        // assert
         ASSERT_ARE_EQUAL(ULONG, i+1, pid_list.NumberOfAssignedProcesses);
     }
 
+    // cleanup
     for (int i = 0; i < NUM_TEST_PROCESSES; ++i)
     {
         /* Terminate the process; Terminate is forceful */
@@ -291,6 +300,7 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_from_mult
 
 TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_check_memory_limits)
 {
+    // arrange
     UUID_T job_name_uuid;
     (void)uuid_produce(&job_name_uuid);
 
@@ -313,6 +323,7 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_check_mem
     THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, 50, 1);
     ASSERT_IS_NOT_NULL(job_object_helper);
 
+    // act
     /* allocations till 1% should pass */
     char* buffer[NUM_ALLOCATE_MEMORY_BLOCKS];
     uint64_t memory_size = one_percent_of_total_memory / 10;
@@ -325,11 +336,14 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_check_mem
             allocation_failed++;
         }
     }
+
+    // assert
     /* After reaching the limit, allocations are expected to be failed */
     ASSERT_ARE_NOT_EQUAL(int, 0, allocation_failed);
     /* With the set limit, not all allocations should have failed*/
     ASSERT_ARE_NOT_EQUAL(int, NUM_ALLOCATE_MEMORY_BLOCKS, allocation_failed);
 
+    // cleanup
     /* Free the allocated memory */
     for (int i = 0; i < NUM_ALLOCATE_MEMORY_BLOCKS; ++i)
     {
@@ -342,6 +356,7 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_check_mem
 
 TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_from_multiple_processes_memory_limit_validation)
 {
+    // arrange
     UUID_T job_name_uuid;
     (void)uuid_produce(&job_name_uuid);
 
@@ -375,6 +390,7 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_from_mult
     char cmd_line[512];
     (void)snprintf(cmd_line, sizeof(cmd_line), "\"%s\" %s %d %d %zu", full_path, job_name, 50, 1, one_percent_of_total_memory / 2);
 
+    // act
     for (int i = 0; i < NUM_TEST_PROCESSES; ++i)
     {
         LogInfo("Starting process: %d", i);
@@ -409,6 +425,7 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_from_mult
         ASSERT_ARE_EQUAL(ULONG, i+1, pid_list.NumberOfAssignedProcesses);
     }
 
+    // assert
     int allocation_failed_process_count = 0;
     for (int i = 0; i < NUM_TEST_PROCESSES; ++i)
     {

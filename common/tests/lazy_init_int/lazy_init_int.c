@@ -130,6 +130,7 @@ TEST_FUNCTION(lazy_init_chaos_knight)
 
     same_as_interlocked_hl_wait_for_value(&lowerTheBollard, 1, UINT32_MAX);
 
+    ///act
     interlocked_exchange(&theBollardIsLowered, 1);
     wake_by_address_all(&theBollardIsLowered);
 

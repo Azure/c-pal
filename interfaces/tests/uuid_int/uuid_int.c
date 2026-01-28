@@ -129,7 +129,7 @@ TEST_FUNCTION(GUID_from_uuid_succeeds)
     ASSERT_ARE_EQUAL(uint8_t, u.bytes[15], destination.Data4[7]);
 }
 
-TEST_FUNCTION(PRI_GUID_succeeds)
+TEST_FUNCTION(PRI_GUID_succeeds) // no-aaa
 {
     GUID g = { 0x10213243, 0x5465, 0x7687, {0x98, 0xA9, 0xBA, 0xCB, 0xDE, 0xED, 0xFE, 0x0F } };
     char temp[1000];  /*a vast array greatly bigger than the stringification of GUID*/
@@ -139,7 +139,7 @@ TEST_FUNCTION(PRI_GUID_succeeds)
     ASSERT_ARE_EQUAL(char_ptr, "10213243-5465-7687-98a9-bacbdeedfe0f", temp);
 }
 
-TEST_FUNCTION(PRI_GUID_with_NULL_succeeds)
+TEST_FUNCTION(PRI_GUID_with_NULL_succeeds) // no-aaa
 {
     GUID* g = NULL;
     char temp[1000];  /*a vast array greatly bigger than the stringification of GUID*/

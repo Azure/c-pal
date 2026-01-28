@@ -29,11 +29,12 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 
 TEST_FUNCTION(srw_lock_ll_exclusive_lock_succeeds)
 {
-    ///act
+    ///arrange
     SRW_LOCK_LL lock;
 
     ASSERT_ARE_EQUAL(int, 0, srw_lock_ll_init(&lock));
 
+    ///act
     srw_lock_ll_acquire_exclusive(&lock);
 
     ///assert
@@ -53,11 +54,12 @@ TEST_FUNCTION(srw_lock_ll_exclusive_lock_succeeds)
 
 TEST_FUNCTION(srw_lock_ll_shared_lock_succeeds)
 {
-    ///act
+    ///arrange
     SRW_LOCK_LL lock;
 
     ASSERT_ARE_EQUAL(int, 0, srw_lock_ll_init(&lock));
 
+    ///act
     srw_lock_ll_acquire_shared(&lock);
 
     ///assert
@@ -65,7 +67,6 @@ TEST_FUNCTION(srw_lock_ll_shared_lock_succeeds)
 
     ASSERT_ARE_EQUAL(int, SRW_LOCK_LL_TRY_ACQUIRE_OK, srw_lock_ll_try_acquire_shared(&lock));
 
-    ///assert
     srw_lock_ll_release_shared(&lock);
 
     ASSERT_ARE_EQUAL(int, SRW_LOCK_LL_TRY_ACQUIRE_COULD_NOT_ACQUIRE, srw_lock_ll_try_acquire_exclusive(&lock));

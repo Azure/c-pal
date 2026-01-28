@@ -47,6 +47,8 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
 
 TEST_FUNCTION(gballoc_ll_init_works)
 {
+    ///arrange
+
     ///act
     gballoc_ll_init(NULL);
 
@@ -55,6 +57,8 @@ TEST_FUNCTION(gballoc_ll_init_works)
 
 TEST_FUNCTION(gballoc_ll_deinit_works)
 {
+    ///arrange
+
     ///act
     gballoc_ll_deinit();
 
@@ -63,6 +67,8 @@ TEST_FUNCTION(gballoc_ll_deinit_works)
 
 TEST_FUNCTION(gballoc_ll_malloc_works)
 {
+    // arrange
+
     ///act (1)
     unsigned char* ptr = gballoc_ll_malloc(1);
 
@@ -80,6 +86,8 @@ TEST_FUNCTION(gballoc_ll_malloc_works)
 
 TEST_FUNCTION(gballoc_ll_malloc_1MB_works)
 {
+    // arrange
+
     ///act (1)
     unsigned char* ptr = gballoc_ll_malloc(1024 * 1024);
 
@@ -97,6 +105,8 @@ TEST_FUNCTION(gballoc_ll_malloc_1MB_works)
 
 TEST_FUNCTION(gballoc_ll_malloc_2_works)
 {
+    // arrange
+
     ///act (1)
     unsigned char* ptr = gballoc_ll_malloc_2(1, 1);
 
@@ -114,6 +124,8 @@ TEST_FUNCTION(gballoc_ll_malloc_2_works)
 
 TEST_FUNCTION(gballoc_ll_malloc_2_1MB_works)
 {
+    // arrange
+
     ///act (1)
     unsigned char* ptr = gballoc_ll_malloc_2(1024, 1024);
 
@@ -131,6 +143,8 @@ TEST_FUNCTION(gballoc_ll_malloc_2_1MB_works)
 
 TEST_FUNCTION(gballoc_ll_malloc_flex_works)
 {
+    // arrange
+
     ///act (1)
     unsigned char* ptr = gballoc_ll_malloc_flex(1, 1, 1);
 
@@ -148,6 +162,8 @@ TEST_FUNCTION(gballoc_ll_malloc_flex_works)
 
 TEST_FUNCTION(gballoc_ll_malloc_flex_1MB_works)
 {
+    // arrange
+
     ///act (1)
     unsigned char* ptr = gballoc_ll_malloc_flex(1024, 1024, 1024);
 

@@ -140,6 +140,7 @@ TEST_FUNCTION(call_once_chaos_knight)
         ASSERT_IS_NOT_NULL(threads[i]);
     }
 
+    ///act
     for (i = 0; i < N_THREADS_FOR_CHAOS; i++)
     {
         ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(threads[i], NULL));

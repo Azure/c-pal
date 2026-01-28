@@ -872,6 +872,7 @@ The test follows the contract of the API so that begin/end calls are matched
 At least 1 sm_open_begin and at least 1 sm_exec_begin are waited to happen*/
 TEST_FUNCTION(sm_chaos)
 {
+    // arrange
     LogInfo("disabling logging for the duration of sm_chaos. Logging takes additional locks that \"might\" help the test pass");
     LOGGER_CONFIG old_config = logger_get_config();
     logger_set_config((LOGGER_CONFIG) { .log_sinks = NULL, .log_sink_count = 0 });
@@ -886,6 +887,7 @@ TEST_FUNCTION(sm_chaos)
 
     (void)interlocked_exchange(&data->threadsShouldFinish, 0);
 
+    // act
     for (uint32_t nthreads = 1; nthreads <= MIN(numberOfProcessors, N_MAX_THREADS); nthreads*=2)
     {
         data->n_begin_open_threads = nthreads;
@@ -978,8 +980,11 @@ TEST_FUNCTION(sm_chaos)
             interlocked_add(&data->n_begin_refuses, 0),
             interlocked_add(&data->n_faults, 0));
 
+        // assert
         ASSERT_IS_TRUE(interlocked_add(&data->n_begin_open_grants, 0) >= 1);
     }
+
+    // cleanup
     sm_destroy(data->sm);
     free(data);
 
@@ -990,6 +995,7 @@ TEST_FUNCTION(sm_chaos)
 Test waits for a fault to be called*/
 TEST_FUNCTION(sm_chaos_with_faults)
 {
+    // arrange
     LogInfo("disabling logging for the duration of sm_chaos. Logging takes additional locks that \"might\" help the test pass");
     LOGGER_CONFIG old_config = logger_get_config();
     logger_set_config((LOGGER_CONFIG) { .log_sinks = NULL, .log_sink_count = 0 });
@@ -1004,6 +1010,7 @@ TEST_FUNCTION(sm_chaos_with_faults)
 
     (void)interlocked_exchange(&data->threadsShouldFinish, 0);
 
+    // act
     for (uint32_t nthreads = 1; nthreads <= MIN(numberOfProcessors, N_MAX_THREADS); nthreads*=2)
     {
         data->n_begin_open_threads = nthreads;
@@ -1098,8 +1105,11 @@ TEST_FUNCTION(sm_chaos_with_faults)
             interlocked_add(&data->n_faults, 0)
         );
 
+        // assert
         ASSERT_IS_TRUE(interlocked_add(&data->n_faults, 0) >= 1);
     }
+
+    // cleanup
     sm_destroy(data->sm);
     free(data);
 
@@ -1518,6 +1528,7 @@ static void sm_switches_from_state_to_created(SM_GO_TO_STATE* goToState)
 
 TEST_FUNCTION(STATE_and_API)
 {
+    // arrange
     SM_RESULT_AND_NEXT_STATE_AFTER_API_CALL expected[][5]=
     {
                                                       /*sm_open_begin*/                                         /*sm_close_begin*/                                      /*sm_exec_begin*/                                         /*sm_barrier_begin*/                                          /*sm_close_begin_with_cb*/
@@ -1537,6 +1548,7 @@ TEST_FUNCTION(STATE_and_API)
         /*SM_CLOSING_FAULTED*/                    {   {SM_EXEC_REFUSED, SM_CLOSING_FAULTED},                    {SM_EXEC_REFUSED, SM_CLOSING_FAULTED},                  {SM_EXEC_REFUSED, SM_CLOSING_FAULTED},                    {SM_EXEC_REFUSED, SM_CLOSING_FAULTED},                        {SM_EXEC_REFUSED, SM_CLOSING_FAULTED}}
     };
 
+    // act
     for (uint32_t i = 0 ; i < MU_COUNT_ARRAY_ITEMS(expected); i++)
     {
         for (uint32_t j = 0; j < MU_COUNT_ARRAY_ITEMS(expected[0]); j++)
@@ -1622,10 +1634,12 @@ TEST_FUNCTION(STATE_and_API)
 
             LogInfo("time[s]=%.2f, went to state=%" PRI_MU_ENUM " and called =%" PRI_MU_ENUM " switchesFromStateToCreated thread might already have run", (timer_global_get_elapsed_ms() - timeSinceTestFunctionStartMs) / 1000, MU_ENUM_VALUE(SM_STATES, (SM_STATES)(i + SM_CREATED)), MU_ENUM_VALUE(SM_APIS, (SM_APIS)(j + SM_OPEN_BEGIN)));
 
+            // assert
             int dont_care;
             ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(goToState.threadSwitchesTo, &dont_care));
             ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(goToState.threadBack, &dont_care));
 
+            // cleanup
             sm_destroy(goToState.sm);
         }
     }

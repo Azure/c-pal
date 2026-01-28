@@ -1120,6 +1120,8 @@ TEST_FUNCTION(when_underlying_calls_fail_async_socket_send_async_fails)
     STRICT_EXPECTED_CALL(wake_by_address_single(IGNORED_ARG));
 
     errno = EDESTADDRREQ;
+
+    // act
     ASYNC_SOCKET_SEND_SYNC_RESULT result;
     result = async_socket_send_async(async_socket, payload_buffers, sizeof(payload_buffers) / sizeof(payload_buffers[0]), test_on_send_complete, NULL);
 

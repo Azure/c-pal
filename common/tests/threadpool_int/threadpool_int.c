@@ -181,7 +181,7 @@ static void wait_for_greater_or_equal(volatile_atomic int64_t* value, int64_t ex
 
 TEST_FUNCTION(one_work_item_schedule_works)
 {
-    // assert
+    // arrange
     EXECUTION_ENGINE_PARAMETERS params;
     params.min_thread_count = 1;
     params.max_thread_count = 16;
@@ -193,6 +193,7 @@ TEST_FUNCTION(one_work_item_schedule_works)
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
+    // act
     // Create 1 thread pool
     LogInfo("Scheduling work item");
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter));
@@ -209,7 +210,7 @@ TEST_FUNCTION(one_work_item_schedule_works)
 
 TEST_FUNCTION(one_work_item_schedule_work_item)
 {
-    // assert
+    // arrange
     EXECUTION_ENGINE_PARAMETERS params;
     params.min_thread_count = 1;
     params.max_thread_count = 16;
@@ -224,6 +225,8 @@ TEST_FUNCTION(one_work_item_schedule_work_item)
     LogInfo("Creating work item");
     THANDLE(THREADPOOL_WORK_ITEM) threadpool_work_item = threadpool_create_work_item(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter);
     ASSERT_IS_NOT_NULL(threadpool_work_item);
+
+    // act
     // Create 1 thread pool
     LogInfo("Scheduling work item");
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(threadpool, threadpool_work_item));
@@ -272,6 +275,7 @@ TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work)
 
 TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
 {
+    // arrange
     EXECUTION_ENGINE_PARAMETERS params;
     params.min_thread_count = 1;
     params.max_thread_count = 16;
@@ -288,6 +292,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
     THANDLE(THREADPOOL_WORK_ITEM) threadpool_work_item = threadpool_create_work_item(threadpool, threadpool_task_wait_60_millisec, (void*)&execution_counter);
     ASSERT_IS_NOT_NULL(threadpool_work_item);
 
+    // act
     // Create double the amount of threads that is the max
     LogInfo("Scheduling %" PRIu32 " work item", num_work_items);
     for (uint32_t index = 0; index < num_work_items; index++)
@@ -309,6 +314,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items))
 
 TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work))
 {
+    // arrange
     EXECUTION_ENGINE_PARAMETERS params;
     params.min_thread_count = 1;
     params.max_thread_count = 16;
@@ -320,6 +326,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work))
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
+    // act
     // Create double the amount of threads that is the max
     LogInfo("Scheduling %" PRIu32 " work item", num_work_items);
     for (uint32_t index = 0; index < num_work_items; index++)
@@ -340,7 +347,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work))
 
 TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
 {
-    // assert
+    // arrange
     EXECUTION_ENGINE_PARAMETERS params;
     params.min_thread_count = 1;
     params.max_thread_count = 16;
@@ -357,6 +364,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
     THANDLE(THREADPOOL_WORK_ITEM) threadpool_work_item = threadpool_create_work_item(threadpool, threadpool_task_wait_20_millisec, (void*)&execution_counter);
     ASSERT_IS_NOT_NULL(threadpool_work_item);
 
+    // act
     // Create double the amount of threads that is the max
     LogInfo("Scheduling %" PRIu32 " work item with 20 millisecons work", num_work_items);
     for (uint32_t index = 0; index < num_work_items; index++)
@@ -376,7 +384,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_with_pool_threads))
 
 TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_with_pool_threads))
 {
-    // assert
+    // arrange
     EXECUTION_ENGINE_PARAMETERS params;
     params.min_thread_count = 1;
     params.max_thread_count = 16;
@@ -388,6 +396,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_with_pool_threads))
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
+    // act
     // Create double the amount of threads that is the max
     LogInfo("Scheduling %" PRIu32 " work item with 20 millisecons work", num_work_items);
     for (uint32_t index = 0; index < num_work_items; index++)
@@ -408,7 +417,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_with_pool_threads))
 
 TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _timer_start_runs_once))
 {
-    // assert
+    // arrange
     // create an execution engine
     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
@@ -421,12 +430,14 @@ TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _timer_start_runs_once))
     THANDLE(THREADPOOL) threadpool_1 = NULL;
     THANDLE_INITIALIZE(THREADPOOL)(&threadpool_1, threadpool);
 
+    // act
     THANDLE(THREADPOOL_TIMER) timer_instance = threadpool_timer_start(threadpool_1, 200, 200, work_function, (void*)&g_call_count);
     ASSERT_IS_NOT_NULL(timer_instance);
 
     ThreadAPI_Sleep(5000);
     LogInfo("Waiting for timer to execute after short delay of no execution");
 
+    // assert
     ThreadAPI_Sleep(5000);
     THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_instance, NULL);
 
@@ -439,7 +450,7 @@ TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _timer_start_runs_once))
 
 TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _start_timers_work_and_run_periodically))
 {
-    // assert
+    // arrange
     // create an execution engine
     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 16, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
@@ -484,7 +495,7 @@ TEST_FUNCTION(MU_C3(starting_, N_THREADPOOL_TIMERS, _start_timers_work_and_run_p
 
 TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items)
 {
-    // assert
+    // arrange
     // create an execution engine
     WAIT_WORK_CONTEXT wait_work_context;
     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 1, 1 };
@@ -499,6 +510,7 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items)
 
     (void)interlocked_exchange_64(&wait_work_context.call_count, 0);
 
+    // act
     // schedule one item that waits
     LogInfo("Scheduling 2 work items");
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, wait_work_function, (void*)&wait_work_context));
@@ -521,7 +533,7 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items)
 
 TEST_FUNCTION(threadpool_chaos_knight)
 {
-    // assert
+    // arrange
     EXECUTION_ENGINE_PARAMETERS params;
     params.min_thread_count = 1;
     params.max_thread_count = 16;
@@ -533,6 +545,7 @@ TEST_FUNCTION(threadpool_chaos_knight)
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
+    // act
     // Create double the amount of threads that is the max
     LogInfo("Scheduling %" PRIu32 " work items", num_threads);
     for (uint32_t index = 0; index < num_threads; index++)
@@ -554,7 +567,7 @@ TEST_FUNCTION(threadpool_chaos_knight)
 
 TEST_FUNCTION(threadpool_chaos_knight_v2)
 {
-    // assert
+    // arrange
     EXECUTION_ENGINE_PARAMETERS params;
     params.min_thread_count = 1;
     params.max_thread_count = 16;
@@ -571,6 +584,7 @@ TEST_FUNCTION(threadpool_chaos_knight_v2)
     THANDLE(THREADPOOL_WORK_ITEM) threadpool_work_item = threadpool_create_work_item(threadpool, threadpool_task_wait_random, (void*)&thread_counter);
     ASSERT_IS_NOT_NULL(threadpool_work_item);
 
+    // act
     // Create double the amount of threads that is the max
     LogInfo("Scheduling %" PRIu32 " work items", num_threads);
     for (uint32_t index = 0; index < num_threads; index++)
@@ -608,6 +622,7 @@ TEST_FUNCTION(threadpool_force_wrap_around)
     volatile_atomic int32_t thread_counter;
     (void)interlocked_exchange(&thread_counter, 0);
 
+    // act
     for (uint32_t index = 0; index < num_threads; index++)
     {
         WRAP_DATA* data = malloc(sizeof(WRAP_DATA));
@@ -651,6 +666,7 @@ TEST_FUNCTION(threadpool_force_wrap_around_v2)
     THANDLE(THREADPOOL_WORK_ITEM) threadpool_work_item = threadpool_create_work_item(threadpool, threadpool_long_task_v2, data);
     ASSERT_IS_NOT_NULL(threadpool_work_item);
 
+    // act
     for (uint32_t index = 0; index < num_threads; index++)
     {
         ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(threadpool, threadpool_work_item));
@@ -669,7 +685,7 @@ TEST_FUNCTION(threadpool_force_wrap_around_v2)
 
 TEST_FUNCTION(one_start_timer_works_runs_once)
 {
-    // assert
+    // arrange
     // create an execution engine
     EXECUTION_ENGINE_PARAMETERS params;
     params.min_thread_count = 1;
@@ -729,7 +745,7 @@ TEST_FUNCTION(one_start_timer_works_runs_once)
 
 TEST_FUNCTION(restart_timer_works_runs_once)
 {
-    // assert
+    // arrange
     // create an execution engine
     EXECUTION_ENGINE_PARAMETERS params;
     params.min_thread_count = 1;
@@ -792,7 +808,7 @@ TEST_FUNCTION(restart_timer_works_runs_once)
 
 TEST_FUNCTION(one_start_timer_works_runs_periodically)
 {
-    // assert
+    // arrange
     // create an execution engine
     EXECUTION_ENGINE_PARAMETERS params;
     params.min_thread_count = 1;
@@ -823,7 +839,7 @@ TEST_FUNCTION(one_start_timer_works_runs_periodically)
 
 TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
 {
-    // assert
+    // arrange
     // create an execution engine
     EXECUTION_ENGINE_PARAMETERS params;
     params.min_thread_count = 1;
@@ -865,7 +881,7 @@ TEST_FUNCTION(timer_cancel_restart_works_runs_periodically)
 
 TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
 {
-    // assert
+    // arrange
     // create an execution engine
     WAIT_WORK_CONTEXT wait_work_context;
     EXECUTION_ENGINE_PARAMETERS params;
@@ -894,6 +910,7 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
     LogInfo("Timer should be running and waiting, now stop timer");
     THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer, NULL);
 
+    // assert
     LogInfo("Timer stopped");
 
     // set the event, that would trigger a WAIT_OBJECT_0 if stop would not wait for all items
@@ -906,7 +923,7 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
 
 TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
 {
-    // assert
+    // arrange
     // create an execution engine
     WAIT_WORK_CONTEXT wait_work_context;
     EXECUTION_ENGINE_PARAMETERS params;
@@ -935,6 +952,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
     LogInfo("Timer should be running and waiting, now cancel timer");
     threadpool_timer_cancel(timer);
 
+    // assert
     LogInfo("Timer canceled");
 
     // set the event, that would trigger a WAIT_OBJECT_0 if stop would not wait for all items
@@ -948,7 +966,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
 
 TEST_FUNCTION(schedule_work_two_times)
 {
-    // assert
+    // arrange
     EXECUTION_ENGINE_PARAMETERS params;
     params.min_thread_count = 1;
     params.max_thread_count = 16;
@@ -963,6 +981,7 @@ TEST_FUNCTION(schedule_work_two_times)
     THANDLE(THREADPOOL_WORK_ITEM) threadpool_work_item = threadpool_create_work_item(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter);
     ASSERT_IS_NOT_NULL(threadpool_work_item);
 
+    // act
     // Create 1 thread pool
     LogInfo("Scheduling work item");
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(threadpool, threadpool_work_item));
@@ -983,9 +1002,7 @@ TEST_FUNCTION(schedule_work_two_times)
     LogInfo("Scheduling work item");
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(threadpool, threadpool_work_item_2));
 
-    // assert
     LogInfo("Waiting for task to complete");
-    // assert
     ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
@@ -997,7 +1014,7 @@ TEST_FUNCTION(schedule_work_two_times)
 
 TEST_FUNCTION(schedule_work_two_times_v2)
 {
-    // assert
+    // arrange
     EXECUTION_ENGINE_PARAMETERS params;
     params.min_thread_count = 1;
     params.max_thread_count = 16;
@@ -1009,6 +1026,7 @@ TEST_FUNCTION(schedule_work_two_times_v2)
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
+    // act
     // Create 1 thread pool
     LogInfo("Scheduling work item");
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter));
@@ -1025,9 +1043,7 @@ TEST_FUNCTION(schedule_work_two_times_v2)
     LogInfo("Scheduling work item");
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_task_wait_20_millisec, (void*)&thread_counter));
 
-    // assert
     LogInfo("Waiting for task to complete");
-    // assert
     ASSERT_ARE_EQUAL(int, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&thread_counter, num_threads, UINT32_MAX));
     ASSERT_ARE_EQUAL(int32_t, thread_counter, num_threads, "Thread counter has timed out");
 
@@ -1240,6 +1256,7 @@ static int chaos_thread_with_timers_no_lock_func(void* context)
 
 TEST_FUNCTION(chaos_knight_test)
 {
+    // arrange
     // start a number of threads and each of them will do a random action on the threadpool
     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 16, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
@@ -1266,6 +1283,7 @@ TEST_FUNCTION(chaos_knight_test)
     THANDLE(THREADPOOL_WORK_ITEM) work_item = threadpool_create_work_item(chaos_test_data.threadpool, work_function, (void*)&chaos_test_data.executed_work_functions);
     THANDLE_INITIALIZE_MOVE(THREADPOOL_WORK_ITEM)(&chaos_test_data.work_item_context, &work_item);
 
+    // act
     for (i = 0; i < CHAOS_THREAD_COUNT; i++)
     {
         ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&thread_handles[i], chaos_thread_func, &chaos_test_data));
@@ -1279,6 +1297,8 @@ TEST_FUNCTION(chaos_knight_test)
         int dont_care;
         ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(thread_handles[i], &dont_care));
     }
+
+    // assert
     LogInfo("executed_work_functions=%" PRIu64 ", expected_call_count=%" PRIu64 "", chaos_test_data.executed_work_functions, chaos_test_data.expected_call_count);
     // assert that all scheduled items were executed
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&chaos_test_data.executed_work_functions, chaos_test_data.expected_call_count, UINT32_MAX));
@@ -1295,6 +1315,7 @@ TEST_FUNCTION(chaos_knight_test)
 
 TEST_FUNCTION(chaos_knight_test_with_timers_no_lock)
 {
+    // arrange
     // start a number of threads and each of them will do a random action on the threadpool
     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
@@ -1325,6 +1346,8 @@ TEST_FUNCTION(chaos_knight_test_with_timers_no_lock)
     THANDLE(THREADPOOL_WORK_ITEM) work_item = threadpool_create_work_item(chaos_test_data.threadpool, work_function, (void*)&chaos_test_data.executed_work_functions);
     ASSERT_IS_NOT_NULL(work_item);
     THANDLE_INITIALIZE_MOVE(THREADPOOL_WORK_ITEM)(&chaos_test_data.work_item_context, &work_item);
+
+    // act
     for (i = 0; i < CHAOS_THREAD_COUNT; i++)
     {
         ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&thread_handles[i], chaos_thread_with_timers_no_lock_func, &chaos_test_data));
@@ -1347,6 +1370,7 @@ TEST_FUNCTION(chaos_knight_test_with_timers_no_lock)
         ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(thread_handles[i], &dont_care));
     }
 
+    // assert
     // assert that all scheduled items were executed
     int64_t expected_call_count = interlocked_add_64(&chaos_test_data.expected_call_count, 0);
     LogInfo("Waiting for execute_work_functions to be %" PRId64 ", now it is: %" PRId64 "",
@@ -1367,7 +1391,7 @@ TEST_FUNCTION(chaos_knight_test_with_timers_no_lock)
 
 TEST_FUNCTION(one_work_item_schedule_works_v2)
 {
-    // assert
+    // arrange
     // create an execution engine
     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
@@ -1427,7 +1451,7 @@ TEST_FUNCTION(threadpool_owns_execution_engine_reference_and_can_schedule_work_v
 
 TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_works_v2))
 {
-    // assert
+    // arrange
     // create an execution engine
     size_t i;
     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
@@ -1438,8 +1462,8 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_works_v2))
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
-    LogInfo("Scheduling work %" PRIu32 " times", (uint32_t)N_WORK_ITEMS);
     // act (schedule work items)
+    LogInfo("Scheduling work %" PRIu32 " times", (uint32_t)N_WORK_ITEMS);
     LogInfo("Create Work Item Context");
     THANDLE(THREADPOOL_WORK_ITEM) work_item = threadpool_create_work_item(threadpool, work_function, (void*)&g_call_count);
     ASSERT_IS_NOT_NULL(work_item);
@@ -1460,7 +1484,7 @@ TEST_FUNCTION(MU_C3(scheduling_, N_WORK_ITEMS, _work_items_works_v2))
 
 TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items_v2)
 {
-    // assert
+    // arrange
     // create an execution engine
     WAIT_WORK_CONTEXT wait_work_context;
     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 1, 1 };
@@ -1475,6 +1499,7 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items_v2)
 
     (void)interlocked_exchange_64(&wait_work_context.call_count, 0);
 
+    // act
     // schedule one item that waits
     LogInfo("Create Work Item Context");
     THANDLE(THREADPOOL_WORK_ITEM) wait_work_item_context = threadpool_create_work_item(threadpool, wait_work_function, (void*)&wait_work_context);
@@ -1523,7 +1548,7 @@ static void timer_work_function_that_starts_another_timer(void* context)
 
 TEST_FUNCTION(starting_a_timer_from_a_timer_callback_works)
 {
-    // assert
+    // arrange
     // create an execution engine
     EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 1, 1 };
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
@@ -1537,6 +1562,7 @@ TEST_FUNCTION(starting_a_timer_from_a_timer_callback_works)
     THANDLE_INITIALIZE_MOVE(THREADPOOL)(&timer_starts_a_timer_context.threadpool, &threadpool);
     (void)interlocked_exchange(&timer_starts_a_timer_context.timer_started_from_a_timer_function_executed, 0);
 
+    // act
     THANDLE(THREADPOOL_TIMER) first_timer = threadpool_timer_start(timer_starts_a_timer_context.threadpool, 200, 0, timer_work_function_that_starts_another_timer, (void*)&timer_starts_a_timer_context);
     ASSERT_IS_NOT_NULL(first_timer);
 

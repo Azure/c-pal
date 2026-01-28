@@ -47,7 +47,7 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
 
 TEST_FUNCTION(module_calls_submodule_1) /*wants to see that the UUID_Ts match*/
 {
-    ///arrange
+    // arrange
     UUID_T u = {
         (unsigned char)'a',
         (unsigned char)'b',
@@ -68,15 +68,17 @@ TEST_FUNCTION(module_calls_submodule_1) /*wants to see that the UUID_Ts match*/
     };
 
     STRICT_EXPECTED_CALL(submodule_reads_UUID_T(u));
+
+    // act
     module_reads_UUID_T(u);
 
-    ///act + assert - 2 in 1!
+    // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 TEST_FUNCTION(module_calls_submodule_2) /*wants to see that the UUID_Ts do not match*/
 {
-    ///arrange
+    // arrange
     UUID_T u = {
         (unsigned char)'a',
         (unsigned char)'b',
@@ -97,15 +99,17 @@ TEST_FUNCTION(module_calls_submodule_2) /*wants to see that the UUID_Ts do not m
     };
 
     STRICT_EXPECTED_CALL(submodule_reads_UUID_T(u));
+
+    // act
     module_reads_UUID_T(u);
 
-    ///act + assert - 2 in 1!
+    // assert
     ASSERT_ARE_NOT_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 TEST_FUNCTION(module_calls_const_submodule_1) /*wants to see that the UUID_Ts match, they are const*/
 {
-    ///arrange
+    // arrange
     UUID_T u = {
         (unsigned char)'a',
         (unsigned char)'b',
@@ -126,15 +130,17 @@ TEST_FUNCTION(module_calls_const_submodule_1) /*wants to see that the UUID_Ts ma
     };
 
     STRICT_EXPECTED_CALL(submodule_reads_const_UUID_T(u));
+
+    // act
     module_reads_const_UUID_T(u);
 
-    ///act + assert - 2 in 1!
+    // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 TEST_FUNCTION(module_calls_const_submodule_2) /*wants to see that the const UUID_Ts do not match*/
 {
-    ///arrange
+    // arrange
     UUID_T u = {
         (unsigned char)'a',
         (unsigned char)'b',
@@ -155,9 +161,11 @@ TEST_FUNCTION(module_calls_const_submodule_2) /*wants to see that the const UUID
     };
 
     STRICT_EXPECTED_CALL(submodule_reads_const_UUID_T(u));
+
+    // act
     module_reads_const_UUID_T(u);
 
-    ///act + assert - 2 in 1!
+    // assert
     ASSERT_ARE_NOT_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
