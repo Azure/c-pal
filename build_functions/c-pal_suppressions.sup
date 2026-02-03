@@ -84,3 +84,15 @@
    fun:pthread_create@@GLIBC_*
    ...
 }
+{
+   <TLS race due to glibc stack cache reuse - worker write>
+   Helgrind:Race
+   fun:tls_write_work_function
+   ...
+}
+{
+   <TLS race due to glibc stack cache reuse - timer callback write>
+   Helgrind:Race
+   fun:tls_write_timer_callback
+   ...
+}
