@@ -54,7 +54,28 @@
    ...
 }
 {
-   <timer_helper_thread pthread_create stack reuse race>
+   <timer_helper_thread pthread_create race - allocate_stack>
+   Helgrind:Race
+   ...
+   fun:allocate_stack
+   fun:pthread_create@@GLIBC_*
+   ...
+   fun:timer_helper_thread
+   ...
+}
+{
+   <timer_helper_thread pthread_create race - _dl_allocate_tls>
+   Helgrind:Race
+   ...
+   fun:_dl_allocate_tls
+   fun:allocate_stack
+   fun:pthread_create@@GLIBC_*
+   ...
+   fun:timer_helper_thread
+   ...
+}
+{
+   <timer_helper_thread pthread_create race - memset get_cached_stack>
    Helgrind:Race
    ...
    fun:memset
