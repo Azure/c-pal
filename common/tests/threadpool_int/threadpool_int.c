@@ -29,6 +29,22 @@
 
 static volatile_atomic int64_t g_call_count;
 
+/*
+ * Thread-local variable for helgrind race reproduction.
+ *
+ * When glibc reuses a cached thread stack, the TLS block address is the same
+ * for both the old (exited) thread and the new thread. If both threads write
+ * to the same __thread variable from user code, helgrind sees a race between
+ * two user-code accesses without proper happens-before (the glibc stack cache
+ * synchronization is invisible to helgrind).
+ *
+ * This escapes valgrind's default helgrind-glibc2X-004/005 suppressions which
+ * only match races where the top frame is in libc.so.6.
+ */
+#ifdef __linux__
+static __thread volatile int tls_race_marker;
+#endif
+
 typedef struct WAIT_WORK_CONTEXT_TAG
 {
     volatile_atomic int64_t call_count;
@@ -127,6 +143,37 @@ static void work_function(void* context)
     (void)interlocked_increment_64(call_count);
     wake_by_address_all_64((void*)call_count);
 }
+
+#ifdef __linux__
+/*
+ * Work function that writes to TLS from user code.
+ * When glibc reuses a cached stack, this creates a race visible to helgrind
+ * because the top of the stack is user code, not libc.
+ */
+static void tls_write_work_function(void* context)
+{
+    volatile_atomic int32_t* counter = (volatile_atomic int32_t*)context;
+    /* Write to TLS from user code - this is the racing access */
+    tls_race_marker = (int)(intptr_t)counter + 1;
+    ThreadAPI_Sleep(1);
+    (void)interlocked_increment(counter);
+    wake_by_address_single(counter);
+}
+
+/*
+ * Timer callback that writes to TLS from user code.
+ * If the timer thread reuses a cached stack from a worker thread,
+ * this writes to the same TLS address as the old worker's write.
+ */
+static void tls_write_timer_callback(void* context)
+{
+    volatile_atomic int64_t* call_count = (volatile_atomic int64_t*)context;
+    /* Write to TLS from user code - races with old worker's TLS write */
+    tls_race_marker = 42;
+    (void)interlocked_increment_64(call_count);
+    wake_by_address_all_64((void*)call_count);
+}
+#endif
 
 static void wait_work_function(void* context)
 {
@@ -1552,35 +1599,39 @@ TEST_FUNCTION(starting_a_timer_from_a_timer_callback_works)
 
 /*
  * Test: threadpool_timer_then_workers_does_not_race
+ *
  * This test reproduces a helgrind false positive where glibc's thread stack
- * cache causes a reported race between timer_helper_thread's pthread_create
- * (get_cached_stack -> memset) and later ThreadAPI_Create's TLS allocation
- * (_dl_allocate_tls -> calloc).
+ * cache causes a reported race. The race must be between user code accesses
+ * (not libc internals) to escape valgrind's default helgrind-glibc2X-004/005
+ * suppressions which match "obj:*/lib*/libc.so.6".
  *
- * The race pattern from zrpc CI:
- * - Thread #7: timer_helper_thread created by timer_create in test setup
- * - Thread #136: Worker thread created later by ThreadAPI_Create in test body
+ * Race mechanism:
+ * 1. Worker threads write to a __thread (TLS) variable from user code
+ * 2. Workers exit, glibc caches their stacks (including TLS block addresses)
+ * 3. Timer callback thread (spawned by timer_create SIGEV_THREAD) reuses a
+ *    cached stack, so its TLS block is at the same address as an old worker's
+ * 4. Timer callback writes to the same __thread variable from user code
+ * 5. Helgrind sees: user_code_write (old worker) vs user_code_write (timer)
+ *    without proper happens-before (glibc's stack_cache_lock is invisible)
  *
- * When timer_create(SIGEV_THREAD) is called, glibc spawns timer_helper_thread
- * which may reuse cached stacks via get_cached_stack -> memset. Later, when
- * ThreadAPI_Create spawns worker threads, their _dl_allocate_tls -> calloc
- * may touch memory that helgrind believes races with the earlier memset.
- *
- * The synchronization is glibc-internal (stack_cache_lock) and invisible to
- * helgrind, causing a false positive.
+ * Because both racing accesses have user code at the top of the stack (not
+ * libc functions like memset or allocate_stack), the default suppressions
+ * do not match and helgrind reports the race.
  *
  * Steps:
- * 1. Create initial threadpool to populate glibc's stack cache
- * 2. Destroy it (stacks get cached)
- * 3. Create a timer FIRST (timer_helper_thread reuses cached stack)
- * 4. Create new threadpool AFTER (worker threads may trigger race)
- * 5. Clean up
+ * 1. Create threadpool with workers that write to TLS from user code
+ * 2. Wait for all workers to complete (their TLS writes are recorded)
+ * 3. Destroy threadpool (worker threads exit, glibc caches their stacks)
+ * 4. Create timer with callback that writes to same TLS variable
+ * 5. Timer thread reuses cached stack, writes to same TLS address -> race
+ * 6. Clean up
  */
+#ifdef __linux__
 #define INITIAL_POOL_THREAD_COUNT 32
 #define LATER_POOL_THREAD_COUNT 4
 TEST_FUNCTION(threadpool_timer_then_workers_does_not_race)
 {
-    // 1. Create initial threadpool to populate glibc's stack cache
+    // 1. Create threadpool with workers that write to TLS from user code
     EXECUTION_ENGINE_PARAMETERS params1 = { INITIAL_POOL_THREAD_COUNT, 0 };
     EXECUTION_ENGINE_HANDLE engine1 = execution_engine_create(&params1);
     ASSERT_IS_NOT_NULL(engine1);
@@ -1588,62 +1639,47 @@ TEST_FUNCTION(threadpool_timer_then_workers_does_not_race)
     THANDLE(THREADPOOL) threadpool1 = threadpool_create(engine1);
     ASSERT_IS_NOT_NULL(threadpool1);
 
-    // Schedule work so all threads run
+    // Schedule work that writes to TLS from user code
     volatile_atomic int32_t counter;
     (void)interlocked_exchange(&counter, 0);
     for (int i = 0; i < INITIAL_POOL_THREAD_COUNT; i++)
     {
-        ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool1, threadpool_task_wait_20_millisec, (void*)&counter));
+        // tls_write_work_function writes to tls_race_marker from user code
+        ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool1, tls_write_work_function, (void*)&counter));
     }
 
+    // 2. Wait for all workers to complete (their TLS writes are recorded by helgrind)
     while (interlocked_add(&counter, 0) < INITIAL_POOL_THREAD_COUNT)
     {
         ThreadAPI_Sleep(10);
     }
 
-    // 2. Destroy threadpool (worker threads exit, glibc caches their stacks)
+    // 3. Destroy threadpool (worker threads exit, glibc caches their stacks)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool1, NULL);
     execution_engine_dec_ref(engine1);
 
-    // 3. Create execution engine for timer and later threadpool
+    // Small delay to ensure threads have fully exited and stacks are cached
+    ThreadAPI_Sleep(50);
+
+    // 4. Create timer with callback that writes to same TLS variable
     EXECUTION_ENGINE_PARAMETERS params2 = { LATER_POOL_THREAD_COUNT, 0 };
     EXECUTION_ENGINE_HANDLE engine2 = execution_engine_create(&params2);
     ASSERT_IS_NOT_NULL(engine2);
 
-    // 4. Start timer FIRST - timer_create(SIGEV_THREAD) spawns timer_helper_thread
-    //    which calls pthread_create, potentially reusing cached stacks via
-    //    get_cached_stack -> memset
     volatile_atomic int64_t timer_call_count;
     (void)interlocked_exchange_64(&timer_call_count, 0);
 
-    // Create a temporary threadpool just to start the timer
     THANDLE(THREADPOOL) timer_pool = threadpool_create(engine2);
     ASSERT_IS_NOT_NULL(timer_pool);
 
-    THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(timer_pool, 100, 100, work_function, (void*)&timer_call_count);
+    // Timer callback writes to tls_race_marker from user code
+    // If the timer thread reuses a cached stack, it writes to the same TLS
+    // address as an old worker -> helgrind reports user code vs user code race
+    THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(timer_pool, 10, 10, tls_write_timer_callback, (void*)&timer_call_count);
     ASSERT_IS_NOT_NULL(timer);
 
-    // 5. Create ANOTHER threadpool AFTER timer - these ThreadAPI_Create calls
-    //    spawn worker threads whose _dl_allocate_tls -> calloc may race with
-    //    the timer_helper_thread's earlier memset in helgrind's view
-    THANDLE(THREADPOOL) worker_pool = threadpool_create(engine2);
-    ASSERT_IS_NOT_NULL(worker_pool);
-
-    // Schedule work to ensure worker threads actually run
-    volatile_atomic int32_t work_counter;
-    (void)interlocked_exchange(&work_counter, 0);
-    for (int i = 0; i < LATER_POOL_THREAD_COUNT; i++)
-    {
-        ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(worker_pool, threadpool_task_wait_20_millisec, (void*)&work_counter));
-    }
-
-    while (interlocked_add(&work_counter, 0) < LATER_POOL_THREAD_COUNT)
-    {
-        ThreadAPI_Sleep(10);
-    }
-
-    // Wait for timer to fire at least once
-    while (interlocked_add_64(&timer_call_count, 0) < 1)
+    // 5. Wait for timer to fire several times to increase chance of stack reuse
+    while (interlocked_add_64(&timer_call_count, 0) < 5)
     {
         ThreadAPI_Sleep(10);
     }
@@ -1651,8 +1687,8 @@ TEST_FUNCTION(threadpool_timer_then_workers_does_not_race)
     // 6. Clean up
     THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&timer_pool, NULL);
-    THANDLE_ASSIGN(THREADPOOL)(&worker_pool, NULL);
     execution_engine_dec_ref(engine2);
 }
+#endif
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
