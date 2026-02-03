@@ -1554,36 +1554,50 @@ TEST_FUNCTION(starting_a_timer_from_a_timer_callback_works)
  * Test: threadpool_timer_after_worker_exit_does_not_race
  * This test reproduces a helgrind false positive where glibc's timer_helper_thread
  * reuses cached thread stacks from previously exited worker threads.
- * 1. Create execution engine and threadpool (spawns worker threads)
- * 2. Schedule work so threads run and allocate TLS
- * 3. Wait for all work to complete
- * 4. Destroy threadpool (worker threads exit, glibc caches their stacks)
- * 5. Create new execution engine and threadpool
- * 6. Start a timer (timer_create(SIGEV_THREAD) spawns timer_helper_thread
- *    which calls pthread_create, reusing cached stacks from step 4)
- * 7. Wait for timer to fire at least once
- * 8. Clean up
+ *
+ * The race occurs when:
+ * - Worker threads exit and glibc caches their stacks (LIFO stack cache)
+ * - timer_create(SIGEV_THREAD) internally calls pthread_create for the timer
+ *   helper thread, which reuses a cached stack via get_cached_stack -> memset
+ * - Helgrind flags the memset as a race against the old thread's stack writes
+ *   because glibc's internal stack cache synchronization is not visible to helgrind
+ *
+ * IMPORTANT: The first threadpool must have MORE threads than the second so that
+ * cached stacks remain available for the timer helper thread's pthread_create.
+ * If both threadpools have the same thread count, the second threadpool consumes
+ * all cached stacks and the timer helper thread gets a fresh stack (no race).
+ *
+ * Steps:
+ * 1. Create threadpool with N worker threads (N > M)
+ * 2. Schedule work so all threads run
+ * 3. Destroy threadpool (N stacks cached by glibc)
+ * 4. Create new threadpool with M worker threads (M stacks consumed from cache)
+ * 5. Start a timer (timer helper thread reuses one of the N-M remaining cached stacks)
+ * 6. Wait for timer to fire
+ * 7. Clean up
  */
+#define FIRST_POOL_THREAD_COUNT 32
+#define SECOND_POOL_THREAD_COUNT 4
 TEST_FUNCTION(threadpool_timer_after_worker_exit_does_not_race)
 {
-    // 1. Create execution engine and threadpool (spawns worker threads)
-    EXECUTION_ENGINE_PARAMETERS params1 = { 4, 0 };
+    // 1. Create execution engine and threadpool with many worker threads
+    EXECUTION_ENGINE_PARAMETERS params1 = { FIRST_POOL_THREAD_COUNT, 0 };
     EXECUTION_ENGINE_HANDLE engine1 = execution_engine_create(&params1);
     ASSERT_IS_NOT_NULL(engine1);
 
     THANDLE(THREADPOOL) threadpool1 = threadpool_create(engine1);
     ASSERT_IS_NOT_NULL(threadpool1);
 
-    // 2. Schedule work so threads run and allocate TLS
+    // 2. Schedule work on all threads so they run and allocate TLS
     volatile_atomic int32_t counter;
     (void)interlocked_exchange(&counter, 0);
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < FIRST_POOL_THREAD_COUNT; i++)
     {
         ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool1, threadpool_task_wait_20_millisec, (void*)&counter));
     }
 
     // 3. Wait for all work to complete
-    while (interlocked_add(&counter, 0) < 4)
+    while (interlocked_add(&counter, 0) < FIRST_POOL_THREAD_COUNT)
     {
         ThreadAPI_Sleep(10);
     }
@@ -1592,15 +1606,15 @@ TEST_FUNCTION(threadpool_timer_after_worker_exit_does_not_race)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool1, NULL);
     execution_engine_dec_ref(engine1);
 
-    // 5. Create new execution engine and threadpool
-    EXECUTION_ENGINE_PARAMETERS params2 = { 4, 0 };
+    // 5. Create new threadpool with fewer threads (consumes only some cached stacks)
+    EXECUTION_ENGINE_PARAMETERS params2 = { SECOND_POOL_THREAD_COUNT, 0 };
     EXECUTION_ENGINE_HANDLE engine2 = execution_engine_create(&params2);
     ASSERT_IS_NOT_NULL(engine2);
 
     THANDLE(THREADPOOL) threadpool2 = threadpool_create(engine2);
     ASSERT_IS_NOT_NULL(threadpool2);
 
-    // 6. Start a timer (triggers timer_helper_thread -> pthread_create reusing cached stacks)
+    // 6. Start a timer (timer_create(SIGEV_THREAD) -> pthread_create reuses remaining cached stacks)
     volatile_atomic int64_t timer_call_count;
     (void)interlocked_exchange_64(&timer_call_count, 0);
 
