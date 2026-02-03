@@ -1551,71 +1551,107 @@ TEST_FUNCTION(starting_a_timer_from_a_timer_callback_works)
 }
 
 /*
- * Test: threadpool_timer_after_worker_exit_does_not_race
- * This test reproduces a helgrind false positive where glibc's timer_helper_thread
- * reuses cached thread stacks from previously exited worker threads.
- * 1. Create execution engine and threadpool (spawns worker threads)
- * 2. Schedule work so threads run and allocate TLS
- * 3. Wait for all work to complete
- * 4. Destroy threadpool (worker threads exit, glibc caches their stacks)
- * 5. Create new execution engine and threadpool
- * 6. Start a timer (timer_create(SIGEV_THREAD) spawns timer_helper_thread
- *    which calls pthread_create, reusing cached stacks from step 4)
- * 7. Wait for timer to fire at least once
- * 8. Clean up
+ * Test: threadpool_timer_then_workers_does_not_race
+ * This test reproduces a helgrind false positive where glibc's thread stack
+ * cache causes a reported race between timer_helper_thread's pthread_create
+ * (get_cached_stack -> memset) and later ThreadAPI_Create's TLS allocation
+ * (_dl_allocate_tls -> calloc).
+ *
+ * The race pattern from zrpc CI:
+ * - Thread #7: timer_helper_thread created by timer_create in test setup
+ * - Thread #136: Worker thread created later by ThreadAPI_Create in test body
+ *
+ * When timer_create(SIGEV_THREAD) is called, glibc spawns timer_helper_thread
+ * which may reuse cached stacks via get_cached_stack -> memset. Later, when
+ * ThreadAPI_Create spawns worker threads, their _dl_allocate_tls -> calloc
+ * may touch memory that helgrind believes races with the earlier memset.
+ *
+ * The synchronization is glibc-internal (stack_cache_lock) and invisible to
+ * helgrind, causing a false positive.
+ *
+ * Steps:
+ * 1. Create initial threadpool to populate glibc's stack cache
+ * 2. Destroy it (stacks get cached)
+ * 3. Create a timer FIRST (timer_helper_thread reuses cached stack)
+ * 4. Create new threadpool AFTER (worker threads may trigger race)
+ * 5. Clean up
  */
-TEST_FUNCTION(threadpool_timer_after_worker_exit_does_not_race)
+#define INITIAL_POOL_THREAD_COUNT 32
+#define LATER_POOL_THREAD_COUNT 4
+TEST_FUNCTION(threadpool_timer_then_workers_does_not_race)
 {
-    // 1. Create execution engine and threadpool (spawns worker threads)
-    EXECUTION_ENGINE_PARAMETERS params1 = { 4, 0 };
+    // 1. Create initial threadpool to populate glibc's stack cache
+    EXECUTION_ENGINE_PARAMETERS params1 = { INITIAL_POOL_THREAD_COUNT, 0 };
     EXECUTION_ENGINE_HANDLE engine1 = execution_engine_create(&params1);
     ASSERT_IS_NOT_NULL(engine1);
 
     THANDLE(THREADPOOL) threadpool1 = threadpool_create(engine1);
     ASSERT_IS_NOT_NULL(threadpool1);
 
-    // 2. Schedule work so threads run and allocate TLS
+    // Schedule work so all threads run
     volatile_atomic int32_t counter;
     (void)interlocked_exchange(&counter, 0);
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < INITIAL_POOL_THREAD_COUNT; i++)
     {
         ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool1, threadpool_task_wait_20_millisec, (void*)&counter));
     }
 
-    // 3. Wait for all work to complete
-    while (interlocked_add(&counter, 0) < 4)
+    while (interlocked_add(&counter, 0) < INITIAL_POOL_THREAD_COUNT)
     {
         ThreadAPI_Sleep(10);
     }
 
-    // 4. Destroy threadpool (worker threads exit, glibc caches their stacks)
+    // 2. Destroy threadpool (worker threads exit, glibc caches their stacks)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool1, NULL);
     execution_engine_dec_ref(engine1);
 
-    // 5. Create new execution engine and threadpool
-    EXECUTION_ENGINE_PARAMETERS params2 = { 4, 0 };
+    // 3. Create execution engine for timer and later threadpool
+    EXECUTION_ENGINE_PARAMETERS params2 = { LATER_POOL_THREAD_COUNT, 0 };
     EXECUTION_ENGINE_HANDLE engine2 = execution_engine_create(&params2);
     ASSERT_IS_NOT_NULL(engine2);
 
-    THANDLE(THREADPOOL) threadpool2 = threadpool_create(engine2);
-    ASSERT_IS_NOT_NULL(threadpool2);
-
-    // 6. Start a timer (triggers timer_helper_thread -> pthread_create reusing cached stacks)
+    // 4. Start timer FIRST - timer_create(SIGEV_THREAD) spawns timer_helper_thread
+    //    which calls pthread_create, potentially reusing cached stacks via
+    //    get_cached_stack -> memset
     volatile_atomic int64_t timer_call_count;
     (void)interlocked_exchange_64(&timer_call_count, 0);
 
-    THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(threadpool2, 50, 50, work_function, (void*)&timer_call_count);
+    // Create a temporary threadpool just to start the timer
+    THANDLE(THREADPOOL) timer_pool = threadpool_create(engine2);
+    ASSERT_IS_NOT_NULL(timer_pool);
+
+    THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(timer_pool, 100, 100, work_function, (void*)&timer_call_count);
     ASSERT_IS_NOT_NULL(timer);
 
-    // 7. Wait for timer to fire at least once
+    // 5. Create ANOTHER threadpool AFTER timer - these ThreadAPI_Create calls
+    //    spawn worker threads whose _dl_allocate_tls -> calloc may race with
+    //    the timer_helper_thread's earlier memset in helgrind's view
+    THANDLE(THREADPOOL) worker_pool = threadpool_create(engine2);
+    ASSERT_IS_NOT_NULL(worker_pool);
+
+    // Schedule work to ensure worker threads actually run
+    volatile_atomic int32_t work_counter;
+    (void)interlocked_exchange(&work_counter, 0);
+    for (int i = 0; i < LATER_POOL_THREAD_COUNT; i++)
+    {
+        ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(worker_pool, threadpool_task_wait_20_millisec, (void*)&work_counter));
+    }
+
+    while (interlocked_add(&work_counter, 0) < LATER_POOL_THREAD_COUNT)
+    {
+        ThreadAPI_Sleep(10);
+    }
+
+    // Wait for timer to fire at least once
     while (interlocked_add_64(&timer_call_count, 0) < 1)
     {
         ThreadAPI_Sleep(10);
     }
 
-    // 8. Clean up
+    // 6. Clean up
     THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer, NULL);
-    THANDLE_ASSIGN(THREADPOOL)(&threadpool2, NULL);
+    THANDLE_ASSIGN(THREADPOOL)(&timer_pool, NULL);
+    THANDLE_ASSIGN(THREADPOOL)(&worker_pool, NULL);
     execution_engine_dec_ref(engine2);
 }
 
