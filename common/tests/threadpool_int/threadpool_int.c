@@ -1552,32 +1552,15 @@ TEST_FUNCTION(starting_a_timer_from_a_timer_callback_works)
 
 // Test: threadpool_timer_then_workers_does_not_race
 //
-// Reproduces a helgrind false positive caused by concurrent pthread_create
-// calls racing on _dl_allocate_tls (in ld.so) and get_cached_stack (in libc).
-//
-// Why this escapes default helgrind suppressions:
-// - helgrind-glibc2X-004/005 only match obj:*/lib*/libc.so.6
-//   but _dl_allocate_tls is in ld-linux-x86-64.so.2
-// - helgrind---_dl_allocate_tls expects pthread_create@@GLIBC_2.2*
-//   but glibc 2.34+ uses pthread_create@@GLIBC_2.34
-//
-// Race mechanism:
-// 1. Start a timer with SIGEV_THREAD and short repeat interval
-//    (each timer firing causes timer_helper_thread to call pthread_create)
-// 2. Simultaneously create a threadpool (ThreadAPI_Create calls pthread_create)
-// 3. Concurrent pthread_create calls race on _dl_allocate_tls and
-//    get_cached_stack - helgrind reports these as unsuppressed races
-//
-// This matches the zrpc CI pattern where timer_helper_thread and
-// ThreadAPI_Create concurrently called pthread_create.
-#ifdef __linux__
-#define HELGRIND_WORKER_THREAD_COUNT 4
-#define HELGRIND_NUM_ITERATIONS 3
+// Exercises concurrent timer and threadpool creation to reproduce a helgrind
+// false positive on Linux where concurrent thread creation races on glibc
+// internal data structures (get_cached_stack, _dl_allocate_tls).
+#define TIMER_RACE_WORKER_THREAD_COUNT 4
+#define TIMER_RACE_NUM_ITERATIONS 3
 TEST_FUNCTION(threadpool_timer_then_workers_does_not_race)
 {
-    // 1. Start a timer with short interval - each firing causes
-    //    timer_helper_thread to call pthread_create for the callback
-    EXECUTION_ENGINE_PARAMETERS params = { HELGRIND_WORKER_THREAD_COUNT, 0 };
+    // 1. Start a timer with short interval so it fires frequently
+    EXECUTION_ENGINE_PARAMETERS params = { TIMER_RACE_WORKER_THREAD_COUNT, 0 };
     EXECUTION_ENGINE_HANDLE engine = execution_engine_create(&params);
     ASSERT_IS_NOT_NULL(engine);
 
@@ -1588,27 +1571,26 @@ TEST_FUNCTION(threadpool_timer_then_workers_does_not_race)
     ASSERT_IS_NOT_NULL(timer_pool);
 
     // 1ms delay, 1ms repeat - fires frequently to maximize concurrent
-    // pthread_create calls from timer_helper_thread
+    // thread creation from the timer and from the worker threadpools
     THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(timer_pool, 1, 1, work_function, (void*)&timer_call_count);
     ASSERT_IS_NOT_NULL(timer);
 
-    // 2. While timer is actively firing (timer_helper_thread calling
-    //    pthread_create for each callback), simultaneously create threadpools.
-    //    This creates concurrent pthread_create calls which race on
-    //    _dl_allocate_tls (in ld.so) and get_cached_stack (in libc).
-    for (int iter = 0; iter < HELGRIND_NUM_ITERATIONS; iter++)
+    // 2. While timer is actively firing, simultaneously create threadpools
+    //    with worker threads. On Linux this creates concurrent thread
+    //    creation calls that race on glibc internal data structures.
+    for (int iter = 0; iter < TIMER_RACE_NUM_ITERATIONS; iter++)
     {
         THANDLE(THREADPOOL) worker_pool = threadpool_create(engine);
         ASSERT_IS_NOT_NULL(worker_pool);
 
         volatile_atomic int32_t work_counter;
         (void)interlocked_exchange(&work_counter, 0);
-        for (int i = 0; i < HELGRIND_WORKER_THREAD_COUNT; i++)
+        for (int i = 0; i < TIMER_RACE_WORKER_THREAD_COUNT; i++)
         {
             ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(worker_pool, threadpool_task_wait_20_millisec, (void*)&work_counter));
         }
 
-        while (interlocked_add(&work_counter, 0) < HELGRIND_WORKER_THREAD_COUNT)
+        while (interlocked_add(&work_counter, 0) < TIMER_RACE_WORKER_THREAD_COUNT)
         {
             ThreadAPI_Sleep(10);
         }
@@ -1621,6 +1603,5 @@ TEST_FUNCTION(threadpool_timer_then_workers_does_not_race)
     THANDLE_ASSIGN(THREADPOOL)(&timer_pool, NULL);
     execution_engine_dec_ref(engine);
 }
-#endif
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
