@@ -1597,35 +1597,33 @@ TEST_FUNCTION(starting_a_timer_from_a_timer_callback_works)
     execution_engine_dec_ref(execution_engine);
 }
 
-/*
- * Test: threadpool_timer_then_workers_does_not_race
- *
- * This test reproduces a helgrind false positive where glibc's thread stack
- * cache causes a reported race. The race must be between user code accesses
- * (not libc internals) to escape valgrind's default helgrind-glibc2X-004/005
- * suppressions which match "obj:*/lib*/libc.so.6".
- *
- * Race mechanism:
- * 1. Worker threads write to a __thread (TLS) variable from user code
- * 2. Workers exit, glibc caches their stacks (including TLS block addresses)
- * 3. Timer callback thread (spawned by timer_create SIGEV_THREAD) reuses a
- *    cached stack, so its TLS block is at the same address as an old worker's
- * 4. Timer callback writes to the same __thread variable from user code
- * 5. Helgrind sees: user_code_write (old worker) vs user_code_write (timer)
- *    without proper happens-before (glibc's stack_cache_lock is invisible)
- *
- * Because both racing accesses have user code at the top of the stack (not
- * libc functions like memset or allocate_stack), the default suppressions
- * do not match and helgrind reports the race.
- *
- * Steps:
- * 1. Create threadpool with workers that write to TLS from user code
- * 2. Wait for all workers to complete (their TLS writes are recorded)
- * 3. Destroy threadpool (worker threads exit, glibc caches their stacks)
- * 4. Create timer with callback that writes to same TLS variable
- * 5. Timer thread reuses cached stack, writes to same TLS address -> race
- * 6. Clean up
- */
+// Test: threadpool_timer_then_workers_does_not_race
+//
+// This test reproduces a helgrind false positive where glibc's thread stack
+// cache causes a reported race. The race must be between user code accesses
+// (not libc internals) to escape valgrind's default helgrind-glibc2X-004/005
+// suppressions which match obj:*/lib*/libc.so.6.
+//
+// Race mechanism:
+// 1. Worker threads write to a __thread (TLS) variable from user code
+// 2. Workers exit, glibc caches their stacks (including TLS block addresses)
+// 3. Timer callback thread (spawned by timer_create SIGEV_THREAD) reuses a
+//    cached stack, so its TLS block is at the same address as an old worker's
+// 4. Timer callback writes to the same __thread variable from user code
+// 5. Helgrind sees: user_code_write (old worker) vs user_code_write (timer)
+//    without proper happens-before (glibc's stack_cache_lock is invisible)
+//
+// Because both racing accesses have user code at the top of the stack (not
+// libc functions like memset or allocate_stack), the default suppressions
+// do not match and helgrind reports the race.
+//
+// Steps:
+// 1. Create threadpool with workers that write to TLS from user code
+// 2. Wait for all workers to complete (their TLS writes are recorded)
+// 3. Destroy threadpool (worker threads exit, glibc caches their stacks)
+// 4. Create timer with callback that writes to same TLS variable
+// 5. Timer thread reuses cached stack, writes to same TLS address -> race
+// 6. Clean up
 #ifdef __linux__
 #define INITIAL_POOL_THREAD_COUNT 32
 #define LATER_POOL_THREAD_COUNT 4
