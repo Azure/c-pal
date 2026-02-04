@@ -483,7 +483,7 @@ static void builds_out_arg(THANDLE(LL)** x)
 /*Tests_SRS_THANDLE_02_012: [ THANDLE_INITIALIZE shall increment the reference count of rvalue and store it in *lvalue. ]*/
 /*Tests_SRS_THANDLE_02_009: [ If *t1 is not NULL and t2 is NULL then THANDLE_ASSIGN shall decrement the reference count of *t1 and store NULL in *t1. ]*/
 /*this test wants to see that an array of THANDLE(LL) can be returned from some constructor as out argument*/
-TEST_FUNCTION(THANDLE_T_can_build_an_array)
+TEST_FUNCTION(THANDLE_T_can_build_an_array) // no-aaa
 {
     THANDLE(LL)* arr;
     builds_out_arg(&arr); /*arr points to an array of 2 THANDLE(LL)s*/
