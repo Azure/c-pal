@@ -202,7 +202,15 @@ static void TEST_THANDLE_dispose(void* context, THANDLE(TEST_THANDLE)* item)
     THANDLE_ASSIGN(TEST_THANDLE)(item, NULL);
 }
 
+// Reduce chaos test runtime when running under valgrind to avoid timeout.
+// Valgrind introduces 10-50x overhead, and with 11 chaos tests at 1000ms each,
+// the total runtime can exceed 5-10 minutes. 100ms is sufficient for memory
+// error detection while keeping tests within reasonable time limits.
+#ifdef USE_VALGRIND
+#define CHAOS_TEST_RUNTIME 100 // ms - reduced for valgrind to avoid timeout
+#else
 #define CHAOS_TEST_RUNTIME 1000 // ms
+#endif
 
 static int tqueue_chaos_thread_func(void* arg)
 {
