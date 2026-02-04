@@ -69,6 +69,7 @@ set(pal_linux_c_files
     src/string_utils.c
     src/string_utils.c
     src/sysinfo_linux.c
+    src/process_watchdog_linux.c
     src/threadpool_linux.c
     src/tqueue_threadpool_work_item.c
     src/timer_linux.c
