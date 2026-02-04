@@ -1550,4 +1550,58 @@ TEST_FUNCTION(starting_a_timer_from_a_timer_callback_works)
     execution_engine_dec_ref(execution_engine);
 }
 
+// Test: threadpool_timer_then_workers_does_not_race
+//
+// Exercises concurrent timer and threadpool creation to reproduce a helgrind
+// false positive on Linux where concurrent thread creation races on glibc
+// internal data structures (get_cached_stack, _dl_allocate_tls).
+#define TIMER_RACE_WORKER_THREAD_COUNT 4
+#define TIMER_RACE_NUM_ITERATIONS 3
+TEST_FUNCTION(threadpool_timer_then_workers_does_not_race)
+{
+    // 1. Start a timer with short interval so it fires frequently
+    EXECUTION_ENGINE_PARAMETERS params = { TIMER_RACE_WORKER_THREAD_COUNT, 0 };
+    EXECUTION_ENGINE_HANDLE engine = execution_engine_create(&params);
+    ASSERT_IS_NOT_NULL(engine);
+
+    volatile_atomic int64_t timer_call_count;
+    (void)interlocked_exchange_64(&timer_call_count, 0);
+
+    THANDLE(THREADPOOL) timer_pool = threadpool_create(engine);
+    ASSERT_IS_NOT_NULL(timer_pool);
+
+    // 1ms delay, 1ms repeat - fires frequently to maximize concurrent
+    // thread creation from the timer and from the worker threadpools
+    THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(timer_pool, 1, 1, work_function, (void*)&timer_call_count);
+    ASSERT_IS_NOT_NULL(timer);
+
+    // 2. While timer is actively firing, simultaneously create threadpools
+    //    with worker threads. On Linux this creates concurrent thread
+    //    creation calls that race on glibc internal data structures.
+    for (int iter = 0; iter < TIMER_RACE_NUM_ITERATIONS; iter++)
+    {
+        THANDLE(THREADPOOL) worker_pool = threadpool_create(engine);
+        ASSERT_IS_NOT_NULL(worker_pool);
+
+        volatile_atomic int32_t work_counter;
+        (void)interlocked_exchange(&work_counter, 0);
+        for (int i = 0; i < TIMER_RACE_WORKER_THREAD_COUNT; i++)
+        {
+            ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(worker_pool, threadpool_task_wait_20_millisec, (void*)&work_counter));
+        }
+
+        while (interlocked_add(&work_counter, 0) < TIMER_RACE_WORKER_THREAD_COUNT)
+        {
+            ThreadAPI_Sleep(10);
+        }
+
+        THANDLE_ASSIGN(THREADPOOL)(&worker_pool, NULL);
+    }
+
+    // 3. Clean up
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer, NULL);
+    THANDLE_ASSIGN(THREADPOOL)(&timer_pool, NULL);
+    execution_engine_dec_ref(engine);
+}
+
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
