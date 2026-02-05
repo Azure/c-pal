@@ -1503,6 +1503,7 @@ TEST_FUNCTION(gballoc_hl_reset_counters_resets_the_counters)
         STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));
     }
 
+    // act
     gballoc_hl_reset_counters();
 
     // assert
@@ -1513,7 +1514,6 @@ TEST_FUNCTION(gballoc_hl_reset_counters_resets_the_counters)
     GBALLOC_LATENCY_BUCKETS realloc_latency_buckets;
     GBALLOC_LATENCY_BUCKETS free_latency_buckets;
 
-    // act
     (void)gballoc_hl_get_malloc_latency_buckets(&malloc_latency_buckets);
     (void)gballoc_hl_get_calloc_latency_buckets(&calloc_latency_buckets);
     (void)gballoc_hl_get_realloc_latency_buckets(&realloc_latency_buckets);

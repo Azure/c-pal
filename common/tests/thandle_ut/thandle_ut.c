@@ -485,22 +485,29 @@ static void builds_out_arg(THANDLE(LL)** x)
 /*this test wants to see that an array of THANDLE(LL) can be returned from some constructor as out argument*/
 TEST_FUNCTION(THANDLE_T_can_build_an_array)
 {
+    ///arrange
     THANDLE(LL)* arr;
     builds_out_arg(&arr); /*arr points to an array of 2 THANDLE(LL)s*/
 
     THANDLE(LL) temp = ll_create(1, "4");
     ASSERT_IS_NOT_NULL(temp);
-    THANDLE_INITIALIZE(LL)(&arr[0], temp);
-    THANDLE_ASSIGN(LL)(&temp, NULL);
 
     THANDLE(LL) temp2 = ll_create(2, "44");
     ASSERT_IS_NOT_NULL(temp2);
-    THANDLE_INITIALIZE(LL)(&arr[1], temp2);
-    THANDLE_ASSIGN(LL)(&temp2, NULL);
 
+    ///act
+    THANDLE_INITIALIZE(LL)(&arr[0], temp);
+    THANDLE_INITIALIZE(LL)(&arr[1], temp2);
+
+    ///assert
+    ASSERT_IS_NOT_NULL(arr[0]);
+    ASSERT_IS_NOT_NULL(arr[1]);
+
+    ///cleanup
+    THANDLE_ASSIGN(LL)(&temp, NULL);
+    THANDLE_ASSIGN(LL)(&temp2, NULL);
     THANDLE_ASSIGN(LL)(&arr[0], NULL);
     THANDLE_ASSIGN(LL)(&arr[1], NULL);
-
     real_gballoc_hl_free((void*)arr);
 }
 

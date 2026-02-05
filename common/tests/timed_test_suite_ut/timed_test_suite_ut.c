@@ -126,7 +126,8 @@ TIMED_TEST_SUITE_CLEANUP(TestCleanup, additional_cleanup_fixture)
 /*Tests_SRS_TIMED_TEST_SUITE_43_004: [ The watchdog init fixture shall execute before the user's initialization code. ]*/
 TEST_FUNCTION(timed_test_suite_watchdog_init_called_before_user_init)
 {
-    // arrange/act is done by suite initialization
+    // arrange
+    // act is done by suite initialization
 
     // assert - verify fixture ordering: watchdog_init (1) -> additional_init_fixture (2) -> user_init (3)
     ASSERT_ARE_EQUAL(int, 1, watchdog_init_call_order,
@@ -142,7 +143,8 @@ TEST_FUNCTION(timed_test_suite_watchdog_init_called_before_user_init)
 /*Tests_SRS_TIMED_TEST_SUITE_43_007: [ The watchdog deinit fixture shall execute after the user's cleanup code. ]*/
 TEST_FUNCTION(timed_test_suite_watchdog_is_running_during_tests)
 {
-    // arrange/act
+    // arrange
+    // act is done by test suite (watchdog running during tests)
 
     // assert - verify watchdog deinit has not been called yet
     ASSERT_ARE_EQUAL(int, 0, watchdog_deinit_call_order,

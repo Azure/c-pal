@@ -454,6 +454,7 @@ TEST_FUNCTION(srw_lock_release_exclusive_succeeds)
 /*Tests_SRS_SRW_LOCK_02_011: [ If handle is NULL then srw_lock_destroy shall return. ]*/
 TEST_FUNCTION(srw_lock_destroy_with_handle_NULL_returns)
 {
+    ///arrange
 
     ///act
     srw_lock_destroy(NULL);
@@ -668,6 +669,8 @@ TEST_FUNCTION(when_underlying_TryAcquireSRWLockShared_returns_FALSE_srw_lock_try
 /*Tests_SRS_SRW_LOCK_02_020: [ If handle is NULL then srw_lock_release_shared shall return. ]*/
 TEST_FUNCTION(srw_lock_release_shared_with_handle_NULL_returns)
 {
+    ///arrange
+
     ///act
     srw_lock_release_shared(NULL);
 
