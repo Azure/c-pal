@@ -53,3 +53,13 @@
    fun:timer_create@@GLIBC_*
    ...
 }
+{
+   <concurrent thread creation race - memset get_cached_stack>
+   Helgrind:Race
+   ...
+   fun:memset
+   fun:get_cached_stack
+   fun:allocate_stack
+   fun:pthread_create@@GLIBC_*
+   ...
+}
