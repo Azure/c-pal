@@ -6,7 +6,7 @@
 
 #include "c_pal/arithmetic.h"
 
-#if defined(_M_ARM64) || defined(_M_ARM64EC)
+#if defined(_M_ARM64)
 PAL_UINT128 umul64x64(uint64_t left, uint64_t right)
 {
     /*Codes_SRS_ARITHMETIC_02_001: [ umul64x64 shall multiply left and right and return PAL_UINT128 as result.]*/
