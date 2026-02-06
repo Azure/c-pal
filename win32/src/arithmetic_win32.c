@@ -6,8 +6,16 @@
 
 #include "c_pal/arithmetic.h"
 
-#if defined(_WIN64)
-/*only works if compiling on 64 bits*/
+#if defined(_M_ARM64) || defined(_M_ARM64EC)
+PAL_UINT128 umul64x64(uint64_t left, uint64_t right)
+{
+    /*Codes_SRS_ARITHMETIC_02_001: [ umul64x64 shall multiply left and right and return PAL_UINT128 as result.]*/
+    PAL_UINT128 result;
+    result.low = left * right;
+    result.high = __umulh(left, right);
+    return result;
+}
+#elif defined(_M_AMD64)
 PAL_UINT128 umul64x64(uint64_t left, uint64_t right)
 {
     /*Codes_SRS_ARITHMETIC_02_001: [ umul64x64 shall multiply left and right and return PAL_UINT128 as result.]*/
