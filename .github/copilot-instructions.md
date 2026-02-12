@@ -551,6 +551,34 @@ INC_REF(MY_OBJECT, handle);  // WRONG - these are REFCOUNT macros, not THANDLE
 DEC_REF(MY_OBJECT, handle);  // WRONG - use THANDLE_ASSIGN instead
 ```
 
+### THANDLE Unit Testing Patterns
+
+#### THANDLE_MALLOC Cannot Be Mocked Directly
+`THANDLE_MALLOC` is a macro that expands through multiple layers. When `gballoc_hl_redirect.h` is included, the actual call that reaches umock-c is `malloc`. Use `malloc(IGNORED_ARG)` in expectations:
+
+```c
+// WRONG: Trying to mock THANDLE_MALLOC directly
+STRICT_EXPECTED_CALL(THANDLE_MALLOC(MODULE)(IGNORED_ARG));  // Won't compile or match
+
+// CORRECT: Mock the underlying malloc call
+STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+```
+
+#### THANDLE Dispose Triggers free in Unit Tests
+When testing dispose via `THANDLE_ASSIGN(TYPE)(&handle, NULL)` (ref count reaches zero), the mock framework sees **two** calls: the dispose callback AND the underlying `free`. Both must be expected:
+
+```c
+// Testing cleanup/dispose of a THANDLE
+STRICT_EXPECTED_CALL(dependency_cleanup(IGNORED_ARG));  // Calls inside dispose
+STRICT_EXPECTED_CALL(free(IGNORED_ARG));                 // THANDLE frees the memory
+
+// act
+THANDLE_ASSIGN(MODULE)(&handle, NULL);  // Triggers dispose + free
+
+// assert
+ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+```
+
 THANDLE provides the safety and convenience of modern smart pointers while maintaining C compatibility and performance. It's the preferred pattern for managing object lifetimes in c-pal components.
 
 ### Threadpool Work Scheduling
