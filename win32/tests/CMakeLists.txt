@@ -43,6 +43,7 @@ if(${run_int_tests})
     build_test_folder(malloc_multi_flex_int)
     build_test_folder(string_utils_int)
     build_test_folder(job_object_helper_int)
+    build_test_folder(job_object_helper_nested_int)
     build_test_folder(process_watchdog_int)
 
     if((${GBALLOC_LL_TYPE} STREQUAL "MIMALLOC"))
