@@ -143,10 +143,25 @@ TEST_FUNCTION(test_nested_job_objects_do_not_throttle_cpu)
     THANDLE(JOB_OBJECT_HELPER) job_object_9 = job_object_helper_set_job_limits_to_current_process(NULL, 50, 50);
     ASSERT_IS_NOT_NULL(job_object_9, "Failed to create job object 9");
 
-    /* Measure malloc throughput with 10 job objects */
-    LogInfo("Phase 2: Measuring malloc throughput for %d ms with %d job objects...", MEASUREMENT_DURATION_MS, MAX_JOB_OBJECTS);
+    /* Release the first 9 job objects to mimic production behavior: */
+    /* In prod, replica destroy calls THANDLE_ASSIGN(..., NULL) which CloseHandles */
+    /* the job object, but the process remains assigned to the orphaned job objects */
+    LogInfo("Phase 2: Releasing first 9 job objects (mimicking prod destroy+recreate)...");
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_0, NULL);
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_1, NULL);
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_2, NULL);
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_3, NULL);
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_4, NULL);
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_5, NULL);
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_6, NULL);
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_7, NULL);
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_8, NULL);
+
+    /* Measure malloc throughput — only job_object_9 handle is held, */
+    /* but process is still assigned to all 10 orphaned job objects */
+    LogInfo("Phase 2: Measuring malloc throughput for %d ms with 10 nested job objects (9 orphaned)...", MEASUREMENT_DURATION_MS);
     int64_t count_10 = measure_malloc_throughput(num_threads, MEASUREMENT_DURATION_MS);
-    LogInfo("Phase 2: Total malloc/free operations with %d job objects: %" PRId64, MAX_JOB_OBJECTS, count_10);
+    LogInfo("Phase 2: Total malloc/free operations with 10 job objects (9 orphaned): %" PRId64, count_10);
 
     /* Log the ratio */
     double ratio = (count_1 > 0) ? ((double)count_10 / (double)count_1) : 0.0;
@@ -158,16 +173,7 @@ TEST_FUNCTION(test_nested_job_objects_do_not_throttle_cpu)
         "Nested job objects caused CPU throttling! count_1=%" PRId64 ", count_10=%" PRId64 ", ratio=%.4f",
         count_1, count_10, ratio);
 
-    /* Cleanup */
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_0, NULL);
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_1, NULL);
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_2, NULL);
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_3, NULL);
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_4, NULL);
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_5, NULL);
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_6, NULL);
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_7, NULL);
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_8, NULL);
+    /* Cleanup — only job_object_9 remains */
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_9, NULL);
 }
 
