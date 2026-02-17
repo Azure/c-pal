@@ -1,7 +1,6 @@
 // Copyright(C) Microsoft Corporation.All rights reserved.
 
 
-
 #include "job_object_helper_ut_pch.h"
 
 #include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
@@ -97,9 +96,6 @@ static void setup_job_object_helper_set_job_limits_to_current_process_process_as
     STRICT_EXPECTED_CALL(mocked_AssignProcessToJobObject(IGNORED_ARG, IGNORED_ARG))
         .SetReturn(TRUE)
         .SetFailReturn(FALSE);
-    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG))
-        .SetReturn(TRUE)
-        .CallCannotFail();
 }
 
 static void setup_job_object_helper_set_job_limits_to_current_process_expectations(void)
@@ -143,6 +139,7 @@ TEST_FUNCTION_INITIALIZE(init)
 
 TEST_FUNCTION_CLEANUP(cleanup)
 {
+    job_object_helper_deinit();
 }
 
 /*Tests_SRS_JOB_OBJECT_HELPER_18_033: [ job_object_helper_dispose shall call CloseHandle to close the handle to the job object. ]*/
@@ -190,7 +187,6 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_test_limits)
 /*Tests_SRS_JOB_OBJECT_HELPER_19_005: [ If percent_physical_memory is not 0 then job_object_helper_set_job_limits_to_current_process shall call SetInformationJobObject, passing JobObjectExtendedLimitInformation and a JOBOBJECT_EXTENDED_LIMIT_INFORMATION object with JOB_OBJECT_LIMIT_JOB_MEMORY set and JobMemoryLimit set to the percent_physical_memory percent of the physical memory in bytes. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_19_006: [ job_object_helper_set_job_limits_to_current_process shall call GetCurrentProcess to get the current process handle. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_19_007: [ job_object_helper_set_job_limits_to_current_process shall call AssignProcessToJobObject to assign the current process to the new job object. ]*/
-/*Tests_SRS_JOB_OBJECT_HELPER_19_008: [ job_object_helper_set_job_limits_to_current_process shall call CloseHandle to close the handle of the current process. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_19_010: [ job_object_set_job_limits_to_current_process shall succeed and return a JOB_OBJECT_HELPER object. ]*/
 TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_succeeds)
 {
@@ -216,13 +212,130 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_succeeds)
 
         // act
         THANDLE(JOB_OBJECT_HELPER) result = job_object_helper_set_job_limits_to_current_process("job_name", cpu_limits[i], memory_limits[i]);
+
         // assert
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
         ASSERT_IS_NOT_NULL(result);
 
-        // cleanup
+        // cleanup - release result, then deinit releases singleton which triggers dispose
         THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&result, NULL);
+
+        // Expect dispose (CloseHandle on job object) + free of THANDLE wrapper when singleton refcount reaches 0
+        STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG));
+        STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+        job_object_helper_deinit();
+
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     }
+}
+
+/*Tests_SRS_JOB_OBJECT_HELPER_88_001: [ If percent_cpu is 100 and percent_physical_memory is 100, job_object_helper_set_job_limits_to_current_process shall return NULL without creating a job object (100% CPU and 100% memory are effectively no limits). ]*/
+TEST_FUNCTION(job_object_helper_set_job_limits_with_100_cpu_and_100_memory_returns_NULL)
+{
+    // arrange
+
+    // act
+    THANDLE(JOB_OBJECT_HELPER) result = job_object_helper_set_job_limits_to_current_process("job_name", 100, 100);
+
+    // assert
+    ASSERT_IS_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/*Tests_SRS_JOB_OBJECT_HELPER_88_002: [ If the process-level singleton job object has already been created with the same percent_cpu and percent_physical_memory values, job_object_helper_set_job_limits_to_current_process shall increment the reference count on the existing THANDLE(JOB_OBJECT_HELPER) and return it. ]*/
+TEST_FUNCTION(job_object_helper_set_job_limits_singleton_reuses_with_same_params)
+{
+    // arrange - create singleton
+    setup_job_object_helper_set_job_limits_to_current_process_createObjectA_expectations();
+    setup_job_object_helper_limit_cpu_expectations();
+    setup_job_object_helper_limit_memory_expectations();
+    STRICT_EXPECTED_CALL(mocked_GetCurrentProcess())
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(mocked_AssignProcessToJobObject(IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(TRUE)
+        .SetFailReturn(FALSE);
+
+    THANDLE(JOB_OBJECT_HELPER) first_result = job_object_helper_set_job_limits_to_current_process("job_name", 50, 50);
+    ASSERT_IS_NOT_NULL(first_result);
+    umock_c_reset_all_calls();
+
+    // act - call again with same params
+    THANDLE(JOB_OBJECT_HELPER) second_result = job_object_helper_set_job_limits_to_current_process("job_name", 50, 50);
+
+    // assert - should reuse singleton without any new creation calls
+    ASSERT_IS_NOT_NULL(second_result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&first_result, NULL);
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&second_result, NULL);
+}
+
+/*Tests_SRS_JOB_OBJECT_HELPER_88_003: [ If the process-level singleton job object has already been created with different percent_cpu or percent_physical_memory values, job_object_helper_set_job_limits_to_current_process shall log an error and return NULL. ]*/
+TEST_FUNCTION(job_object_helper_set_job_limits_singleton_with_different_params_returns_NULL)
+{
+    // arrange - create singleton with (50, 50)
+    setup_job_object_helper_set_job_limits_to_current_process_createObjectA_expectations();
+    setup_job_object_helper_limit_cpu_expectations();
+    setup_job_object_helper_limit_memory_expectations();
+    STRICT_EXPECTED_CALL(mocked_GetCurrentProcess())
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(mocked_AssignProcessToJobObject(IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(TRUE)
+        .SetFailReturn(FALSE);
+
+    THANDLE(JOB_OBJECT_HELPER) first_result = job_object_helper_set_job_limits_to_current_process("job_name", 50, 50);
+    ASSERT_IS_NOT_NULL(first_result);
+    umock_c_reset_all_calls();
+
+    // act - call with different params
+    THANDLE(JOB_OBJECT_HELPER) second_result = job_object_helper_set_job_limits_to_current_process("job_name", 30, 30);
+
+    // assert - should fail, no creation calls
+    ASSERT_IS_NULL(second_result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&first_result, NULL);
+}
+
+/*Tests_SRS_JOB_OBJECT_HELPER_88_005: [ job_object_helper_deinit shall release the singleton THANDLE(JOB_OBJECT_HELPER) and reset the stored parameters to zero. ]*/
+TEST_FUNCTION(job_object_helper_deinit_resets_singleton)
+{
+    // arrange - create singleton with (50, 50)
+    setup_job_object_helper_set_job_limits_to_current_process_createObjectA_expectations();
+    setup_job_object_helper_limit_cpu_expectations();
+    setup_job_object_helper_limit_memory_expectations();
+    STRICT_EXPECTED_CALL(mocked_GetCurrentProcess())
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(mocked_AssignProcessToJobObject(IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(TRUE)
+        .SetFailReturn(FALSE);
+
+    THANDLE(JOB_OBJECT_HELPER) first_result = job_object_helper_set_job_limits_to_current_process("job_name", 50, 50);
+    ASSERT_IS_NOT_NULL(first_result);
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&first_result, NULL);
+    job_object_helper_deinit();
+    umock_c_reset_all_calls();
+
+    // set up expectations for a new creation
+    setup_job_object_helper_set_job_limits_to_current_process_createObjectA_expectations();
+    setup_job_object_helper_limit_cpu_expectations();
+    setup_job_object_helper_limit_memory_expectations();
+    STRICT_EXPECTED_CALL(mocked_GetCurrentProcess())
+        .CallCannotFail();
+    STRICT_EXPECTED_CALL(mocked_AssignProcessToJobObject(IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(TRUE)
+        .SetFailReturn(FALSE);
+
+    // act - should create a new singleton after deinit
+    THANDLE(JOB_OBJECT_HELPER) second_result = job_object_helper_set_job_limits_to_current_process("job_name", 50, 50);
+
+    // assert
+    ASSERT_IS_NOT_NULL(second_result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&second_result, NULL);
 }
 
 /*Tests_SRS_JOB_OBJECT_HELPER_19_015: [ job_object_helper_set_job_limits_to_current_process shall allocate a JOB_OBJECT_HELPER object. ]*/
