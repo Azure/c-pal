@@ -22,8 +22,7 @@
 #include "c_pal/socket_handle.h"
 #include "c_pal/platform.h"
 
-#define TEST_PORT 2244
-static int g_port_num = TEST_PORT;
+static int g_port_num;
 
 TEST_DEFINE_ENUM_TYPE(ASYNC_SOCKET_OPEN_RESULT, ASYNC_SOCKET_OPEN_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(ASYNC_SOCKET_RECEIVE_RESULT, ASYNC_SOCKET_RECEIVE_RESULT_VALUES)
@@ -98,27 +97,19 @@ static void setup_server_socket(SOCKET_HANDLE* listen_socket)
     const int enable = 1;
     ASSERT_ARE_EQUAL(int, 0, setsockopt(*listen_socket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)));
 
-    int bind_res;
-    uint32_t counter = 0;
-    // The gate machines fails on bind due to 3 different
-    // Process running, so we have to figure out the proper
-    // address to bind to by going through ports looking for an open one
-    do
-    {
-        struct sockaddr_in service;
+    // Bind to port 0 - let the kernel choose an available port
+    struct sockaddr_in service;
+    service.sin_family = AF_INET;
+    service.sin_port = htons(0);
+    service.sin_addr.s_addr = htonl(INADDR_ANY);
 
-        service.sin_family = AF_INET;
-        service.sin_port = htons(g_port_num);
-        service.sin_addr.s_addr = htonl(INADDR_ANY);
+    ASSERT_ARE_EQUAL(int, 0, bind(*listen_socket, (struct sockaddr*)&service, sizeof(service)), "Failure attempting to bind error (%d): %s", errno, strerror(errno));
 
-        bind_res = bind(*listen_socket, (struct sockaddr*)&service, sizeof(service));
-        if (bind_res != 0)
-        {
-            g_port_num++;
-        }
-        counter++;
-    } while (bind_res != 0 && counter < 10);
-    ASSERT_ARE_EQUAL(int, 0, bind_res, "Failure attempting to bind (%d) to socket %d error (%d): %s", bind_res, g_port_num, errno, strerror(errno));
+    // Get the actual port assigned by the kernel
+    struct sockaddr_in actual_addr;
+    socklen_t addr_len = sizeof(actual_addr);
+    ASSERT_ARE_EQUAL(int, 0, getsockname(*listen_socket, (struct sockaddr*)&actual_addr, &addr_len), "Failure getting socket name error (%d): %s", errno, strerror(errno));
+    g_port_num = ntohs(actual_addr.sin_port);
 
     // set it to async IO
     set_nonblocking(*listen_socket);
@@ -198,7 +189,6 @@ TEST_SUITE_CLEANUP(suite_cleanup)
 
 TEST_FUNCTION_INITIALIZE(method_init)
 {
-    g_port_num++;
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
