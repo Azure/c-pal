@@ -25,7 +25,7 @@ MOCK_FUNCTION_WITH_CODE(, HANDLE, mocked_CreateJobObjectA, LPSECURITY_ATTRIBUTES
 MOCK_FUNCTION_END(real_gballoc_hl_malloc(1))
 
 MOCK_FUNCTION_WITH_CODE(, HANDLE, mocked_GetCurrentProcess)
-MOCK_FUNCTION_END(real_gballoc_hl_malloc(1))
+MOCK_FUNCTION_END((HANDLE)-1)
 
 MOCK_FUNCTION_WITH_CODE(, BOOL, mocked_CloseHandle, HANDLE, hObject)
 {
