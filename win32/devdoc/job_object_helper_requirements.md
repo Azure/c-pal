@@ -4,6 +4,8 @@
 
 Note: Windows Job Objects have a critical property: `CloseHandle` on a job object handle does NOT disassociate the process from the job object. If multiple job objects are created and the process is assigned to each, the CPU rate limits compound multiplicatively (e.g., two 50% caps result in 25% effective CPU). Since this module calls `AssignProcessToJobObject` on the current process, it uses a process-level singleton pattern internally — the job object is created once and reused on subsequent calls with the same parameters.
 
+Note: `job_object_helper_set_job_limits_to_current_process` and `job_object_helper_deinit_for_test` are NOT thread-safe. These functions must be called from a single thread. Concurrent calls from multiple threads may result in undefined behavior due to non-atomic singleton initialization and cleanup.
+
 ## Exposed API
 ```c
 
@@ -11,6 +13,7 @@ typedef struct JOB_OBJECT_HELPER_TAG JOB_OBJECT_HELPER;
 THANDLE_TYPE_DECLARE(JOB_OBJECT_HELPER);
 
 MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_job_limits_to_current_process, const char*, job_name, uint32_t, percent_cpu, uint32_t, percent_physical_memory);
+MOCKABLE_FUNCTION(, void, job_object_helper_deinit_for_test);
 ```
 
 ## job_object_helper_dispose
@@ -62,10 +65,10 @@ The function implements a process-level singleton pattern to prevent Job Object 
 
 **SRS_JOB_OBJECT_HELPER_19_010: [** `job_object_set_job_limits_to_current_process` shall succeed and return a `JOB_OBJECT_HELPER` object. **]**
 
-## job_object_helper_deinit
+## job_object_helper_deinit_for_test
 ```c
-MOCKABLE_FUNCTION(, void, job_object_helper_deinit);
+MOCKABLE_FUNCTION(, void, job_object_helper_deinit_for_test);
 ```
-`job_object_helper_deinit` releases the process-level singleton and resets stored parameters, allowing a fresh job object to be created on the next call. This is intended for test cleanup.
+`job_object_helper_deinit_for_test` releases the process-level singleton and resets stored parameters, allowing a fresh job object to be created on the next call. This is intended for test cleanup and should not be used in production code, as calling it would allow creating new job objects that compound with the existing one.
 
-**SRS_JOB_OBJECT_HELPER_88_005: [** `job_object_helper_deinit` shall release the singleton `THANDLE(JOB_OBJECT_HELPER)` and reset the stored parameters to zero. **]**
+**SRS_JOB_OBJECT_HELPER_88_005: [** `job_object_helper_deinit_for_test` shall release the singleton `THANDLE(JOB_OBJECT_HELPER)` and reset the stored parameters to zero. **]**

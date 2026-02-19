@@ -19,7 +19,7 @@
 #define REGISTER_JOB_OBJECT_HELPER_GLOBAL_MOCK_HOOK()          \
 MU_FOR_EACH_1(R2,                                   \
     job_object_helper_set_job_limits_to_current_process, \
-    job_object_helper_deinit \
+    job_object_helper_deinit_for_test \
 ) \
     REGISTER_GLOBAL_MOCK_HOOK(THANDLE_MOVE(JOB_OBJECT_HELPER), THANDLE_MOVE(real_JOB_OBJECT_HELPER)) \
     REGISTER_GLOBAL_MOCK_HOOK(THANDLE_INITIALIZE(JOB_OBJECT_HELPER), THANDLE_INITIALIZE(real_JOB_OBJECT_HELPER)) \
@@ -35,7 +35,7 @@ extern "C" {
 
     THANDLE(JOB_OBJECT_HELPER) real_job_object_helper_set_job_limits_to_current_process(const char* job_name, uint32_t percent_cpu, uint32_t percent_physical_memory);
 
-    void real_job_object_helper_deinit(void);
+    void real_job_object_helper_deinit_for_test(void);
 
 #ifdef __cplusplus
 }

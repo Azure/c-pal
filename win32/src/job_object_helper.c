@@ -33,11 +33,14 @@ THANDLE_TYPE_DEFINE(JOB_OBJECT_HELPER);
    AssignProcessToJobObject on the current process, it must ensure
    that only one job object is ever created per process lifetime. */
 
-static const JOB_OBJECT_HELPER* singleton_job_object_helper_ptr = NULL;
-#define singleton_job_object_helper (*(THANDLE(JOB_OBJECT_HELPER)*)&singleton_job_object_helper_ptr)
+typedef struct JOB_OBJECT_SINGLETON_STATE_TAG
+{
+    THANDLE(JOB_OBJECT_HELPER) job_object_helper;
+    uint32_t percent_cpu;
+    uint32_t percent_physical_memory;
+} JOB_OBJECT_SINGLETON_STATE;
 
-static uint32_t singleton_percent_cpu = 0;
-static uint32_t singleton_percent_physical_memory = 0;
+static JOB_OBJECT_SINGLETON_STATE job_object_singleton_state = { NULL, 0, 0 };
 
 static void job_object_helper_dispose(JOB_OBJECT_HELPER* job_object_helper)
 {
@@ -71,21 +74,21 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
         }
         else
         {
-            if (singleton_job_object_helper != NULL)
+            if (job_object_singleton_state.job_object_helper != NULL)
             {
                 /*Codes_SRS_JOB_OBJECT_HELPER_88_003: [ If the process-level singleton job object has already been created with different percent_cpu or percent_physical_memory values, job_object_helper_set_job_limits_to_current_process shall log an error and return NULL. ]*/
-                if (singleton_percent_cpu != percent_cpu || singleton_percent_physical_memory != percent_physical_memory)
+                if (job_object_singleton_state.percent_cpu != percent_cpu || job_object_singleton_state.percent_physical_memory != percent_physical_memory)
                 {
                     LogError("Job object limits have changed (cpu: %" PRIu32 "->%" PRIu32 ", memory: %" PRIu32 "->%" PRIu32 "). "
                         "not reconfiguring Job Object after process assignment. Returning NULL.",
-                        singleton_percent_cpu, percent_cpu, singleton_percent_physical_memory, percent_physical_memory);
+                        job_object_singleton_state.percent_cpu, percent_cpu, job_object_singleton_state.percent_physical_memory, percent_physical_memory);
                 }
                 else
                 {
                     /*Codes_SRS_JOB_OBJECT_HELPER_88_002: [ If the process-level singleton job object has already been created with the same percent_cpu and percent_physical_memory values, job_object_helper_set_job_limits_to_current_process shall increment the reference count on the existing THANDLE(JOB_OBJECT_HELPER) and return it. ]*/
                     LogInfo("Reusing existing process-level singleton Job Object (percent_cpu=%" PRIu32 ", percent_physical_memory=%" PRIu32 ")",
                         percent_cpu, percent_physical_memory);
-                    THANDLE_INITIALIZE(JOB_OBJECT_HELPER)(&result, singleton_job_object_helper);
+                    THANDLE_INITIALIZE(JOB_OBJECT_HELPER)(&result, job_object_singleton_state.job_object_helper);
                 }
             }
             else
@@ -177,9 +180,9 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
                                 {
                                     /*Codes_SRS_JOB_OBJECT_HELPER_88_004: [ On success, job_object_helper_set_job_limits_to_current_process shall store the THANDLE(JOB_OBJECT_HELPER) and the percent_cpu and percent_physical_memory values in static variables for the singleton pattern. ]*/
                                     THANDLE_INITIALIZE_MOVE(JOB_OBJECT_HELPER)(&result, &job_object_helper);
-                                    THANDLE_INITIALIZE(JOB_OBJECT_HELPER)(&singleton_job_object_helper, result);
-                                    singleton_percent_cpu = percent_cpu;
-                                    singleton_percent_physical_memory = percent_physical_memory;
+                                    THANDLE_INITIALIZE(JOB_OBJECT_HELPER)(&job_object_singleton_state.job_object_helper, result);
+                                    job_object_singleton_state.percent_cpu = percent_cpu;
+                                    job_object_singleton_state.percent_physical_memory = percent_physical_memory;
                                     /*Codes_SRS_JOB_OBJECT_HELPER_19_010: [ job_object_set_job_limits_to_current_process shall succeed and return a JOB_OBJECT_HELPER object. ]*/
                                     goto all_ok;
                                 }
@@ -201,10 +204,11 @@ all_ok:
     return result;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, void, job_object_helper_deinit)
+IMPLEMENT_MOCKABLE_FUNCTION(, void, job_object_helper_deinit_for_test)
 {
-    /*Codes_SRS_JOB_OBJECT_HELPER_88_005: [ job_object_helper_deinit shall release the singleton THANDLE(JOB_OBJECT_HELPER) and reset the stored parameters to zero. ]*/
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&singleton_job_object_helper, NULL);
-    singleton_percent_cpu = 0;
-    singleton_percent_physical_memory = 0;
+    /*Codes_SRS_JOB_OBJECT_HELPER_88_005: [ job_object_helper_deinit_for_test shall release the singleton THANDLE(JOB_OBJECT_HELPER) and reset the stored parameters to zero. ]*/
+    LogWarning("job_object_helper_deinit_for_test called - this should only be used for test cleanup");
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_singleton_state.job_object_helper, NULL);
+    job_object_singleton_state.percent_cpu = 0;
+    job_object_singleton_state.percent_physical_memory = 0;
 }

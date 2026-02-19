@@ -5,4 +5,4 @@
 
 #define job_object_helper_set_job_limits_to_current_process real_job_object_helper_set_job_limits_to_current_process
 
-#define job_object_helper_deinit real_job_object_helper_deinit
+#define job_object_helper_deinit_for_test real_job_object_helper_deinit_for_test

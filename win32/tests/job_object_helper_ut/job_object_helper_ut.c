@@ -139,21 +139,28 @@ TEST_FUNCTION_INITIALIZE(init)
 
 TEST_FUNCTION_CLEANUP(cleanup)
 {
-    job_object_helper_deinit();
+    job_object_helper_deinit_for_test();
 }
 
 /*Tests_SRS_JOB_OBJECT_HELPER_18_033: [ job_object_helper_dispose shall call CloseHandle to close the handle to the job object. ]*/
 TEST_FUNCTION(job_object_helper_dispose_succeeds)
 {
     // arrange
-    setup_job_object_helper_set_job_limits_to_current_process_createObjectA_expectations();
-    setup_job_object_helper_limit_cpu_expectations();
-    setup_job_object_helper_limit_memory_expectations();
+    setup_job_object_helper_set_job_limits_to_current_process_expectations();
 
-    THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_set_job_limits_to_current_process("", 1, 1);
+    THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_set_job_limits_to_current_process("job_name", 1, 1);
+    ASSERT_IS_NOT_NULL(job_object_helper);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // Release singleton ref (refcount 2->1), no dispose expected
+    job_object_helper_deinit_for_test();
     umock_c_reset_all_calls();
 
-    // act
+    // Expect dispose (CloseHandle on job object) + free when last ref is released
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+
+    // act - release the last ref, triggering dispose
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
 
     // assert
@@ -215,6 +222,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_succeeds)
 
         // assert
         ASSERT_IS_NOT_NULL(result);
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
         // cleanup - release result, then deinit releases singleton which triggers dispose
         THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&result, NULL);
@@ -222,7 +230,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_succeeds)
         // Expect dispose (CloseHandle on job object) + free of THANDLE wrapper when singleton refcount reaches 0
         STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG));
         STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-        job_object_helper_deinit();
+        job_object_helper_deinit_for_test();
 
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     }
@@ -256,6 +264,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_singleton_reuses_with_same_params
 
     THANDLE(JOB_OBJECT_HELPER) first_result = job_object_helper_set_job_limits_to_current_process("job_name", 50, 50);
     ASSERT_IS_NOT_NULL(first_result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     umock_c_reset_all_calls();
 
     // act - call again with same params
@@ -285,6 +294,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_singleton_with_different_params_r
 
     THANDLE(JOB_OBJECT_HELPER) first_result = job_object_helper_set_job_limits_to_current_process("job_name", 50, 50);
     ASSERT_IS_NOT_NULL(first_result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     umock_c_reset_all_calls();
 
     // act - call with different params
@@ -298,8 +308,8 @@ TEST_FUNCTION(job_object_helper_set_job_limits_singleton_with_different_params_r
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&first_result, NULL);
 }
 
-/*Tests_SRS_JOB_OBJECT_HELPER_88_005: [ job_object_helper_deinit shall release the singleton THANDLE(JOB_OBJECT_HELPER) and reset the stored parameters to zero. ]*/
-TEST_FUNCTION(job_object_helper_deinit_resets_singleton)
+/*Tests_SRS_JOB_OBJECT_HELPER_88_005: [ job_object_helper_deinit_for_test shall release the singleton THANDLE(JOB_OBJECT_HELPER) and reset the stored parameters to zero. ]*/
+TEST_FUNCTION(job_object_helper_deinit_for_test_resets_singleton)
 {
     // arrange - create singleton with (50, 50)
     setup_job_object_helper_set_job_limits_to_current_process_createObjectA_expectations();
@@ -313,11 +323,21 @@ TEST_FUNCTION(job_object_helper_deinit_resets_singleton)
 
     THANDLE(JOB_OBJECT_HELPER) first_result = job_object_helper_set_job_limits_to_current_process("job_name", 50, 50);
     ASSERT_IS_NOT_NULL(first_result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&first_result, NULL);
-    job_object_helper_deinit();
     umock_c_reset_all_calls();
 
-    // set up expectations for a new creation
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+
+    // act
+    job_object_helper_deinit_for_test();
+
+    // assert - deinit released the singleton, verify cleanup calls
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // assert - verify a new singleton can be created (proving deinit reset the state)
+    umock_c_reset_all_calls();
     setup_job_object_helper_set_job_limits_to_current_process_createObjectA_expectations();
     setup_job_object_helper_limit_cpu_expectations();
     setup_job_object_helper_limit_memory_expectations();
@@ -327,10 +347,7 @@ TEST_FUNCTION(job_object_helper_deinit_resets_singleton)
         .SetReturn(TRUE)
         .SetFailReturn(FALSE);
 
-    // act - should create a new singleton after deinit
     THANDLE(JOB_OBJECT_HELPER) second_result = job_object_helper_set_job_limits_to_current_process("job_name", 50, 50);
-
-    // assert
     ASSERT_IS_NOT_NULL(second_result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
