@@ -60,6 +60,7 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
     /* REFCOUNT_TYPE_CREATE */
 
+    /* Tests_SRS_REFCOUNT_01_001: [ DEFINE_REFCOUNT_TYPE shall define the Create/Create_With_Extra_size/Create_Flex/Destroy functions for the type type. ]*/
     /* Tests_SRS_REFCOUNT_01_002: [ REFCOUNT_TYPE_CREATE shall allocate memory for the type that is ref counted. ]*/
     /* Tests_SRS_REFCOUNT_01_003: [ On success it shall return a non-NULL handle to the allocated ref counted type type. ]*/
     /* Tests_SRS_REFCOUNT_01_010: [ Memory allocation/free shall be performed by using the functions malloc, malloc_flex and free. ]*/
