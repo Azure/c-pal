@@ -47,3 +47,12 @@ set(${theseTestsName}_test_files
 set(${theseTestsName}_c_files)
 set(${theseTestsName}_h_files)
 build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS c_pal)
+
+# Reconfigure test (creates job object and reconfigures limits in current process - 1 test per process)
+set(theseTestsName job_object_helper_reconfigure_int)
+set(${theseTestsName}_test_files
+    ${theseTestsName}.c
+)
+set(${theseTestsName}_c_files)
+set(${theseTestsName}_h_files)
+build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS c_pal)

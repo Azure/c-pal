@@ -150,10 +150,10 @@ TEST_FUNCTION(test_job_object_helper_repeated_calls_return_same_singleton_and_no
         /* Issue calls up to the current checkpoint */
         for (int i = calls_so_far; i < target; i++)
         {
-            THANDLE(JOB_OBJECT_HELPER) temp = job_object_helper_set_job_limits_to_current_process("", 50, 1);
-            ASSERT_IS_NOT_NULL(temp, "Call %d should succeed", i + 1);
-            THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&handles[i], temp);
-            THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&temp, NULL);
+            THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_set_job_limits_to_current_process("", 50, 1);
+            ASSERT_IS_NOT_NULL(job_object_helper, "Call %d should succeed", i + 1);
+            THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&handles[i], job_object_helper);
+            THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
         }
         calls_so_far = target;
 
