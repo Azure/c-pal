@@ -242,7 +242,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_succeeds)
 }
 
 /*Tests_SRS_JOB_OBJECT_HELPER_88_001: [ If the singleton has not been created and the requested limits are effectively no limits (both percent_cpu and percent_physical_memory are 0, or both are 100), job_object_helper_set_job_limits_to_current_process shall return NULL without creating a job object. ]*/
-TEST_FUNCTION(when_no_singleton_and_no_effective_limits_then_returns_NULL)
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_NULL_when_no_effective_limits)
 {
     // arrange
     int cpu_limits[2] = { 0, 100 };
@@ -262,7 +262,7 @@ TEST_FUNCTION(when_no_singleton_and_no_effective_limits_then_returns_NULL)
 }
 
 /*Tests_SRS_JOB_OBJECT_HELPER_88_002: [ If the process-level singleton job object has already been created with the same percent_cpu and percent_physical_memory values, job_object_helper_set_job_limits_to_current_process shall increment the reference count on the existing THANDLE(JOB_OBJECT_HELPER) and return it. ]*/
-TEST_FUNCTION(job_object_helper_set_job_limits_singleton_reuses_with_same_params)
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_reuses_singleton_with_same_params)
 {
     // arrange - create singleton
     setup_job_object_helper_set_job_limits_to_current_process_createObjectA_expectations();
@@ -294,7 +294,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_singleton_reuses_with_same_params
 /*Tests_SRS_JOB_OBJECT_HELPER_88_018: [ If percent_cpu is 0, internal_job_object_helper_set_cpu_limit shall call SetInformationJobObject passing JobObjectCpuRateControlInformation with ControlFlags set to 0 to disable CPU rate control. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_88_015: [ If percent_cpu has changed, job_object_helper_set_job_limits_to_current_process shall call internal_job_object_helper_set_cpu_limit to update the CPU limit on the existing job object. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_88_017: [ If reconfiguration succeeds, job_object_helper_set_job_limits_to_current_process shall update the stored percent_cpu and percent_physical_memory values, increment the reference count on the existing THANDLE(JOB_OBJECT_HELPER) and return it. ]*/
-TEST_FUNCTION(when_singleton_exists_and_nonzero_cpu_becomes_zero_then_cpu_limit_is_removed)
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_removes_cpu_limit_when_nonzero_cpu_becomes_zero)
 {
     // arrange - create singleton with (50, 50)
     setup_job_object_helper_set_job_limits_to_current_process_expectations();
@@ -325,7 +325,7 @@ TEST_FUNCTION(when_singleton_exists_and_nonzero_cpu_becomes_zero_then_cpu_limit_
 /*Tests_SRS_JOB_OBJECT_HELPER_88_019: [ If percent_physical_memory is 0, internal_job_object_helper_set_memory_limit shall call SetInformationJobObject passing JobObjectExtendedLimitInformation with LimitFlags set to 0 to remove memory limits. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_88_016: [ If percent_physical_memory has changed, job_object_helper_set_job_limits_to_current_process shall call internal_job_object_helper_set_memory_limit to update the memory limit on the existing job object. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_88_017: [ If reconfiguration succeeds, job_object_helper_set_job_limits_to_current_process shall update the stored percent_cpu and percent_physical_memory values, increment the reference count on the existing THANDLE(JOB_OBJECT_HELPER) and return it. ]*/
-TEST_FUNCTION(when_singleton_exists_and_nonzero_memory_becomes_zero_then_memory_limit_is_removed)
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_removes_memory_limit_when_nonzero_memory_becomes_zero)
 {
     // arrange - create singleton with (50, 50)
     setup_job_object_helper_set_job_limits_to_current_process_expectations();
@@ -359,7 +359,7 @@ TEST_FUNCTION(when_singleton_exists_and_nonzero_memory_becomes_zero_then_memory_
 /*Tests_SRS_JOB_OBJECT_HELPER_88_015: [ If percent_cpu has changed, job_object_helper_set_job_limits_to_current_process shall call internal_job_object_helper_set_cpu_limit to update the CPU limit on the existing job object. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_88_016: [ If percent_physical_memory has changed, job_object_helper_set_job_limits_to_current_process shall call internal_job_object_helper_set_memory_limit to update the memory limit on the existing job object. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_88_017: [ If reconfiguration succeeds, job_object_helper_set_job_limits_to_current_process shall update the stored percent_cpu and percent_physical_memory values, increment the reference count on the existing THANDLE(JOB_OBJECT_HELPER) and return it. ]*/
-TEST_FUNCTION(when_singleton_exists_and_params_change_then_reconfigure_succeeds)
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_reconfigures_when_params_change)
 {
     // arrange - create singleton with (50, 50)
     setup_job_object_helper_set_job_limits_to_current_process_expectations();
@@ -390,7 +390,7 @@ TEST_FUNCTION(when_singleton_exists_and_params_change_then_reconfigure_succeeds)
 
 /*Tests_SRS_JOB_OBJECT_HELPER_88_014: [ If the process-level singleton job object has already been created with different percent_cpu or percent_physical_memory values, job_object_helper_set_job_limits_to_current_process shall reconfigure the existing job object. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_88_017: [ If reconfiguration succeeds, job_object_helper_set_job_limits_to_current_process shall update the stored percent_cpu and percent_physical_memory values, increment the reference count on the existing THANDLE(JOB_OBJECT_HELPER) and return it. ]*/
-TEST_FUNCTION(when_singleton_exists_and_reconfigure_to_100_100_then_succeeds)
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_reconfigures_to_100_100)
 {
     // arrange - create singleton with (50, 50)
     setup_job_object_helper_set_job_limits_to_current_process_expectations();
@@ -417,7 +417,7 @@ TEST_FUNCTION(when_singleton_exists_and_reconfigure_to_100_100_then_succeeds)
 }
 
 /*Tests_SRS_JOB_OBJECT_HELPER_88_015: [ If percent_cpu has changed, job_object_helper_set_job_limits_to_current_process shall call internal_job_object_helper_set_cpu_limit to update the CPU limit on the existing job object. ]*/
-TEST_FUNCTION(when_singleton_exists_and_only_cpu_changes_then_only_cpu_reconfigured)
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_reconfigures_only_cpu_when_memory_unchanged)
 {
     // arrange - create singleton with (50, 50)
     setup_job_object_helper_set_job_limits_to_current_process_expectations();
@@ -443,7 +443,7 @@ TEST_FUNCTION(when_singleton_exists_and_only_cpu_changes_then_only_cpu_reconfigu
 }
 
 /*Tests_SRS_JOB_OBJECT_HELPER_88_016: [ If percent_physical_memory has changed, job_object_helper_set_job_limits_to_current_process shall call internal_job_object_helper_set_memory_limit to update the memory limit on the existing job object. ]*/
-TEST_FUNCTION(when_singleton_exists_and_only_memory_changes_then_only_memory_reconfigured)
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_reconfigures_only_memory_when_cpu_unchanged)
 {
     // arrange - create singleton with (50, 50)
     setup_job_object_helper_set_job_limits_to_current_process_expectations();
@@ -469,7 +469,7 @@ TEST_FUNCTION(when_singleton_exists_and_only_memory_changes_then_only_memory_rec
 }
 
 /*Tests_SRS_JOB_OBJECT_HELPER_88_014: [ If the process-level singleton job object has already been created with different percent_cpu or percent_physical_memory values, job_object_helper_set_job_limits_to_current_process shall reconfigure the existing job object. ]*/
-TEST_FUNCTION(when_singleton_exists_with_zero_cpu_and_new_cpu_is_nonzero_then_adds_cpu_limit)
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_adds_cpu_limit_when_zero_cpu_becomes_nonzero)
 {
     // arrange - create singleton with (0, 50) — no CPU limit initially
     setup_job_object_helper_set_job_limits_to_current_process_createObjectA_expectations();
@@ -498,7 +498,7 @@ TEST_FUNCTION(when_singleton_exists_with_zero_cpu_and_new_cpu_is_nonzero_then_ad
 
 /*Tests_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_88_007: [ If SetInformationJobObject fails, internal_job_object_helper_set_cpu_limit shall return a non-zero value. ]*/
-TEST_FUNCTION(when_singleton_exists_and_reconfigure_cpu_fails_then_returns_NULL)
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_NULL_when_cpu_reconfigure_fails)
 {
     // arrange - create singleton with (50, 50)
     setup_job_object_helper_set_job_limits_to_current_process_expectations();
@@ -526,7 +526,7 @@ TEST_FUNCTION(when_singleton_exists_and_reconfigure_cpu_fails_then_returns_NULL)
 /*Tests_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_88_011: [ If there are any failures, internal_job_object_helper_set_memory_limit shall return a non-zero value. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_88_020: [ If memory limit fails after CPU limit succeeded, job_object_helper_set_job_limits_to_current_process shall attempt to rollback the CPU limit to its original value. ]*/
-TEST_FUNCTION(when_singleton_exists_and_reconfigure_memory_fails_then_returns_NULL_and_rollback_succeeds)
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_NULL_and_rolls_back_cpu_when_memory_reconfigure_fails)
 {
     // arrange - create singleton with (50, 50)
     setup_job_object_helper_set_job_limits_to_current_process_expectations();
@@ -557,7 +557,7 @@ TEST_FUNCTION(when_singleton_exists_and_reconfigure_memory_fails_then_returns_NU
 /*Tests_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_88_020: [ If memory limit fails after CPU limit succeeded, job_object_helper_set_job_limits_to_current_process shall attempt to rollback the CPU limit to its original value. ]*/
 /*Tests_SRS_JOB_OBJECT_HELPER_88_021: [ If rollback fails, job_object_helper_set_job_limits_to_current_process shall update the singleton state to reflect the actual job object state (new CPU, original memory) to maintain consistency. ]*/
-TEST_FUNCTION(when_singleton_exists_and_reconfigure_memory_fails_and_rollback_fails_then_returns_NULL_and_state_is_updated)
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_NULL_and_updates_state_when_memory_reconfigure_and_rollback_fail)
 {
     // arrange - create singleton with (50, 50)
     setup_job_object_helper_set_job_limits_to_current_process_expectations();
