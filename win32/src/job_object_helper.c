@@ -159,14 +159,14 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
             /*Codes_SRS_JOB_OBJECT_HELPER_88_002: [ If the process-level singleton job object has already been created with the same percent_cpu and percent_physical_memory values, job_object_helper_set_job_limits_to_current_process shall increment the reference count on the existing THANDLE(JOB_OBJECT_HELPER) and return it. ]*/
             if (job_object_singleton_state.percent_cpu == percent_cpu && job_object_singleton_state.percent_physical_memory == percent_physical_memory)
             {
-                LogInfo("Reusing existing process-level singleton Job Object (percent_cpu=%" PRIu32 ", percent_physical_memory=%" PRIu32 ")",
+                LogWarning("Reusing existing process-level singleton Job Object (percent_cpu=%" PRIu32 ", percent_physical_memory=%" PRIu32 ")",
                     percent_cpu, percent_physical_memory);
                 THANDLE_INITIALIZE(JOB_OBJECT_HELPER)(&result, job_object_singleton_state.job_object_helper);
             }
             else
             {
                 /*Codes_SRS_JOB_OBJECT_HELPER_88_014: [ If the process-level singleton job object has already been created with different percent_cpu or percent_physical_memory values, job_object_helper_set_job_limits_to_current_process shall reconfigure the existing job object. ]*/
-                LogInfo("Reconfiguring existing process-level singleton Job Object (cpu: %" PRIu32 "->%" PRIu32 ", memory: %" PRIu32 "->%" PRIu32 ")",
+                LogWarning("Reconfiguring existing process-level singleton Job Object (cpu: %" PRIu32 "->%" PRIu32 ", memory: %" PRIu32 "->%" PRIu32 ")",
                     job_object_singleton_state.percent_cpu, percent_cpu, job_object_singleton_state.percent_physical_memory, percent_physical_memory);
 
                 bool reconfigure_failed = false;
@@ -209,7 +209,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
                                 if (internal_job_object_helper_set_cpu_limit(job_object_singleton_state.job_object_helper->job_object, original_cpu) != 0)
                                 {
                                     /*Codes_SRS_JOB_OBJECT_HELPER_88_021: [ If rollback fails, job_object_helper_set_job_limits_to_current_process shall update the singleton state to reflect the actual job object state (new CPU, original memory) to maintain consistency. ]*/
-                                    LogError("failure in rollback of CPU limit during reconfiguration - updating singleton state to reflect actual job object state");
+                                    LogError("failure in rollback of CPU limit during reconfiguration - updating internal singleton object state to reflect actual job object state");
                                     job_object_singleton_state.percent_cpu = percent_cpu;
                                 }
                                 else
@@ -240,7 +240,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
             if ((percent_cpu == 0 && percent_physical_memory == 0) ||
                 (percent_cpu == MAX_CPU_PERCENT && percent_physical_memory == MAX_MEMORY_PERCENT))
             {
-                LogInfo("No job object needed (percent_cpu=%" PRIu32 ", percent_physical_memory=%" PRIu32 " are effectively no limits)", percent_cpu, percent_physical_memory);
+                LogWarning("No job object needed (percent_cpu=%" PRIu32 ", percent_physical_memory=%" PRIu32 " are effectively no limits)", percent_cpu, percent_physical_memory);
             }
             else
             {
