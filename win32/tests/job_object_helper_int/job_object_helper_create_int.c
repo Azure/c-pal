@@ -53,8 +53,8 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process)
     (void)snprintf(job_name, sizeof(job_name), TEST_JOB_NAME_PREFIX "%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
     LogInfo("Running test with job name: %s...", job_name);
 
-    THANDLE(JOB_OBJECT_HELPER) result = job_object_helper_set_job_limits_to_current_process(job_name, 50, 1);
-    ASSERT_IS_NOT_NULL(result);
+    THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, 50, 1);
+    ASSERT_IS_NOT_NULL(job_object_helper);
 
     /* Check that the job object was created */
     HANDLE job_object = OpenJobObjectA(JOB_OBJECT_QUERY, FALSE, job_name);
@@ -93,8 +93,9 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process)
     ASSERT_ARE_EQUAL(size_t, job_info.ProcessMemoryLimit / MEGABYTE, one_percent_of_total_memory_in_MB, "Job object should have process memory limit set to 1%% of total physical memory");
 
     /* Performing the same action from the same process shall not change anything */
-    THANDLE(JOB_OBJECT_HELPER) result_1 = job_object_helper_set_job_limits_to_current_process(job_name, 50, 1);
-    ASSERT_IS_NOT_NULL(result_1);
+    THANDLE(JOB_OBJECT_HELPER) job_object_helper_duplicate = job_object_helper_set_job_limits_to_current_process(job_name, 50, 1);
+    ASSERT_IS_NOT_NULL(job_object_helper_duplicate);
+    ASSERT_ARE_EQUAL(void_ptr, job_object_helper, job_object_helper_duplicate, "Duplicate call with same params should return same singleton");
 
     job_object = OpenJobObjectA(JOB_OBJECT_QUERY, FALSE, job_name);
     ASSERT_IS_NOT_NULL(job_object);
@@ -112,8 +113,8 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process)
     ASSERT_ARE_EQUAL(size_t, job_info.JobMemoryLimit / MEGABYTE, one_percent_of_total_memory_in_MB, "Job object should have job memory limit set to 1%% of total physical memory");
     ASSERT_ARE_EQUAL(size_t, job_info.ProcessMemoryLimit / MEGABYTE, one_percent_of_total_memory_in_MB, "Job object should have process memory limit set to 1%% of total physical memory");
 
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&result, NULL);
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&result_1, NULL);
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper_duplicate, NULL);
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
