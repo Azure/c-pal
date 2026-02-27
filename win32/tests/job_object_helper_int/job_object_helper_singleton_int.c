@@ -126,8 +126,6 @@ TEST_FUNCTION_CLEANUP(cleanup)
     job_object_helper_deinit_for_test();
 }
 
-/*Tests_SRS_JOB_OBJECT_HELPER_88_002: [ If the process-level singleton job object has already been created with the same percent_cpu and percent_physical_memory values, job_object_helper_set_job_limits_to_current_process shall increment the reference count on the existing THANDLE(JOB_OBJECT_HELPER) and return it. ]*/
-/*Tests_SRS_JOB_OBJECT_HELPER_88_004: [ On success, job_object_helper_set_job_limits_to_current_process shall store the THANDLE(JOB_OBJECT_HELPER) and the percent_cpu and percent_physical_memory values in static variables for the singleton pattern. ]*/
 TEST_FUNCTION(test_job_object_helper_repeated_calls_return_same_singleton_and_no_cpu_compounding)
 {
     /* This test calls job_object_helper_set_job_limits_to_current_process

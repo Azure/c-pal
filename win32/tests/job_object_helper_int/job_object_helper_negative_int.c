@@ -39,7 +39,6 @@ TEST_FUNCTION_CLEANUP(cleanup)
     job_object_helper_deinit_for_test();
 }
 
-/*Tests_SRS_JOB_OBJECT_HELPER_88_001: [ If the singleton has not been created and the requested limits are effectively no limits (both percent_cpu and percent_physical_memory are 0, or both are 100), job_object_helper_set_job_limits_to_current_process shall return NULL without creating a job object. ]*/
 TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_null_when_no_effective_limits_and_null_job_name)
 {
     /* Both (0,0) and (100,100) are effectively no limits.
@@ -60,7 +59,6 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_null_w
     }
 }
 
-/*Tests_SRS_JOB_OBJECT_HELPER_88_001: [ If the singleton has not been created and the requested limits are effectively no limits (both percent_cpu and percent_physical_memory are 0, or both are 100), job_object_helper_set_job_limits_to_current_process shall return NULL without creating a job object. ]*/
 TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_null_when_no_effective_limits_and_named_job_object)
 {
     /* Both (0,0) and (100,100) are effectively no limits.
