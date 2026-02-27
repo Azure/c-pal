@@ -287,6 +287,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_reuses_singlet
 
     // assert - should reuse singleton without any new creation calls
     ASSERT_IS_NOT_NULL(reused_job_object_helper);
+    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, reused_job_object_helper);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
@@ -318,6 +319,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_removes_cpu_li
 
     // assert
     ASSERT_IS_NOT_NULL(reconfigured_job_object_helper);
+    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, reconfigured_job_object_helper);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // verify ControlFlags == 0 (rate control disabled)
@@ -354,6 +356,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_removes_memory
 
     // assert
     ASSERT_IS_NOT_NULL(reconfigured_job_object_helper);
+    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, reconfigured_job_object_helper);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // verify LimitFlags == 0 (memory limits removed)
@@ -390,10 +393,15 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_reconfigures_w
 
     // assert
     ASSERT_IS_NOT_NULL(reconfigured_job_object_helper);
+    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, reconfigured_job_object_helper);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // verify the captured CPU rate matches the new value (30 * 100 = 3000)
     ASSERT_ARE_EQUAL(uint32_t, 3000, captured_cpu_rate_control_information.CpuRate);
+
+    // verify the captured memory limit matches the new value (30% of test_total_physical_memory = 6144)
+    ASSERT_ARE_EQUAL(size_t, (size_t)(30 * test_total_physical_memory / 100), captured_extended_limit_information.JobMemoryLimit);
+    ASSERT_ARE_EQUAL(size_t, (size_t)(30 * test_total_physical_memory / 100), captured_extended_limit_information.ProcessMemoryLimit);
 
     // cleanup
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&initial_job_object_helper, NULL);
@@ -424,7 +432,16 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_reconfigures_t
 
     // assert
     ASSERT_IS_NOT_NULL(reconfigured_job_object_helper);
+    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, reconfigured_job_object_helper);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // verify CpuRate=10000 (100 * 100) and ControlFlags have ENABLE+HARD_CAP
+    ASSERT_ARE_EQUAL(uint32_t, 10000, captured_cpu_rate_control_information.CpuRate);
+    ASSERT_ARE_EQUAL(uint32_t, JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP, captured_cpu_rate_control_information.ControlFlags);
+
+    // verify memory limit is 100% of test_total_physical_memory
+    ASSERT_ARE_EQUAL(size_t, (size_t)test_total_physical_memory, captured_extended_limit_information.JobMemoryLimit);
+    ASSERT_ARE_EQUAL(size_t, (size_t)test_total_physical_memory, captured_extended_limit_information.ProcessMemoryLimit);
 
     // cleanup
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&initial_job_object_helper, NULL);
@@ -454,7 +471,11 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_reconfigures_o
 
     // assert
     ASSERT_IS_NOT_NULL(reconfigured_job_object_helper);
+    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, reconfigured_job_object_helper);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // verify CpuRate=3000 (30 * 100)
+    ASSERT_ARE_EQUAL(uint32_t, 3000, captured_cpu_rate_control_information.CpuRate);
 
     // cleanup
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&initial_job_object_helper, NULL);
@@ -484,7 +505,12 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_reconfigures_o
 
     // assert
     ASSERT_IS_NOT_NULL(reconfigured_job_object_helper);
+    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, reconfigured_job_object_helper);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // verify memory limit is 30% of test_total_physical_memory = 6144
+    ASSERT_ARE_EQUAL(size_t, (size_t)(30 * test_total_physical_memory / 100), captured_extended_limit_information.JobMemoryLimit);
+    ASSERT_ARE_EQUAL(size_t, (size_t)(30 * test_total_physical_memory / 100), captured_extended_limit_information.ProcessMemoryLimit);
 
     // cleanup
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&initial_job_object_helper, NULL);
@@ -513,7 +539,11 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_adds_cpu_limit
 
     // assert
     ASSERT_IS_NOT_NULL(reconfigured_job_object_helper);
+    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, reconfigured_job_object_helper);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // verify CpuRate=3000 (30 * 100)
+    ASSERT_ARE_EQUAL(uint32_t, 3000, captured_cpu_rate_control_information.CpuRate);
 
     // cleanup
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&initial_job_object_helper, NULL);
@@ -576,6 +606,9 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_NULL_a
     ASSERT_IS_NULL(reconfigured_job_object_helper);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
+    // verify the rollback restored original CpuRate=5000 (50 * 100)
+    ASSERT_ARE_EQUAL(uint32_t, 5000, captured_cpu_rate_control_information.CpuRate);
+
     // cleanup
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&initial_job_object_helper, NULL);
 }
@@ -615,6 +648,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_NULL_a
     // A subsequent call with (30, 50) should reuse the existing singleton (no reconfiguration needed)
     THANDLE(JOB_OBJECT_HELPER) subsequent_job_object_helper = job_object_helper_set_job_limits_to_current_process("job_name", 30, 50);
     ASSERT_IS_NOT_NULL(subsequent_job_object_helper);
+    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, subsequent_job_object_helper);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup

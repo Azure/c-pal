@@ -96,6 +96,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_reconfigures_l
     // Step 2: Reconfigure to new limits (30% CPU, 2% memory)
     THANDLE(JOB_OBJECT_HELPER) reconfigured_job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, RECONFIGURED_CPU_PERCENT, RECONFIGURED_MEMORY_PERCENT);
     ASSERT_IS_NOT_NULL(reconfigured_job_object_helper, "Reconfigure should succeed");
+    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, reconfigured_job_object_helper, "Reconfigured call should return same singleton");
 
     // Step 3: Verify reconfigured CPU rate
     job_object = OpenJobObjectA(JOB_OBJECT_QUERY, FALSE, job_name);
@@ -159,6 +160,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_reconfigures_l
     // Step 2: Reconfigure to new limits
     THANDLE(JOB_OBJECT_HELPER) reconfigured_job_object_helper = job_object_helper_set_job_limits_to_current_process(NULL, RECONFIGURED_CPU_PERCENT, RECONFIGURED_MEMORY_PERCENT);
     ASSERT_IS_NOT_NULL(reconfigured_job_object_helper, "Reconfigure should succeed");
+    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, reconfigured_job_object_helper, "Reconfigured call should return same singleton");
 
     // Step 3: Verify reconfigured CPU rate
     (void)memset(&cpu_info, 0, sizeof(cpu_info));

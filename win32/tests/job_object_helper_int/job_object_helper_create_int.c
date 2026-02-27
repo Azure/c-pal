@@ -95,6 +95,7 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process)
     /* Performing the same action from the same process shall not change anything */
     THANDLE(JOB_OBJECT_HELPER) job_object_helper_duplicate = job_object_helper_set_job_limits_to_current_process(job_name, 50, 1);
     ASSERT_IS_NOT_NULL(job_object_helper_duplicate);
+    ASSERT_ARE_EQUAL(void_ptr, job_object_helper, job_object_helper_duplicate, "Duplicate call with same params should return same singleton");
 
     job_object = OpenJobObjectA(JOB_OBJECT_QUERY, FALSE, job_name);
     ASSERT_IS_NOT_NULL(job_object);
