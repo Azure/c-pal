@@ -25,5 +25,6 @@
 #include "real_gballoc_hl.h"
 
 #include "c_pal/sync.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // SYNC_WIN32_UT_PCH_H

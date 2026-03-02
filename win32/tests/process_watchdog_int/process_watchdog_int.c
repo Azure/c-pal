@@ -15,6 +15,7 @@
 #include "c_logging/logger.h"
 
 #include "c_pal/timer.h"
+#include "c_pal/timed_test_suite.h"
 
 // Shared exit codes between parent and child
 #include "process_watchdog_int_common.h"

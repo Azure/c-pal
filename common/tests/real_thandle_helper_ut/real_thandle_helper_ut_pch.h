@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 // Precompiled header for real_thandle_helper_ut
@@ -23,6 +23,7 @@
 #include "c_pal/interlocked_hl.h" // IWYU pragma: keep
 #include "c_pal/thandle.h"
 #include "c_pal/thandle_ll.h"
+#include "c_pal/timed_test_suite.h"
 
 // The incomplete type we want to mock
 struct MOCKED_STRUCT_TAG; // IWYU pragma: private

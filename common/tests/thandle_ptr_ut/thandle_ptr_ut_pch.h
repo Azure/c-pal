@@ -24,5 +24,6 @@
 #include "real_gballoc_hl.h"
 
 #include "c_pal/thandle_ptr.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // THANDLE_PTR_UT_PCH_H

@@ -16,6 +16,7 @@
 #include "file_int_helpers.h"
 
 #include "c_pal/file.h"
+#include "c_pal/timed_test_suite.h"
 
 TEST_DEFINE_ENUM_TYPE(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_RESULT)
 TEST_DEFINE_ENUM_TYPE(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_RESULT)

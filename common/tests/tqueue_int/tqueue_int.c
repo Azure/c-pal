@@ -20,6 +20,7 @@
 #include "c_pal/timer.h"
 
 #include "c_pal/tqueue.h"
+#include "c_pal/timed_test_suite.h"
 #include "tqueue_foo.h"
 
 // TQUEUE(FOO) is used for most int tests

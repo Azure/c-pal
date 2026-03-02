@@ -25,5 +25,6 @@
 #include "real_interlocked.h"
 #include "real_sync.h"
 #include "c_pal/call_once.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // CALL_ONCE_UT_PCH_H

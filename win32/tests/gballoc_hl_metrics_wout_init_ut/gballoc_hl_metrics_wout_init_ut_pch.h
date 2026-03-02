@@ -25,5 +25,6 @@
 #include "real_interlocked.h"
 
 #include "c_pal/gballoc_hl.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // GBALLOC_HL_METRICS_WOUT_INIT_UT_PCH_H

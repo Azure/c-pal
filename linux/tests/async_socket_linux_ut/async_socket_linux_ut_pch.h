@@ -40,6 +40,7 @@
 #include "real_gballoc_hl.h" // IWYU pragma: keep
 
 #include "c_pal/async_socket.h"
+#include "c_pal/timed_test_suite.h"
 
 #define TEST_MAX_EVENTS_NUM     64
 

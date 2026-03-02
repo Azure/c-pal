@@ -12,6 +12,7 @@
 
 #include "c_pal/gballoc_ll.h"
 #include "c_pal/threadapi.h"
+#include "c_pal/timed_test_suite.h"
 
 #include "jemalloc/jemalloc.h"
 

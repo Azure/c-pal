@@ -26,5 +26,6 @@
 
 #include "c_pal/platform.h"
 #include "c_pal/platform_linux.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // PLATFORM_LINUX_UT_PCH_H

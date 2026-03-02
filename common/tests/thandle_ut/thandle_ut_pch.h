@@ -28,6 +28,7 @@
 #include "thandle_flex_user.h"
 
 #include "c_pal/thandle_ll.h"
+#include "c_pal/timed_test_suite.h"
 
 #define TEST_A_DEFINE 1
 

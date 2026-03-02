@@ -50,6 +50,7 @@
 #include "real_interlocked_hl.h"
 
 #include "c_pal/threadpool.h"
+#include "c_pal/timed_test_suite.h"
 
 #define DEFAULT_TASK_ARRAY_SIZE 2048
 #define MIN_THREAD_COUNT 5

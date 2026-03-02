@@ -17,6 +17,7 @@
 #include "c_pal/thandle_ll.h"
 #include "c_pal/thandle.h"                  // IWYU pragma: keep
 #include "c_pal/thandle_ptr.h"
+#include "c_pal/timed_test_suite.h"
 
 #include "example.h"
 #include "example_incomplete_type.h"
@@ -200,4 +201,3 @@ TEST_FUNCTION(thandle_int_works_with_incomplete_types)
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
-

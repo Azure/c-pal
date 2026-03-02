@@ -18,5 +18,6 @@
 #include "umock_c/umocktypes_stdint.h"
 
 #include "c_pal/interlocked.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // INTERLOCKED_LINUX_UT_PCH_H

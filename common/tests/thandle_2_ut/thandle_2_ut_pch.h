@@ -27,5 +27,6 @@
 #include "t_on.h"
 
 #include "c_pal/thandle_ll.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // THANDLE_2_UT_PCH_H

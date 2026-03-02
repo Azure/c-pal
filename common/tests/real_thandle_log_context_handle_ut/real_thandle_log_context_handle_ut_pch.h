@@ -24,6 +24,7 @@
 #include "c_pal/thandle_ll.h"
 #include "c_pal/thandle_ptr.h"
 #include "c_pal/thandle_log_context_handle.h"
+#include "c_pal/timed_test_suite.h"
 #include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 #include "real_gballoc_hl.h"
 #include "real_thandle_log_context_handle.h"

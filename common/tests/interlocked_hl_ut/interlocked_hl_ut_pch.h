@@ -28,5 +28,6 @@
 #include "real_sync.h"
 #include "real_gballoc_hl.h"
 #include "c_pal/interlocked_hl.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // INTERLOCKED_HL_UT_PCH_H

@@ -21,6 +21,7 @@
 #include "c_pal/sync.h"
 #include "c_pal/socket_handle.h"
 #include "c_pal/platform.h"
+#include "c_pal/timed_test_suite.h"
 
 static int g_port_num;
 

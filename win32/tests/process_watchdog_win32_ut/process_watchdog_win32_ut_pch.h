@@ -29,5 +29,6 @@
 #include "real_interlocked.h"
 
 #include "c_pal/process_watchdog.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // PROCESS_WATCHDOG_WIN32_UT_PCH_H

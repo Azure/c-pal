@@ -29,5 +29,6 @@
 #include "real_gballoc_hl.h"
 
 #include "c_pal/execution_engine_win32.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // EXECUTION_ENGINE_WIN32_UT_PCH_H

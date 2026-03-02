@@ -9,6 +9,7 @@
 #include "testrunnerswitcher.h"
 
 #include "c_pal/gballoc_hl.h"
+#include "c_pal/timed_test_suite.h"
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 

@@ -14,6 +14,7 @@
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/job_object_helper.h"
 #include "c_pal/timer.h"
+#include "c_pal/timed_test_suite.h"
 
 
 #define MAX_REPEATED_CALLS 10

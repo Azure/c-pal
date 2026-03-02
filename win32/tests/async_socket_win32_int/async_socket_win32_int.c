@@ -14,6 +14,7 @@
 #include "c_pal/execution_engine.h"
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/execution_engine_win32.h"
+#include "c_pal/timed_test_suite.h"
 
 #define TEST_PORT 4266
 

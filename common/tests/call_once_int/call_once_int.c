@@ -17,6 +17,7 @@
 #include "c_pal/threadapi.h"
 
 #include "c_pal/call_once.h"
+#include "c_pal/timed_test_suite.h"
 
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES)
 

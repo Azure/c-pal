@@ -44,6 +44,7 @@
 #include "../reals/real_sm.h"
 
 #include "c_pal/socket_transport.h"
+#include "c_pal/timed_test_suite.h"
 
 #define MAX_SOCKET_ARRAY            10
 

@@ -33,5 +33,6 @@
 #include "real_gballoc_hl.h"
 
 #include "c_pal/sm.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // SM_UT_PCH_H

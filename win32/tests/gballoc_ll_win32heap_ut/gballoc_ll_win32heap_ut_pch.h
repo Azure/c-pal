@@ -23,5 +23,6 @@
 #include "real_interlocked.h"
 
 #include "c_pal/gballoc_ll.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // GBALLOC_LL_WIN32HEAP_UT_PCH_H

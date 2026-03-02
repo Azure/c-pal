@@ -26,5 +26,6 @@
 #include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 #include "c_pal/lazy_init.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // LAZY_INIT_UT_PCH_H

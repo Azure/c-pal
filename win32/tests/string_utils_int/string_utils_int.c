@@ -13,6 +13,7 @@
 #include "c_pal/gballoc_hl_redirect.h"
 
 #include "c_pal/string_utils.h"
+#include "c_pal/timed_test_suite.h"
 
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

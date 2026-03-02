@@ -29,5 +29,6 @@
 
 #include "real_gballoc_hl.h"
 #include "c_pal/job_object_helper.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // JOB_OBJECT_HELPER_UT_PCH_H

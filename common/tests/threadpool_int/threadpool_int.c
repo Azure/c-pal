@@ -26,6 +26,7 @@
 #include "c_pal/execution_engine.h"
 #include "c_pal/thandle.h" // IWYU pragma: keep
 #include "c_pal/thandle_ll.h"
+#include "c_pal/timed_test_suite.h"
 
 static volatile_atomic int64_t g_call_count;
 

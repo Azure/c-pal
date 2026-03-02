@@ -31,5 +31,6 @@
 #include "real_string_utils.h"
 
 #include "c_pal/srw_lock.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // SRW_LOCK_LINUX_UT_PCH_H

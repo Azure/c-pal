@@ -17,6 +17,7 @@
 #include "c_pal/interlocked.h"
 #include "c_pal/socket_transport.h"
 #include "c_pal/timer.h" // IWYU pragma: keep
+#include "c_pal/timed_test_suite.h"
 
 #ifdef WIN32
 #define SOCKET_SEND_FLAG     0

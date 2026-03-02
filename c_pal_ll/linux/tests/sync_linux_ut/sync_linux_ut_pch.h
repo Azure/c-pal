@@ -24,6 +24,7 @@
 
 #include "c_pal/interlocked.h"
 #include "c_pal/sync.h"
+#include "c_pal/timed_test_suite.h"
 
 // No idea why iwyu warns about this since we include time.h but...
 // IWYU pragma: no_forward_declare timespec

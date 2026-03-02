@@ -32,6 +32,7 @@
 
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_linux.h"
+#include "c_pal/timed_test_suite.h"
 
 #define DEFAULT_MIN_THREAD_COUNT 4
 #define DEFAULT_MAX_THREAD_COUNT 0

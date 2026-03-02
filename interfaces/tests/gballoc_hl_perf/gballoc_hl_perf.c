@@ -9,6 +9,7 @@
 #include "c_pal/timer.h"
 
 #include "c_pal/gballoc_hl.h"
+#include "c_pal/timed_test_suite.h"
 
 #define malloc gballoc_hl_malloc
 #define malloc_2 gballoc_hl_malloc_2

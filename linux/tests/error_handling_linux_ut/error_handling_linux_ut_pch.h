@@ -33,5 +33,6 @@
 #include "c_pal/windows_defines_errors.h"
 
 #include "c_pal/error_handling.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // ERROR_HANDLING_LINUX_UT_PCH_H

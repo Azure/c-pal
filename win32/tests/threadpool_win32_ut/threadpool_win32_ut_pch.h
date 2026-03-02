@@ -39,5 +39,6 @@
 
 #include "c_pal/string_utils.h"
 #include "c_pal/threadpool.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // THREADPOOL_WIN32_UT_PCH_H

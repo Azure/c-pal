@@ -33,5 +33,6 @@
 #include "real_gballoc_hl.h"
 
 #include "c_pal/string_utils.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // STRING_UTILS_WIN32_UT_PCH_H

@@ -36,5 +36,6 @@
 #include "c_pal/windows_defines.h"
 
 #include "c_pal/file_util.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // FILE_UTIL_LINUX_UT_PCH_H

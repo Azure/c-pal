@@ -43,6 +43,7 @@
 #include "real_s_list.h" // IWYU pragma: keep
 
 #include "c_pal/completion_port_linux.h"
+#include "c_pal/timed_test_suite.h"
 
 #define TEST_MAX_EVENTS_NUM     64
 #define EVENTS_TIMEOUT_MS       2*1000

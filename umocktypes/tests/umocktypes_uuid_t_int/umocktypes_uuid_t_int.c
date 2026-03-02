@@ -12,6 +12,7 @@
 
 #include "c_pal/uuid.h"
 #include "c_pal/umocktypes_uuid_t.h"
+#include "c_pal/timed_test_suite.h"
 
 #include "module.h"
 

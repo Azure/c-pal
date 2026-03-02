@@ -15,6 +15,7 @@
 #include "c_pal/threadapi.h"
 #include "c_pal/sync.h"
 #include "c_pal/timer.h"
+#include "c_pal/timed_test_suite.h"
 
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES)
 TEST_DEFINE_ENUM_TYPE(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES);
