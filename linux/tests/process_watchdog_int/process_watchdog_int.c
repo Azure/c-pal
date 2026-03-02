@@ -23,6 +23,7 @@
 #include "c_logging/logger.h"
 
 #include "c_pal/timer.h"
+#include "c_pal/timed_test_suite.h"
 
 // Shared exit codes between parent and child
 #include "process_watchdog_int_common.h"
@@ -144,11 +145,11 @@ static void get_child_exe_path(char* buffer, size_t buffer_size)
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(suite_init)
+TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
 }
 
-TEST_SUITE_CLEANUP(suite_cleanup)
+TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
 {
 }
 

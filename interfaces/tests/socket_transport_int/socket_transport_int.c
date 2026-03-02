@@ -17,6 +17,7 @@
 #include "c_pal/interlocked.h"
 #include "c_pal/socket_transport.h"
 #include "c_pal/timer.h" // IWYU pragma: keep
+#include "c_pal/timed_test_suite.h"
 
 #ifdef WIN32
 #define SOCKET_SEND_FLAG     0
@@ -52,14 +53,14 @@ TEST_DEFINE_ENUM_TYPE(ADDRESS_TYPE, ADDRESS_TYPE_VALUES);
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(suite_init)
+TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 
     ASSERT_ARE_EQUAL(int, 0, platform_init());
 }
 
-TEST_SUITE_CLEANUP(suite_cleanup)
+TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
 {
     (void)platform_deinit();
     gballoc_hl_deinit();

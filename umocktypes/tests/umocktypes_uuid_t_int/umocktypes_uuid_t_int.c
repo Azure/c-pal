@@ -12,6 +12,7 @@
 
 #include "c_pal/uuid.h"
 #include "c_pal/umocktypes_uuid_t.h"
+#include "c_pal/timed_test_suite.h"
 
 #include "module.h"
 
@@ -24,14 +25,14 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(TestClassInitialize)
+TIMED_TEST_SUITE_INITIALIZE(TestClassInitialize, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     umock_c_init(on_umock_c_error);
 
     ASSERT_ARE_EQUAL(int, 0, umocktypes_UUID_T_register_types());
 }
 
-TEST_SUITE_CLEANUP(TestClassCleanup)
+TIMED_TEST_SUITE_CLEANUP(TestClassCleanup)
 {
     umock_c_deinit();
 }

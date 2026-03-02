@@ -23,6 +23,7 @@
 #include "c_pal/interlocked_hl.h"
 
 #include "c_pal/sm.h"
+#include "c_pal/timed_test_suite.h"
 
 TEST_DEFINE_ENUM_TYPE(SM_RESULT, SM_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);
@@ -839,7 +840,7 @@ MU_DEFINE_ENUM_STRINGS(SM_STATES, SM_STATES_VALUES)
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(suite_init)
+TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 #if _MSC_VER
@@ -854,7 +855,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     LogInfo("numberOfProcessors was detected as %" PRIu32 "", numberOfProcessors);
 }
 
-TEST_SUITE_CLEANUP(suite_cleanup)
+TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
 {
     gballoc_hl_deinit();
 }

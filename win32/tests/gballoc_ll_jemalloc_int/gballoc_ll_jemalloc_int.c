@@ -12,6 +12,7 @@
 
 #include "c_pal/gballoc_ll.h"
 #include "c_pal/threadapi.h"
+#include "c_pal/timed_test_suite.h"
 
 #include "jemalloc/jemalloc.h"
 
@@ -23,7 +24,7 @@ static int64_t default_muzzy_decay_ms;
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(TestClassInitialize)
+TIMED_TEST_SUITE_INITIALIZE(TestClassInitialize, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     // Configure jemalloc to have 4 arenas(hence total max limit for number of arenas = 5, 4 normal + 1 huge)
     je_malloc_conf = "narenas:4";
@@ -33,7 +34,7 @@ TEST_SUITE_INITIALIZE(TestClassInitialize)
     ASSERT_ARE_EQUAL(int, 0, je_mallctl("arenas.muzzy_decay_ms", &default_muzzy_decay_ms, &decay_size, NULL, 0));
 }
 
-TEST_SUITE_CLEANUP(TestClassCleanup)
+TIMED_TEST_SUITE_CLEANUP(TestClassCleanup)
 {
 }
 

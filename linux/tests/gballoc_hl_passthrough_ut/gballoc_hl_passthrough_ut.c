@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "gballoc_hl_passthrough_ut_pch.h"
@@ -37,7 +37,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(init_suite)
+TIMED_TEST_SUITE_INITIALIZE(init_suite, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     umock_c_init(on_umock_c_error);
 
@@ -48,7 +48,7 @@ TEST_SUITE_INITIALIZE(init_suite)
     REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_size, stdlib_size);
 }
 
-TEST_SUITE_CLEANUP(TestClassCleanup)
+TIMED_TEST_SUITE_CLEANUP(TestClassCleanup)
 {
     umock_c_deinit();
 }
