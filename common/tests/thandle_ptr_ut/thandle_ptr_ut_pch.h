@@ -14,6 +14,8 @@
 
 #include "c_pal/thandle_ll.h"           // for THANDLE, THANDLE_ASSIGN
 
+#include "c_pal/timed_test_suite.h"
+
 #include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 #include "umock_c/umock_c.h"
 #include "c_pal/gballoc_hl.h"
@@ -24,6 +26,5 @@
 #include "real_gballoc_hl.h"
 
 #include "c_pal/thandle_ptr.h"
-#include "c_pal/timed_test_suite.h"
 
 #endif // THANDLE_PTR_UT_PCH_H

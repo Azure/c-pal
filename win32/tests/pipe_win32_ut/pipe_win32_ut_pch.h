@@ -18,6 +18,8 @@
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_charptr.h"
 
+#include "c_pal/timed_test_suite.h"
+
 #include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 #include "mock_pipe.h"
 #include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
@@ -25,6 +27,5 @@
 #include "real_gballoc_hl.h"
 
 #include "c_pal/pipe.h"
-#include "c_pal/timed_test_suite.h"
 
 #endif // PIPE_WIN32_UT_PCH_H

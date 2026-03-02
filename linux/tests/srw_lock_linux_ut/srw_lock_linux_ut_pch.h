@@ -19,6 +19,8 @@
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umock_c_negative_tests.h"
 
+#include "c_pal/timed_test_suite.h"
+
 #include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
@@ -31,6 +33,5 @@
 #include "real_string_utils.h"
 
 #include "c_pal/srw_lock.h"
-#include "c_pal/timed_test_suite.h"
 
 #endif // SRW_LOCK_LINUX_UT_PCH_H

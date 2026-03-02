@@ -18,6 +18,8 @@
 #include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umock_c_negative_tests.h"
 
+#include "c_pal/timed_test_suite.h"
+
 #include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 
 #include "c_pal/interlocked.h"
@@ -30,6 +32,5 @@
 #include "real_interlocked.h"
 
 #include "c_pal/process_watchdog.h"
-#include "c_pal/timed_test_suite.h"
 
 #endif // PROCESS_WATCHDOG_LINUX_UT_PCH_H

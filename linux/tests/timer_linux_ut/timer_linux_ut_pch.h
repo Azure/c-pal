@@ -14,6 +14,8 @@
 #include "umock_c/umock_c.h"
 #include "umock_c/umock_c_negative_tests.h"
 
+#include "c_pal/timed_test_suite.h"
+
 #include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
@@ -23,7 +25,6 @@
 #include "real_gballoc_hl.h"
 
 #include "c_pal/timer.h"
-#include "c_pal/timed_test_suite.h"
 
 // No idea why iwyu warns about this since we include time.h but...
 // IWYU pragma: no_forward_declare timespec

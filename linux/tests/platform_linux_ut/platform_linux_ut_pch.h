@@ -17,6 +17,8 @@
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_charptr.h"
 
+#include "c_pal/timed_test_suite.h"
+
 #include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 
 #include "c_pal/completion_port_linux.h"
@@ -26,6 +28,5 @@
 
 #include "c_pal/platform.h"
 #include "c_pal/platform_linux.h"
-#include "c_pal/timed_test_suite.h"
 
 #endif // PLATFORM_LINUX_UT_PCH_H

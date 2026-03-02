@@ -22,6 +22,8 @@
 #include "umock_c/umocktypes_charptr.h"
 #include "umock_c/umock_c_negative_tests.h"
 
+#include "c_pal/timed_test_suite.h"
+
 #include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 
 #include "c_pal/gballoc_hl.h"        // IWYU pragma: keep
@@ -43,7 +45,6 @@
 #include "real_s_list.h" // IWYU pragma: keep
 
 #include "c_pal/completion_port_linux.h"
-#include "c_pal/timed_test_suite.h"
 
 #define TEST_MAX_EVENTS_NUM     64
 #define EVENTS_TIMEOUT_MS       2*1000

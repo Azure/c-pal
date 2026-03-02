@@ -15,6 +15,8 @@
 #include "umock_c/umocktypes_stdint.h"
 #include "testrunnerswitcher.h"
 
+#include "c_pal/timed_test_suite.h"
+
 #include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 
 #include "c_pal/gballoc_hl.h"
@@ -23,7 +25,6 @@
 #include "c_pal/interlocked_hl.h" // IWYU pragma: keep
 #include "c_pal/thandle.h"
 #include "c_pal/thandle_ll.h"
-#include "c_pal/timed_test_suite.h"
 
 // The incomplete type we want to mock
 struct MOCKED_STRUCT_TAG; // IWYU pragma: private

@@ -24,6 +24,8 @@
 
 #include "real_gballoc_ll.h"
 
+#include "c_pal/timed_test_suite.h"
+
 #include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h"
@@ -36,6 +38,5 @@
 #include "c_pal/windows_defines.h"
 
 #include "c_pal/file_util.h"
-#include "c_pal/timed_test_suite.h"
 
 #endif // FILE_UTIL_LINUX_UT_PCH_H

@@ -30,6 +30,8 @@
 #include "umock_c/umocktypes.h"
 #include "umock_c/umock_c_negative_tests.h"
 
+#include "c_pal/timed_test_suite.h"
+
 #include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 
 #include "socket_mocked.h"
@@ -44,7 +46,6 @@
 #include "../reals/real_sm.h"
 
 #include "c_pal/socket_transport.h"
-#include "c_pal/timed_test_suite.h"
 
 #define MAX_SOCKET_ARRAY            10
 

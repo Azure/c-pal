@@ -18,6 +18,8 @@
 #include "umock_c/umocktypes_bool.h"
 #include "umock_c/umocktypes_stdint.h"
 
+#include "c_pal/timed_test_suite.h"
+
 #include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 #include "c_pal/interlocked.h"
 #include "c_pal/srw_lock_ll.h"
@@ -39,6 +41,5 @@
 #include "real_srw_lock_ll.h"
 
 #include "c_pal/tqueue.h"
-#include "c_pal/timed_test_suite.h"
 
 #endif // TQUEUE_UT_PCH_H
