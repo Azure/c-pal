@@ -17,14 +17,14 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(suite_init)
+TIMED_TEST_SUITE_INITIALIZE(suite_init)
 {
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error));
     ASSERT_ARE_EQUAL(int, 0, umocktypes_windows_register_types());
     REGISTER_UMOCK_ALIAS_TYPE(SHORT, int16_t);
 }
 
-TEST_SUITE_CLEANUP(TestClassCleanup)
+TIMED_TEST_SUITE_CLEANUP(TestClassCleanup)
 {
     umock_c_deinit();
 }

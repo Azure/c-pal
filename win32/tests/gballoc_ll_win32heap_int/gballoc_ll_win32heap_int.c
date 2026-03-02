@@ -11,12 +11,12 @@
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(TestClassInitialize)
+TIMED_TEST_SUITE_INITIALIZE(TestClassInitialize, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     ASSERT_ARE_EQUAL(int, 0, gballoc_ll_init(NULL));
 }
 
-TEST_SUITE_CLEANUP(TestClassCleanup)
+TIMED_TEST_SUITE_CLEANUP(TestClassCleanup)
 {
     gballoc_ll_deinit();
 }
@@ -42,7 +42,7 @@ TEST_FUNCTION(gballoc_ll_init_works)
 
 TEST_FUNCTION(gballoc_ll_deinit_works)
 {
-    ///arrange 
+    ///arrange
 
     ///act
     gballoc_ll_deinit();
@@ -161,7 +161,7 @@ TEST_FUNCTION(gballoc_ll_free_works)
     unsigned char* ptr = gballoc_ll_malloc(1);
     ASSERT_IS_NOT_NULL(ptr);
 
-    ///act 
+    ///act
     gballoc_ll_free(ptr);
 
     ///assert - doesn't crash
@@ -174,7 +174,7 @@ TEST_FUNCTION(gballoc_ll_realloc_works)
     ASSERT_IS_NOT_NULL(ptr1);
     unsigned char* ptr2;
 
-    ///act 
+    ///act
     ptr2 = gballoc_ll_realloc(ptr1, 2);
 
     ///assert - doesn't crash
@@ -191,7 +191,7 @@ TEST_FUNCTION(gballoc_ll_realloc_2_works)
     ASSERT_IS_NOT_NULL(ptr1);
     unsigned char* ptr2;
 
-    ///act 
+    ///act
     ptr2 = gballoc_ll_realloc_2(ptr1, 2, 1);
 
     ///assert - doesn't crash
@@ -208,7 +208,7 @@ TEST_FUNCTION(gballoc_ll_realloc_flex_works)
     ASSERT_IS_NOT_NULL(ptr1);
     unsigned char* ptr2;
 
-    ///act 
+    ///act
     ptr2 = gballoc_ll_realloc_flex(ptr1, 4, 13, 45);
 
     ///assert - doesn't crash
@@ -223,7 +223,7 @@ TEST_FUNCTION(gballoc_ll_calloc_works)
     ///arrange
     unsigned char* ptr;
 
-    ///act 
+    ///act
     ptr = gballoc_ll_calloc(1, 1);
 
     ///assert - doesn't crash

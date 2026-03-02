@@ -18,14 +18,14 @@ IMPLEMENT_UMOCK_C_ENUM_TYPE(LAZY_INIT_RESULT, LAZY_INIT_RESULT_VALUES);
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(suite_init)
+TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error), "umock_c_init");
 
     ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types(), "umocktypes_stdint_register_types");
 
     REGISTER_UMOCK_ALIAS_TYPE(LAZY_INIT_FUNCTION, void*);
-    
+
     REGISTER_TYPE(LAZY_INIT_RESULT, LAZY_INIT_RESULT);
 
     REGISTER_GLOBAL_MOCK_RETURN(gballoc_ll_malloc, pretend_to_be_allocated);
@@ -40,7 +40,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK();
 }
 
-TEST_SUITE_CLEANUP(suite_cleanup)
+TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
 {
     umock_c_deinit();
 }
@@ -603,7 +603,7 @@ TEST_FUNCTION(gballoc_hl_calloc_calls_gballoc_ll_calloc_clears_and_returns_the_r
     {
         ASSERT_ARE_EQUAL(uint8_t, 0, ((uint8_t*)result)[i]);
     }
-    
+
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup
@@ -2219,7 +2219,7 @@ TEST_FUNCTION(gballoc_hl_get_free_latency_buckets_with_2_calls_returns_the_avera
         .SetReturn(43.0);
     gballoc_hl_free(ptr1);
     umock_c_reset_all_calls();
-    
+
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
     STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
         .SetReturn(3.0);

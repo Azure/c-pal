@@ -23,7 +23,7 @@ static int64_t default_muzzy_decay_ms;
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(TestClassInitialize)
+TIMED_TEST_SUITE_INITIALIZE(TestClassInitialize, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     // Configure jemalloc to have 4 arenas(hence total max limit for number of arenas = 5, 4 normal + 1 huge)
     je_malloc_conf = "narenas:4";
@@ -33,7 +33,7 @@ TEST_SUITE_INITIALIZE(TestClassInitialize)
     ASSERT_ARE_EQUAL(int, 0, je_mallctl("arenas.muzzy_decay_ms", &default_muzzy_decay_ms, &decay_size, NULL, 0));
 }
 
-TEST_SUITE_CLEANUP(TestClassCleanup)
+TIMED_TEST_SUITE_CLEANUP(TestClassCleanup)
 {
 }
 
@@ -169,7 +169,7 @@ TEST_FUNCTION(gballoc_ll_free_works)
     unsigned char* ptr = gballoc_ll_malloc(1);
     ASSERT_IS_NOT_NULL(ptr);
 
-    ///act 
+    ///act
     gballoc_ll_free(ptr);
 
     ///assert - doesn't crash
@@ -182,7 +182,7 @@ TEST_FUNCTION(gballoc_ll_realloc_works)
     ASSERT_IS_NOT_NULL(ptr1);
     unsigned char* ptr2;
 
-    ///act 
+    ///act
     ptr2 = gballoc_ll_realloc(ptr1, 2);
 
     ///assert - doesn't crash
@@ -199,7 +199,7 @@ TEST_FUNCTION(gballoc_ll_realloc_2_works)
     ASSERT_IS_NOT_NULL(ptr1);
     unsigned char* ptr2;
 
-    ///act 
+    ///act
     ptr2 = gballoc_ll_realloc_2(ptr1, 1, 2);
 
     ///assert - doesn't crash
@@ -216,7 +216,7 @@ TEST_FUNCTION(gballoc_ll_realloc_flex_works)
     ASSERT_IS_NOT_NULL(ptr1);
     unsigned char* ptr2;
 
-    ///act 
+    ///act
     ptr2 = gballoc_ll_realloc_flex(ptr1, 4, 20, 8);
 
     ///assert - doesn't crash
@@ -232,7 +232,7 @@ TEST_FUNCTION(gballoc_ll_calloc_works)
     ///arrange
     unsigned char* ptr;
 
-    ///act 
+    ///act
     ptr = gballoc_ll_calloc(1, 1);
 
     ///assert - doesn't crash
@@ -491,7 +491,7 @@ static void gballoc_ll_set_option_decay_check_working_set_size(uint32_t num_allo
     result = get_working_set_size(&working_set_after);
     ASSERT_ARE_EQUAL(int, 0, result);
     LogInfo("Working set size after freeing allocations and decay: %zu bytes\n", working_set_after);
-    
+
     if (is_percent_max)
     {
         // If the decay time is high, then the working set size after decay should also remain high

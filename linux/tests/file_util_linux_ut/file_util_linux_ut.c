@@ -18,7 +18,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(suite_init)
+TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error));
     ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types());
@@ -32,7 +32,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_UMOCK_ALIAS_TYPE(LPSECURITY_ATTRIBUTES, void*);
 }
 
-TEST_SUITE_CLEANUP(suite_cleanup)
+TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
 {
     umock_c_deinit();
     umock_c_negative_tests_deinit();
@@ -96,7 +96,7 @@ TEST_FUNCTION(file_util_open_file_open_Fail)
     HANDLE result;
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mocked_open(G_FILE_NAME, O_RDONLY|O_CREAT)) 
+    STRICT_EXPECTED_CALL(mocked_open(G_FILE_NAME, O_RDONLY|O_CREAT))
         .SetReturn(-1);
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
@@ -118,7 +118,7 @@ static const struct CREATION_DISPOSITION_INPUTS_TAG
     int creation_disposition;
     int flags;
 
-} TEST_VEC_CREATION_DISPOSITION_INPUTS[] = 
+} TEST_VEC_CREATION_DISPOSITION_INPUTS[] =
     {
         {CREATE_ALWAYS, O_CREAT},
         {CREATE_NEW, O_CREAT|O_EXCL},
@@ -191,7 +191,7 @@ static const struct DESIRED_ACCESS_INPUTS
 {
     int in_desired_access;
     int user_access;
-} DESIRED_ACCESS_INPUTS[] = 
+} DESIRED_ACCESS_INPUTS[] =
     {
         {GENERIC_READ, O_RDONLY},
         {GENERIC_WRITE, O_WRONLY},
@@ -280,7 +280,7 @@ TEST_FUNCTION(file_util_close_file_Succeeds)
 
     ///act
     result = file_util_close_file(handle_input);
-    
+
     //assert
     ASSERT_IS_TRUE(result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -307,7 +307,7 @@ TEST_FUNCTION(file_util_close_file_FAILS)
 
     ///act
     result = file_util_close_file(handle_input);
-    
+
     //assert
     ASSERT_IS_FALSE(result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -326,6 +326,6 @@ TEST_FUNCTION(file_util_close_file_input_NULL)
     ///assert
     ASSERT_IS_FALSE(result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-} 
+}
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

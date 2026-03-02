@@ -18,7 +18,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(suite_init)
+TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
 
@@ -32,7 +32,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_UMOCK_ALIAS_TYPE(clockid_t, int);
 }
 
-TEST_SUITE_CLEANUP(suite_cleanup)
+TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
 {
     umock_c_deinit();
     umock_c_negative_tests_deinit();
@@ -222,7 +222,7 @@ TEST_FUNCTION(timer_get_elapsed_success)
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_MONOTONIC, IGNORED_ARG))
         .CopyOutArgumentBuffer_tp(&stop_time, sizeof(stop_time));
-    
+
     //act
     double elapsed_time = timer_get_elapsed(timer);
 
@@ -246,7 +246,7 @@ TEST_FUNCTION(timer_get_elapsed_success_0_1)
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_MONOTONIC, IGNORED_ARG))
         .CopyOutArgumentBuffer_tp(&stop_time, sizeof(stop_time));
-    
+
     //act
     double elapsed_time = timer_get_elapsed(timer);
 
@@ -273,7 +273,7 @@ TEST_FUNCTION(timer_get_elapsed_success_0_2_crossing_second)
     stop_time.tv_nsec = 100000000;
     STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_MONOTONIC, IGNORED_ARG))
         .CopyOutArgumentBuffer_tp(&stop_time, sizeof(stop_time));
-    
+
     //act
     double elapsed_time = timer_get_elapsed(timer);
 
@@ -297,7 +297,7 @@ TEST_FUNCTION(when_clock_gettime_fails_timer_get_elapsed_also_fails)
     STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_MONOTONIC, IGNORED_ARG))
         .CopyOutArgumentBuffer_tp(&stop_time, sizeof(stop_time))
         .SetReturn(-1);
-    
+
     //act
     double elapsed_time = timer_get_elapsed(timer);
 
@@ -334,7 +334,7 @@ TEST_FUNCTION(timer_get_elapsed_ms_success)
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_MONOTONIC, IGNORED_ARG))
         .CopyOutArgumentBuffer_tp(&stop_time, sizeof(stop_time));
-    
+
     //act
     double elapsed_time = timer_get_elapsed_ms(timer);
 
@@ -358,7 +358,7 @@ TEST_FUNCTION(timer_get_elapsed_ms_success_100_ms)
     umock_c_reset_all_calls();
     STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_MONOTONIC, IGNORED_ARG))
         .CopyOutArgumentBuffer_tp(&stop_time, sizeof(stop_time));
-    
+
     //act
     double elapsed_time = timer_get_elapsed_ms(timer);
 
@@ -385,7 +385,7 @@ TEST_FUNCTION(timer_get_elapsed_ms_success_200_ms_crossing_second)
     stop_time.tv_nsec = 100000000;
     STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_MONOTONIC, IGNORED_ARG))
         .CopyOutArgumentBuffer_tp(&stop_time, sizeof(stop_time));
-    
+
     //act
     double elapsed_time = timer_get_elapsed_ms(timer);
 
@@ -409,7 +409,7 @@ TEST_FUNCTION(when_clock_gettime_fails_timer_get_elapsed_ms_also_fails)
     STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_MONOTONIC, IGNORED_ARG))
         .CopyOutArgumentBuffer_tp(&stop_time, sizeof(stop_time))
         .SetReturn(-1);
-    
+
     //act
     double elapsed_time = timer_get_elapsed_ms(timer);
 

@@ -28,7 +28,7 @@ DEFINE_REFCOUNT_TYPE_WITH_CUSTOM_ALLOC(TEST_STRUCT, test_malloc, test_malloc_fle
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-    TEST_SUITE_INITIALIZE(TestClassInitialize)
+    TIMED_TEST_SUITE_INITIALIZE(TestClassInitialize, TIMED_TEST_DEFAULT_TIMEOUT_MS)
     {
         ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
 
@@ -42,7 +42,7 @@ BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
         REGISTER_INTERLOCKED_GLOBAL_MOCK_HOOK();
     }
 
-    TEST_SUITE_CLEANUP(TestClassCleanup)
+    TIMED_TEST_SUITE_CLEANUP(TestClassCleanup)
     {
         umock_c_deinit();
 

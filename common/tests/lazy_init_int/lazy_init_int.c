@@ -91,12 +91,12 @@ static int chaosThread(
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(suite_init)
+TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     nThreadsForChaos = sysinfo_get_processor_count();
 }
 
-TEST_SUITE_CLEANUP(suite_cleanup)
+TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
 {
 }
 
@@ -139,7 +139,7 @@ TEST_FUNCTION(lazy_init_chaos_knight)
     }
 
     ///assert - all done in the threads themselves
-    
+
     ///clean
     free(threads);
 }

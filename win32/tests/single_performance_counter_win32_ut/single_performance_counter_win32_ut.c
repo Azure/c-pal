@@ -126,7 +126,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(suite_init)
+TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
 
@@ -167,7 +167,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_GLOBAL_MOCK_HOOK(mocked_PdhGetFormattedCounterValue, hook_mocked_PdhGetFormattedCounterValue);
 }
 
-TEST_SUITE_CLEANUP(suite_cleanup)
+TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
 {
     umock_c_deinit();
     real_gballoc_hl_deinit();
@@ -285,7 +285,7 @@ TEST_FUNCTION(single_performance_counter_create_module_name_too_large)
 {
     // arrange
     char new_mocked_name[MAX_PATH + 2];
-    memset(new_mocked_name, 'a', MAX_PATH + 2); 
+    memset(new_mocked_name, 'a', MAX_PATH + 2);
     new_mocked_name[0] = '\\'; // slash to make it a full path
     new_mocked_name[MAX_PATH + 1] = '\0'; // null terminate
     mocked_mocked_GetModuleFileNameA_filename = new_mocked_name;

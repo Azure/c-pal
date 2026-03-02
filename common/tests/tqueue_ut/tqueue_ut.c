@@ -35,7 +35,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(suite_init)
+TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
 
@@ -52,7 +52,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     ASSERT_ARE_EQUAL(int, 0, umock_c_negative_tests_init());
 }
 
-TEST_SUITE_CLEANUP(suite_cleanup)
+TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
 {
     umock_c_negative_tests_deinit();
     umock_c_deinit();
@@ -1000,10 +1000,10 @@ TEST_FUNCTION(TQUEUE_PUSH_resizes_but_obeys_max_size)
     STRICT_EXPECTED_CALL(interlocked_exchange_64(IGNORED_ARG, 4)); // set head
     STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(srw_lock_ll_acquire_shared(IGNORED_ARG));
-    
+
     STRICT_EXPECTED_CALL(interlocked_add_64(IGNORED_ARG, 0)); // head
     STRICT_EXPECTED_CALL(interlocked_add_64(IGNORED_ARG, 0)); // tail
-    
+
     STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, QUEUE_ENTRY_STATE_PUSHING, QUEUE_ENTRY_STATE_NOT_USED)); // entry state
     STRICT_EXPECTED_CALL(interlocked_compare_exchange_64(IGNORED_ARG, 5, 4)); // head change
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, QUEUE_ENTRY_STATE_USED)); // entry state

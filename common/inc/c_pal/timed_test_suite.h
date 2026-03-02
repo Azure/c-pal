@@ -3,7 +3,11 @@
 #ifndef TIMED_TEST_SUITE_H
 #define TIMED_TEST_SUITE_H
 
+// Enable TEST_SUITE_INITIALIZE_INTERNAL/CLEANUP_INTERNAL for use by TIMED_ macros
+#define DEFINE_TEST_SUITE_INITIALIZE
+#define DEFINE_TEST_SUITE_CLEANUP
 #include "testrunnerswitcher.h"
+
 #include "c_pal/process_watchdog.h"
 
 // Default timeout: 10 minutes
@@ -16,7 +20,7 @@
 /*Codes_SRS_TIMED_TEST_SUITE_43_004: [ The watchdog init fixture shall execute before the user's initialization code. ]*/
 #define TIMED_TEST_SUITE_INITIALIZE(name, timeout_ms, ...) \
     static void MU_C2(timed_test_watchdog_init_, name)(void) { ASSERT_ARE_EQUAL(int, 0, process_watchdog_init(timeout_ms), "process_watchdog_init failed"); } \
-    TEST_SUITE_INITIALIZE(name, MU_C2(timed_test_watchdog_init_, name), ##__VA_ARGS__)
+    TEST_SUITE_INITIALIZE_INTERNAL(name, MU_C2(timed_test_watchdog_init_, name), ##__VA_ARGS__)
 
 // Cleanup - stops the watchdog after user cleanup code runs
 // Watchdog deinit fixture runs AFTER user cleanup code (last in fixture list)
@@ -25,6 +29,7 @@
 /*Codes_SRS_TIMED_TEST_SUITE_43_007: [ The watchdog deinit fixture shall execute after the user's cleanup code. ]*/
 #define TIMED_TEST_SUITE_CLEANUP(name, ...) \
     static void MU_C2(timed_test_watchdog_deinit_, name)(void) { process_watchdog_deinit(); } \
-    TEST_SUITE_CLEANUP(name, ##__VA_ARGS__, MU_C2(timed_test_watchdog_deinit_, name))
+    TEST_SUITE_CLEANUP_INTERNAL(name, ##__VA_ARGS__, MU_C2(timed_test_watchdog_deinit_, name))
+
 
 #endif // TIMED_TEST_SUITE_H

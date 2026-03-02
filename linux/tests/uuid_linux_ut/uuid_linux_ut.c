@@ -76,7 +76,7 @@ static int umock_are_equal_uuid_t(const uuid_t* left, const uuid_t* right)
 static int umock_copy_uuid_t(uuid_t* destination, const uuid_t* source)
 {
     if (
-        (destination == NULL) || 
+        (destination == NULL) ||
         (source == NULL)
         )
     {
@@ -95,7 +95,7 @@ static void umock_free_uuid_t(uuid_t* value)
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(suite_init)
+TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error));
 
@@ -104,7 +104,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_GLOBAL_MOCK_HOOK(mocked_uuid_generate, hook_uuid_generate);
 }
 
-TEST_SUITE_CLEANUP(suite_cleanup)
+TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
 {
     umock_c_deinit();
 }

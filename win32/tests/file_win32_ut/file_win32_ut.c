@@ -107,7 +107,7 @@ static FILE_HANDLE start_file_io_async(FILE_IO_ASYNC_TYPE type, unsigned char* b
     }
 
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    
+
     umock_c_reset_all_calls();
     return file_handle;
 
@@ -115,7 +115,7 @@ static FILE_HANDLE start_file_io_async(FILE_IO_ASYNC_TYPE type, unsigned char* b
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(suite_init)
+TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
 
@@ -143,7 +143,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_GLOBAL_MOCK_RETURNS(mock_CreateEvent, fake_h_event, NULL);
 }
 
-TEST_SUITE_CLEANUP(TestClassCleanup)
+TIMED_TEST_SUITE_CLEANUP(TestClassCleanup)
 {
     umock_c_deinit();
 
@@ -225,7 +225,7 @@ TEST_FUNCTION(file_create_succeeds)
     ///assert
     ASSERT_IS_NOT_NULL(file_handle);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    
+
     ///cleanup
     file_destroy(file_handle);
 }
@@ -428,7 +428,7 @@ TEST_FUNCTION(file_write_async_succeeds_asynchronously)
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, result);
-    
+
     ///cleanup
     captured_callback(NULL, NULL, captured_ov, NO_ERROR, sizeof(source), NULL);
     file_destroy(file_handle);
@@ -468,7 +468,7 @@ TEST_FUNCTION(file_write_async_fails_synchronously)
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_WRITE_ERROR, result);
-    
+
     ///cleanup
     file_destroy(file_handle);
 }
@@ -500,14 +500,14 @@ TEST_FUNCTION(file_write_async_succeeds_synchronously)
     STRICT_EXPECTED_CALL(mock_CloseHandle(fake_h_event));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG))
         .ValidateArgumentValue_ptr(&io);
-    
+
     ///act
     FILE_WRITE_ASYNC_RESULT result = file_write_async(file_handle, source, size, position, mock_user_callback, user_context);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_EQUAL(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_OK, result);
-    
+
     ///cleanup
     file_destroy(file_handle);
 }
@@ -586,7 +586,7 @@ TEST_FUNCTION(file_read_async_fails_with_null_destination)
     ///assert
     ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_INVALID_ARGS, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    
+
     ///cleanup
     file_destroy(file_handle);
 }
@@ -605,7 +605,7 @@ TEST_FUNCTION(file_read_async_fails_with_null_user_callback)
     ///assert
     ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_INVALID_ARGS, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    
+
     ///cleanup
     file_destroy(file_handle);
 }
@@ -624,7 +624,7 @@ TEST_FUNCTION(file_read_async_fails_if_size_is_zero)
     ///assert
     ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_INVALID_ARGS, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    
+
     ///cleanup
     file_destroy(file_handle);
 }
@@ -660,7 +660,7 @@ TEST_FUNCTION(file_read_async_succeeds_asynchronously)
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_OK, result);
-    
+
     ///cleanup
     captured_callback(NULL, NULL, captured_ov, NO_ERROR, sizeof(source), NULL);
     file_destroy(file_handle);
@@ -700,7 +700,7 @@ TEST_FUNCTION(file_read_async_fails_synchronously)
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_EQUAL(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_READ_ERROR, result);
-    
+
     ///cleanup
     file_destroy(file_handle);
 }

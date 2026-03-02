@@ -49,7 +49,7 @@ static int hook_vsnprintf(char* buffer, size_t buffer_size, const char* format, 
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(suite_init)
+TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
 
@@ -62,7 +62,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(malloc, NULL);
 
     REGISTER_GLOBAL_MOCK_HOOK(mocked_FileTimeToSystemTime, hook_FileTimeToSystemTime);
-    
+
     REGISTER_GLOBAL_MOCK_HOOK(mocked_vsnprintf, hook_vsnprintf);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_vsnprintf, -1);
 
@@ -71,7 +71,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_UMOCK_ALIAS_TYPE(va_list, void*);
 }
 
-TEST_SUITE_CLEANUP(TestClassCleanup)
+TIMED_TEST_SUITE_CLEANUP(TestClassCleanup)
 {
     umock_c_deinit();
 
@@ -113,7 +113,7 @@ TEST_FUNCTION(FILETIME_to_string_UTC_with_123_milliseconds_succeeds)
 {
     ///arrange
     char* result;
-    FILETIME mock = { .dwLowDateTime = 1, .dwHighDateTime = 1 }; 
+    FILETIME mock = { .dwLowDateTime = 1, .dwHighDateTime = 1 };
 
     STRICT_EXPECTED_CALL(mocked_FileTimeToSystemTime(&mock, IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_vsnprintf(NULL, 0, IGNORED_ARG, IGNORED_ARG));                  /*this is sprintf_char*/

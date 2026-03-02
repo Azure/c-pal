@@ -131,7 +131,7 @@ static THANDLE(THREADPOOL) test_create_threadpool(void)
 static void setup_lazy_init(void)
 {
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
-    // create one timer 
+    // create one timer
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 1));
     STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
@@ -174,7 +174,7 @@ static THANDLE(THREADPOOL_TIMER) test_create_threadpool_and_start_timer(uint32_t
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(suite_init)
+TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error));
     ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types());
@@ -217,7 +217,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_TYPE(TQUEUE_POP_RESULT, TQUEUE_POP_RESULT);
 }
 
-TEST_SUITE_CLEANUP(suite_cleanup)
+TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
 {
     umock_c_deinit();
     umock_c_negative_tests_deinit();

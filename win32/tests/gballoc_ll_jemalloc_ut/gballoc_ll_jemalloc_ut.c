@@ -49,7 +49,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(TestClassInitialize)
+TIMED_TEST_SUITE_INITIALIZE(TestClassInitialize, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     umock_c_init(on_umock_c_error);
 
@@ -60,7 +60,7 @@ TEST_SUITE_INITIALIZE(TestClassInitialize)
     REGISTER_UMOCK_ALIAS_TYPE(JEMALLOC_WRITE_CB, void*)
 }
 
-TEST_SUITE_CLEANUP(TestClassCleanup)
+TIMED_TEST_SUITE_CLEANUP(TestClassCleanup)
 {
     umock_c_deinit();
 }
@@ -971,7 +971,7 @@ TEST_FUNCTION(gballoc_ll_set_option_fails_for_dirty_decay_if_setting_dirty_decay
     (void)sprintf(fourth_command, "arena.1.dirty_decay_ms");
     char* fifth_command;
 
-    setup_failure_expectations_when_setting_decay_for_second_arenas_fails(&first_command, &second_command, (char**)&third_command, (char**)&fourth_command, &fifth_command, &decay_milliseconds, &num_arenas);    
+    setup_failure_expectations_when_setting_decay_for_second_arenas_fails(&first_command, &second_command, (char**)&third_command, (char**)&fourth_command, &fifth_command, &decay_milliseconds, &num_arenas);
 
     ///act
     int result = gballoc_ll_set_option("dirty_decay", &decay_milliseconds);
@@ -1001,7 +1001,7 @@ TEST_FUNCTION(gballoc_ll_set_option_fails_for_muzzy_decay_if_setting_muzzy_decay
     (void)sprintf(fourth_command, "arena.1.muzzy_decay_ms");
     char* fifth_command;
 
-    setup_failure_expectations_when_setting_decay_for_second_arenas_fails(&first_command, &second_command, (char**)&third_command, (char**)&fourth_command, &fifth_command, &decay_milliseconds, &num_arenas);    
+    setup_failure_expectations_when_setting_decay_for_second_arenas_fails(&first_command, &second_command, (char**)&third_command, (char**)&fourth_command, &fifth_command, &decay_milliseconds, &num_arenas);
 
     ///act
     int result = gballoc_ll_set_option("muzzy_decay", &decay_milliseconds);

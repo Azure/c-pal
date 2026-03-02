@@ -17,12 +17,12 @@
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(suite_init)
+TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 }
 
-TEST_SUITE_CLEANUP(suite_cleanup)
+TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
 {
     gballoc_hl_deinit();
 }
@@ -341,7 +341,7 @@ TEST_FUNCTION(vsprintf_char_fails_with_invalid_sequence_characters)
     char* result;
 
     /*original string is */
-    wchar_t s[] = { 
+    wchar_t s[] = {
         0x54+ (0x00<<8), /*T*/
         0x65+ (0x00<<8), /*e*/
         0x73+ (0x00<<8), /*s*/

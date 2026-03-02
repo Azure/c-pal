@@ -123,12 +123,12 @@ static int increment_on_wake_up_64(void* address)
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(a)
+TIMED_TEST_SUITE_INITIALIZE(a)
 {
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 }
 
-TEST_SUITE_CLEANUP(b)
+TIMED_TEST_SUITE_CLEANUP(b)
 {
     gballoc_hl_deinit();
 }

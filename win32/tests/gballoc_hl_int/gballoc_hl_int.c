@@ -12,12 +12,12 @@
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(TestClassInitialize)
+TIMED_TEST_SUITE_INITIALIZE(TestClassInitialize, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 }
 
-TEST_SUITE_CLEANUP(TestClassCleanup)
+TIMED_TEST_SUITE_CLEANUP(TestClassCleanup)
 {
     gballoc_hl_deinit();
 }
@@ -163,7 +163,7 @@ TEST_FUNCTION(gballoc_hl_free_works)
     unsigned char* ptr = gballoc_hl_malloc(1);
     ASSERT_IS_NOT_NULL(ptr);
 
-    ///act 
+    ///act
     gballoc_hl_free(ptr);
 
     ///assert - doesn't crash
@@ -176,7 +176,7 @@ TEST_FUNCTION(gballoc_hl_realloc_works)
     ASSERT_IS_NOT_NULL(ptr1);
     unsigned char* ptr2;
 
-    ///act 
+    ///act
     ptr2 = gballoc_hl_realloc(ptr1, 2);
 
     ///assert - doesn't crash
@@ -193,7 +193,7 @@ TEST_FUNCTION(gballoc_hl_realloc_2_works)
     ASSERT_IS_NOT_NULL(ptr1);
     unsigned char* ptr2;
 
-    ///act 
+    ///act
     ptr2 = gballoc_hl_realloc_2(ptr1, 2, 3);
 
     ///assert - doesn't crash
@@ -210,7 +210,7 @@ TEST_FUNCTION(gballoc_hl_realloc_flex_works)
     ASSERT_IS_NOT_NULL(ptr1);
     unsigned char* ptr2;
 
-    ///act 
+    ///act
     ptr2 = gballoc_hl_realloc_flex(ptr1, 2, 3, 5);
 
     ///assert - doesn't crash
@@ -225,7 +225,7 @@ TEST_FUNCTION(gballoc_hl_calloc_works)
     ///arrange
     unsigned char* ptr;
 
-    ///act 
+    ///act
     ptr = gballoc_hl_calloc(1, 1);
 
     ///assert
@@ -242,7 +242,7 @@ TEST_FUNCTION(gballoc_hl_size_returns_the_size_of_the_allocated_block)
     unsigned char* ptr = gballoc_hl_malloc(1);
     ASSERT_IS_NOT_NULL(ptr);
 
-    ///act 
+    ///act
     size_t size = gballoc_hl_size(ptr);
 
     ///assert
