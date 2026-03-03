@@ -70,9 +70,9 @@ static int internal_job_object_helper_reconfigure(uint32_t percent_cpu, uint32_t
 ```
 `internal_job_object_helper_reconfigure` is an internal function that reconfigures the existing process-level singleton job object with new CPU and memory limits.
 
-**SRS_JOB_OBJECT_HELPER_88_003: [** If `percent_cpu` has changed, `internal_job_object_helper_reconfigure` shall call `internal_job_object_helper_set_cpu_limit` to apply the updated CPU rate control to the Windows job object. **]**
+**SRS_JOB_OBJECT_HELPER_88_003: [** `internal_job_object_helper_reconfigure` shall call `internal_job_object_helper_set_cpu_limit` to apply the CPU rate control to the Windows job object. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_009: [** If `percent_physical_memory` has changed, `internal_job_object_helper_reconfigure` shall call `internal_job_object_helper_set_memory_limit` to apply the updated memory limit to the Windows job object. **]**
+**SRS_JOB_OBJECT_HELPER_88_009: [** `internal_job_object_helper_reconfigure` shall call `internal_job_object_helper_set_memory_limit` to apply the memory limit to the Windows job object. **]**
 
 **SRS_JOB_OBJECT_HELPER_88_015: [** After successfully updating CPU rate control, `internal_job_object_helper_reconfigure` shall update the stored `percent_cpu` value. **]**
 
@@ -93,9 +93,9 @@ static int internal_job_object_helper_create(const char* job_name, uint32_t perc
 
 **SRS_JOB_OBJECT_HELPER_88_036: [** `internal_job_object_helper_create` shall call `CreateJobObjectA` passing `job_name` for `lpName` and `NULL` for `lpJobAttributes`. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_037: [** If `percent_cpu` is not `JOB_OBJECT_HELPER_DISABLE_CPU_RATE_CONTROL` then `internal_job_object_helper_create` shall call `internal_job_object_helper_set_cpu_limit` to apply the CPU rate control to the Windows job object. **]**
+**SRS_JOB_OBJECT_HELPER_88_037: [** `internal_job_object_helper_create` shall call `internal_job_object_helper_set_cpu_limit` to apply the CPU rate control to the Windows job object. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_038: [** If `percent_physical_memory` is not `JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT` then `internal_job_object_helper_create` shall call `internal_job_object_helper_set_memory_limit` to apply the memory limit to the Windows job object. **]**
+**SRS_JOB_OBJECT_HELPER_88_038: [** `internal_job_object_helper_create` shall call `internal_job_object_helper_set_memory_limit` to apply the memory limit to the Windows job object. **]**
 
 **SRS_JOB_OBJECT_HELPER_88_039: [** `internal_job_object_helper_create` shall call `GetCurrentProcess` to get the current process handle. **]**
 
@@ -118,7 +118,7 @@ MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_job_limits
 ```
 `job_object_helper_set_job_limits_to_current_process` creates the Job Object with limits if not present and assigns the current process to it. Returns a THANDLE to allow reuse of the job object across multiple processes. If being used only in single process, then handle can be released immediately and process continues having the set limits.
 
-The function implements a process-level singleton pattern to prevent Job Object accumulation. On the first call, it creates the job object and remembers the parameters. On subsequent calls with the same parameters, it returns the existing singleton. If parameters change, the existing job object is reconfigured in-place via `SetInformationJobObject`. During reconfiguration, CPU rate control can be disabled by passing `JOB_OBJECT_HELPER_DISABLE_CPU_RATE_CONTROL` and memory limits can be removed by passing `JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT`.
+The function implements a process-level singleton pattern to prevent Job Object accumulation. On the first call, it creates the job object. On subsequent calls, the existing job object's limits are applied in-place via `SetInformationJobObject` and the existing singleton is returned. CPU rate control can be disabled by passing `JOB_OBJECT_HELPER_DISABLE_CPU_RATE_CONTROL` and memory limits can be removed by passing `JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT`.
 
 **SRS_JOB_OBJECT_HELPER_19_001: [** If `percent_cpu` is greater than `100` then `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
 
@@ -126,9 +126,7 @@ The function implements a process-level singleton pattern to prevent Job Object 
 
 **SRS_JOB_OBJECT_HELPER_88_030: [** If `job_object_singleton_state.job_object_helper` is not `NULL`, `job_object_helper_set_job_limits_to_current_process` shall not create a new job object. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_001: [** If `job_object_singleton_state.percent_cpu` is equal to `percent_cpu` and `job_object_singleton_state.percent_physical_memory` is equal to `percent_physical_memory`, `job_object_helper_set_job_limits_to_current_process` shall increment the reference count on the existing `THANDLE(JOB_OBJECT_HELPER)` and return it. **]**
-
-**SRS_JOB_OBJECT_HELPER_88_002: [** If `job_object_singleton_state.percent_cpu` is not equal to `percent_cpu` or `job_object_singleton_state.percent_physical_memory` is not equal to `percent_physical_memory`, `job_object_helper_set_job_limits_to_current_process` shall call `internal_job_object_helper_reconfigure` to reconfigure the existing job object in-place. **]**
+**SRS_JOB_OBJECT_HELPER_88_002: [** If `job_object_singleton_state.job_object_helper` is not `NULL`, `job_object_helper_set_job_limits_to_current_process` shall call `internal_job_object_helper_reconfigure` to apply the limits to the existing job object. **]**
 
 **SRS_JOB_OBJECT_HELPER_88_021: [** If `internal_job_object_helper_reconfigure` returns `0`, `job_object_helper_set_job_limits_to_current_process` shall increment the reference count on the existing `THANDLE(JOB_OBJECT_HELPER)` and return it. **]**
 
