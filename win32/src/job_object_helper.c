@@ -36,11 +36,9 @@ THANDLE_TYPE_DEFINE(JOB_OBJECT_HELPER);
 typedef struct JOB_OBJECT_SINGLETON_STATE_TAG
 {
     THANDLE(JOB_OBJECT_HELPER) job_object_helper;
-    uint32_t percent_cpu;
-    uint32_t percent_physical_memory;
 } JOB_OBJECT_SINGLETON_STATE;
 
-static JOB_OBJECT_SINGLETON_STATE job_object_singleton_state = { NULL, JOB_OBJECT_HELPER_DISABLE_CPU_RATE_CONTROL, JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT };
+static JOB_OBJECT_SINGLETON_STATE job_object_singleton_state = { NULL };
 
 static void job_object_helper_dispose(JOB_OBJECT_HELPER* job_object_helper)
 {
@@ -144,10 +142,7 @@ static int internal_job_object_helper_set_memory_limit(HANDLE job_object, uint32
 
 
 /* Note: CPU and memory limits are always applied unconditionally (even if the values
-   haven't changed) to keep the code simple and ensure the singleton state never
-   diverges from the actual job object. Each stored value is updated immediately upon
-   success, so if CPU succeeds but memory fails, the singleton state reflects the
-   actual job object state (new CPU, old memory). The caller can simply retry. */
+   haven't changed) to keep the code simple. The caller can simply retry on failure. */
 static int internal_job_object_helper_reconfigure(uint32_t percent_cpu, uint32_t percent_physical_memory)
 {
     int result;
@@ -162,9 +157,6 @@ static int internal_job_object_helper_reconfigure(uint32_t percent_cpu, uint32_t
     }
     else
     {
-        /*Codes_SRS_JOB_OBJECT_HELPER_88_015: [ After successfully updating CPU rate control, internal_job_object_helper_reconfigure shall update the stored percent_cpu value. ]*/
-        job_object_singleton_state.percent_cpu = percent_cpu;
-
         /*Codes_SRS_JOB_OBJECT_HELPER_88_009: [ internal_job_object_helper_reconfigure shall call internal_job_object_helper_set_memory_limit to apply the memory limit to the Windows job object. ]*/
         if (internal_job_object_helper_set_memory_limit(job_object_singleton_state.job_object_helper->job_object, percent_physical_memory) != 0)
         {
@@ -175,9 +167,6 @@ static int internal_job_object_helper_reconfigure(uint32_t percent_cpu, uint32_t
         }
         else
         {
-            /*Codes_SRS_JOB_OBJECT_HELPER_88_019: [ After successfully updating the memory limit, internal_job_object_helper_reconfigure shall update the stored percent_physical_memory value. ]*/
-            job_object_singleton_state.percent_physical_memory = percent_physical_memory;
-
             /*Codes_SRS_JOB_OBJECT_HELPER_88_020: [ On successful reconfiguration, internal_job_object_helper_reconfigure shall return 0. ]*/
             result = 0;
         }
@@ -236,10 +225,6 @@ static int internal_job_object_helper_create(const char* job_name, uint32_t perc
                     {
                         /*Codes_SRS_JOB_OBJECT_HELPER_88_024: [ On success, internal_job_object_helper_create shall store the THANDLE(JOB_OBJECT_HELPER) in the process-level singleton state. ]*/
                         THANDLE_INITIALIZE_MOVE(JOB_OBJECT_HELPER)(&job_object_singleton_state.job_object_helper, &job_object_helper);
-                        /*Codes_SRS_JOB_OBJECT_HELPER_88_025: [ On success, internal_job_object_helper_create shall store the percent_cpu value in the process-level singleton state. ]*/
-                        job_object_singleton_state.percent_cpu = percent_cpu;
-                        /*Codes_SRS_JOB_OBJECT_HELPER_88_026: [ On success, internal_job_object_helper_create shall store the percent_physical_memory value in the process-level singleton state. ]*/
-                        job_object_singleton_state.percent_physical_memory = percent_physical_memory;
                         /*Codes_SRS_JOB_OBJECT_HELPER_88_033: [ internal_job_object_helper_create shall succeed and return 0. ]*/
                         result = 0;
                         goto all_ok;
@@ -276,8 +261,8 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
         /*Codes_SRS_JOB_OBJECT_HELPER_88_030: [ If job_object_singleton_state.job_object_helper is not NULL, job_object_helper_set_job_limits_to_current_process shall not create a new job object. ]*/
         if (job_object_singleton_state.job_object_helper != NULL)
         {
-            LogWarning("Applying limits to existing process-level singleton Job Object (cpu: %" PRIu32 "->%" PRIu32 ", memory: %" PRIu32 "->%" PRIu32 ")",
-                job_object_singleton_state.percent_cpu, percent_cpu, job_object_singleton_state.percent_physical_memory, percent_physical_memory);
+            LogWarning("Reconfiguring existing process-level singleton Job Object (cpu: %" PRIu32 ", memory: %" PRIu32 ")",
+                percent_cpu, percent_physical_memory);
             /*Codes_SRS_JOB_OBJECT_HELPER_88_002: [ If job_object_singleton_state.job_object_helper is not NULL, job_object_helper_set_job_limits_to_current_process shall call internal_job_object_helper_reconfigure to apply the limits to the existing job object. ]*/
             if (internal_job_object_helper_reconfigure(percent_cpu, percent_physical_memory) != 0)
             {
@@ -325,8 +310,4 @@ IMPLEMENT_MOCKABLE_FUNCTION(, void, job_object_helper_deinit_for_test)
     LogWarning("job_object_helper_deinit_for_test called - this should only be used for test cleanup");
     /*Codes_SRS_JOB_OBJECT_HELPER_88_027: [ job_object_helper_deinit_for_test shall release the singleton THANDLE(JOB_OBJECT_HELPER) by assigning it to NULL. ]*/
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_singleton_state.job_object_helper, NULL);
-    /*Codes_SRS_JOB_OBJECT_HELPER_88_028: [ job_object_helper_deinit_for_test shall reset the stored percent_cpu to JOB_OBJECT_HELPER_DISABLE_CPU_RATE_CONTROL. ]*/
-    job_object_singleton_state.percent_cpu = JOB_OBJECT_HELPER_DISABLE_CPU_RATE_CONTROL;
-    /*Codes_SRS_JOB_OBJECT_HELPER_88_029: [ job_object_helper_deinit_for_test shall reset the stored percent_physical_memory to JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT. ]*/
-    job_object_singleton_state.percent_physical_memory = JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT;
 }

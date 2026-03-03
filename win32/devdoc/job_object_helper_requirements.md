@@ -74,10 +74,6 @@ static int internal_job_object_helper_reconfigure(uint32_t percent_cpu, uint32_t
 
 **SRS_JOB_OBJECT_HELPER_88_009: [** `internal_job_object_helper_reconfigure` shall call `internal_job_object_helper_set_memory_limit` to apply the memory limit to the Windows job object. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_015: [** After successfully updating CPU rate control, `internal_job_object_helper_reconfigure` shall update the stored `percent_cpu` value. **]**
-
-**SRS_JOB_OBJECT_HELPER_88_019: [** After successfully updating the memory limit, `internal_job_object_helper_reconfigure` shall update the stored `percent_physical_memory` value. **]**
-
 **SRS_JOB_OBJECT_HELPER_88_017: [** If there are any failures, `internal_job_object_helper_reconfigure` shall fail and return a non-zero value. **]**
 
 **SRS_JOB_OBJECT_HELPER_88_020: [** On successful reconfiguration, `internal_job_object_helper_reconfigure` shall return `0`. **]**
@@ -102,10 +98,6 @@ static int internal_job_object_helper_create(const char* job_name, uint32_t perc
 **SRS_JOB_OBJECT_HELPER_19_008: [** `internal_job_object_helper_create` shall call `AssignProcessToJobObject` to assign the current process to the new job object. **]**
 
 **SRS_JOB_OBJECT_HELPER_88_024: [** On success, `internal_job_object_helper_create` shall store the `THANDLE(JOB_OBJECT_HELPER)` in the process-level singleton state. **]**
-
-**SRS_JOB_OBJECT_HELPER_88_025: [** On success, `internal_job_object_helper_create` shall store the `percent_cpu` value in the process-level singleton state. **]**
-
-**SRS_JOB_OBJECT_HELPER_88_026: [** On success, `internal_job_object_helper_create` shall store the `percent_physical_memory` value in the process-level singleton state. **]**
 
 **SRS_JOB_OBJECT_HELPER_88_032: [** If there are any failures, `internal_job_object_helper_create` shall fail and return a non-zero value. **]**
 
@@ -145,10 +137,6 @@ The function implements a process-level singleton pattern to prevent Job Object 
 ```c
 MOCKABLE_FUNCTION(, void, job_object_helper_deinit_for_test);
 ```
-`job_object_helper_deinit_for_test` releases the process-level singleton and resets stored parameters, allowing a fresh job object to be created on the next call. This is intended for test cleanup and should not be used in production code, as calling it would allow creating new job objects that compound with the existing one.
+`job_object_helper_deinit_for_test` releases the process-level singleton, allowing a fresh job object to be created on the next call. This is intended for test cleanup and should not be used in production code, as calling it would allow creating new job objects that compound with the existing one.
 
 **SRS_JOB_OBJECT_HELPER_88_027: [** `job_object_helper_deinit_for_test` shall release the singleton `THANDLE(JOB_OBJECT_HELPER)` by assigning it to `NULL`. **]**
-
-**SRS_JOB_OBJECT_HELPER_88_028: [** `job_object_helper_deinit_for_test` shall reset the stored `percent_cpu` to `JOB_OBJECT_HELPER_DISABLE_CPU_RATE_CONTROL`. **]**
-
-**SRS_JOB_OBJECT_HELPER_88_029: [** `job_object_helper_deinit_for_test` shall reset the stored `percent_physical_memory` to `JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT`. **]**
