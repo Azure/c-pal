@@ -9,8 +9,9 @@ Note: `job_object_helper_set_job_limits_to_current_process` and `job_object_help
 
 ## Exposed API
 ```c
-
+// Passing JOB_OBJECT_HELPER_DISABLE_CPU_RATE_CONTROL as percent_cpu disables CPU rate control (removes the throttle)
 #define JOB_OBJECT_HELPER_DISABLE_CPU_RATE_CONTROL 0
+// Passing JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT as percent_physical_memory removes memory limits
 #define JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT 0
 
 typedef struct JOB_OBJECT_HELPER_TAG JOB_OBJECT_HELPER;
