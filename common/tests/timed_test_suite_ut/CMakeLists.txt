@@ -7,4 +7,4 @@ set(${theseTestsName}_test_files
     main.c
 )
 
-build_test_artifacts(${theseTestsName} "tests/c_pal/common" ADDITIONAL_LIBS ${PAL_OS} c_logging_v2)
+build_test_artifacts(${theseTestsName} "tests/c_pal/common" ADDITIONAL_LIBS c_pal ${PAL_OS} c_logging_v2)
