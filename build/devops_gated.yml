@@ -15,6 +15,145 @@ jobs:
     cmake_options: -Drun_repo_validation:BOOL=ON -Drun_unittests:BOOL=ON -Drun_e2e_tests:BOOL=ON -Drun_int_tests:BOOL=ON -Drun_perf_tests:BOOL=ON -Drun_traceability:BOOL=ON -Duse_cppunittest:BOOL=ON -Drun_reals_check:BOOL=ON
     GBALLOC_LL_TYPE_VALUES: ["PASSTHROUGH", "JEMALLOC"]
 
+- job: build_and_run_tests_twothousand_v6
+  displayName: 'Build and run tests on twothousand_v6 (Debug, PASSTHROUGH, x64)'
+  pool:
+    name: twothousand_v6
+    demands:
+    - msbuild
+    - cmake
+    - visualstudio
+
+  workspace:
+    clean: all
+
+  steps:
+  - checkout: self
+    submodules: true
+    clean: false
+
+  - template: /pipeline_templates/discover_native_tools.yml@c_build_tools
+    parameters:
+      architecture: x64
+
+  - task: BatchScript@1
+    displayName: 'Git submodule update'
+    inputs:
+      filename: 'C:\Program Files\Git\bin\git.exe'
+      arguments: 'submodule update --init --force'
+
+  - task: BatchScript@1
+    displayName: 'Git submodule clean'
+    inputs:
+      filename: 'C:\Program Files\Git\bin\git.exe'
+      arguments: 'submodule foreach --recursive "git clean -xdff"'
+
+  - task: BatchScript@1
+    displayName: 'Git clean'
+    inputs:
+      filename: 'C:\Program Files\Git\bin\git.exe'
+      arguments: 'clean -xdff'
+
+  - task: PowerShell@2
+    displayName: 'Setup VS Vars'
+    inputs:
+      targetType: 'inline'
+      script: |
+        $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+        if (Test-Path $vswhere) {
+          $vsPath = & $vswhere -latest -products * -property installationPath
+          if ($vsPath) {
+            $vsDevCmd = Join-Path $vsPath "Common7\Tools\VsDevCmd.bat"
+            if (Test-Path $vsDevCmd) {
+              $archArgs = "-arch=amd64"
+              Write-Host "Running VsDevCmd with x64 architecture: $vsDevCmd $archArgs"
+              cmd /c "`"$vsDevCmd`" $archArgs && set" | ForEach-Object {
+                if ($_ -match "^([^=]+)=(.*)$") {
+                  [Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
+                }
+              }
+            } else {
+              Write-Host "##[warning]VsDevCmd.bat not found at $vsDevCmd"
+            }
+          }
+        } else {
+          Write-Host "##[warning]vswhere not found"
+        }
+
+  - template: /pipeline_templates/disable_appverifier.yml@c_build_tools
+    parameters:
+      repo_root: $(Build.SourcesDirectory)/deps/c-build-tools
+
+  - template: /pipeline_templates/tasks/cmake.yml@c_build_tools
+    parameters:
+      architecture: x64
+      sourceDirectory: '$(Build.SourcesDirectory)'
+      buildDirectory: '$(Build.BinariesDirectory)/c'
+      cmakeArgs: '-Drun_repo_validation:BOOL=ON -Drun_unittests:BOOL=ON -Drun_e2e_tests:BOOL=ON -Drun_int_tests:BOOL=ON -Drun_perf_tests:BOOL=ON -Drun_traceability:BOOL=ON -Duse_cppunittest:BOOL=ON -Drun_reals_check:BOOL=ON -Duse_vld:bool=ON -DGBALLOC_LL_TYPE:string=PASSTHROUGH -DCMAKE_BUILD_TYPE=Debug'
+
+  - template: /pipeline_templates/tasks/msbuild.yml@c_build_tools
+    parameters:
+      architecture: x64
+      solution: '$(Build.BinariesDirectory)/c/*.sln'
+      configuration: 'Debug'
+      msbuildArgs: '/t:restore /t:build'
+
+  - template: /pipeline_templates/start_logman.yml@c_build_tools
+    parameters:
+      repo_root: $(Build.SourcesDirectory)/deps/c-build-tools
+
+  - template: /pipeline_templates/tasks/vstest.yml@c_build_tools
+    parameters:
+      architecture: x64
+      testAssemblies: |
+        $(Build.BinariesDirectory)\c\Debug\**\*_ut_*.dll
+        $(Build.BinariesDirectory)\Debug\**\*_ut_*.dll
+      configuration: 'Debug'
+      failOnMinTestsNotRun: true
+      codeCoverageEnabled: true
+      otherConsoleOptions: '/collect:"Code Coverage;Format=Xml"'
+      runSettingsFile: '$(Build.SourcesDirectory)/deps/c-build-tools/pipeline_templates/scripts/tests_native.runsettings'
+      resultsFolder: '$(build.ArtifactStagingDirectory)/Test/VsTest/Results/Debug_twothousand_v6'
+      testRunTitle: 'VsTest Native Debug_twothousand_v6'
+
+  - task: PublishCodeCoverageResults@2
+    displayName: '📰 Publish Code Coverage'
+    inputs:
+      summaryFileLocation: '$(build.ArtifactStagingDirectory)/Test/VsTest/Results/Debug_twothousand_v6/*/*.xml'
+      pathToSources: '$(Build.SourcesDirectory)'
+
+  - template: /pipeline_templates/tasks/ctest.yml@c_build_tools
+    parameters:
+      architecture: x64
+      workingDirectory: '$(Build.BinariesDirectory)/c'
+      configuration: 'Debug'
+      outputJunit: 'ctest_results_Debug_twothousand_v6.xml'
+
+  - task: PublishTestResults@2
+    displayName: '📊 Publish ctest results'
+    inputs:
+      testResultsFormat: 'JUnit'
+      searchFolder: $(Build.BinariesDirectory)\c
+      testResultsFiles: 'ctest_results_Debug_twothousand_v6.xml'
+      testRunTitle: 'ctest_twothousand_v6'
+      buildConfiguration: Debug
+      failTaskOnMissingResultsFile: true
+    condition: always()
+
+  - template: /pipeline_templates/stop_logman.yml@c_build_tools
+    parameters:
+      repo_root: $(Build.SourcesDirectory)/deps/c-build-tools
+
+  - task: PublishPipelineArtifact@1
+    displayName: 'Publish x64 Debug twothousand_v6 Artifacts'
+    inputs:
+      targetPath: $(Build.BinariesDirectory)
+      artifactName: Debug_x64_twothousand_v6_artifacts
+      parallel: true
+    condition: failed()
+
+  - template: /pipeline_templates/clean_ado_folders.yml@c_build_tools
+
 - template: /pipeline_templates/run_master_check.yml@c_build_tools
   parameters:
     ignore_submodules: 'deps/mimalloc'
