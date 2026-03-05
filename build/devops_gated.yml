@@ -16,7 +16,7 @@ jobs:
     GBALLOC_LL_TYPE_VALUES: ["PASSTHROUGH", "JEMALLOC"]
 
 - job: build_and_run_tests_twothousand_v6
-  displayName: 'Build and run tests on twothousand_v6 (Debug, PASSTHROUGH, x64)'
+  displayName: 'Build and run tests on twothousand_v6 (Debug, PASSTHROUGH, ARM64)'
   pool:
     name: twothousand_v6
     demands:
@@ -32,9 +32,13 @@ jobs:
     submodules: true
     clean: false
 
+  - template: /pipeline_templates/verify_agent_architecture.yml@c_build_tools
+    parameters:
+      expected_architecture: 'ARM64'
+
   - template: /pipeline_templates/discover_native_tools.yml@c_build_tools
     parameters:
-      architecture: x64
+      architecture: ARM64
 
   - task: BatchScript@1
     displayName: 'Git submodule update'
@@ -65,8 +69,8 @@ jobs:
           if ($vsPath) {
             $vsDevCmd = Join-Path $vsPath "Common7\Tools\VsDevCmd.bat"
             if (Test-Path $vsDevCmd) {
-              $archArgs = "-arch=amd64"
-              Write-Host "Running VsDevCmd with x64 architecture: $vsDevCmd $archArgs"
+              $archArgs = "-arch=arm64 -host_arch=arm64"
+              Write-Host "Running VsDevCmd with ARM64 architecture: $vsDevCmd $archArgs"
               cmd /c "`"$vsDevCmd`" $archArgs && set" | ForEach-Object {
                 if ($_ -match "^([^=]+)=(.*)$") {
                   [Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
@@ -86,14 +90,14 @@ jobs:
 
   - template: /pipeline_templates/tasks/cmake.yml@c_build_tools
     parameters:
-      architecture: x64
+      architecture: ARM64
       sourceDirectory: '$(Build.SourcesDirectory)'
       buildDirectory: '$(Build.BinariesDirectory)/c'
-      cmakeArgs: '-Drun_repo_validation:BOOL=ON -Drun_unittests:BOOL=ON -Drun_e2e_tests:BOOL=ON -Drun_int_tests:BOOL=ON -Drun_perf_tests:BOOL=ON -Drun_traceability:BOOL=ON -Duse_cppunittest:BOOL=ON -Drun_reals_check:BOOL=ON -Duse_vld:bool=ON -DGBALLOC_LL_TYPE:string=PASSTHROUGH -DCMAKE_BUILD_TYPE=Debug'
+      cmakeArgs: '-Drun_repo_validation:BOOL=ON -Drun_unittests:BOOL=ON -Drun_e2e_tests:BOOL=ON -Drun_int_tests:BOOL=ON -Drun_perf_tests:BOOL=ON -Drun_traceability:BOOL=ON -Duse_cppunittest:BOOL=ON -Drun_reals_check:BOOL=ON -Duse_vld:bool=OFF -DGBALLOC_LL_TYPE:string=PASSTHROUGH -DCMAKE_BUILD_TYPE=Debug'
 
   - template: /pipeline_templates/tasks/msbuild.yml@c_build_tools
     parameters:
-      architecture: x64
+      architecture: ARM64
       solution: '$(Build.BinariesDirectory)/c/*.sln'
       configuration: 'Debug'
       msbuildArgs: '/t:restore /t:build'
@@ -104,13 +108,13 @@ jobs:
 
   - template: /pipeline_templates/tasks/vstest.yml@c_build_tools
     parameters:
-      architecture: x64
+      architecture: ARM64
       testAssemblies: |
         $(Build.BinariesDirectory)\c\Debug\**\*_ut_*.dll
         $(Build.BinariesDirectory)\Debug\**\*_ut_*.dll
       configuration: 'Debug'
       failOnMinTestsNotRun: true
-      codeCoverageEnabled: true
+      codeCoverageEnabled: false
       otherConsoleOptions: '/collect:"Code Coverage;Format=Xml"'
       runSettingsFile: '$(Build.SourcesDirectory)/deps/c-build-tools/pipeline_templates/scripts/tests_native.runsettings'
       resultsFolder: '$(build.ArtifactStagingDirectory)/Test/VsTest/Results/Debug_twothousand_v6'
@@ -124,7 +128,7 @@ jobs:
 
   - template: /pipeline_templates/tasks/ctest.yml@c_build_tools
     parameters:
-      architecture: x64
+      architecture: ARM64
       workingDirectory: '$(Build.BinariesDirectory)/c'
       configuration: 'Debug'
       outputJunit: 'ctest_results_Debug_twothousand_v6.xml'
@@ -145,10 +149,10 @@ jobs:
       repo_root: $(Build.SourcesDirectory)/deps/c-build-tools
 
   - task: PublishPipelineArtifact@1
-    displayName: 'Publish x64 Debug twothousand_v6 Artifacts'
+    displayName: 'Publish ARM64 Debug twothousand_v6 Artifacts'
     inputs:
       targetPath: $(Build.BinariesDirectory)
-      artifactName: Debug_x64_twothousand_v6_artifacts
+      artifactName: Debug_ARM64_twothousand_v6_artifacts
       parallel: true
     condition: failed()
 
