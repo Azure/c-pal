@@ -5,12 +5,9 @@
 
 #include "testrunnerswitcher.h"
 
-// When umock_c is in use (unit tests with mocks), redirect process_watchdog
-// calls to real_ implementations so the watchdog works even when interlocked
-// and other dependencies are mocked. Integration tests use process_watchdog directly.
-#ifdef UMOCK_C_H
+// Use real (non-mocked) process_watchdog functions so the watchdog works
+// even when interlocked and other dependencies are mocked in unit tests
 #include "c_pal/real_process_watchdog_renames.h"
-#endif
 #include "c_pal/process_watchdog.h"
 
 // Default timeout: 10 minutes

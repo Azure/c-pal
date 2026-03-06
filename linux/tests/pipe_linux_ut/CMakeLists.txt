@@ -16,6 +16,6 @@ set(${theseTestsName}_h_files
 mock_pipe.h
 )
 
-build_test_artifacts(${theseTestsName} "tests/c_pal/linux" ADDITIONAL_LIBS c_pal pal_interfaces 
+build_test_artifacts(${theseTestsName} "tests/c_pal/linux" ADDITIONAL_LIBS c_pal_reals c_pal pal_interfaces 
     ENABLE_TEST_FILES_PRECOMPILED_HEADERS "${CMAKE_CURRENT_LIST_DIR}/pipe_linux_ut_pch.h"
 )

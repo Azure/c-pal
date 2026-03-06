@@ -14,7 +14,7 @@ set(${theseTestsName}_c_files
 set(${theseTestsName}_h_files
 )
 
-build_test_artifacts(${theseTestsName} "tests/c_pal/common" ADDITIONAL_LIBS c_pal pal_interfaces win32_reals 
+build_test_artifacts(${theseTestsName} "tests/c_pal/common" ADDITIONAL_LIBS c_pal_reals c_pal pal_interfaces win32_reals 
     ENABLE_TEST_FILES_PRECOMPILED_HEADERS "${CMAKE_CURRENT_LIST_DIR}/gballoc_ll_win32heap_ut_pch.h"
 ) 
 

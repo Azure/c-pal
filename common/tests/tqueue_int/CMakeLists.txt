@@ -15,4 +15,4 @@ set(${theseTestsName}_h_files
 tqueue_foo.h
 )
 
-build_test_artifacts(${theseTestsName} "tests/c_pal" ADDITIONAL_LIBS c_pal)
+build_test_artifacts(${theseTestsName} "tests/c_pal" ADDITIONAL_LIBS c_pal_reals c_pal)

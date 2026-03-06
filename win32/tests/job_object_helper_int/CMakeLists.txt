@@ -8,7 +8,7 @@ set(${theseTestsName}_test_files
 )
 set(${theseTestsName}_c_files)
 set(${theseTestsName}_h_files)
-build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS c_pal)
+build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS c_pal_reals c_pal)
 
 # Basic creation test (creates job object in current process - 1 test per process)
 set(theseTestsName job_object_helper_create_int)
@@ -17,7 +17,7 @@ set(${theseTestsName}_test_files
 )
 set(${theseTestsName}_c_files)
 set(${theseTestsName}_h_files)
-build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS c_pal)
+build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS c_pal_reals c_pal)
 add_dependencies(${theseTestsName}_exe_${CMAKE_PROJECT_NAME} job_object_helper_tester)
 
 # Memory limits test (creates job object in current process - 1 test per process)
@@ -27,7 +27,7 @@ set(${theseTestsName}_test_files
 )
 set(${theseTestsName}_c_files)
 set(${theseTestsName}_h_files)
-build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS c_pal)
+build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS c_pal_reals c_pal)
 
 # Multi-process tests (creates job objects in child processes only)
 set(theseTestsName job_object_helper_multi_process_int)
@@ -36,7 +36,7 @@ set(${theseTestsName}_test_files
 )
 set(${theseTestsName}_c_files)
 set(${theseTestsName}_h_files)
-build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS c_pal)
+build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS c_pal_reals c_pal)
 add_dependencies(${theseTestsName}_exe_${CMAKE_PROJECT_NAME} job_object_helper_tester)
 
 # Singleton/CPU compounding test (creates job object in current process - 1 test per process)
@@ -46,4 +46,4 @@ set(${theseTestsName}_test_files
 )
 set(${theseTestsName}_c_files)
 set(${theseTestsName}_h_files)
-build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS c_pal)
+build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS c_pal_reals c_pal)

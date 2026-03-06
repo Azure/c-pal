@@ -15,7 +15,7 @@ set(${theseTestsName}_h_files
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../../interfaces/tests/process_watchdog_int_common)
 
-build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS c_pal c_logging_v2)
+build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS c_pal_reals c_pal c_logging_v2)
 
 # Ensure child executable is built before the test
 add_dependencies(${theseTestsName}_exe_${CMAKE_PROJECT_NAME} process_watchdog_int_child)

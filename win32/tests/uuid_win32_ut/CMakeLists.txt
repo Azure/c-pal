@@ -15,6 +15,6 @@ set(${theseTestsName}_h_files
     ../../../interfaces/inc/c_pal/uuid.h
 )
 
-build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS c_pal rpcrt4.lib pal_interfaces pal_ll_interfaces 
+build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS c_pal_reals c_pal rpcrt4.lib pal_interfaces pal_ll_interfaces 
     ENABLE_TEST_FILES_PRECOMPILED_HEADERS "${CMAKE_CURRENT_LIST_DIR}/uuid_win32_ut_pch.h"
 )

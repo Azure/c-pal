@@ -7,6 +7,6 @@ set(${theseTestsName}_test_files
     ${theseTestsName}.c
 )
 
-build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS c_pal pal_win32 win32_reals pal_ll_win32 win32_ll_reals 
+build_test_artifacts(${theseTestsName} "tests/c_pal/win32" ADDITIONAL_LIBS c_pal_reals c_pal pal_win32 win32_reals pal_ll_win32 win32_ll_reals 
     ENABLE_TEST_FILES_PRECOMPILED_HEADERS "${CMAKE_CURRENT_LIST_DIR}/reals_win32_ut_pch.h"
 )
