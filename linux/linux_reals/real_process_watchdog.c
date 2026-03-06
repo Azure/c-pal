@@ -3,6 +3,6 @@
 
 #include "real_interlocked_renames.h" // IWYU pragma: keep
 
-#include "real_process_watchdog_renames.h" // IWYU pragma: keep
+#include "c_pal/real_process_watchdog_renames.h" // IWYU pragma: keep
 
 #include "../src/process_watchdog_linux.c"

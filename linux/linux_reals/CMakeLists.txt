@@ -74,7 +74,7 @@ set(linux_reals_h_files
     ../../interfaces/reals/real_timer.h
     ../../interfaces/reals/real_timer_renames.h
     ../../common/reals/real_process_watchdog.h
-    ../../common/reals/real_process_watchdog_renames.h
+    ../../common/inc/c_pal/real_process_watchdog_renames.h
 )
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../src)

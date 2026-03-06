@@ -66,7 +66,7 @@ set(reals_win32_h_files
     real_job_object_helper.h
     real_job_object_helper_renames.h
     ../../common/reals/real_process_watchdog.h
-    ../../common/reals/real_process_watchdog_renames.h
+    ../../common/inc/c_pal/real_process_watchdog_renames.h
 )
 
 add_library(win32_reals ${reals_win32_c_files} ${reals_win32_h_files})
