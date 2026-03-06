@@ -14,6 +14,7 @@
 
 #include "c_pal/thandle_ll.h"           // for THANDLE, THANDLE_ASSIGN
 
+
 #include "c_pal/timed_test_suite.h"
 
 #include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
