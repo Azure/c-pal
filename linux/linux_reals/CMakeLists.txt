@@ -30,6 +30,7 @@ set(linux_reals_c_files
     ../../common/reals/real_threadpool_work_item_thandle.c
     ../../common/reals/real_threadpool_work_item_thandle.c
     ../../common/src/nil_uuid.c
+    real_process_watchdog.c
 )
 
 set(linux_reals_h_files
@@ -72,6 +73,8 @@ set(linux_reals_h_files
     ../../common/reals/real_threadpool_work_item_thandle.h
     ../../interfaces/reals/real_timer.h
     ../../interfaces/reals/real_timer_renames.h
+    ../../common/reals/real_process_watchdog.h
+    ../../common/reals/real_process_watchdog_renames.h
 )
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../src)
