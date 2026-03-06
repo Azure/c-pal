@@ -10,5 +10,6 @@
 #include "umock_c/umock_c.h"
 
 #include "c_pal/ps_util.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // PS_UTIL_UT_PCH_H

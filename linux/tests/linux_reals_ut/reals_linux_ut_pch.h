@@ -18,6 +18,7 @@
 #include "c_pal/thandle_log_context_handle.h" // IWYU pragma: keep
 #include "c_pal/socket_transport.h" // IWYU pragma: keep
 #include "c_pal/async_socket.h" // IWYU pragma: keep
+#include "c_pal/timed_test_suite.h"
 
 #define REGISTER_GLOBAL_MOCK_HOOK(original, real) \
     (original == real) ? (void)0 : (void)1;

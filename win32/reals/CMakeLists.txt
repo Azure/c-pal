@@ -28,6 +28,7 @@ set(reals_win32_c_files
     ../../common/reals/real_threadpool_work_item_thandle.c
     ../../common/src/nil_uuid.c
     real_job_object_helper.c
+    real_process_watchdog.c
 )
 
 set(reals_win32_h_files
@@ -64,6 +65,8 @@ set(reals_win32_h_files
     ../../common/reals/real_threadpool_work_item_thandle.h
     real_job_object_helper.h
     real_job_object_helper_renames.h
+    ../../common/reals/real_process_watchdog.h
+    ../../common/inc/c_pal/real_process_watchdog_renames.h
 )
 
 add_library(win32_reals ${reals_win32_c_files} ${reals_win32_h_files})
