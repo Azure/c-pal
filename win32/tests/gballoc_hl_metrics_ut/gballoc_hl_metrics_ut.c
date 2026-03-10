@@ -191,52 +191,11 @@ TEST_FUNCTION(gballoc_hl_deinit_when_not_initialized_returns)
 /* Tests_SRS_GBALLOC_HL_METRICS_01_044: [ If the computed latency is less than the minimum tracked latency, gballoc_hl_malloc shall store it as the new minimum malloc latency. ]*/
 /* Tests_SRS_GBALLOC_HL_METRICS_01_045: [ If the computed latency is more than the maximum tracked latency, gballoc_hl_malloc shall store it as the new maximum malloc latency. ]*/
 /* Tests_SRS_GBALLOC_HL_METRICS_01_042: [ gballoc_hl_malloc shall increment the count of malloc latency samples. ]*/
-TEST_FUNCTION(gballoc_hl_malloc_calls_gballoc_ll_malloc_and_returns_the_result)
-{
-    // arrange
-    void* result;
-    void* gballoc_ll_malloc_result;
-    STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
-    (void)gballoc_hl_init(NULL, NULL);
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
-    STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
-        .SetReturn(5);
-    STRICT_EXPECTED_CALL(gballoc_ll_malloc(42))
-        .CaptureReturn(&gballoc_ll_malloc_result);
-    STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
-        .SetReturn(7);
-    STRICT_EXPECTED_CALL(interlocked_add_64(IGNORED_ARG, 2));
-    // min
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, 2, IGNORED_ARG));
-    // max
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, 2, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
-
-    // act
-    result = gballoc_hl_malloc(42);
-
-    // assert
-    ASSERT_IS_NOT_NULL(result);
-    ASSERT_ARE_EQUAL(void_ptr, result, gballoc_ll_malloc_result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    // cleanup
-    gballoc_hl_free(result);
-    gballoc_hl_deinit();
-}
-
-/* Tests_SRS_GBALLOC_HL_METRICS_01_028: [ gballoc_hl_malloc shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_007: [ gballoc_hl_malloc shall call gballoc_ll_malloc(size) and return the result of gballoc_ll_malloc. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_029: [ gballoc_hl_malloc shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_043: [ gballoc_hl_malloc shall add the computed latency to the running malloc latency sum used to compute the average. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_044: [ If the computed latency is less than the minimum tracked latency, gballoc_hl_malloc shall store it as the new minimum malloc latency. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_045: [ If the computed latency is more than the maximum tracked latency, gballoc_hl_malloc shall store it as the new maximum malloc latency. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_042: [ gballoc_hl_malloc shall increment the count of malloc latency samples. ]*/
-TEST_FUNCTION(gballoc_hl_malloc_with_1_byte_calls_gballoc_ll_malloc_and_returns_the_result)
+PARAMETERIZED_TEST_FUNCTION(gballoc_hl_malloc_calls_gballoc_ll_malloc_and_returns_the_result,
+    ARGS(size_t, alloc_size, double, timer_start_value, double, timer_end_value, int32_t, expected_latency),
+    CASE((42, 5, 7, 2), with_42_bytes),
+    CASE((1, 1, 8, 7), with_1_byte),
+    CASE((0, 1, 8, 7), with_0_bytes))
 {
     // arrange
     void* result;
@@ -247,67 +206,22 @@ TEST_FUNCTION(gballoc_hl_malloc_with_1_byte_calls_gballoc_ll_malloc_and_returns_
 
     STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
     STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
-        .SetReturn(1);
-    STRICT_EXPECTED_CALL(gballoc_ll_malloc(1))
+        .SetReturn(timer_start_value);
+    STRICT_EXPECTED_CALL(gballoc_ll_malloc(alloc_size))
         .CaptureReturn(&gballoc_ll_result);
     STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
-        .SetReturn(8);
-    STRICT_EXPECTED_CALL(interlocked_add_64(IGNORED_ARG, 7));
+        .SetReturn(timer_end_value);
+    STRICT_EXPECTED_CALL(interlocked_add_64(IGNORED_ARG, expected_latency));
     // min
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, 7, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, expected_latency, IGNORED_ARG));
     // max
     STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, 7, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, expected_latency, IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
 
     // act
-    result = gballoc_hl_malloc(1);
-
-    // assert
-    ASSERT_IS_NOT_NULL(result);
-    ASSERT_ARE_EQUAL(void_ptr, result, gballoc_ll_result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    // cleanup
-    gballoc_hl_free(result);
-    gballoc_hl_deinit();
-}
-
-/* Tests_SRS_GBALLOC_HL_METRICS_01_028: [ gballoc_hl_malloc shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_007: [ gballoc_hl_malloc shall call gballoc_ll_malloc(size) and return the result of gballoc_ll_malloc. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_029: [ gballoc_hl_malloc shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_043: [ gballoc_hl_malloc shall add the computed latency to the running malloc latency sum used to compute the average. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_044: [ If the computed latency is less than the minimum tracked latency, gballoc_hl_malloc shall store it as the new minimum malloc latency. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_045: [ If the computed latency is more than the maximum tracked latency, gballoc_hl_malloc shall store it as the new maximum malloc latency. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_042: [ gballoc_hl_malloc shall increment the count of malloc latency samples. ]*/
-TEST_FUNCTION(gballoc_hl_malloc_with_0_bytes_calls_gballoc_ll_malloc_and_returns_the_result)
-{
-    // arrange
-    void* result;
-    void* gballoc_ll_result;
-    STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
-    (void)gballoc_hl_init(NULL, NULL);
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
-    STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
-        .SetReturn(1);
-    STRICT_EXPECTED_CALL(gballoc_ll_malloc(0))
-        .CaptureReturn(&gballoc_ll_result);
-    STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
-        .SetReturn(8);
-    STRICT_EXPECTED_CALL(interlocked_add_64(IGNORED_ARG, 7));
-    // min
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, 7, IGNORED_ARG));
-    // max
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, 7, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
-
-    // act
-    result = gballoc_hl_malloc(0);
+    result = gballoc_hl_malloc(alloc_size);
 
     // assert
     ASSERT_IS_NOT_NULL(result);
@@ -825,7 +739,11 @@ TEST_FUNCTION(gballoc_hl_calloc_when_not_initialized_fails)
 /* Tests_SRS_GBALLOC_HL_METRICS_01_059: [ If the computed latency is less than the minimum tracked latency, gballoc_hl_realloc shall store it as the new minimum realloc latency. ]*/
 /* Tests_SRS_GBALLOC_HL_METRICS_01_060: [ If the computed latency is more than the maximum tracked latency, gballoc_hl_realloc shall store it as the new maximum realloc latency. ]*/
 /* Tests_SRS_GBALLOC_HL_METRICS_01_061: [ gballoc_hl_realloc shall increment the count of realloc latency samples. ]*/
-TEST_FUNCTION(gballoc_hl_realloc_with_NULL_calls_gballoc_ll_realloc_and_returns_the_result)
+PARAMETERIZED_TEST_FUNCTION(gballoc_hl_realloc_with_NULL_calls_gballoc_ll_realloc_and_returns_the_result,
+    ARGS(size_t, alloc_size),
+    CASE((42), with_42_bytes),
+    CASE((1), with_1_byte),
+    CASE((0), with_0_bytes))
 {
     // arrange
     void* result;
@@ -837,7 +755,7 @@ TEST_FUNCTION(gballoc_hl_realloc_with_NULL_calls_gballoc_ll_realloc_and_returns_
     STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
     STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
         .SetReturn(1);
-    STRICT_EXPECTED_CALL(gballoc_ll_realloc(NULL, 42))
+    STRICT_EXPECTED_CALL(gballoc_ll_realloc(NULL, alloc_size))
         .CaptureReturn(&gballoc_ll_result);
     STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
         .SetReturn(8);
@@ -851,97 +769,7 @@ TEST_FUNCTION(gballoc_hl_realloc_with_NULL_calls_gballoc_ll_realloc_and_returns_
     STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
 
     // act
-    result = gballoc_hl_realloc(NULL, 42);
-
-    // assert
-    ASSERT_IS_NOT_NULL(result);
-    ASSERT_ARE_EQUAL(void_ptr, result, gballoc_ll_result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    // cleanup
-    gballoc_hl_free(result);
-    gballoc_hl_deinit();
-}
-
-/* Tests_SRS_GBALLOC_HL_METRICS_01_032: [ gballoc_hl_realloc shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_013: [ gballoc_hl_realloc shall call gballoc_ll_realloc(ptr, size) and return the result of gballoc_ll_realloc ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_033: [ gballoc_hl_realloc shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_058: [ gballoc_hl_realloc shall add the computed latency to the running realloc latency sum used to compute the average. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_059: [ If the computed latency is less than the minimum tracked latency, gballoc_hl_realloc shall store it as the new minimum realloc latency. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_060: [ If the computed latency is more than the maximum tracked latency, gballoc_hl_realloc shall store it as the new maximum realloc latency. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_061: [ gballoc_hl_realloc shall increment the count of realloc latency samples. ]*/
-TEST_FUNCTION(gballoc_hl_realloc_with_1_byte_size_with_NULL_ptr_calls_gballoc_ll_realloc_and_returns_the_result)
-{
-    // arrange
-    void* result;
-    void* gballoc_ll_result;
-    STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
-    (void)gballoc_hl_init(NULL, NULL);
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
-    STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
-        .SetReturn(1);
-    STRICT_EXPECTED_CALL(gballoc_ll_realloc(NULL, 1))
-        .CaptureReturn(&gballoc_ll_result);
-    STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
-        .SetReturn(8);
-    STRICT_EXPECTED_CALL(interlocked_add_64(IGNORED_ARG, 7));
-    // min
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, 7, IGNORED_ARG));
-    // max
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, 7, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
-
-    // act
-    result = gballoc_hl_realloc(NULL, 1);
-
-    // assert
-    ASSERT_IS_NOT_NULL(result);
-    ASSERT_ARE_EQUAL(void_ptr, result, gballoc_ll_result);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    // cleanup
-    gballoc_hl_free(result);
-    gballoc_hl_deinit();
-}
-
-/* Tests_SRS_GBALLOC_HL_METRICS_01_032: [ gballoc_hl_realloc shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_013: [ gballoc_hl_realloc shall call gballoc_ll_realloc(ptr, size) and return the result of gballoc_ll_realloc ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_033: [ gballoc_hl_realloc shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_058: [ gballoc_hl_realloc shall add the computed latency to the running realloc latency sum used to compute the average. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_059: [ If the computed latency is less than the minimum tracked latency, gballoc_hl_realloc shall store it as the new minimum realloc latency. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_060: [ If the computed latency is more than the maximum tracked latency, gballoc_hl_realloc shall store it as the new maximum realloc latency. ]*/
-/* Tests_SRS_GBALLOC_HL_METRICS_01_061: [ gballoc_hl_realloc shall increment the count of realloc latency samples. ]*/
-TEST_FUNCTION(gballoc_hl_realloc_with_0_bytes_size_with_NULL_ptr_calls_gballoc_ll_realloc_and_returns_the_result)
-{
-    // arrange
-    void* result;
-    void* gballoc_ll_result;
-    STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
-    (void)gballoc_hl_init(NULL, NULL);
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
-    STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
-        .SetReturn(1);
-    STRICT_EXPECTED_CALL(gballoc_ll_realloc(NULL, 0))
-        .CaptureReturn(&gballoc_ll_result);
-    STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
-        .SetReturn(8);
-    STRICT_EXPECTED_CALL(interlocked_add_64(IGNORED_ARG, 7));
-    // min
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, 7, IGNORED_ARG));
-    // max
-    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
-    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, 7, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
-
-    // act
-    result = gballoc_hl_realloc(NULL, 0);
+    result = gballoc_hl_realloc(NULL, alloc_size);
 
     // assert
     ASSERT_IS_NOT_NULL(result);
