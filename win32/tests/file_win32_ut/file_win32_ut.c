@@ -806,171 +806,33 @@ TEST_FUNCTION(file_extend_returns_zero)
 
 /*Tests_SRS_FILE_WIN32_43_034: [ on_file_io_complete_win32 shall recover the file handle, the number of bytes requested by the user, user_callback and user_context from the context containing overlapped. ]*/
 /*Tests_SRS_FILE_WIN32_43_066: [ on_file_io_complete_win32 shall call user_callback with is_successful as true if and only if io_result is equal to NO_ERROR and number_of_bytes_transferred is equal to the number of bytes requested by the user. ]*/
-TEST_FUNCTION(on_file_io_complete_win32_calls_callback_successfully_for_write)
-{
-    ///arrange
-    unsigned char source[10];
-    uint64_t position = 11;
-    void* user_context = (void*)20;
-
-    PTP_WIN32_IO_CALLBACK captured_callback = NULL;
-    LPOVERLAPPED captured_ov;
-
-    FILE_HANDLE file_handle = start_file_io_async(FILE_WRITE_ASYNC, source, sizeof(source), position, mock_user_callback, user_context,  &captured_callback, &captured_ov);
-
-    STRICT_EXPECTED_CALL(mock_CloseHandle(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mock_user_callback(user_context, true));
-    ASSERT_ARE_EQUAL(uint64_t, position, captured_ov->Offset);
-
-    ///act
-    captured_callback(NULL, NULL, captured_ov, NO_ERROR, sizeof(source), NULL);
-
-    ///assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///cleanup
-    file_destroy(file_handle);
-}
-
-/*Tests_SRS_FILE_WIN32_43_034: [ on_file_io_complete_win32 shall recover the file handle, the number of bytes requested by the user, user_callback and user_context from the context containing overlapped. ]*/
 /*Tests_SRS_FILE_WIN32_43_068: [ If either io_result is not equal to NO_ERROR or number_of_bytes_transferred is not equal to the bytes requested by the user, on_file_io_complete_win32 shall return false. ]*/
-TEST_FUNCTION(on_file_io_complete_win32_calls_callback_unsuccessfully_for_write_because_io_failed)
+PARAMETERIZED_TEST_FUNCTION(on_file_io_complete_win32_calls_callback, // no-srs
+    ARGS(FILE_IO_ASYNC_TYPE, io_type, ULONG, io_result, ULONG_PTR, num_bytes_transferred, bool, expected_success),
+    CASE((FILE_WRITE_ASYNC, NO_ERROR, 10, true), write_success),
+    CASE((FILE_WRITE_ASYNC, ERROR_IO_INCOMPLETE, 10, false), write_io_failed),
+    CASE((FILE_WRITE_ASYNC, NO_ERROR, 9, false), write_num_bytes_less),
+    CASE((FILE_READ_ASYNC, NO_ERROR, 10, true), read_success),
+    CASE((FILE_READ_ASYNC, ERROR_IO_INCOMPLETE, 10, false), read_io_failed),
+    CASE((FILE_READ_ASYNC, NO_ERROR, 9, false), read_num_bytes_less))
 {
     ///arrange
-    unsigned char source[10];
+    unsigned char buffer[10];
     uint64_t position = 11;
     void* user_context = (void*)20;
 
     PTP_WIN32_IO_CALLBACK captured_callback = NULL;
     LPOVERLAPPED captured_ov;
 
-    FILE_HANDLE file_handle = start_file_io_async(FILE_WRITE_ASYNC, source, sizeof(source), position, mock_user_callback, user_context,  &captured_callback, &captured_ov);
+    FILE_HANDLE file_handle = start_file_io_async(io_type, buffer, sizeof(buffer), position, mock_user_callback, user_context, &captured_callback, &captured_ov);
 
     STRICT_EXPECTED_CALL(mock_CloseHandle(IGNORED_ARG));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-
-    STRICT_EXPECTED_CALL(mock_user_callback(user_context, false));
+    STRICT_EXPECTED_CALL(mock_user_callback(user_context, expected_success));
     ASSERT_ARE_EQUAL(uint64_t, position, captured_ov->Offset);
 
     ///act
-    captured_callback(NULL, NULL, captured_ov, ERROR_IO_INCOMPLETE, sizeof(source), NULL);
-
-    ///assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///cleanup
-    file_destroy(file_handle);
-}
-
-/*Tests_SRS_FILE_WIN32_43_034: [on_file_io_complete_win32 shall recover the file handle, the number of bytes requested by the user, user_callback and user_context from the context containing overlapped.]*/
-/*Tests_SRS_FILE_WIN32_43_068 : [If either io_result is not equal to NO_ERROR or number_of_bytes_transferred is not equal to the bytes requested by the user, on_file_io_complete_win32 shall return false.]*/
-TEST_FUNCTION(on_file_io_complete_win32_calls_callback_unsuccessfully_for_write_because_num_bytes_is_less)
-{
-    ///arrange
-    unsigned char source[10];
-    uint64_t position = 11;
-    void* user_context = (void*)20;
-
-    PTP_WIN32_IO_CALLBACK captured_callback = NULL;
-    LPOVERLAPPED captured_ov;
-
-    FILE_HANDLE file_handle = start_file_io_async(FILE_WRITE_ASYNC, source, sizeof(source), position, mock_user_callback, user_context,  &captured_callback, &captured_ov);
-
-    STRICT_EXPECTED_CALL(mock_CloseHandle(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mock_user_callback(user_context, false));
-    ASSERT_ARE_EQUAL(uint64_t, position, captured_ov->Offset);
-
-    ///act
-    captured_callback(NULL, NULL, captured_ov, NO_ERROR, sizeof(source)-1, NULL);
-
-    ///assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///cleanup
-    file_destroy(file_handle);
-}
-
-/*Tests_SRS_FILE_WIN32_43_034: [ on_file_io_complete_win32 shall recover the file handle, the number of bytes requested by the user, user_callback and user_context from the context containing overlapped. ]*/
-/*Tests_SRS_FILE_WIN32_43_066: [ on_file_io_complete_win32 shall call user_callback with is_successful as true if and only if io_result is equal to NO_ERROR and number_of_bytes_transferred is equal to the number of bytes requested by the user. ]*/
-TEST_FUNCTION(on_file_io_complete_win32_calls_callback_successfully_for_read)
-{
-    ///arrange
-    unsigned char destination[10];
-    uint64_t position = 11;
-    void* user_context = (void*)20;
-
-    PTP_WIN32_IO_CALLBACK captured_callback = NULL;
-    LPOVERLAPPED captured_ov;
-
-    FILE_HANDLE file_handle = start_file_io_async(FILE_READ_ASYNC, destination, sizeof(destination), position, mock_user_callback, user_context,  &captured_callback, &captured_ov);
-
-    STRICT_EXPECTED_CALL(mock_CloseHandle(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mock_user_callback(user_context, true));
-    ASSERT_ARE_EQUAL(uint64_t, position, captured_ov->Offset);
-
-    ///act
-    captured_callback(NULL, NULL, captured_ov, NO_ERROR, sizeof(destination), NULL);
-
-    ///assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///cleanup
-    file_destroy(file_handle);
-}
-
-/*Tests_SRS_FILE_WIN32_43_034: [ on_file_io_complete_win32 shall recover the file handle, the number of bytes requested by the user, user_callback and user_context from the context containing overlapped. ]*/
-/*Tests_SRS_FILE_WIN32_43_068: [ If either io_result is not equal to NO_ERROR or number_of_bytes_transferred is not equal to the bytes requested by the user, on_file_io_complete_win32 shall return false. ]*/
-TEST_FUNCTION(on_file_io_complete_win32_calls_callback_unsuccessfully_for_read_because_io_failed)
-{
-    ///arrange
-    unsigned char destination[10];
-    uint64_t position = 11;
-    void* user_context = (void*)20;
-
-    PTP_WIN32_IO_CALLBACK captured_callback = NULL;
-    LPOVERLAPPED captured_ov;
-
-    FILE_HANDLE file_handle = start_file_io_async(FILE_READ_ASYNC, destination, sizeof(destination), position, mock_user_callback, user_context,  &captured_callback, &captured_ov);
-
-    STRICT_EXPECTED_CALL(mock_CloseHandle(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mock_user_callback(user_context, false));
-    ASSERT_ARE_EQUAL(uint64_t, position, captured_ov->Offset);
-
-    ///act
-    captured_callback(NULL, NULL, captured_ov, ERROR_IO_INCOMPLETE, sizeof(destination), NULL);
-
-    ///assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    ///cleanup
-    file_destroy(file_handle);
-}
-
-/*Tests_SRS_FILE_WIN32_43_034: [on_file_io_complete_win32 shall recover the file handle, the number of bytes requested by the user, user_callback and user_context from the context containing overlapped.]*/
-/*Tests_SRS_FILE_WIN32_43_068 : [If either io_result is not equal to NO_ERROR or number_of_bytes_transferred is not equal to the bytes requested by the user, on_file_io_complete_win32 shall return false.]*/
-TEST_FUNCTION(on_file_io_complete_win32_calls_callback_unsuccessfully_for_read_because_num_bytes_is_less)
-{
-    ///arrange
-    unsigned char destination[10];
-    uint64_t position = 11;
-    void* user_context = (void*)20;
-
-    PTP_WIN32_IO_CALLBACK captured_callback = NULL;
-    LPOVERLAPPED captured_ov;
-
-    FILE_HANDLE file_handle = start_file_io_async(FILE_READ_ASYNC, destination, sizeof(destination), position, mock_user_callback, user_context,  &captured_callback, &captured_ov);
-
-    STRICT_EXPECTED_CALL(mock_CloseHandle(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mock_user_callback(user_context, false));
-    ASSERT_ARE_EQUAL(uint64_t, position, captured_ov->Offset);
-
-    ///act
-    captured_callback(NULL, NULL, captured_ov, NO_ERROR, sizeof(destination) -1, NULL);
+    captured_callback(NULL, NULL, captured_ov, io_result, num_bytes_transferred, NULL);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
