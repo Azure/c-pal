@@ -9,10 +9,6 @@ Note: `job_object_helper_set_job_limits_to_current_process` and `job_object_help
 
 ## Exposed API
 ```c
-// Passing JOB_OBJECT_HELPER_DISABLE_CPU_RATE_CONTROL as percent_cpu disables CPU rate control (removes the throttle)
-#define JOB_OBJECT_HELPER_DISABLE_CPU_RATE_CONTROL 0
-// Passing JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT as percent_physical_memory removes memory limits
-#define JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT 0
 
 typedef struct JOB_OBJECT_HELPER_TAG JOB_OBJECT_HELPER;
 THANDLE_TYPE_DECLARE(JOB_OBJECT_HELPER);
@@ -35,15 +31,17 @@ static void job_object_helper_dispose(JOB_OBJECT_HELPER* job_object_helper);
 ```c
 static int internal_job_object_helper_set_cpu_limit(HANDLE job_object, uint32_t percent_cpu);
 ```
-`internal_job_object_helper_set_cpu_limit` is an internal function that sets or disables the CPU rate control on the given job object by calling the Windows `SetInformationJobObject` API.
+`internal_job_object_helper_set_cpu_limit` is an internal function that sets the CPU rate control on the given job object by calling the Windows `SetInformationJobObject` API.
 
-**SRS_JOB_OBJECT_HELPER_88_004: [** If `percent_cpu` is `JOB_OBJECT_HELPER_DISABLE_CPU_RATE_CONTROL`, `internal_job_object_helper_set_cpu_limit` shall call `SetInformationJobObject` passing `JobObjectCpuRateControlInformation` with `ControlFlags` set to `0` to disable CPU rate control. **]**
+**SRS_JOB_OBJECT_HELPER_88_004: [** If `percent_cpu` is `0` or greater than `100`, `internal_job_object_helper_set_cpu_limit` shall fail and return a non-zero value. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_005: [** If `percent_cpu` is not `JOB_OBJECT_HELPER_DISABLE_CPU_RATE_CONTROL`, `internal_job_object_helper_set_cpu_limit` shall set `ControlFlags` to `JOB_OBJECT_CPU_RATE_CONTROL_ENABLE` and `JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP`, and `CpuRate` to `percent_cpu` times `100`. **]**
+**SRS_JOB_OBJECT_HELPER_88_005: [** `internal_job_object_helper_set_cpu_limit` shall set `ControlFlags` to `JOB_OBJECT_CPU_RATE_CONTROL_ENABLE` and `JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP`, and `CpuRate` to `percent_cpu` times `100`. **]**
 
 **SRS_JOB_OBJECT_HELPER_88_006: [** `internal_job_object_helper_set_cpu_limit` shall call `SetInformationJobObject` passing `JobObjectCpuRateControlInformation` and the `JOBOBJECT_CPU_RATE_CONTROL_INFORMATION`. **]**
 
 **SRS_JOB_OBJECT_HELPER_88_007: [** If `SetInformationJobObject` fails, `internal_job_object_helper_set_cpu_limit` shall fail and return a non-zero value. **]**
+
+**SRS_JOB_OBJECT_HELPER_88_042: [** On success, `internal_job_object_helper_set_cpu_limit` shall store `percent_cpu` in the singleton state. **]**
 
 **SRS_JOB_OBJECT_HELPER_88_008: [** `internal_job_object_helper_set_cpu_limit` shall succeed and return `0`. **]**
 
@@ -52,15 +50,17 @@ static int internal_job_object_helper_set_cpu_limit(HANDLE job_object, uint32_t 
 ```c
 static int internal_job_object_helper_set_memory_limit(HANDLE job_object, uint32_t percent_physical_memory);
 ```
-`internal_job_object_helper_set_memory_limit` is an internal function that sets or removes the memory limit on the given job object by calling the Windows `SetInformationJobObject` API.
+`internal_job_object_helper_set_memory_limit` is an internal function that sets the memory limit on the given job object by calling the Windows `SetInformationJobObject` API.
 
-**SRS_JOB_OBJECT_HELPER_88_010: [** If `percent_physical_memory` is `JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT`, `internal_job_object_helper_set_memory_limit` shall call `SetInformationJobObject` passing `JobObjectExtendedLimitInformation` with `LimitFlags` set to `0` to remove memory limits. **]**
+**SRS_JOB_OBJECT_HELPER_88_010: [** If `percent_physical_memory` is `0` or greater than `100`, `internal_job_object_helper_set_memory_limit` shall fail and return a non-zero value. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_011: [** If `percent_physical_memory` is not `JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT`, `internal_job_object_helper_set_memory_limit` shall call `GlobalMemoryStatusEx` to get the total amount of physical memory. **]**
+**SRS_JOB_OBJECT_HELPER_88_011: [** `internal_job_object_helper_set_memory_limit` shall call `GlobalMemoryStatusEx` to get the total amount of physical memory. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_012: [** If `percent_physical_memory` is not `JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT`, `internal_job_object_helper_set_memory_limit` shall set `JobMemoryLimit` and `ProcessMemoryLimit` to `percent_physical_memory` percent of the physical memory and call `SetInformationJobObject` with `JobObjectExtendedLimitInformation`. **]**
+**SRS_JOB_OBJECT_HELPER_88_012: [** `internal_job_object_helper_set_memory_limit` shall set `JobMemoryLimit` and `ProcessMemoryLimit` to `percent_physical_memory` percent of the physical memory and call `SetInformationJobObject` with `JobObjectExtendedLimitInformation`. **]**
 
 **SRS_JOB_OBJECT_HELPER_88_013: [** If there are any failures, `internal_job_object_helper_set_memory_limit` shall fail and return a non-zero value. **]**
+
+**SRS_JOB_OBJECT_HELPER_88_043: [** On success, `internal_job_object_helper_set_memory_limit` shall store `percent_physical_memory` in the singleton state. **]**
 
 **SRS_JOB_OBJECT_HELPER_88_014: [** `internal_job_object_helper_set_memory_limit` shall succeed and return `0`. **]**
 
@@ -71,9 +71,9 @@ static int internal_job_object_helper_reconfigure(uint32_t percent_cpu, uint32_t
 ```
 `internal_job_object_helper_reconfigure` is an internal function that reconfigures the existing process-level singleton job object with new CPU and memory limits.
 
-**SRS_JOB_OBJECT_HELPER_88_003: [** `internal_job_object_helper_reconfigure` shall call `internal_job_object_helper_set_cpu_limit` to apply the CPU rate control to the Windows job object. **]**
+**SRS_JOB_OBJECT_HELPER_88_003: [** If `percent_cpu` is not `0`, `internal_job_object_helper_reconfigure` shall call `internal_job_object_helper_set_cpu_limit` to apply the CPU rate control to the Windows job object. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_009: [** `internal_job_object_helper_reconfigure` shall call `internal_job_object_helper_set_memory_limit` to apply the memory limit to the Windows job object. **]**
+**SRS_JOB_OBJECT_HELPER_88_009: [** If `percent_physical_memory` is not `0`, `internal_job_object_helper_reconfigure` shall call `internal_job_object_helper_set_memory_limit` to apply the memory limit to the Windows job object. **]**
 
 **SRS_JOB_OBJECT_HELPER_88_017: [** If there are any failures, `internal_job_object_helper_reconfigure` shall fail and return a non-zero value. **]**
 
@@ -90,9 +90,9 @@ static int internal_job_object_helper_create(const char* job_name, uint32_t perc
 
 **SRS_JOB_OBJECT_HELPER_88_036: [** `internal_job_object_helper_create` shall call `CreateJobObjectA` passing `job_name` for `lpName` and `NULL` for `lpJobAttributes`. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_037: [** `internal_job_object_helper_create` shall call `internal_job_object_helper_set_cpu_limit` to apply the CPU rate control to the Windows job object. **]**
+**SRS_JOB_OBJECT_HELPER_88_037: [** If `percent_cpu` is not `0`, `internal_job_object_helper_create` shall call `internal_job_object_helper_set_cpu_limit` to apply the CPU rate control to the Windows job object. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_038: [** `internal_job_object_helper_create` shall call `internal_job_object_helper_set_memory_limit` to apply the memory limit to the Windows job object. **]**
+**SRS_JOB_OBJECT_HELPER_88_038: [** If `percent_physical_memory` is not `0`, `internal_job_object_helper_create` shall call `internal_job_object_helper_set_memory_limit` to apply the memory limit to the Windows job object. **]**
 
 **SRS_JOB_OBJECT_HELPER_88_039: [** `internal_job_object_helper_create` shall call `GetCurrentProcess` to get the current process handle. **]**
 
@@ -111,19 +111,23 @@ MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_job_limits
 ```
 `job_object_helper_set_job_limits_to_current_process` creates the Job Object with limits if not present and assigns the current process to it. Returns a THANDLE to allow reuse of the job object across multiple processes. If being used only in single process, then handle can be released immediately and process continues having the set limits.
 
-The function implements a process-level singleton pattern to prevent Job Object accumulation. On the first call, it creates the job object. On subsequent calls, the existing job object's limits are applied in-place via `SetInformationJobObject` and the existing singleton is returned. CPU rate control can be disabled by passing `JOB_OBJECT_HELPER_DISABLE_CPU_RATE_CONTROL` and memory limits can be removed by passing `JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT`.
+The function implements a process-level singleton pattern to prevent Job Object accumulation. On the first call, it creates the job object. On subsequent calls, the existing job object's limits are applied in-place via `SetInformationJobObject` and the existing singleton is returned. Passing `0` for both `percent_cpu` and `percent_physical_memory` is not allowed and will return `NULL`. During reconfiguration, a value of `0` is not allowed for a parameter that was previously set to a non-zero value.
 
 **SRS_JOB_OBJECT_HELPER_19_001: [** If `percent_cpu` is greater than `100` then `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
 
 **SRS_JOB_OBJECT_HELPER_88_034: [** If `percent_physical_memory` is greater than `100` then `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
 
+**SRS_JOB_OBJECT_HELPER_88_040: [** If `percent_cpu` is `0` and `percent_physical_memory` is `0` then `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
+
 **SRS_JOB_OBJECT_HELPER_88_030: [** If `job_object_singleton_state.job_object_helper` is not `NULL`, `job_object_helper_set_job_limits_to_current_process` shall not create a new job object. **]**
+
+**SRS_JOB_OBJECT_HELPER_88_041: [** During reconfiguration, if `percent_cpu` is `0` and the `job_object_singleton_state.percent_cpu` is non-zero, `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
+
+**SRS_JOB_OBJECT_HELPER_88_046: [** During reconfiguration, if `percent_physical_memory` is `0` and the `job_object_singleton_state.percent_memory` is non-zero, `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
 
 **SRS_JOB_OBJECT_HELPER_88_002: [** If `job_object_singleton_state.job_object_helper` is not `NULL`, `job_object_helper_set_job_limits_to_current_process` shall call `internal_job_object_helper_reconfigure` to apply the limits to the existing job object. **]**
 
 **SRS_JOB_OBJECT_HELPER_88_021: [** If `internal_job_object_helper_reconfigure` returns `0`, `job_object_helper_set_job_limits_to_current_process` shall increment the reference count on the existing `THANDLE(JOB_OBJECT_HELPER)` and return it. **]**
-
-**SRS_JOB_OBJECT_HELPER_88_022: [** If `job_object_singleton_state.job_object_helper` is `NULL` and `percent_cpu` is `JOB_OBJECT_HELPER_DISABLE_CPU_RATE_CONTROL` and `percent_physical_memory` is `JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT`, `job_object_helper_set_job_limits_to_current_process` shall return `NULL` without creating a job object. **]**
 
 **SRS_JOB_OBJECT_HELPER_88_023: [** If `job_object_singleton_state.job_object_helper` is `NULL` and both `percent_cpu` and `percent_physical_memory` are `100`, `job_object_helper_set_job_limits_to_current_process` shall return `NULL` without creating a job object. **]**
 
@@ -141,3 +145,7 @@ MOCKABLE_FUNCTION(, void, job_object_helper_deinit_for_test);
 `job_object_helper_deinit_for_test` releases the process-level singleton, allowing a fresh job object to be created on the next call. This is intended for test cleanup and should not be used in production code, as calling it would allow creating new job objects that compound with the existing one.
 
 **SRS_JOB_OBJECT_HELPER_88_027: [** `job_object_helper_deinit_for_test` shall release the singleton `THANDLE(JOB_OBJECT_HELPER)` by assigning it to `NULL`. **]**
+
+**SRS_JOB_OBJECT_HELPER_88_044: [** `job_object_helper_deinit_for_test` shall reset `percent_cpu` to 0 in the singleton state. **]**
+
+**SRS_JOB_OBJECT_HELPER_88_045: [** `job_object_helper_deinit_for_test` shall reset `percent_memory` to 0 in the singleton state. **]**
