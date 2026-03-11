@@ -47,7 +47,7 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
 
 }
 
-TEST_FUNCTION(thandle_ptr_log_context_handle_with_mocks)
+TEST_FUNCTION(thandle_ptr_log_context_handle_with_mocks) // no-srs
 {
     ///arrange
     STRICT_EXPECTED_CALL(THANDLE_PTR_CREATE_WITH_MOVE(LOG_CONTEXT_HANDLE)(IGNORED_ARG, NULL));
