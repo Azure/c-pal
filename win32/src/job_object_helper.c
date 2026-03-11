@@ -332,9 +332,10 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
             LogWarning("Reconfiguring existing process-level singleton Job Object (cpu: %" PRIu32 ", memory: %" PRIu32 ")",
                 percent_cpu, percent_physical_memory);
 
-            if(/*Codes_SRS_JOB_OBJECT_HELPER_88_041: [ During reconfiguration, if percent_cpu is 0 and the job_object_singleton_state.percent_cpu is non-zero, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
+            if(
+                /*Codes_SRS_JOB_OBJECT_HELPER_88_041: [ During reconfiguration, if percent_cpu is 0 and the job_object_singleton_state.percent_cpu is non-zero, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
                 (percent_cpu == 0 && job_object_singleton_state.percent_cpu != 0) ||
-                /*Codes_SRS_JOB_OBJECT_HELPER_88_042: [ During reconfiguration, if percent_physical_memory is 0 and the job_object_singleton_state.percent_memory is non-zero, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
+                /*Codes_SRS_JOB_OBJECT_HELPER_88_046: [ During reconfiguration, if percent_physical_memory is 0 and the job_object_singleton_state.percent_memory is non-zero, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
                 (percent_physical_memory == 0 && job_object_singleton_state.percent_memory != 0))
             {
                 LogError("Invalid arguments: percent_cpu or percent_physical_memory cannot be set to 0 once it has been set to a non-zero value. Received percent_cpu=%" PRIu32 ", received percent_physical_memory=%" PRIu32 ", current percent_cpu=%" PRIu32 ", current percent_physical_memory=%" PRIu32 "", percent_cpu, percent_physical_memory, job_object_singleton_state.percent_cpu, job_object_singleton_state.percent_memory);

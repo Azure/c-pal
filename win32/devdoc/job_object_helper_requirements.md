@@ -121,7 +121,9 @@ The function implements a process-level singleton pattern to prevent Job Object 
 
 **SRS_JOB_OBJECT_HELPER_88_030: [** If `job_object_singleton_state.job_object_helper` is not `NULL`, `job_object_helper_set_job_limits_to_current_process` shall not create a new job object. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_041: [** During reconfiguration, if `percent_cpu` is `0` and the `job_object_singleton_state.percent_cpu` is non-zero, or if `percent_physical_memory` is `0` and the `job_object_singleton_state.percent_memory` is non-zero, `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
+**SRS_JOB_OBJECT_HELPER_88_041: [** During reconfiguration, if `percent_cpu` is `0` and the `job_object_singleton_state.percent_cpu` is non-zero, `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
+
+**SRS_JOB_OBJECT_HELPER_88_046: [** During reconfiguration, if `percent_physical_memory` is `0` and the `job_object_singleton_state.percent_memory` is non-zero, `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
 
 **SRS_JOB_OBJECT_HELPER_88_002: [** If `job_object_singleton_state.job_object_helper` is not `NULL`, `job_object_helper_set_job_limits_to_current_process` shall call `internal_job_object_helper_reconfigure` to apply the limits to the existing job object. **]**
 

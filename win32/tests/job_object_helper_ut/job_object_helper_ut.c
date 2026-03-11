@@ -236,7 +236,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_succeeds)
         // act
         THANDLE(JOB_OBJECT_HELPER) result = create_job_object_helper_singleton(cpu_limits[i], memory_limits[i]);
 
-        // cleanup - release result, then deinit releases singleton which triggers dispose
+        // assert
         THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&result, NULL);
 
         // Expect dispose (CloseHandle on job object) + free of THANDLE wrapper when singleton refcount reaches 0
@@ -297,7 +297,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_reconfigures_w
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&reused_job_object_helper, NULL);
 }
 
-/*Tests_SRS_JOB_OBJECT_HELPER_88_041: [ During reconfiguration, if percent_cpu is 0 and the job_object_singleton_state.percent_cpu is non-zero, or if percent_physical_memory is 0 and the job_object_singleton_state.percent_memory is non-zero, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
+/*Tests_SRS_JOB_OBJECT_HELPER_88_041: [ During reconfiguration, if percent_cpu is 0 and the job_object_singleton_state.percent_cpu is non-zero, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
 TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_NULL_when_reconfigure_cpu_from_nonzero_to_zero)
 {
     // arrange - create singleton with (50, 50)
@@ -314,7 +314,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_NULL_w
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&initial_job_object_helper, NULL);
 }
 
-/*Tests_SRS_JOB_OBJECT_HELPER_88_041: [ During reconfiguration, if percent_cpu is 0 and the job_object_singleton_state.percent_cpu is non-zero, or if percent_physical_memory is 0 and the job_object_singleton_state.percent_memory is non-zero, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
+/*Tests_SRS_JOB_OBJECT_HELPER_88_046: [ During reconfiguration, if percent_physical_memory is 0 and the job_object_singleton_state.percent_memory is non-zero, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
 TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_NULL_when_reconfigure_memory_from_nonzero_to_zero)
 {
     // arrange - create singleton with (50, 50)
@@ -331,7 +331,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_NULL_w
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&initial_job_object_helper, NULL);
 }
 
-/*Tests_SRS_JOB_OBJECT_HELPER_88_041: [ During reconfiguration, if percent_cpu is 0 and the job_object_singleton_state.percent_cpu is non-zero, or if percent_physical_memory is 0 and the job_object_singleton_state.percent_memory is non-zero, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
+/*Tests_SRS_JOB_OBJECT_HELPER_88_046: [ During reconfiguration, if percent_physical_memory is 0 and the job_object_singleton_state.percent_memory is non-zero, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
 TEST_FUNCTION(when_created_with_cpu_0_memory_50_then_reconfigure_cpu_50_memory_0_fails)
 {
     // arrange - create singleton with cpu=0, memory=50
@@ -349,7 +349,7 @@ TEST_FUNCTION(when_created_with_cpu_0_memory_50_then_reconfigure_cpu_50_memory_0
 }
 
 /*Tests_SRS_JOB_OBJECT_HELPER_88_042: [ On success, internal_job_object_helper_set_cpu_limit shall store percent_cpu in the singleton state. ]*/
-/*Tests_SRS_JOB_OBJECT_HELPER_88_041: [ During reconfiguration, if percent_cpu is 0 and the job_object_singleton_state.percent_cpu is non-zero, or if percent_physical_memory is 0 and the job_object_singleton_state.percent_memory is non-zero, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
+/*Tests_SRS_JOB_OBJECT_HELPER_88_041: [ During reconfiguration, if percent_cpu is 0 and the job_object_singleton_state.percent_cpu is non-zero, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
 TEST_FUNCTION(when_reconfigure_sets_cpu_then_state_is_updated_and_subsequent_zero_cpu_fails)
 {
     // arrange - create singleton with cpu=0, memory=50 (only memory limit)
@@ -376,7 +376,7 @@ TEST_FUNCTION(when_reconfigure_sets_cpu_then_state_is_updated_and_subsequent_zer
 }
 
 /*Tests_SRS_JOB_OBJECT_HELPER_88_043: [ On success, internal_job_object_helper_set_memory_limit shall store percent_physical_memory in the singleton state. ]*/
-/*Tests_SRS_JOB_OBJECT_HELPER_88_041: [ During reconfiguration, if percent_cpu is 0 and the job_object_singleton_state.percent_cpu is non-zero, or if percent_physical_memory is 0 and the job_object_singleton_state.percent_memory is non-zero, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
+/*Tests_SRS_JOB_OBJECT_HELPER_88_046: [ During reconfiguration, if percent_physical_memory is 0 and the job_object_singleton_state.percent_memory is non-zero, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
 TEST_FUNCTION(when_reconfigure_sets_memory_then_state_is_updated_and_subsequent_zero_memory_fails)
 {
     // arrange - create singleton with cpu=50, memory=0 (only CPU limit)
