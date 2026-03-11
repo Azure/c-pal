@@ -86,7 +86,7 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
     umock_c_reset_all_calls();
 }
 
-TEST_FUNCTION(thandle_test_helper_can_register_for_a_real_thandle) // no-srs
+TEST_FUNCTION(thandle_test_helper_can_register_for_a_real_thandle)
 {
     // arrange
     THANDLE(MOCKED_STRUCT) upcounted_MOCKED_STRUCT = NULL;
@@ -98,7 +98,7 @@ TEST_FUNCTION(thandle_test_helper_can_register_for_a_real_thandle) // no-srs
     THANDLE_ASSIGN(MOCKED_STRUCT)(&upcounted_MOCKED_STRUCT, NULL);
 }
 
-TEST_FUNCTION(function_call_is_mocked_correctly) // no-srs
+TEST_FUNCTION(function_call_is_mocked_correctly)
 {
     // arrange
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0));

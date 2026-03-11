@@ -1860,7 +1860,7 @@ TEST_FUNCTION(event_complete_func_recv_returns_0_bytes_success)
 // Tests_SRS_ASYNC_SOCKET_LINUX_04_010: [ If the IO type is ASYNC_SOCKET_IO_TYPE_NOTIFY then event_complete_callback shall call the notify complete callback with an OUT flag. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_04_011: [ If the IO type is ASYNC_SOCKET_IO_TYPE_NOTIFY then event_complete_callback shall call the notify complete callback with an ERROR flag. ]
 // Tests_SRS_ASYNC_SOCKET_LINUX_04_012: [ event_complete_callback shall call the notify complete callback with an ABANDONED flag when the IO type is ASYNC_SOCKET_IO_TYPE_NOTIFY. ]
-PARAMETERIZED_TEST_FUNCTION(event_complete_func_notify_calls_callback_with_expected_result, // no-srs
+PARAMETERIZED_TEST_FUNCTION(event_complete_func_notify_calls_callback_with_expected_result
     ARGS(ASYNC_SOCKET_NOTIFY_IO_TYPE, io_type, COMPLETION_PORT_EPOLL_ACTION, epoll_action, ASYNC_SOCKET_NOTIFY_IO_RESULT, expected_result),
     CASE((ASYNC_SOCKET_NOTIFY_IO_TYPE_IN, COMPLETION_PORT_EPOLL_EPOLLRDHUP, ASYNC_SOCKET_NOTIFY_IO_RESULT_ABANDONED), IN_EPOLLRDHUP_abandons),
     CASE((ASYNC_SOCKET_NOTIFY_IO_TYPE_IN, COMPLETION_PORT_EPOLL_ABANDONED, ASYNC_SOCKET_NOTIFY_IO_RESULT_ABANDONED), IN_ABANDONED_abandons),

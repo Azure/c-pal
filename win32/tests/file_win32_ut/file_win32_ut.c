@@ -807,7 +807,7 @@ TEST_FUNCTION(file_extend_returns_zero)
 /*Tests_SRS_FILE_WIN32_43_034: [ on_file_io_complete_win32 shall recover the file handle, the number of bytes requested by the user, user_callback and user_context from the context containing overlapped. ]*/
 /*Tests_SRS_FILE_WIN32_43_066: [ on_file_io_complete_win32 shall call user_callback with is_successful as true if and only if io_result is equal to NO_ERROR and number_of_bytes_transferred is equal to the number of bytes requested by the user. ]*/
 /*Tests_SRS_FILE_WIN32_43_068: [ If either io_result is not equal to NO_ERROR or number_of_bytes_transferred is not equal to the bytes requested by the user, on_file_io_complete_win32 shall return false. ]*/
-PARAMETERIZED_TEST_FUNCTION(on_file_io_complete_win32_calls_callback, // no-srs
+PARAMETERIZED_TEST_FUNCTION(on_file_io_complete_win32_calls_callback
     ARGS(FILE_IO_ASYNC_TYPE, io_type, ULONG, io_result, ULONG_PTR, num_bytes_transferred, bool, expected_success),
     CASE((FILE_WRITE_ASYNC, NO_ERROR, 10, true), write_success),
     CASE((FILE_WRITE_ASYNC, ERROR_IO_INCOMPLETE, 10, false), write_io_failed),
