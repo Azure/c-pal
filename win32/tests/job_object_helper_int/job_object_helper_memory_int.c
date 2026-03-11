@@ -20,6 +20,18 @@
 #define NUM_ALLOCATE_MEMORY_BLOCKS 12
 #define TEST_JOB_NAME_PREFIX "job_test_ebs_"
 
+static THANDLE(JOB_OBJECT_HELPER) create_job_object_with_limits(char* job_name_out, size_t job_name_size, uint32_t cpu, uint32_t memory)
+{
+    UUID_T job_name_uuid;
+    (void)uuid_produce(&job_name_uuid);
+    (void)snprintf(job_name_out, job_name_size, TEST_JOB_NAME_PREFIX "%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
+    LogInfo("Creating job object (cpu=%" PRIu32 ", memory=%" PRIu32 ") with job name: %s...", cpu, memory, job_name_out);
+
+    THANDLE(JOB_OBJECT_HELPER) result = job_object_helper_set_job_limits_to_current_process(job_name_out, cpu, memory);
+    ASSERT_IS_NOT_NULL(result, "Job object should be created (cpu=%" PRIu32 ", memory=%" PRIu32 ")", cpu, memory);
+    return result;
+}
+
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
@@ -41,12 +53,9 @@ TEST_FUNCTION_CLEANUP(cleanup)
 
 TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_check_memory_limits)
 {
-    UUID_T job_name_uuid;
-    (void)uuid_produce(&job_name_uuid);
-
+    /* Set the process's memory limit to 1% */
     char job_name[64];
-    (void)snprintf(job_name, sizeof(job_name), TEST_JOB_NAME_PREFIX "%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
-    LogInfo("Running test with Job name: %s...", job_name);
+    THANDLE(JOB_OBJECT_HELPER) job_object_helper = create_job_object_with_limits(job_name, sizeof(job_name), 50, 1);
 
     /* Get the total available Memory */
     MEMORYSTATUSEX mem_status;
@@ -58,10 +67,6 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_check_mem
     SIZE_T one_percent_of_total_memory = total_memory / 100;
     LogInfo("Total Memory: %zu", total_memory);
     LogInfo("1%% of Total Memory: %zu", one_percent_of_total_memory);
-
-    /* Set the process's memory limit to 1% */
-    THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, 50, 1);
-    ASSERT_IS_NOT_NULL(job_object_helper);
 
     /* allocations till 1% should pass */
     char* buffer[NUM_ALLOCATE_MEMORY_BLOCKS];

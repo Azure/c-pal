@@ -30,6 +30,18 @@ struct JOB_OBJECT_HELPER_TAG {
 #define RECONFIGURED_CPU_PERCENT 30
 #define RECONFIGURED_MEMORY_PERCENT 2
 
+static THANDLE(JOB_OBJECT_HELPER) create_job_object_with_limits(char* job_name_out, size_t job_name_size, uint32_t cpu, uint32_t memory)
+{
+    UUID_T job_name_uuid;
+    (void)uuid_produce(&job_name_uuid);
+    (void)snprintf(job_name_out, job_name_size, TEST_JOB_NAME_PREFIX "%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
+    LogInfo("Creating job object (cpu=%" PRIu32 ", memory=%" PRIu32 ") with job name: %s...", cpu, memory, job_name_out);
+
+    THANDLE(JOB_OBJECT_HELPER) result = job_object_helper_set_job_limits_to_current_process(job_name_out, cpu, memory);
+    ASSERT_IS_NOT_NULL(result, "Job object should be created (cpu=%" PRIu32 ", memory=%" PRIu32 ")", cpu, memory);
+    return result;
+}
+
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
@@ -57,16 +69,9 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_reconfigures_l
     *  3. The reconfigured limits are applied to the existing job object
     */
 
-    UUID_T job_name_uuid;
-    (void)uuid_produce(&job_name_uuid);
-
-    char job_name[64];
-    (void)snprintf(job_name, sizeof(job_name), TEST_JOB_NAME_PREFIX "%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
-    LogInfo("Running reconfigure test with job name: %s...", job_name);
-
     // Step 1: Create the singleton with initial limits (50% CPU, 1% memory)
-    THANDLE(JOB_OBJECT_HELPER) initial_job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, INITIAL_CPU_PERCENT, INITIAL_MEMORY_PERCENT);
-    ASSERT_IS_NOT_NULL(initial_job_object_helper);
+    char job_name[64];
+    THANDLE(JOB_OBJECT_HELPER) initial_job_object_helper = create_job_object_with_limits(job_name, sizeof(job_name), INITIAL_CPU_PERCENT, INITIAL_MEMORY_PERCENT);
 
     // Verify initial CPU rate
     HANDLE job_object = OpenJobObjectA(JOB_OBJECT_QUERY, FALSE, job_name);

@@ -36,6 +36,8 @@ THANDLE_TYPE_DEFINE(JOB_OBJECT_HELPER);
 typedef struct JOB_OBJECT_SINGLETON_STATE_TAG
 {
     THANDLE(JOB_OBJECT_HELPER) job_object_helper;
+    uint32_t percent_cpu;
+    uint32_t percent_memory;
 } JOB_OBJECT_SINGLETON_STATE;
 
 static JOB_OBJECT_SINGLETON_STATE job_object_singleton_state = { NULL };
@@ -53,30 +55,35 @@ static int internal_job_object_helper_set_cpu_limit(HANDLE job_object, uint32_t 
 {
     int result;
 
-    JOBOBJECT_CPU_RATE_CONTROL_INFORMATION cpu_rate_control_information = { 0 };
-    if (percent_cpu == JOB_OBJECT_HELPER_DISABLE_CPU_RATE_CONTROL)
+    if(percent_cpu == 0 || percent_cpu > MAX_CPU_PERCENT)
     {
-        /*Codes_SRS_JOB_OBJECT_HELPER_88_004: [ If percent_cpu is JOB_OBJECT_HELPER_DISABLE_CPU_RATE_CONTROL, internal_job_object_helper_set_cpu_limit shall call SetInformationJobObject passing JobObjectCpuRateControlInformation with ControlFlags set to 0 to disable CPU rate control. ]*/
-        cpu_rate_control_information.ControlFlags = 0;
-    }
-    else
-    {
-        /*Codes_SRS_JOB_OBJECT_HELPER_88_005: [ If percent_cpu is not JOB_OBJECT_HELPER_DISABLE_CPU_RATE_CONTROL, internal_job_object_helper_set_cpu_limit shall set ControlFlags to JOB_OBJECT_CPU_RATE_CONTROL_ENABLE and JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP, and CpuRate to percent_cpu times 100. ]*/
-        cpu_rate_control_information.ControlFlags = JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP;
-        cpu_rate_control_information.CpuRate = percent_cpu * 100;
-    }
-    /*Codes_SRS_JOB_OBJECT_HELPER_88_006: [ internal_job_object_helper_set_cpu_limit shall call SetInformationJobObject passing JobObjectCpuRateControlInformation and the JOBOBJECT_CPU_RATE_CONTROL_INFORMATION. ]*/
-    if (!SetInformationJobObject(job_object, JobObjectCpuRateControlInformation, &cpu_rate_control_information, sizeof(cpu_rate_control_information)))
-    {
-        /*Codes_SRS_JOB_OBJECT_HELPER_88_007: [ If SetInformationJobObject fails, internal_job_object_helper_set_cpu_limit shall fail and return a non-zero value. ]*/
-        LogLastError("failure in SetInformationJobObject(job_object=%p, JobObjectCpuRateControlInformation, &cpu_rate_control_information=%p, sizeof(cpu_rate_control_information)=%zu)",
-            job_object, &cpu_rate_control_information, sizeof(cpu_rate_control_information));
+        /*Codes_SRS_JOB_OBJECT_HELPER_88_004: [ If percent_cpu is 0 or greater than 100, internal_job_object_helper_set_cpu_limit shall fail and return a non-zero value. ]*/
+        LogError("Invalid argument: percent_cpu=%" PRIu32 "", percent_cpu);
         result = MU_FAILURE;
     }
     else
     {
-        /*Codes_SRS_JOB_OBJECT_HELPER_88_008: [ internal_job_object_helper_set_cpu_limit shall succeed and return 0. ]*/
-        result = 0;
+        JOBOBJECT_CPU_RATE_CONTROL_INFORMATION cpu_rate_control_information = { 0 };
+
+        /*Codes_SRS_JOB_OBJECT_HELPER_88_005: [ internal_job_object_helper_set_cpu_limit shall set ControlFlags to JOB_OBJECT_CPU_RATE_CONTROL_ENABLE and JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP, and CpuRate to percent_cpu times 100. ]*/
+        cpu_rate_control_information.ControlFlags = JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP;
+        cpu_rate_control_information.CpuRate = percent_cpu * 100;
+
+        /*Codes_SRS_JOB_OBJECT_HELPER_88_006: [ internal_job_object_helper_set_cpu_limit shall call SetInformationJobObject passing JobObjectCpuRateControlInformation and the JOBOBJECT_CPU_RATE_CONTROL_INFORMATION. ]*/
+        if (!SetInformationJobObject(job_object, JobObjectCpuRateControlInformation, &cpu_rate_control_information, sizeof(cpu_rate_control_information)))
+        {
+            LogLastError("failure in SetInformationJobObject(job_object=%p, JobObjectCpuRateControlInformation, &cpu_rate_control_information=%p, sizeof(cpu_rate_control_information)=%zu)",
+                job_object, &cpu_rate_control_information, sizeof(cpu_rate_control_information));
+            /*Codes_SRS_JOB_OBJECT_HELPER_88_007: [ If SetInformationJobObject fails, internal_job_object_helper_set_cpu_limit shall fail and return a non-zero value. ]*/
+            result = MU_FAILURE;
+        }
+        else
+        {
+            /*Codes_SRS_JOB_OBJECT_HELPER_88_042: [ On success, internal_job_object_helper_set_cpu_limit shall store percent_cpu in the singleton state. ]*/
+            job_object_singleton_state.percent_cpu = percent_cpu;
+            /*Codes_SRS_JOB_OBJECT_HELPER_88_008: [ internal_job_object_helper_set_cpu_limit shall succeed and return 0. ]*/
+            result = 0;
+        }
     }
 
     return result;
@@ -87,25 +94,16 @@ static int internal_job_object_helper_set_memory_limit(HANDLE job_object, uint32
 {
     int result;
 
-    if (percent_physical_memory == JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT)
+    if(percent_physical_memory == 0 || percent_physical_memory > MAX_MEMORY_PERCENT)
     {
-        /*Codes_SRS_JOB_OBJECT_HELPER_88_010: [ If percent_physical_memory is JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT, internal_job_object_helper_set_memory_limit shall call SetInformationJobObject passing JobObjectExtendedLimitInformation with LimitFlags set to 0 to remove memory limits. ]*/
-        JOBOBJECT_EXTENDED_LIMIT_INFORMATION extended_limit_information = { 0 };
-        if (!SetInformationJobObject(job_object, JobObjectExtendedLimitInformation, &extended_limit_information, sizeof(extended_limit_information)))
-        {
-            /*Codes_SRS_JOB_OBJECT_HELPER_88_013: [ If there are any failures, internal_job_object_helper_set_memory_limit shall fail and return a non-zero value. ]*/
-            LogLastError("failure in SetInformationJobObject to remove memory limits (job_object=%p)", job_object);
-            result = MU_FAILURE;
-        }
-        else
-        {
-            /*Codes_SRS_JOB_OBJECT_HELPER_88_014: [ internal_job_object_helper_set_memory_limit shall succeed and return 0. ]*/
-            result = 0;
-        }
+        /*Codes_SRS_JOB_OBJECT_HELPER_88_010: [ If percent_physical_memory is 0 or greater than 100, internal_job_object_helper_set_memory_limit shall fail and return a non-zero value. ]*/
+        LogError("Invalid argument: percent_physical_memory=%" PRIu32 "", percent_physical_memory);
+        result = MU_FAILURE;
     }
     else
     {
-        /*Codes_SRS_JOB_OBJECT_HELPER_88_011: [ If percent_physical_memory is not JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT, internal_job_object_helper_set_memory_limit shall call GlobalMemoryStatusEx to get the total amount of physical memory. ]*/
+
+        /*Codes_SRS_JOB_OBJECT_HELPER_88_011: [ internal_job_object_helper_set_memory_limit shall call GlobalMemoryStatusEx to get the total amount of physical memory. ]*/
         MEMORYSTATUSEX memory_status_ex;
         memory_status_ex.dwLength = sizeof(memory_status_ex);
         if (!GlobalMemoryStatusEx(&memory_status_ex))
@@ -116,7 +114,7 @@ static int internal_job_object_helper_set_memory_limit(HANDLE job_object, uint32
         }
         else
         {
-            /*Codes_SRS_JOB_OBJECT_HELPER_88_012: [ If percent_physical_memory is not JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT, internal_job_object_helper_set_memory_limit shall set JobMemoryLimit and ProcessMemoryLimit to percent_physical_memory percent of the physical memory and call SetInformationJobObject with JobObjectExtendedLimitInformation. ]*/
+            /*Codes_SRS_JOB_OBJECT_HELPER_88_012: [ internal_job_object_helper_set_memory_limit shall set JobMemoryLimit and ProcessMemoryLimit to percent_physical_memory percent of the physical memory and call SetInformationJobObject with JobObjectExtendedLimitInformation. ]*/
             JOBOBJECT_EXTENDED_LIMIT_INFORMATION extended_limit_information = { 0 };
             extended_limit_information.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_JOB_MEMORY | JOB_OBJECT_LIMIT_PROCESS_MEMORY;
             SIZE_T memory_limit = percent_physical_memory * memory_status_ex.ullTotalPhys / 100;
@@ -131,6 +129,8 @@ static int internal_job_object_helper_set_memory_limit(HANDLE job_object, uint32
             }
             else
             {
+                /*Codes_SRS_JOB_OBJECT_HELPER_88_043: [ On success, internal_job_object_helper_set_memory_limit shall store percent_physical_memory in the singleton state. ]*/
+                job_object_singleton_state.percent_memory = percent_physical_memory;
                 /*Codes_SRS_JOB_OBJECT_HELPER_88_014: [ internal_job_object_helper_set_memory_limit shall succeed and return 0. ]*/
                 result = 0;
             }
@@ -147,29 +147,63 @@ static int internal_job_object_helper_reconfigure(uint32_t percent_cpu, uint32_t
 {
     int result;
 
-    /*Codes_SRS_JOB_OBJECT_HELPER_88_003: [ internal_job_object_helper_reconfigure shall call internal_job_object_helper_set_cpu_limit to apply the CPU rate control to the Windows job object. ]*/
-    if (internal_job_object_helper_set_cpu_limit(job_object_singleton_state.job_object_helper->job_object, percent_cpu) != 0)
+    bool failed = false;
+    /*Codes_SRS_JOB_OBJECT_HELPER_88_003: [ If percent_cpu is not 0, internal_job_object_helper_reconfigure shall call internal_job_object_helper_set_cpu_limit to apply the CPU rate control to the Windows job object. ]*/
+    if(percent_cpu != 0)
+    {
+        if (internal_job_object_helper_set_cpu_limit(job_object_singleton_state.job_object_helper->job_object, percent_cpu) != 0)
+        {
+             /*Codes_SRS_JOB_OBJECT_HELPER_88_017: [ If there are any failures, internal_job_object_helper_reconfigure shall fail and return a non-zero value. ]*/
+            LogError("failure in internal_job_object_helper_set_cpu_limit(job_object=%p, percent_cpu=%" PRIu32 ") during reconfiguration",
+                job_object_singleton_state.job_object_helper->job_object, percent_cpu);
+            failed = true;
+        }
+        else
+        {
+            /* Do Nothing */
+        }
+    }
+    else
+    {
+        /* Do Nothing */
+    }
+
+    if (failed)
+    {
+        /* Error already logged */
+    }
+    else
+    {
+        /*Codes_SRS_JOB_OBJECT_HELPER_88_009: [ If percent_physical_memory is not 0, internal_job_object_helper_reconfigure shall call internal_job_object_helper_set_memory_limit to apply the memory limit to the Windows job object. ]*/
+        if(percent_physical_memory != 0)
+        {
+            if (internal_job_object_helper_set_memory_limit(job_object_singleton_state.job_object_helper->job_object, percent_physical_memory) != 0)
+            {
+                /*Codes_SRS_JOB_OBJECT_HELPER_88_017: [ If there are any failures, internal_job_object_helper_reconfigure shall fail and return a non-zero value. ]*/
+                LogError("failure in internal_job_object_helper_set_memory_limit(job_object=%p, percent_physical_memory=%" PRIu32 ") during reconfiguration",
+                    job_object_singleton_state.job_object_helper->job_object, percent_physical_memory);
+                failed = true;
+            }
+            else
+            {
+                /* Do Nothing */
+            }
+        }
+        else
+        {
+            /* Do Nothing */
+        }
+    }
+
+    if (failed)
     {
         /*Codes_SRS_JOB_OBJECT_HELPER_88_017: [ If there are any failures, internal_job_object_helper_reconfigure shall fail and return a non-zero value. ]*/
-        LogError("failure in internal_job_object_helper_set_cpu_limit(job_object=%p, percent_cpu=%" PRIu32 ") during reconfiguration",
-            job_object_singleton_state.job_object_helper->job_object, percent_cpu);
         result = MU_FAILURE;
     }
     else
     {
-        /*Codes_SRS_JOB_OBJECT_HELPER_88_009: [ internal_job_object_helper_reconfigure shall call internal_job_object_helper_set_memory_limit to apply the memory limit to the Windows job object. ]*/
-        if (internal_job_object_helper_set_memory_limit(job_object_singleton_state.job_object_helper->job_object, percent_physical_memory) != 0)
-        {
-            /*Codes_SRS_JOB_OBJECT_HELPER_88_017: [ If there are any failures, internal_job_object_helper_reconfigure shall fail and return a non-zero value. ]*/
-            LogError("failure in internal_job_object_helper_set_memory_limit(job_object=%p, percent_physical_memory=%" PRIu32 ") during reconfiguration",
-                job_object_singleton_state.job_object_helper->job_object, percent_physical_memory);
-            result = MU_FAILURE;
-        }
-        else
-        {
-            /*Codes_SRS_JOB_OBJECT_HELPER_88_020: [ On successful reconfiguration, internal_job_object_helper_reconfigure shall return 0. ]*/
-            result = 0;
-        }
+        /*Codes_SRS_JOB_OBJECT_HELPER_88_020: [ On successful reconfiguration, internal_job_object_helper_reconfigure shall return 0. ]*/
+        result = 0;
     }
 
     return result;
@@ -199,38 +233,70 @@ static int internal_job_object_helper_create(const char* job_name, uint32_t perc
         }
         else
         {
-            /*Codes_SRS_JOB_OBJECT_HELPER_88_037: [ internal_job_object_helper_create shall call internal_job_object_helper_set_cpu_limit to apply the CPU rate control to the Windows job object. ]*/
-            if (internal_job_object_helper_set_cpu_limit(job_object_helper->job_object, percent_cpu) != 0)
+            bool failed = false;
+            /*Codes_SRS_JOB_OBJECT_HELPER_88_037: [ If percent_cpu is not 0, internal_job_object_helper_create shall call internal_job_object_helper_set_cpu_limit to apply the CPU rate control to the Windows job object. ]*/
+            if(percent_cpu != 0)
             {
-                /*Codes_SRS_JOB_OBJECT_HELPER_88_032: [ If there are any failures, internal_job_object_helper_create shall fail and return a non-zero value. ]*/
+                if (internal_job_object_helper_set_cpu_limit(job_object_helper->job_object, percent_cpu) != 0)
+                {
+                    /*Codes_SRS_JOB_OBJECT_HELPER_88_032: [ If there are any failures, internal_job_object_helper_create shall fail and return a non-zero value. ]*/
+                    failed = true;
+                }
             }
             else
             {
-                /*Codes_SRS_JOB_OBJECT_HELPER_88_038: [ internal_job_object_helper_create shall call internal_job_object_helper_set_memory_limit to apply the memory limit to the Windows job object. ]*/
-                if (internal_job_object_helper_set_memory_limit(job_object_helper->job_object, percent_physical_memory) != 0)
+                /* Do Nothing*/
+            }
+
+            if(failed)
+            {
+                /* Error already logged */
+            }
+            else
+            {
+                /*Codes_SRS_JOB_OBJECT_HELPER_88_038: [ If percent_physical_memory is not 0, internal_job_object_helper_create shall call internal_job_object_helper_set_memory_limit to apply the memory limit to the Windows job object. ]*/
+                if(percent_physical_memory != 0)
                 {
-                    /*Codes_SRS_JOB_OBJECT_HELPER_88_032: [ If there are any failures, internal_job_object_helper_create shall fail and return a non-zero value. ]*/
-                }
-                else
-                {
-                    /*Codes_SRS_JOB_OBJECT_HELPER_88_039: [ internal_job_object_helper_create shall call GetCurrentProcess to get the current process handle. ]*/
-                    HANDLE current_process = GetCurrentProcess();
-                    /*Codes_SRS_JOB_OBJECT_HELPER_19_008: [ internal_job_object_helper_create shall call AssignProcessToJobObject to assign the current process to the new job object. ]*/
-                    if (!AssignProcessToJobObject(job_object_helper->job_object, current_process))
+                    if (internal_job_object_helper_set_memory_limit(job_object_helper->job_object, percent_physical_memory) != 0)
                     {
                         /*Codes_SRS_JOB_OBJECT_HELPER_88_032: [ If there are any failures, internal_job_object_helper_create shall fail and return a non-zero value. ]*/
-                        LogLastError("failure in AssignProcessToJobObject(job_object=%p, current_process=%p)", job_object_helper->job_object, current_process);
+                        failed = true;
                     }
                     else
                     {
-                        /*Codes_SRS_JOB_OBJECT_HELPER_88_024: [ On success, internal_job_object_helper_create shall store the THANDLE(JOB_OBJECT_HELPER) in the process-level singleton state. ]*/
-                        THANDLE_INITIALIZE_MOVE(JOB_OBJECT_HELPER)(&job_object_singleton_state.job_object_helper, &job_object_helper);
-                        /*Codes_SRS_JOB_OBJECT_HELPER_88_033: [ internal_job_object_helper_create shall succeed and return 0. ]*/
-                        result = 0;
-                        goto all_ok;
+                        /* Do Nothing */
                     }
                 }
+                else
+                {
+                    /* Do Nothing */
+                }
             }
+
+            if (failed)
+            {
+                /* Error already logged */
+            }
+            else
+            {
+                /*Codes_SRS_JOB_OBJECT_HELPER_88_039: [ internal_job_object_helper_create shall call GetCurrentProcess to get the current process handle. ]*/
+                HANDLE current_process = GetCurrentProcess();
+                /*Codes_SRS_JOB_OBJECT_HELPER_19_008: [ internal_job_object_helper_create shall call AssignProcessToJobObject to assign the current process to the new job object. ]*/
+                if (!AssignProcessToJobObject(job_object_helper->job_object, current_process))
+                {
+                    /*Codes_SRS_JOB_OBJECT_HELPER_88_032: [ If there are any failures, internal_job_object_helper_create shall fail and return a non-zero value. ]*/
+                    LogLastError("failure in AssignProcessToJobObject(job_object=%p, current_process=%p)", job_object_helper->job_object, current_process);
+                }
+                else
+                {
+                    /*Codes_SRS_JOB_OBJECT_HELPER_88_024: [ On success, internal_job_object_helper_create shall store the THANDLE(JOB_OBJECT_HELPER) in the process-level singleton state. ]*/
+                    THANDLE_INITIALIZE_MOVE(JOB_OBJECT_HELPER)(&job_object_singleton_state.job_object_helper, &job_object_helper);
+                    /*Codes_SRS_JOB_OBJECT_HELPER_88_033: [ internal_job_object_helper_create shall succeed and return 0. ]*/
+                    result = 0;
+                    goto all_ok;
+                }
+            }
+
             if (!CloseHandle(job_object_helper->job_object))
             {
                 LogLastError("failure in CloseHandle(job_object_helper->job_object=%p)", job_object_helper->job_object);
@@ -252,7 +318,9 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
         /*Codes_SRS_JOB_OBJECT_HELPER_19_001: [ If percent_cpu is greater than 100 then job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
         percent_cpu > MAX_CPU_PERCENT ||
         /*Codes_SRS_JOB_OBJECT_HELPER_88_034: [ If percent_physical_memory is greater than 100 then job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
-        percent_physical_memory > MAX_MEMORY_PERCENT)
+        percent_physical_memory > MAX_MEMORY_PERCENT ||
+        /*Codes_SRS_JOB_OBJECT_HELPER_88_040: [ If percent_cpu is 0 and percent_physical_memory is 0 then job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
+        (percent_cpu == 0 && percent_physical_memory == 0))
     {
         LogError("Invalid arguments: job_name=%s, percent_cpu=%" PRIu32 ", percent_physical_memory=%" PRIu32 "", MU_P_OR_NULL(job_name), percent_cpu, percent_physical_memory);
     }
@@ -263,23 +331,32 @@ IMPLEMENT_MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_
         {
             LogWarning("Reconfiguring existing process-level singleton Job Object (cpu: %" PRIu32 ", memory: %" PRIu32 ")",
                 percent_cpu, percent_physical_memory);
-            /*Codes_SRS_JOB_OBJECT_HELPER_88_002: [ If job_object_singleton_state.job_object_helper is not NULL, job_object_helper_set_job_limits_to_current_process shall call internal_job_object_helper_reconfigure to apply the limits to the existing job object. ]*/
-            if (internal_job_object_helper_reconfigure(percent_cpu, percent_physical_memory) != 0)
+
+            if(/*Codes_SRS_JOB_OBJECT_HELPER_88_041: [ During reconfiguration, if percent_cpu is 0 and the job_object_singleton_state.percent_cpu is non-zero, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
+                (percent_cpu == 0 && job_object_singleton_state.percent_cpu != 0) ||
+                /*Codes_SRS_JOB_OBJECT_HELPER_88_042: [ During reconfiguration, if percent_physical_memory is 0 and the job_object_singleton_state.percent_memory is non-zero, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
+                (percent_physical_memory == 0 && job_object_singleton_state.percent_memory != 0))
             {
-                /*Codes_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
-                /* Error already logged */
+                LogError("Invalid arguments: percent_cpu or percent_physical_memory cannot be set to 0 once it has been set to a non-zero value. Received percent_cpu=%" PRIu32 ", received percent_physical_memory=%" PRIu32 ", current percent_cpu=%" PRIu32 ", current percent_physical_memory=%" PRIu32 "", percent_cpu, percent_physical_memory, job_object_singleton_state.percent_cpu, job_object_singleton_state.percent_memory);
             }
             else
             {
-                /*Codes_SRS_JOB_OBJECT_HELPER_88_021: [ If internal_job_object_helper_reconfigure returns 0, job_object_helper_set_job_limits_to_current_process shall increment the reference count on the existing THANDLE(JOB_OBJECT_HELPER) and return it. ]*/
-                THANDLE_INITIALIZE(JOB_OBJECT_HELPER)(&result, job_object_singleton_state.job_object_helper);
+                /*Codes_SRS_JOB_OBJECT_HELPER_88_002: [ If job_object_singleton_state.job_object_helper is not NULL, job_object_helper_set_job_limits_to_current_process shall call internal_job_object_helper_reconfigure to apply the limits to the existing job object. ]*/
+                if (internal_job_object_helper_reconfigure(percent_cpu, percent_physical_memory) != 0)
+                {
+                    /*Codes_SRS_JOB_OBJECT_HELPER_19_009: [ If there are any failures, job_object_helper_set_job_limits_to_current_process shall fail and return NULL. ]*/
+                    /* Error already logged */
+                }
+                else
+                {
+                    /*Codes_SRS_JOB_OBJECT_HELPER_88_021: [ If internal_job_object_helper_reconfigure returns 0, job_object_helper_set_job_limits_to_current_process shall increment the reference count on the existing THANDLE(JOB_OBJECT_HELPER) and return it. ]*/
+                    THANDLE_INITIALIZE(JOB_OBJECT_HELPER)(&result, job_object_singleton_state.job_object_helper);
+                }
             }
         }
         else
         {
             if (
-                /*Codes_SRS_JOB_OBJECT_HELPER_88_022: [ If job_object_singleton_state.job_object_helper is NULL and percent_cpu is JOB_OBJECT_HELPER_DISABLE_CPU_RATE_CONTROL and percent_physical_memory is JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT, job_object_helper_set_job_limits_to_current_process shall return NULL without creating a job object. ]*/
-                (percent_cpu == JOB_OBJECT_HELPER_DISABLE_CPU_RATE_CONTROL && percent_physical_memory == JOB_OBJECT_HELPER_DISABLE_MEMORY_LIMIT) ||
                 /*Codes_SRS_JOB_OBJECT_HELPER_88_023: [ If job_object_singleton_state.job_object_helper is NULL and both percent_cpu and percent_physical_memory are 100, job_object_helper_set_job_limits_to_current_process shall return NULL without creating a job object. ]*/
                 (percent_cpu == MAX_CPU_PERCENT && percent_physical_memory == MAX_MEMORY_PERCENT))
             {
@@ -310,4 +387,9 @@ IMPLEMENT_MOCKABLE_FUNCTION(, void, job_object_helper_deinit_for_test)
     LogWarning("job_object_helper_deinit_for_test called - this should only be used for test cleanup");
     /*Codes_SRS_JOB_OBJECT_HELPER_88_027: [ job_object_helper_deinit_for_test shall release the singleton THANDLE(JOB_OBJECT_HELPER) by assigning it to NULL. ]*/
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_singleton_state.job_object_helper, NULL);
+
+    /*Codes_SRS_JOB_OBJECT_HELPER_88_044: [ job_object_helper_deinit_for_test shall reset percent_cpu to 0 in the singleton state. ]*/
+    job_object_singleton_state.percent_cpu = 0;
+    /*Codes_SRS_JOB_OBJECT_HELPER_88_045: [ job_object_helper_deinit_for_test shall reset percent_memory to 0 in the singleton state. ]*/
+    job_object_singleton_state.percent_memory = 0;
 }
