@@ -347,38 +347,14 @@ TEST_FUNCTION(TQUEUE_DISPOSE_FUNC_with_non_NULL_dispose_item_with_1_item_calls_d
 /* Tests_SRS_TQUEUE_01_011: [ For each item in the queue, dispose_item_function shall be called with dispose_item_function_context and a pointer to the array entry value (T*). ]*/
 /* Tests_SRS_TQUEUE_01_056: [ The lock initialized in TQUEUE_CREATE(T) shall be de-initialized. ] */
 /* Tests_SRS_TQUEUE_01_057: [ The array backing the queue shall be freed. ] */
-TEST_FUNCTION(TQUEUE_DISPOSE_FUNC_with_non_NULL_dispose_item_with_2_items_calls_dispose_item_2_times)
+PARAMETERIZED_TEST_FUNCTION(TQUEUE_DISPOSE_FUNC_with_non_NULL_dispose_item_with_2_items_calls_dispose_item_2_times,
+    ARGS(uint32_t, initial_queue_size, uint32_t, max_queue_size),
+    CASE((1024, 1024), same_initial_and_max_size),
+    CASE((1024, 2048), max_size_bigger_than_initial_size),
+    CASE((1, 2048), queue_that_was_grown))
 {
     // arrange
-    TQUEUE(int32_t) queue = test_queue_create(1024, 1024, test_copy_item, test_dispose_item, (void*)0x4242);
-    test_queue_push(queue, 42);
-    test_queue_push(queue, 42);
-
-    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_add_64(IGNORED_ARG, 0)); // head
-    STRICT_EXPECTED_CALL(interlocked_add_64(IGNORED_ARG, 0)); // tail
-    STRICT_EXPECTED_CALL(test_dispose_item((void*)0x4242, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(test_dispose_item((void*)0x4242, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(srw_lock_ll_deinit(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-
-    // act
-    TQUEUE_ASSIGN(int32_t)(&queue, NULL);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* Tests_SRS_TQUEUE_01_009: [ Otherwise, TQUEUE_DISPOSE_FUNC(T) shall obtain the current queue head by calling interlocked_add_64. ]*/
-/* Tests_SRS_TQUEUE_01_010: [ TQUEUE_DISPOSE_FUNC(T) shall obtain the current queue tail by calling interlocked_add_64. ]*/
-/* Tests_SRS_TQUEUE_01_011: [ For each item in the queue, dispose_item_function shall be called with dispose_item_function_context and a pointer to the array entry value (T*). ]*/
-/* Tests_SRS_TQUEUE_01_056: [ The lock initialized in TQUEUE_CREATE(T) shall be de-initialized. ] */
-/* Tests_SRS_TQUEUE_01_057: [ The array backing the queue shall be freed. ] */
-TEST_FUNCTION(TQUEUE_DISPOSE_FUNC_for_a_queue_with_max_size_bigger_than_initial_size_frees_resources)
-{
-    // arrange
-    TQUEUE(int32_t) queue = test_queue_create(1024, 2048, test_copy_item, test_dispose_item, (void*)0x4242);
+    TQUEUE(int32_t) queue = test_queue_create(initial_queue_size, max_queue_size, test_copy_item, test_dispose_item, (void*)0x4242);
     test_queue_push(queue, 42);
     test_queue_push(queue, 42);
 
@@ -400,59 +376,13 @@ TEST_FUNCTION(TQUEUE_DISPOSE_FUNC_for_a_queue_with_max_size_bigger_than_initial_
 
 /* Tests_SRS_TQUEUE_01_056: [ The lock initialized in TQUEUE_CREATE(T) shall be de-initialized. ] */
 /* Tests_SRS_TQUEUE_01_057: [ The array backing the queue shall be freed. ] */
-TEST_FUNCTION(TQUEUE_DISPOSE_FUNC_for_a_queue_with_max_size_bigger_than_initial_size_with_NULL_copy_and_dispose_function_frees_resources)
+PARAMETERIZED_TEST_FUNCTION(TQUEUE_DISPOSE_FUNC_with_NULL_copy_and_dispose_function_frees_resources,
+    ARGS(uint32_t, initial_queue_size, uint32_t, max_queue_size),
+    CASE((1024, 2048), max_size_bigger_than_initial_size),
+    CASE((1, 2048), queue_that_was_grown))
 {
     // arrange
-    TQUEUE(int32_t) queue = test_queue_create(1024, 2048, NULL, NULL, (void*)0x4242);
-    test_queue_push(queue, 42);
-    test_queue_push(queue, 42);
-
-    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(srw_lock_ll_deinit(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-
-    // act
-    TQUEUE_ASSIGN(int32_t)(&queue, NULL);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* Tests_SRS_TQUEUE_01_009: [ Otherwise, TQUEUE_DISPOSE_FUNC(T) shall obtain the current queue head by calling interlocked_add_64. ]*/
-/* Tests_SRS_TQUEUE_01_010: [ TQUEUE_DISPOSE_FUNC(T) shall obtain the current queue tail by calling interlocked_add_64. ]*/
-/* Tests_SRS_TQUEUE_01_011: [ For each item in the queue, dispose_item_function shall be called with dispose_item_function_context and a pointer to the array entry value (T*). ]*/
-/* Tests_SRS_TQUEUE_01_056: [ The lock initialized in TQUEUE_CREATE(T) shall be de-initialized. ] */
-/* Tests_SRS_TQUEUE_01_057: [ The array backing the queue shall be freed. ] */
-TEST_FUNCTION(TQUEUE_DISPOSE_FUNC_for_a_queue_that_was_grown_frees_resources)
-{
-    // arrange
-    TQUEUE(int32_t) queue = test_queue_create(1, 2048, test_copy_item, test_dispose_item, (void*)0x4242);
-    test_queue_push(queue, 42);
-    test_queue_push(queue, 42);
-
-    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_add_64(IGNORED_ARG, 0)); // head
-    STRICT_EXPECTED_CALL(interlocked_add_64(IGNORED_ARG, 0)); // tail
-    STRICT_EXPECTED_CALL(test_dispose_item((void*)0x4242, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(test_dispose_item((void*)0x4242, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(srw_lock_ll_deinit(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-
-    // act
-    TQUEUE_ASSIGN(int32_t)(&queue, NULL);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-}
-
-/* Tests_SRS_TQUEUE_01_056: [ The lock initialized in TQUEUE_CREATE(T) shall be de-initialized. ] */
-/* Tests_SRS_TQUEUE_01_057: [ The array backing the queue shall be freed. ] */
-TEST_FUNCTION(TQUEUE_DISPOSE_FUNC_for_a_queue_that_was_grown__with_NULL_copy_and_dispose_function_frees_resources)
-{
-    // arrange
-    TQUEUE(int32_t) queue = test_queue_create(1, 2048, NULL, NULL, (void*)0x4242);
+    TQUEUE(int32_t) queue = test_queue_create(initial_queue_size, max_queue_size, NULL, NULL, (void*)0x4242);
     test_queue_push(queue, 42);
     test_queue_push(queue, 42);
 
@@ -607,7 +537,12 @@ TEST_FUNCTION(TQUEUE_PUSH_twice_for_queue_size_1_returns_QUEUE_FULL)
     TQUEUE_ASSIGN(int32_t)(&queue, NULL);
 }
 
-static void test_TQUEUE_PUSH_when_entry_state_is_different_than_NOT_USED_tries_again(QUEUE_ENTRY_STATE queue_entry_state)
+/* Tests_SRS_TQUEUE_01_023: [ If the state of the array entry corresponding to the head is not NOT_USED, TQUEUE_PUSH(T) shall retry the whole push. ]*/
+PARAMETERIZED_TEST_FUNCTION(TQUEUE_PUSH_when_entry_state_is_different_than_NOT_USED_tries_again,
+    ARGS(QUEUE_ENTRY_STATE, queue_entry_state),
+    CASE((QUEUE_ENTRY_STATE_PUSHING), PUSHING),
+    CASE((QUEUE_ENTRY_STATE_POPPING), POPPING),
+    CASE((QUEUE_ENTRY_STATE_USED), USED))
 {
     // arrange
     int32_t item = 42;
@@ -642,24 +577,6 @@ static void test_TQUEUE_PUSH_when_entry_state_is_different_than_NOT_USED_tries_a
 
     // clean
     TQUEUE_ASSIGN(int32_t)(&queue, NULL);
-}
-
-/* Tests_SRS_TQUEUE_01_023: [ If the state of the array entry corresponding to the head is not NOT_USED, TQUEUE_PUSH(T) shall retry the whole push. ]*/
-TEST_FUNCTION(TQUEUE_PUSH_when_entry_state_is_PUSHING_tries_again)
-{
-    test_TQUEUE_PUSH_when_entry_state_is_different_than_NOT_USED_tries_again(QUEUE_ENTRY_STATE_PUSHING);
-}
-
-/* Tests_SRS_TQUEUE_01_023: [ If the state of the array entry corresponding to the head is not NOT_USED, TQUEUE_PUSH(T) shall retry the whole push. ]*/
-TEST_FUNCTION(TQUEUE_PUSH_when_entry_state_is_POPPING_tries_again)
-{
-    test_TQUEUE_PUSH_when_entry_state_is_different_than_NOT_USED_tries_again(QUEUE_ENTRY_STATE_POPPING);
-}
-
-/* Tests_SRS_TQUEUE_01_023: [ If the state of the array entry corresponding to the head is not NOT_USED, TQUEUE_PUSH(T) shall retry the whole push. ]*/
-TEST_FUNCTION(TQUEUE_PUSH_when_entry_state_is_USED_tries_again)
-{
-    test_TQUEUE_PUSH_when_entry_state_is_different_than_NOT_USED_tries_again(QUEUE_ENTRY_STATE_USED);
 }
 
 /* Tests_SRS_TQUEUE_01_043: [ If the queue head has changed, TQUEUE_PUSH(T) shall set the state back to NOT_USED and retry the push. ]*/
@@ -1214,7 +1131,12 @@ TEST_FUNCTION(TQUEUE_POP_when_queue_is_empty_after_a_push_and_a_pop_and_queue_si
     TQUEUE_ASSIGN(int32_t)(&queue, NULL);
 }
 
-static void test_TQUEUE_POP_when_entry_state_is_different_than_USED_tries_again(QUEUE_ENTRY_STATE queue_entry_state)
+/* Tests_SRS_TQUEUE_01_036: [ If the state of the array entry corresponding to the tail is not USED, TQUEUE_POP(T) shall try again. ]*/
+PARAMETERIZED_TEST_FUNCTION(TQUEUE_POP_when_entry_state_is_different_than_USED_tries_again,
+    ARGS(QUEUE_ENTRY_STATE, queue_entry_state),
+    CASE((QUEUE_ENTRY_STATE_PUSHING), PUSHING),
+    CASE((QUEUE_ENTRY_STATE_POPPING), POPPING),
+    CASE((QUEUE_ENTRY_STATE_NOT_USED), NOT_USED))
 {
     // arrange
     int32_t item = 45;
@@ -1244,24 +1166,6 @@ static void test_TQUEUE_POP_when_entry_state_is_different_than_USED_tries_again(
 
     // clean
     TQUEUE_ASSIGN(int32_t)(&queue, NULL);
-}
-
-/* Tests_SRS_TQUEUE_01_036: [ If the state of the array entry corresponding to the tail is not USED, TQUEUE_POP(T) shall try again. ]*/
-TEST_FUNCTION(TQUEUE_POP_when_entry_state_is_PUSHING_tries_again)
-{
-    test_TQUEUE_POP_when_entry_state_is_different_than_USED_tries_again(QUEUE_ENTRY_STATE_PUSHING);
-}
-
-/* Tests_SRS_TQUEUE_01_036: [ If the state of the array entry corresponding to the tail is not USED, TQUEUE_POP(T) shall try again. ]*/
-TEST_FUNCTION(TQUEUE_POP_when_entry_state_is_POPPING_tries_again)
-{
-    test_TQUEUE_POP_when_entry_state_is_different_than_USED_tries_again(QUEUE_ENTRY_STATE_POPPING);
-}
-
-/* Tests_SRS_TQUEUE_01_036: [ If the state of the array entry corresponding to the tail is not USED, TQUEUE_POP(T) shall try again. ]*/
-TEST_FUNCTION(TQUEUE_POP_when_entry_state_is_NOT_USED_tries_again)
-{
-    test_TQUEUE_POP_when_entry_state_is_different_than_USED_tries_again(QUEUE_ENTRY_STATE_NOT_USED);
 }
 
 /* Tests_SRS_TQUEUE_01_037: [ If copy_item_function and sispose_item_function were specified in TQUEUE_CREATE(T): ]*/
