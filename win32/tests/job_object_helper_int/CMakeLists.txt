@@ -7,7 +7,7 @@ set(int_test_names
     job_object_helper_memory_int
     job_object_helper_multi_process_int
     job_object_helper_singleton_int
-    job_object_helper_reconfigure_int
+    job_object_helper_update_int
     job_object_helper_partial_limits_int
 )
 

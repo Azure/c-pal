@@ -22,8 +22,8 @@
 #define TEST_MEMORY_PERCENT 1
 #define INITIAL_CPU_PERCENT 50
 #define INITIAL_MEMORY_PERCENT 1
-#define RECONFIGURED_CPU_PERCENT 30
-#define RECONFIGURED_MEMORY_PERCENT 2
+#define UPDATED_CPU_PERCENT 30
+#define UPDATED_MEMORY_PERCENT 2
 
 static THANDLE(JOB_OBJECT_HELPER) create_job_object_with_limits(char* job_name_out, size_t job_name_size, uint32_t cpu, uint32_t memory)
 {
@@ -153,74 +153,74 @@ TEST_FUNCTION(job_object_helper_set_job_limits_with_nonzero_cpu_and_zero_memory_
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
 }
 
-TEST_FUNCTION(job_object_helper_reconfigure_both_limits_updated_succeeds)
+TEST_FUNCTION(job_object_helper_update_both_limits_succeeds)
 {
     /* This test verifies that an existing job object created with both CPU and memory limits
-       can be reconfigured to update both limits:
+       can be updated to new limits:
        (50% CPU, 1% memory) -> (30% CPU, 2% memory) */
 
     ///arrange
     char job_name[64];
     THANDLE(JOB_OBJECT_HELPER) initial_job_object_helper = create_job_object_with_limits(job_name, sizeof(job_name), INITIAL_CPU_PERCENT, INITIAL_MEMORY_PERCENT);
 
-    ///act - reconfigure to updated values
-    THANDLE(JOB_OBJECT_HELPER) reconfigured_job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, RECONFIGURED_CPU_PERCENT, RECONFIGURED_MEMORY_PERCENT);
+    ///act - update to new values
+    THANDLE(JOB_OBJECT_HELPER) updated_job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, UPDATED_CPU_PERCENT, UPDATED_MEMORY_PERCENT);
 
     ///assert
-    ASSERT_IS_NOT_NULL(reconfigured_job_object_helper, "Reconfigure should succeed");
-    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, reconfigured_job_object_helper, "Reconfigured call should return same singleton");
+    ASSERT_IS_NOT_NULL(updated_job_object_helper, "Update should succeed");
+    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, updated_job_object_helper, "Updated call should return same singleton");
 
     HANDLE job_object = OpenJobObjectA(JOB_OBJECT_QUERY, FALSE, job_name);
-    ASSERT_IS_NOT_NULL(job_object, "Failed to open job object after reconfigure");
+    ASSERT_IS_NOT_NULL(job_object, "Failed to open job object after update");
 
     /* Verify CPU rate control is updated */
     JOBOBJECT_CPU_RATE_CONTROL_INFORMATION cpu_info = { 0 };
     DWORD return_length = 0;
     BOOL query_result = QueryInformationJobObject(job_object, JobObjectCpuRateControlInformation, &cpu_info, sizeof(cpu_info), &return_length);
-    ASSERT_IS_TRUE(query_result, "Failed to query CPU rate info after reconfigure");
-    ASSERT_ARE_EQUAL(uint32_t, (uint32_t)(JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP), cpu_info.ControlFlags, "CPU rate control should be enabled with hard cap after reconfigure");
-    ASSERT_ARE_EQUAL(uint32_t, RECONFIGURED_CPU_PERCENT * 100, cpu_info.CpuRate, "Reconfigured CPU rate should be %" PRIu32 "", RECONFIGURED_CPU_PERCENT * 100);
-    LogInfo("Reconfigured CPU rate verified: ControlFlags=%" PRIu32 ", CpuRate=%" PRIu32 "", cpu_info.ControlFlags, cpu_info.CpuRate);
+    ASSERT_IS_TRUE(query_result, "Failed to query CPU rate info after update");
+    ASSERT_ARE_EQUAL(uint32_t, (uint32_t)(JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP), cpu_info.ControlFlags, "CPU rate control should be enabled with hard cap after update");
+    ASSERT_ARE_EQUAL(uint32_t, UPDATED_CPU_PERCENT * 100, cpu_info.CpuRate, "Updated CPU rate should be %" PRIu32 "", UPDATED_CPU_PERCENT * 100);
+    LogInfo("Updated CPU rate verified: ControlFlags=%" PRIu32 ", CpuRate=%" PRIu32 "", cpu_info.ControlFlags, cpu_info.CpuRate);
 
     /* Verify memory limit is updated */
     MEMORYSTATUSEX mem_status;
     mem_status.dwLength = sizeof(mem_status);
     ASSERT_IS_TRUE(GlobalMemoryStatusEx(&mem_status));
-    SIZE_T expected_memory_in_MB = RECONFIGURED_MEMORY_PERCENT * mem_status.ullTotalPhys / 100 / MEGABYTE;
+    SIZE_T expected_memory_in_MB = UPDATED_MEMORY_PERCENT * mem_status.ullTotalPhys / 100 / MEGABYTE;
 
     JOBOBJECT_EXTENDED_LIMIT_INFORMATION ext_info = { 0 };
     query_result = QueryInformationJobObject(job_object, JobObjectExtendedLimitInformation, &ext_info, sizeof(ext_info), &return_length);
-    ASSERT_IS_TRUE(query_result, "Failed to query extended limit info after reconfigure");
-    ASSERT_ARE_EQUAL(size_t, expected_memory_in_MB, ext_info.JobMemoryLimit / MEGABYTE, "Reconfigured job memory limit should be %" PRIu32 "%% of total physical memory", (uint32_t)RECONFIGURED_MEMORY_PERCENT);
-    ASSERT_ARE_EQUAL(size_t, expected_memory_in_MB, ext_info.ProcessMemoryLimit / MEGABYTE, "Reconfigured process memory limit should be %" PRIu32 "%% of total physical memory", (uint32_t)RECONFIGURED_MEMORY_PERCENT);
-    LogInfo("Reconfigured memory limit verified: %zu MB", ext_info.JobMemoryLimit / MEGABYTE);
+    ASSERT_IS_TRUE(query_result, "Failed to query extended limit info after update");
+    ASSERT_ARE_EQUAL(size_t, expected_memory_in_MB, ext_info.JobMemoryLimit / MEGABYTE, "Updated job memory limit should be %" PRIu32 "%% of total physical memory", (uint32_t)UPDATED_MEMORY_PERCENT);
+    ASSERT_ARE_EQUAL(size_t, expected_memory_in_MB, ext_info.ProcessMemoryLimit / MEGABYTE, "Updated process memory limit should be %" PRIu32 "%% of total physical memory", (uint32_t)UPDATED_MEMORY_PERCENT);
+    LogInfo("Updated memory limit verified: %zu MB", ext_info.JobMemoryLimit / MEGABYTE);
 
     (void)CloseHandle(job_object);
 
     ///cleanup
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&initial_job_object_helper, NULL);
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&reconfigured_job_object_helper, NULL);
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&updated_job_object_helper, NULL);
 }
 
-TEST_FUNCTION(job_object_helper_reconfigure_memory_only_when_cpu_was_zero_succeeds)
+TEST_FUNCTION(job_object_helper_update_memory_only_when_cpu_was_zero_succeeds)
 {
     /* This test verifies that when the initial creation had cpu=0 (CPU not applied),
-       a reconfigure with cpu=0 (still not applied) and updated memory succeeds.
+       an update with cpu=0 (still not applied) and updated memory succeeds.
        (0% CPU, 1% memory) -> (0% CPU, 2% memory) */
 
     ///arrange
     char job_name[64];
     THANDLE(JOB_OBJECT_HELPER) initial_job_object_helper = create_job_object_with_limits(job_name, sizeof(job_name), 0, INITIAL_MEMORY_PERCENT);
 
-    ///act - reconfigure: cpu still 0, memory updated
-    THANDLE(JOB_OBJECT_HELPER) reconfigured_job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, 0, RECONFIGURED_MEMORY_PERCENT);
+    ///act - update: cpu still 0, memory updated
+    THANDLE(JOB_OBJECT_HELPER) updated_job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, 0, UPDATED_MEMORY_PERCENT);
 
     ///assert
-    ASSERT_IS_NOT_NULL(reconfigured_job_object_helper, "Reconfigure should succeed");
-    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, reconfigured_job_object_helper, "Reconfigured call should return same singleton");
+    ASSERT_IS_NOT_NULL(updated_job_object_helper, "Update should succeed");
+    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, updated_job_object_helper, "Updated call should return same singleton");
 
     HANDLE job_object = OpenJobObjectA(JOB_OBJECT_QUERY, FALSE, job_name);
-    ASSERT_IS_NOT_NULL(job_object, "Failed to open job object after reconfigure");
+    ASSERT_IS_NOT_NULL(job_object, "Failed to open job object after update");
 
     /* Verify CPU rate control is still not applied */
     JOBOBJECT_CPU_RATE_CONTROL_INFORMATION cpu_info = { 0 };
@@ -234,54 +234,54 @@ TEST_FUNCTION(job_object_helper_reconfigure_memory_only_when_cpu_was_zero_succee
     MEMORYSTATUSEX mem_status;
     mem_status.dwLength = sizeof(mem_status);
     ASSERT_IS_TRUE(GlobalMemoryStatusEx(&mem_status));
-    SIZE_T expected_memory_in_MB = RECONFIGURED_MEMORY_PERCENT * mem_status.ullTotalPhys / 100 / MEGABYTE;
+    SIZE_T expected_memory_in_MB = UPDATED_MEMORY_PERCENT * mem_status.ullTotalPhys / 100 / MEGABYTE;
 
     JOBOBJECT_EXTENDED_LIMIT_INFORMATION ext_info = { 0 };
     query_result = QueryInformationJobObject(job_object, JobObjectExtendedLimitInformation, &ext_info, sizeof(ext_info), &return_length);
-    ASSERT_IS_TRUE(query_result, "Failed to query extended limit info after reconfigure");
-    ASSERT_ARE_EQUAL(size_t, expected_memory_in_MB, ext_info.JobMemoryLimit / MEGABYTE, "Reconfigured job memory limit should be %" PRIu32 "%% of total physical memory", (uint32_t)RECONFIGURED_MEMORY_PERCENT);
-    LogInfo("Reconfigured memory limit verified: %zu MB", ext_info.JobMemoryLimit / MEGABYTE);
+    ASSERT_IS_TRUE(query_result, "Failed to query extended limit info after update");
+    ASSERT_ARE_EQUAL(size_t, expected_memory_in_MB, ext_info.JobMemoryLimit / MEGABYTE, "Updated job memory limit should be %" PRIu32 "%% of total physical memory", (uint32_t)UPDATED_MEMORY_PERCENT);
+    LogInfo("Updated memory limit verified: %zu MB", ext_info.JobMemoryLimit / MEGABYTE);
 
     (void)CloseHandle(job_object);
 
     ///cleanup
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&initial_job_object_helper, NULL);
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&reconfigured_job_object_helper, NULL);
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&updated_job_object_helper, NULL);
 }
 
-TEST_FUNCTION(job_object_helper_reconfigure_cpu_only_when_memory_was_zero_succeeds)
+TEST_FUNCTION(job_object_helper_update_cpu_only_when_memory_was_zero_succeeds)
 {
     /* This test verifies that when the initial creation had memory=0 (memory not applied),
-       a reconfigure with memory=0 (still not applied) and updated CPU succeeds.
+       an update with memory=0 (still not applied) and updated CPU succeeds.
        (50% CPU, 0% memory) -> (30% CPU, 0% memory) */
 
     ///arrange
     char job_name[64];
     THANDLE(JOB_OBJECT_HELPER) initial_job_object_helper = create_job_object_with_limits(job_name, sizeof(job_name), INITIAL_CPU_PERCENT, 0);
 
-    ///act - reconfigure: cpu updated, memory still 0
-    THANDLE(JOB_OBJECT_HELPER) reconfigured_job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, RECONFIGURED_CPU_PERCENT, 0);
+    ///act - update: cpu updated, memory still 0
+    THANDLE(JOB_OBJECT_HELPER) updated_job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, UPDATED_CPU_PERCENT, 0);
 
     ///assert
-    ASSERT_IS_NOT_NULL(reconfigured_job_object_helper, "Reconfigure should succeed");
-    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, reconfigured_job_object_helper, "Reconfigured call should return same singleton");
+    ASSERT_IS_NOT_NULL(updated_job_object_helper, "Update should succeed");
+    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, updated_job_object_helper, "Updated call should return same singleton");
 
     HANDLE job_object = OpenJobObjectA(JOB_OBJECT_QUERY, FALSE, job_name);
-    ASSERT_IS_NOT_NULL(job_object, "Failed to open job object after reconfigure");
+    ASSERT_IS_NOT_NULL(job_object, "Failed to open job object after update");
 
     /* Verify CPU rate control is updated */
     JOBOBJECT_CPU_RATE_CONTROL_INFORMATION cpu_info = { 0 };
     DWORD return_length = 0;
     BOOL query_result = QueryInformationJobObject(job_object, JobObjectCpuRateControlInformation, &cpu_info, sizeof(cpu_info), &return_length);
-    ASSERT_IS_TRUE(query_result, "Failed to query CPU rate info after reconfigure");
+    ASSERT_IS_TRUE(query_result, "Failed to query CPU rate info after update");
     ASSERT_ARE_EQUAL(uint32_t, (uint32_t)(JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP), cpu_info.ControlFlags, "CPU rate control should be enabled with hard cap");
-    ASSERT_ARE_EQUAL(uint32_t, RECONFIGURED_CPU_PERCENT * 100, cpu_info.CpuRate, "Reconfigured CPU rate should be %" PRIu32 "", RECONFIGURED_CPU_PERCENT * 100);
-    LogInfo("Reconfigured CPU rate verified: ControlFlags=%" PRIu32 ", CpuRate=%" PRIu32 "", cpu_info.ControlFlags, cpu_info.CpuRate);
+    ASSERT_ARE_EQUAL(uint32_t, UPDATED_CPU_PERCENT * 100, cpu_info.CpuRate, "Updated CPU rate should be %" PRIu32 "", UPDATED_CPU_PERCENT * 100);
+    LogInfo("Updated CPU rate verified: ControlFlags=%" PRIu32 ", CpuRate=%" PRIu32 "", cpu_info.ControlFlags, cpu_info.CpuRate);
 
     /* Verify memory limit is still not applied */
     JOBOBJECT_EXTENDED_LIMIT_INFORMATION ext_info = { 0 };
     query_result = QueryInformationJobObject(job_object, JobObjectExtendedLimitInformation, &ext_info, sizeof(ext_info), &return_length);
-    ASSERT_IS_TRUE(query_result, "Failed to query extended limit info after reconfigure");
+    ASSERT_IS_TRUE(query_result, "Failed to query extended limit info after update");
     ASSERT_ARE_EQUAL(uint32_t, (uint32_t)0, ext_info.BasicLimitInformation.LimitFlags & (JOB_OBJECT_LIMIT_JOB_MEMORY | JOB_OBJECT_LIMIT_PROCESS_MEMORY), "Memory limit flags should still not be set");
     LogInfo("Memory limits verified as still not applied (LimitFlags=0x%08lx)", (unsigned long)ext_info.BasicLimitInformation.LimitFlags);
 
@@ -289,7 +289,7 @@ TEST_FUNCTION(job_object_helper_reconfigure_cpu_only_when_memory_was_zero_succee
 
     ///cleanup
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&initial_job_object_helper, NULL);
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&reconfigured_job_object_helper, NULL);
+    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&updated_job_object_helper, NULL);
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

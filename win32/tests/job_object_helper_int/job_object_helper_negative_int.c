@@ -158,9 +158,9 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_null_w
     }
 }
 
-TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_null_when_reconfigure_cpu_from_nonzero_to_zero)
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_null_when_update_cpu_from_nonzero_to_zero)
 {
-    /* Reconfiguring CPU from a non-zero value to 0 is not allowed.
+    /* Updating CPU from a non-zero value to 0 is not allowed.
        Once CPU rate control has been applied, it cannot be removed — pass 100 to effectively disable. */
 
     ///arrange
@@ -168,18 +168,18 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_null_w
     THANDLE(JOB_OBJECT_HELPER) initial_job_object_helper = create_job_object_with_limits(job_name, sizeof(job_name), INITIAL_CPU_PERCENT, INITIAL_MEMORY_PERCENT);
 
     ///act — try to set cpu to 0 (previously was non-zero)
-    THANDLE(JOB_OBJECT_HELPER) reconfigured_job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, 0, INITIAL_MEMORY_PERCENT);
+    THANDLE(JOB_OBJECT_HELPER) updated_job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, 0, INITIAL_MEMORY_PERCENT);
 
     ///assert
-    ASSERT_IS_NULL(reconfigured_job_object_helper, "Reconfigure cpu from non-zero to 0 should fail and return NULL");
+    ASSERT_IS_NULL(updated_job_object_helper, "Update cpu from non-zero to 0 should fail and return NULL");
 
     ///cleanup
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&initial_job_object_helper, NULL);
 }
 
-TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_null_when_reconfigure_memory_from_nonzero_to_zero)
+TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_null_when_update_memory_from_nonzero_to_zero)
 {
-    /* Reconfiguring memory from a non-zero value to 0 is not allowed.
+    /* Updating memory from a non-zero value to 0 is not allowed.
        Once memory limits have been applied, they cannot be removed — pass 100 to effectively disable. */
 
     ///arrange
@@ -187,10 +187,10 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_null_w
     THANDLE(JOB_OBJECT_HELPER) initial_job_object_helper = create_job_object_with_limits(job_name, sizeof(job_name), INITIAL_CPU_PERCENT, INITIAL_MEMORY_PERCENT);
 
     ///act — try to set memory to 0 (previously was non-zero)
-    THANDLE(JOB_OBJECT_HELPER) reconfigured_job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, INITIAL_CPU_PERCENT, 0);
+    THANDLE(JOB_OBJECT_HELPER) updated_job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, INITIAL_CPU_PERCENT, 0);
 
     ///assert
-    ASSERT_IS_NULL(reconfigured_job_object_helper, "Reconfigure memory from non-zero to 0 should fail and return NULL");
+    ASSERT_IS_NULL(updated_job_object_helper, "Update memory from non-zero to 0 should fail and return NULL");
 
     ///cleanup
     THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&initial_job_object_helper, NULL);
