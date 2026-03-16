@@ -1,4 +1,4 @@
-﻿#Copyright (c) Microsoft. All rights reserved.
+#Copyright (c) Microsoft. All rights reserved.
 #Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 set(theseTestsName thandle_2_ut) #these tests are crafted to only prove the usage of different patterns for memory allocation (global, at type define time, at instantiation time)
@@ -22,6 +22,6 @@ set(${theseTestsName}_h_files
     two_thandles_same_file.h
 )
 
-build_test_artifacts(${theseTestsName} "tests/c_pal" ADDITIONAL_LIBS c_pal c_pal_reals 
+build_test_artifacts(${theseTestsName} "tests/c_pal" ADDITIONAL_LIBS c_pal c_pal_reals real_process_watchdog 
     ENABLE_TEST_FILES_PRECOMPILED_HEADERS "${CMAKE_CURRENT_LIST_DIR}/thandle_2_ut_pch.h"
 )

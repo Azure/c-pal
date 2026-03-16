@@ -10,5 +10,6 @@
 
 #include "macro_utils/macro_utils.h"
 #include "testrunnerswitcher.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // GBALLOC_LL_PASSTHROUGH_UT_PCH_H

@@ -20,6 +20,7 @@
 #include "umock_c/umock_c_negative_tests.h"
 
 #include "c_pal/uuid.h"
+#include "c_pal/timed_test_suite.h"
 
 #define TEST_DATA_0  0x01
 #define TEST_DATA_1  0x12

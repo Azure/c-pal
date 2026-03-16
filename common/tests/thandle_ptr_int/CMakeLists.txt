@@ -18,5 +18,5 @@ set(${theseTestsName}_h_files
     ../../inc/c_pal/thandle_ptr.h
 )
 
-build_test_artifacts(${theseTestsName} "tests/c_pal" ADDITIONAL_LIBS c_pal c_pal_reals)
+build_test_artifacts(${theseTestsName} "tests/c_pal" ADDITIONAL_LIBS c_pal)
 

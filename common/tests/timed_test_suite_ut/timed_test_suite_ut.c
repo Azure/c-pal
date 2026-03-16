@@ -7,6 +7,10 @@
 #include "testrunnerswitcher.h"
 #include "macro_utils/macro_utils.h"
 
+// Force the renames so TIMED_ macros call real_process_watchdog_init/deinit
+// (this test provides its own mock implementations of those functions)
+#include "c_pal/real_process_watchdog_renames.h"
+
 // Counters to track call ordering
 static int watchdog_init_call_order = 0;
 static int watchdog_deinit_call_order = 0;
@@ -49,10 +53,10 @@ static void additional_cleanup_fixture(void)
 
 // Mock process_watchdog functions - these are called by the TIMED_TEST_SUITE_INITIALIZE
 // and TIMED_TEST_SUITE_CLEANUP macros from timed_test_suite.h. The macros generate fixture
-// functions that call process_watchdog_init/deinit, so by defining these mocks before
-// including timed_test_suite.h, we can track when they are called to verify fixture ordering.
+// functions that call real_process_watchdog_init/deinit (renamed via real_process_watchdog_renames.h),
+// so we define the mocks with the real_ names to intercept the calls.
 
-int process_watchdog_init(uint32_t timeout_ms)
+int real_process_watchdog_init(uint32_t timeout_ms)
 {
     LogInfo("process_watchdog_init called with timeout_ms=%" PRIu32, timeout_ms);
 
@@ -65,7 +69,7 @@ int process_watchdog_init(uint32_t timeout_ms)
     return 0;
 }
 
-void process_watchdog_deinit(void)
+void real_process_watchdog_deinit(void)
 {
     LogInfo("process_watchdog_deinit called");
     watchdog_deinit_call_order = ++call_counter;

@@ -4,6 +4,13 @@
 #define TIMED_TEST_SUITE_H
 
 #include "testrunnerswitcher.h"
+
+// In unit tests (when umock_c is included), use real (non-mocked) process_watchdog
+// functions so the watchdog works even when interlocked is mocked.
+// Integration tests don't mock anything, so they use process_watchdog directly.
+#ifdef UMOCK_C_H
+#include "c_pal/real_process_watchdog_renames.h"
+#endif
 #include "c_pal/process_watchdog.h"
 
 // Default timeout: 10 minutes
