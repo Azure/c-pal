@@ -22,6 +22,14 @@
 #define NUM_RETRY 3
 #define TEST_JOB_NAME_PREFIX "job_test_ebs_"
 
+static void generate_test_job_name(char* job_name_out, size_t job_name_size)
+{
+    UUID_T job_name_uuid;
+    (void)uuid_produce(&job_name_uuid);
+    (void)snprintf(job_name_out, job_name_size, TEST_JOB_NAME_PREFIX "%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
+    LogInfo("Test job name: %s", job_name_out);
+}
+
 static void get_job_object_helper_tester_excutable_path(char* full_path, size_t full_path_size)
 {
     /* Use GetModuleFileNameA to get the path of the current executable */
@@ -71,12 +79,8 @@ TEST_FUNCTION_CLEANUP(cleanup)
 
 TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_from_multiple_processes)
 {
-    UUID_T job_name_uuid;
-    (void)uuid_produce(&job_name_uuid);
-
     char job_name[64];
-    (void)snprintf(job_name, sizeof(job_name), TEST_JOB_NAME_PREFIX "%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
-    LogInfo("Running test with job name: %s...", job_name);
+    generate_test_job_name(job_name, sizeof(job_name));
 
     char full_path[MAX_PATH];
     get_job_object_helper_tester_excutable_path(full_path, sizeof(full_path));
@@ -152,12 +156,8 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_from_mult
 
 TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process_from_multiple_processes_memory_limit_validation)
 {
-    UUID_T job_name_uuid;
-    (void)uuid_produce(&job_name_uuid);
-
     char job_name[64];
-    (void)snprintf(job_name, sizeof(job_name), TEST_JOB_NAME_PREFIX "%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
-    LogInfo("Running test with job name: %s...", job_name);
+    generate_test_job_name(job_name, sizeof(job_name));
 
     char full_path[MAX_PATH];
     get_job_object_helper_tester_excutable_path(full_path, sizeof(full_path));
