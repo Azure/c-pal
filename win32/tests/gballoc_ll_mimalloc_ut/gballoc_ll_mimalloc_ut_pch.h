@@ -15,5 +15,6 @@
 #include "umock_c/umock_c.h"
 
 #include "c_pal/gballoc_ll.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // GBALLOC_LL_MIMALLOC_UT_PCH_H

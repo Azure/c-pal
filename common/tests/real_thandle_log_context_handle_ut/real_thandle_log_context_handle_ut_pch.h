@@ -18,6 +18,8 @@
 
 #include "c_logging/log_context.h"
 
+#include "c_pal/timed_test_suite.h"
+
 #include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 #include "c_pal/gballoc_hl.h" // IWYU pragma: keep
 #include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep

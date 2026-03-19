@@ -19,5 +19,6 @@
 #include "umock_c/umocktypes_windows.h"
 
 #include "c_pal/srw_lock_ll.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // SRW_LOCK_LL_WIN32_UT_PCH_H
