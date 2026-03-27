@@ -14,5 +14,6 @@
 
 #include "umock_c/umock_c.h"
 #include "umock_c/umocktypes_charptr.h"
+#include "c_pal/timed_test_suite.h"
 
 #endif // PIPE_LINUX_UT_PCH_H

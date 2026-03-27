@@ -218,6 +218,30 @@ else()
     target_link_libraries(c_pal_reals INTERFACE linux_reals linux_ll_reals)
 endif()
 
+# Separate library for real_process_watchdog - kept out of c_pal_reals to avoid
+# conflicts with process_watchdog_ut which provides its own mocked version.
+# Tests using TIMED_TEST_SUITE_INITIALIZE link this via ADDITIONAL_LIBS.
+# Use OBJECT library so it compiles but doesn't link transitively.
+# Consumer tests link c_pal_reals (for UTs) or c_pal (for int tests) separately.
+if(MSVC)
+    add_library(real_process_watchdog OBJECT ${CMAKE_CURRENT_LIST_DIR}/win32/reals/real_process_watchdog.c)
+else()
+    add_library(real_process_watchdog OBJECT ${CMAKE_CURRENT_LIST_DIR}/linux/linux_reals/real_process_watchdog.c)
+endif()
+target_include_directories(real_process_watchdog PUBLIC
+    ${CMAKE_CURRENT_LIST_DIR}/common/reals
+    ${CMAKE_CURRENT_LIST_DIR}/common/inc
+    ${CMAKE_CURRENT_LIST_DIR}/c_pal_ll/interfaces/reals
+    ${CMAKE_CURRENT_LIST_DIR}/interfaces/reals
+    $<TARGET_PROPERTY:c_pal,INTERFACE_INCLUDE_DIRECTORIES>
+)
+if(NOT MSVC)
+    target_include_directories(real_process_watchdog PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}/linux/src
+        ${CMAKE_CURRENT_LIST_DIR}/linux/inc
+    )
+endif()
+
 if(${run_reals_check})
     add_reals_check_target()
 endif()

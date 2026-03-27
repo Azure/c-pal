@@ -15,4 +15,4 @@ set(${theseTestsName}_h_files
     submodule.h
 )
 
-build_test_artifacts(${theseTestsName} "tests/c_pal/umocktypes" ADDITIONAL_LIBS c_pal_umocktypes c_pal)
+build_test_artifacts(${theseTestsName} "tests/c_pal/umocktypes" ADDITIONAL_LIBS real_process_watchdog c_pal_ll_reals c_pal_umocktypes c_pal)
