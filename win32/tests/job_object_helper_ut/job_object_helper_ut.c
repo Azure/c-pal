@@ -516,6 +516,8 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_fails)
 /*Tests_SRS_JOB_OBJECT_HELPER_88_048: [ job_object_helper_get_internal_job_object_handle_for_test shall return the job object HANDLE from the singleton state. ]*/
 TEST_FUNCTION(job_object_helper_get_internal_job_object_handle_for_test_returns_NULL_when_no_singleton)
 {
+    // arrange
+
     // act
     HANDLE result = (HANDLE)job_object_helper_get_internal_job_object_handle_for_test();
 
