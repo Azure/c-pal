@@ -199,10 +199,23 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_succeeds)
 
     for (int i = 0; i < MU_COUNT_ARRAY_ITEMS(cpu_limits); ++i)
     {
-        // act
-        create_job_object_helper_singleton(cpu_limits[i], memory_limits[i]);
+        setup_job_object_helper_set_job_limits_to_current_process_createObjectA_expectations();
+        if (cpu_limits[i] != 0)
+        {
+            setup_job_object_helper_limit_cpu_expectations();
+        }
+        if (memory_limits[i] != 0)
+        {
+            setup_job_object_helper_limit_memory_expectations();
+        }
+        setup_job_object_helper_set_job_limits_to_current_process_process_assign_expectations();
 
-        // assert (done inside create_job_object_helper_singleton)
+        // act
+        int result = job_object_helper_set_job_limits_to_current_process("job_name", cpu_limits[i], memory_limits[i]);
+
+        // assert
+        ASSERT_ARE_EQUAL(int, 0, result);
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
         // Expect CloseHandle when deinit releases the singleton
         STRICT_EXPECTED_CALL(mocked_CloseHandle(IGNORED_ARG));
@@ -504,10 +517,11 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_fails)
 TEST_FUNCTION(job_object_helper_get_internal_job_object_handle_for_test_returns_NULL_when_no_singleton)
 {
     // act
-    HANDLE result = job_object_helper_get_internal_job_object_handle_for_test();
+    HANDLE result = (HANDLE)job_object_helper_get_internal_job_object_handle_for_test();
 
     // assert
     ASSERT_IS_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 /*Tests_SRS_JOB_OBJECT_HELPER_88_048: [ job_object_helper_get_internal_job_object_handle_for_test shall return the job object HANDLE from the singleton state. ]*/
@@ -517,10 +531,11 @@ TEST_FUNCTION(job_object_helper_get_internal_job_object_handle_for_test_returns_
     create_job_object_helper_singleton(50, 50);
 
     // act
-    HANDLE result = job_object_helper_get_internal_job_object_handle_for_test();
+    HANDLE result = (HANDLE)job_object_helper_get_internal_job_object_handle_for_test();
 
     // assert
     ASSERT_IS_NOT_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

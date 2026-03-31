@@ -131,7 +131,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_updates_limits
     // Verify initial CPU rate via internal handle
     JOBOBJECT_CPU_RATE_CONTROL_INFORMATION cpu_info = { 0 };
     DWORD return_length = 0;
-    BOOL query_result = QueryInformationJobObject(job_object_helper_get_internal_job_object_handle_for_test(), JobObjectCpuRateControlInformation, &cpu_info, sizeof(cpu_info), &return_length);
+    BOOL query_result = QueryInformationJobObject((HANDLE)job_object_helper_get_internal_job_object_handle_for_test(), JobObjectCpuRateControlInformation, &cpu_info, sizeof(cpu_info), &return_length);
     ASSERT_IS_TRUE(query_result, "Failed to query CPU rate info");
     ASSERT_ARE_EQUAL(uint32_t, INITIAL_CPU_PERCENT * 100, cpu_info.CpuRate, "Initial CPU rate should be %" PRIu32 "", INITIAL_CPU_PERCENT * 100);
     LogInfo("Initial CPU rate verified: %" PRIu32 "", cpu_info.CpuRate);
@@ -143,7 +143,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_updates_limits
     SIZE_T expected_initial_memory_in_MB = INITIAL_MEMORY_PERCENT * mem_status.ullTotalPhys / 100 / MEGABYTE;
 
     JOBOBJECT_EXTENDED_LIMIT_INFORMATION ext_info = { 0 };
-    query_result = QueryInformationJobObject(job_object_helper_get_internal_job_object_handle_for_test(), JobObjectExtendedLimitInformation, &ext_info, sizeof(ext_info), &return_length);
+    query_result = QueryInformationJobObject((HANDLE)job_object_helper_get_internal_job_object_handle_for_test(), JobObjectExtendedLimitInformation, &ext_info, sizeof(ext_info), &return_length);
     ASSERT_IS_TRUE(query_result, "Failed to query extended limit info");
     ASSERT_ARE_EQUAL(size_t, expected_initial_memory_in_MB, ext_info.JobMemoryLimit / MEGABYTE, "Initial job memory limit should match");
     LogInfo("Initial memory limit verified: %zu MB", ext_info.JobMemoryLimit / MEGABYTE);
@@ -154,7 +154,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_updates_limits
 
     // Step 3: Verify updated CPU rate
     (void)memset(&cpu_info, 0, sizeof(cpu_info));
-    query_result = QueryInformationJobObject(job_object_helper_get_internal_job_object_handle_for_test(), JobObjectCpuRateControlInformation, &cpu_info, sizeof(cpu_info), &return_length);
+    query_result = QueryInformationJobObject((HANDLE)job_object_helper_get_internal_job_object_handle_for_test(), JobObjectCpuRateControlInformation, &cpu_info, sizeof(cpu_info), &return_length);
     ASSERT_IS_TRUE(query_result, "Failed to query CPU rate info after update");
     ASSERT_ARE_EQUAL(uint32_t, UPDATED_CPU_PERCENT * 100, cpu_info.CpuRate, "Updated CPU rate should be %" PRIu32 "", UPDATED_CPU_PERCENT * 100);
     LogInfo("Updated CPU rate verified: %" PRIu32 "", cpu_info.CpuRate);
@@ -163,7 +163,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_updates_limits
     SIZE_T expected_updated_memory_in_MB = UPDATED_MEMORY_PERCENT * mem_status.ullTotalPhys / 100 / MEGABYTE;
 
     (void)memset(&ext_info, 0, sizeof(ext_info));
-    query_result = QueryInformationJobObject(job_object_helper_get_internal_job_object_handle_for_test(), JobObjectExtendedLimitInformation, &ext_info, sizeof(ext_info), &return_length);
+    query_result = QueryInformationJobObject((HANDLE)job_object_helper_get_internal_job_object_handle_for_test(), JobObjectExtendedLimitInformation, &ext_info, sizeof(ext_info), &return_length);
     ASSERT_IS_TRUE(query_result, "Failed to query extended limit info after update");
     ASSERT_ARE_EQUAL(size_t, expected_updated_memory_in_MB, ext_info.JobMemoryLimit / MEGABYTE, "Updated job memory limit should match");
     LogInfo("Updated memory limit verified: %zu MB", ext_info.JobMemoryLimit / MEGABYTE);

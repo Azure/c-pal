@@ -31,7 +31,7 @@ extern "C" {
 
     void real_job_object_helper_deinit_for_test(void);
 
-    HANDLE real_job_object_helper_get_internal_job_object_handle_for_test(void);
+    void* real_job_object_helper_get_internal_job_object_handle_for_test(void);
 
 #ifdef __cplusplus
 }

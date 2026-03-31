@@ -14,7 +14,7 @@ MOCKABLE_FUNCTION(, int, job_object_helper_set_job_limits_to_current_process, co
 
 MOCKABLE_FUNCTION(, void, job_object_helper_deinit_for_test);
 
-MOCKABLE_FUNCTION(, HANDLE, job_object_helper_get_internal_job_object_handle_for_test);
+MOCKABLE_FUNCTION(, void*, job_object_helper_get_internal_job_object_handle_for_test);
 ```
 
 
@@ -116,8 +116,8 @@ MOCKABLE_FUNCTION(, void, job_object_helper_deinit_for_test);
 
 ## job_object_helper_get_internal_job_object_handle_for_test
 ```c
-MOCKABLE_FUNCTION(, HANDLE, job_object_helper_get_internal_job_object_handle_for_test);
+MOCKABLE_FUNCTION(, void*, job_object_helper_get_internal_job_object_handle_for_test);
 ```
-`job_object_helper_get_internal_job_object_handle_for_test` returns the internal job object `HANDLE` from the singleton state. This is intended for integration tests that need to query the job object directly (e.g., for unnamed job objects where `OpenJobObjectA` is not available).
+`job_object_helper_get_internal_job_object_handle_for_test` returns the internal job object `HANDLE` (as `void*`) from the singleton state. This is intended for integration tests that need to query the job object directly (e.g., for unnamed job objects where `OpenJobObjectA` is not available). Callers should cast the result to `HANDLE`.
 
 **SRS_JOB_OBJECT_HELPER_88_048: [** `job_object_helper_get_internal_job_object_handle_for_test` shall return the job object `HANDLE` from the singleton state. **]**

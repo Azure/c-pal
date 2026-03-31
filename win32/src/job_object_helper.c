@@ -380,7 +380,7 @@ IMPLEMENT_MOCKABLE_FUNCTION(, void, job_object_helper_deinit_for_test)
     job_object_singleton_state.percent_memory = 0;
 }
 
-IMPLEMENT_MOCKABLE_FUNCTION(, HANDLE, job_object_helper_get_internal_job_object_handle_for_test)
+IMPLEMENT_MOCKABLE_FUNCTION(, void*, job_object_helper_get_internal_job_object_handle_for_test)
 {
     /*Codes_SRS_JOB_OBJECT_HELPER_88_048: [ job_object_helper_get_internal_job_object_handle_for_test shall return the job object HANDLE from the singleton state. ]*/
     return job_object_singleton_state.job_object;
