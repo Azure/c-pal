@@ -16,8 +16,6 @@
 #include "c_pal/timer.h"
 
 
-#define MAX_REPEATED_CALLS 10
-
 /* CPU burn infrastructure for multi-threaded saturation tests.
    Single-threaded CPU burn is useless on multi-core machines - a single
    thread only uses 1/N of total capacity and never triggers the cap.
@@ -129,13 +127,10 @@ TEST_FUNCTION_CLEANUP(cleanup)
 TEST_FUNCTION(test_job_object_helper_repeated_calls_return_same_singleton_and_no_cpu_compounding)
 {
     /* This test calls job_object_helper_set_job_limits_to_current_process
-       2, 5, and 9 times and verifies after each checkpoint:
-       (a) Every returned THANDLE points to the same underlying object.
-       (b) The CPU cap is still ~50%, not compounded (50%^2=25%, 50%^5~3%, 50%^9~0.2%). */
+       2, 5, and 9 times and verifies after each checkpoint that
+       the CPU cap is still ~50%, not compounded (50%^2=25%, 50%^5~3%, 50%^9~0.2%). */
 
     ///arrange
-    THANDLE(JOB_OBJECT_HELPER) handles[MAX_REPEATED_CALLS] = { NULL };
-
     /* checkpoints: after 2, 5, and 9 calls */
     static const int checkpoints[] = { 2, 5, 9 };
     static const int num_checkpoints = sizeof(checkpoints) / sizeof(checkpoints[0]);
@@ -148,20 +143,12 @@ TEST_FUNCTION(test_job_object_helper_repeated_calls_return_same_singleton_and_no
         /* Issue calls up to the current checkpoint */
         for (int i = calls_so_far; i < target; i++)
         {
-            THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_set_job_limits_to_current_process("", 50, 1);
-            ASSERT_IS_NOT_NULL(job_object_helper, "Call %d should succeed", i + 1);
-            THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&handles[i], job_object_helper);
-            THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
+            int result = job_object_helper_set_job_limits_to_current_process("", 50, 1);
+            ASSERT_ARE_EQUAL(int, 0, result, "Call %d should succeed", i + 1);
         }
         calls_so_far = target;
 
-        /* Verify all returned handles point to the same underlying object */
-        for (int i = 1; i < target; i++)
-        {
-            ASSERT_ARE_EQUAL(void_ptr, (const void*)handles[0], (const void*)handles[i],
-                "After %d calls, call %d should return the same singleton", target, i + 1);
-        }
-        LogInfo("After %d calls: singleton verified (all handles are the same pointer)", target);
+        LogInfo("After %d calls: all succeeded", target);
 
         ///act
         /* Saturate CPU and measure - cap should still be ~50%, not compounded */
@@ -177,12 +164,6 @@ TEST_FUNCTION(test_job_object_helper_repeated_calls_return_same_singleton_and_no
             "CPU usage %.1f%% is too high after %d calls - cap may not be enforced (expected ~50%%)", cpu_percent, target);
 
         LogInfo("PASS: CPU usage %.1f%% after %d calls is within expected range [30%%, 70%%] (no compounding)", cpu_percent, target);
-    }
-
-    ///cleanup
-    for (int i = 0; i < MAX_REPEATED_CALLS; i++)
-    {
-        THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&handles[i], NULL);
     }
 }
 

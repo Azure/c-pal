@@ -10,13 +10,9 @@
 #include <stdint.h>
 #endif
 
+#include "windows.h"
 
 #include "macro_utils/macro_utils.h"
-
-#include "c_pal/thandle.h"
-
-typedef struct JOB_OBJECT_HELPER_TAG JOB_OBJECT_HELPER;
-THANDLE_TYPE_DECLARE(JOB_OBJECT_HELPER);
 
 #include "umock_c/umock_c_prod.h"
 
@@ -25,12 +21,14 @@ extern "C"
 {
 #endif
     /*
-    * Note: job_object_helper_set_job_limits_to_current_process and job_object_helper_deinit_for_test are NOT thread-safe.
+    * Note: job_object_helper_set_job_limits_to_current_process, job_object_helper_deinit_for_test, and
+    * job_object_helper_get_internal_job_object_handle_for_test are NOT thread-safe.
     * These functions must be called from a single thread. Concurrent calls from multiple threads may result in
     * undefined behavior due to non-atomic singleton initialization and cleanup.
     */
-    MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_job_limits_to_current_process, const char*, job_name, uint32_t, percent_cpu, uint32_t, percent_physical_memory);
+    MOCKABLE_FUNCTION(, int, job_object_helper_set_job_limits_to_current_process, const char*, job_name, uint32_t, percent_cpu, uint32_t, percent_physical_memory);
     MOCKABLE_FUNCTION(, void, job_object_helper_deinit_for_test);
+    MOCKABLE_FUNCTION(, HANDLE, job_object_helper_get_internal_job_object_handle_for_test);
 #ifdef __cplusplus
 }
 #endif

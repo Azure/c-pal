@@ -4,27 +4,18 @@
 
 Note: Windows Job Objects have a critical property: `CloseHandle` on a job object handle does NOT disassociate the process from the job object. If multiple job objects are created and the process is assigned to each, the CPU rate limits compound multiplicatively (e.g., two 50% caps result in 25% effective CPU). Since this module calls `AssignProcessToJobObject` on the current process, it uses a process-level singleton pattern internally — the job object is created once and reused on subsequent calls. If subsequent calls have different parameters, the existing job object limits are updated in-place via `SetInformationJobObject`. CPU and memory limits are updated independently. If one succeeds but the other fails, the function returns failure even though the successful change has already been applied to the Windows job object. The caller can simply retry to re-apply the limits.
 
-Note: `job_object_helper_set_job_limits_to_current_process` and `job_object_helper_deinit_for_test` are NOT thread-safe. These functions must be called from a single thread. Concurrent calls from multiple threads may result in undefined behavior due to non-atomic singleton initialization and cleanup.
+Note: `job_object_helper_set_job_limits_to_current_process`, `job_object_helper_deinit_for_test`, and `job_object_helper_get_internal_job_object_handle_for_test` are NOT thread-safe. These functions must be called from a single thread. Concurrent calls from multiple threads may result in undefined behavior due to non-atomic singleton initialization and cleanup.
 
 
 ## Exposed API
 ```c
 
-typedef struct JOB_OBJECT_HELPER_TAG JOB_OBJECT_HELPER;
-THANDLE_TYPE_DECLARE(JOB_OBJECT_HELPER);
-
-MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_job_limits_to_current_process, const char*, job_name, uint32_t, percent_cpu, uint32_t, percent_physical_memory);
+MOCKABLE_FUNCTION(, int, job_object_helper_set_job_limits_to_current_process, const char*, job_name, uint32_t, percent_cpu, uint32_t, percent_physical_memory);
 
 MOCKABLE_FUNCTION(, void, job_object_helper_deinit_for_test);
-```
 
-## job_object_helper_dispose
-```c
-static void job_object_helper_dispose(JOB_OBJECT_HELPER* job_object_helper);
+MOCKABLE_FUNCTION(, HANDLE, job_object_helper_get_internal_job_object_handle_for_test);
 ```
-`job_object_helper_dispose` frees all of the resources used by the `JOB_OBJECT_HELPER` object.
-
-**SRS_JOB_OBJECT_HELPER_18_033: [** `job_object_helper_dispose` shall call `CloseHandle` to close the handle to the job object. **]**
 
 
 ## internal_job_object_helper_set_cpu_limit
@@ -67,33 +58,31 @@ static int internal_job_object_helper_set_memory_limit(HANDLE job_object, uint32
 
 ## job_object_helper_set_job_limits_to_current_process
 ```c
-MOCKABLE_FUNCTION(, THANDLE(JOB_OBJECT_HELPER), job_object_helper_set_job_limits_to_current_process, const char*, job_name, uint32_t, percent_cpu, uint32_t, percent_physical_memory);
+MOCKABLE_FUNCTION(, int, job_object_helper_set_job_limits_to_current_process, const char*, job_name, uint32_t, percent_cpu, uint32_t, percent_physical_memory);
 ```
-`job_object_helper_set_job_limits_to_current_process` creates the Job Object with limits if not present and assigns the current process to it. Returns a THANDLE to allow reuse of the job object across multiple processes. If being used only in single process, then handle can be released immediately and process continues having the set limits.
+`job_object_helper_set_job_limits_to_current_process` creates the Job Object with limits if not present and assigns the current process to it. Returns `0` on success and a non-zero value on failure.
 
-The function implements a process-level singleton pattern to prevent Job Object accumulation. On the first call, it creates the job object. On subsequent calls, the existing job object's limits are updated in-place via `SetInformationJobObject` and the existing singleton is returned. Passing `0` for both `percent_cpu` and `percent_physical_memory` is not allowed and will return `NULL`. When the singleton already exists, a value of `0` is not allowed for a parameter that was previously set to a non-zero value.
+The function implements a process-level singleton pattern to prevent Job Object accumulation. On the first call, it creates the job object. On subsequent calls, the existing job object's limits are updated in-place via `SetInformationJobObject`. Passing `0` for both `percent_cpu` and `percent_physical_memory` is not allowed and will return a non-zero value. When the singleton already exists, a value of `0` is not allowed for a parameter that was previously set to a non-zero value.
 
-**SRS_JOB_OBJECT_HELPER_19_001: [** If `percent_cpu` is greater than `100` then `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
+**SRS_JOB_OBJECT_HELPER_19_001: [** If `percent_cpu` is greater than `100` then `job_object_helper_set_job_limits_to_current_process` shall fail and return a non-zero value. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_034: [** If `percent_physical_memory` is greater than `100` then `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
+**SRS_JOB_OBJECT_HELPER_88_034: [** If `percent_physical_memory` is greater than `100` then `job_object_helper_set_job_limits_to_current_process` shall fail and return a non-zero value. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_040: [** If `percent_cpu` is `0` and `percent_physical_memory` is `0` then `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
+**SRS_JOB_OBJECT_HELPER_88_040: [** If `percent_cpu` is `0` and `percent_physical_memory` is `0` then `job_object_helper_set_job_limits_to_current_process` shall fail and return a non-zero value. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_030: [** If `job_object_singleton_state.job_object_helper` is not `NULL`, `job_object_helper_set_job_limits_to_current_process` shall not create a new job object. **]**
+**SRS_JOB_OBJECT_HELPER_88_030: [** If `job_object_singleton_state.job_object` is not `NULL`, `job_object_helper_set_job_limits_to_current_process` shall not create a new job object. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_041: [** If `job_object_singleton_state.job_object_helper` is not `NULL` and `percent_cpu` is `0` and the `job_object_singleton_state.percent_cpu` is non-zero, `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
+**SRS_JOB_OBJECT_HELPER_88_041: [** If `job_object_singleton_state.job_object` is not `NULL` and `percent_cpu` is `0` and the `job_object_singleton_state.percent_cpu` is non-zero, `job_object_helper_set_job_limits_to_current_process` shall fail and return a non-zero value. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_046: [** If `job_object_singleton_state.job_object_helper` is not `NULL` and `percent_physical_memory` is `0` and the `job_object_singleton_state.percent_memory` is non-zero, `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
+**SRS_JOB_OBJECT_HELPER_88_046: [** If `job_object_singleton_state.job_object` is not `NULL` and `percent_physical_memory` is `0` and the `job_object_singleton_state.percent_memory` is non-zero, `job_object_helper_set_job_limits_to_current_process` shall fail and return a non-zero value. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_003: [** If `job_object_singleton_state.job_object_helper` is not `NULL` and `percent_cpu` is not `0`, `job_object_helper_set_job_limits_to_current_process` shall call `internal_job_object_helper_set_cpu_limit` to apply the CPU rate control to the existing job object. **]**
+**SRS_JOB_OBJECT_HELPER_88_003: [** If `job_object_singleton_state.job_object` is not `NULL` and `percent_cpu` is not `0`, `job_object_helper_set_job_limits_to_current_process` shall call `internal_job_object_helper_set_cpu_limit` to apply the CPU rate control to the existing job object. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_009: [** If `job_object_singleton_state.job_object_helper` is not `NULL` and `percent_physical_memory` is not `0`, `job_object_helper_set_job_limits_to_current_process` shall call `internal_job_object_helper_set_memory_limit` to apply the memory limit to the existing job object. **]**
+**SRS_JOB_OBJECT_HELPER_88_009: [** If `job_object_singleton_state.job_object` is not `NULL` and `percent_physical_memory` is not `0`, `job_object_helper_set_job_limits_to_current_process` shall call `internal_job_object_helper_set_memory_limit` to apply the memory limit to the existing job object. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_021: [** On successful update of the existing job object, `job_object_helper_set_job_limits_to_current_process` shall increment the reference count on the existing `THANDLE(JOB_OBJECT_HELPER)` and return it. **]**
+**SRS_JOB_OBJECT_HELPER_88_047: [** On successful update of the existing job object, `job_object_helper_set_job_limits_to_current_process` shall return `0`. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_023: [** If `job_object_singleton_state.job_object_helper` is `NULL` and both `percent_cpu` and `percent_physical_memory` are `100`, `job_object_helper_set_job_limits_to_current_process` shall return `NULL` without creating a job object. **]**
-
-**SRS_JOB_OBJECT_HELPER_88_035: [** `job_object_helper_set_job_limits_to_current_process` shall allocate a `JOB_OBJECT_HELPER` object. **]**
+**SRS_JOB_OBJECT_HELPER_88_023: [** If `job_object_singleton_state.job_object` is `NULL` and both `percent_cpu` and `percent_physical_memory` are `100`, `job_object_helper_set_job_limits_to_current_process` shall return a non-zero value without creating a job object. **]**
 
 **SRS_JOB_OBJECT_HELPER_88_036: [** `job_object_helper_set_job_limits_to_current_process` shall call `CreateJobObjectA` passing `job_name` for `lpName` and `NULL` for `lpJobAttributes`. **]**
 
@@ -105,11 +94,11 @@ The function implements a process-level singleton pattern to prevent Job Object 
 
 **SRS_JOB_OBJECT_HELPER_19_008: [** `job_object_helper_set_job_limits_to_current_process` shall call `AssignProcessToJobObject` to assign the current process to the new job object. **]**
 
-**SRS_JOB_OBJECT_HELPER_88_024: [** On success, `job_object_helper_set_job_limits_to_current_process` shall store the `THANDLE(JOB_OBJECT_HELPER)` in the process-level singleton state. **]**
+**SRS_JOB_OBJECT_HELPER_88_024: [** On success, `job_object_helper_set_job_limits_to_current_process` shall store the job object `HANDLE` in the process-level singleton state. **]**
 
-**SRS_JOB_OBJECT_HELPER_19_009: [** If there are any failures, `job_object_helper_set_job_limits_to_current_process` shall fail and return `NULL`. **]**
+**SRS_JOB_OBJECT_HELPER_19_009: [** If there are any failures, `job_object_helper_set_job_limits_to_current_process` shall fail and return a non-zero value. **]**
 
-**SRS_JOB_OBJECT_HELPER_19_010: [** `job_object_helper_set_job_limits_to_current_process` shall succeed and return a `JOB_OBJECT_HELPER` object. **]**
+**SRS_JOB_OBJECT_HELPER_19_010: [** `job_object_helper_set_job_limits_to_current_process` shall succeed and return `0`. **]**
 
 
 ## job_object_helper_deinit_for_test
@@ -118,8 +107,17 @@ MOCKABLE_FUNCTION(, void, job_object_helper_deinit_for_test);
 ```
 `job_object_helper_deinit_for_test` releases the process-level singleton, allowing a fresh job object to be created on the next call. This is intended for test cleanup and should not be used in production code, as calling it would allow creating new job objects that compound with the existing one.
 
-**SRS_JOB_OBJECT_HELPER_88_027: [** `job_object_helper_deinit_for_test` shall release the singleton `THANDLE(JOB_OBJECT_HELPER)` by assigning it to `NULL`. **]**
+**SRS_JOB_OBJECT_HELPER_88_027: [** `job_object_helper_deinit_for_test` shall call `CloseHandle` to close the job object and set it to `NULL`. **]**
 
 **SRS_JOB_OBJECT_HELPER_88_044: [** `job_object_helper_deinit_for_test` shall reset `percent_cpu` to 0 in the singleton state. **]**
 
 **SRS_JOB_OBJECT_HELPER_88_045: [** `job_object_helper_deinit_for_test` shall reset `percent_memory` to 0 in the singleton state. **]**
+
+
+## job_object_helper_get_internal_job_object_handle_for_test
+```c
+MOCKABLE_FUNCTION(, HANDLE, job_object_helper_get_internal_job_object_handle_for_test);
+```
+`job_object_helper_get_internal_job_object_handle_for_test` returns the internal job object `HANDLE` from the singleton state. This is intended for integration tests that need to query the job object directly (e.g., for unnamed job objects where `OpenJobObjectA` is not available).
+
+**SRS_JOB_OBJECT_HELPER_88_048: [** `job_object_helper_get_internal_job_object_handle_for_test` shall return the job object `HANDLE` from the singleton state. **]**
