@@ -15,14 +15,6 @@
 #include "c_pal/job_object_helper.h"
 #include "c_pal/uuid.h"
 
-/* Complete the opaque struct definition so integration tests can access
-   the internal job_object HANDLE for QueryInformationJobObject calls
-   (needed for unnamed job objects where OpenJobObjectA is not available). */
-struct JOB_OBJECT_HELPER_TAG {
-    HANDLE job_object;
-};
-
-
 #define MEGABYTE ((size_t)1024 * 1024)
 #define TEST_JOB_NAME_PREFIX "job_test_update_"
 #define INITIAL_CPU_PERCENT 50
@@ -30,16 +22,15 @@ struct JOB_OBJECT_HELPER_TAG {
 #define UPDATED_CPU_PERCENT 30
 #define UPDATED_MEMORY_PERCENT 2
 
-static THANDLE(JOB_OBJECT_HELPER) create_job_object_with_limits(char* job_name_out, size_t job_name_size, uint32_t cpu, uint32_t memory)
+static void create_job_object_with_limits(char* job_name_out, size_t job_name_size, uint32_t cpu, uint32_t memory)
 {
     UUID_T job_name_uuid;
     (void)uuid_produce(&job_name_uuid);
     (void)snprintf(job_name_out, job_name_size, TEST_JOB_NAME_PREFIX "%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
     LogInfo("Creating job object (cpu=%" PRIu32 ", memory=%" PRIu32 ") with job name: %s...", cpu, memory, job_name_out);
 
-    THANDLE(JOB_OBJECT_HELPER) result = job_object_helper_set_job_limits_to_current_process(job_name_out, cpu, memory);
-    ASSERT_IS_NOT_NULL(result, "Job object should be created (cpu=%" PRIu32 ", memory=%" PRIu32 ")", cpu, memory);
-    return result;
+    int result = job_object_helper_set_job_limits_to_current_process(job_name_out, cpu, memory);
+    ASSERT_ARE_EQUAL(int, 0, result, "Job object should be created (cpu=%" PRIu32 ", memory=%" PRIu32 ")", cpu, memory);
 }
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
@@ -71,7 +62,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_updates_limits
 
     // Step 1: Create the singleton with initial limits (50% CPU, 1% memory)
     char job_name[64];
-    THANDLE(JOB_OBJECT_HELPER) initial_job_object_helper = create_job_object_with_limits(job_name, sizeof(job_name), INITIAL_CPU_PERCENT, INITIAL_MEMORY_PERCENT);
+    create_job_object_with_limits(job_name, sizeof(job_name), INITIAL_CPU_PERCENT, INITIAL_MEMORY_PERCENT);
 
     // Verify initial CPU rate
     HANDLE job_object = OpenJobObjectA(JOB_OBJECT_QUERY, FALSE, job_name);
@@ -99,9 +90,8 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_updates_limits
     (void)CloseHandle(job_object);
 
     // Step 2: Update to new limits (30% CPU, 2% memory)
-    THANDLE(JOB_OBJECT_HELPER) updated_job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, UPDATED_CPU_PERCENT, UPDATED_MEMORY_PERCENT);
-    ASSERT_IS_NOT_NULL(updated_job_object_helper, "Update should succeed");
-    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, updated_job_object_helper, "Updated call should return same singleton");
+    int update_result = job_object_helper_set_job_limits_to_current_process(job_name, UPDATED_CPU_PERCENT, UPDATED_MEMORY_PERCENT);
+    ASSERT_ARE_EQUAL(int, 0, update_result, "Update should succeed");
 
     // Step 3: Verify updated CPU rate
     job_object = OpenJobObjectA(JOB_OBJECT_QUERY, FALSE, job_name);
@@ -123,10 +113,6 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_updates_limits
     LogInfo("Updated memory limit verified: %zu MB", ext_info.JobMemoryLimit / MEGABYTE);
 
     (void)CloseHandle(job_object);
-
-    // Cleanup
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&initial_job_object_helper, NULL);
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&updated_job_object_helper, NULL);
 }
 
 TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_updates_limits_for_unnamed_job_object)
@@ -139,13 +125,13 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_updates_limits
     LogInfo("Running update test with NULL job name (unnamed job object)...");
 
     // Step 1: Create the singleton with initial limits
-    THANDLE(JOB_OBJECT_HELPER) initial_job_object_helper = job_object_helper_set_job_limits_to_current_process(NULL, INITIAL_CPU_PERCENT, INITIAL_MEMORY_PERCENT);
-    ASSERT_IS_NOT_NULL(initial_job_object_helper);
+    int initial_result = job_object_helper_set_job_limits_to_current_process(NULL, INITIAL_CPU_PERCENT, INITIAL_MEMORY_PERCENT);
+    ASSERT_ARE_EQUAL(int, 0, initial_result);
 
     // Verify initial CPU rate via internal handle
     JOBOBJECT_CPU_RATE_CONTROL_INFORMATION cpu_info = { 0 };
     DWORD return_length = 0;
-    BOOL query_result = QueryInformationJobObject(initial_job_object_helper->job_object, JobObjectCpuRateControlInformation, &cpu_info, sizeof(cpu_info), &return_length);
+    BOOL query_result = QueryInformationJobObject((HANDLE)job_object_helper_get_internal_job_object_handle_for_test(), JobObjectCpuRateControlInformation, &cpu_info, sizeof(cpu_info), &return_length);
     ASSERT_IS_TRUE(query_result, "Failed to query CPU rate info");
     ASSERT_ARE_EQUAL(uint32_t, INITIAL_CPU_PERCENT * 100, cpu_info.CpuRate, "Initial CPU rate should be %" PRIu32 "", INITIAL_CPU_PERCENT * 100);
     LogInfo("Initial CPU rate verified: %" PRIu32 "", cpu_info.CpuRate);
@@ -157,19 +143,18 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_updates_limits
     SIZE_T expected_initial_memory_in_MB = INITIAL_MEMORY_PERCENT * mem_status.ullTotalPhys / 100 / MEGABYTE;
 
     JOBOBJECT_EXTENDED_LIMIT_INFORMATION ext_info = { 0 };
-    query_result = QueryInformationJobObject(initial_job_object_helper->job_object, JobObjectExtendedLimitInformation, &ext_info, sizeof(ext_info), &return_length);
+    query_result = QueryInformationJobObject((HANDLE)job_object_helper_get_internal_job_object_handle_for_test(), JobObjectExtendedLimitInformation, &ext_info, sizeof(ext_info), &return_length);
     ASSERT_IS_TRUE(query_result, "Failed to query extended limit info");
     ASSERT_ARE_EQUAL(size_t, expected_initial_memory_in_MB, ext_info.JobMemoryLimit / MEGABYTE, "Initial job memory limit should match");
     LogInfo("Initial memory limit verified: %zu MB", ext_info.JobMemoryLimit / MEGABYTE);
 
     // Step 2: Update to new limits
-    THANDLE(JOB_OBJECT_HELPER) updated_job_object_helper = job_object_helper_set_job_limits_to_current_process(NULL, UPDATED_CPU_PERCENT, UPDATED_MEMORY_PERCENT);
-    ASSERT_IS_NOT_NULL(updated_job_object_helper, "Update should succeed");
-    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, updated_job_object_helper, "Updated call should return same singleton");
+    int update_result = job_object_helper_set_job_limits_to_current_process(NULL, UPDATED_CPU_PERCENT, UPDATED_MEMORY_PERCENT);
+    ASSERT_ARE_EQUAL(int, 0, update_result, "Update should succeed");
 
     // Step 3: Verify updated CPU rate
     (void)memset(&cpu_info, 0, sizeof(cpu_info));
-    query_result = QueryInformationJobObject(updated_job_object_helper->job_object, JobObjectCpuRateControlInformation, &cpu_info, sizeof(cpu_info), &return_length);
+    query_result = QueryInformationJobObject((HANDLE)job_object_helper_get_internal_job_object_handle_for_test(), JobObjectCpuRateControlInformation, &cpu_info, sizeof(cpu_info), &return_length);
     ASSERT_IS_TRUE(query_result, "Failed to query CPU rate info after update");
     ASSERT_ARE_EQUAL(uint32_t, UPDATED_CPU_PERCENT * 100, cpu_info.CpuRate, "Updated CPU rate should be %" PRIu32 "", UPDATED_CPU_PERCENT * 100);
     LogInfo("Updated CPU rate verified: %" PRIu32 "", cpu_info.CpuRate);
@@ -178,14 +163,10 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_updates_limits
     SIZE_T expected_updated_memory_in_MB = UPDATED_MEMORY_PERCENT * mem_status.ullTotalPhys / 100 / MEGABYTE;
 
     (void)memset(&ext_info, 0, sizeof(ext_info));
-    query_result = QueryInformationJobObject(updated_job_object_helper->job_object, JobObjectExtendedLimitInformation, &ext_info, sizeof(ext_info), &return_length);
+    query_result = QueryInformationJobObject((HANDLE)job_object_helper_get_internal_job_object_handle_for_test(), JobObjectExtendedLimitInformation, &ext_info, sizeof(ext_info), &return_length);
     ASSERT_IS_TRUE(query_result, "Failed to query extended limit info after update");
     ASSERT_ARE_EQUAL(size_t, expected_updated_memory_in_MB, ext_info.JobMemoryLimit / MEGABYTE, "Updated job memory limit should match");
     LogInfo("Updated memory limit verified: %zu MB", ext_info.JobMemoryLimit / MEGABYTE);
-
-    // Cleanup
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&initial_job_object_helper, NULL);
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&updated_job_object_helper, NULL);
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

@@ -36,12 +36,12 @@ int main(int argc, char* argv[])
         (void)printf("AllocateMemorySize: %d Bytes\n", allocate_memory_size);
 
         /* Call job_object_helper_set_job_limits_to_current_process for seting job limits */
-        THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_set_job_limits_to_current_process(
+        int set_limits_result = job_object_helper_set_job_limits_to_current_process(
             job_name,
             max_cpu_percentage,
             max_physical_memory_percentage);
 
-        if (job_object_helper == NULL)
+        if (set_limits_result != 0)
         {
             (void)printf("Failed to set job limits\n");
             result = 1;
@@ -68,7 +68,6 @@ int main(int argc, char* argv[])
             }
             /* Sleep for 30 sec. allow parent to perform few things before this exits */
             Sleep(SLEEP_INTERVAL_MILLIS);
-            THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
         }
     }
     return result;

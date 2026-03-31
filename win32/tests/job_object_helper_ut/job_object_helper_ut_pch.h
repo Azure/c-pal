@@ -21,13 +21,6 @@
 #include "c_pal/interlocked.h"
 #include "c_pal/interlocked_hl.h"
 
-#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
-    #include "c_pal/gballoc_hl.h"
-    #include "c_pal/gballoc_hl_redirect.h"
-
-#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
-
-#include "real_gballoc_hl.h"
 #include "c_pal/job_object_helper.h"
 
 #endif // JOB_OBJECT_HELPER_UT_PCH_H
