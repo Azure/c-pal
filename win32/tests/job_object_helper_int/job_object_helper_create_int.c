@@ -19,6 +19,17 @@
 #define MEGABYTE ((size_t)1024 * 1024)
 #define TEST_JOB_NAME_PREFIX "job_test_ebs_"
 
+static void create_job_object_with_limits(char* job_name_out, size_t job_name_size, uint32_t cpu, uint32_t memory)
+{
+    UUID_T job_name_uuid;
+    (void)uuid_produce(&job_name_uuid);
+    (void)snprintf(job_name_out, job_name_size, TEST_JOB_NAME_PREFIX "%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
+    LogInfo("Creating job object (cpu=%" PRIu32 ", memory=%" PRIu32 ") with job name: %s...", cpu, memory, job_name_out);
+
+    int result = job_object_helper_set_job_limits_to_current_process(job_name_out, cpu, memory);
+    ASSERT_ARE_EQUAL(int, 0, result, "Job object should be created (cpu=%" PRIu32 ", memory=%" PRIu32 ")", cpu, memory);
+}
+
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
@@ -46,15 +57,8 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process)
     *  3. sets the job limits
     */
 
-    UUID_T job_name_uuid;
-    (void)uuid_produce(&job_name_uuid);
-
     char job_name[64];
-    (void)snprintf(job_name, sizeof(job_name), TEST_JOB_NAME_PREFIX "%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
-    LogInfo("Running test with job name: %s...", job_name);
-
-    THANDLE(JOB_OBJECT_HELPER) result = job_object_helper_set_job_limits_to_current_process(job_name, 50, 1);
-    ASSERT_IS_NOT_NULL(result);
+    create_job_object_with_limits(job_name, sizeof(job_name), 50, 1);
 
     /* Check that the job object was created */
     HANDLE job_object = OpenJobObjectA(JOB_OBJECT_QUERY, FALSE, job_name);
@@ -93,8 +97,8 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process)
     ASSERT_ARE_EQUAL(size_t, job_info.ProcessMemoryLimit / MEGABYTE, one_percent_of_total_memory_in_MB, "Job object should have process memory limit set to 1%% of total physical memory");
 
     /* Performing the same action from the same process shall not change anything */
-    THANDLE(JOB_OBJECT_HELPER) result_1 = job_object_helper_set_job_limits_to_current_process(job_name, 50, 1);
-    ASSERT_IS_NOT_NULL(result_1);
+    int duplicate_result = job_object_helper_set_job_limits_to_current_process(job_name, 50, 1);
+    ASSERT_ARE_EQUAL(int, 0, duplicate_result);
 
     job_object = OpenJobObjectA(JOB_OBJECT_QUERY, FALSE, job_name);
     ASSERT_IS_NOT_NULL(job_object);
@@ -111,9 +115,6 @@ TEST_FUNCTION(test_job_object_helper_set_job_limits_to_current_process)
     LogInfo("Job memory limit: %zu", job_info.JobMemoryLimit / MEGABYTE);
     ASSERT_ARE_EQUAL(size_t, job_info.JobMemoryLimit / MEGABYTE, one_percent_of_total_memory_in_MB, "Job object should have job memory limit set to 1%% of total physical memory");
     ASSERT_ARE_EQUAL(size_t, job_info.ProcessMemoryLimit / MEGABYTE, one_percent_of_total_memory_in_MB, "Job object should have process memory limit set to 1%% of total physical memory");
-
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&result, NULL);
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&result_1, NULL);
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

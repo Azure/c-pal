@@ -1856,204 +1856,34 @@ TEST_FUNCTION(event_complete_func_recv_returns_0_bytes_success)
 }
 
 // Tests_SRS_ASYNC_SOCKET_LINUX_04_008: [ event_complete_callback shall call the notify complete callback with an ABANDONED flag when the IO type is ASYNC_SOCKET_IO_TYPE_NOTIFY. ]
-TEST_FUNCTION(event_complete_func_notify_for_io_type_IN_EPOLLRDHUP_and_abandons_the_connection)
-{
-    // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
-    ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
-
-    ASSERT_ARE_EQUAL(int, 0, async_socket_notify_io_async(async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE_IN, test_on_notify_complete, test_callback_ctx));
-
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(test_on_notify_complete(test_callback_ctx, ASYNC_SOCKET_NOTIFY_IO_RESULT_ABANDONED));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-
-    // act
-    g_event_callback(g_event_callback_ctx, COMPLETION_PORT_EPOLL_EPOLLRDHUP);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    // cleanup
-    async_socket_close(async_socket);
-    async_socket_destroy(async_socket);
-}
-
-// Tests_SRS_ASYNC_SOCKET_LINUX_04_008: [ event_complete_callback shall call the notify complete callback with an ABANDONED flag when the IO type is ASYNC_SOCKET_IO_TYPE_NOTIFY. ]
-TEST_FUNCTION(event_complete_func_notify_for_io_type_IN_ABANDONED_and_abandons_the_connection)
-{
-    // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
-    ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
-
-    ASSERT_ARE_EQUAL(int, 0, async_socket_notify_io_async(async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE_IN, test_on_notify_complete, test_callback_ctx));
-
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(test_on_notify_complete(test_callback_ctx, ASYNC_SOCKET_NOTIFY_IO_RESULT_ABANDONED));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-
-    // act
-    g_event_callback(g_event_callback_ctx, COMPLETION_PORT_EPOLL_ABANDONED);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    // cleanup
-    async_socket_close(async_socket);
-    async_socket_destroy(async_socket);
-}
-
-// Tests_SRS_ASYNC_SOCKET_LINUX_04_008: [ event_complete_callback shall call the notify complete callback with an ABANDONED flag when the IO type is ASYNC_SOCKET_IO_TYPE_NOTIFY. ]
-TEST_FUNCTION(event_complete_func_notify_for_io_type_OUT_EPOLLRDHUP_and_abandons_the_connection)
-{
-    // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
-    ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
-
-    ASSERT_ARE_EQUAL(int, 0, async_socket_notify_io_async(async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE_OUT, test_on_notify_complete, test_callback_ctx));
-
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(test_on_notify_complete(test_callback_ctx, ASYNC_SOCKET_NOTIFY_IO_RESULT_ABANDONED));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-
-    // act
-    g_event_callback(g_event_callback_ctx, COMPLETION_PORT_EPOLL_EPOLLRDHUP);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    // cleanup
-    async_socket_close(async_socket);
-    async_socket_destroy(async_socket);
-}
-
-// Tests_SRS_ASYNC_SOCKET_LINUX_04_008: [ event_complete_callback shall call the notify complete callback with an ABANDONED flag when the IO type is ASYNC_SOCKET_IO_TYPE_NOTIFY. ]
-TEST_FUNCTION(event_complete_func_notify_for_io_type_OUT_ABANDONED_and_abandons_the_connection)
-{
-    // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
-    ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
-
-    ASSERT_ARE_EQUAL(int, 0, async_socket_notify_io_async(async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE_OUT, test_on_notify_complete, test_callback_ctx));
-
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(test_on_notify_complete(test_callback_ctx, ASYNC_SOCKET_NOTIFY_IO_RESULT_ABANDONED));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-
-    // act
-    g_event_callback(g_event_callback_ctx, COMPLETION_PORT_EPOLL_ABANDONED);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    // cleanup
-    async_socket_close(async_socket);
-    async_socket_destroy(async_socket);
-}
-
 // Tests_SRS_ASYNC_SOCKET_LINUX_04_009: [ If the IO type is ASYNC_SOCKET_IO_TYPE_NOTIFY then event_complete_callback shall call the notify complete callback with an IN flag. ]
-TEST_FUNCTION(event_complete_func_notify_EPOLLIN_calls_callback_with_IN_flag)
-{
-    // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
-    ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
-
-    ASSERT_ARE_EQUAL(int, 0, async_socket_notify_io_async(async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE_IN, test_on_notify_complete, test_callback_ctx));
-
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(test_on_notify_complete(test_callback_ctx, ASYNC_SOCKET_NOTIFY_IO_RESULT_IN));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-
-    // act
-    g_event_callback(g_event_callback_ctx, COMPLETION_PORT_EPOLL_EPOLLIN);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    // cleanup
-    async_socket_close(async_socket);
-    async_socket_destroy(async_socket);
-}
-
 // Tests_SRS_ASYNC_SOCKET_LINUX_04_010: [ If the IO type is ASYNC_SOCKET_IO_TYPE_NOTIFY then event_complete_callback shall call the notify complete callback with an OUT flag. ]
-TEST_FUNCTION(event_complete_func_notify_EPOLLOUT_calls_callback_with_OUT_flag)
-{
-    // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
-    ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
-
-    ASSERT_ARE_EQUAL(int, 0, async_socket_notify_io_async(async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE_OUT, test_on_notify_complete, test_callback_ctx));
-
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(test_on_notify_complete(test_callback_ctx, ASYNC_SOCKET_NOTIFY_IO_RESULT_OUT));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-
-    // act
-    g_event_callback(g_event_callback_ctx, COMPLETION_PORT_EPOLL_EPOLLOUT);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    // cleanup
-    async_socket_close(async_socket);
-    async_socket_destroy(async_socket);
-}
-
 // Tests_SRS_ASYNC_SOCKET_LINUX_04_011: [ If the IO type is ASYNC_SOCKET_IO_TYPE_NOTIFY then event_complete_callback shall call the notify complete callback with an ERROR flag. ]
-TEST_FUNCTION(event_complete_func_notify_for_io_type_IN_ERROR_calls_callback_with_ERROR_flag)
+PARAMETERIZED_TEST_FUNCTION(event_complete_func_notify_calls_callback_with_expected_result,
+    ARGS(ASYNC_SOCKET_NOTIFY_IO_TYPE, io_type, COMPLETION_PORT_EPOLL_ACTION, epoll_action, ASYNC_SOCKET_NOTIFY_IO_RESULT, expected_result),
+    CASE((ASYNC_SOCKET_NOTIFY_IO_TYPE_IN, COMPLETION_PORT_EPOLL_EPOLLRDHUP, ASYNC_SOCKET_NOTIFY_IO_RESULT_ABANDONED), IN_EPOLLRDHUP_abandons),
+    CASE((ASYNC_SOCKET_NOTIFY_IO_TYPE_IN, COMPLETION_PORT_EPOLL_ABANDONED, ASYNC_SOCKET_NOTIFY_IO_RESULT_ABANDONED), IN_ABANDONED_abandons),
+    CASE((ASYNC_SOCKET_NOTIFY_IO_TYPE_OUT, COMPLETION_PORT_EPOLL_EPOLLRDHUP, ASYNC_SOCKET_NOTIFY_IO_RESULT_ABANDONED), OUT_EPOLLRDHUP_abandons),
+    CASE((ASYNC_SOCKET_NOTIFY_IO_TYPE_OUT, COMPLETION_PORT_EPOLL_ABANDONED, ASYNC_SOCKET_NOTIFY_IO_RESULT_ABANDONED), OUT_ABANDONED_abandons),
+    CASE((ASYNC_SOCKET_NOTIFY_IO_TYPE_IN, COMPLETION_PORT_EPOLL_EPOLLIN, ASYNC_SOCKET_NOTIFY_IO_RESULT_IN), IN_EPOLLIN),
+    CASE((ASYNC_SOCKET_NOTIFY_IO_TYPE_OUT, COMPLETION_PORT_EPOLL_EPOLLOUT, ASYNC_SOCKET_NOTIFY_IO_RESULT_OUT), OUT_EPOLLOUT),
+    CASE((ASYNC_SOCKET_NOTIFY_IO_TYPE_IN, COMPLETION_PORT_EPOLL_ERROR, ASYNC_SOCKET_NOTIFY_IO_RESULT_ERROR), IN_ERROR),
+    CASE((ASYNC_SOCKET_NOTIFY_IO_TYPE_OUT, COMPLETION_PORT_EPOLL_ERROR, ASYNC_SOCKET_NOTIFY_IO_RESULT_ERROR), OUT_ERROR))
 {
     // arrange
     ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
     ASSERT_IS_NOT_NULL(async_socket);
     ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
 
-    ASSERT_ARE_EQUAL(int, 0, async_socket_notify_io_async(async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE_IN, test_on_notify_complete, test_callback_ctx));
+    ASSERT_ARE_EQUAL(int, 0, async_socket_notify_io_async(async_socket, io_type, test_on_notify_complete, test_callback_ctx));
 
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(test_on_notify_complete(test_callback_ctx, ASYNC_SOCKET_NOTIFY_IO_RESULT_ERROR));
+    STRICT_EXPECTED_CALL(test_on_notify_complete(test_callback_ctx, expected_result));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
     // act
-    g_event_callback(g_event_callback_ctx, COMPLETION_PORT_EPOLL_ERROR);
-
-    // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    // cleanup
-    async_socket_close(async_socket);
-    async_socket_destroy(async_socket);
-}
-
-// Tests_SRS_ASYNC_SOCKET_LINUX_04_011: [ If the IO type is ASYNC_SOCKET_IO_TYPE_NOTIFY then event_complete_callback shall call the notify complete callback with an ERROR flag. ]
-TEST_FUNCTION(event_complete_func_notify_for_io_type_OUT_ERROR_calls_callback_with_ERROR_flag)
-{
-    // arrange
-    ASYNC_SOCKET_HANDLE async_socket = async_socket_create(test_execution_engine);
-    ASSERT_IS_NOT_NULL(async_socket);
-    ASSERT_ARE_EQUAL(int, 0, async_socket_open_async(async_socket, test_socket, test_on_open_complete, test_callback_ctx));
-
-    ASSERT_ARE_EQUAL(int, 0, async_socket_notify_io_async(async_socket, ASYNC_SOCKET_NOTIFY_IO_TYPE_OUT, test_on_notify_complete, test_callback_ctx));
-
-    umock_c_reset_all_calls();
-
-    STRICT_EXPECTED_CALL(test_on_notify_complete(test_callback_ctx, ASYNC_SOCKET_NOTIFY_IO_RESULT_ERROR));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
-
-    // act
-    g_event_callback(g_event_callback_ctx, COMPLETION_PORT_EPOLL_ERROR);
+    g_event_callback(g_event_callback_ctx, epoll_action);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());

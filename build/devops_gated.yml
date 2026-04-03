@@ -7,12 +7,12 @@ resources:
     type: github
     name: azure/c-build-tools
     endpoint: github.com_azure
-    ref: refs/heads/master
+    ref: 473d3d1f6610df4c03004228a4ec104367109d6c
 
 jobs:
 - template: /pipeline_templates/build_all_flavors.yml@c_build_tools
   parameters:
-    cmake_options: -Drun_unittests:BOOL=ON -Drun_e2e_tests:BOOL=ON -Drun_int_tests:BOOL=ON -Drun_perf_tests:BOOL=ON -Drun_traceability:BOOL=ON -Duse_cppunittest:BOOL=ON -Drun_reals_check:BOOL=ON
+    cmake_options: -Drun_repo_validation:BOOL=ON -Drun_unittests:BOOL=ON -Drun_e2e_tests:BOOL=ON -Drun_int_tests:BOOL=ON -Drun_perf_tests:BOOL=ON -Drun_traceability:BOOL=ON -Duse_cppunittest:BOOL=ON -Drun_reals_check:BOOL=ON
     GBALLOC_LL_TYPE_VALUES: ["PASSTHROUGH", "JEMALLOC"]
 
 - template: /pipeline_templates/run_master_check.yml@c_build_tools
