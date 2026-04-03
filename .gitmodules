@@ -24,4 +24,4 @@
 	url = https://github.com/microsoft/vcpkg.git
 [submodule "deps/azure-messaging-ai-context"]
 	path = deps/azure-messaging-ai-context
-	url = https://github.com/Azure/azure-messaging-ai-context
+	url = https://github.com/Azure/azure-messaging-ai-context.git
