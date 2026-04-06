@@ -5,11 +5,11 @@
 
 #include "testrunnerswitcher.h"
 
-// In unit tests (when umock_c is included), use real (non-mocked) process_watchdog
-// functions so the watchdog works even when interlocked is mocked.
-// Integration tests don't mock anything, so they use process_watchdog directly.
+// When UMOCK_C_H is defined, interlocked may be mocked — use real process_watchdog
+// to avoid crash during suite cleanup. Without umock, nothing is mocked so the
+// normal process_watchdog_init (which calls interlocked directly) is safe.
 #ifdef UMOCK_C_H
-#include "c_pal/real_process_watchdog_renames.h"
+#include "real_process_watchdog_renames.h"
 #endif
 #include "c_pal/process_watchdog.h"
 

@@ -9,7 +9,7 @@
 
 // Force the renames so TIMED_ macros call real_process_watchdog_init/deinit
 // (this test provides its own mock implementations of those functions)
-#include "c_pal/real_process_watchdog_renames.h"
+#include "real_process_watchdog_renames.h"
 
 // Counters to track call ordering
 static int watchdog_init_call_order = 0;
