@@ -32,14 +32,13 @@ static void generate_test_job_name(char* job_name_out, size_t job_name_size)
     LogInfo("Test job name: %s", job_name_out);
 }
 
-static THANDLE(JOB_OBJECT_HELPER) create_job_object_with_limits(char* job_name_out, size_t job_name_size, uint32_t cpu, uint32_t memory)
+static void create_job_object_with_limits(char* job_name_out, size_t job_name_size, uint32_t cpu, uint32_t memory)
 {
     generate_test_job_name(job_name_out, job_name_size);
     LogInfo("Creating job object (cpu=%" PRIu32 ", memory=%" PRIu32 ") with job name: %s...", cpu, memory, job_name_out);
 
-    THANDLE(JOB_OBJECT_HELPER) result = job_object_helper_set_job_limits_to_current_process(job_name_out, cpu, memory);
-    ASSERT_IS_NOT_NULL(result, "Job object should be created (cpu=%" PRIu32 ", memory=%" PRIu32 ")", cpu, memory);
-    return result;
+    int result = job_object_helper_set_job_limits_to_current_process(job_name_out, cpu, memory);
+    ASSERT_ARE_EQUAL(int, 0, result, "Job object should be created (cpu=%" PRIu32 ", memory=%" PRIu32 ")", cpu, memory);
 }
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
@@ -66,10 +65,10 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_null_w
     /* (0,0) is not allowed — at least one limit must be non-zero. */
 
     ///act
-    THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_set_job_limits_to_current_process(NULL, 0, 0);
+    int result = job_object_helper_set_job_limits_to_current_process(NULL, 0, 0);
 
     ///assert
-    ASSERT_IS_NULL(job_object_helper, "(0, 0) should return NULL");
+    ASSERT_ARE_NOT_EQUAL(int, 0, result, "(0, 0) should fail");
 }
 
 TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_null_when_both_100_and_null_job_name)
@@ -77,10 +76,10 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_null_w
     /* (100,100) is effectively no limits — the function returns NULL without creating a job object. */
 
     ///act
-    THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_set_job_limits_to_current_process(NULL, MAX_CPU_PERCENT, MAX_MEMORY_PERCENT);
+    int result = job_object_helper_set_job_limits_to_current_process(NULL, MAX_CPU_PERCENT, MAX_MEMORY_PERCENT);
 
     ///assert
-    ASSERT_IS_NULL(job_object_helper, "(100, 100) should return NULL (no job object needed)");
+    ASSERT_ARE_NOT_EQUAL(int, 0, result, "(100, 100) should fail (no job object needed)");
 }
 
 TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_null_when_both_zero_and_named_job_object)
@@ -92,10 +91,10 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_null_w
     generate_test_job_name(job_name, sizeof(job_name));
 
     ///act
-    THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, 0, 0);
+    int result = job_object_helper_set_job_limits_to_current_process(job_name, 0, 0);
 
     ///assert
-    ASSERT_IS_NULL(job_object_helper, "(0, 0) should return NULL");
+    ASSERT_ARE_NOT_EQUAL(int, 0, result, "(0, 0) should fail");
 
     /* Verify that no job object was actually created */
     HANDLE job_object = OpenJobObjectA(JOB_OBJECT_QUERY, FALSE, job_name);
@@ -111,10 +110,10 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_null_w
     generate_test_job_name(job_name, sizeof(job_name));
 
     ///act
-    THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, MAX_CPU_PERCENT, MAX_MEMORY_PERCENT);
+    int result = job_object_helper_set_job_limits_to_current_process(job_name, MAX_CPU_PERCENT, MAX_MEMORY_PERCENT);
 
     ///assert
-    ASSERT_IS_NULL(job_object_helper, "(100, 100) should return NULL (no job object needed)");
+    ASSERT_ARE_NOT_EQUAL(int, 0, result, "(100, 100) should fail (no job object needed)");
 
     /* Verify that no job object was actually created */
     HANDLE job_object = OpenJobObjectA(JOB_OBJECT_QUERY, FALSE, job_name);
@@ -133,10 +132,10 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_null_w
         LogInfo("Running test with cpu=%" PRIu32 ", memory=%" PRIu32 "...", cpu_limits[i], memory_limits[i]);
 
         ///act
-        THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_set_job_limits_to_current_process(NULL, cpu_limits[i], memory_limits[i]);
+        int result = job_object_helper_set_job_limits_to_current_process(NULL, cpu_limits[i], memory_limits[i]);
 
         ///assert
-        ASSERT_IS_NULL(job_object_helper, "(%" PRIu32 ", %" PRIu32 ") should return NULL", cpu_limits[i], memory_limits[i]);
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "(%" PRIu32 ", %" PRIu32 ") should fail", cpu_limits[i], memory_limits[i]);
     }
 }
 
@@ -152,10 +151,10 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_null_w
         LogInfo("Running test with cpu=%" PRIu32 ", memory=%" PRIu32 "...", cpu_limits[i], memory_limits[i]);
 
         ///act
-        THANDLE(JOB_OBJECT_HELPER) job_object_helper = job_object_helper_set_job_limits_to_current_process(NULL, cpu_limits[i], memory_limits[i]);
+        int result = job_object_helper_set_job_limits_to_current_process(NULL, cpu_limits[i], memory_limits[i]);
 
         ///assert
-        ASSERT_IS_NULL(job_object_helper, "(%" PRIu32 ", %" PRIu32 ") should return NULL", cpu_limits[i], memory_limits[i]);
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "(%" PRIu32 ", %" PRIu32 ") should fail", cpu_limits[i], memory_limits[i]);
     }
 }
 
@@ -166,16 +165,13 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_null_w
 
     ///arrange
     char job_name[64];
-    THANDLE(JOB_OBJECT_HELPER) initial_job_object_helper = create_job_object_with_limits(job_name, sizeof(job_name), INITIAL_CPU_PERCENT, INITIAL_MEMORY_PERCENT);
+    create_job_object_with_limits(job_name, sizeof(job_name), INITIAL_CPU_PERCENT, INITIAL_MEMORY_PERCENT);
 
     ///act — try to set cpu to 0 (previously was non-zero)
-    THANDLE(JOB_OBJECT_HELPER) updated_job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, 0, INITIAL_MEMORY_PERCENT);
+    int result = job_object_helper_set_job_limits_to_current_process(job_name, 0, INITIAL_MEMORY_PERCENT);
 
     ///assert
-    ASSERT_IS_NULL(updated_job_object_helper, "Update cpu from non-zero to 0 should fail and return NULL");
-
-    ///cleanup
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&initial_job_object_helper, NULL);
+    ASSERT_ARE_NOT_EQUAL(int, 0, result, "Update cpu from non-zero to 0 should fail");
 }
 
 TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_null_when_update_memory_from_nonzero_to_zero)
@@ -185,16 +181,13 @@ TEST_FUNCTION(job_object_helper_set_job_limits_to_current_process_returns_null_w
 
     ///arrange
     char job_name[64];
-    THANDLE(JOB_OBJECT_HELPER) initial_job_object_helper = create_job_object_with_limits(job_name, sizeof(job_name), INITIAL_CPU_PERCENT, INITIAL_MEMORY_PERCENT);
+    create_job_object_with_limits(job_name, sizeof(job_name), INITIAL_CPU_PERCENT, INITIAL_MEMORY_PERCENT);
 
     ///act — try to set memory to 0 (previously was non-zero)
-    THANDLE(JOB_OBJECT_HELPER) updated_job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, INITIAL_CPU_PERCENT, 0);
+    int result = job_object_helper_set_job_limits_to_current_process(job_name, INITIAL_CPU_PERCENT, 0);
 
     ///assert
-    ASSERT_IS_NULL(updated_job_object_helper, "Update memory from non-zero to 0 should fail and return NULL");
-
-    ///cleanup
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&initial_job_object_helper, NULL);
+    ASSERT_ARE_NOT_EQUAL(int, 0, result, "Update memory from non-zero to 0 should fail");
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

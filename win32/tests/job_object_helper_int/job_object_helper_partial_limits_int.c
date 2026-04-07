@@ -26,16 +26,15 @@
 #define UPDATED_CPU_PERCENT 30
 #define UPDATED_MEMORY_PERCENT 2
 
-static THANDLE(JOB_OBJECT_HELPER) create_job_object_with_limits(char* job_name_out, size_t job_name_size, uint32_t cpu, uint32_t memory)
+static void create_job_object_with_limits(char* job_name_out, size_t job_name_size, uint32_t cpu, uint32_t memory)
 {
     UUID_T job_name_uuid;
     (void)uuid_produce(&job_name_uuid);
     (void)snprintf(job_name_out, job_name_size, TEST_JOB_NAME_PREFIX "%" PRI_UUID_T "", UUID_T_VALUES(job_name_uuid));
     LogInfo("Creating job object (cpu=%" PRIu32 ", memory=%" PRIu32 ") with job name: %s...", cpu, memory, job_name_out);
 
-    THANDLE(JOB_OBJECT_HELPER) result = job_object_helper_set_job_limits_to_current_process(job_name_out, cpu, memory);
-    ASSERT_IS_NOT_NULL(result, "Job object should be created (cpu=%" PRIu32 ", memory=%" PRIu32 ")", cpu, memory);
-    return result;
+    int result = job_object_helper_set_job_limits_to_current_process(job_name_out, cpu, memory);
+    ASSERT_ARE_EQUAL(int, 0, result, "Job object should be created (cpu=%" PRIu32 ", memory=%" PRIu32 ")", cpu, memory);
 }
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
@@ -69,7 +68,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_with_zero_cpu_and_nonzero_memory_
     char job_name[64];
 
     ///act
-    THANDLE(JOB_OBJECT_HELPER) job_object_helper = create_job_object_with_limits(job_name, sizeof(job_name), 0, TEST_MEMORY_PERCENT);
+    create_job_object_with_limits(job_name, sizeof(job_name), 0, TEST_MEMORY_PERCENT);
 
     ///assert
     /* Verify the job object was created */
@@ -103,9 +102,6 @@ TEST_FUNCTION(job_object_helper_set_job_limits_with_zero_cpu_and_nonzero_memory_
     ASSERT_IS_TRUE(is_in_job, "Current process should be assigned to the job object");
 
     (void)CloseHandle(job_object);
-
-    ///cleanup
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
 }
 
 TEST_FUNCTION(job_object_helper_set_job_limits_with_nonzero_cpu_and_zero_memory_succeeds)
@@ -120,7 +116,7 @@ TEST_FUNCTION(job_object_helper_set_job_limits_with_nonzero_cpu_and_zero_memory_
     char job_name[64];
 
     ///act
-    THANDLE(JOB_OBJECT_HELPER) job_object_helper = create_job_object_with_limits(job_name, sizeof(job_name), TEST_CPU_PERCENT, 0);
+    create_job_object_with_limits(job_name, sizeof(job_name), TEST_CPU_PERCENT, 0);
 
     ///assert
     /* Verify the job object was created */
@@ -149,9 +145,6 @@ TEST_FUNCTION(job_object_helper_set_job_limits_with_nonzero_cpu_and_zero_memory_
     ASSERT_IS_TRUE(is_in_job, "Current process should be assigned to the job object");
 
     (void)CloseHandle(job_object);
-
-    ///cleanup
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&job_object_helper, NULL);
 }
 
 TEST_FUNCTION(job_object_helper_update_both_limits_succeeds)
@@ -162,14 +155,13 @@ TEST_FUNCTION(job_object_helper_update_both_limits_succeeds)
 
     ///arrange
     char job_name[64];
-    THANDLE(JOB_OBJECT_HELPER) initial_job_object_helper = create_job_object_with_limits(job_name, sizeof(job_name), INITIAL_CPU_PERCENT, INITIAL_MEMORY_PERCENT);
+    create_job_object_with_limits(job_name, sizeof(job_name), INITIAL_CPU_PERCENT, INITIAL_MEMORY_PERCENT);
 
     ///act - update to new values
-    THANDLE(JOB_OBJECT_HELPER) updated_job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, UPDATED_CPU_PERCENT, UPDATED_MEMORY_PERCENT);
+    int result = job_object_helper_set_job_limits_to_current_process(job_name, UPDATED_CPU_PERCENT, UPDATED_MEMORY_PERCENT);
 
     ///assert
-    ASSERT_IS_NOT_NULL(updated_job_object_helper, "Update should succeed");
-    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, updated_job_object_helper, "Updated call should return same singleton");
+    ASSERT_ARE_EQUAL(int, 0, result, "Update should succeed");
 
     HANDLE job_object = OpenJobObjectA(JOB_OBJECT_QUERY, FALSE, job_name);
     ASSERT_IS_NOT_NULL(job_object, "Failed to open job object after update");
@@ -197,10 +189,6 @@ TEST_FUNCTION(job_object_helper_update_both_limits_succeeds)
     LogInfo("Updated memory limit verified: %zu MB", ext_info.JobMemoryLimit / MEGABYTE);
 
     (void)CloseHandle(job_object);
-
-    ///cleanup
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&initial_job_object_helper, NULL);
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&updated_job_object_helper, NULL);
 }
 
 TEST_FUNCTION(job_object_helper_update_memory_only_when_cpu_was_zero_succeeds)
@@ -211,14 +199,13 @@ TEST_FUNCTION(job_object_helper_update_memory_only_when_cpu_was_zero_succeeds)
 
     ///arrange
     char job_name[64];
-    THANDLE(JOB_OBJECT_HELPER) initial_job_object_helper = create_job_object_with_limits(job_name, sizeof(job_name), 0, INITIAL_MEMORY_PERCENT);
+    create_job_object_with_limits(job_name, sizeof(job_name), 0, INITIAL_MEMORY_PERCENT);
 
     ///act - update: cpu still 0, memory updated
-    THANDLE(JOB_OBJECT_HELPER) updated_job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, 0, UPDATED_MEMORY_PERCENT);
+    int result = job_object_helper_set_job_limits_to_current_process(job_name, 0, UPDATED_MEMORY_PERCENT);
 
     ///assert
-    ASSERT_IS_NOT_NULL(updated_job_object_helper, "Update should succeed");
-    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, updated_job_object_helper, "Updated call should return same singleton");
+    ASSERT_ARE_EQUAL(int, 0, result, "Update should succeed");
 
     HANDLE job_object = OpenJobObjectA(JOB_OBJECT_QUERY, FALSE, job_name);
     ASSERT_IS_NOT_NULL(job_object, "Failed to open job object after update");
@@ -244,10 +231,6 @@ TEST_FUNCTION(job_object_helper_update_memory_only_when_cpu_was_zero_succeeds)
     LogInfo("Updated memory limit verified: %zu MB", ext_info.JobMemoryLimit / MEGABYTE);
 
     (void)CloseHandle(job_object);
-
-    ///cleanup
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&initial_job_object_helper, NULL);
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&updated_job_object_helper, NULL);
 }
 
 TEST_FUNCTION(job_object_helper_update_cpu_only_when_memory_was_zero_succeeds)
@@ -258,14 +241,13 @@ TEST_FUNCTION(job_object_helper_update_cpu_only_when_memory_was_zero_succeeds)
 
     ///arrange
     char job_name[64];
-    THANDLE(JOB_OBJECT_HELPER) initial_job_object_helper = create_job_object_with_limits(job_name, sizeof(job_name), INITIAL_CPU_PERCENT, 0);
+    create_job_object_with_limits(job_name, sizeof(job_name), INITIAL_CPU_PERCENT, 0);
 
     ///act - update: cpu updated, memory still 0
-    THANDLE(JOB_OBJECT_HELPER) updated_job_object_helper = job_object_helper_set_job_limits_to_current_process(job_name, UPDATED_CPU_PERCENT, 0);
+    int result = job_object_helper_set_job_limits_to_current_process(job_name, UPDATED_CPU_PERCENT, 0);
 
     ///assert
-    ASSERT_IS_NOT_NULL(updated_job_object_helper, "Update should succeed");
-    ASSERT_ARE_EQUAL(void_ptr, initial_job_object_helper, updated_job_object_helper, "Updated call should return same singleton");
+    ASSERT_ARE_EQUAL(int, 0, result, "Update should succeed");
 
     HANDLE job_object = OpenJobObjectA(JOB_OBJECT_QUERY, FALSE, job_name);
     ASSERT_IS_NOT_NULL(job_object, "Failed to open job object after update");
@@ -287,10 +269,6 @@ TEST_FUNCTION(job_object_helper_update_cpu_only_when_memory_was_zero_succeeds)
     LogInfo("Memory limits verified as still not applied (LimitFlags=0x%08lx)", (unsigned long)ext_info.BasicLimitInformation.LimitFlags);
 
     (void)CloseHandle(job_object);
-
-    ///cleanup
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&initial_job_object_helper, NULL);
-    THANDLE_ASSIGN(JOB_OBJECT_HELPER)(&updated_job_object_helper, NULL);
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
