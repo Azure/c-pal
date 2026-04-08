@@ -4,6 +4,13 @@
 #define TIMED_TEST_SUITE_H
 
 #include "testrunnerswitcher.h"
+
+// When UMOCK_C_H is defined, interlocked may be mocked — use real process_watchdog
+// to avoid crash during suite cleanup. Without umock, nothing is mocked so the
+// normal process_watchdog_init (which calls interlocked directly) is safe.
+#ifdef UMOCK_C_H
+#include "real_process_watchdog_renames.h"
+#endif
 #include "c_pal/process_watchdog.h"
 
 // Default timeout: 10 minutes

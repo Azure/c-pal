@@ -21,13 +21,13 @@ static FILE* test_file_handle = (FILE*)0x1001;
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(suite_init)
+TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error));
     ASSERT_ARE_EQUAL(int, 0, umocktypes_charptr_register_types());
 }
 
-TEST_SUITE_CLEANUP(TestClassCleanup)
+TIMED_TEST_SUITE_CLEANUP(TestClassCleanup)
 {
     umock_c_deinit();
 }

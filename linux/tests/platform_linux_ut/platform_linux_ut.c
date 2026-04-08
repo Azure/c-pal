@@ -1,4 +1,4 @@
-﻿// Copyright(C) Microsoft Corporation.All rights reserved.
+// Copyright(C) Microsoft Corporation.All rights reserved.
 
 
 #include "platform_linux_ut_pch.h"
@@ -25,7 +25,7 @@ static int my_getaddrinfo(const char* pNodeName, const char* pServiceName, const
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(suite_init)
+TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error), "umock_c_init");
     ASSERT_ARE_EQUAL(int, 0, umocktypes_charptr_register_types());
@@ -36,7 +36,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_UMOCK_ALIAS_TYPE(COMPLETION_PORT_HANDLE, void*);
 }
 
-TEST_SUITE_CLEANUP(suite_cleanup)
+TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
 {
     umock_c_deinit();
 }

@@ -14,6 +14,7 @@
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/job_object_helper.h"
 #include "c_pal/uuid.h"
+#include "c_pal/timed_test_suite.h"
 
 
 #define MAX_CPU_PERCENT 100
@@ -42,11 +43,11 @@ static void create_job_object_with_limits(char* job_name_out, size_t job_name_si
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(suite_init)
+TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
 }
 
-TEST_SUITE_CLEANUP(suite_cleanup)
+TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
 {
 }
 

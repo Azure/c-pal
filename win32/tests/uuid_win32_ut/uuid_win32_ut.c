@@ -35,7 +35,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_SUITE_INITIALIZE(suite_init)
+TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 {
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error));
 
@@ -46,7 +46,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     g_hook_UuidCreate_return = RPC_S_OK;
 }
 
-TEST_SUITE_CLEANUP(suite_cleanup)
+TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
 {
     umock_c_deinit();
 }
