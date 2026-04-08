@@ -183,7 +183,7 @@ MOCKABLE_FUNCTION(, void, socket_transport_disconnect, SOCKET_TRANSPORT_HANDLE, 
 
 **SRS_SOCKET_TRANSPORT_LINUX_11_025: [** `socket_transport_disconnect` shall call `shutdown` to stop both the transmit and reception of the connected socket. **]**
 
-**SRS_SOCKET_TRANSPORT_LINUX_11_026: [** If `shutdown` does not return 0, the socket is not valid therefore `socket_transport_disconnect` shall not call 'close' **]**
+**SRS_SOCKET_TRANSPORT_LINUX_11_026: [** If `shutdown` does not return 0, `socket_transport_disconnect` shall log the error. **]**
 
 **SRS_SOCKET_TRANSPORT_LINUX_11_023: [** `socket_transport_disconnect` shall call `close` to disconnect the connected socket. **]**
 
