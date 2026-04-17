@@ -511,7 +511,7 @@ TEST_FUNCTION(socket_transport_disconnect_close_fail_succeed)
     socket_transport_destroy(socket_handle);
 }
 
-/*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_026: [ If shutdown does not return 0, the socket is not valid therefore socket_transport_disconnect shall not call 'close' ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_LINUX_11_026: [ If shutdown does not return 0, socket_transport_disconnect shall log the error. ]*/
 TEST_FUNCTION(socket_transport_disconnect_shutdown_fail_succeed)
 {
     //arrange
@@ -529,6 +529,8 @@ TEST_FUNCTION(socket_transport_disconnect_shutdown_fail_succeed)
     STRICT_EXPECTED_CALL(sm_close_begin(IGNORED_ARG));
     STRICT_EXPECTED_CALL(shutdown(IGNORED_ARG, 2))
         .SetReturn(MU_FAILURE);
+    STRICT_EXPECTED_CALL(close(IGNORED_ARG))
+        .SetReturn(0);
     STRICT_EXPECTED_CALL(sm_close_end(IGNORED_ARG));
 
     //act

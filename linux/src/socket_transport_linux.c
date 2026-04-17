@@ -340,16 +340,14 @@ void socket_transport_disconnect(SOCKET_TRANSPORT_HANDLE socket_transport)
             // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_025: [ socket_transport_disconnect shall call shutdown to stop both the transmit and reception of the connected socket. ]
             if (shutdown(socket_transport->socket, 2) != 0)
             {
-                // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_026: [ If shutdown does not return 0, the socket is not valid therefore socket_transport_disconnect shall not call 'close' ]
+                // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_026: [ If shutdown does not return 0, socket_transport_disconnect shall log the error. ]
                 LogErrorNo("shutdown failed on socket: %" PRI_SOCKET "", socket_transport->socket);
             }
-            else
+
+            // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_023: [ socket_transport_disconnect shall call close to disconnect the connected socket. ]
+            if (close(socket_transport->socket) != 0)
             {
-                // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_023: [ socket_transport_disconnect shall call close to disconnect the connected socket. ]
-                if (close(socket_transport->socket) != 0)
-                {
-                    LogErrorNo("Close failure on socket: %" PRI_SOCKET "", socket_transport->socket);
-                }
+                LogErrorNo("Close failure on socket: %" PRI_SOCKET "", socket_transport->socket);
             }
             // Codes_SRS_SOCKET_TRANSPORT_LINUX_11_024: [ socket_transport_disconnect shall call sm_close_end. ]
             sm_close_end(socket_transport->sm);

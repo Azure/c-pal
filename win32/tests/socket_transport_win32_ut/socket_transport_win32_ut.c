@@ -674,7 +674,7 @@ TEST_FUNCTION(socket_transport_disconnect_invalid_arguments)
 
 }
 
-/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_083: [ If shutdown does not return 0 on a socket that is not a binding socket, the socket is not valid therefore socket_transport_disconnect shall not call close]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_083: [ If the type is not SOCKET_BINDING, socket_transport_disconnect shall call shutdown. ]*/
 TEST_FUNCTION(socket_transport_disconnect_shutdown_fail)
 {
     //arrange
@@ -692,6 +692,8 @@ TEST_FUNCTION(socket_transport_disconnect_shutdown_fail)
     STRICT_EXPECTED_CALL(sm_close_begin(IGNORED_ARG));
     STRICT_EXPECTED_CALL(shutdown(IGNORED_ARG, 2))
         .SetReturn(MU_FAILURE);
+    STRICT_EXPECTED_CALL(closesocket(IGNORED_ARG))
+        .SetReturn(0);
     STRICT_EXPECTED_CALL(sm_close_end(IGNORED_ARG));
 
     //act
@@ -736,7 +738,7 @@ TEST_FUNCTION(socket_transport_disconnect_failure_closesocket)
     socket_transport_destroy(socket_handle);
 }
 
-/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_083: [ If shutdown does not return 0 on a socket that is not a binding socket, the socket is not valid therefore socket_transport_disconnect shall not call close ]*/
+/*Tests_SRS_SOCKET_TRANSPORT_WIN32_09_083: [ If the type is not SOCKET_BINDING, socket_transport_disconnect shall call shutdown. ]*/
 TEST_FUNCTION(socket_transport_disconnect_binding_socket_closesocket)
 {
     //arrange
