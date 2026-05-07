@@ -312,6 +312,54 @@ TEST_FUNCTION(wait_on_address_64_returns_immediately)
 
 /* Tests_SRS_SYNC_43_001: [ wait_on_address shall atomically compare *address and *compare_address.] */
 /* Tests_SRS_SYNC_43_002: [ wait_on_address shall immediately return true if *address is not equal to *compare_address.] */
+//
+// Regression test: wait_on_address_64 must compare the FULL 64-bit value at
+// *address against compare_value, not just the lower 32 bits.
+//
+// On Linux, wait_on_address_64 is implemented using the futex syscall, which
+// fundamentally compares only 32 bits of the value at the address (the lower
+// 32 bits on little-endian systems). When *address differs from compare_value
+// only in the upper 32 bits, the kernel sees the lower 32 bits as equal and
+// incorrectly sleeps until timeout instead of returning immediately.
+//
+// This bug also breaks InterlockedHL_WaitForNotValue64 (and the other 64-bit
+// InterlockedHL waiters) in race conditions, because those functions read the
+// full 64-bit value via interlocked_add_64, then call wait_on_address_64. If
+// another thread changes the upper 32 bits between the read and the syscall,
+// the kernel's atomic check-before-sleep fails to detect it, leading to a lost
+// wakeup that blocks until timeout.
+//
+// Concrete example from the multiplexer integration tests: a SUBSTREAM_ID is a
+// 64-bit value where the lower 32 bits are an index. The first substream has
+// index = 0, so the lower 32 bits of its SUBSTREAM_ID match the initial value
+// (0) used as compare_value, even though the upper 32 bits are non-zero.
+TEST_FUNCTION(wait_on_address_64_returns_immediately_when_only_upper_32_bits_differ)
+{
+    //arrange
+    volatile_atomic int64_t var;
+    // 0x100000000 has upper 32 bits = 1 and lower 32 bits = 0.
+    int64_t differing_value = 0x100000000LL;
+    (void)interlocked_exchange_64(&var, differing_value);
+    int64_t compare_value = 0; // Lower 32 bits match var's lower 32 bits but full 64 bits differ.
+    int32_t timeout = 5000;
+    double tolerance_factor = 0.1;
+
+    //act
+    double start_time = timer_global_get_elapsed_ms();
+    WAIT_ON_ADDRESS_RESULT return_val = wait_on_address_64(&var, compare_value, timeout);
+    double time_elapsed = timer_global_get_elapsed_ms() - start_time;
+
+    //assert
+    ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_OK, return_val,
+        "wait_on_address_64 must return WAIT_ON_ADDRESS_OK when *var (0x%" PRIx64 ") != compare_value (0x%" PRIx64 "), but it slept for %lf ms",
+        (uint64_t)differing_value, (uint64_t)compare_value, time_elapsed);
+    ASSERT_IS_TRUE(time_elapsed < timeout * tolerance_factor,
+        "wait_on_address_64 took too long: %lf ms (max expected %lf ms). It likely slept due to comparing only the lower 32 bits of the value.",
+        time_elapsed, timeout * tolerance_factor);
+}
+
+/* Tests_SRS_SYNC_43_001: [ wait_on_address shall atomically compare *address and *compare_address.] */
+/* Tests_SRS_SYNC_43_002: [ wait_on_address shall immediately return true if *address is not equal to *compare_address.] */
 /* Tests_SRS_SYNC_43_009: [ If timeout_ms milliseconds elapse, wait_on_address shall return false. ] */
 TEST_FUNCTION(wait_on_address_returns_after_timeout_elapses)
 {
