@@ -24,6 +24,7 @@
 #include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 #include "c_pal/interlocked.h"
 #include "c_pal/sync.h"
+#include "c_pal/timer.h"
 #include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 #include "real_interlocked.h"

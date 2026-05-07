@@ -68,11 +68,21 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForVal
 
 **SRS_INTERLOCKED_HL_01_003: [** If the value at `address_to_check` is equal to `value_to_wait`, `InterlockedHL_WaitForValue` shall return `INTERLOCKED_HL_OK`. **]**
 
-**SRS_INTERLOCKED_HL_01_004: [** If the value at `address_to_check` is not equal to `value_to_wait`, `InterlockedHL_WaitForValue` shall wait until the value at `address_to_check` changes using `wait_on_address`. **]**
+**SRS_INTERLOCKED_HL_27_001: [** `InterlockedHL_WaitForValue` shall call `timer_global_get_elapsed_ms` to determine the start time of the wait. **]**
+
+**SRS_INTERLOCKED_HL_27_017: [** If `timeout_ms` is `UINT32_MAX`, `InterlockedHL_WaitForValue` shall pass `UINT32_MAX` to `wait_on_address`. **]**
+
+**SRS_INTERLOCKED_HL_27_002: [** `InterlockedHL_WaitForValue` shall call `timer_global_get_elapsed_ms` and compute the elapsed time since the start. **]**
+
+**SRS_INTERLOCKED_HL_27_021: [** If the elapsed time is negative, `InterlockedHL_WaitForValue` shall treat it as zero. **]**
+
+**SRS_INTERLOCKED_HL_27_013: [** If the elapsed time is greater than or equal to `timeout_ms`, `InterlockedHL_WaitForValue` shall return `INTERLOCKED_HL_TIMEOUT`. **]**
+
+**SRS_INTERLOCKED_HL_01_004: [** If the value at `address_to_check` is not equal to `value_to_wait`, `InterlockedHL_WaitForValue` shall wait until the value at `address_to_check` changes using `wait_on_address` with a timeout equal to `timeout_ms` minus the elapsed time. **]**
 
 **SRS_INTERLOCKED_HL_01_007: [** When `wait_on_address` succeeds, `InterlockedHL_WaitForValue` shall again compare the value at `address_to_check` with `value_to_wait`. **]**
 
-**SRS_INTERLOCKED_HL_11_001: [** If `wait_on_address` hits the timeout specified in `timeout_ms`, `InterlockedHL_WaitForValue` shall fail and return `INTERLOCKED_HL_TIMEOUT`. **]**
+**SRS_INTERLOCKED_HL_11_001: [** If `wait_on_address` hits the timeout, `InterlockedHL_WaitForValue` shall fail and return `INTERLOCKED_HL_TIMEOUT`. **]**
 
 **SRS_INTERLOCKED_HL_01_006: [** If `wait_on_address` fails, `InterlockedHL_WaitForValue` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
@@ -88,11 +98,21 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForVal
 
 **SRS_INTERLOCKED_HL_05_002: [** If the value at `address_to_check` is equal to `value_to_wait`, `InterlockedHL_WaitForValue64` shall return `INTERLOCKED_HL_OK`. **]**
 
-**SRS_INTERLOCKED_HL_05_003: [** If the value at `address_to_check` is not equal to `value_to_wait`, `InterlockedHL_WaitForValue64` shall wait until the value at `address_to_check` changes using `wait_on_address_64`. **]**
+**SRS_INTERLOCKED_HL_27_004: [** `InterlockedHL_WaitForValue64` shall call `timer_global_get_elapsed_ms` to determine the start time of the wait. **]**
+
+**SRS_INTERLOCKED_HL_27_018: [** If `timeout_ms` is `UINT32_MAX`, `InterlockedHL_WaitForValue64` shall pass `UINT32_MAX` to `wait_on_address_64`. **]**
+
+**SRS_INTERLOCKED_HL_27_005: [** `InterlockedHL_WaitForValue64` shall call `timer_global_get_elapsed_ms` and compute the elapsed time since the start. **]**
+
+**SRS_INTERLOCKED_HL_27_022: [** If the elapsed time is negative, `InterlockedHL_WaitForValue64` shall treat it as zero. **]**
+
+**SRS_INTERLOCKED_HL_27_014: [** If the elapsed time is greater than or equal to `timeout_ms`, `InterlockedHL_WaitForValue64` shall return `INTERLOCKED_HL_TIMEOUT`. **]**
+
+**SRS_INTERLOCKED_HL_05_003: [** If the value at `address_to_check` is not equal to `value_to_wait`, `InterlockedHL_WaitForValue64` shall wait until the value at `address_to_check` changes using `wait_on_address_64` with a timeout equal to `timeout_ms` minus the elapsed time. **]**
 
 **SRS_INTERLOCKED_HL_05_004: [** When `wait_on_address_64` succeeds, `InterlockedHL_WaitForValue64` shall again compare the value at `address_to_check` with `value_to_wait`. **]**
 
-**SRS_INTERLOCKED_HL_05_005: [** If `wait_on_address_64` hits the timeout specified in timeout_ms, `InterlockedHL_WaitForValue64` shall fail and return `INTERLOCKED_HL_TIMEOUT`. **]**
+**SRS_INTERLOCKED_HL_05_005: [** If `wait_on_address_64` hits the timeout, `InterlockedHL_WaitForValue64` shall fail and return `INTERLOCKED_HL_TIMEOUT`. **]**
 
 **SRS_INTERLOCKED_HL_05_006: [** If `wait_on_address_64` fails, `InterlockedHL_WaitForValue64` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
@@ -109,11 +129,21 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNot
 
 **SRS_INTERLOCKED_HL_42_002: [** If the value at `address_to_check` is not equal to `value_to_wait`, `InterlockedHL_WaitForNotValue` shall return `INTERLOCKED_HL_OK`. **]**
 
-**SRS_INTERLOCKED_HL_42_003: [** If the value at `address_to_check` is equal to `value_to_wait`, `InterlockedHL_WaitForNotValue` shall wait until the value at `address_to_check` changes by using `wait_on_address`. **]**
+**SRS_INTERLOCKED_HL_27_007: [** `InterlockedHL_WaitForNotValue` shall call `timer_global_get_elapsed_ms` to determine the start time of the wait. **]**
+
+**SRS_INTERLOCKED_HL_27_019: [** If `timeout_ms` is `UINT32_MAX`, `InterlockedHL_WaitForNotValue` shall pass `UINT32_MAX` to `wait_on_address`. **]**
+
+**SRS_INTERLOCKED_HL_27_008: [** `InterlockedHL_WaitForNotValue` shall call `timer_global_get_elapsed_ms` and compute the elapsed time since the start. **]**
+
+**SRS_INTERLOCKED_HL_27_023: [** If the elapsed time is negative, `InterlockedHL_WaitForNotValue` shall treat it as zero. **]**
+
+**SRS_INTERLOCKED_HL_27_015: [** If the elapsed time is greater than or equal to `timeout_ms`, `InterlockedHL_WaitForNotValue` shall return `INTERLOCKED_HL_TIMEOUT`. **]**
+
+**SRS_INTERLOCKED_HL_42_003: [** If the value at `address_to_check` is equal to `value_to_wait`, `InterlockedHL_WaitForNotValue` shall wait until the value at `address_to_check` changes by using `wait_on_address` with a timeout equal to `timeout_ms` minus the elapsed time. **]**
 
 **SRS_INTERLOCKED_HL_42_005: [** When `wait_on_address` succeeds, `InterlockedHL_WaitForNotValue` shall again compare the value at `address_to_check` with `value_to_wait`. **]**
 
-**SRS_INTERLOCKED_HL_11_002: [** If `wait_on_address` hits the timeout specified in timeout_ms, `InterlockedHL_WaitForNotValue` shall fail and return `INTERLOCKED_HL_TIMEOUT`. **]**
+**SRS_INTERLOCKED_HL_11_002: [** If `wait_on_address` hits the timeout, `InterlockedHL_WaitForNotValue` shall fail and return `INTERLOCKED_HL_TIMEOUT`. **]**
 
 **SRS_INTERLOCKED_HL_42_007: [** If `wait_on_address` fails, `InterlockedHL_WaitForNotValue` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
@@ -129,11 +159,21 @@ MOCKABLE_FUNCTION_WITH_RETURNS(, INTERLOCKED_HL_RESULT, InterlockedHL_WaitForNot
 
 **SRS_INTERLOCKED_HL_05_008: [** If the value at `address_to_check` is not equal to `value_to_wait`, `InterlockedHL_WaitForNotValue64` shall return `INTERLOCKED_HL_OK`. **]**
 
-**SRS_INTERLOCKED_HL_05_009: [** If the value at `address_to_check` is equal to `value_to_wait`, `InterlockedHL_WaitForNotValue64` shall wait until the value at `address_to_check` changes using `wait_on_address_64`. **]**
+**SRS_INTERLOCKED_HL_27_010: [** `InterlockedHL_WaitForNotValue64` shall call `timer_global_get_elapsed_ms` to determine the start time of the wait. **]**
+
+**SRS_INTERLOCKED_HL_27_020: [** If `timeout_ms` is `UINT32_MAX`, `InterlockedHL_WaitForNotValue64` shall pass `UINT32_MAX` to `wait_on_address_64`. **]**
+
+**SRS_INTERLOCKED_HL_27_011: [** `InterlockedHL_WaitForNotValue64` shall call `timer_global_get_elapsed_ms` and compute the elapsed time since the start. **]**
+
+**SRS_INTERLOCKED_HL_27_024: [** If the elapsed time is negative, `InterlockedHL_WaitForNotValue64` shall treat it as zero. **]**
+
+**SRS_INTERLOCKED_HL_27_016: [** If the elapsed time is greater than or equal to `timeout_ms`, `InterlockedHL_WaitForNotValue64` shall return `INTERLOCKED_HL_TIMEOUT`. **]**
+
+**SRS_INTERLOCKED_HL_05_009: [** If the value at `address_to_check` is equal to `value_to_wait`, `InterlockedHL_WaitForNotValue64` shall wait until the value at `address_to_check` changes using `wait_on_address_64` with a timeout equal to `timeout_ms` minus the elapsed time. **]**
 
 **SRS_INTERLOCKED_HL_05_010: [** When `wait_on_address_64` succeeds, `InterlockedHL_WaitForNotValue64` shall again compare the value at `address_to_check` with `value_to_wait`. **]**
 
-**SRS_INTERLOCKED_HL_05_011: [** If `wait_on_address_64` hits the timeout specified in timeout_ms, `InterlockedHL_WaitForNotValue64` shall fail and return `INTERLOCKED_HL_TIMEOUT`. **]**
+**SRS_INTERLOCKED_HL_05_011: [** If `wait_on_address_64` hits the timeout, `InterlockedHL_WaitForNotValue64` shall fail and return `INTERLOCKED_HL_TIMEOUT`. **]**
 
 **SRS_INTERLOCKED_HL_05_012: [** If `wait_on_address_64` fails, `InterlockedHL_WaitForNotValue64` shall fail and return `INTERLOCKED_HL_ERROR`. **]**
 
