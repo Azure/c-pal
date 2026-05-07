@@ -39,9 +39,9 @@ MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address, volatile_atomic int
 MOCKABLE_FUNCTION(, WAIT_ON_ADDRESS_RESULT, wait_on_address_64, volatile_atomic int64_t*, address, int64_t, compare_value, uint32_t, timeout_ms)
 ```
 
-**SRS_SYNC_LINUX_05_001: [** `wait_on_address_64` shall initialize a `timespec` struct with `.tv_nsec` equal to `timeout_ms* 10^6`. **]**
+**SRS_SYNC_LINUX_43_007: [** `wait_on_address_64` shall compute an absolute `CLOCK_MONOTONIC` deadline equal to now + `timeout_ms` milliseconds, or pass `NULL` when `timeout_ms` is `UINT32_MAX`. **]**
 
-**SRS_SYNC_LINUX_05_002: [** `wait_on_address_64` shall call `syscall` to wait on value at `address` to change to a value different than the one provided in `compare_value`. **]**
+**SRS_SYNC_LINUX_43_008: [** `wait_on_address_64` shall call `syscall(SYS_futex_wait)` with `FUTEX2_SIZE_U64 | FUTEX2_PRIVATE` and a `CLOCK_MONOTONIC` absolute deadline, performing a true 64-bit atomic check-before-sleep. **]**
 
 **SRS_SYNC_LINUX_05_003: [** If the value at `address` changes to a value different from `compare_value` then `wait_on_address_64` shall return `WAIT_ON_ADDRESS_OK`. **]**
 
@@ -66,7 +66,7 @@ MOCKABLE_FUNCTION(, void, wake_by_address_all, volatile_atomic int32_t*, address
 MOCKABLE_FUNCTION(, void, wake_by_address_all_64, volatile_atomic int64_t*, address)
 ```
 
-**SRS_SYNC_LINUX_05_007: [** `wake_by_address_all_64` shall call `syscall` to wake all listeners listening on `address`. **]**
+**SRS_SYNC_LINUX_43_009: [** `wake_by_address_all_64` shall call `syscall(SYS_futex_wake)` with `FUTEX2_SIZE_U64 | FUTEX2_PRIVATE` to wake all listeners on the 64-bit `address`. **]**
 
 ## wake_by_address_single
 
@@ -82,4 +82,4 @@ MOCKABLE_FUNCTION(, void, wake_by_address_single, volatile_atomic int32_t*, addr
 MOCKABLE_FUNCTION(, void, wake_by_address_single_64, volatile_atomic int64_t*, address)
 ```
 
-**SRS_SYNC_LINUX_05_008: [** `wake_by_address_single_64` shall call `syscall` to wake any single listener listening on `address`. **]**
+**SRS_SYNC_LINUX_43_010: [** `wake_by_address_single_64` shall call `syscall(SYS_futex_wake)` with `FUTEX2_SIZE_U64 | FUTEX2_PRIVATE` to wake one listener on the 64-bit `address`. **]**

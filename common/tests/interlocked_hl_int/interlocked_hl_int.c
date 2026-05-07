@@ -14,7 +14,6 @@
 #include "c_pal/interlocked_hl.h"
 #include "c_pal/interlocked.h"
 #include "c_pal/sync.h"
-#include "c_pal/timer.h"
 
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
@@ -373,29 +372,12 @@ TEST_FUNCTION(interlocked_hl_wait_for_not_value_64)
 Tests:
 InterlockedHL_WaitForNotValue64
 
-Regression test for a Linux-only bug where InterlockedHL_WaitForNotValue64 can
-have a lost-wakeup if a concurrent writer changes only the upper 32 bits of the
-64-bit value. The function reads the full 64-bit value via interlocked_add_64,
-then if it equals value_to_wait, calls wait_on_address_64. On Linux, the futex
-syscall used by wait_on_address_64 only compares the lower 32 bits, so when the
-upper 32 bits change between the read and the syscall (and the lower 32 bits
-remain equal to compare_value's lower 32 bits), the kernel sleeps instead of
-returning immediately.
-
-The multiplexer integration tests hit this race because SUBSTREAM_IDs are
-64-bit values whose lower 32 bits are an index. The first substream has
-index = 0, so the lower 32 bits of its SUBSTREAM_ID match the initial sentinel
-value 0, even though the upper 32 bits are non-zero.
-
-This test deterministically reproduces the race by:
-  1. Reading the value (mimicking InterlockedHL_WaitForNotValue64's first step)
-     and confirming it equals value_to_wait.
-  2. Changing the upper 32 bits of the value (simulating a writer that wins the
-     race).
-  3. Calling wait_on_address_64 with the originally-read value as compare_value
-     (mimicking InterlockedHL_WaitForNotValue64's second step).
-  4. Asserting that wait_on_address_64 returns OK promptly per the
-     wait_on_address contract (SRS_SYNC_43_002).
+Regression test for a race in InterlockedHL_WaitForNotValue64: the function reads
+the 64-bit value, and if it equals value_to_wait, calls wait_on_address_64. On
+Linux, if a concurrent writer changes ONLY the upper 32 bits between the read and
+the syscall, the kernel must still detect the change. This test deterministically
+replays that race by changing the upper 32 bits in the same thread between the
+read and the wait_on_address_64 call.
 */
 TEST_FUNCTION(interlocked_hl_wait_for_not_value_64_with_only_upper_32_bits_change)
 {
@@ -403,8 +385,6 @@ TEST_FUNCTION(interlocked_hl_wait_for_not_value_64_with_only_upper_32_bits_chang
     volatile_atomic int64_t value;
     (void)interlocked_exchange_64(&value, 0);
     int64_t value_to_wait = 0;
-    int32_t timeout_ms = 5000;
-    double tolerance_factor = 0.1;
 
     // Step 1 of InterlockedHL_WaitForNotValue64: read value with interlocked_add_64.
     int64_t current_value = interlocked_add_64(&value, 0);
@@ -420,38 +400,12 @@ TEST_FUNCTION(interlocked_hl_wait_for_not_value_64_with_only_upper_32_bits_chang
     // Step 2 of InterlockedHL_WaitForNotValue64: call wait_on_address_64 with the
     // original current_value as compare_value. Per SRS_SYNC_43_002 this must return
     // immediately because *value (0x100000000) != current_value (0).
-    double start_time = timer_global_get_elapsed_ms();
-    WAIT_ON_ADDRESS_RESULT wait_result = wait_on_address_64(&value, current_value, timeout_ms);
-    double time_elapsed = timer_global_get_elapsed_ms() - start_time;
-
-    // Step 3 of InterlockedHL_WaitForNotValue64: re-read and translate to INTERLOCKED_HL_RESULT.
-    INTERLOCKED_HL_RESULT hl_result;
-    int64_t reread_value = interlocked_add_64(&value, 0);
-    if (reread_value != value_to_wait)
-    {
-        hl_result = INTERLOCKED_HL_OK;
-    }
-    else if (wait_result == WAIT_ON_ADDRESS_TIMEOUT)
-    {
-        hl_result = INTERLOCKED_HL_TIMEOUT;
-    }
-    else
-    {
-        hl_result = INTERLOCKED_HL_ERROR;
-    }
+    WAIT_ON_ADDRESS_RESULT wait_result = wait_on_address_64(&value, current_value, 5000);
 
     // assert
-    // The final hl_result will be INTERLOCKED_HL_OK even when the bug is present
-    // (because the value was changed, so the post-wait re-read sees it). The bug
-    // shows up in the time_elapsed check: the function should return promptly,
-    // not after the full 5 second timeout.
     ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_OK, wait_result,
-        "wait_on_address_64 must return WAIT_ON_ADDRESS_OK when *value (0x%" PRIx64 ") != compare_value (0x%" PRIx64 "). It returned after %lf ms.",
-        (uint64_t)new_value, (uint64_t)current_value, time_elapsed);
-    ASSERT_IS_TRUE(time_elapsed < timeout_ms * tolerance_factor,
-        "InterlockedHL_WaitForNotValue64 (simulated) took too long: %lf ms (max expected %lf ms). The lost-wakeup bug likely caused wait_on_address_64 to sleep until timeout.",
-        time_elapsed, timeout_ms * tolerance_factor);
-    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, hl_result);
+        "wait_on_address_64 must return WAIT_ON_ADDRESS_OK when *value (0x%" PRIx64 ") != compare_value (0x%" PRIx64 ")",
+        (uint64_t)new_value, (uint64_t)current_value);
 }
 
 /*

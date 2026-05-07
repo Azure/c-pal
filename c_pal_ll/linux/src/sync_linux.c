@@ -17,24 +17,12 @@
 #include "c_pal/interlocked.h"     // for volatile_atomic
 #include "c_pal/sync.h"
 
-// Linux 6.7+ futex2 wait/wake syscalls. The 64-bit variants of wait_on_address /
-// wake_by_address require these because the legacy SYS_futex syscall fundamentally
-// compares only 32 bits of the value at the address — it cannot honor the
-// wait_on_address_64 contract when only the upper 32 bits of the int64_t differ
-// from compare_value. The futex2 syscalls accept a size flag (FUTEX2_SIZE_U64) so
-// the kernel performs a true 64-bit atomic check-before-sleep.
-#ifndef SYS_futex_wake
-#define SYS_futex_wake 454
-#endif
-#ifndef SYS_futex_wait
-#define SYS_futex_wait 455
-#endif
-#ifndef FUTEX2_SIZE_U64
-#define FUTEX2_SIZE_U64 0x03
-#endif
-#ifndef FUTEX2_PRIVATE
-#define FUTEX2_PRIVATE FUTEX_PRIVATE_FLAG /* 128 */
-#endif
+// The 64-bit variants of wait_on_address / wake_by_address use the Linux 6.7+
+// futex2 syscalls (SYS_futex_wait, SYS_futex_wake) with FUTEX2_SIZE_U64 |
+// FUTEX2_PRIVATE so the kernel performs a true 64-bit atomic check-before-sleep.
+// SYS_futex_wait / SYS_futex_wake come from <sys/syscall.h> (requires glibc 2.39+),
+// FUTEX2_SIZE_U64 / FUTEX2_PRIVATE come from <linux/futex.h> (requires linux-libc-dev
+// from kernel 6.7+). Build environments with older headers will fail to compile.
 
 MU_DEFINE_ENUM_STRINGS(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_RESULT_VALUES)
 
@@ -87,7 +75,7 @@ WAIT_ON_ADDRESS_RESULT wait_on_address_64(volatile_atomic int64_t* address, int6
 {
     WAIT_ON_ADDRESS_RESULT result;
 
-    /* Codes_SRS_SYNC_LINUX_05_001: [ wait_on_address_64 shall compute an absolute CLOCK_MONOTONIC deadline equal to now + timeout_ms milliseconds, or pass NULL when timeout_ms is UINT32_MAX. ] */
+    /* Codes_SRS_SYNC_LINUX_43_007: [ wait_on_address_64 shall compute an absolute CLOCK_MONOTONIC deadline equal to now + timeout_ms milliseconds, or pass NULL when timeout_ms is UINT32_MAX. ] */
     struct timespec deadline;
     struct timespec* deadline_p;
     if (timeout_ms == UINT32_MAX)
@@ -107,7 +95,7 @@ WAIT_ON_ADDRESS_RESULT wait_on_address_64(volatile_atomic int64_t* address, int6
         deadline_p = &deadline;
     }
 
-    /* Codes_SRS_SYNC_LINUX_05_002: [ wait_on_address_64 shall call syscall(SYS_futex_wait) with FUTEX2_SIZE_U64 | FUTEX2_PRIVATE and a CLOCK_MONOTONIC absolute deadline, performing a true 64-bit atomic check-before-sleep. ] */
+    /* Codes_SRS_SYNC_LINUX_43_008: [ wait_on_address_64 shall call syscall(SYS_futex_wait) with FUTEX2_SIZE_U64 | FUTEX2_PRIVATE and a CLOCK_MONOTONIC absolute deadline, performing a true 64-bit atomic check-before-sleep. ] */
     long syscall_result = syscall(SYS_futex_wait,
                                    address,
                                    (uint64_t)compare_value,
@@ -154,7 +142,7 @@ void wake_by_address_all(volatile_atomic int32_t* address)
 
 void wake_by_address_all_64(volatile_atomic int64_t* address)
 {
-    /* Codes_SRS_SYNC_LINUX_05_007: [ wake_by_address_all_64 shall call syscall(SYS_futex_wake) with FUTEX2_SIZE_U64 | FUTEX2_PRIVATE to wake all listeners on the 64-bit address. ] */
+    /* Codes_SRS_SYNC_LINUX_43_009: [ wake_by_address_all_64 shall call syscall(SYS_futex_wake) with FUTEX2_SIZE_U64 | FUTEX2_PRIVATE to wake all listeners on the 64-bit address. ] */
     syscall(SYS_futex_wake,
             address,
             ~(uint64_t)0,
@@ -171,7 +159,7 @@ void wake_by_address_single(volatile_atomic int32_t* address)
 
 void wake_by_address_single_64(volatile_atomic int64_t* address)
 {
-    /* Codes_SRS_SYNC_LINUX_05_008: [ wake_by_address_single_64 shall call syscall(SYS_futex_wake) with FUTEX2_SIZE_U64 | FUTEX2_PRIVATE to wake one listener on the 64-bit address. ] */
+    /* Codes_SRS_SYNC_LINUX_43_010: [ wake_by_address_single_64 shall call syscall(SYS_futex_wake) with FUTEX2_SIZE_U64 | FUTEX2_PRIVATE to wake one listener on the 64-bit address. ] */
     syscall(SYS_futex_wake,
             address,
             ~(uint64_t)0,
