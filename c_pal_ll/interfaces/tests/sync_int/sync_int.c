@@ -312,6 +312,29 @@ TEST_FUNCTION(wait_on_address_64_returns_immediately)
 
 /* Tests_SRS_SYNC_43_001: [ wait_on_address shall atomically compare *address and *compare_address.] */
 /* Tests_SRS_SYNC_43_002: [ wait_on_address shall immediately return true if *address is not equal to *compare_address.] */
+// Regression test: wait_on_address_64 must return WAIT_ON_ADDRESS_OK even when *address differs from
+// compare_value only in the upper 32 bits. On Linux this requires a true 64-bit kernel-side compare
+// (futex2), since the legacy futex syscall only checks the lower 32 bits.
+TEST_FUNCTION(wait_on_address_64_returns_immediately_when_only_upper_32_bits_differ)
+{
+    //arrange
+    volatile_atomic int64_t var;
+    // 0x100000000 has upper 32 bits = 1 and lower 32 bits = 0.
+    int64_t differing_value = 0x100000000LL;
+    (void)interlocked_exchange_64(&var, differing_value);
+    int64_t compare_value = 0; // Lower 32 bits match var's lower 32 bits but full 64 bits differ.
+
+    //act
+    WAIT_ON_ADDRESS_RESULT return_val = wait_on_address_64(&var, compare_value, 5000);
+
+    //assert
+    ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_OK, return_val,
+        "wait_on_address_64 must return WAIT_ON_ADDRESS_OK when *var (0x%" PRIx64 ") != compare_value (0x%" PRIx64 ")",
+        (uint64_t)differing_value, (uint64_t)compare_value);
+}
+
+/* Tests_SRS_SYNC_43_001: [ wait_on_address shall atomically compare *address and *compare_address.] */
+/* Tests_SRS_SYNC_43_002: [ wait_on_address shall immediately return true if *address is not equal to *compare_address.] */
 /* Tests_SRS_SYNC_43_009: [ If timeout_ms milliseconds elapse, wait_on_address shall return false. ] */
 TEST_FUNCTION(wait_on_address_returns_after_timeout_elapses)
 {

@@ -80,18 +80,17 @@ TEST_FUNCTION(wait_on_address_calls_syscall_successfully)
     ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_OK, return_val, "wait_on_address should have returned ok");
 }
 
-/* Tests_SRS_SYNC_LINUX_05_001: [ wait_on_address_64 shall initialize a timespec struct with .tv_nsec equal to timeout_ms* 10^6. ] */
-/* Tests_SRS_SYNC_LINUX_05_002: [ wait_on_address_64 shall call syscall to wait on value at address to change to a value different than the one provided in compare_value. ] */
+/* Tests_SRS_SYNC_LINUX_43_007: [ wait_on_address_64 shall compute an absolute CLOCK_MONOTONIC deadline equal to now + timeout_ms milliseconds, or pass NULL when timeout_ms is UINT32_MAX. ] */
+/* Tests_SRS_SYNC_LINUX_43_008: [ wait_on_address_64 shall call syscall(SYS_futex_wait) with FUTEX2_SIZE_U64 | FUTEX2_PRIVATE and a CLOCK_MONOTONIC absolute deadline, performing a true 64-bit atomic check-before-sleep. ] */
 /* Tests_SRS_SYNC_LINUX_05_003: [ If the value at address changes to a value different from compare_value then wait_on_address_64 shall return WAIT_ON_ADDRESS_OK. ] */
 TEST_FUNCTION(wait_on_address_calls_64_syscall_successfully)
 {
     //arrange
     volatile_atomic int64_t var;
     (void)atomic_exchange(&var, INT64_MAX);
-    check_timeout = true;
     expected_timeout_ms = 100;
-    expected_return_val = 0;
-    STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int*)&var, FUTEX_WAIT_PRIVATE, var, IGNORED_ARG, NULL, 0));
+    STRICT_EXPECTED_CALL(mock_futex_wait(SYS_futex_wait, (void*)&var, (uint64_t)INT64_MAX, ~(uint64_t)0, FUTEX2_SIZE_U64 | FUTEX2_PRIVATE, IGNORED_ARG, CLOCK_MONOTONIC))
+        .SetReturn(0);
 
     //act
     WAIT_ON_ADDRESS_RESULT return_val = wait_on_address_64(&var, INT64_MAX, expected_timeout_ms);
@@ -122,8 +121,8 @@ TEST_FUNCTION(wait_on_address_calls_sycall_unsuccessfully)
     ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_ERROR, return_val, "wait_on_address should have returned error");
 }
 
-/* Tests_SRS_SYNC_LINUX_05_001: [ wait_on_address_64 shall initialize a timespec struct with .tv_nsec equal to timeout_ms* 10^6. ] */
-/* Tests_SRS_SYNC_LINUX_05_002: [ wait_on_address_64 shall call syscall to wait on value at address to change to a value different than the one provided in compare_value. ] */
+/* Tests_SRS_SYNC_LINUX_43_007: [ wait_on_address_64 shall compute an absolute CLOCK_MONOTONIC deadline equal to now + timeout_ms milliseconds, or pass NULL when timeout_ms is UINT32_MAX. ] */
+/* Tests_SRS_SYNC_LINUX_43_008: [ wait_on_address_64 shall call syscall(SYS_futex_wait) with FUTEX2_SIZE_U64 | FUTEX2_PRIVATE and a CLOCK_MONOTONIC absolute deadline, performing a true 64-bit atomic check-before-sleep. ] */
 /* Tests_SRS_SYNC_LINUX_05_006: [ Otherwise, wait_on_address_64 shall return WAIT_ON_ADDRESS_ERROR. ] */
 TEST_FUNCTION(wait_on_address_64_calls_syscall_unsuccessfully)
 {
@@ -131,10 +130,9 @@ TEST_FUNCTION(wait_on_address_64_calls_syscall_unsuccessfully)
     volatile_atomic int64_t var;
     int64_t val = INT64_MAX;
     (void)atomic_exchange(&var, val);
-    check_timeout = true;
     expected_timeout_ms = 1500;
-    expected_return_val = -1;
-    STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int*)&var, FUTEX_WAIT_PRIVATE, val, IGNORED_ARG, NULL, 0));
+    STRICT_EXPECTED_CALL(mock_futex_wait(SYS_futex_wait, (void*)&var, (uint64_t)val, ~(uint64_t)0, FUTEX2_SIZE_U64 | FUTEX2_PRIVATE, IGNORED_ARG, CLOCK_MONOTONIC))
+        .SetReturn(-1);
 
     //act
     WAIT_ON_ADDRESS_RESULT return_val = wait_on_address_64(&var, val, expected_timeout_ms);
@@ -164,8 +162,8 @@ TEST_FUNCTION(when_syscall_fails_and_errno_is_EAGAIN_wait_on_address_succeeds)
     ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_OK, return_val, "wait_on_address should have returned ok");
 }
 
-/* Tests_SRS_SYNC_LINUX_05_001: [ wait_on_address_64 shall initialize a timespec struct with .tv_nsec equal to timeout_ms* 10^6. ] */
-/* Tests_SRS_SYNC_LINUX_05_002: [ wait_on_address_64 shall call syscall to wait on value at address to change to a value different than the one provided in compare_value. ] */
+/* Tests_SRS_SYNC_LINUX_43_007: [ wait_on_address_64 shall compute an absolute CLOCK_MONOTONIC deadline equal to now + timeout_ms milliseconds, or pass NULL when timeout_ms is UINT32_MAX. ] */
+/* Tests_SRS_SYNC_LINUX_43_008: [ wait_on_address_64 shall call syscall(SYS_futex_wait) with FUTEX2_SIZE_U64 | FUTEX2_PRIVATE and a CLOCK_MONOTONIC absolute deadline, performing a true 64-bit atomic check-before-sleep. ] */
 /* Tests_SRS_SYNC_LINUX_05_004: [ If syscall returns a non-zero value and errno is EAGAIN, wait_on_address_64 shall return WAIT_ON_ADDRESS_OK. ] */
 TEST_FUNCTION(when_syscall_fails_and_errno_is_EAGAIN_wait_on_address_64_succeeds)
 {
@@ -175,7 +173,7 @@ TEST_FUNCTION(when_syscall_fails_and_errno_is_EAGAIN_wait_on_address_64_succeeds
     (void)atomic_exchange(&var, val);
     mock_errno = EAGAIN;
 
-    STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int*)&var, FUTEX_WAIT_PRIVATE, val, IGNORED_ARG, NULL, 0))
+    STRICT_EXPECTED_CALL(mock_futex_wait(SYS_futex_wait, (void*)&var, (uint64_t)val, ~(uint64_t)0, FUTEX2_SIZE_U64 | FUTEX2_PRIVATE, IGNORED_ARG, CLOCK_MONOTONIC))
         .SetReturn(-1);
 
     //act
@@ -206,8 +204,8 @@ TEST_FUNCTION(when_syscall_fails_and_errno_is_ETIME_wait_on_address_fails)
     ASSERT_ARE_EQUAL(WAIT_ON_ADDRESS_RESULT, WAIT_ON_ADDRESS_TIMEOUT, return_val, "wait_on_address should have returned timeout");
 }
 
-/* Tests_SRS_SYNC_LINUX_05_001: [ wait_on_address_64 shall initialize a timespec struct with .tv_nsec equal to timeout_ms* 10^6. ] */
-/* Tests_SRS_SYNC_LINUX_05_002: [ wait_on_address_64 shall call syscall to wait on value at address to change to a value different than the one provided in compare_value. ] */
+/* Tests_SRS_SYNC_LINUX_43_007: [ wait_on_address_64 shall compute an absolute CLOCK_MONOTONIC deadline equal to now + timeout_ms milliseconds, or pass NULL when timeout_ms is UINT32_MAX. ] */
+/* Tests_SRS_SYNC_LINUX_43_008: [ wait_on_address_64 shall call syscall(SYS_futex_wait) with FUTEX2_SIZE_U64 | FUTEX2_PRIVATE and a CLOCK_MONOTONIC absolute deadline, performing a true 64-bit atomic check-before-sleep. ] */
 /* Tests_SRS_SYNC_LINUX_05_005: [ If syscall returns a non-zero value and errno is ETIMEDOUT, wait_on_address_64 shall return WAIT_ON_ADDRESS_TIMEOUT. ]*/
 TEST_FUNCTION(when_syscall_fails_and_errno_is_ETIME_wait_on_address_64_fails)
 {
@@ -217,7 +215,7 @@ TEST_FUNCTION(when_syscall_fails_and_errno_is_ETIME_wait_on_address_64_fails)
     (void)atomic_exchange(&var, val);
     mock_errno = ETIMEDOUT;
 
-    STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int*)&var, FUTEX_WAIT_PRIVATE, val, IGNORED_ARG, NULL, 0))
+    STRICT_EXPECTED_CALL(mock_futex_wait(SYS_futex_wait, (void*)&var, (uint64_t)val, ~(uint64_t)0, FUTEX2_SIZE_U64 | FUTEX2_PRIVATE, IGNORED_ARG, CLOCK_MONOTONIC))
         .SetReturn(-1);
 
     //act
@@ -244,14 +242,14 @@ TEST_FUNCTION(wake_by_address_all_calls_sycall)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
 }
 
-/* Tests_SRS_SYNC_LINUX_05_007: [ wake_by_address_all_64 shall call syscall to wake all listeners listening on address. ] */
+/* Tests_SRS_SYNC_LINUX_43_009: [ wake_by_address_all_64 shall call syscall(SYS_futex_wake) with FUTEX2_SIZE_U64 | FUTEX2_PRIVATE to wake all listeners on the 64-bit address. ] */
 TEST_FUNCTION(wake_by_address_all_64_calls_sycall)
 {
     //arrange
     volatile_atomic int64_t var;
     int64_t val = INT64_MAX;
     (void)atomic_exchange(&var, val);
-    STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int*)&var, FUTEX_WAKE_PRIVATE, INT_MAX, NULL, NULL, 0));
+    STRICT_EXPECTED_CALL(mock_futex_wake(SYS_futex_wake, (void*)&var, ~(uint64_t)0, INT_MAX, FUTEX2_SIZE_U64 | FUTEX2_PRIVATE));
 
     //act
     wake_by_address_all_64(&var);
@@ -276,14 +274,14 @@ TEST_FUNCTION(wake_by_address_single_calls_sycall)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Actual calls differ from expected calls");
 }
 
-/* Tests_SRS_SYNC_LINUX_05_008: [ wake_by_address_single_64 shall call syscall to wake any single listener listening on address. ] */
+/* Tests_SRS_SYNC_LINUX_43_010: [ wake_by_address_single_64 shall call syscall(SYS_futex_wake) with FUTEX2_SIZE_U64 | FUTEX2_PRIVATE to wake one listener on the 64-bit address. ] */
 TEST_FUNCTION(wake_by_address_single_64_calls_sycall)
 {
     //arrange
     volatile_atomic int64_t var;
     int64_t val = INT64_MAX;
     (void)atomic_exchange(&var, val);
-    STRICT_EXPECTED_CALL(mock_syscall(SYS_futex, (int*)&var, FUTEX_WAKE_PRIVATE, 1, NULL, NULL, 0));
+    STRICT_EXPECTED_CALL(mock_futex_wake(SYS_futex_wake, (void*)&var, ~(uint64_t)0, 1, FUTEX2_SIZE_U64 | FUTEX2_PRIVATE));
 
     //act
     wake_by_address_single_64(&var);
