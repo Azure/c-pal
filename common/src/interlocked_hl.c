@@ -9,6 +9,7 @@
 
 #include "c_pal/interlocked.h"
 #include "c_pal/sync.h"
+#include "c_pal/timer.h"
 #include "c_pal/interlocked_hl.h"
 
 MU_DEFINE_ENUM_STRINGS(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES)
@@ -93,6 +94,9 @@ INTERLOCKED_HL_RESULT InterlockedHL_WaitForValue(int32_t volatile_atomic* addres
     {
         int32_t current_value;
 
+        /* Codes_SRS_INTERLOCKED_HL_27_001: [ InterlockedHL_WaitForValue shall call timer_global_get_elapsed_ms to determine the start time of the wait. ] */
+        double start_time_ms = timer_global_get_elapsed_ms();
+
         do
         {
             /* Codes_SRS_INTERLOCKED_HL_01_007: [ When wait_on_address succeeds, InterlockedHL_WaitForValue shall again compare the value at address_to_check with value_to_wait. ] */
@@ -104,8 +108,35 @@ INTERLOCKED_HL_RESULT InterlockedHL_WaitForValue(int32_t volatile_atomic* addres
                 break;
             }
 
-            /* Codes_SRS_INTERLOCKED_HL_01_004: [ If the value at address_to_check is not equal to value_to_wait, InterlockedHL_WaitForValue shall wait until the value at address_to_check changes using wait_on_address. ]*/
-            WAIT_ON_ADDRESS_RESULT wait_result = wait_on_address(address_to_check, current_value, timeout_ms);
+            uint32_t remaining_ms;
+            if (timeout_ms == UINT32_MAX)
+            {
+                /* Codes_SRS_INTERLOCKED_HL_27_017: [ If timeout_ms is UINT32_MAX, InterlockedHL_WaitForValue shall pass UINT32_MAX to wait_on_address. ] */
+                remaining_ms = UINT32_MAX;
+            }
+            else
+            {
+                /* Codes_SRS_INTERLOCKED_HL_27_002: [ InterlockedHL_WaitForValue shall call timer_global_get_elapsed_ms and compute the elapsed time since the start. ] */
+                double elapsed_ms = timer_global_get_elapsed_ms() - start_time_ms;
+
+                /* Codes_SRS_INTERLOCKED_HL_27_021: [ If the elapsed time is negative, InterlockedHL_WaitForValue shall treat it as zero. ] */
+                if (elapsed_ms < 0.0)
+                {
+                    elapsed_ms = 0.0;
+                }
+
+                /* Codes_SRS_INTERLOCKED_HL_27_013: [ If the elapsed time is greater than or equal to timeout_ms, InterlockedHL_WaitForValue shall return INTERLOCKED_HL_TIMEOUT. ] */
+                if (elapsed_ms >= (double)timeout_ms)
+                {
+                    result = INTERLOCKED_HL_TIMEOUT;
+                    break;
+                }
+
+                /* Codes_SRS_INTERLOCKED_HL_01_004: [ If the value at address_to_check is not equal to value_to_wait, InterlockedHL_WaitForValue shall wait until the value at address_to_check changes using wait_on_address with a timeout equal to timeout_ms minus the elapsed time. ]*/
+                remaining_ms = timeout_ms - (uint32_t)elapsed_ms;
+            }
+
+            WAIT_ON_ADDRESS_RESULT wait_result = wait_on_address(address_to_check, current_value, remaining_ms);
             if (wait_result == WAIT_ON_ADDRESS_OK)
             {
                 /* Codes_SRS_INTERLOCKED_HL_01_007: [ When wait_on_address succeeds, InterlockedHL_WaitForValue shall again compare the value at address_to_check with value_to_wait. ] */
@@ -114,7 +145,7 @@ INTERLOCKED_HL_RESULT InterlockedHL_WaitForValue(int32_t volatile_atomic* addres
             }
             else if (wait_result == WAIT_ON_ADDRESS_TIMEOUT)
             {
-                /* Codes_SRS_INTERLOCKED_HL_11_001: [ If wait_on_address hits the timeout specified in timeout_ms, InterlockedHL_WaitForValue shall fail and return INTERLOCKED_HL_TIMEOUT. ] */
+                /* Codes_SRS_INTERLOCKED_HL_11_001: [ If wait_on_address hits the timeout, InterlockedHL_WaitForValue shall fail and return INTERLOCKED_HL_TIMEOUT. ] */
                 result = INTERLOCKED_HL_TIMEOUT;
                 break;
             }
@@ -146,6 +177,10 @@ INTERLOCKED_HL_RESULT InterlockedHL_WaitForValue64(int64_t volatile_atomic* addr
     else
     {
         int64_t current_value;
+
+        /* Codes_SRS_INTERLOCKED_HL_27_004: [ InterlockedHL_WaitForValue64 shall call timer_global_get_elapsed_ms to determine the start time of the wait. ] */
+        double start_time_ms = timer_global_get_elapsed_ms();
+
         do
         {
             current_value = interlocked_add_64(address_to_check, 0);
@@ -156,8 +191,35 @@ INTERLOCKED_HL_RESULT InterlockedHL_WaitForValue64(int64_t volatile_atomic* addr
                 break;
             }
 
-            /* Codes_SRS_INTERLOCKED_HL_05_003: [ If the value at address_to_check is not equal to value_to_wait, InterlockedHL_WaitForValue64 shall wait until the value at address_to_check changes using wait_on_address_64. ] */
-            WAIT_ON_ADDRESS_RESULT wait_result = wait_on_address_64(address_to_check, current_value, timeout_ms);
+            uint32_t remaining_ms;
+            if (timeout_ms == UINT32_MAX)
+            {
+                /* Codes_SRS_INTERLOCKED_HL_27_018: [ If timeout_ms is UINT32_MAX, InterlockedHL_WaitForValue64 shall pass UINT32_MAX to wait_on_address_64. ] */
+                remaining_ms = UINT32_MAX;
+            }
+            else
+            {
+                /* Codes_SRS_INTERLOCKED_HL_27_005: [ InterlockedHL_WaitForValue64 shall call timer_global_get_elapsed_ms and compute the elapsed time since the start. ] */
+                double elapsed_ms = timer_global_get_elapsed_ms() - start_time_ms;
+
+                /* Codes_SRS_INTERLOCKED_HL_27_022: [ If the elapsed time is negative, InterlockedHL_WaitForValue64 shall treat it as zero. ] */
+                if (elapsed_ms < 0.0)
+                {
+                    elapsed_ms = 0.0;
+                }
+
+                /* Codes_SRS_INTERLOCKED_HL_27_014: [ If the elapsed time is greater than or equal to timeout_ms, InterlockedHL_WaitForValue64 shall return INTERLOCKED_HL_TIMEOUT. ] */
+                if (elapsed_ms >= (double)timeout_ms)
+                {
+                    result = INTERLOCKED_HL_TIMEOUT;
+                    break;
+                }
+
+                /* Codes_SRS_INTERLOCKED_HL_05_003: [ If the value at address_to_check is not equal to value_to_wait, InterlockedHL_WaitForValue64 shall wait until the value at address_to_check changes using wait_on_address_64 with a timeout equal to timeout_ms minus the elapsed time. ] */
+                remaining_ms = timeout_ms - (uint32_t)elapsed_ms;
+            }
+
+            WAIT_ON_ADDRESS_RESULT wait_result = wait_on_address_64(address_to_check, current_value, remaining_ms);
             if (wait_result == WAIT_ON_ADDRESS_OK)
             {
                 /* Codes_SRS_INTERLOCKED_HL_05_004: [ When wait_on_address_64 succeeds, InterlockedHL_WaitForValue64 shall again compare the value at address_to_check with value_to_wait. ] */
@@ -166,7 +228,7 @@ INTERLOCKED_HL_RESULT InterlockedHL_WaitForValue64(int64_t volatile_atomic* addr
             }
             else if (wait_result == WAIT_ON_ADDRESS_TIMEOUT)
             {
-                /* Codes_SRS_INTERLOCKED_HL_05_005: [ If wait_on_address_64 hits the timeout specified in timeout_ms, InterlockedHL_WaitForValue64 shall fail and return INTERLOCKED_HL_TIMEOUT. ] */
+                /* Codes_SRS_INTERLOCKED_HL_05_005: [ If wait_on_address_64 hits the timeout, InterlockedHL_WaitForValue64 shall fail and return INTERLOCKED_HL_TIMEOUT. ] */
                 result = INTERLOCKED_HL_TIMEOUT;
                 break;
             }
@@ -198,6 +260,9 @@ INTERLOCKED_HL_RESULT InterlockedHL_WaitForNotValue(int32_t volatile_atomic* add
     {
         int32_t current_value;
 
+        /* Codes_SRS_INTERLOCKED_HL_27_007: [ InterlockedHL_WaitForNotValue shall call timer_global_get_elapsed_ms to determine the start time of the wait. ] */
+        double start_time_ms = timer_global_get_elapsed_ms();
+
         do
         {
             current_value = interlocked_add(address_to_check, 0);
@@ -208,8 +273,35 @@ INTERLOCKED_HL_RESULT InterlockedHL_WaitForNotValue(int32_t volatile_atomic* add
                 break;
             }
 
-            /* Codes_SRS_INTERLOCKED_HL_42_003: [ If the value at address_to_check is equal to value_to_wait, InterlockedHL_WaitForNotValue shall wait until the value at address_to_check changes by using wait_on_address. ]*/
-            WAIT_ON_ADDRESS_RESULT wait_result = wait_on_address(address_to_check, current_value, timeout_ms);
+            uint32_t remaining_ms;
+            if (timeout_ms == UINT32_MAX)
+            {
+                /* Codes_SRS_INTERLOCKED_HL_27_019: [ If timeout_ms is UINT32_MAX, InterlockedHL_WaitForNotValue shall pass UINT32_MAX to wait_on_address. ] */
+                remaining_ms = UINT32_MAX;
+            }
+            else
+            {
+                /* Codes_SRS_INTERLOCKED_HL_27_008: [ InterlockedHL_WaitForNotValue shall call timer_global_get_elapsed_ms and compute the elapsed time since the start. ] */
+                double elapsed_ms = timer_global_get_elapsed_ms() - start_time_ms;
+
+                /* Codes_SRS_INTERLOCKED_HL_27_023: [ If the elapsed time is negative, InterlockedHL_WaitForNotValue shall treat it as zero. ] */
+                if (elapsed_ms < 0.0)
+                {
+                    elapsed_ms = 0.0;
+                }
+
+                /* Codes_SRS_INTERLOCKED_HL_27_015: [ If the elapsed time is greater than or equal to timeout_ms, InterlockedHL_WaitForNotValue shall return INTERLOCKED_HL_TIMEOUT. ] */
+                if (elapsed_ms >= (double)timeout_ms)
+                {
+                    result = INTERLOCKED_HL_TIMEOUT;
+                    break;
+                }
+
+                /* Codes_SRS_INTERLOCKED_HL_42_003: [ If the value at address_to_check is equal to value_to_wait, InterlockedHL_WaitForNotValue shall wait until the value at address_to_check changes by using wait_on_address with a timeout equal to timeout_ms minus the elapsed time. ]*/
+                remaining_ms = timeout_ms - (uint32_t)elapsed_ms;
+            }
+
+            WAIT_ON_ADDRESS_RESULT wait_result = wait_on_address(address_to_check, current_value, remaining_ms);
             if (wait_result == WAIT_ON_ADDRESS_OK)
             {
                 /* Codes_SRS_INTERLOCKED_HL_42_005: [When wait_on_address succeeds, InterlockedHL_WaitForNotValue shall again compare the value at address_to_check with value_to_wait.]*/
@@ -218,7 +310,7 @@ INTERLOCKED_HL_RESULT InterlockedHL_WaitForNotValue(int32_t volatile_atomic* add
             }
             else if (wait_result == WAIT_ON_ADDRESS_TIMEOUT)
             {
-                /* Codes_SRS_INTERLOCKED_HL_11_002: [ If wait_on_address hits the timeout specified in timeout_ms, InterlockedHL_WaitForNotValue shall fail and return INTERLOCKED_HL_TIMEOUT. ] */
+                /* Codes_SRS_INTERLOCKED_HL_11_002: [ If wait_on_address hits the timeout, InterlockedHL_WaitForNotValue shall fail and return INTERLOCKED_HL_TIMEOUT. ] */
                 result = INTERLOCKED_HL_TIMEOUT;
                 break;
             }
@@ -250,6 +342,10 @@ INTERLOCKED_HL_RESULT InterlockedHL_WaitForNotValue64(int64_t volatile_atomic* a
     else
     {
         int64_t current_value;
+
+        /* Codes_SRS_INTERLOCKED_HL_27_010: [ InterlockedHL_WaitForNotValue64 shall call timer_global_get_elapsed_ms to determine the start time of the wait. ] */
+        double start_time_ms = timer_global_get_elapsed_ms();
+
         do
         {
             current_value = interlocked_add_64(address_to_check, 0);
@@ -260,8 +356,35 @@ INTERLOCKED_HL_RESULT InterlockedHL_WaitForNotValue64(int64_t volatile_atomic* a
                 break;
             }
 
-            /* Codes_SRS_INTERLOCKED_HL_05_009: [ If the value at address_to_check is equal to value_to_wait, InterlockedHL_WaitForNotValue64 shall wait until the value at address_to_check changes using wait_on_address_64. ]*/
-            WAIT_ON_ADDRESS_RESULT wait_result = wait_on_address_64(address_to_check, current_value, timeout_ms);
+            uint32_t remaining_ms;
+            if (timeout_ms == UINT32_MAX)
+            {
+                /* Codes_SRS_INTERLOCKED_HL_27_020: [ If timeout_ms is UINT32_MAX, InterlockedHL_WaitForNotValue64 shall pass UINT32_MAX to wait_on_address_64. ] */
+                remaining_ms = UINT32_MAX;
+            }
+            else
+            {
+                /* Codes_SRS_INTERLOCKED_HL_27_011: [ InterlockedHL_WaitForNotValue64 shall call timer_global_get_elapsed_ms and compute the elapsed time since the start. ] */
+                double elapsed_ms = timer_global_get_elapsed_ms() - start_time_ms;
+
+                /* Codes_SRS_INTERLOCKED_HL_27_024: [ If the elapsed time is negative, InterlockedHL_WaitForNotValue64 shall treat it as zero. ] */
+                if (elapsed_ms < 0.0)
+                {
+                    elapsed_ms = 0.0;
+                }
+
+                /* Codes_SRS_INTERLOCKED_HL_27_016: [ If the elapsed time is greater than or equal to timeout_ms, InterlockedHL_WaitForNotValue64 shall return INTERLOCKED_HL_TIMEOUT. ] */
+                if (elapsed_ms >= (double)timeout_ms)
+                {
+                    result = INTERLOCKED_HL_TIMEOUT;
+                    break;
+                }
+
+                /* Codes_SRS_INTERLOCKED_HL_05_009: [ If the value at address_to_check is equal to value_to_wait, InterlockedHL_WaitForNotValue64 shall wait until the value at address_to_check changes using wait_on_address_64 with a timeout equal to timeout_ms minus the elapsed time. ]*/
+                remaining_ms = timeout_ms - (uint32_t)elapsed_ms;
+            }
+
+            WAIT_ON_ADDRESS_RESULT wait_result = wait_on_address_64(address_to_check, current_value, remaining_ms);
             if (wait_result == WAIT_ON_ADDRESS_OK)
             {
                 /* Codes_SRS_INTERLOCKED_HL_05_010: [ When wait_on_address_64 succeeds, InterlockedHL_WaitForNotValue64 shall again compare the value at address_to_check with value_to_wait. ] */
@@ -270,7 +393,7 @@ INTERLOCKED_HL_RESULT InterlockedHL_WaitForNotValue64(int64_t volatile_atomic* a
             }
             else if (wait_result == WAIT_ON_ADDRESS_TIMEOUT)
             {
-                /* Codes_SRS_INTERLOCKED_HL_05_011: [ If wait_on_address_64 hits the timeout specified in timeout_ms, InterlockedHL_WaitForNotValue64 shall fail and return INTERLOCKED_HL_TIMEOUT. ] */
+                /* Codes_SRS_INTERLOCKED_HL_05_011: [ If wait_on_address_64 hits the timeout, InterlockedHL_WaitForNotValue64 shall fail and return INTERLOCKED_HL_TIMEOUT. ] */
                 result = INTERLOCKED_HL_TIMEOUT;
                 break;
             }
