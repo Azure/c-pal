@@ -209,7 +209,7 @@ MOCKABLE_FUNCTION(, void, socket_transport_disconnect, SOCKET_TRANSPORT_HANDLE, 
 
 **SRS_SOCKET_TRANSPORT_WIN32_09_029: [** If `sm_close_begin` does not return `SM_EXEC_GRANTED`, `socket_transport_disconnect` shall fail and return. **]**
 
-**SRS_SOCKET_TRANSPORT_WIN32_09_083: [** If `shutdown` does not return 0 on a socket that is not a binding socket, the socket is not valid therefore `socket_transport_disconnect` shall not call `close` **]**
+**SRS_SOCKET_TRANSPORT_WIN32_09_083: [** If the type is not `SOCKET_BINDING`, `socket_transport_disconnect` shall call `shutdown`. **]**
 
 **SRS_SOCKET_TRANSPORT_WIN32_09_030: [** `socket_transport_disconnect` shall call `closesocket` to disconnect the connected socket. **]**
 
