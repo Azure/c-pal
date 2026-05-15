@@ -63,3 +63,27 @@
    fun:pthread_create@@GLIBC_*
    ...
 }
+{
+   <incorrect interlocked flagging in InterlockedHL_WaitForValue>
+   Helgrind:Race
+   fun:InterlockedHL_WaitForValue
+   ...
+}
+{
+   <incorrect interlocked flagging in InterlockedHL_WaitForValue64>
+   Helgrind:Race
+   fun:InterlockedHL_WaitForValue64
+   ...
+}
+{
+   <incorrect interlocked flagging in InterlockedHL_WaitForNotValue>
+   Helgrind:Race
+   fun:InterlockedHL_WaitForNotValue
+   ...
+}
+{
+   <incorrect interlocked flagging in InterlockedHL_WaitForNotValue64>
+   Helgrind:Race
+   fun:InterlockedHL_WaitForNotValue64
+   ...
+}
