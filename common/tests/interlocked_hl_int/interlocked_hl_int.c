@@ -15,11 +15,26 @@
 #include "c_pal/interlocked.h"
 #include "c_pal/sync.h"
 #include "c_pal/timer.h"
+#include "c_pal/execution_engine.h"
+#include "c_pal/threadpool.h"
+#include "c_pal/thandle.h" // IWYU pragma: keep
+#include "c_pal/thandle_ll.h"
+#include "c_pal/gballoc_hl.h"
 
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
+
+TEST_SUITE_INITIALIZE(suite_init)
+{
+    ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
+}
+
+TEST_SUITE_CLEANUP(suite_cleanup)
+{
+    gballoc_hl_deinit();
+}
 
 volatile_atomic int32_t globalValue = 10;
 volatile_atomic int64_t globalValue64 = 10;
@@ -603,6 +618,71 @@ TEST_FUNCTION(interlocked_hl_compare_exchange_64_if_operates_successfully)
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_CompareExchange64If(&target, exchange, helper_int64_compare_function, &original_target));
     ASSERT_ARE_EQUAL(int64_t, 120, original_target);
     ASSERT_ARE_EQUAL(int64_t, 97, target);
+}
+
+/*
+Tests:
+InterlockedHL_WaitForValue concurrent with InterlockedHL_SetAndWake via threadpool.
+
+Replicates the exact pattern from zrpc's tcp_io_client_sends_1_byte_with_threading test
+where helgrind reported a race between interlocked_add (in WaitForValue on the test thread)
+and interlocked_exchange (in SetAndWake on a threadpool worker via thread_worker_func).
+
+The callback runs on c-pal's real threadpool worker (thread_worker_func), going through
+the same epoll dispatch and work queue infrastructure that zrpc uses.
+*/
+
+typedef struct THREADPOOL_RACE_CONTEXT_TAG
+{
+    volatile_atomic int32_t value;
+} THREADPOOL_RACE_CONTEXT;
+
+static void threadpool_set_and_wake_callback(void* context)
+{
+    THREADPOOL_RACE_CONTEXT* ctx = (THREADPOOL_RACE_CONTEXT*)context;
+    // Immediately call SetAndWake — no sleep, exactly like zrpc's I/O completion callback.
+    // This runs on thread_worker_func, the same code path as zrpc.
+    (void)InterlockedHL_SetAndWake(&ctx->value, 1);
+}
+
+TEST_FUNCTION(interlocked_hl_wait_for_value_concurrent_with_set_and_wake_via_threadpool)
+{
+    ///arrange
+    EXECUTION_ENGINE_PARAMETERS params;
+    params.min_thread_count = 4;
+    params.max_thread_count = 4;
+
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&params);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    // Run many iterations. In zrpc this failed 2/2 — with the real threadpool
+    // infrastructure, the concurrent atomic access window is much more likely
+    // to be hit by helgrind.
+    enum { ITERATION_COUNT = 100 };
+
+    for (uint32_t i = 0; i < ITERATION_COUNT; i++)
+    {
+        THREADPOOL_RACE_CONTEXT ctx;
+        (void)interlocked_exchange(&ctx.value, 0);
+
+        ///act
+        // Schedule work on the threadpool — callback fires on thread_worker_func,
+        // going through the same work queue dispatch as zrpc.
+        ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_set_and_wake_callback, &ctx));
+
+        // Main thread waits — this races with the threadpool worker's SetAndWake.
+        INTERLOCKED_HL_RESULT result = InterlockedHL_WaitForValue(&ctx.value, 1, UINT32_MAX);
+
+        ///assert
+        ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, result);
+    }
+
+    ///cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
