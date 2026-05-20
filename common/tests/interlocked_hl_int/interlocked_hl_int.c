@@ -622,35 +622,84 @@ TEST_FUNCTION(interlocked_hl_compare_exchange_64_if_operates_successfully)
 
 /*
 Tests:
-InterlockedHL_WaitForValue concurrent with InterlockedHL_SetAndWake via threadpool.
+Maximum-noise reproduction of helgrind false positive from zrpc build 164315648.
 
-Replicates the exact pattern from zrpc's tcp_io_client_sends_1_byte_with_threading test
-where helgrind reported a race between interlocked_add (in WaitForValue on the test thread)
-and interlocked_exchange (in SetAndWake on a threadpool worker via thread_worker_func).
+The zrpc tcp_io_client_sends_1_byte_with_threading test creates a complex threading
+environment: 2 UV loop collections (each with background threads), TCP socket operations,
+and 8+ InterlockedHL_WaitForValue/SetAndWake pairs across different variables. The actual
+race is between v2_test_helper_execute_on_loop_sync (WaitForValue on the test thread) and
+internal_v2_test_helper_execute_sync_callback (SetAndWake on a UV loop thread).
 
-The callback runs on c-pal's real threadpool worker (thread_worker_func), going through
-the same epoll dispatch and work queue infrastructure that zrpc uses.
+This generates massive helgrind shadow state causing false race reports on the C11 atomics
+in interlocked_add (WaitForValue) and interlocked_exchange (SetAndWake).
+
+This test replicates that noise level by:
+1. Running 8 noise threads doing rapid interlocked operations on 4 variables each (32 total)
+2. Using a real threadpool with 8 workers
+3. Running 4 concurrent WaitForValue/SetAndWake channels per iteration (200 iterations)
+4. Total: 800 WaitForValue/SetAndWake pairs while 8 noise threads saturate helgrind
 */
 
-typedef struct THREADPOOL_RACE_CONTEXT_TAG
-{
-    volatile_atomic int32_t value;
-} THREADPOOL_RACE_CONTEXT;
+#define NOISE_THREAD_COUNT 8
+#define NOISE_VARS_PER_THREAD 4
+#define HELGRIND_REPRO_ITERATIONS 200
 
-static void threadpool_set_and_wake_callback(void* context)
+typedef struct NOISE_CONTEXT_TAG
 {
-    THREADPOOL_RACE_CONTEXT* ctx = (THREADPOOL_RACE_CONTEXT*)context;
-    // Immediately call SetAndWake — no sleep, exactly like zrpc's I/O completion callback.
-    // This runs on thread_worker_func, the same code path as zrpc.
-    (void)InterlockedHL_SetAndWake(&ctx->value, 1);
+    volatile_atomic int32_t counters[NOISE_VARS_PER_THREAD];
+    volatile_atomic int32_t should_stop;
+} NOISE_CONTEXT;
+
+static int noise_thread_func(void* context)
+{
+    NOISE_CONTEXT* ctx = (NOISE_CONTEXT*)context;
+    while (interlocked_add(&ctx->should_stop, 0) == 0)
+    {
+        for (int i = 0; i < NOISE_VARS_PER_THREAD; i++)
+        {
+            (void)interlocked_increment(&ctx->counters[i]);
+            (void)interlocked_compare_exchange(&ctx->counters[i], 0, 100);
+            (void)interlocked_exchange(&ctx->counters[i], interlocked_add(&ctx->counters[i], 0) + 1);
+        }
+    }
+    return 0;
 }
 
-TEST_FUNCTION(interlocked_hl_wait_for_value_concurrent_with_set_and_wake_via_threadpool)
+typedef struct MULTI_SIGNAL_CONTEXT_TAG
+{
+    volatile_atomic int32_t signals[4];
+} MULTI_SIGNAL_CONTEXT;
+
+static void set_signal_0_callback(void* context)
+{
+    MULTI_SIGNAL_CONTEXT* ctx = (MULTI_SIGNAL_CONTEXT*)context;
+    (void)InterlockedHL_SetAndWake(&ctx->signals[0], 1);
+}
+
+static void set_signal_1_callback(void* context)
+{
+    MULTI_SIGNAL_CONTEXT* ctx = (MULTI_SIGNAL_CONTEXT*)context;
+    (void)InterlockedHL_SetAndWake(&ctx->signals[1], 1);
+}
+
+static void set_signal_2_callback(void* context)
+{
+    MULTI_SIGNAL_CONTEXT* ctx = (MULTI_SIGNAL_CONTEXT*)context;
+    (void)InterlockedHL_SetAndWake(&ctx->signals[2], 1);
+}
+
+static void set_signal_3_callback(void* context)
+{
+    MULTI_SIGNAL_CONTEXT* ctx = (MULTI_SIGNAL_CONTEXT*)context;
+    (void)InterlockedHL_SetAndWake(&ctx->signals[3], 1);
+}
+
+TEST_FUNCTION(interlocked_hl_helgrind_max_noise_repro)
 {
     ///arrange
     EXECUTION_ENGINE_PARAMETERS params;
-    params.min_thread_count = 4;
-    params.max_thread_count = 4;
+    params.min_thread_count = 8;
+    params.max_thread_count = 8;
 
     EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&params);
     ASSERT_IS_NOT_NULL(execution_engine);
@@ -658,29 +707,69 @@ TEST_FUNCTION(interlocked_hl_wait_for_value_concurrent_with_set_and_wake_via_thr
     THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
     ASSERT_IS_NOT_NULL(threadpool);
 
-    // Run many iterations. In zrpc this failed 2/2 — with the real threadpool
-    // infrastructure, the concurrent atomic access window is much more likely
-    // to be hit by helgrind.
-    enum { ITERATION_COUNT = 100 };
-
-    for (uint32_t i = 0; i < ITERATION_COUNT; i++)
+    // Start 8 noise generators doing rapid interlocked operations on 32 variables
+    // to saturate helgrind's shadow state tracking — matching the noise level
+    // created by zrpc's UV loop threads, TCP I/O, and THANDLE ref-counting
+    NOISE_CONTEXT noise_contexts[NOISE_THREAD_COUNT];
+    THREAD_HANDLE noise_threads[NOISE_THREAD_COUNT];
+    for (uint32_t i = 0; i < NOISE_THREAD_COUNT; i++)
     {
-        THREADPOOL_RACE_CONTEXT ctx;
-        (void)interlocked_exchange(&ctx.value, 0);
-
-        ///act
-        // Schedule work on the threadpool — callback fires on thread_worker_func,
-        // going through the same work queue dispatch as zrpc.
-        ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, threadpool_set_and_wake_callback, &ctx));
-
-        // Main thread waits — this races with the threadpool worker's SetAndWake.
-        INTERLOCKED_HL_RESULT result = InterlockedHL_WaitForValue(&ctx.value, 1, UINT32_MAX);
-
-        ///assert
-        ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, result);
+        for (int j = 0; j < NOISE_VARS_PER_THREAD; j++)
+        {
+            (void)interlocked_exchange(&noise_contexts[i].counters[j], 0);
+        }
+        (void)interlocked_exchange(&noise_contexts[i].should_stop, 0);
+        ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK,
+            ThreadAPI_Create(&noise_threads[i], noise_thread_func, &noise_contexts[i]));
     }
 
+    // Let noise build up helgrind shadow state before starting the actual test
+    ThreadAPI_Sleep(50);
+
+    ///act
+    // Run many iterations with 4 concurrent WaitForValue/SetAndWake pairs per iteration.
+    // This matches zrpc's pattern where the test thread calls WaitForValue on multiple
+    // signal variables (server_open_complete, client_open_complete, send_complete,
+    // data_received) while UV loop threads call SetAndWake from callbacks.
+    for (uint32_t iter = 0; iter < HELGRIND_REPRO_ITERATIONS; iter++)
+    {
+        MULTI_SIGNAL_CONTEXT ctx;
+        (void)interlocked_exchange(&ctx.signals[0], 0);
+        (void)interlocked_exchange(&ctx.signals[1], 0);
+        (void)interlocked_exchange(&ctx.signals[2], 0);
+        (void)interlocked_exchange(&ctx.signals[3], 0);
+
+        // Schedule all 4 concurrently on threadpool workers
+        ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, set_signal_0_callback, &ctx));
+        ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, set_signal_1_callback, &ctx));
+        ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, set_signal_2_callback, &ctx));
+        ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, set_signal_3_callback, &ctx));
+
+        // Main thread waits for all 4 — each WaitForValue races with a SetAndWake
+        // on a different threadpool worker, same pattern as zrpc
+        ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK,
+            InterlockedHL_WaitForValue(&ctx.signals[0], 1, UINT32_MAX));
+        ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK,
+            InterlockedHL_WaitForValue(&ctx.signals[1], 1, UINT32_MAX));
+        ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK,
+            InterlockedHL_WaitForValue(&ctx.signals[2], 1, UINT32_MAX));
+        ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK,
+            InterlockedHL_WaitForValue(&ctx.signals[3], 1, UINT32_MAX));
+    }
+
+    ///assert
+    // All 800 WaitForValue/SetAndWake pairs succeeded
+
     ///cleanup
+    for (uint32_t i = 0; i < NOISE_THREAD_COUNT; i++)
+    {
+        (void)interlocked_exchange(&noise_contexts[i].should_stop, 1);
+        int return_code;
+        ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK,
+            ThreadAPI_Join(noise_threads[i], &return_code));
+        ASSERT_ARE_EQUAL(int, 0, return_code);
+    }
+
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
