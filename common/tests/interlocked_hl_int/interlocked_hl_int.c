@@ -13,6 +13,8 @@
 
 #include "c_pal/interlocked_hl.h"
 #include "c_pal/interlocked.h"
+#include "c_pal/sync.h"
+#include "c_pal/timer.h"
 
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);
 TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
@@ -401,6 +403,135 @@ TEST_FUNCTION(interlocked_hl_wait_for_value_timest)
     ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&localvalue, 1, 1000));
 
     // cleanup
+}
+
+/*
+Tests:
+InterlockedHL_WaitForValue timeout with non-matching value returns TIMEOUT and does not hang
+*/
+TEST_FUNCTION(interlocked_hl_wait_for_value_timeout_does_not_hang)
+{
+    ///arrange
+    volatile_atomic int32_t localvalue = 0;
+    (void)interlocked_exchange(&localvalue, 42);
+
+    ///act
+    INTERLOCKED_HL_RESULT result = InterlockedHL_WaitForValue(&localvalue, 99, 500);
+
+    ///assert
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_TIMEOUT, result);
+}
+
+/*
+Tests:
+InterlockedHL_WaitForValue64 timeout with non-matching value returns TIMEOUT and does not hang
+*/
+TEST_FUNCTION(interlocked_hl_wait_for_value_64_timeout_does_not_hang)
+{
+    ///arrange
+    volatile_atomic int64_t localvalue = 0;
+    (void)interlocked_exchange_64(&localvalue, 42);
+
+    ///act
+    INTERLOCKED_HL_RESULT result = InterlockedHL_WaitForValue64(&localvalue, 99, 500);
+
+    ///assert
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_TIMEOUT, result);
+}
+
+/*
+Tests:
+InterlockedHL_WaitForNotValue timeout with matching value returns TIMEOUT and does not hang
+*/
+TEST_FUNCTION(interlocked_hl_wait_for_not_value_timeout_does_not_hang)
+{
+    ///arrange
+    volatile_atomic int32_t localvalue = 0;
+    (void)interlocked_exchange(&localvalue, 42);
+
+    ///act
+    INTERLOCKED_HL_RESULT result = InterlockedHL_WaitForNotValue(&localvalue, 42, 500);
+
+    ///assert
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_TIMEOUT, result);
+}
+
+/*
+Tests:
+InterlockedHL_WaitForNotValue64 timeout with matching value returns TIMEOUT and does not hang
+*/
+TEST_FUNCTION(interlocked_hl_wait_for_not_value_64_timeout_does_not_hang)
+{
+    ///arrange
+    volatile_atomic int64_t localvalue = 0;
+    (void)interlocked_exchange_64(&localvalue, 42);
+
+    ///act
+    INTERLOCKED_HL_RESULT result = InterlockedHL_WaitForNotValue64(&localvalue, 42, 500);
+
+    ///assert
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_TIMEOUT, result);
+}
+
+/*
+Tests:
+InterlockedHL_WaitForValue with spurious wakeups returns TIMEOUT within bounded time.
+A helper thread sends wake_by_address_single every 50ms without changing the value.
+Without the elapsed-time tracking fix, each spurious wakeup would reset the full timeout,
+causing the total wait to be N * timeout_ms instead of ~timeout_ms.
+*/
+
+typedef struct SPURIOUS_WAKEUP_CONTEXT_TAG
+{
+    volatile_atomic int32_t value;
+    volatile_atomic int32_t should_stop;
+} SPURIOUS_WAKEUP_CONTEXT;
+
+static int spurious_wakeup_thread_func(void* context)
+{
+    SPURIOUS_WAKEUP_CONTEXT* ctx = (SPURIOUS_WAKEUP_CONTEXT*)context;
+    while (interlocked_add(&ctx->should_stop, 0) == 0)
+    {
+        wake_by_address_single(&ctx->value);
+        ThreadAPI_Sleep(50);
+    }
+    return 0;
+}
+
+TEST_FUNCTION(interlocked_hl_wait_for_value_with_spurious_wakeups_returns_timeout_in_bounded_time)
+{
+    ///arrange
+    SPURIOUS_WAKEUP_CONTEXT ctx;
+    (void)interlocked_exchange(&ctx.value, 42);
+    (void)interlocked_exchange(&ctx.should_stop, 0);
+
+    THREAD_HANDLE wakeup_thread;
+    ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&wakeup_thread, spurious_wakeup_thread_func, &ctx));
+
+    // let the wakeup thread start sending spurious wakeups
+    ThreadAPI_Sleep(100);
+
+    double start_ms = timer_global_get_elapsed_ms();
+
+    ///act
+    // timeout = 1000ms, value will never match (42 != 99)
+    // helper thread sends spurious wakeups every 50ms
+    INTERLOCKED_HL_RESULT result = InterlockedHL_WaitForValue(&ctx.value, 99, 1000);
+
+    double elapsed_ms = timer_global_get_elapsed_ms() - start_ms;
+
+    ///assert
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_TIMEOUT, result);
+    // with proper timeout accounting, elapsed should be ~1000ms
+    // without the fix, ~20 spurious wakeups would each reset the full 1000ms timeout -> ~20000ms
+    // 5000ms (5x) is a generous upper bound to avoid flakiness
+    ASSERT_IS_TRUE(elapsed_ms < 5000.0);
+
+    ///cleanup
+    (void)interlocked_exchange(&ctx.should_stop, 1);
+    int return_code;
+    ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(wakeup_thread, &return_code));
+    ASSERT_ARE_EQUAL(int, 0, return_code);
 }
 
 /*
