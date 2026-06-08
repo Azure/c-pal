@@ -12,7 +12,7 @@ set(${theseTestsName}_c_files
 set(${theseTestsName}_h_files
 )
 
-build_test_artifacts_with_custom_main(${theseTestsName} "tests/c_pal/int" ADDITIONAL_LIBS pal_interfaces c_pal)
+build_test_artifacts(${theseTestsName} "tests/c_pal/int" ADDITIONAL_LIBS pal_interfaces c_pal)
 
 if(WIN32)
     if("${building}" STREQUAL "exe")
