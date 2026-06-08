@@ -5,8 +5,6 @@
 
 #include "testrunnerswitcher.h"
 
-#include "umock_c/umock_c.h" // IWYU pragma: keep
-
 #include "c_pal/srw_lock_ll.h"
 #include "c_pal/timed_test_suite.h"
 

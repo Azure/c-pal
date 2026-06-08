@@ -13,6 +13,8 @@
 
 #include "testrunnerswitcher.h"
 
+#include "c_pal/timed_test_suite.h"
+
 #include "umock_c/umock_c.h" // IWYU pragma: keep
 
 #include "c_pal/timer.h"
