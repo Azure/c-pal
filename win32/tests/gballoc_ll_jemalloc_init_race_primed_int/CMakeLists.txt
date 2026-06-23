@@ -9,11 +9,19 @@ set(${theseTestsName}_test_files
 
 set(${theseTestsName}_c_files
     ../../src/gballoc_ll_jemalloc.c
+    ../gballoc_ll_jemalloc_init_race_common/gballoc_ll_jemalloc_init_race_common.c
 )
 
 set(${theseTestsName}_h_files
 )
 
-# Gated regression guard for SRS_GBALLOC_LL_JEMALLOC_02_011: with jemalloc primed in the suite
-# initializer the race is safe and this test passes deterministically.
+# Gated regression guard for SRS_GBALLOC_LL_JEMALLOC_02_011: with each spawned child priming jemalloc
+# the race is safe, so every child returns 0 and this test passes. TIMEOUT covers the 3 minute spawn
+# budget plus per-child overhead.
+include_directories(${CMAKE_CURRENT_LIST_DIR}/../gballoc_ll_jemalloc_init_race_common)
+
 build_test_artifacts(${theseTestsName} "tests/c_pal/common" ADDITIONAL_LIBS jemalloc pal_interfaces c_pal)
+
+if("${building}" STREQUAL "exe")
+    set_tests_properties(${theseTestsName} PROPERTIES TIMEOUT 300)
+endif()
