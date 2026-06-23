@@ -45,7 +45,7 @@ MOCKABLE_FUNCTION(, int, gballoc_ll_init, void*, params);
 
 **SRS_GBALLOC_LL_JEMALLOC_02_013: [** `gballoc_ll_init` shall free the priming allocation by calling `je_free`. **]**
 
-**SRS_GBALLOC_LL_JEMALLOC_01_001: [** On success, `gballoc_ll_init` shall return 0. **]**
+**SRS_GBALLOC_LL_JEMALLOC_01_001: [** `gballoc_ll_init` shall return 0. **]**
 
 
 ### gballoc_ll_deinit

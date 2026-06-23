@@ -80,7 +80,7 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
 
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_02_011: [ gballoc_ll_init shall force jemalloc's one-time initialization to run on the calling thread by calling je_malloc. ]*/
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_02_013: [ gballoc_ll_init shall free the priming allocation by calling je_free. ]*/
-/*Tests_SRS_GBALLOC_LL_JEMALLOC_01_001: [ On success, gballoc_ll_init shall return 0. ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_01_001: [ gballoc_ll_init shall return 0. ]*/
 TEST_FUNCTION(gballoc_ll_init_returns_0)
 {
     ///arrange
@@ -101,7 +101,7 @@ TEST_FUNCTION(gballoc_ll_init_returns_0)
 
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_02_011: [ gballoc_ll_init shall force jemalloc's one-time initialization to run on the calling thread by calling je_malloc. ]*/
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_02_013: [ gballoc_ll_init shall free the priming allocation by calling je_free. ]*/
-/*Tests_SRS_GBALLOC_LL_JEMALLOC_01_001: [ On success, gballoc_ll_init shall return 0. ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_01_001: [ gballoc_ll_init shall return 0. ]*/
 TEST_FUNCTION(gballoc_ll_init_with_non_NULL_pointer_returns_0)
 {
     ///arrange

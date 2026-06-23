@@ -35,7 +35,7 @@ int gballoc_ll_init(void* params)
     {
         /*Codes_SRS_GBALLOC_LL_JEMALLOC_02_013: [ gballoc_ll_init shall free the priming allocation by calling je_free. ]*/
         je_free(prime);
-        /*Codes_SRS_GBALLOC_LL_JEMALLOC_01_001: [ On success, gballoc_ll_init shall return 0. ]*/
+        /*Codes_SRS_GBALLOC_LL_JEMALLOC_01_001: [ gballoc_ll_init shall return 0. ]*/
         result = 0;
     }
     return result;
