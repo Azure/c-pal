@@ -8,16 +8,15 @@
 #include "testrunnerswitcher.h"
 
 #include "c_pal/gballoc_ll.h"
-#include "c_pal/timed_test_suite.h"
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TIMED_TEST_SUITE_INITIALIZE(TestClassInitialize, TIMED_TEST_DEFAULT_TIMEOUT_MS)
+TEST_SUITE_INITIALIZE(TestClassInitialize)
 {
     ASSERT_ARE_EQUAL(int, 0, gballoc_ll_init(NULL));
 }
 
-TIMED_TEST_SUITE_CLEANUP(TestClassCleanup)
+TEST_SUITE_CLEANUP(TestClassCleanup)
 {
     gballoc_ll_deinit();
 }

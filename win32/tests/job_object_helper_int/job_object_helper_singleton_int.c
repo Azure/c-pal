@@ -14,7 +14,6 @@
 #include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/job_object_helper.h"
 #include "c_pal/timer.h"
-#include "c_pal/timed_test_suite.h"
 
 
 /* CPU burn infrastructure for multi-threaded saturation tests.
@@ -108,11 +107,11 @@ static double measure_cpu_percent_under_saturation(DWORD burn_duration_ms)
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
+TEST_SUITE_INITIALIZE(suite_init)
 {
 }
 
-TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
+TEST_SUITE_CLEANUP(suite_cleanup)
 {
 }
 

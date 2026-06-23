@@ -9,7 +9,6 @@
 #include "c_pal/timer.h"
 
 #include "c_pal/gballoc_hl.h"
-#include "c_pal/timed_test_suite.h"
 
 #define malloc gballoc_hl_malloc
 #define malloc_2 gballoc_hl_malloc_2
@@ -19,12 +18,12 @@
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TIMED_TEST_SUITE_INITIALIZE(suite_init, 20 * 60 * 1000)
+TEST_SUITE_INITIALIZE(suite_init)
 {
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 }
 
-TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
+TEST_SUITE_CLEANUP(suite_cleanup)
 {
     gballoc_hl_deinit();
 }

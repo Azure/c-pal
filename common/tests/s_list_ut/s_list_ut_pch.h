@@ -16,7 +16,6 @@
 
 #include "c_pal/s_list.h"
 #include "c_pal/containing_record.h"
-#include "c_pal/timed_test_suite.h"
 
 #include "testrunnerswitcher.h"
 

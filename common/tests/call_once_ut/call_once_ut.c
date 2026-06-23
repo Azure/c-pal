@@ -18,7 +18,7 @@ static call_once_t g_state = CALL_ONCE_NOT_CALLED;
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
+TEST_SUITE_INITIALIZE(suite_init)
 {
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error), "umock_c_init");
     ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types());
@@ -29,7 +29,7 @@ TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
     REGISTER_SYNC_GLOBAL_MOCK_HOOK();
 }
 
-TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
+TEST_SUITE_CLEANUP(suite_cleanup)
 {
     umock_c_deinit();
 }

@@ -49,7 +49,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TIMED_TEST_SUITE_INITIALIZE(TestClassInitialize, TIMED_TEST_DEFAULT_TIMEOUT_MS)
+TEST_SUITE_INITIALIZE(TestClassInitialize)
 {
     umock_c_init(on_umock_c_error);
 
@@ -60,7 +60,7 @@ TIMED_TEST_SUITE_INITIALIZE(TestClassInitialize, TIMED_TEST_DEFAULT_TIMEOUT_MS)
     REGISTER_UMOCK_ALIAS_TYPE(JEMALLOC_WRITE_CB, void*)
 }
 
-TIMED_TEST_SUITE_CLEANUP(TestClassCleanup)
+TEST_SUITE_CLEANUP(TestClassCleanup)
 {
     umock_c_deinit();
 }

@@ -17,7 +17,6 @@
 #include "c_pal/thandle_ll.h"
 #include "c_pal/thandle.h"                  // IWYU pragma: keep
 #include "c_pal/thandle_ptr.h"
-#include "c_pal/timed_test_suite.h"
 
 #include "example.h"
 #include "example_incomplete_type.h"
@@ -59,12 +58,12 @@ THANDLE_PTR_DEFINE(A_S_CONST_PTR);
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TIMED_TEST_SUITE_INITIALIZE(it_does_something, TIMED_TEST_DEFAULT_TIMEOUT_MS)
+TEST_SUITE_INITIALIZE(it_does_something)
 {
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 }
 
-TIMED_TEST_SUITE_CLEANUP(TestClassCleanup)
+TEST_SUITE_CLEANUP(TestClassCleanup)
 {
     gballoc_hl_deinit();
 }

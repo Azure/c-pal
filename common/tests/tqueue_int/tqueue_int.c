@@ -20,7 +20,6 @@
 #include "c_pal/timer.h"
 
 #include "c_pal/tqueue.h"
-#include "c_pal/timed_test_suite.h"
 #include "tqueue_foo.h"
 
 // TQUEUE(FOO) is used for most int tests
@@ -49,7 +48,7 @@ TEST_DEFINE_ENUM_TYPE(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_RESULT_VALUES);
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
+TEST_SUITE_INITIALIZE(suite_init)
 {
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
     // Print out the random seed to recreate issues if any arise
@@ -58,7 +57,7 @@ TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
     srand((unsigned int)seed);
 }
 
-TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
+TEST_SUITE_CLEANUP(suite_cleanup)
 {
     gballoc_hl_deinit();
 }

@@ -14,6 +14,5 @@
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 
 #include "c_pal/interlocked.h"
-#include "c_pal/timed_test_suite.h"
 
 #endif // INTERLOCKED_MACROS_UT_PCH_H
