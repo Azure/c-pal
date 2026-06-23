@@ -118,22 +118,42 @@ static bool child_failed(const char* exe_path)
     else
     {
         DWORD wait_result = WaitForSingleObject(process_info.hProcess, CHILD_WAIT_MS);
-        if (wait_result == WAIT_TIMEOUT)
+        if (wait_result == WAIT_FAILED)
+        {
+            LogLastError("WaitForSingleObject failed while waiting on the child");
+            failed = true;
+        }
+        else if (wait_result == WAIT_TIMEOUT)
         {
             // the child deadlocked
-            (void)TerminateProcess(process_info.hProcess, 1);
-            (void)WaitForSingleObject(process_info.hProcess, INFINITE);
+            if (!TerminateProcess(process_info.hProcess, 1))
+            {
+                LogLastError("TerminateProcess failed on the deadlocked child");
+            }
+            if (WaitForSingleObject(process_info.hProcess, INFINITE) == WAIT_FAILED)
+            {
+                LogLastError("WaitForSingleObject failed after terminating the child");
+            }
             failed = true;
         }
         else
         {
             DWORD exit_code = 0;
-            (void)GetExitCodeProcess(process_info.hProcess, &exit_code);
+            if (!GetExitCodeProcess(process_info.hProcess, &exit_code))
+            {
+                LogLastError("GetExitCodeProcess failed");
+            }
             // a non-zero exit means the child crashed or its race saw a NULL allocation
             failed = (exit_code != 0);
         }
-        (void)CloseHandle(process_info.hThread);
-        (void)CloseHandle(process_info.hProcess);
+        if (!CloseHandle(process_info.hThread))
+        {
+            LogLastError("CloseHandle on the child thread handle failed");
+        }
+        if (!CloseHandle(process_info.hProcess))
+        {
+            LogLastError("CloseHandle on the child process handle failed");
+        }
     }
     return failed;
 }
@@ -153,7 +173,10 @@ void gballoc_ll_jemalloc_init_race_run(bool prime)
         {
             gballoc_ll_deinit();
         }
-        (void)TerminateProcess(GetCurrentProcess(), 0);
+        if (!TerminateProcess(GetCurrentProcess(), 0))
+        {
+            LogLastError("TerminateProcess on the current process failed");
+        }
     }
     else
     {
