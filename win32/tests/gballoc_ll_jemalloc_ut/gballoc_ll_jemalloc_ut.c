@@ -78,11 +78,16 @@ TEST_FUNCTION_CLEANUP(TestMethodCleanup)
 
 /* gballoc_ll_init */
 
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_011: [ gballoc_ll_init shall force jemalloc's one-time initialization to run on the calling thread by calling je_malloc. ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_013: [ gballoc_ll_init shall free the priming allocation by calling je_free. ]*/
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_01_001: [ gballoc_ll_init shall return 0. ]*/
 TEST_FUNCTION(gballoc_ll_init_returns_0)
 {
     ///arrange
     int result;
+
+    STRICT_EXPECTED_CALL(mock_je_malloc(1));
+    STRICT_EXPECTED_CALL(mock_je_free(TEST_MALLOC_RESULT));
 
     ///act
     result = gballoc_ll_init(NULL);
@@ -94,17 +99,41 @@ TEST_FUNCTION(gballoc_ll_init_returns_0)
     ///clean
 }
 
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_011: [ gballoc_ll_init shall force jemalloc's one-time initialization to run on the calling thread by calling je_malloc. ]*/
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_013: [ gballoc_ll_init shall free the priming allocation by calling je_free. ]*/
 /*Tests_SRS_GBALLOC_LL_JEMALLOC_01_001: [ gballoc_ll_init shall return 0. ]*/
 TEST_FUNCTION(gballoc_ll_init_with_non_NULL_pointer_returns_0)
 {
     ///arrange
     int result;
 
+    STRICT_EXPECTED_CALL(mock_je_malloc(1));
+    STRICT_EXPECTED_CALL(mock_je_free(TEST_MALLOC_RESULT));
+
     ///act
     result = gballoc_ll_init((void*)0x24);
 
     ///assert
     ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_02_012: [ If je_malloc fails then gballoc_ll_init shall fail and return a non-zero value. ]*/
+TEST_FUNCTION(gballoc_ll_init_fails_when_je_malloc_fails)
+{
+    ///arrange
+    int result;
+
+    STRICT_EXPECTED_CALL(mock_je_malloc(1))
+        .SetReturn(NULL);
+
+    ///act
+    result = gballoc_ll_init(NULL);
+
+    ///assert
+    ASSERT_ARE_NOT_EQUAL(int, 0, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean
