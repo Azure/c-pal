@@ -28,6 +28,7 @@
 
 #include "c_pal/interlocked.h"
 #include "c_pal/threadapi.h"
+#include "c_pal/timer.h"
 
 #include "c_pal/gballoc_ll.h"
 #include "c_pal/timed_test_suite.h"
@@ -187,19 +188,13 @@ TEST_FUNCTION(unprimed_jemalloc_first_allocation_race_is_hunted_until_it_fails)
     // respawn fresh child processes (each gets one shot at jemalloc's first-init race) until one fails
     bool reproduced = false;
     uint32_t attempts = 0;
-    LARGE_INTEGER frequency;
-    LARGE_INTEGER start;
-    (void)QueryPerformanceFrequency(&frequency);
-    (void)QueryPerformanceCounter(&start);
+    double start_ms = timer_global_get_elapsed_ms();
     while (!reproduced)
     {
         attempts++;
         reproduced = child_reproduced_the_race(exe_path);
 
-        LARGE_INTEGER now;
-        (void)QueryPerformanceCounter(&now);
-        double elapsed_ms = (double)(now.QuadPart - start.QuadPart) * 1000.0 / (double)frequency.QuadPart;
-        if (elapsed_ms >= HUNT_BUDGET_MS)
+        if (timer_global_get_elapsed_ms() - start_ms >= HUNT_BUDGET_MS)
         {
             break;
         }
