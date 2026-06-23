@@ -146,9 +146,13 @@ void gballoc_ll_jemalloc_init_race_run(bool prime)
         // process down; otherwise exit cleanly so the parent keeps spawning.
         if (prime)
         {
-            (void)gballoc_ll_init(NULL);
+            ASSERT_ARE_EQUAL(int, 0, gballoc_ll_init(NULL));
         }
         run_one_first_allocation_race();
+        if (prime)
+        {
+            gballoc_ll_deinit();
+        }
         (void)TerminateProcess(GetCurrentProcess(), 0);
     }
     else
