@@ -44,7 +44,7 @@ typedef struct RACE_CONTEXT_TAG
 
 static int race_first_allocation(void* arg)
 {
-    RACE_CONTEXT* context = (RACE_CONTEXT*)arg;
+    RACE_CONTEXT* context = arg;
 
     // announce readiness, then spin until released so every thread allocates at the same instant
     (void)interlocked_increment(context->ready_count);
