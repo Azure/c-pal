@@ -173,40 +173,41 @@ TEST_FUNCTION(unprimed_jemalloc_first_allocation_race_is_hunted_until_it_fails)
         // hunts for). If it somehow survives, exit cleanly so the parent keeps hunting.
         run_one_first_allocation_race();
         (void)TerminateProcess(GetCurrentProcess(), 0);
-        return;
     }
-
-    ///arrange
-    char exe_path[MAX_PATH];
-    DWORD path_len = GetModuleFileNameA(NULL, exe_path, (DWORD)sizeof(exe_path));
-    ASSERT_IS_TRUE(path_len > 0 && path_len < sizeof(exe_path));
-
-    // children inherit this; the parent already passed its own child check above
-    ASSERT_IS_TRUE(SetEnvironmentVariableA(CHILD_ENV_NAME, "1"));
-
-    ///act
-    // respawn fresh child processes (each gets one shot at jemalloc's first-init race) until one fails
-    bool reproduced = false;
-    uint32_t attempts = 0;
-    double start_ms = timer_global_get_elapsed_ms();
-    while (!reproduced)
+    else
     {
-        attempts++;
-        reproduced = child_reproduced_the_race(exe_path);
+        ///arrange
+        char exe_path[MAX_PATH];
+        DWORD path_len = GetModuleFileNameA(NULL, exe_path, (DWORD)sizeof(exe_path));
+        ASSERT_IS_TRUE(path_len > 0 && path_len < sizeof(exe_path));
 
-        if (timer_global_get_elapsed_ms() - start_ms >= HUNT_BUDGET_MS)
+        // children inherit this; the parent already passed its own child check above
+        ASSERT_IS_TRUE(SetEnvironmentVariableA(CHILD_ENV_NAME, "1"));
+
+        ///act
+        // respawn fresh child processes (each gets one shot at jemalloc's first-init race) until one fails
+        bool reproduced = false;
+        uint32_t attempts = 0;
+        double start_ms = timer_global_get_elapsed_ms();
+        while (!reproduced)
         {
-            break;
-        }
-    }
+            attempts++;
+            reproduced = child_reproduced_the_race(exe_path);
 
-    ///assert
-    // reproducing the crash is the expected outcome; failing here is what the WILL_FAIL registration inverts to a pass
-    if (reproduced)
-    {
-        ASSERT_FAIL("reproduced the unprimed jemalloc first-allocation race after %" PRIu32 " attempt(s)", attempts);
+            if (timer_global_get_elapsed_ms() - start_ms >= HUNT_BUDGET_MS)
+            {
+                break;
+            }
+        }
+
+        ///assert
+        // reproducing the crash is the expected outcome; failing here is what the WILL_FAIL registration inverts to a pass
+        if (reproduced)
+        {
+            ASSERT_FAIL("reproduced the unprimed jemalloc first-allocation race after %" PRIu32 " attempt(s)", attempts);
+        }
+        LogError("did NOT reproduce the unprimed jemalloc first-allocation race within the hunt budget after %" PRIu32 " attempt(s)", attempts);
     }
-    LogError("did NOT reproduce the unprimed jemalloc first-allocation race within the hunt budget after %" PRIu32 " attempt(s)", attempts);
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
