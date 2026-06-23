@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-// Gated regression guard for SRS_GBALLOC_LL_JEMALLOC_02_011. Each spawned child primes jemalloc via
+// Gated regression guard for the jemalloc init-time priming fix. Each spawned child primes jemalloc via
 // gballoc_ll_init before racing its first allocation, so every child finishes and returns 0 and this
 // test passes. The shared driver lives in gballoc_ll_jemalloc_init_race_common.c; the ONLY difference
 // from gballoc_ll_jemalloc_init_race_unprimed_int is the prime argument passed below.

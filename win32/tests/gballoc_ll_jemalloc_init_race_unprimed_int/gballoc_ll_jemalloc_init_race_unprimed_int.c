@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-// Demonstration of the defect fixed by SRS_GBALLOC_LL_JEMALLOC_02_011. Spawned children do NOT prime
+// Demonstration of the defect that the jemalloc init-time priming fixes. Spawned children do NOT prime
 // jemalloc, so racing the process's first allocation hits jemalloc's lazy init concurrently and a
 // child crashes or hangs almost immediately. The shared driver spawns children until one fails, which
 // fails this test; it is registered WILL_FAIL (CTest inverts the expected failure to a pass). The
