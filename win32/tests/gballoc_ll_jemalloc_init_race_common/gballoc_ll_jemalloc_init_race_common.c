@@ -112,7 +112,7 @@ static bool child_failed(const char* exe_path)
     // the child inherits this process's environment, which carries CHILD_ENV_NAME
     if (!CreateProcessA(exe_path, NULL, NULL, NULL, FALSE, 0, NULL, NULL, &startup_info, &process_info))
     {
-        LogError("CreateProcessA(%s) failed, GetLastError()=%lu", exe_path, GetLastError());
+        LogLastError("CreateProcessA(%s) failed", exe_path);
         failed = true;
     }
     else
