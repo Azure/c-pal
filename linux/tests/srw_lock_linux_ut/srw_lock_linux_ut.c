@@ -102,7 +102,7 @@ static void test_srw_lock_acquire_shared(SRW_LOCK_HANDLE handle)
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
+TEST_SUITE_INITIALIZE(suite_init)
 {
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(on_umock_c_error));
     ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types());
@@ -121,7 +121,7 @@ TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_pthread_rwlock_init, 1);
 }
 
-TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
+TEST_SUITE_CLEANUP(suite_cleanup)
 {
     umock_c_deinit();
     umock_c_negative_tests_deinit();

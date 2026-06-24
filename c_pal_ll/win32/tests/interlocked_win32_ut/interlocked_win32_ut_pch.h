@@ -18,6 +18,5 @@
 #include "umock_c/umocktypes_windows.h"
 
 #include "c_pal/interlocked.h"
-#include "c_pal/timed_test_suite.h"
 
 #endif // INTERLOCKED_WIN32_UT_PCH_H

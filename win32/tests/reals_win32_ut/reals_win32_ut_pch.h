@@ -26,7 +26,6 @@
 #include "c_pal/socket_transport.h"
 #include "c_pal/async_socket.h"
 #include "c_pal/job_object_helper.h"
-#include "c_pal/timed_test_suite.h"
 
 #include "macro_utils/macro_utils.h"
 

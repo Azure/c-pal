@@ -13,8 +13,6 @@
 
 #include "testrunnerswitcher.h"
 
-#include "c_pal/timed_test_suite.h"
-
 #include "umock_c/umock_c.h" // IWYU pragma: keep
 
 #include "c_pal/timer.h"
@@ -28,7 +26,6 @@
 #include "c_pal/execution_engine.h"
 #include "c_pal/thandle.h" // IWYU pragma: keep
 #include "c_pal/thandle_ll.h"
-#include "c_pal/timed_test_suite.h"
 
 static volatile_atomic int64_t g_call_count;
 
@@ -51,7 +48,7 @@ TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES);
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
+TEST_SUITE_INITIALIZE(suite_init)
 {
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 
@@ -60,7 +57,7 @@ TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
     srand((unsigned int)seed);
 }
 
-TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
+TEST_SUITE_CLEANUP(suite_cleanup)
 {
     gballoc_hl_deinit();
 }

@@ -16,7 +16,6 @@
 #include "file_int_helpers.h"
 
 #include "c_pal/file.h"
-#include "c_pal/timed_test_suite.h"
 
 TEST_DEFINE_ENUM_TYPE(FILE_WRITE_ASYNC_RESULT, FILE_WRITE_ASYNC_RESULT)
 TEST_DEFINE_ENUM_TYPE(FILE_READ_ASYNC_RESULT, FILE_READ_ASYNC_RESULT)
@@ -82,12 +81,12 @@ static FILE_HANDLE file_create_helper(const char* filename)
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TIMED_TEST_SUITE_INITIALIZE(a, TIMED_TEST_DEFAULT_TIMEOUT_MS)
+TEST_SUITE_INITIALIZE(a)
 {
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 }
 
-TIMED_TEST_SUITE_CLEANUP(b)
+TEST_SUITE_CLEANUP(b)
 {
     gballoc_hl_deinit();
 }

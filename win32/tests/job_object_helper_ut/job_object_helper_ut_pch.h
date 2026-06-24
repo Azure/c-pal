@@ -20,7 +20,6 @@
 
 #include "c_pal/interlocked.h"
 #include "c_pal/interlocked_hl.h"
-#include "c_pal/timed_test_suite.h"
 
 #include "c_pal/job_object_helper.h"
 

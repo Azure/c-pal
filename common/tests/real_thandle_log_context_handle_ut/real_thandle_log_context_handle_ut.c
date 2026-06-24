@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "real_thandle_log_context_handle_ut_pch.h"
@@ -12,7 +12,7 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TIMED_TEST_SUITE_INITIALIZE(TestClassInitialize, TIMED_TEST_DEFAULT_TIMEOUT_MS)
+TEST_SUITE_INITIALIZE(TestClassInitialize)
 {
     ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(NULL, NULL));
 
@@ -31,7 +31,7 @@ TIMED_TEST_SUITE_INITIALIZE(TestClassInitialize, TIMED_TEST_DEFAULT_TIMEOUT_MS)
 
 }
 
-TIMED_TEST_SUITE_CLEANUP(TestClassCleanup)
+TEST_SUITE_CLEANUP(TestClassCleanup)
 {
     umock_c_deinit();
     real_gballoc_hl_deinit();

@@ -16,6 +16,5 @@
 #include "umock_c/umocktypes_stdint.h"
 
 #include "c_pal/sysinfo.h"
-#include "c_pal/timed_test_suite.h"
 
 #endif // SYSINFO_LINUX_UT_PCH_H

@@ -13,17 +13,16 @@
 #include "c_pal/gballoc_hl_redirect.h"
 
 #include "c_pal/string_utils.h"
-#include "c_pal/timed_test_suite.h"
 
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TIMED_TEST_SUITE_INITIALIZE(suite_init, TIMED_TEST_DEFAULT_TIMEOUT_MS)
+TEST_SUITE_INITIALIZE(suite_init)
 {
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(NULL, NULL));
 }
 
-TIMED_TEST_SUITE_CLEANUP(suite_cleanup)
+TEST_SUITE_CLEANUP(suite_cleanup)
 {
     gballoc_hl_deinit();
 }
