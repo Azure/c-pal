@@ -11,7 +11,10 @@
 #include "c_logging/logger.h"
 #include "c_pal/gballoc_ll.h"
 
+#pragma warning(push)
+#pragma warning(disable: 4068) // jemalloc.h uses '#pragma GCC' which MSVC does not recognize (C4068)
 #include "jemalloc/jemalloc.h"
+#pragma warning(pop)
 
 // We use int64_t for decay ms, so we need to make sure it's the same size as size_t due to internal jemalloc code using ssize_t
 MU_STATIC_ASSERT(sizeof(int64_t) == sizeof(size_t));
