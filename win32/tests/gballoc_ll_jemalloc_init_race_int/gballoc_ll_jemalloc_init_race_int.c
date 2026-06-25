@@ -1,18 +1,18 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-// Regression test for jemalloc's concurrent first-allocation (lazy init) safety, WITHOUT priming.
+// Regression test for jemalloc's concurrent first-allocation (lazy init) safety.
 //
-// History: gballoc_ll_init used to "prime" jemalloc (force its one-time init single-threaded) because
-// jemalloc 5.3.0's Windows TSD allocated a per-thread wrapper on first access, so several threads
-// making the process's first ever allocation at once raced jemalloc's lazy init and corrupted its
-// global state (crash/hang). jemalloc 5.3.1 fixed that root cause (commit 3a0d9cda, native MSVC
-// __declspec(thread) TSD - no first-access allocation), so the priming workaround was removed.
+// jemalloc initializes lazily on a process's first allocation, and that one-time init must be safe
+// when several threads make the first allocation at the same time. Historically (jemalloc 5.3.0 on
+// Windows/MSVC) it was not: the per-thread TSD wrapper was allocated on first access, so concurrent
+// first allocations raced jemalloc's lazy init and corrupted its global state (crash/hang). jemalloc
+// 5.3.1 made the Windows TSD statically thread-local (no first-access allocation), fixing the race.
 //
 // This test guards against a regression of that bug. Because the race is on the process's FIRST ever
 // jemalloc allocation, it can only be exercised once per process, so the parent spawns many fresh
-// child processes; each child races the unprimed first allocation across several threads. A regression
-// would corrupt jemalloc's state and show up as a child that crashes, hangs, or returns non-zero. The
+// child processes; each child races the first allocation across several threads. A regression would
+// corrupt jemalloc's state and show up as a child that crashes, hangs, or returns non-zero. The
 // parent (run under VLD) fails if any child fails; with a correct jemalloc every child completes
 // cleanly. NOTE: jemalloc allocates from VirtualAlloc/mmap, not the CRT heap VLD tracks, so the
 // authoritative regression signal here is corruption/crash/hang rather than a CRT leak report.
@@ -180,13 +180,13 @@ static bool child_failed(const char* exe_path)
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
-TEST_FUNCTION(gballoc_ll_unprimed_concurrent_first_allocation_is_safe)
+TEST_FUNCTION(gballoc_ll_concurrent_first_allocation_is_safe)
 {
     if (getenv(CHILD_ENV_NAME) != NULL)
     {
-        // CHILD: race the process's first jemalloc allocation across several threads WITHOUT priming,
-        // then exit with the race result. A jemalloc init regression crashes or hangs this process, or
-        // (if it corrupts without crashing) makes an allocation return NULL and exits non-zero.
+        // CHILD: race the process's first jemalloc allocation across several threads, then exit with
+        // the race result. A jemalloc init regression crashes or hangs this process, or (if it corrupts
+        // without crashing) makes an allocation return NULL and exits non-zero.
         int race_result = run_one_first_allocation_race();
         if (!TerminateProcess(GetCurrentProcess(), (UINT)(race_result == 0 ? 0 : 1)))
         {
@@ -195,8 +195,8 @@ TEST_FUNCTION(gballoc_ll_unprimed_concurrent_first_allocation_is_safe)
     }
     else
     {
-        // PARENT: spawn fresh child processes that each run the unprimed first-allocation race and fail
-        // if any of them crashes, hangs, or returns non-zero.
+        // PARENT: spawn fresh child processes that each race the first allocation and fail if any of
+        // them crashes, hangs, or returns non-zero.
         char exe_path[MAX_PATH];
         DWORD path_len = GetModuleFileNameA(NULL, exe_path, (DWORD)sizeof(exe_path));
         ASSERT_IS_TRUE(path_len > 0 && path_len < sizeof(exe_path));
@@ -208,11 +208,11 @@ TEST_FUNCTION(gballoc_ll_unprimed_concurrent_first_allocation_is_safe)
         {
             if (child_failed(exe_path))
             {
-                ASSERT_FAIL("unprimed first-allocation race child #%" PRIu32 " of %d crashed, hung, or returned non-zero - jemalloc concurrent init may have regressed", attempt, SPAWN_COUNT);
+                ASSERT_FAIL("first-allocation race child #%" PRIu32 " of %d crashed, hung, or returned non-zero - jemalloc concurrent init may have regressed", attempt, SPAWN_COUNT);
             }
         }
 
-        LogInfo("all %d unprimed first-allocation race children completed cleanly", SPAWN_COUNT);
+        LogInfo("all %d first-allocation race children completed cleanly", SPAWN_COUNT);
     }
 }
 
