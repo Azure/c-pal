@@ -109,8 +109,8 @@ static int run_one_first_allocation_race(void)
     for (uint32_t index = 0; index < RACE_THREAD_COUNT; index++)
     {
         int thread_result;
-        (void)ThreadAPI_Join(threads[index], &thread_result);
-        if (contexts[index].result != 0)
+        ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(threads[index], &thread_result));
+        if (thread_result != 0)
         {
             overall_result = MU_FAILURE;
         }
