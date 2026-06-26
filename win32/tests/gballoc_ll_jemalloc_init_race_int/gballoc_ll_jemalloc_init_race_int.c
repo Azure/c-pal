@@ -1,6 +1,22 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// Regression test for jemalloc's concurrent first-allocation (lazy init) safety.
+//
+// jemalloc initializes lazily on a process's first allocation, and that one-time init must be safe
+// when several threads make the first allocation at the same time. Historically (jemalloc 5.3.0 on
+// Windows/MSVC) it was not: the per-thread TSD wrapper was allocated on first access, so concurrent
+// first allocations raced jemalloc's lazy init and corrupted its global state (crash/hang). jemalloc
+// 5.3.1 made the Windows TSD statically thread-local (no first-access allocation), fixing the race.
+//
+// This test guards against a regression of that bug. Because the race is on the process's FIRST ever
+// jemalloc allocation, it can only be exercised once per process, so the parent spawns many fresh
+// child processes; each child races the first allocation across several threads. A regression would
+// corrupt jemalloc's state and show up as a child that crashes, hangs, or returns non-zero. The
+// parent (run under VLD) fails if any child fails; with a correct jemalloc every child completes
+// cleanly. NOTE: jemalloc allocates from VirtualAlloc/mmap, not the CRT heap VLD tracks, so the
+// authoritative regression signal here is corruption/crash/hang rather than a CRT leak report.
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -17,23 +33,20 @@
 
 #include "c_pal/interlocked.h"
 #include "c_pal/threadapi.h"
-#include "c_pal/timer.h"
 
 #include "c_pal/gballoc_ll.h"
-
-#include "gballoc_ll_jemalloc_init_race_common.h"
 
 TEST_DEFINE_ENUM_TYPE(THREADAPI_RESULT, THREADAPI_RESULT_VALUES)
 
 #define RACE_THREAD_COUNT   16
 #define RACE_ALLOC_COUNT    256
 
-// when set in the environment, this process is a spawned child that runs a single race and exits
+// when set in the environment, this process is a spawned child that runs one race and exits
 #define CHILD_ENV_NAME      "GBALLOC_LL_JEMALLOC_RACE_CHILD"
-// a child either crashes/passes in well under a second; waiting longer than this means it deadlocked
+// a healthy child finishes in well under a second; waiting longer than this means jemalloc deadlocked
 #define CHILD_WAIT_MS       15000
-// total time the parent spends spawning children, hardcoded to 3 minutes
-#define SPAWN_BUDGET_MS     180000.0
+// number of fresh child processes the parent spawns to probe the first-allocation race
+#define SPAWN_COUNT         64
 
 typedef struct RACE_CONTEXT_TAG
 {
@@ -67,8 +80,9 @@ static int race_first_allocation(void* arg)
 }
 
 // runs exactly one simultaneous-start race of the process's first jemalloc allocation; a crash or a
-// deadlock here takes the whole (child) process down
-static void run_one_first_allocation_race(void)
+// deadlock here takes the whole (child) process down. Returns 0 if every thread allocated/freed
+// successfully, non-zero if any allocation came back NULL (a corrupted init that did not crash).
+static int run_one_first_allocation_race(void)
 {
     volatile_atomic int32_t ready_count;
     volatile_atomic int32_t start_gate;
@@ -91,11 +105,17 @@ static void run_one_first_allocation_race(void)
 
     (void)interlocked_exchange(&start_gate, 1);
 
+    int overall_result = 0;
     for (uint32_t index = 0; index < RACE_THREAD_COUNT; index++)
     {
-        int dont_care;
-        (void)ThreadAPI_Join(threads[index], &dont_care);
+        int thread_result;
+        ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(threads[index], &thread_result));
+        if (thread_result != 0)
+        {
+            overall_result = MU_FAILURE;
+        }
     }
+    return overall_result;
 }
 
 // spawns one child that runs a single race; returns true if that child crashed, hung, or returned non-zero
@@ -158,29 +178,25 @@ static bool child_failed(const char* exe_path)
     return failed;
 }
 
-void gballoc_ll_jemalloc_init_race_run(bool prime)
+BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
+
+TEST_FUNCTION(gballoc_ll_concurrent_first_allocation_is_safe)
 {
     if (getenv(CHILD_ENV_NAME) != NULL)
     {
-        // CHILD: optionally prime jemalloc single-threaded, then run one race. A crash/hang takes this
-        // process down; otherwise exit cleanly so the parent keeps spawning.
-        if (prime)
-        {
-            ASSERT_ARE_EQUAL(int, 0, gballoc_ll_init(NULL));
-        }
-        run_one_first_allocation_race();
-        if (prime)
-        {
-            gballoc_ll_deinit();
-        }
-        if (!TerminateProcess(GetCurrentProcess(), 0))
+        // CHILD: race the process's first jemalloc allocation across several threads, then exit with
+        // the race result. A jemalloc init regression crashes or hangs this process, or (if it corrupts
+        // without crashing) makes an allocation return NULL and exits non-zero.
+        int race_result = run_one_first_allocation_race();
+        if (!TerminateProcess(GetCurrentProcess(), (UINT)(race_result == 0 ? 0 : 1)))
         {
             LogLastError("TerminateProcess on the current process failed");
         }
     }
     else
     {
-        // PARENT: spawn fresh child processes for the whole budget, stopping early if one fails
+        // PARENT: spawn fresh child processes that each race the first allocation and fail if any of
+        // them crashes, hangs, or returns non-zero.
         char exe_path[MAX_PATH];
         DWORD path_len = GetModuleFileNameA(NULL, exe_path, (DWORD)sizeof(exe_path));
         ASSERT_IS_TRUE(path_len > 0 && path_len < sizeof(exe_path));
@@ -188,25 +204,16 @@ void gballoc_ll_jemalloc_init_race_run(bool prime)
         // children inherit this; the parent already passed its own child check above
         ASSERT_IS_TRUE(SetEnvironmentVariableA(CHILD_ENV_NAME, "1"));
 
-        bool any_child_failed = false;
-        uint32_t attempts = 0;
-        double start_ms = timer_global_get_elapsed_ms();
-        while (timer_global_get_elapsed_ms() - start_ms < SPAWN_BUDGET_MS)
+        for (uint32_t attempt = 1; attempt <= SPAWN_COUNT; attempt++)
         {
-            attempts++;
             if (child_failed(exe_path))
             {
-                any_child_failed = true;
-                break;
+                ASSERT_FAIL("first-allocation race child #%" PRIu32 " of %d crashed, hung, or returned non-zero - jemalloc concurrent init may have regressed", attempt, SPAWN_COUNT);
             }
         }
 
-        // A failing child fails this test. The primed test expects no failure and passes; the unprimed
-        // test is registered WILL_FAIL, so the failure it reliably finds is inverted to a pass.
-        if (any_child_failed)
-        {
-            ASSERT_FAIL("a spawned child crashed, hung, or returned non-zero after %" PRIu32 " attempt(s)", attempts);
-        }
-        LogInfo("all %" PRIu32 " spawned child process(es) finished and returned 0 within the spawn budget", attempts);
+        LogInfo("all %d first-allocation race children completed cleanly", SPAWN_COUNT);
     }
 }
+
+END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

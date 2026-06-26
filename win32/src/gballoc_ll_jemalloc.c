@@ -11,7 +11,10 @@
 #include "c_logging/logger.h"
 #include "c_pal/gballoc_ll.h"
 
+#pragma warning(push)
+#pragma warning(disable: 4068) // jemalloc.h uses '#pragma GCC' which MSVC does not recognize (C4068)
 #include "jemalloc/jemalloc.h"
+#pragma warning(pop)
 
 // We use int64_t for decay ms, so we need to make sure it's the same size as size_t due to internal jemalloc code using ssize_t
 MU_STATIC_ASSERT(sizeof(int64_t) == sizeof(size_t));
@@ -21,24 +24,9 @@ MU_STATIC_ASSERT(sizeof(uint32_t) == sizeof(unsigned));
 
 int gballoc_ll_init(void* params)
 {
-    int result;
+    /*Codes_SRS_GBALLOC_LL_JEMALLOC_01_001: [ gballoc_ll_init shall return 0. ]*/
     (void)params;
-    /*Codes_SRS_GBALLOC_LL_JEMALLOC_02_011: [ gballoc_ll_init shall force jemalloc's one-time initialization to run on the calling thread by calling je_malloc. ]*/
-    void* prime = je_malloc(1);
-    if (prime == NULL)
-    {
-        /*Codes_SRS_GBALLOC_LL_JEMALLOC_02_012: [ If je_malloc fails then gballoc_ll_init shall fail and return a non-zero value. ]*/
-        LogError("failure in je_malloc(1)");
-        result = MU_FAILURE;
-    }
-    else
-    {
-        /*Codes_SRS_GBALLOC_LL_JEMALLOC_02_013: [ gballoc_ll_init shall free the priming allocation by calling je_free. ]*/
-        je_free(prime);
-        /*Codes_SRS_GBALLOC_LL_JEMALLOC_01_001: [ gballoc_ll_init shall return 0. ]*/
-        result = 0;
-    }
-    return result;
+    return 0;
 }
 
 void gballoc_ll_deinit(void)
