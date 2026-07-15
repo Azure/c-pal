@@ -25,8 +25,24 @@ MU_STATIC_ASSERT(sizeof(uint32_t) == sizeof(unsigned));
 int gballoc_ll_init(void* params)
 {
     /*Codes_SRS_GBALLOC_LL_JEMALLOC_01_001: [ gballoc_ll_init shall return 0. ]*/
+    int result;
     (void)params;
-    return 0;
+    /* Force jemalloc's one-time initialization to run single-threaded on the calling thread before any
+       other threads start allocating. jemalloc 5.3.1's first-allocation init is not safe against many
+       threads racing it at once on high-core-count machines (observed as a memory-corruption __fastfail
+       0xc0000409 at process startup on 48-logical-CPU CI agents), so prime it here. */
+    void* prime = je_malloc(1);
+    if (prime == NULL)
+    {
+        LogError("failure in je_malloc(1)");
+        result = MU_FAILURE;
+    }
+    else
+    {
+        je_free(prime);
+        result = 0;
+    }
+    return result;
 }
 
 void gballoc_ll_deinit(void)
