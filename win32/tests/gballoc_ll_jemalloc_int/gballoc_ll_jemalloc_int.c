@@ -13,10 +13,7 @@
 #include "c_pal/gballoc_ll.h"
 #include "c_pal/threadapi.h"
 
-#pragma warning(push)
-#pragma warning(disable: 4068) // jemalloc.h uses '#pragma GCC' which MSVC does not recognize (C4068)
 #include "jemalloc/jemalloc.h"
-#pragma warning(pop)
 
 #define DECAY_MS 50000
 #define MAX_ARENAS 4
