@@ -37,6 +37,14 @@ MOCKABLE_FUNCTION(, int, gballoc_ll_init, void*, params);
 
 `gballoc_ll_init` returns. `params` exists as a placeholder and is ignored. This function is not thread-safe.
 
+`gballoc_ll_init` also forces jemalloc's one-time global initialization to run on the calling (single) thread. jemalloc initializes lazily on its first allocation, and that one-time initialization is not safe to run concurrently; without this priming, several threads making the process's first ever allocation at the same time race jemalloc's initialization and corrupt its global state. `je_malloc_conf` (if used) must therefore be configured before `gballoc_ll_init` is called.
+
+**SRS_GBALLOC_LL_JEMALLOC_02_011: [** `gballoc_ll_init` shall force jemalloc's one-time initialization to run on the calling thread by calling `je_malloc`. **]**
+
+**SRS_GBALLOC_LL_JEMALLOC_02_012: [** If `je_malloc` fails then `gballoc_ll_init` shall fail and return a non-zero value. **]**
+
+**SRS_GBALLOC_LL_JEMALLOC_02_013: [** `gballoc_ll_init` shall free the priming allocation by calling `je_free`. **]**
+
 **SRS_GBALLOC_LL_JEMALLOC_01_001: [** `gballoc_ll_init` shall return 0. **]**
 
 

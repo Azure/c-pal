@@ -1,10 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#pragma warning(push)
-#pragma warning(disable: 4068) // jemalloc.h uses '#pragma GCC' which MSVC does not recognize (C4068)
 #include "jemalloc/jemalloc.h"
-#pragma warning(pop)
 
 #define je_malloc mock_je_malloc
 #define je_free mock_je_free

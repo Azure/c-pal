@@ -24,9 +24,24 @@ MU_STATIC_ASSERT(sizeof(uint32_t) == sizeof(unsigned));
 
 int gballoc_ll_init(void* params)
 {
-    /*Codes_SRS_GBALLOC_LL_JEMALLOC_01_001: [ gballoc_ll_init shall return 0. ]*/
+    int result;
     (void)params;
-    return 0;
+    /*Codes_SRS_GBALLOC_LL_JEMALLOC_02_011: [ gballoc_ll_init shall force jemalloc's one-time initialization to run on the calling thread by calling je_malloc. ]*/
+    void* prime = je_malloc(1);
+    if (prime == NULL)
+    {
+        /*Codes_SRS_GBALLOC_LL_JEMALLOC_02_012: [ If je_malloc fails then gballoc_ll_init shall fail and return a non-zero value. ]*/
+        LogError("failure in je_malloc(1)");
+        result = MU_FAILURE;
+    }
+    else
+    {
+        /*Codes_SRS_GBALLOC_LL_JEMALLOC_02_013: [ gballoc_ll_init shall free the priming allocation by calling je_free. ]*/
+        je_free(prime);
+        /*Codes_SRS_GBALLOC_LL_JEMALLOC_01_001: [ gballoc_ll_init shall return 0. ]*/
+        result = 0;
+    }
+    return result;
 }
 
 void gballoc_ll_deinit(void)
