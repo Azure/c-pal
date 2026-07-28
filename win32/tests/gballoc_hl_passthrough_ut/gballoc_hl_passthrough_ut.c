@@ -231,6 +231,69 @@ TEST_FUNCTION(gballoc_hl_malloc_flex_unhappy_path_1)
     TEST_gballoc_hl_deinit();
 }
 
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_22_001: [ gballoc_hl_malloc_aligned shall call gballoc_ll_malloc_aligned(alignment, size) and return what gballoc_ll_malloc_aligned returned. ]*/
+TEST_FUNCTION(gballoc_hl_malloc_aligned_succeeds)
+{
+    ///arrange
+    TEST_gballoc_hl_init();
+    void* result;
+
+    STRICT_EXPECTED_CALL(gballoc_ll_malloc_aligned(8, 4));
+
+    ///act
+    result = gballoc_hl_malloc_aligned(8, 4);
+
+    ///assert
+    ASSERT_IS_NOT_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_hl_free_aligned(result);
+    TEST_gballoc_hl_deinit();
+}
+
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_22_001: [ gballoc_hl_malloc_aligned shall call gballoc_ll_malloc_aligned(alignment, size) and return what gballoc_ll_malloc_aligned returned. ]*/
+TEST_FUNCTION(gballoc_hl_malloc_aligned_unhappy_path)
+{
+    ///arrange
+    TEST_gballoc_hl_init();
+    void* result;
+
+    STRICT_EXPECTED_CALL(gballoc_ll_malloc_aligned(8, 4))
+        .SetReturn(NULL);
+
+    ///act
+    result = gballoc_hl_malloc_aligned(8, 4);
+
+    ///assert
+    ASSERT_IS_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    TEST_gballoc_hl_deinit();
+}
+
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_22_002: [ gballoc_hl_free_aligned shall call gballoc_ll_free_aligned(ptr). ]*/
+TEST_FUNCTION(gballoc_hl_free_aligned_succeeds)
+{
+    ///arrange
+    TEST_gballoc_hl_init();
+    void* ptr = gballoc_hl_malloc_aligned(8, 3);
+    ASSERT_IS_NOT_NULL(ptr);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(gballoc_ll_free_aligned(ptr));
+
+    ///act
+    gballoc_hl_free_aligned(ptr);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    TEST_gballoc_hl_deinit();
+}
+
 /*Tests_SRS_GBALLOC_HL_PASSTHROUGH_02_006: [ gballoc_hl_free shall call gballoc_ll_free(ptr). ]*/
 TEST_FUNCTION(gballoc_hl_free_with_NULL_succeeds)
 {

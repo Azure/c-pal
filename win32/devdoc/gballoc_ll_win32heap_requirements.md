@@ -17,7 +17,9 @@ gballoc_ll_win32heap is a module that delegates all call of its APIs to the ones
     MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_2, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_flex, size_t, base, size_t, nmemb, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_aligned, size_t, alignment, size_t, size);
     MOCKABLE_FUNCTION(, void, gballoc_ll_free, void*, ptr);
+    MOCKABLE_FUNCTION(, void, gballoc_ll_free_aligned, void*, ptr);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_calloc, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc, void*, ptr, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc_2, void*, ptr, size_t, nmemb, size_t, size);
@@ -112,6 +114,37 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_flex, size_t, base, size_t, nmemb, 
 **SRS_GBALLOC_LL_WIN32HEAP_02_035: [** If `lazy_init` fails then `gballoc_ll_malloc_flex` shall return `NULL`. **]**
 
 **SRS_GBALLOC_LL_WIN32HEAP_02_036: [** `gballoc_ll_malloc_flex` shall return what `HeapAlloc(base + nmemb * size)` returns. **]**
+
+
+### gballoc_ll_malloc_aligned
+```c
+MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_aligned, size_t, alignment, size_t, size);
+```
+
+`gballoc_ll_malloc_aligned` calls `HeapAlloc` and return a memory area of `size` bytes aligned to `alignment`. `alignment` has to be a power of 2 and at least `sizeof(void*)`. Since `HeapAlloc` does not provide an aligned allocation primitive, `gballoc_ll_malloc_aligned` over-allocates and stores the base allocation pointer in the `sizeof(void*)` bytes preceding the returned aligned pointer so that `gballoc_ll_free_aligned` can recover it.
+
+**SRS_GBALLOC_LL_WIN32HEAP_22_001: [** If `alignment` is not a power of 2 or is less than `sizeof(void*)` then `gballoc_ll_malloc_aligned` shall fail and return `NULL`. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_22_002: [** If `size` + `alignment` + `sizeof(void*)` exceeds `SIZE_MAX` then `gballoc_ll_malloc_aligned` shall fail and return `NULL`. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_22_003: [** `gballoc_ll_malloc_aligned` shall call `lazy_init` with parameter `do_init` set to `heap_init`. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_22_004: [** If `lazy_init` fails then `gballoc_ll_malloc_aligned` shall return `NULL`. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_22_005: [** `gballoc_ll_malloc_aligned` shall call `HeapAlloc` to allocate `size` + `alignment` + `sizeof(void*)` bytes. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_22_006: [** If `HeapAlloc` fails then `gballoc_ll_malloc_aligned` shall return `NULL`. **]**
+
+**SRS_GBALLOC_LL_WIN32HEAP_22_007: [** `gballoc_ll_malloc_aligned` shall store the base allocation pointer in the `sizeof(void*)` bytes preceding the returned aligned pointer and return the aligned pointer. **]**
+
+### gballoc_ll_free_aligned
+```c
+MOCKABLE_FUNCTION(, void, gballoc_ll_free_aligned, void*, ptr);
+```
+
+`gballoc_ll_free_aligned` frees `ptr`.
+
+**SRS_GBALLOC_LL_WIN32HEAP_22_008: [** `gballoc_ll_free_aligned` shall recover the base allocation pointer stored in the `sizeof(void*)` bytes preceding `ptr` and call `HeapFree` on it. **]**
 
 
 ### gballoc_ll_free

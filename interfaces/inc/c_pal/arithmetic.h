@@ -6,8 +6,11 @@
 
 #ifdef __cplusplus
 #include <cstdint>
+#include <cstddef>
 #else
 #include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
 #endif
 
 typedef struct PAL_UINT128_TAG
@@ -15,6 +18,12 @@ typedef struct PAL_UINT128_TAG
     uint64_t high;
     uint64_t low;
 }PAL_UINT128;
+
+/*returns true if value is a non-zero power of 2*/
+static inline bool is_power_of_2(size_t value)
+{
+    return (value != 0) && ((value & (value - 1)) == 0);
+}
 
 #include "umock_c/umock_c_prod.h"
 #ifdef __cplusplus

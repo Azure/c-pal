@@ -38,11 +38,13 @@ gballoc_hl_passthrough is a module that delegates all call of its APIs to the on
     MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc_2, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc_flex, size_t, base, size_t, nmemb, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc_aligned, size_t, alignment, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_hl_calloc, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc, void*, ptr, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc_2, void*, ptr, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc_flex, void*, ptr, size_t, base, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void, gballoc_hl_free, void*, ptr);
+    MOCKABLE_FUNCTION(, void, gballoc_hl_free_aligned, void*, ptr);
     MOCKABLE_FUNCTION(, size_t, gballoc_hl_size, void*, ptr);
 
     MOCKABLE_FUNCTION(, void, gballoc_hl_reset_counters);
@@ -106,6 +108,24 @@ MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc_flex, size_t, base, size_t, nmemb, 
 `gballoc_hl_malloc_flex` calls `gballoc_ll_malloc_flex` and returns what `gballoc_ll_malloc_flex` returned.
 
 **SRS_GBALLOC_HL_PASSTHROUGH_02_033: [** `gballoc_hl_malloc_flex` shall call `gballoc_ll_malloc_flex(size)` and return what `gballoc_hl_malloc_flex` returned. **]**
+
+### gballoc_hl_malloc_aligned
+```c
+MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc_aligned, size_t, alignment, size_t, size);
+```
+
+`gballoc_hl_malloc_aligned` calls `gballoc_ll_malloc_aligned` and returns what `gballoc_ll_malloc_aligned` returned.
+
+**SRS_GBALLOC_HL_PASSTHROUGH_22_001: [** `gballoc_hl_malloc_aligned` shall call `gballoc_ll_malloc_aligned(alignment, size)` and return what `gballoc_ll_malloc_aligned` returned. **]**
+
+### gballoc_hl_free_aligned
+```c
+MOCKABLE_FUNCTION(, void, gballoc_hl_free_aligned, void*, ptr);
+```
+
+`gballoc_hl_free_aligned` calls `gballoc_ll_free_aligned(ptr)`.
+
+**SRS_GBALLOC_HL_PASSTHROUGH_22_002: [** `gballoc_hl_free_aligned` shall call `gballoc_ll_free_aligned(ptr)`. **]**
 
 ### gballoc_hl_free
 ```c

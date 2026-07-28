@@ -22,7 +22,9 @@ extern "C"
     MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_2, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_flex, size_t, base, size_t, nmemb, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_aligned, size_t, alignment, size_t, size);
     MOCKABLE_FUNCTION(, void, gballoc_ll_free, void*, ptr);
+    MOCKABLE_FUNCTION(, void, gballoc_ll_free_aligned, void*, ptr);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_calloc, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc, void*, ptr, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc_2, void*, ptr, size_t, nmemb, size_t, size);

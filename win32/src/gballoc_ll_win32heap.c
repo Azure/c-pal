@@ -2,11 +2,13 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include <stddef.h>
+#include <stdint.h>
 
 #include "windows.h"
 
 #include "c_logging/logger.h"
 
+#include "c_pal/arithmetic.h"
 #include "c_pal/lazy_init.h"
 
 #include "c_pal/gballoc_ll.h"
@@ -182,6 +184,69 @@ void gballoc_ll_free(void* ptr)
     if (!HeapFree(the_heap, 0, ptr))
     {
         LogLastError("failure in HeapFree(the_heap=%p, 0, ptr=%p)", the_heap, ptr);
+    }
+}
+
+void* gballoc_ll_malloc_aligned(size_t alignment, size_t size)
+{
+    void* result;
+    if (!is_power_of_2(alignment) || alignment < sizeof(void*))
+    {
+        /*Codes_SRS_GBALLOC_LL_WIN32HEAP_22_001: [ If alignment is not a power of 2 or is less than sizeof(void*) then gballoc_ll_malloc_aligned shall fail and return NULL. ]*/
+        LogError("invalid alignment=%zu (must be a power of 2 and at least sizeof(void*)=%zu)", alignment, sizeof(void*));
+        result = NULL;
+    }
+    else
+    {
+        /*Codes_SRS_GBALLOC_LL_WIN32HEAP_22_002: [ If size + alignment + sizeof(void*) exceeds SIZE_MAX then gballoc_ll_malloc_aligned shall fail and return NULL. ]*/
+        if (size > SIZE_MAX - alignment - sizeof(void*))
+        {
+            LogError("overflow in computation of size=%zu + alignment=%zu + sizeof(void*)=%zu", size, alignment, sizeof(void*));
+            result = NULL;
+        }
+        else
+        {
+            /*Codes_SRS_GBALLOC_LL_WIN32HEAP_22_003: [ gballoc_ll_malloc_aligned shall call lazy_init with parameter do_init set to heap_init. ]*/
+            if (lazy_init(&g_lazy, heap_init, &the_heap) != LAZY_INIT_OK)
+            {
+                /*Codes_SRS_GBALLOC_LL_WIN32HEAP_22_004: [ If lazy_init fails then gballoc_ll_malloc_aligned shall return NULL. ]*/
+                LogError("failure in lazy_init(&g_lazy=%p, heap_init=%p, &the_heap=%p)",
+                    &g_lazy, heap_init, &the_heap);
+                result = NULL;
+            }
+            else
+            {
+                /*Codes_SRS_GBALLOC_LL_WIN32HEAP_22_005: [ gballoc_ll_malloc_aligned shall call HeapAlloc to allocate size + alignment + sizeof(void*) bytes. ]*/
+                void* base = HeapAlloc(the_heap, 0, size + alignment + sizeof(void*));
+                if (base == NULL)
+                {
+                    /*Codes_SRS_GBALLOC_LL_WIN32HEAP_22_006: [ If HeapAlloc fails then gballoc_ll_malloc_aligned shall return NULL. ]*/
+                    LogError("failure in HeapAlloc(the_heap=%p, 0, size=%zu + alignment=%zu + sizeof(void*)=%zu)", the_heap, size, alignment, sizeof(void*));
+                    result = NULL;
+                }
+                else
+                {
+                    /*Codes_SRS_GBALLOC_LL_WIN32HEAP_22_007: [ gballoc_ll_malloc_aligned shall store the base allocation pointer in the sizeof(void*) bytes preceding the returned aligned pointer and return the aligned pointer. ]*/
+                    uintptr_t aligned = ((uintptr_t)base + sizeof(void*) + (alignment - 1)) & ~((uintptr_t)(alignment - 1));
+                    ((void**)aligned)[-1] = base;
+                    result = (void*)aligned;
+                }
+            }
+        }
+    }
+    return result;
+}
+
+void gballoc_ll_free_aligned(void* ptr)
+{
+    if (ptr != NULL)
+    {
+        /*Codes_SRS_GBALLOC_LL_WIN32HEAP_22_008: [ gballoc_ll_free_aligned shall recover the base allocation pointer stored in the sizeof(void*) bytes preceding ptr and call HeapFree on it. ]*/
+        void* base = ((void**)ptr)[-1];
+        if (!HeapFree(the_heap, 0, base))
+        {
+            LogLastError("failure in HeapFree(the_heap=%p, 0, base=%p)", the_heap, base);
+        }
     }
 }
 

@@ -35,11 +35,13 @@
     MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc_2, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc_flex, size_t, base, size_t, nmemb, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc_aligned, size_t, alignment, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_hl_calloc, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc, void*, ptr, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc_2, void*, ptr, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_hl_realloc_flex, void*, ptr, size_t, base, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void, gballoc_hl_free, void*, ptr);
+    MOCKABLE_FUNCTION(, void, gballoc_hl_free_aligned, void*, ptr);
     MOCKABLE_FUNCTION(, size_t, gballoc_hl_size, void*, ptr);
 
     MOCKABLE_FUNCTION(, void, gballoc_hl_reset_counters);
@@ -168,6 +170,26 @@ MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc_flex, size_t, base, size_t, nmemb, 
 
 **SRS_GBALLOC_HL_METRICS_01_053: [** `gballoc_hl_malloc_flex` shall increment the count of `malloc` latency samples. **]**
 
+### gballoc_hl_malloc_aligned
+
+```c
+MOCKABLE_FUNCTION(, void*, gballoc_hl_malloc_aligned, size_t, alignment, size_t, size);
+```
+
+`gballoc_hl_malloc_aligned` allocates `size` bytes of memory aligned to `alignment`.
+
+**SRS_GBALLOC_HL_METRICS_22_001: [** `gballoc_hl_malloc_aligned` shall call `lazy_init` to initialize. **]**
+
+**SRS_GBALLOC_HL_METRICS_22_002: [** If the module was not initialized, `gballoc_hl_malloc_aligned` shall return NULL. **]**
+
+**SRS_GBALLOC_HL_METRICS_22_003: [** `gballoc_hl_malloc_aligned` shall call `timer_global_get_elapsed_us` to obtain the start time of the allocate. **]**
+
+**SRS_GBALLOC_HL_METRICS_22_004: [** `gballoc_hl_malloc_aligned` shall call `gballoc_ll_malloc_aligned(alignment, size)` and return the result of `gballoc_ll_malloc_aligned`. **]**
+
+**SRS_GBALLOC_HL_METRICS_22_005: [** `gballoc_hl_malloc_aligned` shall call `timer_global_get_elapsed_us` to obtain the end time of the allocate. **]**
+
+**SRS_GBALLOC_HL_METRICS_22_006: [** `gballoc_hl_malloc_aligned` shall add the computed latency to the running `malloc` latency stats for the bucket corresponding to `size`. **]**
+
 ### gballoc_hl_calloc
 
 ```c
@@ -295,6 +317,24 @@ MOCKABLE_FUNCTION(, void, gballoc_hl_free, void*, ptr);
 **SRS_GBALLOC_HL_METRICS_01_072: [** If the computed latency is more than the maximum tracked latency, `gballoc_hl_free` shall store it as the new maximum `free` latency. **]**
 
 **SRS_GBALLOC_HL_METRICS_01_073: [** `gballoc_hl_free` shall increment the count of `free` latency samples. **]**
+
+### gballoc_hl_free_aligned
+
+```c
+MOCKABLE_FUNCTION(, void, gballoc_hl_free_aligned, void*, ptr);
+```
+
+`gballoc_hl_free_aligned` frees the memory allocated with `gballoc_hl_malloc_aligned`. Because the size of an aligned allocation cannot be recovered from `ptr` in a backend-agnostic way, the free latency is recorded in the `[0-511]` bucket.
+
+**SRS_GBALLOC_HL_METRICS_22_007: [** If the module was not initialized, `gballoc_hl_free_aligned` shall return. **]**
+
+**SRS_GBALLOC_HL_METRICS_22_008: [** `gballoc_hl_free_aligned` shall call `timer_global_get_elapsed_us` to obtain the start time of the free. **]**
+
+**SRS_GBALLOC_HL_METRICS_22_009: [** `gballoc_hl_free_aligned` shall call `gballoc_ll_free_aligned(ptr)`. **]**
+
+**SRS_GBALLOC_HL_METRICS_22_010: [** `gballoc_hl_free_aligned` shall call `timer_global_get_elapsed_us` to obtain the end time of the free. **]**
+
+**SRS_GBALLOC_HL_METRICS_22_011: [** `gballoc_hl_free_aligned` shall add the computed latency to the running `free` latency stats for the `[0-511]` bucket. **]**
 
 ### gballoc_hl_size
 

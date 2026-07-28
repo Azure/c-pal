@@ -67,6 +67,24 @@ void gballoc_hl_free(void* ptr)
     gballoc_ll_free(ptr);
 }
 
+void* gballoc_hl_malloc_aligned(size_t alignment, size_t size)
+{
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_22_001: [ gballoc_hl_malloc_aligned shall call gballoc_ll_malloc_aligned(alignment, size) and return what gballoc_ll_malloc_aligned returned. ]*/
+    void* result = gballoc_ll_malloc_aligned(alignment, size);
+
+    if (result == NULL)
+    {
+        LogError("failure in gballoc_ll_malloc_aligned(alignment=%zu, size=%zu)", alignment, size);
+    }
+    return result;
+}
+
+void gballoc_hl_free_aligned(void* ptr)
+{
+    /*Codes_SRS_GBALLOC_HL_PASSTHROUGH_22_002: [ gballoc_hl_free_aligned shall call gballoc_ll_free_aligned(ptr). ]*/
+    gballoc_ll_free_aligned(ptr);
+}
+
 size_t gballoc_hl_size(void* ptr)
 {
     /* Codes_SRS_GBALLOC_HL_PASSTHROUGH_01_003: [ Otherwise, gballoc_hl_size shall call gballoc_ll_size with ptr as argument and return the result of gballoc_ll_size. ]*/

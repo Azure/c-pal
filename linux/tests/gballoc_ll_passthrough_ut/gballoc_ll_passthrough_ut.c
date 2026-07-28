@@ -16,6 +16,8 @@ static void* TEST_REALLOC_RESULT = (void*)0x3;
     MOCKABLE_FUNCTION(, void, mock_free, void*, ptr);
 
     MOCKABLE_FUNCTION(, size_t, mock_malloc_usable_size, void*, ptr);
+
+    MOCKABLE_FUNCTION(, int, mock_posix_memalign, void**, memptr, size_t, alignment, size_t, size);
 #include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
@@ -23,6 +25,15 @@ MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
+}
+
+/*posix_memalign writes the allocated pointer to *memptr and returns 0 on success*/
+static int hook_mock_posix_memalign(void** memptr, size_t alignment, size_t size)
+{
+    (void)alignment;
+    (void)size;
+    *memptr = TEST_MALLOC_RESULT;
+    return 0;
 }
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
@@ -34,6 +45,9 @@ TEST_SUITE_INITIALIZE(TestClassInitialize)
     REGISTER_GLOBAL_MOCK_RETURN(mock_malloc, TEST_MALLOC_RESULT);
     REGISTER_GLOBAL_MOCK_RETURN(mock_realloc, TEST_REALLOC_RESULT);
     REGISTER_GLOBAL_MOCK_RETURN(mock_calloc, TEST_CALLOC_RESULT);
+
+    REGISTER_UMOCK_ALIAS_TYPE(void**, void*);
+    REGISTER_GLOBAL_MOCK_HOOK(mock_posix_memalign, hook_mock_posix_memalign);
 }
 
 TEST_SUITE_CLEANUP(TestClassCleanup)
@@ -303,6 +317,108 @@ TEST_FUNCTION(gballoc_ll_free_calls_free)
 
     ///act
     gballoc_ll_free((void*)0x22);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_22_002: [ gballoc_ll_malloc_aligned shall call _aligned_malloc(size, alignment) and return what _aligned_malloc returned. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_aligned_calls_posix_memalign)
+{
+    ///arrange
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(mock_posix_memalign(IGNORED_ARG, 8, 100));
+
+    ///act
+    ptr = gballoc_ll_malloc_aligned(8, 100);
+
+    ///assert
+    ASSERT_ARE_EQUAL(void_ptr, TEST_MALLOC_RESULT, ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_ll_free_aligned(ptr);
+}
+
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_22_002: [ gballoc_ll_malloc_aligned shall call _aligned_malloc(size, alignment) and return what _aligned_malloc returned. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_aligned_returns_NULL_when_posix_memalign_fails)
+{
+    ///arrange
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(mock_posix_memalign(IGNORED_ARG, 8, 100))
+        .SetReturn(12); /*ENOMEM*/
+
+    ///act
+    ptr = gballoc_ll_malloc_aligned(8, 100);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_22_001: [ If alignment is not a power of 2 or is less than sizeof(void*) then gballoc_ll_malloc_aligned shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_aligned_with_alignment_not_a_power_of_2_fails)
+{
+    ///arrange
+    void* ptr;
+
+    ///act
+    ptr = gballoc_ll_malloc_aligned(24, 100);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_22_001: [ If alignment is not a power of 2 or is less than sizeof(void*) then gballoc_ll_malloc_aligned shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_aligned_with_alignment_less_than_sizeof_void_ptr_fails)
+{
+    ///arrange
+    void* ptr;
+
+    ///act
+    ptr = gballoc_ll_malloc_aligned(sizeof(void*) / 2, 100);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_22_001: [ If alignment is not a power of 2 or is less than sizeof(void*) then gballoc_ll_malloc_aligned shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_aligned_with_alignment_0_fails)
+{
+    ///arrange
+    void* ptr;
+
+    ///act
+    ptr = gballoc_ll_malloc_aligned(0, 100);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_PASSTHROUGH_22_003: [ gballoc_ll_free_aligned shall call _aligned_free(ptr). ]*/
+TEST_FUNCTION(gballoc_ll_free_aligned_calls_free)
+{
+    ///arrange
+
+    STRICT_EXPECTED_CALL(mock_free((void*)0x22));
+
+    ///act
+    gballoc_ll_free_aligned((void*)0x22);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());

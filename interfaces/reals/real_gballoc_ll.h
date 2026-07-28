@@ -19,7 +19,9 @@
         gballoc_ll_malloc               ,\
         gballoc_ll_malloc_2             ,\
         gballoc_ll_malloc_flex          ,\
+        gballoc_ll_malloc_aligned       ,\
         gballoc_ll_free                 ,\
+        gballoc_ll_free_aligned         ,\
         gballoc_ll_calloc               ,\
         gballoc_ll_realloc              ,\
         gballoc_ll_realloc_2            ,\
@@ -40,7 +42,9 @@ extern "C"
     void* real_gballoc_ll_malloc(size_t size);
     void* real_gballoc_ll_malloc_2(size_t nmemb, size_t size);
     void* real_gballoc_ll_malloc_flex(size_t base, size_t nmemb, size_t size);
+    void* real_gballoc_ll_malloc_aligned(size_t alignment, size_t size);
     void real_gballoc_ll_free(void* ptr);
+    void real_gballoc_ll_free_aligned(void* ptr);
     void* real_gballoc_ll_calloc(size_t nmemb, size_t size);
     void* real_gballoc_ll_realloc(void* ptr, size_t size);
     void* real_gballoc_ll_realloc_2(void* ptr, size_t nmemb, size_t size);
