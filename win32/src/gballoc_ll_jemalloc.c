@@ -127,7 +127,7 @@ void* gballoc_ll_malloc_aligned(size_t alignment, size_t size)
     if (!is_power_of_2(alignment) || alignment < sizeof(void*))
     {
         /*Codes_SRS_GBALLOC_LL_JEMALLOC_22_001: [ If alignment is not a power of 2 or is less than sizeof(void*) then gballoc_ll_malloc_aligned shall fail and return NULL. ]*/
-        LogError("invalid alignment=%zu (must be a power of 2 and at least sizeof(void*)=%zu)", alignment, sizeof(void*));
+        LogError("invalid alignment=%zu, size=%zu (alignment must be a power of 2 and at least sizeof(void*)=%zu)", alignment, size, sizeof(void*));
         result = NULL;
     }
     else
@@ -138,6 +138,10 @@ void* gballoc_ll_malloc_aligned(size_t alignment, size_t size)
         if (result == NULL)
         {
             LogError("failure in je_mallocx(size=%zu, MALLOCX_ALIGN(alignment=%zu))", size, alignment);
+        }
+        else
+        {
+            /*all ok*/
         }
     }
     return result;

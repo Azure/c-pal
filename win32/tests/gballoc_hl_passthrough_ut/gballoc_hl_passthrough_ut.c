@@ -231,6 +231,8 @@ TEST_FUNCTION(gballoc_hl_malloc_flex_unhappy_path_1)
     TEST_gballoc_hl_deinit();
 }
 
+/* gballoc_hl_malloc_aligned */
+
 /*Tests_SRS_GBALLOC_HL_PASSTHROUGH_22_001: [ gballoc_hl_malloc_aligned shall call gballoc_ll_malloc_aligned(alignment, size) and return what gballoc_ll_malloc_aligned returned. ]*/
 TEST_FUNCTION(gballoc_hl_malloc_aligned_succeeds)
 {
@@ -272,6 +274,8 @@ TEST_FUNCTION(gballoc_hl_malloc_aligned_unhappy_path)
     ///clean
     TEST_gballoc_hl_deinit();
 }
+
+/* gballoc_hl_free_aligned */
 
 /*Tests_SRS_GBALLOC_HL_PASSTHROUGH_22_002: [ gballoc_hl_free_aligned shall call gballoc_ll_free_aligned(ptr). ]*/
 TEST_FUNCTION(gballoc_hl_free_aligned_succeeds)

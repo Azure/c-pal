@@ -69,6 +69,10 @@ void* gballoc_hl_malloc_aligned(size_t alignment, size_t size)
     {
         LogError("failure in gballoc_ll_malloc_aligned(alignment=%zu, size=%zu);", alignment, size);
     }
+    else
+    {
+        /*all ok*/
+    }
     return result;
 }
 
