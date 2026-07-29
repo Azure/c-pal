@@ -15,6 +15,7 @@
     MOCKABLE_FUNCTION(, void, mock_mi_free, void*, ptr);
 
     MOCKABLE_FUNCTION(, size_t, mock_mi_usable_size, void*, ptr);
+    MOCKABLE_FUNCTION(, void*, mock_mi_malloc_aligned, size_t, size, size_t, alignment);
 #include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 static void* TEST_MALLOC_RESULT = (void*)0x1;
@@ -37,6 +38,7 @@ TEST_SUITE_INITIALIZE(TestClassInitialize)
     REGISTER_GLOBAL_MOCK_RETURN(mock_mi_malloc, TEST_MALLOC_RESULT);
     REGISTER_GLOBAL_MOCK_RETURN(mock_mi_calloc, TEST_CALLOC_RESULT);
     REGISTER_GLOBAL_MOCK_RETURN(mock_mi_realloc, TEST_REALLOC_RESULT);
+    REGISTER_GLOBAL_MOCK_RETURN(mock_mi_malloc_aligned, TEST_MALLOC_RESULT);
 }
 
 TEST_SUITE_CLEANUP(TestClassCleanup)
@@ -371,6 +373,108 @@ TEST_FUNCTION(gballoc_ll_free_calls_mi_free)
 
     ///act
     gballoc_ll_free(TEST_MALLOC_RESULT);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_MIMALLOC_22_002: [ gballoc_ll_malloc_aligned shall call mi_malloc_aligned(size, alignment) and return what mi_malloc_aligned returned. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_aligned_calls_mi_malloc_aligned)
+{
+    ///arrange
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(mock_mi_malloc_aligned(100, 8));
+
+    ///act
+    ptr = gballoc_ll_malloc_aligned(8, 100);
+
+    ///assert
+    ASSERT_ARE_EQUAL(void_ptr, TEST_MALLOC_RESULT, ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_ll_free_aligned(ptr);
+}
+
+/*Tests_SRS_GBALLOC_LL_MIMALLOC_22_002: [ gballoc_ll_malloc_aligned shall call mi_malloc_aligned(size, alignment) and return what mi_malloc_aligned returned. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_aligned_returns_NULL_when_mi_malloc_aligned_fails)
+{
+    ///arrange
+    void* ptr;
+
+    STRICT_EXPECTED_CALL(mock_mi_malloc_aligned(100, 8))
+        .SetReturn(NULL);
+
+    ///act
+    ptr = gballoc_ll_malloc_aligned(8, 100);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_MIMALLOC_22_001: [ If alignment is not a power of 2 or is less than sizeof(void*) then gballoc_ll_malloc_aligned shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_aligned_with_alignment_not_a_power_of_2_fails)
+{
+    ///arrange
+    void* ptr;
+
+    ///act
+    ptr = gballoc_ll_malloc_aligned(24, 100);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_MIMALLOC_22_001: [ If alignment is not a power of 2 or is less than sizeof(void*) then gballoc_ll_malloc_aligned shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_aligned_with_alignment_less_than_sizeof_void_ptr_fails)
+{
+    ///arrange
+    void* ptr;
+
+    ///act
+    ptr = gballoc_ll_malloc_aligned(sizeof(void*) / 2, 100);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_MIMALLOC_22_001: [ If alignment is not a power of 2 or is less than sizeof(void*) then gballoc_ll_malloc_aligned shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_aligned_with_alignment_0_fails)
+{
+    ///arrange
+    void* ptr;
+
+    ///act
+    ptr = gballoc_ll_malloc_aligned(0, 100);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_MIMALLOC_22_003: [ gballoc_ll_free_aligned shall call mi_free(ptr). ]*/
+TEST_FUNCTION(gballoc_ll_free_aligned_calls_mi_free)
+{
+    ///arrange
+
+    STRICT_EXPECTED_CALL(mock_mi_free(TEST_MALLOC_RESULT));
+
+    ///act
+    gballoc_ll_free_aligned(TEST_MALLOC_RESULT);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());

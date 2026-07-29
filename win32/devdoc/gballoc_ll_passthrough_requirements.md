@@ -16,7 +16,9 @@ gballoc_ll_passthrough is a module that delegates all call of its APIs to the on
     MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_2, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_flex, size_t, base, size_t, nmemb, size_t, size);
+    MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_aligned, size_t, alignment, size_t, size);
     MOCKABLE_FUNCTION(, void, gballoc_ll_free, void*, ptr);
+    MOCKABLE_FUNCTION(, void, gballoc_ll_free_aligned, void*, ptr);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_calloc, size_t, nmemb, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc, void*, ptr, size_t, size);
     MOCKABLE_FUNCTION(, void*, gballoc_ll_realloc_2, void*, ptr, size_t, nmemb, size_t, size);
@@ -78,6 +80,27 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_flex, size_t, base, size_t, nmemb, 
 **SRS_GBALLOC_LL_PASSTHROUGH_02_011: [** If `base` + `nmemb` * `size` exceeds `SIZE_MAX` then `gballoc_ll_malloc_flex` shall fail and return `NULL`. **]**
 
 **SRS_GBALLOC_LL_PASSTHROUGH_02_012: [** `gballoc_ll_malloc_flex` shall return what `malloc(base + nmemb * size)` returns.  **]**
+
+
+### gballoc_ll_malloc_aligned
+```c
+MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_aligned, size_t, alignment, size_t, size);
+```
+
+`gballoc_ll_malloc_aligned` returns what `_aligned_malloc` from CRT returns. `alignment` has to be a power of 2 and at least `sizeof(void*)`.
+
+**SRS_GBALLOC_LL_PASSTHROUGH_22_001: [** If `alignment` is not a power of 2 or is less than `sizeof(void*)` then `gballoc_ll_malloc_aligned` shall fail and return `NULL`. **]**
+
+**SRS_GBALLOC_LL_PASSTHROUGH_22_002: [** `gballoc_ll_malloc_aligned` shall call `_aligned_malloc(size, alignment)` and return what `_aligned_malloc` returned. **]**
+
+### gballoc_ll_free_aligned
+```c
+MOCKABLE_FUNCTION(, void, gballoc_ll_free_aligned, void*, ptr);
+```
+
+`gballoc_ll_free_aligned` frees `ptr`.
+
+**SRS_GBALLOC_LL_PASSTHROUGH_22_003: [** `gballoc_ll_free_aligned` shall call `_aligned_free(ptr)`. **]**
 
 
 ### gballoc_ll_free

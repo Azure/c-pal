@@ -114,6 +114,25 @@ TEST_FUNCTION(gballoc_malloc_flex_when_not_initialized_returns_NULL)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
+/* gballoc_hl_malloc_aligned */
+
+/* Tests_SRS_GBALLOC_HL_METRICS_22_002: [ If the module was not initialized, gballoc_hl_malloc_aligned shall return NULL. ]*/
+TEST_FUNCTION(gballoc_malloc_aligned_when_not_initialized_returns_NULL)
+{
+    // arrange
+    void* result;
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL))
+        .SetReturn(LAZY_INIT_ERROR);
+
+    // act
+    result = gballoc_hl_malloc_aligned(8, 5);
+
+    // assert
+    ASSERT_IS_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
 /* gballoc_hl_calloc */
 
 /* Tests_SRS_GBALLOC_HL_METRICS_01_011: [ If the module was not initialized, gballoc_hl_calloc shall return NULL. ]*/
@@ -223,6 +242,30 @@ TEST_FUNCTION(gballoc_free_when_not_initialized_returns)
 
     // act
     gballoc_hl_free(ptr);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/* gballoc_hl_free_aligned */
+
+/* Tests_SRS_GBALLOC_HL_METRICS_22_007: [ If the module was not initialized, gballoc_hl_free_aligned shall return. ]*/
+TEST_FUNCTION(gballoc_free_aligned_when_not_initialized_returns)
+{
+    // arrange
+    void* ptr;
+    STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
+    (void)gballoc_hl_init(NULL, NULL);
+    ptr = gballoc_hl_calloc(3, 4);
+    ptr = gballoc_hl_realloc(ptr, 1);
+    gballoc_hl_free(ptr);
+    gballoc_hl_deinit();
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+
+    // act
+    gballoc_hl_free_aligned(ptr);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());

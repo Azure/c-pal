@@ -4,9 +4,11 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <malloc.h>
 
 #include "c_logging/logger.h"
 
+#include "c_pal/arithmetic.h"
 #include "c_pal/gballoc_ll.h"
 
 int gballoc_ll_init(void* params)
@@ -90,6 +92,38 @@ void gballoc_ll_free(void* ptr)
 {
     /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_02_004: [ gballoc_ll_free shall call free(ptr). ]*/
     free(ptr);
+}
+
+void* gballoc_ll_malloc_aligned(size_t alignment, size_t size)
+{
+    void* result;
+    if (!is_power_of_2(alignment) || alignment < sizeof(void*))
+    {
+        /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_22_001: [ If alignment is not a power of 2 or is less than sizeof(void*) then gballoc_ll_malloc_aligned shall fail and return NULL. ]*/
+        LogError("invalid alignment=%zu, size=%zu (alignment must be a power of 2 and at least sizeof(void*)=%zu)", alignment, size, sizeof(void*));
+        result = NULL;
+    }
+    else
+    {
+        /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_22_002: [ gballoc_ll_malloc_aligned shall call _aligned_malloc(size, alignment) and return what _aligned_malloc returned. ]*/
+        result = _aligned_malloc(size, alignment);
+
+        if (result == NULL)
+        {
+            LogError("failure in _aligned_malloc(size=%zu, alignment=%zu)", size, alignment);
+        }
+        else
+        {
+            /*all ok*/
+        }
+    }
+    return result;
+}
+
+void gballoc_ll_free_aligned(void* ptr)
+{
+    /*Codes_SRS_GBALLOC_LL_PASSTHROUGH_22_003: [ gballoc_ll_free_aligned shall call _aligned_free(ptr). ]*/
+    _aligned_free(ptr);
 }
 
 void* gballoc_ll_calloc(size_t nmemb, size_t size)

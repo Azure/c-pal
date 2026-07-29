@@ -504,6 +504,165 @@ TEST_FUNCTION(gballoc_ll_free_success)
     gballoc_ll_deinit();
 }
 
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_22_001: [ If alignment is not a power of 2 or is less than sizeof(void*) then gballoc_ll_malloc_aligned shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_aligned_with_alignment_not_a_power_of_2_fails)
+{
+    ///arrange
+    void* ptr;
+
+    ///act
+    ptr = gballoc_ll_malloc_aligned(24, 100);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_22_001: [ If alignment is not a power of 2 or is less than sizeof(void*) then gballoc_ll_malloc_aligned shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_aligned_with_alignment_less_than_sizeof_void_ptr_fails)
+{
+    ///arrange
+    void* ptr;
+
+    ///act
+    ptr = gballoc_ll_malloc_aligned(sizeof(void*) / 2, 100);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_22_001: [ If alignment is not a power of 2 or is less than sizeof(void*) then gballoc_ll_malloc_aligned shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_aligned_with_alignment_0_fails)
+{
+    ///arrange
+    void* ptr;
+
+    ///act
+    ptr = gballoc_ll_malloc_aligned(0, 100);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_22_002: [ If size + alignment + sizeof(void*) exceeds SIZE_MAX then gballoc_ll_malloc_aligned shall fail and return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_aligned_with_overflow_fails)
+{
+    ///arrange
+    void* ptr;
+
+    ///act
+    ptr = gballoc_ll_malloc_aligned(8, SIZE_MAX - 8);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_22_004: [ If lazy_init fails then gballoc_ll_malloc_aligned shall return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_aligned_fails_when_lazy_init_fails)
+{
+    ///arrange
+    TEST_gballoc_ll_init();
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .SetReturn(LAZY_INIT_ERROR);
+
+    ///act
+    void* ptr = gballoc_ll_malloc_aligned(8, 100);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_ll_deinit();
+}
+
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_22_006: [ If HeapAlloc fails then gballoc_ll_malloc_aligned shall return NULL. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_aligned_fails_when_HeapAlloc_fails)
+{
+    ///arrange
+    TEST_gballoc_ll_init();
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mock_HeapAlloc(TEST_HEAP, 0, 100 + 8 + sizeof(void*)))
+        .SetReturn(NULL);
+
+    ///act
+    void* ptr = gballoc_ll_malloc_aligned(8, 100);
+
+    ///assert
+    ASSERT_IS_NULL(ptr);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_ll_deinit();
+}
+
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_22_003: [ gballoc_ll_malloc_aligned shall call lazy_init with parameter do_init set to heap_init. ]*/
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_22_005: [ gballoc_ll_malloc_aligned shall call HeapAlloc to allocate size + alignment + sizeof(void*) bytes. ]*/
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_22_007: [ gballoc_ll_malloc_aligned shall store the base allocation pointer in the sizeof(void*) bytes preceding the returned aligned pointer and return the aligned pointer. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_aligned_succeeds)
+{
+    ///arrange
+    unsigned char real_buffer[256];
+    TEST_gballoc_ll_init();
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mock_HeapAlloc(TEST_HEAP, 0, 100 + 8 + sizeof(void*)))
+        .SetReturn(real_buffer);
+
+    ///act
+    void* ptr = gballoc_ll_malloc_aligned(8, 100);
+
+    ///assert
+    ASSERT_IS_NOT_NULL(ptr);
+    ASSERT_ARE_EQUAL(size_t, 0, (size_t)ptr % 8); /*aligned to 8*/
+    ASSERT_IS_TRUE((unsigned char*)ptr >= real_buffer + sizeof(void*)); /*room for the base pointer*/
+    ASSERT_ARE_EQUAL(void_ptr, (void*)real_buffer, ((void**)ptr)[-1]); /*base pointer stored before ptr*/
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    STRICT_EXPECTED_CALL(mock_HeapFree(TEST_HEAP, 0, real_buffer));
+    gballoc_ll_free_aligned(ptr);
+    gballoc_ll_deinit();
+}
+
+/*Tests_SRS_GBALLOC_LL_WIN32HEAP_22_008: [ gballoc_ll_free_aligned shall recover the base allocation pointer stored in the sizeof(void*) bytes preceding ptr and call HeapFree on it. ]*/
+TEST_FUNCTION(gballoc_ll_free_aligned_recovers_base_and_calls_HeapFree)
+{
+    ///arrange
+    unsigned char real_buffer[256];
+    TEST_gballoc_ll_init();
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mock_HeapAlloc(TEST_HEAP, 0, 100 + 8 + sizeof(void*)))
+        .SetReturn(real_buffer);
+    void* ptr = gballoc_ll_malloc_aligned(8, 100);
+    ASSERT_IS_NOT_NULL(ptr);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(mock_HeapFree(TEST_HEAP, 0, real_buffer));
+
+    ///act
+    gballoc_ll_free_aligned(ptr);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_ll_deinit();
+}
+
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_024: [ gballoc_ll_calloc shall call lazy_init with parameter do_init set to heap_init. ]*/
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_011: [ gballoc_ll_calloc shall call HeapAlloc with flags set to HEAP_ZERO_MEMORY. ]*/
 /*Tests_SRS_GBALLOC_LL_WIN32HEAP_02_012: [ gballoc_ll_calloc shall return what HeapAlloc returns. ]*/

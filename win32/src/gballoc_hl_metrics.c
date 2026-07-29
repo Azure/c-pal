@@ -449,6 +449,41 @@ void* gballoc_hl_malloc_flex(size_t base, size_t nmemb, size_t size)
     return result;
 }
 
+void* gballoc_hl_malloc_aligned(size_t alignment, size_t size)
+{
+    void* result;
+
+    /*Codes_SRS_GBALLOC_HL_METRICS_22_001: [ gballoc_hl_malloc_aligned shall call lazy_init to initialize. ]*/
+    if (lazy_init(&g_lazy, do_init, NULL) != LAZY_INIT_OK)
+    {
+        /*Codes_SRS_GBALLOC_HL_METRICS_22_002: [ If the module was not initialized, gballoc_hl_malloc_aligned shall return NULL. ]*/
+        LogError("Not initialized");
+        result = NULL;
+    }
+    else
+    {
+        /*Codes_SRS_GBALLOC_HL_METRICS_22_003: [ gballoc_hl_malloc_aligned shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
+        double start_time = timer_global_get_elapsed_us();
+
+        /*Codes_SRS_GBALLOC_HL_METRICS_22_004: [ gballoc_hl_malloc_aligned shall call gballoc_ll_malloc_aligned(alignment, size) and return the result of gballoc_ll_malloc_aligned. ]*/
+        result = gballoc_ll_malloc_aligned(alignment, size);
+
+        if (result == NULL)
+        {
+            LogError("failure in gballoc_ll_malloc_aligned(alignment=%zu, size=%zu)", alignment, size);
+        }
+
+        /*Codes_SRS_GBALLOC_HL_METRICS_22_005: [ gballoc_hl_malloc_aligned shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
+        double end_time = timer_global_get_elapsed_us();
+
+        int32_t latency = (int32_t)(end_time - start_time);
+        /*Codes_SRS_GBALLOC_HL_METRICS_22_006: [ gballoc_hl_malloc_aligned shall add the computed latency to the running malloc latency stats for the bucket corresponding to size. ]*/
+        internal_add_call_latency(malloc_latency_buckets, size, latency);
+    }
+
+    return result;
+}
+
 void* gballoc_hl_calloc(size_t nmemb, size_t size)
 {
     void* result;
@@ -611,6 +646,33 @@ void gballoc_hl_free(void* ptr)
 
             int32_t latency = (int32_t)(end_time - start_time);
             internal_add_call_latency(free_latency_buckets, size, latency);
+        }
+    }
+}
+
+void gballoc_hl_free_aligned(void* ptr)
+{
+    if (interlocked_add(&g_lazy, 0) == LAZY_INIT_NOT_DONE)
+    {
+        /*Codes_SRS_GBALLOC_HL_METRICS_22_007: [ If the module was not initialized, gballoc_hl_free_aligned shall return. ]*/
+        LogError("Not initialized");
+    }
+    else
+    {
+        if (ptr != NULL)
+        {
+            /*Codes_SRS_GBALLOC_HL_METRICS_22_008: [ gballoc_hl_free_aligned shall call timer_global_get_elapsed_us to obtain the start time of the free. ]*/
+            double start_time = timer_global_get_elapsed_us();
+
+            /*Codes_SRS_GBALLOC_HL_METRICS_22_009: [ gballoc_hl_free_aligned shall call gballoc_ll_free_aligned(ptr). ]*/
+            gballoc_ll_free_aligned(ptr);
+
+            /*Codes_SRS_GBALLOC_HL_METRICS_22_010: [ gballoc_hl_free_aligned shall call timer_global_get_elapsed_us to obtain the end time of the free. ]*/
+            double end_time = timer_global_get_elapsed_us();
+
+            int32_t latency = (int32_t)(end_time - start_time);
+            /*Codes_SRS_GBALLOC_HL_METRICS_22_011: [ gballoc_hl_free_aligned shall add the computed latency to the running free latency stats for the [0-511] bucket. ]*/
+            internal_add_call_latency(free_latency_buckets, 0, latency);
         }
     }
 }

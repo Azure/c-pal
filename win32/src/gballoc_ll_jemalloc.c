@@ -9,6 +9,7 @@
 #include "macro_utils/macro_utils.h" // for MU_FAILURE
 
 #include "c_logging/logger.h"
+#include "c_pal/arithmetic.h"
 #include "c_pal/gballoc_ll.h"
 
 #pragma warning(push)
@@ -117,6 +118,38 @@ void* gballoc_ll_malloc_flex(size_t base, size_t nmemb, size_t size)
 void gballoc_ll_free(void* ptr)
 {
     /*Codes_SRS_GBALLOC_LL_JEMALLOC_01_004: [ gballoc_ll_free shall call je_free(ptr). ]*/
+    je_free(ptr);
+}
+
+void* gballoc_ll_malloc_aligned(size_t alignment, size_t size)
+{
+    void* result;
+    if (!is_power_of_2(alignment) || alignment < sizeof(void*))
+    {
+        /*Codes_SRS_GBALLOC_LL_JEMALLOC_22_001: [ If alignment is not a power of 2 or is less than sizeof(void*) then gballoc_ll_malloc_aligned shall fail and return NULL. ]*/
+        LogError("invalid alignment=%zu, size=%zu (alignment must be a power of 2 and at least sizeof(void*)=%zu)", alignment, size, sizeof(void*));
+        result = NULL;
+    }
+    else
+    {
+        /*Codes_SRS_GBALLOC_LL_JEMALLOC_22_002: [ gballoc_ll_malloc_aligned shall call je_mallocx(size, MALLOCX_ALIGN(alignment)) and return what je_mallocx returned. ]*/
+        result = je_mallocx(size, MALLOCX_ALIGN(alignment));
+
+        if (result == NULL)
+        {
+            LogError("failure in je_mallocx(size=%zu, MALLOCX_ALIGN(alignment=%zu))", size, alignment);
+        }
+        else
+        {
+            /*all ok*/
+        }
+    }
+    return result;
+}
+
+void gballoc_ll_free_aligned(void* ptr)
+{
+    /*Codes_SRS_GBALLOC_LL_JEMALLOC_22_003: [ gballoc_ll_free_aligned shall call je_free(ptr). ]*/
     je_free(ptr);
 }
 

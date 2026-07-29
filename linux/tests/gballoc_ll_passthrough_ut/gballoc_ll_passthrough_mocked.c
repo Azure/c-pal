@@ -6,5 +6,6 @@
 #define realloc mock_realloc
 #define calloc mock_calloc
 #define malloc_usable_size mock_malloc_usable_size
+#define posix_memalign mock_posix_memalign
 
 #include "../../src/gballoc_ll_passthrough.c"

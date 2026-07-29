@@ -28,6 +28,21 @@ static size_t stdlib_size(void* ptr)
     return malloc_usable_size(ptr);
 }
 
+static void* stdlib_malloc_aligned(size_t alignment, size_t size)
+{
+    void* result;
+    if (posix_memalign(&result, alignment, size) != 0)
+    {
+        result = NULL;
+    }
+    return result;
+}
+
+static void stdlib_free_aligned(void* ptr)
+{
+    free(ptr);
+}
+
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
@@ -46,6 +61,8 @@ TEST_SUITE_INITIALIZE(init_suite)
     REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_calloc, stdlib_calloc);
     REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_free, stdlib_free);
     REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_size, stdlib_size);
+    REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_malloc_aligned, stdlib_malloc_aligned);
+    REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_free_aligned, stdlib_free_aligned);
 }
 
 TEST_SUITE_CLEANUP(TestClassCleanup)
@@ -148,6 +165,65 @@ TEST_FUNCTION(gballoc_hl_malloc_unhappy_path)
 
     ///assert
     ASSERT_IS_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/* gballoc_hl_malloc_aligned */
+
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_22_001: [ gballoc_hl_malloc_aligned shall call gballoc_ll_malloc_aligned(alignment, size) and return what gballoc_ll_malloc_aligned returned. ]*/
+TEST_FUNCTION(gballoc_hl_malloc_aligned_succeeds)
+{
+    ///arrange
+    void* result;
+    STRICT_EXPECTED_CALL(gballoc_ll_malloc_aligned(8, 4));
+
+    ///act
+    result = gballoc_hl_malloc_aligned(8, 4);
+
+    ///assert
+    ASSERT_IS_NOT_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+    gballoc_hl_free_aligned(result);
+}
+
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_22_001: [ gballoc_hl_malloc_aligned shall call gballoc_ll_malloc_aligned(alignment, size) and return what gballoc_ll_malloc_aligned returned. ]*/
+TEST_FUNCTION(gballoc_hl_malloc_aligned_unhappy_path)
+{
+    ///arrange
+    void* result;
+    STRICT_EXPECTED_CALL(gballoc_ll_malloc_aligned(8, 4))
+        .SetReturn(NULL);
+
+    ///act
+    result = gballoc_hl_malloc_aligned(8, 4);
+
+    ///assert
+    ASSERT_IS_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///clean
+}
+
+/* gballoc_hl_free_aligned */
+
+/*Tests_SRS_GBALLOC_HL_PASSTHROUGH_22_002: [ gballoc_hl_free_aligned shall call gballoc_ll_free_aligned(ptr). ]*/
+TEST_FUNCTION(gballoc_hl_free_aligned_succeeds)
+{
+    ///arrange
+    void* ptr = gballoc_hl_malloc_aligned(8, 3);
+    ASSERT_IS_NOT_NULL(ptr);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(gballoc_ll_free_aligned(ptr));
+
+    ///act
+    gballoc_hl_free_aligned(ptr);
+
+    ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///clean

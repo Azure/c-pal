@@ -6,7 +6,9 @@
 #define gballoc_ll_malloc           real_gballoc_ll_malloc
 #define gballoc_ll_malloc_2         real_gballoc_ll_malloc_2
 #define gballoc_ll_malloc_flex      real_gballoc_ll_malloc_flex
+#define gballoc_ll_malloc_aligned   real_gballoc_ll_malloc_aligned
 #define gballoc_ll_free             real_gballoc_ll_free
+#define gballoc_ll_free_aligned     real_gballoc_ll_free_aligned
 #define gballoc_ll_calloc           real_gballoc_ll_calloc
 #define gballoc_ll_realloc          real_gballoc_ll_realloc
 #define gballoc_ll_realloc_2        real_gballoc_ll_realloc_2

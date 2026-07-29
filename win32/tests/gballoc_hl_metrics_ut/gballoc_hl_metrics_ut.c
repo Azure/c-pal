@@ -31,6 +31,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_GLOBAL_MOCK_RETURN(gballoc_ll_malloc, pretend_to_be_allocated);
     REGISTER_GLOBAL_MOCK_RETURN(gballoc_ll_malloc_2, pretend_to_be_allocated);
     REGISTER_GLOBAL_MOCK_RETURN(gballoc_ll_malloc_flex, pretend_to_be_allocated);
+    REGISTER_GLOBAL_MOCK_RETURN(gballoc_ll_malloc_aligned, pretend_to_be_allocated);
     REGISTER_GLOBAL_MOCK_RETURN(gballoc_ll_realloc, pretend_to_be_allocated);
     REGISTER_GLOBAL_MOCK_RETURN(gballoc_ll_realloc_2, pretend_to_be_allocated);
     REGISTER_GLOBAL_MOCK_RETURN(gballoc_ll_realloc_flex, pretend_to_be_allocated);
@@ -468,6 +469,110 @@ TEST_FUNCTION(gballoc_hl_malloc_flex_unhappy_path_2)
 
     ///cleanup
     gballoc_hl_free(result);
+    gballoc_hl_deinit();
+}
+
+/* gballoc_hl_malloc_aligned */
+
+/*Tests_SRS_GBALLOC_HL_METRICS_22_003: [ gballoc_hl_malloc_aligned shall call timer_global_get_elapsed_us to obtain the start time of the allocate. ]*/
+/*Tests_SRS_GBALLOC_HL_METRICS_22_004: [ gballoc_hl_malloc_aligned shall call gballoc_ll_malloc_aligned(alignment, size) and return the result of gballoc_ll_malloc_aligned. ]*/
+/*Tests_SRS_GBALLOC_HL_METRICS_22_005: [ gballoc_hl_malloc_aligned shall call timer_global_get_elapsed_us to obtain the end time of the allocate. ]*/
+/*Tests_SRS_GBALLOC_HL_METRICS_22_006: [ gballoc_hl_malloc_aligned shall add the computed latency to the running malloc latency stats for the bucket corresponding to size. ]*/
+TEST_FUNCTION(gballoc_hl_malloc_aligned_succeeds)
+{
+    ///arrange
+    void* result;
+    void* gballoc_ll_result;
+    STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
+    (void)gballoc_hl_init(NULL, NULL);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
+    STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
+        .SetReturn(1);
+    STRICT_EXPECTED_CALL(gballoc_ll_malloc_aligned(8, 5))
+        .CaptureReturn(&gballoc_ll_result);
+    STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
+        .SetReturn(8);
+    STRICT_EXPECTED_CALL(interlocked_add_64(IGNORED_ARG, 7));
+    // min
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, 7, IGNORED_ARG));
+    // max
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, 7, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
+
+    ///act
+    result = gballoc_hl_malloc_aligned(8, 5);
+
+    ///assert
+    ASSERT_IS_NOT_NULL(result);
+    ASSERT_ARE_EQUAL(void_ptr, result, gballoc_ll_result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    gballoc_hl_free_aligned(result);
+    gballoc_hl_deinit();
+}
+
+/*Tests_SRS_GBALLOC_HL_METRICS_22_004: [ gballoc_hl_malloc_aligned shall call gballoc_ll_malloc_aligned(alignment, size) and return the result of gballoc_ll_malloc_aligned. ]*/
+TEST_FUNCTION(gballoc_hl_malloc_aligned_unhappy_path)
+{
+    ///arrange
+    void* result;
+    STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
+    (void)gballoc_hl_init(NULL, NULL);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL));
+    STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
+        .SetReturn(1);
+    STRICT_EXPECTED_CALL(gballoc_ll_malloc_aligned(8, 5))
+        .SetReturn(NULL);
+    STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
+        .SetReturn(8);
+    STRICT_EXPECTED_CALL(interlocked_add_64(IGNORED_ARG, 7));
+    // min
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, 7, IGNORED_ARG));
+    // max
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, 7, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
+
+    ///act
+    result = gballoc_hl_malloc_aligned(8, 5);
+
+    ///assert
+    ASSERT_IS_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    gballoc_hl_deinit();
+}
+
+/*Tests_SRS_GBALLOC_HL_METRICS_22_001: [ gballoc_hl_malloc_aligned shall call lazy_init to initialize. ]*/
+/*Tests_SRS_GBALLOC_HL_METRICS_22_002: [ If the module was not initialized, gballoc_hl_malloc_aligned shall return NULL. ]*/
+TEST_FUNCTION(gballoc_hl_malloc_aligned_when_lazy_init_fails_returns_NULL)
+{
+    ///arrange
+    void* result;
+    STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
+    (void)gballoc_hl_init(NULL, NULL);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(lazy_init(IGNORED_ARG, IGNORED_ARG, NULL))
+        .SetReturn(LAZY_INIT_ERROR);
+
+    ///act
+    result = gballoc_hl_malloc_aligned(8, 5);
+
+    ///assert
+    ASSERT_IS_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
     gballoc_hl_deinit();
 }
 
@@ -1297,6 +1402,69 @@ TEST_FUNCTION(gballoc_hl_free_when_not_initialized_returns)
 
     // act
     gballoc_hl_free(ptr);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/* gballoc_hl_free_aligned */
+
+/*Tests_SRS_GBALLOC_HL_METRICS_22_008: [ gballoc_hl_free_aligned shall call timer_global_get_elapsed_us to obtain the start time of the free. ]*/
+/*Tests_SRS_GBALLOC_HL_METRICS_22_009: [ gballoc_hl_free_aligned shall call gballoc_ll_free_aligned(ptr). ]*/
+/*Tests_SRS_GBALLOC_HL_METRICS_22_010: [ gballoc_hl_free_aligned shall call timer_global_get_elapsed_us to obtain the end time of the free. ]*/
+/*Tests_SRS_GBALLOC_HL_METRICS_22_011: [ gballoc_hl_free_aligned shall add the computed latency to the running free latency stats for the [0-511] bucket. ]*/
+TEST_FUNCTION(gballoc_hl_free_aligned_calls_gballoc_ll_free_aligned)
+{
+    // arrange
+    void* ptr;
+    STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
+    (void)gballoc_hl_init(NULL, NULL);
+    ptr = gballoc_hl_malloc_aligned(8, 42);
+    ASSERT_IS_NOT_NULL(ptr);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
+        .SetReturn(1);
+    STRICT_EXPECTED_CALL(gballoc_ll_free_aligned(ptr));
+    STRICT_EXPECTED_CALL(timer_global_get_elapsed_us())
+        .SetReturn(8);
+    STRICT_EXPECTED_CALL(interlocked_add_64(IGNORED_ARG, 7));
+    // min
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, 7, IGNORED_ARG));
+    // max
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, 7, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_increment(IGNORED_ARG));
+
+    // act
+    gballoc_hl_free_aligned(ptr);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    gballoc_hl_deinit();
+}
+
+/*Tests_SRS_GBALLOC_HL_METRICS_22_007: [ If the module was not initialized, gballoc_hl_free_aligned shall return. ]*/
+TEST_FUNCTION(gballoc_hl_free_aligned_when_not_initialized_returns)
+{
+    // arrange
+    void* ptr;
+    STRICT_EXPECTED_CALL(gballoc_ll_init(NULL));
+    (void)gballoc_hl_init(NULL, NULL);
+    ptr = gballoc_hl_malloc_aligned(8, 42);
+    ASSERT_IS_NOT_NULL(ptr);
+    gballoc_hl_free_aligned(ptr);
+    gballoc_hl_deinit();
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(interlocked_add(IGNORED_ARG, 0));
+
+    // act
+    gballoc_hl_free_aligned(ptr);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
