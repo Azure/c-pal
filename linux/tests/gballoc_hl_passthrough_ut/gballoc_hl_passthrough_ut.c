@@ -28,6 +28,21 @@ static size_t stdlib_size(void* ptr)
     return malloc_usable_size(ptr);
 }
 
+static void* stdlib_malloc_aligned(size_t alignment, size_t size)
+{
+    void* result;
+    if (posix_memalign(&result, alignment, size) != 0)
+    {
+        result = NULL;
+    }
+    return result;
+}
+
+static void stdlib_free_aligned(void* ptr)
+{
+    free(ptr);
+}
+
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
@@ -46,6 +61,8 @@ TEST_SUITE_INITIALIZE(init_suite)
     REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_calloc, stdlib_calloc);
     REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_free, stdlib_free);
     REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_size, stdlib_size);
+    REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_malloc_aligned, stdlib_malloc_aligned);
+    REGISTER_GLOBAL_MOCK_HOOK(gballoc_ll_free_aligned, stdlib_free_aligned);
 }
 
 TEST_SUITE_CLEANUP(TestClassCleanup)

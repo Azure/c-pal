@@ -132,12 +132,12 @@ void* gballoc_ll_malloc_aligned(size_t alignment, size_t size)
     }
     else
     {
-        /*Codes_SRS_GBALLOC_LL_JEMALLOC_22_002: [ gballoc_ll_malloc_aligned shall call je_aligned_alloc(alignment, size) and return what je_aligned_alloc returned. ]*/
-        result = je_aligned_alloc(alignment, size);
+        /*Codes_SRS_GBALLOC_LL_JEMALLOC_22_002: [ gballoc_ll_malloc_aligned shall call je_mallocx(size, MALLOCX_ALIGN(alignment)) and return what je_mallocx returned. ]*/
+        result = je_mallocx(size, MALLOCX_ALIGN(alignment));
 
         if (result == NULL)
         {
-            LogError("failure in je_aligned_alloc(alignment=%zu, size=%zu)", alignment, size);
+            LogError("failure in je_mallocx(size=%zu, MALLOCX_ALIGN(alignment=%zu))", size, alignment);
         }
     }
     return result;

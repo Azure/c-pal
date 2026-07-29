@@ -24,7 +24,7 @@ MOCKABLE_FUNCTION(, void*, mock_je_realloc, void*, ptr, size_t, size);
 MOCKABLE_FUNCTION(, void, mock_je_free, void*, ptr);
 
 MOCKABLE_FUNCTION(, size_t, mock_je_malloc_usable_size, void*, ptr);
-MOCKABLE_FUNCTION(, void*, mock_je_aligned_alloc, size_t, alignment, size_t, size);
+MOCKABLE_FUNCTION(, void*, mock_je_mallocx, size_t, size, int, flags);
 MOCKABLE_FUNCTION_WITH_CODE(, void, mock_je_malloc_stats_print, JEMALLOC_WRITE_CB, write_cb, void*, cbopaque, const char*, opts)
 for (size_t i = 0; i < g_call_print_cb_count; i++)
 {
@@ -57,7 +57,7 @@ TEST_SUITE_INITIALIZE(TestClassInitialize)
     REGISTER_GLOBAL_MOCK_RETURN(mock_je_malloc, TEST_MALLOC_RESULT);
     REGISTER_GLOBAL_MOCK_RETURN(mock_je_calloc, TEST_CALLOC_RESULT);
     REGISTER_GLOBAL_MOCK_RETURN(mock_je_realloc, TEST_REALLOC_RESULT);
-    REGISTER_GLOBAL_MOCK_RETURN(mock_je_aligned_alloc, TEST_MALLOC_RESULT);
+    REGISTER_GLOBAL_MOCK_RETURN(mock_je_mallocx, TEST_MALLOC_RESULT);
 
     REGISTER_UMOCK_ALIAS_TYPE(JEMALLOC_WRITE_CB, void*)
 }
@@ -357,13 +357,13 @@ TEST_FUNCTION(gballoc_ll_free_calls_je_free)
     ///clean
 }
 
-/*Tests_SRS_GBALLOC_LL_JEMALLOC_22_002: [ gballoc_ll_malloc_aligned shall call je_aligned_alloc(alignment, size) and return what je_aligned_alloc returned. ]*/
-TEST_FUNCTION(gballoc_ll_malloc_aligned_calls_je_aligned_alloc)
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_22_002: [ gballoc_ll_malloc_aligned shall call je_mallocx(size, MALLOCX_ALIGN(alignment)) and return what je_mallocx returned. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_aligned_calls_je_mallocx)
 {
     ///arrange
     void* ptr;
 
-    STRICT_EXPECTED_CALL(mock_je_aligned_alloc(8, 100));
+    STRICT_EXPECTED_CALL(mock_je_mallocx(100, IGNORED_ARG));
 
     ///act
     ptr = gballoc_ll_malloc_aligned(8, 100);
@@ -376,13 +376,13 @@ TEST_FUNCTION(gballoc_ll_malloc_aligned_calls_je_aligned_alloc)
     gballoc_ll_free_aligned(ptr);
 }
 
-/*Tests_SRS_GBALLOC_LL_JEMALLOC_22_002: [ gballoc_ll_malloc_aligned shall call je_aligned_alloc(alignment, size) and return what je_aligned_alloc returned. ]*/
-TEST_FUNCTION(gballoc_ll_malloc_aligned_returns_NULL_when_je_aligned_alloc_fails)
+/*Tests_SRS_GBALLOC_LL_JEMALLOC_22_002: [ gballoc_ll_malloc_aligned shall call je_mallocx(size, MALLOCX_ALIGN(alignment)) and return what je_mallocx returned. ]*/
+TEST_FUNCTION(gballoc_ll_malloc_aligned_returns_NULL_when_je_mallocx_fails)
 {
     ///arrange
     void* ptr;
 
-    STRICT_EXPECTED_CALL(mock_je_aligned_alloc(8, 100))
+    STRICT_EXPECTED_CALL(mock_je_mallocx(100, IGNORED_ARG))
         .SetReturn(NULL);
 
     ///act

@@ -98,11 +98,11 @@ MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_flex, size_t, base, size_t, nmemb, 
 MOCKABLE_FUNCTION(, void*, gballoc_ll_malloc_aligned, size_t, alignment, size_t, size);
 ```
 
-`gballoc_ll_malloc_aligned` calls `je_aligned_alloc` and return a memory area of `size` bytes aligned to `alignment`. `alignment` has to be a power of 2 and at least `sizeof(void*)`.
+`gballoc_ll_malloc_aligned` calls `je_mallocx` and return a memory area of `size` bytes aligned to `alignment`. `alignment` has to be a power of 2 and at least `sizeof(void*)`.
 
 **SRS_GBALLOC_LL_JEMALLOC_22_001: [** If `alignment` is not a power of 2 or is less than `sizeof(void*)` then `gballoc_ll_malloc_aligned` shall fail and return `NULL`. **]**
 
-**SRS_GBALLOC_LL_JEMALLOC_22_002: [** `gballoc_ll_malloc_aligned` shall call `je_aligned_alloc(alignment, size)` and return what `je_aligned_alloc` returned. **]**
+**SRS_GBALLOC_LL_JEMALLOC_22_002: [** `gballoc_ll_malloc_aligned` shall call `je_mallocx(size, MALLOCX_ALIGN(alignment))` and return what `je_mallocx` returned. **]**
 
 ### gballoc_ll_free_aligned
 ```c
