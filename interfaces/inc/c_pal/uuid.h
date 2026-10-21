@@ -6,8 +6,6 @@
 
 #ifdef __cplusplus
 #include <cinttypes>
-#include <cstdbool>
-#include <cstdalign>
 #else
 #include <inttypes.h>
 #include <stdbool.h>

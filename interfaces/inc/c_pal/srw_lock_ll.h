@@ -3,9 +3,7 @@
 #ifndef SRW_LOCK_LL_H
 #define SRW_LOCK_LL_H
 
-#ifdef __cplusplus
-#include <cstdbool>
-#else
+#ifndef __cplusplus
 #include <stdbool.h>
 #endif
 

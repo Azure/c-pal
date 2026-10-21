@@ -6,7 +6,6 @@
 #ifdef __cplusplus
 #include <cstddef>
 #include <cstdint>
-#include <cstdalign>
 #else
 #include <stddef.h>
 #include <stdint.h>
