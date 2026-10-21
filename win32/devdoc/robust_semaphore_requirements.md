@@ -35,6 +35,8 @@ So a `robust_semaphore` named `name` with `max_count` units is made of `max_coun
 
 `on_acquire_complete` is always called on the worker thread, never on the thread calling `robust_semaphore_acquire_async`. Because the worker thread may acquire a free unit right away, it can run before `robust_semaphore_acquire_async` returns, so the caller must have everything the callback uses in place before calling `robust_semaphore_acquire_async`. If `robust_semaphore_acquire_async` fails, the callback is not called.
 
+`robust_semaphore_cancel` and `robust_semaphore_release` cannot take back a unit that the worker thread already acquired: if they race with the acquisition of a unit, `on_acquire_complete` can still be called with `ROBUST_SEMAPHORE_ACQUIRE_OK`. After `robust_semaphore_release` the unit is given back as soon as `on_acquire_complete` returns; after `robust_semaphore_cancel` the unit is held until `robust_semaphore_release` is called.
+
 `max_hold_ms` is measured from the moment the unit is acquired, including the time spent in `on_acquire_complete`. The worker thread cannot release the mutex while it is running `on_acquire_complete`, so a callback that runs longer than `max_hold_ms` delays the release until it returns.
 
 `robust_semaphore_destroy` must not be called from `on_acquire_complete`, because it waits for the worker thread. If it is, it cannot wait for the worker thread: it logs an error and the worker thread frees the object when the callback returns.
