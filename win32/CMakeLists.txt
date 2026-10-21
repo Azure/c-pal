@@ -40,6 +40,7 @@ set(pal_win32_h_files
     ${pal_common_h_files}
     inc/c_pal/execution_engine_win32.h
     inc/c_pal/job_object_helper.h
+    inc/c_pal/robust_semaphore.h
 )
 
 set(pal_win32_c_files
@@ -64,6 +65,7 @@ set(pal_win32_c_files
     src/${gballoc_ll_c}
     src/${gballoc_hl_c}
     src/job_object_helper.c
+    src/robust_semaphore.c
 )
 
 FILE(GLOB pal_win32_md_files "devdoc/*.md")
