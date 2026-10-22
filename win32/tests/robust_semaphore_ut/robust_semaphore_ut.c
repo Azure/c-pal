@@ -436,6 +436,8 @@ TEST_FUNCTION_CLEANUP(method_cleanup)
 /*Tests_SRS_ROBUST_SEMAPHORE_01_001: [ If name is NULL then robust_semaphore_create shall fail and return NULL. ]*/
 TEST_FUNCTION(robust_semaphore_create_with_NULL_name_fails)
 {
+    // arrange
+
     // act
     ROBUST_SEMAPHORE_HANDLE result = robust_semaphore_create(NULL, TEST_MAX_COUNT, TEST_SECURITY_DESCRIPTOR);
 
@@ -447,6 +449,8 @@ TEST_FUNCTION(robust_semaphore_create_with_NULL_name_fails)
 /*Tests_SRS_ROBUST_SEMAPHORE_01_002: [ If max_count is 0 then robust_semaphore_create shall fail and return NULL. ]*/
 TEST_FUNCTION(robust_semaphore_create_with_0_max_count_fails)
 {
+    // arrange
+
     // act
     ROBUST_SEMAPHORE_HANDLE result = robust_semaphore_create(TEST_NAME, 0, TEST_SECURITY_DESCRIPTOR);
 
@@ -458,6 +462,8 @@ TEST_FUNCTION(robust_semaphore_create_with_0_max_count_fails)
 /*Tests_SRS_ROBUST_SEMAPHORE_01_003: [ If max_count is greater than ROBUST_SEMAPHORE_MAX_COUNT then robust_semaphore_create shall fail and return NULL. ]*/
 TEST_FUNCTION(robust_semaphore_create_with_max_count_above_the_limit_fails)
 {
+    // arrange
+
     // act
     ROBUST_SEMAPHORE_HANDLE result = robust_semaphore_create(TEST_NAME, ROBUST_SEMAPHORE_MAX_COUNT + 1, TEST_SECURITY_DESCRIPTOR);
 
@@ -685,6 +691,8 @@ TEST_FUNCTION(when_CreateMutexExA_fails_for_the_second_unit_robust_semaphore_cre
 /*Tests_SRS_ROBUST_SEMAPHORE_01_014: [ If robust_semaphore is NULL then robust_semaphore_destroy shall return. ]*/
 TEST_FUNCTION(robust_semaphore_destroy_with_NULL_returns)
 {
+    // arrange
+
     // act
     robust_semaphore_destroy(NULL);
 
@@ -841,6 +849,8 @@ TEST_FUNCTION(robust_semaphore_destroy_called_from_on_acquire_complete_lets_the_
 /*Tests_SRS_ROBUST_SEMAPHORE_01_020: [ If robust_semaphore is NULL then robust_semaphore_acquire_async shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(robust_semaphore_acquire_async_with_NULL_robust_semaphore_fails)
 {
+    // arrange
+
     // act
     int result = robust_semaphore_acquire_async(NULL, TEST_TIMEOUT_MS, TEST_MAX_HOLD_MS, test_on_acquire_complete, test_context);
 
@@ -985,6 +995,8 @@ TEST_FUNCTION(robust_semaphore_acquire_async_while_the_object_is_being_destroyed
 /*Tests_SRS_ROBUST_SEMAPHORE_01_028: [ If robust_semaphore is NULL then robust_semaphore_cancel shall return. ]*/
 TEST_FUNCTION(robust_semaphore_cancel_with_NULL_returns)
 {
+    // arrange
+
     // act
     robust_semaphore_cancel(NULL);
 
@@ -1078,6 +1090,8 @@ TEST_FUNCTION(robust_semaphore_cancel_when_SetEvent_fails_still_cancels)
 /*Tests_SRS_ROBUST_SEMAPHORE_01_032: [ If robust_semaphore is NULL then robust_semaphore_release shall return. ]*/
 TEST_FUNCTION(robust_semaphore_release_with_NULL_returns)
 {
+    // arrange
+
     // act
     robust_semaphore_release(NULL);
 
