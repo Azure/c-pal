@@ -61,7 +61,7 @@ typedef struct ROBUST_SEMAPHORE_TAG
     void* on_acquire_complete_context;
 } ROBUST_SEMAPHORE;
 
-static void close_handle(HANDLE handle, const char* handle_name)
+static void internal_close_handle(HANDLE handle, const char* handle_name)
 {
     if (!CloseHandle(handle))
     {
@@ -73,7 +73,7 @@ static void close_handle(HANDLE handle, const char* handle_name)
     }
 }
 
-static void set_event(HANDLE event, const char* event_name)
+static void internal_set_event(HANDLE event, const char* event_name)
 {
     if (!SetEvent(event))
     {
@@ -85,7 +85,7 @@ static void set_event(HANDLE event, const char* event_name)
     }
 }
 
-static void reset_event(HANDLE event, const char* event_name)
+static void internal_reset_event(HANDLE event, const char* event_name)
 {
     if (!ResetEvent(event))
     {
@@ -97,23 +97,26 @@ static void reset_event(HANDLE event, const char* event_name)
     }
 }
 
-static void robust_semaphore_free(ROBUST_SEMAPHORE_HANDLE robust_semaphore)
+static void internal_free_robust_semaphore(ROBUST_SEMAPHORE_HANDLE robust_semaphore)
 {
+    /*Codes_SRS_ROBUST_SEMAPHORE_01_019: [ robust_semaphore_destroy shall close the mutexes and the events by calling CloseHandle. ]*/
     for (uint32_t i = 0; i < robust_semaphore->max_count; i++)
     {
-        close_handle(robust_semaphore->mutexes[i], "mutex");
+        internal_close_handle(robust_semaphore->mutexes[i], "mutex");
     }
 
-    close_handle(robust_semaphore->release_event, "release_event");
-    close_handle(robust_semaphore->cancel_event, "cancel_event");
-    close_handle(robust_semaphore->work_event, "work_event");
+    internal_close_handle(robust_semaphore->release_event, "release_event");
+    internal_close_handle(robust_semaphore->cancel_event, "cancel_event");
+    internal_close_handle(robust_semaphore->work_event, "work_event");
 
+    /*Codes_SRS_ROBUST_SEMAPHORE_01_058: [ robust_semaphore_destroy shall deinitialize the lock by calling srw_lock_ll_deinit. ]*/
     srw_lock_ll_deinit(&robust_semaphore->lock);
+
+    /*Codes_SRS_ROBUST_SEMAPHORE_01_059: [ robust_semaphore_destroy shall free the robust semaphore object. ]*/
     free(robust_semaphore);
 }
 
-/* called with the lock held */
-static void internal_release(ROBUST_SEMAPHORE_HANDLE robust_semaphore)
+static void internal_release_under_lock(ROBUST_SEMAPHORE_HANDLE robust_semaphore)
 {
     if (
         (robust_semaphore->acquisition_state == ACQUISITION_STATE_NONE) ||
@@ -124,10 +127,10 @@ static void internal_release(ROBUST_SEMAPHORE_HANDLE robust_semaphore)
     }
     else
     {
-        /*Codes_SRS_ROBUST_SEMAPHORE_01_034: [ If there is a current acquisition that was not released, robust_semaphore_release shall mark it as released and signal the cancel event and the release event by calling SetEvent, logging any failure. ]*/
+        /*Codes_SRS_ROBUST_SEMAPHORE_01_034: [ If there is a current acquisition that was not released, robust_semaphore_release shall mark it as released and signal the cancel event and the release event by calling SetEvent. ]*/
         robust_semaphore->acquisition_released = true;
-        set_event(robust_semaphore->cancel_event, "cancel_event");
-        set_event(robust_semaphore->release_event, "release_event");
+        internal_set_event(robust_semaphore->cancel_event, "cancel_event");
+        internal_set_event(robust_semaphore->release_event, "release_event");
 
         if (robust_semaphore->acquisition_state != ACQUISITION_STATE_HOLDING)
         {
@@ -141,7 +144,7 @@ static void internal_release(ROBUST_SEMAPHORE_HANDLE robust_semaphore)
     }
 }
 
-static void end_acquisition_without_unit(ROBUST_SEMAPHORE_HANDLE robust_semaphore, ROBUST_SEMAPHORE_ACQUIRE_RESULT acquire_result, ROBUST_SEMAPHORE_ON_ACQUIRE_COMPLETE on_acquire_complete, void* on_acquire_complete_context)
+static void internal_end_acquisition_without_unit(ROBUST_SEMAPHORE_HANDLE robust_semaphore, ROBUST_SEMAPHORE_ACQUIRE_RESULT acquire_result, ROBUST_SEMAPHORE_ON_ACQUIRE_COMPLETE on_acquire_complete, void* on_acquire_complete_context)
 {
     /*Codes_SRS_ROBUST_SEMAPHORE_01_044: [ robust_semaphore_worker_thread shall end an acquisition that did not get a unit before calling its on_acquire_complete, so that on_acquire_complete can start a new acquisition. ]*/
     srw_lock_ll_acquire_exclusive(&robust_semaphore->lock);
@@ -151,7 +154,7 @@ static void end_acquisition_without_unit(ROBUST_SEMAPHORE_HANDLE robust_semaphor
     on_acquire_complete(on_acquire_complete_context, acquire_result, ROBUST_SEMAPHORE_UNIT_INDEX_NONE);
 }
 
-static void hold_unit(ROBUST_SEMAPHORE_HANDLE robust_semaphore, uint32_t unit_index, uint32_t max_hold_ms, ROBUST_SEMAPHORE_ON_ACQUIRE_COMPLETE on_acquire_complete, void* on_acquire_complete_context)
+static void internal_hold_unit(ROBUST_SEMAPHORE_HANDLE robust_semaphore, uint32_t unit_index, uint32_t max_hold_ms, ROBUST_SEMAPHORE_ON_ACQUIRE_COMPLETE on_acquire_complete, void* on_acquire_complete_context)
 {
     /*Codes_SRS_ROBUST_SEMAPHORE_01_041: [ If WaitForMultipleObjects returns WAIT_OBJECT_0 + 1 + i or WAIT_ABANDONED_0 + 1 + i then robust_semaphore_worker_thread shall record the time the unit was acquired by calling timer_global_get_elapsed_ms, mark the acquisition as holding unit i and call on_acquire_complete with ROBUST_SEMAPHORE_ACQUIRE_OK and i. ]*/
     double acquired_ms = timer_global_get_elapsed_ms();
@@ -177,7 +180,7 @@ static void hold_unit(ROBUST_SEMAPHORE_HANDLE robust_semaphore, uint32_t unit_in
     DWORD hold_wait_result = WaitForSingleObject(robust_semaphore->release_event, hold_timeout_ms);
     if (hold_wait_result == WAIT_TIMEOUT)
     {
-        /*Codes_SRS_ROBUST_SEMAPHORE_01_046: [ If waiting for the release event times out then robust_semaphore_worker_thread shall log an error and release the mutex early by calling ReleaseMutex. ]*/
+        /*Codes_SRS_ROBUST_SEMAPHORE_01_046: [ If waiting for the release event times out then robust_semaphore_worker_thread shall release the mutex early by calling ReleaseMutex. ]*/
         LogError("Unit %" PRIu32 " was held for more than max_hold_ms=%" PRIu32 " ms (including the time spent in on_acquire_complete), releasing it early", unit_index, max_hold_ms);
     }
     else if (hold_wait_result != WAIT_OBJECT_0)
@@ -189,7 +192,7 @@ static void hold_unit(ROBUST_SEMAPHORE_HANDLE robust_semaphore, uint32_t unit_in
         /* do nothing, released */
     }
 
-    /*Codes_SRS_ROBUST_SEMAPHORE_01_047: [ If a unit was acquired, robust_semaphore_worker_thread shall release the mutex by calling ReleaseMutex (logging any failure) and, if the acquisition still holds the unit (it was not released), end it. ]*/
+    /*Codes_SRS_ROBUST_SEMAPHORE_01_047: [ If a unit was acquired, robust_semaphore_worker_thread shall release the mutex by calling ReleaseMutex and, if the acquisition still holds the unit (it was not released), end it. ]*/
     if (!ReleaseMutex(robust_semaphore->mutexes[unit_index]))
     {
         LogLastError("failure in ReleaseMutex(mutex=%p) for unit %" PRIu32 "", robust_semaphore->mutexes[unit_index], unit_index);
@@ -211,7 +214,7 @@ static void hold_unit(ROBUST_SEMAPHORE_HANDLE robust_semaphore, uint32_t unit_in
     srw_lock_ll_release_exclusive(&robust_semaphore->lock);
 }
 
-static void run_acquisition(ROBUST_SEMAPHORE_HANDLE robust_semaphore, uint32_t timeout_ms, uint32_t max_hold_ms, ROBUST_SEMAPHORE_ON_ACQUIRE_COMPLETE on_acquire_complete, void* on_acquire_complete_context)
+static void internal_run_acquisition(ROBUST_SEMAPHORE_HANDLE robust_semaphore, uint32_t timeout_ms, uint32_t max_hold_ms, ROBUST_SEMAPHORE_ON_ACQUIRE_COMPLETE on_acquire_complete, void* on_acquire_complete_context)
 {
     HANDLE wait_handles[1 + ROBUST_SEMAPHORE_MAX_COUNT];
     wait_handles[0] = robust_semaphore->cancel_event;
@@ -226,14 +229,14 @@ static void run_acquisition(ROBUST_SEMAPHORE_HANDLE robust_semaphore, uint32_t t
     if (wait_result == WAIT_OBJECT_0)
     {
         /*Codes_SRS_ROBUST_SEMAPHORE_01_040: [ If WaitForMultipleObjects returns WAIT_OBJECT_0 then robust_semaphore_worker_thread shall end the acquisition and call on_acquire_complete with ROBUST_SEMAPHORE_ACQUIRE_CANCELLED and ROBUST_SEMAPHORE_UNIT_INDEX_NONE. ]*/
-        end_acquisition_without_unit(robust_semaphore, ROBUST_SEMAPHORE_ACQUIRE_CANCELLED, on_acquire_complete, on_acquire_complete_context);
+        internal_end_acquisition_without_unit(robust_semaphore, ROBUST_SEMAPHORE_ACQUIRE_CANCELLED, on_acquire_complete, on_acquire_complete_context);
     }
     else if (
         (wait_result >= WAIT_OBJECT_0 + 1) &&
         (wait_result < WAIT_OBJECT_0 + 1 + robust_semaphore->max_count)
         )
     {
-        hold_unit(robust_semaphore, wait_result - (WAIT_OBJECT_0 + 1), max_hold_ms, on_acquire_complete, on_acquire_complete_context);
+        internal_hold_unit(robust_semaphore, wait_result - (WAIT_OBJECT_0 + 1), max_hold_ms, on_acquire_complete, on_acquire_complete_context);
     }
     else if (
         (wait_result >= WAIT_ABANDONED_0 + 1) &&
@@ -242,19 +245,19 @@ static void run_acquisition(ROBUST_SEMAPHORE_HANDLE robust_semaphore, uint32_t t
     {
         uint32_t unit_index = wait_result - (WAIT_ABANDONED_0 + 1);
         LogWarning("Unit %" PRIu32 " was abandoned by its previous owner (its thread or process ended without releasing it), acquiring it", unit_index);
-        hold_unit(robust_semaphore, unit_index, max_hold_ms, on_acquire_complete, on_acquire_complete_context);
+        internal_hold_unit(robust_semaphore, unit_index, max_hold_ms, on_acquire_complete, on_acquire_complete_context);
     }
     else if (wait_result == WAIT_TIMEOUT)
     {
         /*Codes_SRS_ROBUST_SEMAPHORE_01_042: [ If WaitForMultipleObjects returns WAIT_TIMEOUT then robust_semaphore_worker_thread shall end the acquisition and call on_acquire_complete with ROBUST_SEMAPHORE_ACQUIRE_TIMEOUT and ROBUST_SEMAPHORE_UNIT_INDEX_NONE. ]*/
         LogWarning("Could not acquire one of the %" PRIu32 " units within %" PRIu32 " ms", robust_semaphore->max_count, timeout_ms);
-        end_acquisition_without_unit(robust_semaphore, ROBUST_SEMAPHORE_ACQUIRE_TIMEOUT, on_acquire_complete, on_acquire_complete_context);
+        internal_end_acquisition_without_unit(robust_semaphore, ROBUST_SEMAPHORE_ACQUIRE_TIMEOUT, on_acquire_complete, on_acquire_complete_context);
     }
     else
     {
-        /*Codes_SRS_ROBUST_SEMAPHORE_01_043: [ If WaitForMultipleObjects returns any other value then robust_semaphore_worker_thread shall log the error, end the acquisition and call on_acquire_complete with ROBUST_SEMAPHORE_ACQUIRE_ERROR and ROBUST_SEMAPHORE_UNIT_INDEX_NONE. ]*/
+        /*Codes_SRS_ROBUST_SEMAPHORE_01_043: [ If WaitForMultipleObjects returns any other value then robust_semaphore_worker_thread shall end the acquisition and call on_acquire_complete with ROBUST_SEMAPHORE_ACQUIRE_ERROR and ROBUST_SEMAPHORE_UNIT_INDEX_NONE. ]*/
         LogLastError("failure in WaitForMultipleObjects(%" PRIu32 ", %p, FALSE, %" PRIu32 ") returned %lu", 1 + robust_semaphore->max_count, wait_handles, timeout_ms, wait_result);
-        end_acquisition_without_unit(robust_semaphore, ROBUST_SEMAPHORE_ACQUIRE_ERROR, on_acquire_complete, on_acquire_complete_context);
+        internal_end_acquisition_without_unit(robust_semaphore, ROBUST_SEMAPHORE_ACQUIRE_ERROR, on_acquire_complete, on_acquire_complete_context);
     }
 }
 
@@ -271,9 +274,9 @@ static int robust_semaphore_worker_thread(void* context)
         srw_lock_ll_acquire_exclusive(&robust_semaphore->lock);
         if (robust_semaphore->acquisition_state == ACQUISITION_STATE_REQUESTED)
         {
-            /*Codes_SRS_ROBUST_SEMAPHORE_01_037: [ If there is a new acquisition, robust_semaphore_worker_thread shall take it and reset the cancel event and the release event by calling ResetEvent, logging any failure. ]*/
-            reset_event(robust_semaphore->cancel_event, "cancel_event");
-            reset_event(robust_semaphore->release_event, "release_event");
+            /*Codes_SRS_ROBUST_SEMAPHORE_01_037: [ If there is a new acquisition, robust_semaphore_worker_thread shall take it and reset the cancel event and the release event by calling ResetEvent. ]*/
+            internal_reset_event(robust_semaphore->cancel_event, "cancel_event");
+            internal_reset_event(robust_semaphore->release_event, "release_event");
 
             uint32_t timeout_ms = robust_semaphore->timeout_ms;
             uint32_t max_hold_ms = robust_semaphore->max_hold_ms;
@@ -296,7 +299,7 @@ static int robust_semaphore_worker_thread(void* context)
                 robust_semaphore->acquisition_state = ACQUISITION_STATE_WAITING;
                 srw_lock_ll_release_exclusive(&robust_semaphore->lock);
 
-                run_acquisition(robust_semaphore, timeout_ms, max_hold_ms, on_acquire_complete, on_acquire_complete_context);
+                internal_run_acquisition(robust_semaphore, timeout_ms, max_hold_ms, on_acquire_complete, on_acquire_complete_context);
             }
         }
         else if (robust_semaphore->destroying)
@@ -317,7 +320,7 @@ static int robust_semaphore_worker_thread(void* context)
             }
             else
             {
-                /*Codes_SRS_ROBUST_SEMAPHORE_01_050: [ If WaitForSingleObject on the work event fails, robust_semaphore_worker_thread shall log the error, mark the worker thread as ended, end a new acquisition it did not take yet and call its on_acquire_complete with ROBUST_SEMAPHORE_ACQUIRE_ERROR and ROBUST_SEMAPHORE_UNIT_INDEX_NONE, and return 0. ]*/
+                /*Codes_SRS_ROBUST_SEMAPHORE_01_050: [ If WaitForSingleObject on the work event fails, robust_semaphore_worker_thread shall mark the worker thread as ended, end a new acquisition it did not take yet and call its on_acquire_complete with ROBUST_SEMAPHORE_ACQUIRE_ERROR and ROBUST_SEMAPHORE_UNIT_INDEX_NONE, and return 0. ]*/
                 LogLastError("failure in WaitForSingleObject(work_event=%p, INFINITE) returned %lu, the worker thread ends", robust_semaphore->work_event, wait_result);
 
                 ROBUST_SEMAPHORE_ON_ACQUIRE_COMPLETE on_acquire_complete = NULL;
@@ -361,10 +364,12 @@ static int robust_semaphore_worker_thread(void* context)
     }
     else
     {
-        /*Codes_SRS_ROBUST_SEMAPHORE_01_049: [ If robust_semaphore_destroy was called on the worker thread, before returning robust_semaphore_worker_thread shall close the mutexes, the events and its own thread handle by calling CloseHandle (logging any failure), deinitialize the lock and free the robust semaphore object. ]*/
+        /*Codes_SRS_ROBUST_SEMAPHORE_01_049: [ If robust_semaphore_destroy was called on the worker thread, before returning robust_semaphore_worker_thread shall close its own thread handle by calling CloseHandle. ]*/
         /* nobody joins this thread, on Windows THREAD_HANDLE is the thread HANDLE */
-        close_handle((HANDLE)robust_semaphore->worker_thread, "worker_thread");
-        robust_semaphore_free(robust_semaphore);
+        internal_close_handle((HANDLE)robust_semaphore->worker_thread, "worker_thread");
+
+        /*Codes_SRS_ROBUST_SEMAPHORE_01_060: [ If robust_semaphore_destroy was called on the worker thread, before returning robust_semaphore_worker_thread shall free the robust semaphore object as robust_semaphore_destroy does. ]*/
+        internal_free_robust_semaphore(robust_semaphore);
     }
 
     return 0;
@@ -393,7 +398,7 @@ ROBUST_SEMAPHORE_HANDLE robust_semaphore_create(const char* name, uint32_t max_c
         result = malloc(sizeof(ROBUST_SEMAPHORE));
         if (result == NULL)
         {
-            /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle (logging any failure), free the memory it allocated and fail and return NULL. ]*/
+            /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle, free the memory it allocated and return NULL. ]*/
             LogError("failure in malloc(sizeof(ROBUST_SEMAPHORE)=%zu)", sizeof(ROBUST_SEMAPHORE));
         }
         else
@@ -401,7 +406,7 @@ ROBUST_SEMAPHORE_HANDLE robust_semaphore_create(const char* name, uint32_t max_c
             /*Codes_SRS_ROBUST_SEMAPHORE_01_005: [ robust_semaphore_create shall initialize a lock by calling srw_lock_ll_init. ]*/
             if (srw_lock_ll_init(&result->lock) != 0)
             {
-                /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle (logging any failure), free the memory it allocated and fail and return NULL. ]*/
+                /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle, free the memory it allocated and return NULL. ]*/
                 LogError("failure in srw_lock_ll_init(&result->lock=%p)", &result->lock);
             }
             else
@@ -414,7 +419,7 @@ ROBUST_SEMAPHORE_HANDLE robust_semaphore_create(const char* name, uint32_t max_c
                     !ConvertStringSecurityDescriptorToSecurityDescriptorA(security_descriptor, SDDL_REVISION_1, &converted_security_descriptor, NULL)
                     )
                 {
-                    /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle (logging any failure), free the memory it allocated and fail and return NULL. ]*/
+                    /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle, free the memory it allocated and return NULL. ]*/
                     LogLastError("failure in ConvertStringSecurityDescriptorToSecurityDescriptorA(%s)", security_descriptor);
                 }
                 else
@@ -425,29 +430,32 @@ ROBUST_SEMAPHORE_HANDLE robust_semaphore_create(const char* name, uint32_t max_c
                     security_attributes.bInheritHandle = FALSE;
 
                     uint32_t i;
+                    /*Codes_SRS_ROBUST_SEMAPHORE_01_054: [ For each unit i, robust_semaphore_create shall: ]*/
                     for (i = 0; i < max_count; i++)
                     {
-                        /*Codes_SRS_ROBUST_SEMAPHORE_01_007: [ For each unit i, robust_semaphore_create shall build the mutex name <name>_<i> by calling sprintf_char. ]*/
+                        /*Codes_SRS_ROBUST_SEMAPHORE_01_007: [ build the mutex name <name>_<i> by calling sprintf_char. ]*/
                         char* mutex_name = sprintf_char("%s_%" PRIu32 "", name, i);
                         if (mutex_name == NULL)
                         {
-                            /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle (logging any failure), free the memory it allocated and fail and return NULL. ]*/
+                            /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle, free the memory it allocated and return NULL. ]*/
                             LogError("failure in sprintf_char building the name of mutex %" PRIu32 " of %s", i, name);
                             break;
                         }
                         else
                         {
-                            /*Codes_SRS_ROBUST_SEMAPHORE_01_008: [ For each unit i, robust_semaphore_create shall create or open the mutex by calling CreateMutexExA with the converted security descriptor, the mutex name and SYNCHRONIZE | MUTEX_MODIFY_STATE access, and free the mutex name. ]*/
+                            /*Codes_SRS_ROBUST_SEMAPHORE_01_008: [ create or open the mutex by calling CreateMutexExA with the converted security descriptor, the mutex name and SYNCHRONIZE | MUTEX_MODIFY_STATE access. ]*/
                             result->mutexes[i] = CreateMutexExA(&security_attributes, mutex_name, 0, SYNCHRONIZE | MUTEX_MODIFY_STATE);
                             if (result->mutexes[i] == NULL)
                             {
-                                /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle (logging any failure), free the memory it allocated and fail and return NULL. ]*/
+                                /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle, free the memory it allocated and return NULL. ]*/
                                 LogLastError("failure in CreateMutexExA(%s)", mutex_name);
+                                /*Codes_SRS_ROBUST_SEMAPHORE_01_055: [ free the mutex name. ]*/
                                 free(mutex_name);
                                 break;
                             }
                             else
                             {
+                                /*Codes_SRS_ROBUST_SEMAPHORE_01_055: [ free the mutex name. ]*/
                                 free(mutex_name);
                             }
                         }
@@ -459,7 +467,7 @@ ROBUST_SEMAPHORE_HANDLE robust_semaphore_create(const char* name, uint32_t max_c
                     }
                     else
                     {
-                        /*Codes_SRS_ROBUST_SEMAPHORE_01_009: [ robust_semaphore_create shall free the converted security descriptor by calling LocalFree and log any failure. ]*/
+                        /*Codes_SRS_ROBUST_SEMAPHORE_01_009: [ robust_semaphore_create shall free the converted security descriptor by calling LocalFree. ]*/
                         if (LocalFree(converted_security_descriptor) != NULL)
                         {
                             LogLastError("failure in LocalFree(converted_security_descriptor=%p)", converted_security_descriptor);
@@ -476,27 +484,29 @@ ROBUST_SEMAPHORE_HANDLE robust_semaphore_create(const char* name, uint32_t max_c
                     }
                     else
                     {
-                        /*Codes_SRS_ROBUST_SEMAPHORE_01_010: [ robust_semaphore_create shall create an auto reset work event, a manual reset cancel event and a manual reset release event by calling CreateEventA. ]*/
+                        /*Codes_SRS_ROBUST_SEMAPHORE_01_010: [ robust_semaphore_create shall create an auto reset work event by calling CreateEventA. ]*/
                         result->work_event = CreateEventA(NULL, FALSE, FALSE, NULL);
                         if (result->work_event == NULL)
                         {
-                            /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle (logging any failure), free the memory it allocated and fail and return NULL. ]*/
+                            /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle, free the memory it allocated and return NULL. ]*/
                             LogLastError("failure in CreateEventA(NULL, FALSE, FALSE, NULL) for the work event");
                         }
                         else
                         {
+                            /*Codes_SRS_ROBUST_SEMAPHORE_01_056: [ robust_semaphore_create shall create a manual reset cancel event by calling CreateEventA. ]*/
                             result->cancel_event = CreateEventA(NULL, TRUE, FALSE, NULL);
                             if (result->cancel_event == NULL)
                             {
-                                /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle (logging any failure), free the memory it allocated and fail and return NULL. ]*/
+                                /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle, free the memory it allocated and return NULL. ]*/
                                 LogLastError("failure in CreateEventA(NULL, TRUE, FALSE, NULL) for the cancel event");
                             }
                             else
                             {
+                                /*Codes_SRS_ROBUST_SEMAPHORE_01_057: [ robust_semaphore_create shall create a manual reset release event by calling CreateEventA. ]*/
                                 result->release_event = CreateEventA(NULL, TRUE, FALSE, NULL);
                                 if (result->release_event == NULL)
                                 {
-                                    /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle (logging any failure), free the memory it allocated and fail and return NULL. ]*/
+                                    /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle, free the memory it allocated and return NULL. ]*/
                                     LogLastError("failure in CreateEventA(NULL, TRUE, FALSE, NULL) for the release event");
                                 }
                                 else
@@ -513,7 +523,7 @@ ROBUST_SEMAPHORE_HANDLE robust_semaphore_create(const char* name, uint32_t max_c
                                     /*Codes_SRS_ROBUST_SEMAPHORE_01_011: [ robust_semaphore_create shall start the worker thread by calling ThreadAPI_Create with robust_semaphore_worker_thread. ]*/
                                     if (ThreadAPI_Create(&result->worker_thread, robust_semaphore_worker_thread, result) != THREADAPI_OK)
                                     {
-                                        /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle (logging any failure), free the memory it allocated and fail and return NULL. ]*/
+                                        /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle, free the memory it allocated and return NULL. ]*/
                                         LogError("failure in ThreadAPI_Create(&result->worker_thread=%p, robust_semaphore_worker_thread, result=%p)", &result->worker_thread, result);
                                     }
                                     else
@@ -522,19 +532,19 @@ ROBUST_SEMAPHORE_HANDLE robust_semaphore_create(const char* name, uint32_t max_c
                                         goto all_ok;
                                     }
 
-                                    close_handle(result->release_event, "release_event");
+                                    internal_close_handle(result->release_event, "release_event");
                                 }
 
-                                close_handle(result->cancel_event, "cancel_event");
+                                internal_close_handle(result->cancel_event, "cancel_event");
                             }
 
-                            close_handle(result->work_event, "work_event");
+                            internal_close_handle(result->work_event, "work_event");
                         }
                     }
 
                     for (uint32_t j = 0; j < i; j++)
                     {
-                        close_handle(result->mutexes[j], "mutex");
+                        internal_close_handle(result->mutexes[j], "mutex");
                     }
                 }
 
@@ -565,12 +575,12 @@ void robust_semaphore_destroy(ROBUST_SEMAPHORE_HANDLE robust_semaphore)
 
         /*Codes_SRS_ROBUST_SEMAPHORE_01_016: [ robust_semaphore_destroy shall mark the object as being destroyed, release the current acquisition as robust_semaphore_release does and wake the worker thread by calling SetEvent on the work event. ]*/
         robust_semaphore->destroying = true;
-        internal_release(robust_semaphore);
-        set_event(robust_semaphore->work_event, "work_event");
+        internal_release_under_lock(robust_semaphore);
+        internal_set_event(robust_semaphore->work_event, "work_event");
 
         if ((DWORD)interlocked_add(&robust_semaphore->worker_thread_id, 0) == GetCurrentThreadId())
         {
-            /*Codes_SRS_ROBUST_SEMAPHORE_01_017: [ If robust_semaphore_destroy is called on the worker thread, it shall log an error, mark the worker thread as the one that frees the object, release the lock and return. ]*/
+            /*Codes_SRS_ROBUST_SEMAPHORE_01_017: [ If robust_semaphore_destroy is called on the worker thread, it shall mark the worker thread as the one that frees the object, release the lock and return. ]*/
             LogError("robust_semaphore_destroy(robust_semaphore=%p) was called from on_acquire_complete, the worker thread frees the object when on_acquire_complete returns", robust_semaphore);
             robust_semaphore->worker_frees_object = true;
             srw_lock_ll_release_exclusive(&robust_semaphore->lock);
@@ -583,13 +593,13 @@ void robust_semaphore_destroy(ROBUST_SEMAPHORE_HANDLE robust_semaphore)
             int thread_result;
             if (ThreadAPI_Join(robust_semaphore->worker_thread, &thread_result) != THREADAPI_OK)
             {
-                /*Codes_SRS_ROBUST_SEMAPHORE_01_053: [ If ThreadAPI_Join fails, robust_semaphore_destroy shall log an error and return without freeing the object, because the worker thread may still use it. ]*/
+                /*Codes_SRS_ROBUST_SEMAPHORE_01_053: [ If ThreadAPI_Join fails, robust_semaphore_destroy shall return without freeing the object, because the worker thread may still use it. ]*/
                 LogError("failure in ThreadAPI_Join(robust_semaphore->worker_thread=%p), not freeing robust_semaphore=%p because its worker thread may still use it", robust_semaphore->worker_thread, robust_semaphore);
             }
             else
             {
-                /*Codes_SRS_ROBUST_SEMAPHORE_01_019: [ robust_semaphore_destroy shall close the mutexes and the events by calling CloseHandle (logging any failure), deinitialize the lock and free the robust semaphore object. ]*/
-                robust_semaphore_free(robust_semaphore);
+                /* the mutexes and the events are closed and the object is freed by internal_free_robust_semaphore */
+                internal_free_robust_semaphore(robust_semaphore);
             }
         }
     }
@@ -643,7 +653,7 @@ int robust_semaphore_acquire_async(ROBUST_SEMAPHORE_HANDLE robust_semaphore, uin
 
             if (!SetEvent(robust_semaphore->work_event))
             {
-                /*Codes_SRS_ROBUST_SEMAPHORE_01_027: [ If SetEvent fails, robust_semaphore_acquire_async shall forget the new acquisition, release the lock and fail and return a non-zero value. ]*/
+                /*Codes_SRS_ROBUST_SEMAPHORE_01_027: [ If SetEvent fails, robust_semaphore_acquire_async shall forget the new acquisition, release the lock and return a non-zero value. ]*/
                 LogLastError("failure in SetEvent(work_event=%p)", robust_semaphore->work_event);
                 robust_semaphore->acquisition_state = ACQUISITION_STATE_NONE;
                 result = MU_FAILURE;
@@ -682,9 +692,9 @@ void robust_semaphore_cancel(ROBUST_SEMAPHORE_HANDLE robust_semaphore)
         }
         else
         {
-            /*Codes_SRS_ROBUST_SEMAPHORE_01_030: [ If the current acquisition was not released and did not get a unit, robust_semaphore_cancel shall mark it as cancelled and signal the cancel event by calling SetEvent, logging any failure. ]*/
+            /*Codes_SRS_ROBUST_SEMAPHORE_01_030: [ If the current acquisition was not released and did not get a unit, robust_semaphore_cancel shall mark it as cancelled and signal the cancel event by calling SetEvent. ]*/
             robust_semaphore->acquisition_cancelled = true;
-            set_event(robust_semaphore->cancel_event, "cancel_event");
+            internal_set_event(robust_semaphore->cancel_event, "cancel_event");
         }
 
         /*Codes_SRS_ROBUST_SEMAPHORE_01_031: [ robust_semaphore_cancel shall release the lock. ]*/
@@ -704,7 +714,7 @@ void robust_semaphore_release(ROBUST_SEMAPHORE_HANDLE robust_semaphore)
         /*Codes_SRS_ROBUST_SEMAPHORE_01_033: [ robust_semaphore_release shall acquire the lock in exclusive mode. ]*/
         srw_lock_ll_acquire_exclusive(&robust_semaphore->lock);
 
-        internal_release(robust_semaphore);
+        internal_release_under_lock(robust_semaphore);
 
         /*Codes_SRS_ROBUST_SEMAPHORE_01_035: [ robust_semaphore_release shall release the lock. ]*/
         srw_lock_ll_release_exclusive(&robust_semaphore->lock);

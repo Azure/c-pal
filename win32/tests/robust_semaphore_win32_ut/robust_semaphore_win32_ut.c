@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#include "robust_semaphore_ut_pch.h"
+#include "robust_semaphore_win32_ut_pch.h"
 
 #include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 #undef ENABLE_MOCKS_DECL
@@ -475,12 +475,16 @@ TEST_FUNCTION(robust_semaphore_create_with_max_count_above_the_limit_fails)
 /*Tests_SRS_ROBUST_SEMAPHORE_01_004: [ robust_semaphore_create shall allocate memory for the robust semaphore object. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_005: [ robust_semaphore_create shall initialize a lock by calling srw_lock_ll_init. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_006: [ If security_descriptor is not NULL, robust_semaphore_create shall convert it by calling ConvertStringSecurityDescriptorToSecurityDescriptorA. ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_007: [ For each unit i, robust_semaphore_create shall build the mutex name <name>_<i> by calling sprintf_char. ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_008: [ For each unit i, robust_semaphore_create shall create or open the mutex by calling CreateMutexExA with the converted security descriptor, the mutex name and SYNCHRONIZE | MUTEX_MODIFY_STATE access, and free the mutex name. ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_009: [ robust_semaphore_create shall free the converted security descriptor by calling LocalFree and log any failure. ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_010: [ robust_semaphore_create shall create an auto reset work event, a manual reset cancel event and a manual reset release event by calling CreateEventA. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_007: [ build the mutex name <name>_<i> by calling sprintf_char. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_008: [ create or open the mutex by calling CreateMutexExA with the converted security descriptor, the mutex name and SYNCHRONIZE | MUTEX_MODIFY_STATE access. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_009: [ robust_semaphore_create shall free the converted security descriptor by calling LocalFree. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_010: [ robust_semaphore_create shall create an auto reset work event by calling CreateEventA. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_011: [ robust_semaphore_create shall start the worker thread by calling ThreadAPI_Create with robust_semaphore_worker_thread. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_012: [ robust_semaphore_create shall succeed and return the robust semaphore object. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_054: [ For each unit i, robust_semaphore_create shall: ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_055: [ free the mutex name. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_056: [ robust_semaphore_create shall create a manual reset cancel event by calling CreateEventA. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_057: [ robust_semaphore_create shall create a manual reset release event by calling CreateEventA. ]*/
 TEST_FUNCTION(robust_semaphore_create_succeeds)
 {
     // arrange
@@ -516,8 +520,10 @@ TEST_FUNCTION(robust_semaphore_create_with_NULL_security_descriptor_succeeds)
     end_worker_thread_and_destroy(result);
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_007: [ For each unit i, robust_semaphore_create shall build the mutex name <name>_<i> by calling sprintf_char. ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_008: [ For each unit i, robust_semaphore_create shall create or open the mutex by calling CreateMutexExA with the converted security descriptor, the mutex name and SYNCHRONIZE | MUTEX_MODIFY_STATE access, and free the mutex name. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_007: [ build the mutex name <name>_<i> by calling sprintf_char. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_008: [ create or open the mutex by calling CreateMutexExA with the converted security descriptor, the mutex name and SYNCHRONIZE | MUTEX_MODIFY_STATE access. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_054: [ For each unit i, robust_semaphore_create shall: ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_055: [ free the mutex name. ]*/
 TEST_FUNCTION(robust_semaphore_create_with_ROBUST_SEMAPHORE_MAX_COUNT_creates_all_the_mutexes)
 {
     // arrange
@@ -550,7 +556,7 @@ TEST_FUNCTION(robust_semaphore_create_with_ROBUST_SEMAPHORE_MAX_COUNT_creates_al
     robust_semaphore_destroy(result);
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_009: [ robust_semaphore_create shall free the converted security descriptor by calling LocalFree and log any failure. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_009: [ robust_semaphore_create shall free the converted security descriptor by calling LocalFree. ]*/
 TEST_FUNCTION(robust_semaphore_create_succeeds_when_LocalFree_fails)
 {
     // arrange
@@ -582,7 +588,7 @@ TEST_FUNCTION(robust_semaphore_create_succeeds_when_LocalFree_fails)
     end_worker_thread_and_destroy(result);
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle (logging any failure), free the memory it allocated and fail and return NULL. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle, free the memory it allocated and return NULL. ]*/
 TEST_FUNCTION(when_underlying_calls_fail_robust_semaphore_create_fails)
 {
     // arrange
@@ -609,7 +615,7 @@ TEST_FUNCTION(when_underlying_calls_fail_robust_semaphore_create_fails)
     }
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle (logging any failure), free the memory it allocated and fail and return NULL. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle, free the memory it allocated and return NULL. ]*/
 TEST_FUNCTION(when_ThreadAPI_Create_fails_robust_semaphore_create_closes_all_the_handles_even_when_CloseHandle_fails)
 {
     // arrange
@@ -656,7 +662,7 @@ TEST_FUNCTION(when_ThreadAPI_Create_fails_robust_semaphore_create_closes_all_the
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle (logging any failure), free the memory it allocated and fail and return NULL. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle, free the memory it allocated and return NULL. ]*/
 TEST_FUNCTION(when_CreateMutexExA_fails_for_the_second_unit_robust_semaphore_create_closes_the_first_mutex)
 {
     // arrange
@@ -703,7 +709,9 @@ TEST_FUNCTION(robust_semaphore_destroy_with_NULL_returns)
 /*Tests_SRS_ROBUST_SEMAPHORE_01_015: [ robust_semaphore_destroy shall acquire the lock in exclusive mode. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_016: [ robust_semaphore_destroy shall mark the object as being destroyed, release the current acquisition as robust_semaphore_release does and wake the worker thread by calling SetEvent on the work event. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_018: [ Otherwise robust_semaphore_destroy shall release the lock and wait for the worker thread to end by calling ThreadAPI_Join. ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_019: [ robust_semaphore_destroy shall close the mutexes and the events by calling CloseHandle (logging any failure), deinitialize the lock and free the robust semaphore object. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_019: [ robust_semaphore_destroy shall close the mutexes and the events by calling CloseHandle. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_058: [ robust_semaphore_destroy shall deinitialize the lock by calling srw_lock_ll_deinit. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_059: [ robust_semaphore_destroy shall free the robust semaphore object. ]*/
 TEST_FUNCTION(robust_semaphore_destroy_wakes_waits_for_and_frees)
 {
     // arrange
@@ -751,7 +759,7 @@ TEST_FUNCTION(robust_semaphore_destroy_cancels_a_pending_acquisition_and_the_wor
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_053: [ If ThreadAPI_Join fails, robust_semaphore_destroy shall log an error and return without freeing the object, because the worker thread may still use it. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_053: [ If ThreadAPI_Join fails, robust_semaphore_destroy shall return without freeing the object, because the worker thread may still use it. ]*/
 TEST_FUNCTION(when_ThreadAPI_Join_fails_robust_semaphore_destroy_does_not_free_the_object)
 {
     // arrange
@@ -774,7 +782,7 @@ TEST_FUNCTION(when_ThreadAPI_Join_fails_robust_semaphore_destroy_does_not_free_t
     test_destroy(robust_semaphore);
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_019: [ robust_semaphore_destroy shall close the mutexes and the events by calling CloseHandle (logging any failure), deinitialize the lock and free the robust semaphore object. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_019: [ robust_semaphore_destroy shall close the mutexes and the events by calling CloseHandle. ]*/
 TEST_FUNCTION(robust_semaphore_destroy_frees_the_object_even_when_CloseHandle_fails)
 {
     // arrange
@@ -806,8 +814,9 @@ TEST_FUNCTION(robust_semaphore_destroy_frees_the_object_even_when_CloseHandle_fa
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_017: [ If robust_semaphore_destroy is called on the worker thread, it shall log an error, mark the worker thread as the one that frees the object, release the lock and return. ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_049: [ If robust_semaphore_destroy was called on the worker thread, before returning robust_semaphore_worker_thread shall close the mutexes, the events and its own thread handle by calling CloseHandle (logging any failure), deinitialize the lock and free the robust semaphore object. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_017: [ If robust_semaphore_destroy is called on the worker thread, it shall mark the worker thread as the one that frees the object, release the lock and return. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_049: [ If robust_semaphore_destroy was called on the worker thread, before returning robust_semaphore_worker_thread shall close its own thread handle by calling CloseHandle. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_060: [ If robust_semaphore_destroy was called on the worker thread, before returning robust_semaphore_worker_thread shall free the robust semaphore object as robust_semaphore_destroy does. ]*/
 TEST_FUNCTION(robust_semaphore_destroy_called_from_on_acquire_complete_lets_the_worker_thread_free_the_object)
 {
     // arrange
@@ -922,7 +931,7 @@ TEST_FUNCTION(robust_semaphore_acquire_async_while_an_acquisition_is_in_progress
     end_worker_thread_and_destroy(robust_semaphore);
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_027: [ If SetEvent fails, robust_semaphore_acquire_async shall forget the new acquisition, release the lock and fail and return a non-zero value. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_027: [ If SetEvent fails, robust_semaphore_acquire_async shall forget the new acquisition, release the lock and return a non-zero value. ]*/
 TEST_FUNCTION(when_SetEvent_fails_robust_semaphore_acquire_async_fails_and_a_new_acquisition_can_be_started)
 {
     // arrange
@@ -1005,7 +1014,7 @@ TEST_FUNCTION(robust_semaphore_cancel_with_NULL_returns)
 }
 
 /*Tests_SRS_ROBUST_SEMAPHORE_01_029: [ robust_semaphore_cancel shall acquire the lock in exclusive mode. ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_030: [ If the current acquisition was not released and did not get a unit, robust_semaphore_cancel shall mark it as cancelled and signal the cancel event by calling SetEvent, logging any failure. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_030: [ If the current acquisition was not released and did not get a unit, robust_semaphore_cancel shall mark it as cancelled and signal the cancel event by calling SetEvent. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_031: [ robust_semaphore_cancel shall release the lock. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_038: [ If the acquisition was already cancelled or released, robust_semaphore_worker_thread shall end it and call on_acquire_complete with ROBUST_SEMAPHORE_ACQUIRE_CANCELLED and ROBUST_SEMAPHORE_UNIT_INDEX_NONE without waiting for a unit. ]*/
 TEST_FUNCTION(robust_semaphore_cancel_of_an_acquisition_not_taken_yet_completes_it_with_CANCELLED_without_waiting)
@@ -1035,7 +1044,7 @@ TEST_FUNCTION(robust_semaphore_cancel_of_an_acquisition_not_taken_yet_completes_
     test_destroy(robust_semaphore);
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_030: [ If the current acquisition was not released and did not get a unit, robust_semaphore_cancel shall mark it as cancelled and signal the cancel event by calling SetEvent, logging any failure. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_030: [ If the current acquisition was not released and did not get a unit, robust_semaphore_cancel shall mark it as cancelled and signal the cancel event by calling SetEvent. ]*/
 TEST_FUNCTION(robust_semaphore_cancel_without_an_acquisition_does_nothing)
 {
     // arrange
@@ -1053,7 +1062,7 @@ TEST_FUNCTION(robust_semaphore_cancel_without_an_acquisition_does_nothing)
     end_worker_thread_and_destroy(robust_semaphore);
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_030: [ If the current acquisition was not released and did not get a unit, robust_semaphore_cancel shall mark it as cancelled and signal the cancel event by calling SetEvent, logging any failure. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_030: [ If the current acquisition was not released and did not get a unit, robust_semaphore_cancel shall mark it as cancelled and signal the cancel event by calling SetEvent. ]*/
 TEST_FUNCTION(robust_semaphore_cancel_when_SetEvent_fails_still_cancels)
 {
     // arrange
@@ -1100,7 +1109,7 @@ TEST_FUNCTION(robust_semaphore_release_with_NULL_returns)
 }
 
 /*Tests_SRS_ROBUST_SEMAPHORE_01_033: [ robust_semaphore_release shall acquire the lock in exclusive mode. ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_034: [ If there is a current acquisition that was not released, robust_semaphore_release shall mark it as released and signal the cancel event and the release event by calling SetEvent, logging any failure. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_034: [ If there is a current acquisition that was not released, robust_semaphore_release shall mark it as released and signal the cancel event and the release event by calling SetEvent. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_035: [ robust_semaphore_release shall release the lock. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_038: [ If the acquisition was already cancelled or released, robust_semaphore_worker_thread shall end it and call on_acquire_complete with ROBUST_SEMAPHORE_ACQUIRE_CANCELLED and ROBUST_SEMAPHORE_UNIT_INDEX_NONE without waiting for a unit. ]*/
 TEST_FUNCTION(robust_semaphore_release_of_an_acquisition_not_taken_yet_completes_it_with_CANCELLED)
@@ -1140,7 +1149,7 @@ TEST_FUNCTION(robust_semaphore_release_of_an_acquisition_not_taken_yet_completes
     test_destroy(robust_semaphore);
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_034: [ If there is a current acquisition that was not released, robust_semaphore_release shall mark it as released and signal the cancel event and the release event by calling SetEvent, logging any failure. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_034: [ If there is a current acquisition that was not released, robust_semaphore_release shall mark it as released and signal the cancel event and the release event by calling SetEvent. ]*/
 TEST_FUNCTION(robust_semaphore_release_twice_signals_the_events_once)
 {
     // arrange
@@ -1161,7 +1170,7 @@ TEST_FUNCTION(robust_semaphore_release_twice_signals_the_events_once)
     end_worker_thread_and_destroy(robust_semaphore);
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_034: [ If there is a current acquisition that was not released, robust_semaphore_release shall mark it as released and signal the cancel event and the release event by calling SetEvent, logging any failure. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_034: [ If there is a current acquisition that was not released, robust_semaphore_release shall mark it as released and signal the cancel event and the release event by calling SetEvent. ]*/
 TEST_FUNCTION(robust_semaphore_release_without_an_acquisition_does_nothing)
 {
     // arrange
@@ -1180,7 +1189,7 @@ TEST_FUNCTION(robust_semaphore_release_without_an_acquisition_does_nothing)
 }
 
 /*Tests_SRS_ROBUST_SEMAPHORE_01_051: [ If the current acquisition holds a unit, robust_semaphore_release shall end it. ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_047: [ If a unit was acquired, robust_semaphore_worker_thread shall release the mutex by calling ReleaseMutex (logging any failure) and, if the acquisition still holds the unit (it was not released), end it. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_047: [ If a unit was acquired, robust_semaphore_worker_thread shall release the mutex by calling ReleaseMutex and, if the acquisition still holds the unit (it was not released), end it. ]*/
 TEST_FUNCTION(releasing_a_held_unit_from_on_acquire_complete_ends_the_acquisition_and_a_new_one_can_start_right_away)
 {
     // arrange
@@ -1231,11 +1240,11 @@ TEST_FUNCTION(releasing_a_held_unit_from_on_acquire_complete_ends_the_acquisitio
 //
 
 /*Tests_SRS_ROBUST_SEMAPHORE_01_036: [ robust_semaphore_worker_thread shall record the id of the worker thread by calling GetCurrentThreadId. ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_037: [ If there is a new acquisition, robust_semaphore_worker_thread shall take it and reset the cancel event and the release event by calling ResetEvent, logging any failure. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_037: [ If there is a new acquisition, robust_semaphore_worker_thread shall take it and reset the cancel event and the release event by calling ResetEvent. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_039: [ Otherwise robust_semaphore_worker_thread shall wait for the cancel event or any of the mutexes by calling WaitForMultipleObjects with the cancel event followed by the max_count mutexes, bWaitAll FALSE and timeout_ms as timeout (INFINITE if timeout_ms is ROBUST_SEMAPHORE_NO_TIMEOUT). ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_041: [ If WaitForMultipleObjects returns WAIT_OBJECT_0 + 1 + i or WAIT_ABANDONED_0 + 1 + i then robust_semaphore_worker_thread shall record the time the unit was acquired by calling timer_global_get_elapsed_ms, mark the acquisition as holding unit i and call on_acquire_complete with ROBUST_SEMAPHORE_ACQUIRE_OK and i. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_045: [ If a unit was acquired, after on_acquire_complete returns, robust_semaphore_worker_thread shall wait for the release event by calling WaitForSingleObject with what is left of max_hold_ms since the unit was acquired (measured by calling timer_global_get_elapsed_ms, 0 if max_hold_ms already passed, INFINITE if max_hold_ms is ROBUST_SEMAPHORE_NO_TIMEOUT). ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_047: [ If a unit was acquired, robust_semaphore_worker_thread shall release the mutex by calling ReleaseMutex (logging any failure) and, if the acquisition still holds the unit (it was not released), end it. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_047: [ If a unit was acquired, robust_semaphore_worker_thread shall release the mutex by calling ReleaseMutex and, if the acquisition still holds the unit (it was not released), end it. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_052: [ If there is no new acquisition and the object is not being destroyed, robust_semaphore_worker_thread shall wait for the work event by calling WaitForSingleObject with INFINITE timeout and then check again for a new acquisition. ]*/
 TEST_FUNCTION(robust_semaphore_worker_thread_acquires_unit_1_and_holds_it_until_released)
 {
@@ -1285,7 +1294,7 @@ TEST_FUNCTION(robust_semaphore_worker_thread_acquires_an_abandoned_unit)
     test_destroy(robust_semaphore);
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_037: [ If there is a new acquisition, robust_semaphore_worker_thread shall take it and reset the cancel event and the release event by calling ResetEvent, logging any failure. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_037: [ If there is a new acquisition, robust_semaphore_worker_thread shall take it and reset the cancel event and the release event by calling ResetEvent. ]*/
 TEST_FUNCTION(robust_semaphore_worker_thread_waits_for_a_unit_even_when_ResetEvent_fails)
 {
     // arrange
@@ -1356,7 +1365,7 @@ TEST_FUNCTION(robust_semaphore_worker_thread_completes_with_TIMEOUT_when_no_unit
     test_destroy(robust_semaphore);
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_043: [ If WaitForMultipleObjects returns any other value then robust_semaphore_worker_thread shall log the error, end the acquisition and call on_acquire_complete with ROBUST_SEMAPHORE_ACQUIRE_ERROR and ROBUST_SEMAPHORE_UNIT_INDEX_NONE. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_043: [ If WaitForMultipleObjects returns any other value then robust_semaphore_worker_thread shall end the acquisition and call on_acquire_complete with ROBUST_SEMAPHORE_ACQUIRE_ERROR and ROBUST_SEMAPHORE_UNIT_INDEX_NONE. ]*/
 TEST_FUNCTION(robust_semaphore_worker_thread_completes_with_ERROR_when_WaitForMultipleObjects_fails)
 {
     // arrange
@@ -1434,7 +1443,7 @@ TEST_FUNCTION(robust_semaphore_worker_thread_holds_the_unit_for_what_is_left_of_
 }
 
 /*Tests_SRS_ROBUST_SEMAPHORE_01_045: [ If a unit was acquired, after on_acquire_complete returns, robust_semaphore_worker_thread shall wait for the release event by calling WaitForSingleObject with what is left of max_hold_ms since the unit was acquired (measured by calling timer_global_get_elapsed_ms, 0 if max_hold_ms already passed, INFINITE if max_hold_ms is ROBUST_SEMAPHORE_NO_TIMEOUT). ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_046: [ If waiting for the release event times out then robust_semaphore_worker_thread shall log an error and release the mutex early by calling ReleaseMutex. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_046: [ If waiting for the release event times out then robust_semaphore_worker_thread shall release the mutex early by calling ReleaseMutex. ]*/
 TEST_FUNCTION(robust_semaphore_worker_thread_releases_the_unit_right_away_when_on_acquire_complete_runs_longer_than_max_hold_ms)
 {
     // arrange
@@ -1457,8 +1466,8 @@ TEST_FUNCTION(robust_semaphore_worker_thread_releases_the_unit_right_away_when_o
     test_destroy(robust_semaphore);
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_046: [ If waiting for the release event times out then robust_semaphore_worker_thread shall log an error and release the mutex early by calling ReleaseMutex. ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_047: [ If a unit was acquired, robust_semaphore_worker_thread shall release the mutex by calling ReleaseMutex (logging any failure) and, if the acquisition still holds the unit (it was not released), end it. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_046: [ If waiting for the release event times out then robust_semaphore_worker_thread shall release the mutex early by calling ReleaseMutex. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_047: [ If a unit was acquired, robust_semaphore_worker_thread shall release the mutex by calling ReleaseMutex and, if the acquisition still holds the unit (it was not released), end it. ]*/
 TEST_FUNCTION(robust_semaphore_worker_thread_releases_the_unit_early_when_max_hold_ms_expires_and_a_new_acquisition_can_start)
 {
     // arrange
@@ -1492,7 +1501,7 @@ TEST_FUNCTION(robust_semaphore_worker_thread_releases_the_unit_early_when_max_ho
     test_destroy(robust_semaphore);
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_047: [ If a unit was acquired, robust_semaphore_worker_thread shall release the mutex by calling ReleaseMutex (logging any failure) and, if the acquisition still holds the unit (it was not released), end it. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_047: [ If a unit was acquired, robust_semaphore_worker_thread shall release the mutex by calling ReleaseMutex and, if the acquisition still holds the unit (it was not released), end it. ]*/
 TEST_FUNCTION(robust_semaphore_worker_thread_ends_the_acquisition_even_when_ReleaseMutex_and_the_release_wait_fail)
 {
     // arrange
@@ -1535,7 +1544,7 @@ TEST_FUNCTION(robust_semaphore_worker_thread_ends_the_acquisition_even_when_Rele
     test_destroy(robust_semaphore);
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_050: [ If WaitForSingleObject on the work event fails, robust_semaphore_worker_thread shall log the error, mark the worker thread as ended, end a new acquisition it did not take yet and call its on_acquire_complete with ROBUST_SEMAPHORE_ACQUIRE_ERROR and ROBUST_SEMAPHORE_UNIT_INDEX_NONE, and return 0. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_050: [ If WaitForSingleObject on the work event fails, robust_semaphore_worker_thread shall mark the worker thread as ended, end a new acquisition it did not take yet and call its on_acquire_complete with ROBUST_SEMAPHORE_ACQUIRE_ERROR and ROBUST_SEMAPHORE_UNIT_INDEX_NONE, and return 0. ]*/
 TEST_FUNCTION(when_waiting_for_the_work_event_fails_robust_semaphore_worker_thread_completes_a_new_acquisition_with_ERROR_and_ends)
 {
     // arrange

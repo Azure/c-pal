@@ -65,7 +65,7 @@ set(pal_win32_c_files
     src/${gballoc_ll_c}
     src/${gballoc_hl_c}
     src/job_object_helper.c
-    src/robust_semaphore.c
+    src/robust_semaphore_win32.c
 )
 
 FILE(GLOB pal_win32_md_files "devdoc/*.md")

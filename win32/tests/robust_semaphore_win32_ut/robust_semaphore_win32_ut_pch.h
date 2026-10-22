@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-// Precompiled header for robust_semaphore_ut
+// Precompiled header for robust_semaphore_win32_ut
 
-#ifndef ROBUST_SEMAPHORE_UT_PCH_H
-#define ROBUST_SEMAPHORE_UT_PCH_H
+#ifndef ROBUST_SEMAPHORE_WIN32_UT_PCH_H
+#define ROBUST_SEMAPHORE_WIN32_UT_PCH_H
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -45,4 +45,4 @@
 
 #include "c_pal/robust_semaphore.h"
 
-#endif // ROBUST_SEMAPHORE_UT_PCH_H
+#endif // ROBUST_SEMAPHORE_WIN32_UT_PCH_H

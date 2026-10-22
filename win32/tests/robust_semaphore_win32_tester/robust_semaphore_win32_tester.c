@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+/* robust_semaphore_win32_int starts this process to hold a unit of a robust semaphore from another process, then kills it to check that the unit is given back */
+
 #include <stdio.h>
 #include <stdint.h>
 
@@ -41,7 +43,7 @@ int main(int argc, char* argv[])
 
     if (argc != 3)
     {
-        (void)printf("Usage: robust_semaphore_tester.exe <RobustSemaphoreName> <HeldEventName>\n");
+        (void)printf("Usage: robust_semaphore_win32_tester.exe <RobustSemaphoreName> <HeldEventName>\n");
         result = 1;
     }
     else if (gballoc_hl_init(NULL, NULL) != 0)

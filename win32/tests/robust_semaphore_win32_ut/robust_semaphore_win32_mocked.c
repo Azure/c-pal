@@ -28,4 +28,4 @@ DWORD WINAPI mocked_WaitForSingleObject(HANDLE hHandle, DWORD dwMilliseconds);
 BOOL WINAPI mocked_ReleaseMutex(HANDLE hMutex);
 DWORD WINAPI mocked_GetCurrentThreadId(void);
 
-#include "../../src/robust_semaphore.c"
+#include "../../src/robust_semaphore_win32.c"

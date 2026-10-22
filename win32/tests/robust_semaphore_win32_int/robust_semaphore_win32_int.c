@@ -258,7 +258,7 @@ static void get_tester_path(char* tester_path, DWORD tester_path_size)
     char* last_separator = strrchr(tester_path, '\\');
     ASSERT_IS_NOT_NULL(last_separator);
     last_separator[1] = '\0';
-    ASSERT_ARE_EQUAL(int, 0, strcat_s(tester_path, tester_path_size, "..\\robust_semaphore_tester\\robust_semaphore_tester.exe"));
+    ASSERT_ARE_EQUAL(int, 0, strcat_s(tester_path, tester_path_size, "..\\robust_semaphore_win32_tester\\robust_semaphore_win32_tester.exe"));
 }
 
 /* starts a process that holds a unit of the semaphore, in a job that kills it when the test ends */
@@ -395,7 +395,7 @@ TEST_FUNCTION_INITIALIZE(method_init)
 
     /* unique per test, so that tests (and parallel test runs) do not share units */
     static volatile_atomic int32_t test_index;
-    ASSERT_IS_TRUE(snprintf(test_semaphore_name, sizeof(test_semaphore_name), "Local\\robust_semaphore_int_%lu_%" PRId32 "", GetCurrentProcessId(), interlocked_increment(&test_index)) > 0);
+    ASSERT_IS_TRUE(snprintf(test_semaphore_name, sizeof(test_semaphore_name), "Local\\robust_semaphore_win32_int_%lu_%" PRId32 "", GetCurrentProcessId(), interlocked_increment(&test_index)) > 0);
 }
 
 /* when a test fails it may leave a tester process and robust semaphore objects behind */
