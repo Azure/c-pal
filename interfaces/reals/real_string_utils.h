@@ -4,7 +4,8 @@
 #ifndef REAL_STRING_UTILS_H
 #define REAL_STRING_UTILS_H
 
-#ifndef __cplusplus
+#ifdef __cplusplus
+#else
 #include <stdbool.h>
 #endif
 
