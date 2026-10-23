@@ -4,7 +4,6 @@
 #define SRW_LOCK_LL_H
 
 #ifdef __cplusplus
-#include <cstdbool>
 #else
 #include <stdbool.h>
 #endif

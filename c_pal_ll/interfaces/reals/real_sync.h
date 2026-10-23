@@ -5,7 +5,6 @@
 #define REAL_SYNC_H
 
 #ifdef __cplusplus
-#include <cstdbool>
 #include <cstdint>
 #else
 #include <stdbool.h>
