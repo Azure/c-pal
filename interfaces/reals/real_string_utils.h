@@ -5,7 +5,6 @@
 #define REAL_STRING_UTILS_H
 
 #ifdef __cplusplus
-#include <cstdbool>
 #else
 #include <stdbool.h>
 #endif
