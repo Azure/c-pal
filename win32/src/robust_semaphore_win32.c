@@ -268,8 +268,6 @@ static int robust_semaphore_worker_thread(void* context)
     /*Codes_SRS_ROBUST_SEMAPHORE_01_036: [ robust_semaphore_worker_thread shall record the id of the worker thread by calling GetCurrentThreadId. ]*/
     (void)interlocked_exchange(&robust_semaphore->worker_thread_id, (int32_t)GetCurrentThreadId());
 
-    bool worker_frees_object = false;
-    THREAD_HANDLE worker_thread = NULL;
     bool exit_thread = false;
     while (!exit_thread)
     {
@@ -310,8 +308,6 @@ static int robust_semaphore_worker_thread(void* context)
             /* thread ids are reused: a stale id would make robust_semaphore_destroy called on an unrelated thread look like it is called on the worker thread */
             robust_semaphore->worker_running = false;
             (void)interlocked_exchange(&robust_semaphore->worker_thread_id, 0);
-            worker_frees_object = robust_semaphore->worker_frees_object;
-            worker_thread = robust_semaphore->worker_thread;
 
             /*Codes_SRS_ROBUST_SEMAPHORE_01_071: [ robust_semaphore_worker_thread shall then release the lock and return 0 without taking the lock again. ]*/
             /* robust_semaphore_acquire_async and robust_semaphore_destroy may wait for this thread to end while holding the lock */
@@ -320,7 +316,8 @@ static int robust_semaphore_worker_thread(void* context)
         }
     }
 
-    if (!worker_frees_object)
+    /* the object is still allocated: robust_semaphore_destroy frees it only after this thread ended, unless it was called on this thread */
+    if (!robust_semaphore->worker_frees_object)
     {
         /* do nothing, robust_semaphore_acquire_async or robust_semaphore_destroy waits for this thread */
     }
@@ -328,7 +325,7 @@ static int robust_semaphore_worker_thread(void* context)
     {
         /*Codes_SRS_ROBUST_SEMAPHORE_01_049: [ If robust_semaphore_destroy was called on the worker thread, before returning robust_semaphore_worker_thread shall close its own thread handle by calling CloseHandle. ]*/
         /* nobody joins this thread, on Windows THREAD_HANDLE is the thread HANDLE */
-        internal_close_handle((HANDLE)worker_thread, "worker_thread");
+        internal_close_handle((HANDLE)robust_semaphore->worker_thread, "worker_thread");
 
         /*Codes_SRS_ROBUST_SEMAPHORE_01_060: [ If robust_semaphore_destroy was called on the worker thread, before returning robust_semaphore_worker_thread shall free the robust semaphore object as robust_semaphore_destroy does. ]*/
         internal_free_robust_semaphore(robust_semaphore);
