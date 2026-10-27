@@ -145,10 +145,6 @@ MOCKABLE_FUNCTION(, int, robust_semaphore_acquire_async, ROBUST_SEMAPHORE_HANDLE
 
 On success, `on_acquire_complete` is called exactly once on the worker thread, which can happen before `robust_semaphore_acquire_async` returns.
 
-If no worker thread is running, `robust_semaphore_acquire_async` starts one. If a worker thread is running (`robust_semaphore_acquire_async` is called from `on_acquire_complete`, or the worker thread is still releasing the mutex of the previous acquisition), the running worker thread takes the new acquisition when its current one ends.
-
-`ThreadAPI_Join` closes the thread handle even when it fails, so after a failure the previous worker thread is not waited for again. It already decided to exit and does not use the object anymore.
-
 **SRS_ROBUST_SEMAPHORE_01_020: [** If `robust_semaphore` is `NULL` then `robust_semaphore_acquire_async` shall fail and return a non-zero value. **]**
 
 **SRS_ROBUST_SEMAPHORE_01_021: [** If `on_acquire_complete` is `NULL` then `robust_semaphore_acquire_async` shall fail and return a non-zero value. **]**
