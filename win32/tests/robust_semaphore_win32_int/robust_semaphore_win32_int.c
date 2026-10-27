@@ -42,6 +42,8 @@ typedef struct TEST_USER_TAG
     volatile_atomic int32_t released;
     volatile_atomic int64_t completed_ms;
     volatile_atomic int32_t slow_callback_returned_at_completion;
+    volatile_atomic int32_t worker_thread_id;   /* the thread that called on_acquire_complete */
+    void* volatile_atomic worker_thread;        /* opened by on_acquire_complete_open_worker_thread, closed by the test or by method_cleanup */
 } TEST_USER;
 
 static TEST_USER test_users[MAX_TEST_USERS];
@@ -49,6 +51,8 @@ static volatile_atomic int32_t completed_count;
 static volatile_atomic int32_t current_holders;
 static volatile_atomic int32_t max_holders;
 static volatile_atomic int32_t slow_callback_returned;
+static volatile_atomic int32_t acquire_from_callback_result;
+static volatile_atomic int32_t first_worker_thread_id;
 static char test_semaphore_name[96];
 
 /* the tester process started by a test, killed and closed by method_cleanup (also when the test fails) */
@@ -76,6 +80,7 @@ static void on_acquire_complete(void* context, ROBUST_SEMAPHORE_ACQUIRE_RESULT r
 
     (void)interlocked_exchange(&test_user->unit_index, (int32_t)unit_index);
     (void)interlocked_exchange(&test_user->result, result);
+    (void)interlocked_exchange(&test_user->worker_thread_id, (int32_t)GetCurrentThreadId());
     (void)interlocked_exchange_64(&test_user->completed_ms, (int64_t)timer_global_get_elapsed_ms());
     (void)interlocked_exchange(&test_user->slow_callback_returned_at_completion, interlocked_add(&slow_callback_returned, 0));
     (void)interlocked_exchange(&test_user->completed, 1);
@@ -91,6 +96,8 @@ static void create_test_user(TEST_USER* test_user, const char* name, uint32_t ma
     (void)interlocked_exchange(&test_user->result, ROBUST_SEMAPHORE_ACQUIRE_ERROR);
     (void)interlocked_exchange(&test_user->unit_index, (int32_t)ROBUST_SEMAPHORE_UNIT_INDEX_NONE);
     (void)interlocked_exchange(&test_user->released, 0);
+    (void)interlocked_exchange(&test_user->worker_thread_id, 0);
+    (void)interlocked_exchange_pointer(&test_user->worker_thread, NULL);
 }
 
 static void create_test_users(uint32_t count, const char* name, uint32_t max_count)
@@ -179,6 +186,19 @@ static ROBUST_SEMAPHORE_ACQUIRE_RESULT get_result(TEST_USER* test_user)
     return (ROBUST_SEMAPHORE_ACQUIRE_RESULT)interlocked_add(&test_user->result, 0);
 }
 
+static void close_test_user_worker_thread(TEST_USER* test_user)
+{
+    HANDLE worker_thread = interlocked_exchange_pointer(&test_user->worker_thread, NULL);
+    if (worker_thread == NULL)
+    {
+        /* do nothing, no worker thread was opened */
+    }
+    else
+    {
+        (void)CloseHandle(worker_thread);
+    }
+}
+
 /* robust_semaphore_destroy completes a pending acquisition and waits for the worker thread */
 static void destroy_test_users(void)
 {
@@ -193,6 +213,7 @@ static void destroy_test_users(void)
             robust_semaphore_destroy(test_users[i].robust_semaphore);
             test_users[i].robust_semaphore = NULL;
         }
+        close_test_user_worker_thread(&test_users[i]);
     }
 }
 
@@ -370,6 +391,38 @@ static void on_acquire_complete_slow(void* context, ROBUST_SEMAPHORE_ACQUIRE_RES
     (void)interlocked_exchange(&slow_callback_returned, 1);
 }
 
+/* keeps a handle to the worker thread, to check later that it ended */
+static void on_acquire_complete_open_worker_thread(void* context, ROBUST_SEMAPHORE_ACQUIRE_RESULT result, uint32_t unit_index)
+{
+    TEST_USER* test_user = context;
+    HANDLE worker_thread = OpenThread(SYNCHRONIZE, FALSE, GetCurrentThreadId());
+    if (worker_thread == NULL)
+    {
+        /* do nothing, the test finds no worker thread handle (no ASSERTs, this is not the test thread) */
+    }
+    else
+    {
+        (void)interlocked_exchange_pointer(&test_user->worker_thread, worker_thread);
+    }
+    on_acquire_complete(context, result, unit_index);
+}
+
+/* gives the unit back and starts a new acquisition, which the worker thread that runs this callback takes when it returns */
+static void on_acquire_complete_release_and_acquire_again(void* context, ROBUST_SEMAPHORE_ACQUIRE_RESULT result, uint32_t unit_index)
+{
+    TEST_USER* test_user = context;
+    (void)interlocked_exchange(&first_worker_thread_id, (int32_t)GetCurrentThreadId());
+    on_acquire_complete(context, result, unit_index);
+    release_test_user(test_user);
+    (void)interlocked_exchange(&test_user->released, 0);
+    (void)interlocked_exchange(&acquire_from_callback_result, robust_semaphore_acquire_async(test_user->robust_semaphore, ROBUST_SEMAPHORE_NO_TIMEOUT, ROBUST_SEMAPHORE_NO_TIMEOUT, on_acquire_complete, test_user));
+}
+
+static HANDLE get_test_user_worker_thread(TEST_USER* test_user)
+{
+    return interlocked_compare_exchange_pointer(&test_user->worker_thread, NULL, NULL);
+}
+
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
 
 TEST_SUITE_INITIALIZE(suite_init)
@@ -389,6 +442,8 @@ TEST_FUNCTION_INITIALIZE(method_init)
     (void)interlocked_exchange(&max_holders, 0);
     (void)interlocked_exchange(&destroyed_from_callback, 0);
     (void)interlocked_exchange(&slow_callback_returned, 0);
+    (void)interlocked_exchange(&acquire_from_callback_result, MU_FAILURE);
+    (void)interlocked_exchange(&first_worker_thread_id, 0);
     test_job = NULL;
     test_held_event = NULL;
     (void)memset(&test_tester_process, 0, sizeof(test_tester_process));
@@ -804,6 +859,62 @@ TEST_FUNCTION(destroying_a_robust_semaphore_from_its_acquire_callback_releases_t
 
     // cleanup
     release_test_user(&test_users[1]);
+    wait_for_held_unit_count(test_semaphore_name, 1, 0);
+}
+
+/* the worker thread only lives while there is an acquisition, so an idle robust semaphore has no thread */
+TEST_FUNCTION(the_worker_thread_ends_when_the_unit_is_released_and_the_next_acquisition_starts_a_new_one)
+{
+    // arrange
+    create_test_users(1, test_semaphore_name, 1);
+    acquire_test_user_with_callback(&test_users[0], ROBUST_SEMAPHORE_NO_TIMEOUT, ROBUST_SEMAPHORE_NO_TIMEOUT, on_acquire_complete_open_worker_thread);
+    wait_for_completed_count(1);
+    ASSERT_ARE_EQUAL(ROBUST_SEMAPHORE_ACQUIRE_RESULT, ROBUST_SEMAPHORE_ACQUIRE_OK, get_result(&test_users[0]));
+    HANDLE first_worker_thread = get_test_user_worker_thread(&test_users[0]);
+    ASSERT_IS_NOT_NULL(first_worker_thread);
+
+    // act
+    release_test_user(&test_users[0]);
+
+    // assert
+    /* the worker thread ends while the robust semaphore still exists */
+    ASSERT_ARE_EQUAL(uint32_t, WAIT_OBJECT_0, (uint32_t)WaitForSingleObject(first_worker_thread, TEST_WAIT_TIMEOUT_MS), "the worker thread did not end after the unit was released");
+    close_test_user_worker_thread(&test_users[0]);
+    wait_for_held_unit_count(test_semaphore_name, 1, 0);
+
+    /* the next acquisition of the same robust semaphore starts a new worker thread, which ends too */
+    acquire_test_user_with_callback(&test_users[0], ROBUST_SEMAPHORE_NO_TIMEOUT, ROBUST_SEMAPHORE_NO_TIMEOUT, on_acquire_complete_open_worker_thread);
+    wait_for_completed_count(2);
+    ASSERT_ARE_EQUAL(ROBUST_SEMAPHORE_ACQUIRE_RESULT, ROBUST_SEMAPHORE_ACQUIRE_OK, get_result(&test_users[0]));
+    HANDLE second_worker_thread = get_test_user_worker_thread(&test_users[0]);
+    ASSERT_IS_NOT_NULL(second_worker_thread);
+    release_test_user(&test_users[0]);
+    ASSERT_ARE_EQUAL(uint32_t, WAIT_OBJECT_0, (uint32_t)WaitForSingleObject(second_worker_thread, TEST_WAIT_TIMEOUT_MS), "the second worker thread did not end after the unit was released");
+    wait_for_held_unit_count(test_semaphore_name, 1, 0);
+
+    // cleanup
+    close_test_user_worker_thread(&test_users[0]);
+    robust_semaphore_destroy(test_users[0].robust_semaphore);
+    test_users[0].robust_semaphore = NULL;
+}
+
+/* the worker thread is still running when on_acquire_complete starts a new acquisition, so it takes it instead of a new worker thread */
+TEST_FUNCTION(a_new_acquisition_started_from_on_acquire_complete_is_taken_by_the_same_worker_thread)
+{
+    // arrange
+    create_test_users(1, test_semaphore_name, 1);
+
+    // act
+    acquire_test_user_with_callback(&test_users[0], ROBUST_SEMAPHORE_NO_TIMEOUT, ROBUST_SEMAPHORE_NO_TIMEOUT, on_acquire_complete_release_and_acquire_again);
+
+    // assert
+    wait_for_completed_count(2);
+    ASSERT_ARE_EQUAL(int32_t, 0, interlocked_add(&acquire_from_callback_result, 0));
+    ASSERT_ARE_EQUAL(ROBUST_SEMAPHORE_ACQUIRE_RESULT, ROBUST_SEMAPHORE_ACQUIRE_OK, get_result(&test_users[0]));
+    ASSERT_ARE_EQUAL(int32_t, interlocked_add(&first_worker_thread_id, 0), interlocked_add(&test_users[0].worker_thread_id, 0));
+
+    // cleanup
+    release_test_user(&test_users[0]);
     wait_for_held_unit_count(test_semaphore_name, 1, 0);
 }
 

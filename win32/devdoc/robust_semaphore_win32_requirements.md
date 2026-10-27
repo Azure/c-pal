@@ -19,9 +19,11 @@ So a `robust_semaphore` named `name` with `max_count` units is made of `max_coun
 ### Parts
 
 - **The robust semaphore object** (`ROBUST_SEMAPHORE_HANDLE`). Each user (for example each process or each component that needs a unit) creates its own. It opens the `max_count` mutexes once, at create. It supports one acquisition at a time: a new acquisition can be started once the previous one ended. An acquisition that got a unit ends when it is released (or when `max_hold_ms` expires); an acquisition that did not get a unit ends just before its `on_acquire_complete` is called (so the callback can start a new one). The worker thread releases the mutex of a released acquisition before it takes the next one.
-- **The worker thread** (`robust_semaphore_worker_thread`). Started at create and joined at destroy. Because a mutex belongs to the thread that acquired it, the worker thread is the only thread that waits on and releases the mutexes. It waits for a unit, calls `on_acquire_complete`, holds the unit until it is released, releases it, and then waits for the next acquisition.
+- **The worker thread** (`robust_semaphore_worker_thread`). Because a mutex belongs to the thread that acquired it, the worker thread is the only thread that waits on and releases the mutexes. It waits for a unit, calls `on_acquire_complete`, holds the unit until it is released and releases it. The worker thread only exists while there is an acquisition, so an idle robust semaphore object has no thread:
+  - `robust_semaphore_acquire_async` starts a worker thread when none is running (after waiting for the previous one, which already decided to exit, to end).
+  - When its acquisition ended, the worker thread takes the next acquisition if one was started in the meantime (for example from `on_acquire_complete`, or after a release while the worker thread was still releasing the mutex). Otherwise it exits. The decision to exit is made under the lock, and the exiting worker thread does not take the lock again, so `robust_semaphore_acquire_async` can wait for it while holding the lock.
+  - `robust_semaphore_destroy` waits for the worker thread to end, if one was started.
 - **The events**, each with one job:
-  - **work event** (auto reset): an acquisition was requested, or the object is being destroyed. Wakes the worker thread when it is idle.
   - **cancel event** (manual reset): stop waiting for a unit.
   - **release event** (manual reset): stop holding the unit.
 
@@ -29,7 +31,7 @@ So a `robust_semaphore` named `name` with `max_count` units is made of `max_coun
 
 | State | Entered when | Worker thread | Leaves when |
 |---|---|---|---|
-| IDLE | create, or the previous acquisition ended | waits for the work event | `robust_semaphore_acquire_async` (to WAITING) or `robust_semaphore_destroy` (worker thread exits) |
+| IDLE | create, or the previous acquisition ended | takes the next acquisition if one was started, otherwise exits (there is no worker thread while the object is idle) | `robust_semaphore_acquire_async` (to WAITING, starting a worker thread if none is running) |
 | WAITING | the worker thread picks up the acquisition | waits for the cancel event or any of the mutexes, up to `timeout_ms` | a unit is acquired (to HOLDING, `on_acquire_complete` called with `ROBUST_SEMAPHORE_ACQUIRE_OK`), or cancel/release/destroy, timeout or error (to IDLE, `on_acquire_complete` called with the result) |
 | HOLDING | a mutex was acquired | calls `on_acquire_complete`, then waits for the release event, up to what is left of `max_hold_ms` | release/destroy, or `max_hold_ms` expired (the mutex is released early): the worker thread releases the mutex (to IDLE) |
 
@@ -99,13 +101,9 @@ MOCKABLE_FUNCTION(, ROBUST_SEMAPHORE_HANDLE, robust_semaphore_create, const char
 
 **SRS_ROBUST_SEMAPHORE_01_009: [** `robust_semaphore_create` shall free the converted security descriptor by calling `LocalFree`. **]**
 
-**SRS_ROBUST_SEMAPHORE_01_010: [** `robust_semaphore_create` shall create an auto reset work event by calling `CreateEventA`. **]**
-
 **SRS_ROBUST_SEMAPHORE_01_056: [** `robust_semaphore_create` shall create a manual reset cancel event by calling `CreateEventA`. **]**
 
 **SRS_ROBUST_SEMAPHORE_01_057: [** `robust_semaphore_create` shall create a manual reset release event by calling `CreateEventA`. **]**
-
-**SRS_ROBUST_SEMAPHORE_01_011: [** `robust_semaphore_create` shall start the worker thread by calling `ThreadAPI_Create` with `robust_semaphore_worker_thread`. **]**
 
 **SRS_ROBUST_SEMAPHORE_01_012: [** `robust_semaphore_create` shall succeed and return the robust semaphore object. **]**
 
@@ -117,17 +115,17 @@ MOCKABLE_FUNCTION(, ROBUST_SEMAPHORE_HANDLE, robust_semaphore_create, const char
 MOCKABLE_FUNCTION(, void, robust_semaphore_destroy, ROBUST_SEMAPHORE_HANDLE, robust_semaphore);
 ```
 
-`robust_semaphore_destroy` releases the unit, stops the worker thread and frees the robust semaphore object. If an acquisition is still waiting, `on_acquire_complete` is called with `ROBUST_SEMAPHORE_ACQUIRE_CANCELLED` before `robust_semaphore_destroy` returns.
+`robust_semaphore_destroy` releases the unit, waits for the worker thread to end (if one was started) and frees the robust semaphore object. If an acquisition is still waiting, `on_acquire_complete` is called with `ROBUST_SEMAPHORE_ACQUIRE_CANCELLED` before `robust_semaphore_destroy` returns.
 
 **SRS_ROBUST_SEMAPHORE_01_014: [** If `robust_semaphore` is `NULL` then `robust_semaphore_destroy` shall return. **]**
 
 **SRS_ROBUST_SEMAPHORE_01_015: [** `robust_semaphore_destroy` shall acquire the lock in exclusive mode. **]**
 
-**SRS_ROBUST_SEMAPHORE_01_016: [** `robust_semaphore_destroy` shall mark the object as being destroyed, release the current acquisition as `robust_semaphore_release` does and wake the worker thread by calling `SetEvent` on the work event. **]**
+**SRS_ROBUST_SEMAPHORE_01_061: [** `robust_semaphore_destroy` shall mark the object as being destroyed and release the current acquisition as `robust_semaphore_release` does. **]**
 
 **SRS_ROBUST_SEMAPHORE_01_017: [** If `robust_semaphore_destroy` is called on the worker thread, it shall mark the worker thread as the one that frees the object, release the lock and return. **]**
 
-**SRS_ROBUST_SEMAPHORE_01_018: [** Otherwise `robust_semaphore_destroy` shall release the lock and wait for the worker thread to end by calling `ThreadAPI_Join`. **]**
+**SRS_ROBUST_SEMAPHORE_01_062: [** Otherwise `robust_semaphore_destroy` shall release the lock and, if a worker thread was started, wait for it to end by calling `ThreadAPI_Join`. **]**
 
 **SRS_ROBUST_SEMAPHORE_01_053: [** If `ThreadAPI_Join` fails, `robust_semaphore_destroy` shall return without freeing the object, because the worker thread may still use it. **]**
 
@@ -147,21 +145,33 @@ MOCKABLE_FUNCTION(, int, robust_semaphore_acquire_async, ROBUST_SEMAPHORE_HANDLE
 
 On success, `on_acquire_complete` is called exactly once on the worker thread, which can happen before `robust_semaphore_acquire_async` returns.
 
+If no worker thread is running, `robust_semaphore_acquire_async` starts one. If a worker thread is running (`robust_semaphore_acquire_async` is called from `on_acquire_complete`, or the worker thread is still releasing the mutex of the previous acquisition), the running worker thread takes the new acquisition when its current one ends.
+
+`ThreadAPI_Join` closes the thread handle even when it fails, so after a failure the previous worker thread is not waited for again. It already decided to exit and does not use the object anymore.
+
 **SRS_ROBUST_SEMAPHORE_01_020: [** If `robust_semaphore` is `NULL` then `robust_semaphore_acquire_async` shall fail and return a non-zero value. **]**
 
 **SRS_ROBUST_SEMAPHORE_01_021: [** If `on_acquire_complete` is `NULL` then `robust_semaphore_acquire_async` shall fail and return a non-zero value. **]**
 
 **SRS_ROBUST_SEMAPHORE_01_022: [** `robust_semaphore_acquire_async` shall acquire the lock in exclusive mode. **]**
 
-**SRS_ROBUST_SEMAPHORE_01_023: [** If the object is being destroyed or its worker thread ended, `robust_semaphore_acquire_async` shall fail and return a non-zero value. **]**
+**SRS_ROBUST_SEMAPHORE_01_063: [** If the object is being destroyed, `robust_semaphore_acquire_async` shall fail and return a non-zero value. **]**
 
 **SRS_ROBUST_SEMAPHORE_01_024: [** If there is a current acquisition that was not released or ended, `robust_semaphore_acquire_async` shall fail and return a non-zero value. **]**
 
-**SRS_ROBUST_SEMAPHORE_01_025: [** `robust_semaphore_acquire_async` shall store `timeout_ms`, `max_hold_ms`, `on_acquire_complete` and `on_acquire_complete_context` as the new current acquisition and wake the worker thread by calling `SetEvent` on the work event. **]**
+**SRS_ROBUST_SEMAPHORE_01_064: [** `robust_semaphore_acquire_async` shall store `timeout_ms`, `max_hold_ms`, `on_acquire_complete` and `on_acquire_complete_context` as the new current acquisition. **]**
+
+**SRS_ROBUST_SEMAPHORE_01_065: [** If the worker thread is running, `robust_semaphore_acquire_async` shall leave the new acquisition to it. **]**
+
+**SRS_ROBUST_SEMAPHORE_01_066: [** Otherwise `robust_semaphore_acquire_async` shall: **]**
+
+- **SRS_ROBUST_SEMAPHORE_01_067: [** if a worker thread was started before, wait for it to end by calling `ThreadAPI_Join`. **]**
+
+- **SRS_ROBUST_SEMAPHORE_01_068: [** start a new worker thread by calling `ThreadAPI_Create` with `robust_semaphore_worker_thread` and mark it as running. **]**
 
 **SRS_ROBUST_SEMAPHORE_01_026: [** `robust_semaphore_acquire_async` shall release the lock and succeed and return 0. **]**
 
-**SRS_ROBUST_SEMAPHORE_01_027: [** If `SetEvent` fails, `robust_semaphore_acquire_async` shall forget the new acquisition, release the lock and return a non-zero value. **]**
+**SRS_ROBUST_SEMAPHORE_01_069: [** If `ThreadAPI_Join` or `ThreadAPI_Create` fails, `robust_semaphore_acquire_async` shall forget the new acquisition and the worker thread, release the lock and return a non-zero value. **]**
 
 ### robust_semaphore_cancel
 
@@ -203,7 +213,7 @@ MOCKABLE_FUNCTION(, void, robust_semaphore_release, ROBUST_SEMAPHORE_HANDLE, rob
 static int robust_semaphore_worker_thread(void* context);
 ```
 
-`robust_semaphore_worker_thread` runs for the lifetime of the robust semaphore object and is the only thread that waits on and releases its mutexes. It takes one acquisition at a time: it waits for a unit, calls `on_acquire_complete`, holds the unit until it is released (or until `max_hold_ms` passes) and releases the mutex. When there is no acquisition it waits for the work event. It returns when the object is being destroyed.
+`robust_semaphore_worker_thread` is started by `robust_semaphore_acquire_async` and is the only thread that waits on and releases the mutexes of the robust semaphore object. It takes one acquisition at a time: it waits for a unit, calls `on_acquire_complete`, holds the unit until it is released (or until `max_hold_ms` passes) and releases the mutex. When there is no new acquisition it returns, so that an idle robust semaphore object has no thread.
 
 **SRS_ROBUST_SEMAPHORE_01_036: [** `robust_semaphore_worker_thread` shall record the id of the worker thread by calling `GetCurrentThreadId`. **]**
 
@@ -229,11 +239,9 @@ static int robust_semaphore_worker_thread(void* context);
 
 **SRS_ROBUST_SEMAPHORE_01_047: [** If a unit was acquired, `robust_semaphore_worker_thread` shall release the mutex by calling `ReleaseMutex` and, if the acquisition still holds the unit (it was not released), end it. **]**
 
-**SRS_ROBUST_SEMAPHORE_01_048: [** If there is no new acquisition and the object is being destroyed, `robust_semaphore_worker_thread` shall return 0. **]**
+**SRS_ROBUST_SEMAPHORE_01_070: [** If there is no new acquisition, `robust_semaphore_worker_thread` shall, while still holding the lock, mark the worker thread as not running and clear the recorded worker thread id. **]**
 
-**SRS_ROBUST_SEMAPHORE_01_052: [** If there is no new acquisition and the object is not being destroyed, `robust_semaphore_worker_thread` shall wait for the work event by calling `WaitForSingleObject` with `INFINITE` timeout and then check again for a new acquisition. **]**
-
-**SRS_ROBUST_SEMAPHORE_01_050: [** If `WaitForSingleObject` on the work event fails, `robust_semaphore_worker_thread` shall mark the worker thread as ended, end a new acquisition it did not take yet and call its `on_acquire_complete` with `ROBUST_SEMAPHORE_ACQUIRE_ERROR` and `ROBUST_SEMAPHORE_UNIT_INDEX_NONE`, and return 0. **]**
+**SRS_ROBUST_SEMAPHORE_01_071: [** `robust_semaphore_worker_thread` shall then release the lock and return 0 without taking the lock again. **]**
 
 **SRS_ROBUST_SEMAPHORE_01_049: [** If `robust_semaphore_destroy` was called on the worker thread, before returning `robust_semaphore_worker_thread` shall close its own thread handle by calling `CloseHandle`. **]**
 

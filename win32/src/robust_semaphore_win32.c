@@ -38,19 +38,20 @@ typedef struct ROBUST_SEMAPHORE_TAG
     uint32_t max_count;
     HANDLE mutexes[ROBUST_SEMAPHORE_MAX_COUNT];
 
-    HANDLE work_event;
     HANDLE cancel_event;
     HANDLE release_event;
 
-    THREAD_HANDLE worker_thread;
     volatile_atomic int32_t worker_thread_id;
 
     /* guards all the fields below */
     SRW_LOCK_LL lock;
 
+    /* the last worker thread started, NULL if none was started */
+    THREAD_HANDLE worker_thread;
+    /* false once the worker thread found no new acquisition and decided to exit */
+    bool worker_running;
     bool destroying;
     bool worker_frees_object;
-    bool worker_ended;
 
     ACQUISITION_STATE acquisition_state;
     bool acquisition_cancelled;
@@ -107,7 +108,6 @@ static void internal_free_robust_semaphore(ROBUST_SEMAPHORE_HANDLE robust_semaph
 
     internal_close_handle(robust_semaphore->release_event, "release_event");
     internal_close_handle(robust_semaphore->cancel_event, "cancel_event");
-    internal_close_handle(robust_semaphore->work_event, "work_event");
 
     /*Codes_SRS_ROBUST_SEMAPHORE_01_058: [ robust_semaphore_destroy shall deinitialize the lock by calling srw_lock_ll_deinit. ]*/
     srw_lock_ll_deinit(&robust_semaphore->lock);
@@ -268,6 +268,8 @@ static int robust_semaphore_worker_thread(void* context)
     /*Codes_SRS_ROBUST_SEMAPHORE_01_036: [ robust_semaphore_worker_thread shall record the id of the worker thread by calling GetCurrentThreadId. ]*/
     (void)interlocked_exchange(&robust_semaphore->worker_thread_id, (int32_t)GetCurrentThreadId());
 
+    bool worker_frees_object = false;
+    THREAD_HANDLE worker_thread = NULL;
     bool exit_thread = false;
     while (!exit_thread)
     {
@@ -302,77 +304,75 @@ static int robust_semaphore_worker_thread(void* context)
                 internal_run_acquisition(robust_semaphore, timeout_ms, max_hold_ms, on_acquire_complete, on_acquire_complete_context);
             }
         }
-        else if (robust_semaphore->destroying)
+        else
         {
-            /*Codes_SRS_ROBUST_SEMAPHORE_01_048: [ If there is no new acquisition and the object is being destroyed, robust_semaphore_worker_thread shall return 0. ]*/
+            /*Codes_SRS_ROBUST_SEMAPHORE_01_070: [ If there is no new acquisition, robust_semaphore_worker_thread shall, while still holding the lock, mark the worker thread as not running and clear the recorded worker thread id. ]*/
+            /* thread ids are reused: a stale id would make robust_semaphore_destroy called on an unrelated thread look like it is called on the worker thread */
+            robust_semaphore->worker_running = false;
+            (void)interlocked_exchange(&robust_semaphore->worker_thread_id, 0);
+            worker_frees_object = robust_semaphore->worker_frees_object;
+            worker_thread = robust_semaphore->worker_thread;
+
+            /*Codes_SRS_ROBUST_SEMAPHORE_01_071: [ robust_semaphore_worker_thread shall then release the lock and return 0 without taking the lock again. ]*/
+            /* robust_semaphore_acquire_async and robust_semaphore_destroy may wait for this thread to end while holding the lock */
             srw_lock_ll_release_exclusive(&robust_semaphore->lock);
             exit_thread = true;
         }
-        else
-        {
-            srw_lock_ll_release_exclusive(&robust_semaphore->lock);
-
-            /*Codes_SRS_ROBUST_SEMAPHORE_01_052: [ If there is no new acquisition and the object is not being destroyed, robust_semaphore_worker_thread shall wait for the work event by calling WaitForSingleObject with INFINITE timeout and then check again for a new acquisition. ]*/
-            DWORD wait_result = WaitForSingleObject(robust_semaphore->work_event, INFINITE);
-            if (wait_result == WAIT_OBJECT_0)
-            {
-                /* do nothing, check again */
-            }
-            else
-            {
-                /*Codes_SRS_ROBUST_SEMAPHORE_01_050: [ If WaitForSingleObject on the work event fails, robust_semaphore_worker_thread shall mark the worker thread as ended, end a new acquisition it did not take yet and call its on_acquire_complete with ROBUST_SEMAPHORE_ACQUIRE_ERROR and ROBUST_SEMAPHORE_UNIT_INDEX_NONE, and return 0. ]*/
-                LogLastError("failure in WaitForSingleObject(work_event=%p, INFINITE) returned %lu, the worker thread ends", robust_semaphore->work_event, wait_result);
-
-                ROBUST_SEMAPHORE_ON_ACQUIRE_COMPLETE on_acquire_complete = NULL;
-                void* on_acquire_complete_context = NULL;
-
-                srw_lock_ll_acquire_exclusive(&robust_semaphore->lock);
-                robust_semaphore->worker_ended = true;
-                if (robust_semaphore->acquisition_state != ACQUISITION_STATE_REQUESTED)
-                {
-                    /* do nothing, no acquisition is waiting to be taken */
-                }
-                else
-                {
-                    robust_semaphore->acquisition_state = ACQUISITION_STATE_NONE;
-                    on_acquire_complete = robust_semaphore->on_acquire_complete;
-                    on_acquire_complete_context = robust_semaphore->on_acquire_complete_context;
-                }
-                srw_lock_ll_release_exclusive(&robust_semaphore->lock);
-
-                if (on_acquire_complete == NULL)
-                {
-                    /* do nothing, no acquisition to complete */
-                }
-                else
-                {
-                    on_acquire_complete(on_acquire_complete_context, ROBUST_SEMAPHORE_ACQUIRE_ERROR, ROBUST_SEMAPHORE_UNIT_INDEX_NONE);
-                }
-
-                exit_thread = true;
-            }
-        }
     }
-
-    srw_lock_ll_acquire_exclusive(&robust_semaphore->lock);
-    bool worker_frees_object = robust_semaphore->worker_frees_object;
-    srw_lock_ll_release_exclusive(&robust_semaphore->lock);
 
     if (!worker_frees_object)
     {
-        /* do nothing, robust_semaphore_destroy waits for this thread and frees the object */
+        /* do nothing, robust_semaphore_acquire_async or robust_semaphore_destroy waits for this thread */
     }
     else
     {
         /*Codes_SRS_ROBUST_SEMAPHORE_01_049: [ If robust_semaphore_destroy was called on the worker thread, before returning robust_semaphore_worker_thread shall close its own thread handle by calling CloseHandle. ]*/
         /* nobody joins this thread, on Windows THREAD_HANDLE is the thread HANDLE */
-        internal_close_handle((HANDLE)robust_semaphore->worker_thread, "worker_thread");
+        internal_close_handle((HANDLE)worker_thread, "worker_thread");
 
         /*Codes_SRS_ROBUST_SEMAPHORE_01_060: [ If robust_semaphore_destroy was called on the worker thread, before returning robust_semaphore_worker_thread shall free the robust semaphore object as robust_semaphore_destroy does. ]*/
         internal_free_robust_semaphore(robust_semaphore);
     }
 
     return 0;
+}
+
+static int internal_start_worker_thread_under_lock(ROBUST_SEMAPHORE_HANDLE robust_semaphore)
+{
+    int result;
+    int thread_result;
+
+    if (
+        (robust_semaphore->worker_thread != NULL) &&
+        /*Codes_SRS_ROBUST_SEMAPHORE_01_067: [ if a worker thread was started before, wait for it to end by calling ThreadAPI_Join. ]*/
+        /* it is not running: it found no new acquisition and does not take the lock again, so it can be waited for while holding the lock */
+        (ThreadAPI_Join(robust_semaphore->worker_thread, &thread_result) != THREADAPI_OK)
+        )
+    {
+        /*Codes_SRS_ROBUST_SEMAPHORE_01_069: [ If ThreadAPI_Join or ThreadAPI_Create fails, robust_semaphore_acquire_async shall forget the new acquisition and the worker thread, release the lock and return a non-zero value. ]*/
+        /* ThreadAPI_Join closes the thread handle even when it fails, so it cannot be waited for again */
+        LogError("failure in ThreadAPI_Join(worker_thread=%p) waiting for the previous worker thread of robust_semaphore=%p", robust_semaphore->worker_thread, robust_semaphore);
+        robust_semaphore->worker_thread = NULL;
+        result = MU_FAILURE;
+    }
+    else
+    {
+        /*Codes_SRS_ROBUST_SEMAPHORE_01_068: [ start a new worker thread by calling ThreadAPI_Create with robust_semaphore_worker_thread and mark it as running. ]*/
+        if (ThreadAPI_Create(&robust_semaphore->worker_thread, robust_semaphore_worker_thread, robust_semaphore) != THREADAPI_OK)
+        {
+            /*Codes_SRS_ROBUST_SEMAPHORE_01_069: [ If ThreadAPI_Join or ThreadAPI_Create fails, robust_semaphore_acquire_async shall forget the new acquisition and the worker thread, release the lock and return a non-zero value. ]*/
+            LogError("failure in ThreadAPI_Create(&robust_semaphore->worker_thread=%p, robust_semaphore_worker_thread, robust_semaphore=%p)", &robust_semaphore->worker_thread, robust_semaphore);
+            robust_semaphore->worker_thread = NULL;
+            result = MU_FAILURE;
+        }
+        else
+        {
+            robust_semaphore->worker_running = true;
+            result = 0;
+        }
+    }
+
+    return result;
 }
 
 ROBUST_SEMAPHORE_HANDLE robust_semaphore_create(const char* name, uint32_t max_count, const char* security_descriptor)
@@ -484,61 +484,39 @@ ROBUST_SEMAPHORE_HANDLE robust_semaphore_create(const char* name, uint32_t max_c
                     }
                     else
                     {
-                        /*Codes_SRS_ROBUST_SEMAPHORE_01_010: [ robust_semaphore_create shall create an auto reset work event by calling CreateEventA. ]*/
-                        result->work_event = CreateEventA(NULL, FALSE, FALSE, NULL);
-                        if (result->work_event == NULL)
+                        /*Codes_SRS_ROBUST_SEMAPHORE_01_056: [ robust_semaphore_create shall create a manual reset cancel event by calling CreateEventA. ]*/
+                        result->cancel_event = CreateEventA(NULL, TRUE, FALSE, NULL);
+                        if (result->cancel_event == NULL)
                         {
                             /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle, free the memory it allocated and return NULL. ]*/
-                            LogLastError("failure in CreateEventA(NULL, FALSE, FALSE, NULL) for the work event");
+                            LogLastError("failure in CreateEventA(NULL, TRUE, FALSE, NULL) for the cancel event");
                         }
                         else
                         {
-                            /*Codes_SRS_ROBUST_SEMAPHORE_01_056: [ robust_semaphore_create shall create a manual reset cancel event by calling CreateEventA. ]*/
-                            result->cancel_event = CreateEventA(NULL, TRUE, FALSE, NULL);
-                            if (result->cancel_event == NULL)
+                            /*Codes_SRS_ROBUST_SEMAPHORE_01_057: [ robust_semaphore_create shall create a manual reset release event by calling CreateEventA. ]*/
+                            result->release_event = CreateEventA(NULL, TRUE, FALSE, NULL);
+                            if (result->release_event == NULL)
                             {
                                 /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle, free the memory it allocated and return NULL. ]*/
-                                LogLastError("failure in CreateEventA(NULL, TRUE, FALSE, NULL) for the cancel event");
+                                LogLastError("failure in CreateEventA(NULL, TRUE, FALSE, NULL) for the release event");
                             }
                             else
                             {
-                                /*Codes_SRS_ROBUST_SEMAPHORE_01_057: [ robust_semaphore_create shall create a manual reset release event by calling CreateEventA. ]*/
-                                result->release_event = CreateEventA(NULL, TRUE, FALSE, NULL);
-                                if (result->release_event == NULL)
-                                {
-                                    /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle, free the memory it allocated and return NULL. ]*/
-                                    LogLastError("failure in CreateEventA(NULL, TRUE, FALSE, NULL) for the release event");
-                                }
-                                else
-                                {
-                                    result->max_count = max_count;
-                                    (void)interlocked_exchange(&result->worker_thread_id, 0);
-                                    result->destroying = false;
-                                    result->worker_frees_object = false;
-                                    result->worker_ended = false;
-                                    result->acquisition_state = ACQUISITION_STATE_NONE;
-                                    result->acquisition_cancelled = false;
-                                    result->acquisition_released = false;
+                                result->max_count = max_count;
+                                (void)interlocked_exchange(&result->worker_thread_id, 0);
+                                result->worker_thread = NULL;
+                                result->worker_running = false;
+                                result->destroying = false;
+                                result->worker_frees_object = false;
+                                result->acquisition_state = ACQUISITION_STATE_NONE;
+                                result->acquisition_cancelled = false;
+                                result->acquisition_released = false;
 
-                                    /*Codes_SRS_ROBUST_SEMAPHORE_01_011: [ robust_semaphore_create shall start the worker thread by calling ThreadAPI_Create with robust_semaphore_worker_thread. ]*/
-                                    if (ThreadAPI_Create(&result->worker_thread, robust_semaphore_worker_thread, result) != THREADAPI_OK)
-                                    {
-                                        /*Codes_SRS_ROBUST_SEMAPHORE_01_013: [ If there are any failures then robust_semaphore_create shall close the handles it created by calling CloseHandle, free the memory it allocated and return NULL. ]*/
-                                        LogError("failure in ThreadAPI_Create(&result->worker_thread=%p, robust_semaphore_worker_thread, result=%p)", &result->worker_thread, result);
-                                    }
-                                    else
-                                    {
-                                        /*Codes_SRS_ROBUST_SEMAPHORE_01_012: [ robust_semaphore_create shall succeed and return the robust semaphore object. ]*/
-                                        goto all_ok;
-                                    }
-
-                                    internal_close_handle(result->release_event, "release_event");
-                                }
-
-                                internal_close_handle(result->cancel_event, "cancel_event");
+                                /*Codes_SRS_ROBUST_SEMAPHORE_01_012: [ robust_semaphore_create shall succeed and return the robust semaphore object. ]*/
+                                goto all_ok;
                             }
 
-                            internal_close_handle(result->work_event, "work_event");
+                            internal_close_handle(result->cancel_event, "cancel_event");
                         }
                     }
 
@@ -573,12 +551,14 @@ void robust_semaphore_destroy(ROBUST_SEMAPHORE_HANDLE robust_semaphore)
         /*Codes_SRS_ROBUST_SEMAPHORE_01_015: [ robust_semaphore_destroy shall acquire the lock in exclusive mode. ]*/
         srw_lock_ll_acquire_exclusive(&robust_semaphore->lock);
 
-        /*Codes_SRS_ROBUST_SEMAPHORE_01_016: [ robust_semaphore_destroy shall mark the object as being destroyed, release the current acquisition as robust_semaphore_release does and wake the worker thread by calling SetEvent on the work event. ]*/
+        /*Codes_SRS_ROBUST_SEMAPHORE_01_061: [ robust_semaphore_destroy shall mark the object as being destroyed and release the current acquisition as robust_semaphore_release does. ]*/
         robust_semaphore->destroying = true;
         internal_release_under_lock(robust_semaphore);
-        internal_set_event(robust_semaphore->work_event, "work_event");
 
-        if ((DWORD)interlocked_add(&robust_semaphore->worker_thread_id, 0) == GetCurrentThreadId())
+        if (
+            robust_semaphore->worker_running &&
+            ((DWORD)interlocked_add(&robust_semaphore->worker_thread_id, 0) == GetCurrentThreadId())
+            )
         {
             /*Codes_SRS_ROBUST_SEMAPHORE_01_017: [ If robust_semaphore_destroy is called on the worker thread, it shall mark the worker thread as the one that frees the object, release the lock and return. ]*/
             LogError("robust_semaphore_destroy(robust_semaphore=%p) was called from on_acquire_complete, the worker thread frees the object when on_acquire_complete returns", robust_semaphore);
@@ -587,18 +567,23 @@ void robust_semaphore_destroy(ROBUST_SEMAPHORE_HANDLE robust_semaphore)
         }
         else
         {
-            /*Codes_SRS_ROBUST_SEMAPHORE_01_018: [ Otherwise robust_semaphore_destroy shall release the lock and wait for the worker thread to end by calling ThreadAPI_Join. ]*/
+            /*Codes_SRS_ROBUST_SEMAPHORE_01_062: [ Otherwise robust_semaphore_destroy shall release the lock and, if a worker thread was started, wait for it to end by calling ThreadAPI_Join. ]*/
+            /* a running worker thread ends once it completed the released acquisition, because it finds no new acquisition */
+            THREAD_HANDLE worker_thread = robust_semaphore->worker_thread;
             srw_lock_ll_release_exclusive(&robust_semaphore->lock);
 
             int thread_result;
-            if (ThreadAPI_Join(robust_semaphore->worker_thread, &thread_result) != THREADAPI_OK)
+            if (
+                (worker_thread != NULL) &&
+                (ThreadAPI_Join(worker_thread, &thread_result) != THREADAPI_OK)
+                )
             {
                 /*Codes_SRS_ROBUST_SEMAPHORE_01_053: [ If ThreadAPI_Join fails, robust_semaphore_destroy shall return without freeing the object, because the worker thread may still use it. ]*/
-                LogError("failure in ThreadAPI_Join(robust_semaphore->worker_thread=%p), not freeing robust_semaphore=%p because its worker thread may still use it", robust_semaphore->worker_thread, robust_semaphore);
+                LogError("failure in ThreadAPI_Join(worker_thread=%p), not freeing robust_semaphore=%p because its worker thread may still use it", worker_thread, robust_semaphore);
             }
             else
             {
-                /* the mutexes and the events are closed and the object is freed by internal_free_robust_semaphore */
+                /* no worker thread was started, or it ended: the mutexes and the events are closed and the object is freed by internal_free_robust_semaphore */
                 internal_free_robust_semaphore(robust_semaphore);
             }
         }
@@ -625,13 +610,10 @@ int robust_semaphore_acquire_async(ROBUST_SEMAPHORE_HANDLE robust_semaphore, uin
         /*Codes_SRS_ROBUST_SEMAPHORE_01_022: [ robust_semaphore_acquire_async shall acquire the lock in exclusive mode. ]*/
         srw_lock_ll_acquire_exclusive(&robust_semaphore->lock);
 
-        if (
-            robust_semaphore->destroying ||
-            robust_semaphore->worker_ended
-            )
+        if (robust_semaphore->destroying)
         {
-            /*Codes_SRS_ROBUST_SEMAPHORE_01_023: [ If the object is being destroyed or its worker thread ended, robust_semaphore_acquire_async shall fail and return a non-zero value. ]*/
-            LogError("Cannot acquire robust_semaphore=%p, destroying=%d, worker_ended=%d", robust_semaphore, robust_semaphore->destroying, robust_semaphore->worker_ended);
+            /*Codes_SRS_ROBUST_SEMAPHORE_01_063: [ If the object is being destroyed, robust_semaphore_acquire_async shall fail and return a non-zero value. ]*/
+            LogError("Cannot acquire robust_semaphore=%p, it is being destroyed", robust_semaphore);
             result = MU_FAILURE;
         }
         else if (robust_semaphore->acquisition_state != ACQUISITION_STATE_NONE)
@@ -642,7 +624,7 @@ int robust_semaphore_acquire_async(ROBUST_SEMAPHORE_HANDLE robust_semaphore, uin
         }
         else
         {
-            /*Codes_SRS_ROBUST_SEMAPHORE_01_025: [ robust_semaphore_acquire_async shall store timeout_ms, max_hold_ms, on_acquire_complete and on_acquire_complete_context as the new current acquisition and wake the worker thread by calling SetEvent on the work event. ]*/
+            /*Codes_SRS_ROBUST_SEMAPHORE_01_064: [ robust_semaphore_acquire_async shall store timeout_ms, max_hold_ms, on_acquire_complete and on_acquire_complete_context as the new current acquisition. ]*/
             robust_semaphore->timeout_ms = timeout_ms;
             robust_semaphore->max_hold_ms = max_hold_ms;
             robust_semaphore->on_acquire_complete = on_acquire_complete;
@@ -651,10 +633,17 @@ int robust_semaphore_acquire_async(ROBUST_SEMAPHORE_HANDLE robust_semaphore, uin
             robust_semaphore->acquisition_released = false;
             robust_semaphore->acquisition_state = ACQUISITION_STATE_REQUESTED;
 
-            if (!SetEvent(robust_semaphore->work_event))
+            if (robust_semaphore->worker_running)
             {
-                /*Codes_SRS_ROBUST_SEMAPHORE_01_027: [ If SetEvent fails, robust_semaphore_acquire_async shall forget the new acquisition, release the lock and return a non-zero value. ]*/
-                LogLastError("failure in SetEvent(work_event=%p)", robust_semaphore->work_event);
+                /*Codes_SRS_ROBUST_SEMAPHORE_01_065: [ If the worker thread is running, robust_semaphore_acquire_async shall leave the new acquisition to it. ]*/
+                /* the worker thread takes it once its current acquisition ended, for example when robust_semaphore_acquire_async is called from on_acquire_complete */
+                /*Codes_SRS_ROBUST_SEMAPHORE_01_026: [ robust_semaphore_acquire_async shall release the lock and succeed and return 0. ]*/
+                result = 0;
+            }
+            /*Codes_SRS_ROBUST_SEMAPHORE_01_066: [ Otherwise robust_semaphore_acquire_async shall: ]*/
+            else if (internal_start_worker_thread_under_lock(robust_semaphore) != 0)
+            {
+                /*Codes_SRS_ROBUST_SEMAPHORE_01_069: [ If ThreadAPI_Join or ThreadAPI_Create fails, robust_semaphore_acquire_async shall forget the new acquisition and the worker thread, release the lock and return a non-zero value. ]*/
                 robust_semaphore->acquisition_state = ACQUISITION_STATE_NONE;
                 result = MU_FAILURE;
             }
