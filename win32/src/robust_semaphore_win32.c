@@ -306,7 +306,7 @@ static int robust_semaphore_worker_thread(void* context)
         }
         else
         {
-            /*Codes_SRS_ROBUST_SEMAPHORE_01_070: [ If there is no new acquisition, robust_semaphore_worker_thread shall, while still holding the lock, mark the worker thread as not running and clear the recorded worker thread id. ]*/
+            /*Codes_SRS_ROBUST_SEMAPHORE_01_070: [ If there is no new acquisition, robust_semaphore_worker_thread shall, while still holding the lock, mark the worker thread as not running. ]*/
             /* thread ids are reused: a stale id would make robust_semaphore_destroy called on an unrelated thread look like it is called on the worker thread */
             robust_semaphore->worker_running = false;
             (void)interlocked_exchange(&robust_semaphore->worker_thread_id, 0);

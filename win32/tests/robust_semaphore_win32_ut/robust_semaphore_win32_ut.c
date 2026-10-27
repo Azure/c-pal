@@ -710,7 +710,7 @@ TEST_FUNCTION(robust_semaphore_destroy_waits_for_the_worker_thread_that_ended_an
 
 /*Tests_SRS_ROBUST_SEMAPHORE_01_061: [ robust_semaphore_destroy shall mark the object as being destroyed and release the current acquisition as robust_semaphore_release does. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_062: [ Otherwise robust_semaphore_destroy shall release the lock and, if a worker thread was started, wait for it to end by calling ThreadAPI_Join. ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_070: [ If there is no new acquisition, robust_semaphore_worker_thread shall, while still holding the lock, mark the worker thread as not running and clear the recorded worker thread id. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_070: [ If there is no new acquisition, robust_semaphore_worker_thread shall, while still holding the lock, mark the worker thread as not running. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_071: [ robust_semaphore_worker_thread shall then release the lock and return 0 without taking the lock again. ]*/
 TEST_FUNCTION(robust_semaphore_destroy_cancels_a_pending_acquisition_and_waits_for_the_worker_thread_to_complete_it_and_end)
 {
@@ -1261,7 +1261,7 @@ TEST_FUNCTION(releasing_a_held_unit_from_on_acquire_complete_ends_the_acquisitio
 /*Tests_SRS_ROBUST_SEMAPHORE_01_041: [ If WaitForMultipleObjects returns WAIT_OBJECT_0 + 1 + i or WAIT_ABANDONED_0 + 1 + i then robust_semaphore_worker_thread shall record the time the unit was acquired by calling timer_global_get_elapsed_ms, mark the acquisition as holding unit i and call on_acquire_complete with ROBUST_SEMAPHORE_ACQUIRE_OK and i. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_045: [ If a unit was acquired, after on_acquire_complete returns, robust_semaphore_worker_thread shall wait for the release event by calling WaitForSingleObject with what is left of max_hold_ms since the unit was acquired (measured by calling timer_global_get_elapsed_ms, 0 if max_hold_ms already passed, INFINITE if max_hold_ms is ROBUST_SEMAPHORE_NO_TIMEOUT). ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_047: [ If a unit was acquired, robust_semaphore_worker_thread shall release the mutex by calling ReleaseMutex and, if the acquisition still holds the unit (it was not released), end it. ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_070: [ If there is no new acquisition, robust_semaphore_worker_thread shall, while still holding the lock, mark the worker thread as not running and clear the recorded worker thread id. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_070: [ If there is no new acquisition, robust_semaphore_worker_thread shall, while still holding the lock, mark the worker thread as not running. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_071: [ robust_semaphore_worker_thread shall then release the lock and return 0 without taking the lock again. ]*/
 TEST_FUNCTION(robust_semaphore_worker_thread_acquires_unit_1_holds_it_until_released_and_ends)
 {
@@ -1536,7 +1536,7 @@ TEST_FUNCTION(robust_semaphore_worker_thread_ends_the_acquisition_even_when_Rele
     test_destroy(robust_semaphore);
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_070: [ If there is no new acquisition, robust_semaphore_worker_thread shall, while still holding the lock, mark the worker thread as not running and clear the recorded worker thread id. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_070: [ If there is no new acquisition, robust_semaphore_worker_thread shall, while still holding the lock, mark the worker thread as not running. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_071: [ robust_semaphore_worker_thread shall then release the lock and return 0 without taking the lock again. ]*/
 TEST_FUNCTION(robust_semaphore_worker_thread_releases_a_held_unit_and_ends_when_the_object_is_destroyed)
 {
@@ -1577,7 +1577,7 @@ TEST_FUNCTION(robust_semaphore_worker_thread_releases_a_held_unit_and_ends_when_
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_070: [ If there is no new acquisition, robust_semaphore_worker_thread shall, while still holding the lock, mark the worker thread as not running and clear the recorded worker thread id. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_070: [ If there is no new acquisition, robust_semaphore_worker_thread shall, while still holding the lock, mark the worker thread as not running. ]*/
 TEST_FUNCTION(robust_semaphore_destroy_on_a_thread_that_reuses_the_id_of_an_ended_worker_thread_waits_for_the_new_worker_thread)
 {
     // arrange

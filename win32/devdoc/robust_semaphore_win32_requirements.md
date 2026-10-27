@@ -235,7 +235,7 @@ static int robust_semaphore_worker_thread(void* context);
 
 **SRS_ROBUST_SEMAPHORE_01_047: [** If a unit was acquired, `robust_semaphore_worker_thread` shall release the mutex by calling `ReleaseMutex` and, if the acquisition still holds the unit (it was not released), end it. **]**
 
-**SRS_ROBUST_SEMAPHORE_01_070: [** If there is no new acquisition, `robust_semaphore_worker_thread` shall, while still holding the lock, mark the worker thread as not running and clear the recorded worker thread id. **]**
+**SRS_ROBUST_SEMAPHORE_01_070: [** If there is no new acquisition, `robust_semaphore_worker_thread` shall, while still holding the lock, mark the worker thread as not running. **]**
 
 **SRS_ROBUST_SEMAPHORE_01_071: [** `robust_semaphore_worker_thread` shall then release the lock and return 0 without taking the lock again. **]**
 
