@@ -671,10 +671,13 @@ TEST_FUNCTION(robust_semaphore_destroy_with_NULL_returns)
 
 /*Tests_SRS_ROBUST_SEMAPHORE_01_015: [ robust_semaphore_destroy shall acquire the lock in exclusive mode. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_061: [ robust_semaphore_destroy shall mark the object as being destroyed and release the current acquisition as robust_semaphore_release does. ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_062: [ Otherwise robust_semaphore_destroy shall release the lock and, if a worker thread was started, wait for it to end by calling ThreadAPI_Join. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_062: [ If robust_semaphore_destroy is not called on the worker thread and a worker thread was started, robust_semaphore_destroy shall wait for it to end by calling ThreadAPI_Join. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_019: [ robust_semaphore_destroy shall close the mutexes and the events by calling CloseHandle. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_058: [ robust_semaphore_destroy shall deinitialize the lock by calling srw_lock_ll_deinit. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_059: [ robust_semaphore_destroy shall free the robust semaphore object. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_072: [ robust_semaphore_destroy shall release the lock. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_073: [ robust_semaphore_destroy shall release the reference of the user of the object by calling interlocked_decrement. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_074: [ If it was the last reference, robust_semaphore_destroy shall free the robust semaphore object. ]*/
 TEST_FUNCTION(robust_semaphore_destroy_without_a_worker_thread_frees_the_object)
 {
     // arrange
@@ -688,10 +691,14 @@ TEST_FUNCTION(robust_semaphore_destroy_without_a_worker_thread_frees_the_object)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_062: [ Otherwise robust_semaphore_destroy shall release the lock and, if a worker thread was started, wait for it to end by calling ThreadAPI_Join. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_062: [ If robust_semaphore_destroy is not called on the worker thread and a worker thread was started, robust_semaphore_destroy shall wait for it to end by calling ThreadAPI_Join. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_019: [ robust_semaphore_destroy shall close the mutexes and the events by calling CloseHandle. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_058: [ robust_semaphore_destroy shall deinitialize the lock by calling srw_lock_ll_deinit. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_059: [ robust_semaphore_destroy shall free the robust semaphore object. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_073: [ robust_semaphore_destroy shall release the reference of the user of the object by calling interlocked_decrement. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_074: [ If it was the last reference, robust_semaphore_destroy shall free the robust semaphore object. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_077: [ robust_semaphore_worker_thread shall release its reference to the robust semaphore object by calling interlocked_decrement. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_078: [ robust_semaphore_worker_thread shall return 0. ]*/
 TEST_FUNCTION(robust_semaphore_destroy_waits_for_the_worker_thread_that_ended_and_frees_the_object)
 {
     // arrange
@@ -709,9 +716,9 @@ TEST_FUNCTION(robust_semaphore_destroy_waits_for_the_worker_thread_that_ended_an
 }
 
 /*Tests_SRS_ROBUST_SEMAPHORE_01_061: [ robust_semaphore_destroy shall mark the object as being destroyed and release the current acquisition as robust_semaphore_release does. ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_062: [ Otherwise robust_semaphore_destroy shall release the lock and, if a worker thread was started, wait for it to end by calling ThreadAPI_Join. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_062: [ If robust_semaphore_destroy is not called on the worker thread and a worker thread was started, robust_semaphore_destroy shall wait for it to end by calling ThreadAPI_Join. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_070: [ If there is no new acquisition, robust_semaphore_worker_thread shall, while still holding the lock, mark the worker thread as not running. ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_071: [ robust_semaphore_worker_thread shall then release the lock and return 0 without taking the lock again. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_071: [ robust_semaphore_worker_thread shall then release the lock and not take it again. ]*/
 TEST_FUNCTION(robust_semaphore_destroy_cancels_a_pending_acquisition_and_waits_for_the_worker_thread_to_complete_it_and_end)
 {
     // arrange
@@ -740,8 +747,9 @@ TEST_FUNCTION(robust_semaphore_destroy_cancels_a_pending_acquisition_and_waits_f
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_053: [ If ThreadAPI_Join fails, robust_semaphore_destroy shall return without freeing the object, because the worker thread may still use it. ]*/
-TEST_FUNCTION(when_ThreadAPI_Join_fails_robust_semaphore_destroy_does_not_free_the_object)
+/*Tests_SRS_ROBUST_SEMAPHORE_01_053: [ If ThreadAPI_Join fails, robust_semaphore_destroy shall still release the reference of the user of the object (the worker thread holds its own reference). ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_073: [ robust_semaphore_destroy shall release the reference of the user of the object by calling interlocked_decrement. ]*/
+TEST_FUNCTION(when_ThreadAPI_Join_fails_robust_semaphore_destroy_does_not_free_the_object_while_the_worker_thread_holds_its_reference)
 {
     // arrange
     ROBUST_SEMAPHORE_HANDLE robust_semaphore = test_create();
@@ -758,11 +766,45 @@ TEST_FUNCTION(when_ThreadAPI_Join_fails_robust_semaphore_destroy_does_not_free_t
     robust_semaphore_destroy(robust_semaphore);
 
     // assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls()); /* the object is not freed */
 
     // cleanup
-    /* destroying again waits for the worker thread and frees the object */
-    test_destroy(robust_semaphore);
+    umock_c_reset_all_calls();
+    run_worker_thread(); /* the worker thread ends and frees the object */
+}
+
+/*Tests_SRS_ROBUST_SEMAPHORE_01_077: [ robust_semaphore_worker_thread shall release its reference to the robust semaphore object by calling interlocked_decrement. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_060: [ If it was the last reference, robust_semaphore_worker_thread shall free the robust semaphore object as robust_semaphore_destroy does. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_078: [ robust_semaphore_worker_thread shall return 0. ]*/
+TEST_FUNCTION(when_ThreadAPI_Join_fails_in_robust_semaphore_destroy_the_worker_thread_frees_the_object_when_it_ends)
+{
+    // arrange
+    ROBUST_SEMAPHORE_HANDLE robust_semaphore = test_create();
+    test_acquire_async(robust_semaphore, TEST_TIMEOUT_MS, ROBUST_SEMAPHORE_NO_TIMEOUT);
+    STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_SetEvent(test_cancel_event));
+    STRICT_EXPECTED_CALL(mocked_SetEvent(test_release_event));
+    STRICT_EXPECTED_CALL(mocked_GetCurrentThreadId());
+    STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(ThreadAPI_Join(test_worker_thread, IGNORED_ARG))
+        .SetReturn(THREADAPI_ERROR);
+    robust_semaphore_destroy(robust_semaphore);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    umock_c_reset_all_calls();
+
+    /* the worker thread completes the released acquisition with CANCELLED */
+    expect_worker_start();
+    expect_worker_takes_acquisition();
+    STRICT_EXPECTED_CALL(test_on_acquire_complete(test_context, ROBUST_SEMAPHORE_ACQUIRE_CANCELLED, ROBUST_SEMAPHORE_UNIT_INDEX_NONE));
+    /* and ends, releasing the last reference */
+    expect_worker_ends();
+    expect_free();
+
+    // act
+    run_worker_thread();
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 /*Tests_SRS_ROBUST_SEMAPHORE_01_019: [ robust_semaphore_destroy shall close the mutexes and the events by calling CloseHandle. ]*/
@@ -791,9 +833,10 @@ TEST_FUNCTION(robust_semaphore_destroy_frees_the_object_even_when_CloseHandle_fa
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_017: [ If robust_semaphore_destroy is called on the worker thread, it shall mark the worker thread as the one that frees the object, release the lock and return. ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_049: [ If robust_semaphore_destroy was called on the worker thread, before returning robust_semaphore_worker_thread shall close its own thread handle by calling CloseHandle. ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_060: [ If robust_semaphore_destroy was called on the worker thread, before returning robust_semaphore_worker_thread shall free the robust semaphore object as robust_semaphore_destroy does. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_017: [ If robust_semaphore_destroy is called on the worker thread, it shall close the handle of the worker thread by calling CloseHandle instead of waiting for the worker thread. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_073: [ robust_semaphore_destroy shall release the reference of the user of the object by calling interlocked_decrement. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_077: [ robust_semaphore_worker_thread shall release its reference to the robust semaphore object by calling interlocked_decrement. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_060: [ If it was the last reference, robust_semaphore_worker_thread shall free the robust semaphore object as robust_semaphore_destroy does. ]*/
 TEST_FUNCTION(robust_semaphore_destroy_called_from_on_acquire_complete_lets_the_worker_thread_free_the_object)
 {
     // arrange
@@ -808,13 +851,13 @@ TEST_FUNCTION(robust_semaphore_destroy_called_from_on_acquire_complete_lets_the_
     STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(test_on_acquire_complete(test_context, ROBUST_SEMAPHORE_ACQUIRE_TIMEOUT, ROBUST_SEMAPHORE_UNIT_INDEX_NONE));
-    /* destroy, called from the callback on the worker thread */
+    /* destroy, called from the callback on the worker thread, closes the handle of the worker thread instead of waiting for it */
     STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_GetCurrentThreadId());
-    STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
-    /* the worker thread finds no new acquisition, ends and frees the object */
-    expect_worker_ends();
     STRICT_EXPECTED_CALL(mocked_CloseHandle(test_worker_thread));
+    STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
+    /* the worker thread finds no new acquisition, ends and frees the object (it releases the last reference) */
+    expect_worker_ends();
     expect_free();
 
     // act
@@ -861,6 +904,7 @@ TEST_FUNCTION(robust_semaphore_acquire_async_with_NULL_on_acquire_complete_fails
 /*Tests_SRS_ROBUST_SEMAPHORE_01_022: [ robust_semaphore_acquire_async shall acquire the lock in exclusive mode. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_064: [ robust_semaphore_acquire_async shall store timeout_ms, max_hold_ms, on_acquire_complete and on_acquire_complete_context as the new current acquisition. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_066: [ Otherwise robust_semaphore_acquire_async shall: ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_076: [ take a reference to the robust semaphore object for the new worker thread by calling interlocked_increment. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_068: [ start a new worker thread by calling ThreadAPI_Create with robust_semaphore_worker_thread and mark it as running. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_026: [ robust_semaphore_acquire_async shall release the lock and succeed and return 0. ]*/
 TEST_FUNCTION(robust_semaphore_acquire_async_starts_a_worker_thread_and_succeeds)
@@ -938,7 +982,7 @@ TEST_FUNCTION(robust_semaphore_acquire_async_while_an_acquisition_is_in_progress
     test_destroy(robust_semaphore);
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_069: [ If ThreadAPI_Join or ThreadAPI_Create fails, robust_semaphore_acquire_async shall forget the new acquisition and the worker thread, release the lock and return a non-zero value. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_069: [ If ThreadAPI_Create fails, robust_semaphore_acquire_async shall release the reference taken for the worker thread by calling interlocked_decrement, forget the new acquisition, release the lock and return a non-zero value. ]*/
 TEST_FUNCTION(when_ThreadAPI_Create_fails_robust_semaphore_acquire_async_fails_and_a_new_acquisition_can_be_started)
 {
     // arrange
@@ -965,31 +1009,28 @@ TEST_FUNCTION(when_ThreadAPI_Create_fails_robust_semaphore_acquire_async_fails_a
     test_destroy(robust_semaphore);
 }
 
-/*Tests_SRS_ROBUST_SEMAPHORE_01_069: [ If ThreadAPI_Join or ThreadAPI_Create fails, robust_semaphore_acquire_async shall forget the new acquisition and the worker thread, release the lock and return a non-zero value. ]*/
-TEST_FUNCTION(when_ThreadAPI_Join_of_the_previous_worker_thread_fails_robust_semaphore_acquire_async_fails_and_a_new_acquisition_can_be_started)
+/*Tests_SRS_ROBUST_SEMAPHORE_01_075: [ if ThreadAPI_Join fails, still start the new worker thread. ]*/
+TEST_FUNCTION(when_ThreadAPI_Join_of_the_previous_worker_thread_fails_robust_semaphore_acquire_async_still_starts_a_new_worker_thread)
 {
     // arrange
     ROBUST_SEMAPHORE_HANDLE robust_semaphore = test_create();
     test_acquire_async(robust_semaphore, TEST_TIMEOUT_MS, ROBUST_SEMAPHORE_NO_TIMEOUT);
     run_worker_thread();
     umock_c_reset_all_calls();
+    captured_worker_thread_func = NULL;
     STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(ThreadAPI_Join(test_worker_thread, IGNORED_ARG))
         .SetReturn(THREADAPI_ERROR);
+    STRICT_EXPECTED_CALL(ThreadAPI_Create(IGNORED_ARG, IGNORED_ARG, robust_semaphore));
     STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
 
     // act
     int result = robust_semaphore_acquire_async(robust_semaphore, TEST_TIMEOUT_MS, TEST_MAX_HOLD_MS, test_on_acquire_complete, test_context);
 
     // assert
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(int, 0, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-
-    /* the previous worker thread is not waited for again */
-    umock_c_reset_all_calls();
-    expect_acquire_async_starts_worker_thread(robust_semaphore, false);
-    ASSERT_ARE_EQUAL(int, 0, robust_semaphore_acquire_async(robust_semaphore, TEST_TIMEOUT_MS, TEST_MAX_HOLD_MS, test_on_acquire_complete, test_context));
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NOT_NULL(captured_worker_thread_func);
 
     // cleanup
     test_destroy(robust_semaphore);
@@ -1262,7 +1303,7 @@ TEST_FUNCTION(releasing_a_held_unit_from_on_acquire_complete_ends_the_acquisitio
 /*Tests_SRS_ROBUST_SEMAPHORE_01_045: [ If a unit was acquired, after on_acquire_complete returns, robust_semaphore_worker_thread shall wait for the release event by calling WaitForSingleObject with what is left of max_hold_ms since the unit was acquired (measured by calling timer_global_get_elapsed_ms, 0 if max_hold_ms already passed, INFINITE if max_hold_ms is ROBUST_SEMAPHORE_NO_TIMEOUT). ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_047: [ If a unit was acquired, robust_semaphore_worker_thread shall release the mutex by calling ReleaseMutex and, if the acquisition still holds the unit (it was not released), end it. ]*/
 /*Tests_SRS_ROBUST_SEMAPHORE_01_070: [ If there is no new acquisition, robust_semaphore_worker_thread shall, while still holding the lock, mark the worker thread as not running. ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_071: [ robust_semaphore_worker_thread shall then release the lock and return 0 without taking the lock again. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_071: [ robust_semaphore_worker_thread shall then release the lock and not take it again. ]*/
 TEST_FUNCTION(robust_semaphore_worker_thread_acquires_unit_1_holds_it_until_released_and_ends)
 {
     // arrange
@@ -1537,7 +1578,7 @@ TEST_FUNCTION(robust_semaphore_worker_thread_ends_the_acquisition_even_when_Rele
 }
 
 /*Tests_SRS_ROBUST_SEMAPHORE_01_070: [ If there is no new acquisition, robust_semaphore_worker_thread shall, while still holding the lock, mark the worker thread as not running. ]*/
-/*Tests_SRS_ROBUST_SEMAPHORE_01_071: [ robust_semaphore_worker_thread shall then release the lock and return 0 without taking the lock again. ]*/
+/*Tests_SRS_ROBUST_SEMAPHORE_01_071: [ robust_semaphore_worker_thread shall then release the lock and not take it again. ]*/
 TEST_FUNCTION(robust_semaphore_worker_thread_releases_a_held_unit_and_ends_when_the_object_is_destroyed)
 {
     // arrange
@@ -1554,11 +1595,12 @@ TEST_FUNCTION(robust_semaphore_worker_thread_releases_a_held_unit_and_ends_when_
     STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(test_on_acquire_complete(test_context, ROBUST_SEMAPHORE_ACQUIRE_OK, 0));
-    /* destroy releases the held unit */
+    /* destroy releases the held unit and closes the handle of the worker thread */
     STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetEvent(test_cancel_event));
     STRICT_EXPECTED_CALL(mocked_SetEvent(test_release_event));
     STRICT_EXPECTED_CALL(mocked_GetCurrentThreadId());
+    STRICT_EXPECTED_CALL(mocked_CloseHandle(test_worker_thread));
     STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
     /* the worker thread releases the mutex */
     STRICT_EXPECTED_CALL(mocked_WaitForSingleObject(test_release_event, INFINITE));
@@ -1567,7 +1609,6 @@ TEST_FUNCTION(robust_semaphore_worker_thread_releases_a_held_unit_and_ends_when_
     STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
     /* finds no new acquisition: it ends and frees the object */
     expect_worker_ends();
-    STRICT_EXPECTED_CALL(mocked_CloseHandle(test_worker_thread));
     expect_free();
 
     // act
