@@ -209,7 +209,7 @@ MOCKABLE_FUNCTION(, void, robust_semaphore_release, ROBUST_SEMAPHORE_HANDLE, rob
 static int robust_semaphore_worker_thread(void* context);
 ```
 
-`robust_semaphore_worker_thread` is started by `robust_semaphore_acquire_async` and is the only thread that waits on and releases the mutexes of the robust semaphore object. It takes one acquisition at a time: it waits for a unit, calls `on_acquire_complete`, holds the unit until it is released (or until `max_hold_ms` passes) and releases the mutex. When there is no new acquisition it returns, so that an idle robust semaphore object has no thread.
+`robust_semaphore_worker_thread` runs the acquisitions of the robust semaphore object one at a time and returns when there is no new acquisition.
 
 **SRS_ROBUST_SEMAPHORE_01_036: [** `robust_semaphore_worker_thread` shall record the id of the worker thread by calling `GetCurrentThreadId`. **]**
 
