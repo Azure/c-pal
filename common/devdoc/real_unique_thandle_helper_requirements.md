@@ -2,7 +2,7 @@
 
 ## Overview
 
-`real_unique_thandle_helper.h` is a helper for mocking opaque `UNIQUE_THANDLE` types in unit tests. It is the `UNIQUE_THANDLE` counterpart of `real_thandle_helper.h`.
+`real_unique_thandle_helper.h` is a helper for mocking opaque `UNIQUE_THANDLE` types in unit tests.
 
 It defines the `UNIQUE_THANDLE` functions for a stand-in type and hooks them behind the mocked `UNIQUE_THANDLE_MOVE`, `UNIQUE_THANDLE_INITIALIZE_MOVE` and `UNIQUE_THANDLE_DISPOSE` of the original type. This provides a real implementation of moving and memory management for the original type, but not the behavior of the type itself.
 
@@ -36,7 +36,7 @@ See the example in `common\tests\real_unique_thandle_helper_ut\real_unique_thand
 #include "real_unique_thandle_helper.h"
 ```
 
-3. Include `real_interlocked_renames.h` to temporarily use the real interlocked functions instead of the mocked ones. The `THANDLE` functions under `UNIQUE_THANDLE` use interlocked functions, so this avoids setting interlocked expectations for moves and disposes.
+3. Include `real_interlocked_renames.h` to temporarily use the real interlocked functions instead of the mocked ones. The `UNIQUE_THANDLE` functions use interlocked functions, so this avoids setting interlocked expectations for moves and disposes.
 
 ```c
 #include "real_interlocked_renames.h" // IWYU pragma: keep

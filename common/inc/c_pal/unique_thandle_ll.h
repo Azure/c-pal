@@ -10,7 +10,7 @@
 
 #include "umock_c/umock_c_prod.h"
 
-/*a UNIQUE_THANDLE(T) is a THANDLE(T) that has a single owner, so its reference count is always 1*/
+/*a handle to a T that has a single owner. It is implemented as a THANDLE(T) whose reference count is always 1*/
 #define UNIQUE_THANDLE(T) THANDLE(T)
 
 /*given a previous type T, these are the names of the memory functions that UNIQUE_THANDLE_LL_TYPE_DEFINE defines for T. They are the THANDLE memory functions*/
