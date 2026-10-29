@@ -4,7 +4,7 @@
 
 `real_unique_thandle_helper.h` is a helper for mocking opaque `UNIQUE_THANDLE` types in unit tests.
 
-It defines the `UNIQUE_THANDLE` functions for a stand-in type and hooks them behind the mocked `UNIQUE_THANDLE_MOVE`, `UNIQUE_THANDLE_INITIALIZE_MOVE` and `UNIQUE_THANDLE_DISPOSE` of the original type. This provides a real implementation of moving and memory management for the original type, but not the behavior of the type itself.
+It defines the `UNIQUE_THANDLE` functions for a stand-in type and hooks them behind the mocked `UNIQUE_THANDLE_INITIALIZE_MOVE` and `UNIQUE_THANDLE_DISPOSE` of the original type. This provides a real implementation of moving and memory management for the original type, but not the behavior of the type itself.
 
 ## How to use:
 
@@ -36,7 +36,7 @@ See the example in `common\tests\real_unique_thandle_helper_ut\real_unique_thand
 #include "real_unique_thandle_helper.h"
 ```
 
-3. Include `real_interlocked_renames.h` to temporarily use the real interlocked functions instead of the mocked ones. The `UNIQUE_THANDLE` functions use interlocked functions, so this avoids setting interlocked expectations for moves and disposes.
+3. Include `real_interlocked_renames.h` to temporarily use the real interlocked functions instead of the mocked ones. The `UNIQUE_THANDLE` functions use interlocked functions, so this avoids setting interlocked expectations when tests create and dispose handles.
 
 ```c
 #include "real_interlocked_renames.h" // IWYU pragma: keep
@@ -67,7 +67,7 @@ REAL_UNIQUE_THANDLE_DEFINE(MOCKED_STRUCT);
     REGISTER_REAL_UNIQUE_THANDLE_MOCK_HOOK(MOCKED_STRUCT);
 ```
 
-Now, calls in the code under test to `UNIQUE_THANDLE_MOVE(MOCKED_STRUCT)`, `UNIQUE_THANDLE_INITIALIZE_MOVE(MOCKED_STRUCT)` and `UNIQUE_THANDLE_DISPOSE(MOCKED_STRUCT)` are recorded by the mocks and run the real functions of `REAL_MOCKED_STRUCT`.
+Now, calls in the code under test to `UNIQUE_THANDLE_INITIALIZE_MOVE(MOCKED_STRUCT)` and `UNIQUE_THANDLE_DISPOSE(MOCKED_STRUCT)` are recorded by the mocks and run the real functions of `REAL_MOCKED_STRUCT`.
 
 Tests create instances with `UNIQUE_THANDLE_MALLOC(REAL_MOCKED_STRUCT)`. The mocked `UNIQUE_THANDLE` functions only take `UNIQUE_THANDLE(MOCKED_STRUCT)*` arguments, which `umock_c` treats as `void*`. If other mocked functions take or return `UNIQUE_THANDLE(MOCKED_STRUCT)` by value, for example a mocked create function, register it with `REGISTER_UMOCK_ALIAS_TYPE(UNIQUE_THANDLE(MOCKED_STRUCT), void*)`.
 
@@ -101,4 +101,4 @@ Defines the `UNIQUE_THANDLE` functions for `REAL_TYPE`, using the "real" gballoc
 #define REGISTER_REAL_UNIQUE_THANDLE_MOCK_HOOK(TYPE)
 ```
 
-Hooks the mocked `UNIQUE_THANDLE_MOVE(TYPE)`, `UNIQUE_THANDLE_INITIALIZE_MOVE(TYPE)` and `UNIQUE_THANDLE_DISPOSE(TYPE)` to the real functions of `REAL_TYPE`.
+Hooks the mocked `UNIQUE_THANDLE_INITIALIZE_MOVE(TYPE)` and `UNIQUE_THANDLE_DISPOSE(TYPE)` to the real functions of `REAL_TYPE`.

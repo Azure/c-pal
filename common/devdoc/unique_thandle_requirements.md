@@ -4,9 +4,9 @@
 
 `unique_thandle` is a module that provides macros for handles that have a single owner.
 
-`UNIQUE_THANDLE(T)` is a handle to an object of type `T` that has exactly one owner at a time. The .c file that defines `T` creates the object with `UNIQUE_THANDLE_MALLOC` or `UNIQUE_THANDLE_MALLOC_FLEX`. Each owner then either moves the handle to the next owner, with `UNIQUE_THANDLE_MOVE` or `UNIQUE_THANDLE_INITIALIZE_MOVE`, or disposes the object with `UNIQUE_THANDLE_DISPOSE`. No function copies a handle, so no code can give an object a second owner through an API, not even the .c file that defines `T`.
+`UNIQUE_THANDLE(T)` is a handle to an object of type `T` that has exactly one owner at a time. The .c file that defines `T` creates the object with `UNIQUE_THANDLE_MALLOC` or `UNIQUE_THANDLE_MALLOC_FLEX`. Each owner then either moves the handle to the next owner with `UNIQUE_THANDLE_INITIALIZE_MOVE`, or disposes the object with `UNIQUE_THANDLE_DISPOSE`. A move never disposes an object, so every dispose is explicit. No function copies a handle, so no code can give an object a second owner through an API, not even the .c file that defines `T`.
 
-Ownership moves only through `UNIQUE_THANDLE(T)*` parameters and through return values. A `UNIQUE_THANDLE(T)` passed by value is borrowed. C cannot prevent a raw copy of a handle (for example `UNIQUE_THANDLE(T) copy = handle;`), and this module does not detect one in general. `UNIQUE_THANDLE_MOVE` only refuses a move when both of its arguments hold the same handle.
+Ownership moves only through `UNIQUE_THANDLE(T)*` parameters and through return values. A `UNIQUE_THANDLE(T)` passed by value is borrowed. C cannot prevent a raw copy of a handle (for example `UNIQUE_THANDLE(T) copy = handle;`), and this module does not detect one.
 
 A `UNIQUE_THANDLE(T)` variable must not be moved or disposed from multiple threads at the same time.
 
@@ -24,7 +24,6 @@ A `UNIQUE_THANDLE(T)` variable must not be moved or disposed from multiple threa
 #define UNIQUE_THANDLE_TYPE_DEFINE_WITH_MALLOC_FUNCTIONS(T, malloc_function, malloc_flex_function, free_function)
 
 /*declared by UNIQUE_THANDLE_TYPE_DECLARE*/
-MOCKABLE_FUNCTION(, void, UNIQUE_THANDLE_MOVE(T), UNIQUE_THANDLE(T)*, t1, UNIQUE_THANDLE(T)*, t2);
 MOCKABLE_FUNCTION(, void, UNIQUE_THANDLE_INITIALIZE_MOVE(T), UNIQUE_THANDLE(T)*, t1, UNIQUE_THANDLE(T)*, t2);
 MOCKABLE_FUNCTION(, void, UNIQUE_THANDLE_DISPOSE(T), UNIQUE_THANDLE(T)*, t);
 
@@ -61,31 +60,17 @@ static T* UNIQUE_THANDLE_GET_T(T)(UNIQUE_THANDLE(T) t);
 
 **SRS_UNIQUE_THANDLE_43_002: [** `UNIQUE_THANDLE_TYPE_DEFINE_WITH_MALLOC_FUNCTIONS` shall use `malloc_function`, `malloc_flex_function` and `free_function` to allocate and free memory. **]**
 
-## UNIQUE_THANDLE_MOVE(T)
-
-```c
-MOCKABLE_FUNCTION(, void, UNIQUE_THANDLE_MOVE(T), UNIQUE_THANDLE(T)*, t1, UNIQUE_THANDLE(T)*, t2);
-```
-
-`UNIQUE_THANDLE_MOVE` moves `*t2` into `*t1` and disposes the handle that `*t1` held.
-
-**SRS_UNIQUE_THANDLE_43_003: [** If `t1` is `NULL` then `UNIQUE_THANDLE_MOVE` shall return. **]**
-
-**SRS_UNIQUE_THANDLE_43_004: [** If `t2` is `NULL` then `UNIQUE_THANDLE_MOVE` shall return. **]**
-
-**SRS_UNIQUE_THANDLE_43_005: [** If `*t1` is not `NULL` and `*t1` is equal to `*t2` then `UNIQUE_THANDLE_MOVE` shall return without changing `*t1` and `*t2`. **]**
-
-**SRS_UNIQUE_THANDLE_43_006: [** `UNIQUE_THANDLE_MOVE` shall store `*t2` in `*t1` and set `*t2` to `NULL`. **]**
-
-**SRS_UNIQUE_THANDLE_43_007: [** If `*t1` was not `NULL` then, after updating `*t1` and `*t2`, `UNIQUE_THANDLE_MOVE` shall call the `dispose` function of the previous `*t1`, if it is not `NULL`, and free its memory. **]**
-
 ## UNIQUE_THANDLE_INITIALIZE_MOVE(T)
 
 ```c
 MOCKABLE_FUNCTION(, void, UNIQUE_THANDLE_INITIALIZE_MOVE(T), UNIQUE_THANDLE(T)*, t1, UNIQUE_THANDLE(T)*, t2);
 ```
 
-`UNIQUE_THANDLE_INITIALIZE_MOVE` moves `*t2` into `*t1`, where `*t1` is not initialized. For example, `*t1` is a field of a structure that has just been allocated.
+`UNIQUE_THANDLE_INITIALIZE_MOVE` moves `*t2` into `*t1`, where `*t1` does not hold an object: it is either `NULL` or not initialized, for example a field of a structure that has just been allocated. It does not look at `*t1` and it never disposes an object.
+
+To move into a handle that holds an object, first dispose that object with `UNIQUE_THANDLE_DISPOSE` or move it to another handle. Otherwise the dispose function of the object never runs, and the object leaks with everything it owns. If the object owns `*t2`, for example `t2` points to one of its fields, first move `*t2` into a local handle, then dispose the object, then move the local handle into `*t1`.
+
+To set a handle that is not initialized to `NULL`, move a `NULL` handle into it.
 
 **SRS_UNIQUE_THANDLE_43_008: [** If `t1` is `NULL` then `UNIQUE_THANDLE_INITIALIZE_MOVE` shall return. **]**
 
