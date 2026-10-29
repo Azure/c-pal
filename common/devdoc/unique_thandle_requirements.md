@@ -2,13 +2,13 @@
 
 ## Overview
 
-`unique_thandle` is a module that provides macros for handles that have a single owner, like `std::unique_ptr` in C++.
+`unique_thandle` is a module that provides macros for handles that have a single owner.
 
-`UNIQUE_THANDLE(T)` is a `THANDLE(T)` whose reference count is always 1. `UNIQUE_THANDLE_TYPE_DECLARE` declares only the functions that move and dispose the handle. It does not declare `THANDLE_ASSIGN` or `THANDLE_INITIALIZE`, so code that includes the header cannot copy a `UNIQUE_THANDLE(T)` through its API. `UNIQUE_THANDLE_TYPE_DEFINE` still defines the `THANDLE` functions of `T`, so the .c file that defines `T` must not call `THANDLE_ASSIGN`, `THANDLE_INITIALIZE` or `THANDLE_MOVE` on it.
+`UNIQUE_THANDLE(T)` is a `THANDLE(T)` whose reference count is always 1. `UNIQUE_THANDLE_TYPE_DECLARE` and `UNIQUE_THANDLE_TYPE_DEFINE` declare and define only the functions that move and dispose the handle, and the memory functions of `T`. They do not declare or define `THANDLE_ASSIGN`, `THANDLE_INITIALIZE`, `THANDLE_MOVE` or `THANDLE_INITIALIZE_MOVE` for `T`, so no code can copy a `UNIQUE_THANDLE(T)` through an API, not even the .c file that defines `T`.
 
 Ownership moves only through `UNIQUE_THANDLE(T)*` parameters and through return values. A `UNIQUE_THANDLE(T)` passed by value is borrowed. C cannot prevent a raw copy of a handle (for example `UNIQUE_THANDLE(T) copy = handle;`), and this module does not detect one in general. `UNIQUE_THANDLE_MOVE` only refuses a move when both of its arguments hold the same handle.
 
-A type is either a `THANDLE` or a `UNIQUE_THANDLE`, never both: declaring it as a `THANDLE` too would make the copy functions available. A `UNIQUE_THANDLE(T)` variable must not be moved or disposed from multiple threads at the same time.
+A type is either a `THANDLE` or a `UNIQUE_THANDLE`, never both. A `UNIQUE_THANDLE(T)` variable must not be moved or disposed from multiple threads at the same time.
 
 ## Exposed API
 
@@ -43,7 +43,7 @@ static T* UNIQUE_THANDLE_GET_T(T)(UNIQUE_THANDLE(T) t);
 #define UNIQUE_THANDLE_TYPE_DEFINE(T)
 ```
 
-`UNIQUE_THANDLE_TYPE_DEFINE` defines the functions declared by `UNIQUE_THANDLE_TYPE_DECLARE` and the memory functions `UNIQUE_THANDLE_MALLOC(T)`, `UNIQUE_THANDLE_MALLOC_FLEX(T)`, `UNIQUE_THANDLE_FREE(T)` and `UNIQUE_THANDLE_GET_T(T)`.
+`UNIQUE_THANDLE_TYPE_DEFINE` defines the functions declared by `UNIQUE_THANDLE_TYPE_DECLARE` and the memory functions `UNIQUE_THANDLE_MALLOC(T)`, `UNIQUE_THANDLE_MALLOC_FLEX(T)`, `UNIQUE_THANDLE_FREE(T)` and `UNIQUE_THANDLE_GET_T(T)`. It does not define `THANDLE_ASSIGN`, `THANDLE_INITIALIZE`, `THANDLE_MOVE` or `THANDLE_INITIALIZE_MOVE` for `T`.
 
 **SRS_UNIQUE_THANDLE_43_001: [** `UNIQUE_THANDLE_TYPE_DEFINE` shall use `malloc`, `malloc_flex` and `free` to allocate and free memory. **]**
 
