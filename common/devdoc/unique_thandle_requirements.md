@@ -6,7 +6,30 @@
 
 `UNIQUE_THANDLE(T)` is a handle to an object of type `T` that has exactly one owner at a time. The .c file that defines `T` creates the object with `UNIQUE_THANDLE_MALLOC` or `UNIQUE_THANDLE_MALLOC_FLEX`. Each owner then either moves the handle to the next owner with `UNIQUE_THANDLE_INITIALIZE_MOVE`, or disposes the object with `UNIQUE_THANDLE_DISPOSE`. These two are the only functions that change a handle, even in the .c file that defines `T`, so an object is disposed only by `UNIQUE_THANDLE_DISPOSE` and keeps a single owner.
 
-Ownership moves only through `UNIQUE_THANDLE(T)*` parameters and through return values. A `UNIQUE_THANDLE(T)` passed by value is borrowed. C allows a raw copy of a handle, for example `UNIQUE_THANDLE(T) copy = handle;`. A raw copy gives the object a second owner, so it is a bug.
+Functions pass a handle in one of three ways:
+
+- A function that takes the object has a `UNIQUE_THANDLE(T)*` parameter. It moves the object out with `UNIQUE_THANDLE_INITIALIZE_MOVE`, which sets the caller's handle to `NULL`.
+- A function that gives an object to its caller returns a `UNIQUE_THANDLE(T)`, or moves the object into a `UNIQUE_THANDLE(T)*` out argument with `UNIQUE_THANDLE_INITIALIZE_MOVE`.
+- A function that uses the object only during the call has a `UNIQUE_THANDLE(T)` parameter. The caller passes the handle by value and still owns the object after the call.
+
+For example, for a type `EFFECT` and a batch that owns effects:
+
+```c
+UNIQUE_THANDLE(EFFECT) effect_create(int value);                   /*gives a new effect to the caller*/
+int effect_get_value(UNIQUE_THANDLE(EFFECT) effect);               /*uses the effect during the call*/
+int batch_add(BATCH_HANDLE batch, UNIQUE_THANDLE(EFFECT)* effect); /*takes the effect when it succeeds*/
+
+/*a caller*/
+UNIQUE_THANDLE(EFFECT) effect = effect_create(42);
+int value = effect_get_value(effect);    /*the caller still owns the effect*/
+int result = batch_add(batch, &effect);  /*on success, the batch owns the effect and effect is NULL*/
+UNIQUE_THANDLE_DISPOSE(EFFECT)(&effect); /*disposes the effect when batch_add failed*/
+
+/*batch_add, when it succeeds*/
+UNIQUE_THANDLE_INITIALIZE_MOVE(EFFECT)(&batch->effects[batch->count], effect);
+```
+
+A by-value parameter is a copy of the handle that is valid only during the call. C allows other copies, for example `UNIQUE_THANDLE(T) copy = handle;`, but such a copy gives the object a second owner, so it is a bug.
 
 Only one thread at a time may move or dispose a given `UNIQUE_THANDLE(T)` variable.
 
@@ -67,8 +90,6 @@ MOCKABLE_FUNCTION(, void, UNIQUE_THANDLE_INITIALIZE_MOVE(T), UNIQUE_THANDLE(T)*,
 ```
 
 `UNIQUE_THANDLE_INITIALIZE_MOVE` moves `*t2` into `*t1`, where `*t1` is either `NULL` or not initialized, for example a field of a structure that has just been allocated.
-
-To move into a handle that holds an object, first dispose that object with `UNIQUE_THANDLE_DISPOSE` or move it to another handle. If the object owns `*t2`, for example `t2` points to one of its fields, first move `*t2` into a local handle, then dispose the object, then move the local handle into `*t1`.
 
 To set a handle that is not initialized to `NULL`, move a `NULL` handle into it.
 
