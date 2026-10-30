@@ -19,14 +19,14 @@
 #define UNIQUE_THANDLE_FREE(C) THANDLE_FREE(C)
 #define UNIQUE_THANDLE_GET_T(C) THANDLE_GET_T(C)
 
-/*given a previous type T, UNIQUE_THANDLE_INITIALIZE_MOVE introduces a new name for a function that moves a handle into a handle that is NULL or not initialized, without disposing anything*/
+/*given a previous type T, UNIQUE_THANDLE_INITIALIZE_MOVE introduces a new name for a function that moves a handle into a handle that is NULL or not initialized*/
 #define UNIQUE_THANDLE_INITIALIZE_MOVE(C) MU_C2(C, _UNIQUE_INITIALIZE_MOVE)
 
 /*given a previous type T, UNIQUE_THANDLE_DISPOSE introduces a new name for a function that disposes a handle and sets it to NULL*/
 #define UNIQUE_THANDLE_DISPOSE(C) MU_C2(C, _UNIQUE_DISPOSE)
 
 /*macro to be used in headers*/
-/*introduces UNIQUE_THANDLE(T) and declares the functions that move and dispose it, named after C. No function that copies the handle is declared*/
+/*introduces UNIQUE_THANDLE(T) and declares only the functions that move and dispose it, named after C*/
 #define UNIQUE_THANDLE_LL_TYPE_DECLARE(C, T)                                                                          \
     THANDLE_MACRO(T);                                                                                                 \
     MOCKABLE_FUNCTION(, void, UNIQUE_THANDLE_INITIALIZE_MOVE(C), UNIQUE_THANDLE(T)*, t1, UNIQUE_THANDLE(T)*, t2);     \

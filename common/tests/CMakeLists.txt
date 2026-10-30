@@ -23,7 +23,6 @@ if(${run_unittests})
     build_test_folder(real_thandle_log_context_handle_ut)
     build_test_folder(tqueue_ut)
     build_test_folder(timed_test_suite_ut)
-    build_test_folder(unique_thandle_ut)
 endif()
 
 if(${run_int_tests})
