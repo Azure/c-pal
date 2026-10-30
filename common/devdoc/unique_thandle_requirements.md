@@ -12,24 +12,24 @@ Functions pass a handle in one of three ways:
 - A function that gives an object to its caller returns a `UNIQUE_THANDLE(T)`, or moves the object into a `UNIQUE_THANDLE(T)*` out argument with `UNIQUE_THANDLE_INITIALIZE_MOVE`.
 - A function that uses the object only during the call has a `UNIQUE_THANDLE(T)` parameter. The caller passes the handle by value and still owns the object after the call.
 
-For example, for a type `EFFECT` and a batch that owns effects:
+For example, for a type `ITEM` and a list that owns items:
 
 ```c
-UNIQUE_THANDLE(EFFECT) effect_create(int value);                   /*gives a new effect to the caller*/
-int effect_get_value(UNIQUE_THANDLE(EFFECT) effect);               /*uses the effect during the call*/
-int batch_add(BATCH_HANDLE batch, UNIQUE_THANDLE(EFFECT)* effect); /*takes the effect when it succeeds*/
+UNIQUE_THANDLE(ITEM) item_create(int value);                /*gives a new item to the caller*/
+int item_get_value(UNIQUE_THANDLE(ITEM) item);              /*uses the item during the call*/
+int list_add(LIST_HANDLE list, UNIQUE_THANDLE(ITEM)* item); /*takes the item when it succeeds*/
 
 /*a caller*/
-UNIQUE_THANDLE(EFFECT) effect = effect_create(42);
-int value = effect_get_value(effect);    /*the caller still owns the effect*/
-int result = batch_add(batch, &effect);  /*on success, the batch owns the effect and effect is NULL*/
-UNIQUE_THANDLE_DISPOSE(EFFECT)(&effect); /*disposes the effect when batch_add failed*/
+UNIQUE_THANDLE(ITEM) item = item_create(42);
+int value = item_get_value(item);    /*the caller still owns the item*/
+int result = list_add(list, &item);  /*on success, the list owns the item and item is NULL*/
+UNIQUE_THANDLE_DISPOSE(ITEM)(&item); /*disposes the item when list_add failed*/
 
-/*batch_add, when it succeeds*/
-UNIQUE_THANDLE_INITIALIZE_MOVE(EFFECT)(&batch->effects[batch->count], effect);
+/*list_add, when it succeeds*/
+UNIQUE_THANDLE_INITIALIZE_MOVE(ITEM)(&list->items[list->count], item);
 ```
 
-A by-value parameter is a copy of the handle that is valid only during the call. C allows other copies, for example `UNIQUE_THANDLE(T) copy = handle;`, but such a copy gives the object a second owner, so it is a bug.
+A by-value parameter is a copy of the handle that is valid only during the call. A handle is a const pointer, so the compiler rejects an assignment to a handle after its declaration, such as `copy = handle;`. The compiler accepts an initialization from another handle, such as `UNIQUE_THANDLE(T) copy = handle;`. Such a copy gives the object a second owner, so it is a bug: code moves a handle with `UNIQUE_THANDLE_INITIALIZE_MOVE`.
 
 Only one thread at a time may move or dispose a given `UNIQUE_THANDLE(T)` variable.
 
