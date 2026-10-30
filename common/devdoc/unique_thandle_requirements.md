@@ -29,8 +29,6 @@ UNIQUE_THANDLE_DISPOSE(ITEM)(&item); /*disposes the item when list_add failed*/
 UNIQUE_THANDLE_INITIALIZE_MOVE(ITEM)(&list->items[list->count], item);
 ```
 
-A by-value parameter is a copy of the handle that is valid only during the call. A handle is a const pointer, so the compiler rejects an assignment to a handle after its declaration, such as `copy = handle;`. The compiler accepts an initialization from another handle, such as `UNIQUE_THANDLE(T) copy = handle;`. Such a copy gives the object a second owner, so it is a bug: code moves a handle with `UNIQUE_THANDLE_INITIALIZE_MOVE`.
-
 Only one thread at a time may move or dispose a given `UNIQUE_THANDLE(T)` variable.
 
 ## Exposed API
