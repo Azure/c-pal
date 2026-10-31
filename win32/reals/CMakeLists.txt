@@ -62,6 +62,7 @@ set(reals_win32_h_files
     ../../common/reals/real_threadpool_thandle.h
     ../../common/reals/real_threadpool_timer_thandle.h
     ../../common/reals/real_threadpool_work_item_thandle.h
+    ../../common/reals/real_unique_thandle_helper.h
     real_job_object_helper.h
     real_job_object_helper_renames.h
 )
