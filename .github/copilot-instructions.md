@@ -25,7 +25,7 @@ c-pal is organized into three distinct abstraction layers with clear dependency 
    - **Platform implementations**: `c_pal_ll/win32/` and `c_pal_ll/linux/`
 
 2. **`common/`** - Utility components that depend only on c_pal_ll
-   - **Key utilities**: `refcount.h`, `thandle.h`, `s_list.h`, `sm.h`, `call_once.h`, `lazy_init.h`
+   - **Key utilities**: `refcount.h`, `thandle.h`, `unique_thandle.h`, `s_list.h`, `sm.h`, `call_once.h`, `lazy_init.h`
    - **Dependencies**: c_pal_ll layer only
    - **Purpose**: Foundational utilities for higher-level components
 
@@ -582,6 +582,44 @@ ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_call
 
 THANDLE provides the safety and convenience of modern smart pointers while maintaining C compatibility and performance. It's the preferred pattern for managing object lifetimes in c-pal components.
 
+### UNIQUE_THANDLE: Single-Owner Handles
+
+`UNIQUE_THANDLE(T)` (`common/inc/c_pal/unique_thandle.h`, spec in `common/devdoc/unique_thandle_requirements.md`) is a handle to a `T` that has exactly one owner at a time. Use it for objects that are handed from owner to owner and never shared. A handle is an array of one slot (like `jmp_buf`): a call passes the handle itself, without `&`, and the function receives a pointer to the caller's handle. Its macros define `UNIQUE_THANDLE_INITIALIZE_MOVE`, `UNIQUE_THANDLE_DISPOSE`, `UNIQUE_THANDLE_INSPECT` (for debuggers) and, for the .c file that defines `T`, `UNIQUE_THANDLE_MALLOC`, `UNIQUE_THANDLE_MALLOC_FLEX`, `UNIQUE_THANDLE_FREE`, `UNIQUE_THANDLE_ADOPT` and `UNIQUE_THANDLE_GET_T`. No function assigns, copies or adds a reference to a handle.
+
+```c
+// header
+typedef struct ITEM_TAG ITEM;
+UNIQUE_THANDLE_TYPE_DECLARE(ITEM);
+
+int item_create(int value, UNIQUE_THANDLE(ITEM) item);     // puts a new item in item
+int item_get_value(const UNIQUE_THANDLE(ITEM) item);       // uses the item: const
+int list_add(LIST_HANDLE list, UNIQUE_THANDLE(ITEM) item); // takes the item when it succeeds
+
+// the .c file that defines ITEM
+UNIQUE_THANDLE_TYPE_DEFINE(ITEM);
+
+ITEM* new_item = UNIQUE_THANDLE_MALLOC(ITEM)(item_dispose); // UNIQUE_THANDLE_FREE(ITEM) on a failed create
+UNIQUE_THANDLE_ADOPT(ITEM)(item, new_item);                 // item is NULL or not initialized, and then holds new_item
+const ITEM* object = UNIQUE_THANDLE_GET_T(ITEM)(item);
+
+// any code
+UNIQUE_THANDLE(ITEM) item = { { NULL } };                   // "= NULL" does not compile
+UNIQUE_THANDLE_INITIALIZE_MOVE(ITEM)(list->items[i], item); // destination is NULL or not initialized; item becomes NULL
+UNIQUE_THANDLE_DISPOSE(ITEM)(item);                         // sets item to NULL, then disposes and frees the object
+```
+
+- A `const UNIQUE_THANDLE(T)` parameter only uses the object: moving or disposing it is a C4090 / `-Wdiscarded-qualifiers` error under `/WX` / `-Werror`. A `UNIQUE_THANDLE(T)` parameter may take the object. It points to the caller's variable, so a function that keeps the object moves it into a handle that the function owns.
+- The compiler rejects `UNIQUE_THANDLE(T) copy = handle;`, assignments of handles and functions that return a handle. Explicit copies still compile and give the object a second owner: `{ *handle }`, copying or passing by value a struct that holds a handle (MSVC also accepts assigning such a struct), `memcpy` and casts. Pass and return structs that hold handles by pointer.
+- A move never disposes anything: `UNIQUE_THANDLE_INITIALIZE_MOVE` overwrites its destination without looking at it. If the destination holds an object, dispose that object or move it out first.
+- To replace an object with a handle that the object owns (for example popping the head of a list, whose `next` becomes the new head), move the new handle into a local first, then dispose the object, then move the local in.
+- To reset a struct that holds handles, dispose or move each handle.
+- With `run_unittests=ON`, `common/tests/unique_thandle_compile_checks` checks at configure time that the documented use compiles and that each rejected case fails with its expected diagnostic.
+- Unit tests:
+  - Call `REGISTER_UNIQUE_THANDLE_UMOCK_ALIAS_TYPES(T)` (from `real_unique_thandle_helper.h`) when a mocked function has a handle parameter: the type name has no `*`, and umock stores the address of the handle.
+  - To back the mocked `UNIQUE_THANDLE_INITIALIZE_MOVE` and `UNIQUE_THANDLE_DISPOSE` with real ones, use `REAL_UNIQUE_THANDLE_DECLARE`, `REAL_UNIQUE_THANDLE_DEFINE` and `REGISTER_REAL_UNIQUE_THANDLE_MOCK_HOOK`.
+  - In `STRICT_EXPECTED_CALL`, pass the handle itself (it matches a call on the same handle) or `IGNORED_ARG`. Check the object that a handle holds with `.ValidateArgumentBuffer(n, &object, sizeof(object))`, and fill a handle from a mocked create function with `.CopyOutArgumentBuffer_x(&object, sizeof(object))`. `ValidateArgumentValue_x` and `CaptureArgumentValue_x` compare and write the address of the handle, so they don't work for handles.
+  - As with THANDLE, a dispose calls `interlocked_decrement`, then the dispose function and `free`, and `UNIQUE_THANDLE_MALLOC` calls `interlocked_exchange`. Tests that mock interlocked without hooks see those calls.
+
 ### Threadpool Work Scheduling
 ```c
 // Open threadpool for work scheduling
@@ -876,6 +914,7 @@ This project inherits comprehensive build and coding standards from its dependen
 - **`interfaces/inc/c_pal/`**: Cross-platform API definitions for all components
 - **`common/inc/c_pal/refcount.h`**: Reference counting macros and patterns
 - **`common/inc/c_pal/thandle.h`**: Type-safe smart pointer implementation
+- **`common/inc/c_pal/unique_thandle.h`**: Single-owner handles that can only be moved and disposed
 - **`doc/pal.md`**: Architecture overview and design rationale
 - **`tools/build_all.bat`**: Comprehensive build validation across all allocator combinations
 
