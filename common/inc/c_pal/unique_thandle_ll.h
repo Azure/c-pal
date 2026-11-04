@@ -8,6 +8,9 @@
 
 #include "macro_utils/macro_utils.h"
 
+#include "c_logging/logger.h"
+
+#include "c_pal/containing_record.h"
 #include "c_pal/thandle_ll.h"
 
 #include "umock_c/umock_c_prod.h"
@@ -54,5 +57,113 @@ The slot holds a const pointer to a struct that is only declared. UNIQUE_THANDLE
 #define UNIQUE_THANDLE_LL_TYPE_DECLARE(C, T)                                                                            \
     MOCKABLE_FUNCTION(, void, UNIQUE_THANDLE_INITIALIZE_MOVE(C), UNIQUE_THANDLE(T), t1, UNIQUE_THANDLE(T), t2);         \
     MOCKABLE_FUNCTION(, void, UNIQUE_THANDLE_DISPOSE(C), UNIQUE_THANDLE(T), t);
+
+/*given a previous type T, this introduces UNIQUE_THANDLE_ADOPT, which puts an object that UNIQUE_THANDLE_MALLOC or UNIQUE_THANDLE_MALLOC_FLEX returned, and that no handle holds, in a handle that is NULL or not initialized*/
+#define UNIQUE_THANDLE_LL_ADOPT_MACRO(C, T)                                                                                            \
+MU_SUPPRESS_WARNING(4505) /*warning C4505: 'function': unreferenced function with internal linkage has been removed*/                  \
+static void UNIQUE_THANDLE_ADOPT(C)(UNIQUE_THANDLE(T) t, T* object)                                                                    \
+{                                                                                                                                      \
+    if (t == NULL)                                                                                                                     \
+    {                                                                                                                                  \
+        LogError("invalid argument UNIQUE_THANDLE(" MU_TOSTRING(T) ") t=%p, " MU_TOSTRING(T) "* object=%p", (void*)t, (void*)object);  \
+    }                                                                                                                                  \
+    else                                                                                                                               \
+    {                                                                                                                                  \
+        *(const struct UNIQUE_THANDLE_OBJECT_TAG(T)* volatile*)&t->object = (const struct UNIQUE_THANDLE_OBJECT_TAG(T)*)(void*)object; \
+    }                                                                                                                                  \
+}                                                                                                                                      \
+MU_UNSUPPRESS_WARNING(4505)
+
+/*given a previous type T, this introduces UNIQUE_THANDLE_GET_T, which returns the T that a handle holds, or NULL if t is NULL*/
+#define UNIQUE_THANDLE_LL_GET_T_MACRO(C, T)                                                                             \
+MU_SUPPRESS_WARNING(4505) /*warning C4505: 'function': unreferenced function with internal linkage has been removed*/   \
+static T* UNIQUE_THANDLE_GET_T(C)(const UNIQUE_THANDLE(T) t)                                                            \
+{                                                                                                                       \
+    return (t == NULL) ? NULL : (T*)(void*)t->object;                                                                   \
+}                                                                                                                       \
+MU_UNSUPPRESS_WARNING(4505)
+
+/*this is only useful during debugging, like THANDLE_INSPECT: from a UNIQUE_THANDLE(T) it returns the THANDLE_WRAPPER_TYPE_NAME(T) of its object, or NULL. Example: write ITEM_UNIQUE_INSPECT(item) in the Visual Studio watch window of a Debug build.
+To see the fields of the object, cast its pointer: (ITEM*)item->object*/
+#define UNIQUE_THANDLE_LL_INSPECT_MACRO(C, T)                                                                                                     \
+const THANDLE_WRAPPER_TYPE_NAME(T)* UNIQUE_THANDLE_INSPECT(C)(const UNIQUE_THANDLE(T) t)                                                          \
+{                                                                                                                                                 \
+    return ((t == NULL) || (t->object == NULL)) ? NULL : CONTAINING_RECORD((const T*)(const void*)t->object, THANDLE_WRAPPER_TYPE_NAME(T), data); \
+}
+
+/*given a previous type T, this introduces UNIQUE_THANDLE_INITIALIZE_MOVE*/
+#define UNIQUE_THANDLE_LL_INITIALIZE_MOVE_MACRO(C, T)                                                                                          \
+void UNIQUE_THANDLE_INITIALIZE_MOVE(C)(UNIQUE_THANDLE(T) t1, UNIQUE_THANDLE(T) t2)                                                             \
+{                                                                                                                                              \
+    if (                                                                                                                                       \
+        /*Codes_SRS_UNIQUE_THANDLE_43_008: [ If t1 is NULL then UNIQUE_THANDLE_INITIALIZE_MOVE shall return. ]*/                               \
+        (t1 == NULL) ||                                                                                                                        \
+        /*Codes_SRS_UNIQUE_THANDLE_43_009: [ If t2 is NULL then UNIQUE_THANDLE_INITIALIZE_MOVE shall return. ]*/                               \
+        (t2 == NULL) ||                                                                                                                        \
+        /*Codes_SRS_UNIQUE_THANDLE_43_010: [ If t1 is equal to t2 then UNIQUE_THANDLE_INITIALIZE_MOVE shall return. ]*/                        \
+        (t1 == t2)                                                                                                                             \
+        )                                                                                                                                      \
+    {                                                                                                                                          \
+        LogError("invalid argument UNIQUE_THANDLE(" MU_TOSTRING(T) ") t1=%p, UNIQUE_THANDLE(" MU_TOSTRING(T) ") t2=%p", (void*)t1, (void*)t2); \
+    }                                                                                                                                          \
+    else                                                                                                                                       \
+    {                                                                                                                                          \
+        /*Codes_SRS_UNIQUE_THANDLE_43_011: [ UNIQUE_THANDLE_INITIALIZE_MOVE shall store *t2 in *t1 and set *t2 to NULL. ]*/                    \
+        *(const struct UNIQUE_THANDLE_OBJECT_TAG(T)* volatile*)&t1->object = t2->object;                                                       \
+        *(const struct UNIQUE_THANDLE_OBJECT_TAG(T)* volatile*)&t2->object = NULL;                                                             \
+    }                                                                                                                                          \
+}
+
+/*given a previous type T, this introduces UNIQUE_THANDLE_DISPOSE. *t is set to NULL before the dispose function of the object runs*/
+#define UNIQUE_THANDLE_LL_DISPOSE_MACRO(C, T)                                                                                                                       \
+void UNIQUE_THANDLE_DISPOSE(C)(UNIQUE_THANDLE(T) t)                                                                                                                 \
+{                                                                                                                                                                   \
+    if (t == NULL)                                                                                                                                                  \
+    {                                                                                                                                                               \
+        /*Codes_SRS_UNIQUE_THANDLE_43_012: [ If t is NULL then UNIQUE_THANDLE_DISPOSE shall return. ]*/                                                             \
+        LogError("invalid argument UNIQUE_THANDLE(" MU_TOSTRING(T) ") t=%p", (void*)t);                                                                             \
+    }                                                                                                                                                               \
+    else if (t->object == NULL)                                                                                                                                     \
+    {                                                                                                                                                               \
+        /*Codes_SRS_UNIQUE_THANDLE_43_013: [ If *t is NULL then UNIQUE_THANDLE_DISPOSE shall return. ]*/                                                            \
+    }                                                                                                                                                               \
+    else                                                                                                                                                            \
+    {                                                                                                                                                               \
+        const T* previous = (const T*)(const void*)t->object;                                                                                                       \
+        /*Codes_SRS_UNIQUE_THANDLE_43_014: [ UNIQUE_THANDLE_DISPOSE shall set *t to NULL. ]*/                                                                       \
+        *(const struct UNIQUE_THANDLE_OBJECT_TAG(T)* volatile*)&t->object = NULL;                                                                                   \
+        /*Codes_SRS_UNIQUE_THANDLE_43_015: [ UNIQUE_THANDLE_DISPOSE shall then call the dispose function passed when the handle was created, if it is not NULL. ]*/ \
+        /*Codes_SRS_UNIQUE_THANDLE_43_016: [ UNIQUE_THANDLE_DISPOSE shall free the memory of the handle. ]*/                                                        \
+        THANDLE_DEC_REF(C)(previous);                                                                                                                               \
+    }                                                                                                                                                               \
+}
+
+/*macro to be used in a .c file*/
+/*given a previous type T whose UNIQUE_THANDLE(T) is introduced, this defines the functions declared by UNIQUE_THANDLE_LL_TYPE_DECLARE and the static functions for the .c file that defines T, named after C. T's memory is allocated and freed with the given functions*/
+/*it uses the THANDLE_LL building blocks that allocate, free and release an object, and THANDLE(T) for them. THANDLE_ASSIGN, THANDLE_INITIALIZE, THANDLE_MOVE, THANDLE_INITIALIZE_MOVE and THANDLE_INC_REF are not defined for T*/
+#define UNIQUE_THANDLE_LL_TYPE_DEFINE_WITH_MALLOC_FUNCTIONS(C, T, malloc_function, malloc_flex_function, free_function) \
+    THANDLE_MACRO(T);                                                                                                   \
+    THANDLE_LL_TYPE_STRUCT_TYPE_DEFINE(T)                                                                               \
+    THANDLE_LL_TYPE_STRUCT_VAR_DEFINE(T, malloc_function, malloc_flex_function, free_function)                          \
+                                                                                                                        \
+    MU_DEFINE_STRUCT(THANDLE_WRAPPER_TYPE_NAME(T), THANDLE_EXTRA_FIELDS(T), T, data);                                   \
+                                                                                                                        \
+    THANDLE_LL_MALLOC_WITH_MALLOC_FUNCTIONS_MACRO(C, T)                                                                 \
+    THANDLE_LL_MALLOC_MACRO(C, T)                                                                                       \
+    THANDLE_LL_MALLOC_WITH_EXTRA_SIZE_WITH_MALLOC_FUNCTIONS_MACRO(C, T)                                                 \
+    THANDLE_LL_MALLOC_WITH_EXTRA_SIZE_MACRO(C, T)                                                                       \
+    THANDLE_LL_FREE_MACRO(C, T)                                                                                         \
+    THANDLE_LL_DEC_REF_MACRO(C, T)                                                                                      \
+                                                                                                                        \
+    UNIQUE_THANDLE_LL_ADOPT_MACRO(C, T)                                                                                 \
+    UNIQUE_THANDLE_LL_GET_T_MACRO(C, T)                                                                                 \
+    UNIQUE_THANDLE_LL_INSPECT_MACRO(C, T)                                                                               \
+    UNIQUE_THANDLE_LL_INITIALIZE_MOVE_MACRO(C, T)                                                                       \
+    UNIQUE_THANDLE_LL_DISPOSE_MACRO(C, T)
+
+/*macro to be used in a .c file*/
+/*same as UNIQUE_THANDLE_LL_TYPE_DEFINE_WITH_MALLOC_FUNCTIONS, with T's memory allocated and freed with malloc, malloc_flex and free*/
+#define UNIQUE_THANDLE_LL_TYPE_DEFINE(C, T)                                                                             \
+    UNIQUE_THANDLE_LL_TYPE_DEFINE_WITH_MALLOC_FUNCTIONS(C, T, NULL, NULL, NULL)
 
 #endif /*UNIQUE_THANDLE_LL_H*/
