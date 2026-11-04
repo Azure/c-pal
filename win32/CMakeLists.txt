@@ -14,6 +14,8 @@ set(pal_common_h_files
     ../common/inc/c_pal/thandle_log_context_handle.h
     ../common/inc/c_pal/tqueue.h
     ../common/inc/c_pal/tqueue_ll.h
+    ../common/inc/c_pal/unique_thandle.h
+    ../common/inc/c_pal/unique_thandle_ll.h
 )
 
 set(pal_common_c_files
