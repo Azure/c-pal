@@ -70,6 +70,7 @@ set(linux_reals_h_files
     ../../common/reals/real_threadpool_thandle.h
     ../../common/reals/real_threadpool_timer_thandle.h
     ../../common/reals/real_threadpool_work_item_thandle.h
+    ../../common/reals/real_unique_thandle_helper.h
     ../../interfaces/reals/real_timer.h
     ../../interfaces/reals/real_timer_renames.h
 )
