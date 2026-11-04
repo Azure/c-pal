@@ -9,6 +9,21 @@
 The .c file that defines `T` creates the object with `UNIQUE_THANDLE_MALLOC` or `UNIQUE_THANDLE_MALLOC_FLEX` and puts it in a handle with `UNIQUE_THANDLE_ADOPT`:
 
 ```c
+/*item.h*/
+typedef struct ITEM_TAG ITEM;
+
+UNIQUE_THANDLE_TYPE_DECLARE(ITEM);
+
+int item_create(int value, UNIQUE_THANDLE(ITEM) item);
+
+/*item.c*/
+struct ITEM_TAG
+{
+    int value;
+};
+
+UNIQUE_THANDLE_TYPE_DEFINE(ITEM);
+
 int item_create(int value, UNIQUE_THANDLE(ITEM) item)
 {
     int result;
@@ -30,7 +45,25 @@ int item_create(int value, UNIQUE_THANDLE(ITEM) item)
 The object can be moved with `UNIQUE_THANDLE_INITIALIZE_MOVE` or disposed with `UNIQUE_THANDLE_DISPOSE`.
 
 ```c
-/*a LIST_HANDLE points to a LIST, whose end is its last NODE; a NODE has next, the next NODE, and item, a UNIQUE_THANDLE(ITEM)*/
+/*list.h*/
+typedef struct NODE_TAG
+{
+    struct NODE_TAG* next;
+    UNIQUE_THANDLE(ITEM) item;
+} NODE;
+
+typedef struct LIST_TAG
+{
+    NODE head; /*holds no item*/
+    NODE* end; /*the last node, &head when the list is empty*/
+} LIST;
+
+typedef LIST* LIST_HANDLE;
+
+int list_insert_num(LIST_HANDLE list, int n);
+int list_insert_item(LIST_HANDLE list, UNIQUE_THANDLE(ITEM) item);
+
+/*list.c*/
 int list_insert_num(LIST_HANDLE list, int n)
 {
     int result;
@@ -87,33 +120,47 @@ int list_insert_item(LIST_HANDLE list, UNIQUE_THANDLE(ITEM) item)
 The compiler rejects the following misuses:
 
 ```c
-/*temp is a UNIQUE_THANDLE(ITEM), pointer is an ITEM*, other is a UNIQUE_THANDLE(OTHER), and list->items is an array of UNIQUE_THANDLE(ITEM)*/
+/*other.h*/
+typedef struct OTHER_TAG OTHER;
 
-/*copies a handle: copy and item would both own the item*/
-UNIQUE_THANDLE(ITEM) copy = item;
+UNIQUE_THANDLE_TYPE_DECLARE(OTHER);
 
-/*assigns a handle: list->items[0] and list->items[1] would both own the same item*/
-list->items[0] = list->items[1];
+/*item.c*/
+void misuses(UNIQUE_THANDLE(ITEM) item, UNIQUE_THANDLE(OTHER) other)
+{
+    UNIQUE_THANDLE(ITEM) temp = UNIQUE_THANDLE_NULL;
+    ITEM* pointer = UNIQUE_THANDLE_GET_T(ITEM)(item);
 
+    /*copies a handle: copy and item would both own the item*/
+    UNIQUE_THANDLE(ITEM) copy = item;
+
+    /*assigns a handle: temp and item would both own the item*/
+    temp = item;
+
+    /*writes the pointer in a handle: temp and item would both own the item*/
+    temp[0].object = item[0].object;
+
+    /*warnings as errors: makes a handle from a pointer to an item, which a handle may already own*/
+    UNIQUE_THANDLE_INITIALIZE_MOVE(ITEM)(temp, &pointer);
+
+    /*warnings as errors: moves a handle to another type, OTHER, into a handle to an ITEM*/
+    UNIQUE_THANDLE_INITIALIZE_MOVE(ITEM)(temp, other);
+}
+
+/*list.h*/
 /*returns a handle: the caller and the list would both own the item*/
 UNIQUE_THANDLE(ITEM) list_get(LIST_HANDLE list, uint32_t index);
 
-/*writes the pointer in a handle: temp and item would both own the item*/
-temp[0].object = item[0].object;
-
-/*list_get_first_value reads the list*/
-int list_get_first_value(const LIST* list)
+/*list.c*/
+/*node_get_value reads a node*/
+int node_get_value(const NODE* node)
 {
-    /*warnings as errors: moves the first item, which the list owns, into temp*/
-    UNIQUE_THANDLE_INITIALIZE_MOVE(ITEM)(temp, list->items[0]);
+    UNIQUE_THANDLE(ITEM) temp = UNIQUE_THANDLE_NULL;
+
+    /*warnings as errors: moves the item, which the node owns, into temp*/
+    UNIQUE_THANDLE_INITIALIZE_MOVE(ITEM)(temp, node->item);
     ...
 }
-
-/*warnings as errors: makes a handle from a pointer to an item, which a handle may already own*/
-UNIQUE_THANDLE_INITIALIZE_MOVE(ITEM)(item, &pointer);
-
-/*warnings as errors: moves a handle to another type, OTHER, into a handle to an ITEM*/
-UNIQUE_THANDLE_INITIALIZE_MOVE(ITEM)(item, other);
 ```
 
 Read-only copies should be passed as `const`:
@@ -124,9 +171,9 @@ int item_get_value(const UNIQUE_THANDLE(ITEM) item)
 {
     UNIQUE_THANDLE(ITEM) temp = UNIQUE_THANDLE_NULL;
 
-    UNIQUE_THANDLE_INITIALIZE_MOVE(ITEM)(temp, item); /* does not compile */
+    UNIQUE_THANDLE_INITIALIZE_MOVE(ITEM)(temp, item); /*warnings as errors: does not compile*/
 
-    UNIQUE_THANDLE_DISPOSE(ITEM)(item); /* does not compile */
+    UNIQUE_THANDLE_DISPOSE(ITEM)(item); /*warnings as errors: does not compile*/
 
     ITEM* item_ptr = UNIQUE_THANDLE_GET_T(ITEM)(item);
     return item_ptr->value;
@@ -147,6 +194,7 @@ int item_get_value(UNIQUE_THANDLE(ITEM) item)
     return item_ptr->value;
 }
 
+int caller(void)
 {
     UNIQUE_THANDLE(ITEM) item = UNIQUE_THANDLE_NULL;
     item_create(42, item);
@@ -156,6 +204,8 @@ int item_get_value(UNIQUE_THANDLE(ITEM) item)
     /*item is now NULL: item_get_value moved the item into temp, which leaked it. Another call to item_get_value dereferences NULL*/
 
     int val2 = item_get_value(item);
+
+    return val + val2;
 }
 ```
 
