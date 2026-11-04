@@ -9,8 +9,9 @@
 #include "c_pal/unique_thandle_ll.h"
 
 /*macro to be used in headers*/
-/*introduces UNIQUE_THANDLE(T) for a previously defined type T and declares the functions that move and dispose it*/
-#define UNIQUE_THANDLE_TYPE_DECLARE(T) \
+/*introduces UNIQUE_THANDLE(T) for a type T and declares the functions that move and dispose it*/
+#define UNIQUE_THANDLE_TYPE_DECLARE(T)                                                                                  \
+    UNIQUE_THANDLE_MACRO(T)                                                                                             \
     UNIQUE_THANDLE_LL_TYPE_DECLARE(T, T)
 
 #endif /*UNIQUE_THANDLE_H*/
