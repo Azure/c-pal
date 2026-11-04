@@ -201,9 +201,8 @@ int caller(void)
 
     int val = item_get_value(item);
 
-    /*item is now NULL: item_get_value moved the item into temp, which leaked it. Another call to item_get_value dereferences NULL*/
-
-    int val2 = item_get_value(item);
+    /*item is now NULL: item_get_value moved the item into temp, which leaked it. Another call to item_get_value dereferences NULL and crashes*/
+    int val2 = item_get_value(item); // will crash
 
     return val + val2;
 }
