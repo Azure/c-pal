@@ -3,6 +3,12 @@
 
 #include "real_gballoc_hl_renames.h" // IWYU pragma: keep
 
+#include "real_interlocked_renames.h" // IWYU pragma: keep
+
+#include "real_ps_util_renames.h" // IWYU pragma: keep
+
+#include "real_threadapi_renames.h" // IWYU pragma: keep
+
 #include "real_execution_engine_renames.h" // IWYU pragma: keep
 
 #include "real_execution_engine_linux_renames.h" // IWYU pragma: keep

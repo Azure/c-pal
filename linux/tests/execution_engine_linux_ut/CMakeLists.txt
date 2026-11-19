@@ -7,10 +7,13 @@ set(${theseTestsName}_test_files
 )
 
 set(${theseTestsName}_c_files
+    mock_execution_engine.c
 )
 
 set(${theseTestsName}_h_files
     ../../../interfaces/inc/c_pal/execution_engine.h
+    ../../inc/c_pal/execution_engine_linux.h
+    mock_execution_engine.h
 )
 
 build_test_artifacts(${theseTestsName} "tests/c_pal/linux" ADDITIONAL_LIBS c_pal_reals c_pal 
