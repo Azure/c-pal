@@ -6,6 +6,8 @@
 
 It uses the PTP_POOL associated with the execution engine passed as argument to schedule the work.
 
+A timer can be cancelled, or its last reference released, from its own callback. `on_timer_callback` records the timer and the callback instance in a thread-local variable, and `threadpool_timer_cancel` and `threadpool_timer_dispose` then call `DisassociateCurrentThreadFromCallback` before `WaitForThreadpoolTimerCallbacks`, so they don't wait for the calling callback.
+
 ## Exposed API
 
 `threadpool_win32` implements the `threadpool` API:
@@ -184,7 +186,7 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_restart, THANDLE(THREADPOOL_TIMER), ti
 MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, THANDLE(THREADPOOL_TIMER), timer);
 ```
 
-`threadpool_timer_cancel` stops the timer and waits for any pending callbacks. Afterward, the timer may be resumed with a new time by calling `threadpool_timer_restart` or cleaned up by calling `threadpool_timer_destroy`. When called from the timer's own callback, it disassociates the calling thread from the callback first, so it doesn't wait for itself.
+`threadpool_timer_cancel` stops the timer and waits for any pending callbacks. Afterward, the timer may be resumed with a new time by calling `threadpool_timer_restart` or cleaned up by calling `threadpool_timer_destroy`.
 
 **SRS_THREADPOOL_WIN32_42_024: [** If `timer` is `NULL`, `threadpool_timer_cancel` shall fail and return. **]**
 
@@ -204,7 +206,7 @@ MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, THANDLE(THREADPOOL_TIMER), ti
 static void threadpool_timer_dispose(THREADPOOL_TIMER* timer);
 ```
 
-`threadpool_timer_dispose` stops the timer when thre reference count of the THANDLE(THREADPOOL_TIMER) created by `threadpool_timer_start` reaches 0 and cleans up its resources. When the last reference is released from the timer's own callback, it disassociates the calling thread from the callback first, so it doesn't wait for itself.
+`threadpool_timer_dispose` stops the timer when thre reference count of the THANDLE(THREADPOOL_TIMER) created by `threadpool_timer_start` reaches 0 and cleans up its resources.
 
 **SRS_THREADPOOL_WIN32_42_012: [** `threadpool_timer_dispose` shall call `SetThreadpoolTimer` with `NULL` for `pftDueTime` and 0 for `msPeriod` and `msWindowLength` to cancel ongoing timers. **]**
 
@@ -222,9 +224,7 @@ static void threadpool_timer_dispose(THREADPOOL_TIMER* timer);
 static VOID CALLBACK on_timer_callback(PTP_CALLBACK_INSTANCE instance, PVOID context, PTP_TIMER timer);
 ```
 
-`on_work_callback` executes the work function passed to `threadpool_schedule_work`.
-
-While the work function runs, `on_timer_callback` records the timer and the callback instance in a thread-local variable. This lets `threadpool_timer_cancel` and `threadpool_timer_dispose` detect that they are called from the timer's own callback.
+`on_timer_callback` executes the timer's work function and records the timer and the callback instance in a thread-local variable to allow cancelling or releasing the timer from the callback.
 
 **SRS_THREADPOOL_WIN32_42_016: [** If `context` is `NULL`, `on_work_callback` shall return. **]**
 

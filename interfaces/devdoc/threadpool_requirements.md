@@ -16,6 +16,8 @@ The `threadpool` interface supports:
 
 The lifetime of the execution engine should supersede the lifetime of the `threadpool` object.
 
+A timer can be cancelled, or its last reference released, from its own callback. Neither waits for that callback, and the callback must not use the timer after releasing it.
+
 ## Exposed API
 
 ```c
@@ -169,7 +171,7 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_restart, THANDLE(THREADPOOL_TIMER), ti
 MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, THREADPOOL_TIMER *, timer);
 ```
 
-`threadpool_timer_cancel` stops the timer and waits for any pending callbacks. Afterward, the timer may be resumed with a new time by calling `threadpool_timer_restart` or cleaned up by calling `threadpool_timer_destroy`. It can be called from the timer's own callback, and then doesn't wait for that callback.
+`threadpool_timer_cancel` stops the timer and waits for any pending callbacks. Afterward, the timer may be resumed with a new time by calling `threadpool_timer_restart` or cleaned up by calling `threadpool_timer_destroy`.
 
 **NON_THREADPOOL_42_020: [** If `timer` is `NULL`, `threadpool_timer_cancel` shall fail and return. **]**
 
@@ -187,7 +189,7 @@ MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, THREADPOOL_TIMER *, timer);
 MOCKABLE_FUNCTION(, void, threadpool_timer_destroy, THREADPOOL_TIMER *, timer);
 ```
 
-`threadpool_timer_destroy` stops the timer started by `threadpool_timer_start` and cleans up its resources. The last reference to a timer can be released from the timer's own callback, which then must not use the timer.
+`threadpool_timer_destroy` stops the timer started by `threadpool_timer_start` and cleans up its resources.
 
 **NON_THREADPOOL_42_012: [** If `timer` is `NULL`, `threadpool_timer_destroy` shall fail and return. **]**
 
