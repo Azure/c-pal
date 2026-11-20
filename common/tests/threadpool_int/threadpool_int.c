@@ -1585,11 +1585,9 @@ static THANDLE(THREADPOOL_TIMER) start_timer_when_one_is_available(THANDLE(THREA
             return timer;
         }
 
+        ASSERT_IS_TRUE(timer_global_get_elapsed_ms() - start_time < TIMER_FROM_OWN_CALLBACK_TIMEOUT_MS, "Timeout waiting for a timer to be available");
         ThreadAPI_Sleep(1);
-    } while (timer_global_get_elapsed_ms() - start_time < TIMER_FROM_OWN_CALLBACK_TIMEOUT_MS);
-
-    ASSERT_FAIL("Timeout waiting for a timer to be available");
-    return NULL;
+    } while (1);
 }
 
 #define TIMERS_RELEASED_FROM_CALLBACK_BATCH_COUNT 3
