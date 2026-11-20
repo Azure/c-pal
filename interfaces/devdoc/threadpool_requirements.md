@@ -16,7 +16,7 @@ The `threadpool` interface supports:
 
 The lifetime of the execution engine should supersede the lifetime of the `threadpool` object.
 
-A timer can be cancelled, or its last reference released, from its own callback. Neither waits for that callback, and the callback must not use the timer after releasing it.
+A timer can be cancelled, or its last reference released, from its own callback. Neither waits for that callback, and the callback must not use the timer after releasing it. After a callback cancels its own timer, cancelling or releasing the timer on another thread may not wait for that callback.
 
 ## Exposed API
 
