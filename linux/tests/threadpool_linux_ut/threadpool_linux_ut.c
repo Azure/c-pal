@@ -4,6 +4,7 @@
 
 #define TEST_START_DELAY_MS 42
 #define TEST_TIMER_PERIOD_MS 2000
+#define TEST_WAIT_TIMEOUT_S 30
 
 static EXECUTION_ENGINE_HANDLE test_execution_engine = (EXECUTION_ENGINE_HANDLE)0x4243;
 static EXECUTION_ENGINE_LINUX_WORK_HANDLE test_work = (EXECUTION_ENGINE_LINUX_WORK_HANDLE)0x4244;
@@ -15,8 +16,25 @@ static EXECUTION_ENGINE_LINUX_WORK_FUNCTION captured_work_function;
 static void* captured_work_function_context;
 static EXECUTION_ENGINE_LINUX_WORK_FUNCTION captured_timer_function;
 static void* captured_timer_function_context;
-static volatile_atomic int32_t* captured_pending_work_count;
+static volatile_atomic int32_t* captured_outstanding_callback_count;
 static SRW_LOCK_LL* captured_timer_lock;
+static int32_t outstanding_callback_count_seen_by_work_function;
+
+typedef struct RELEASE_TIMER_AND_THREADPOOL_CONTEXT_TAG
+{
+    THANDLE(THREADPOOL) threadpool;
+    THANDLE(THREADPOOL_TIMER) timer;
+    pthread_t release_threadpool_thread;
+    bool release_threadpool_thread_created;
+} RELEASE_TIMER_AND_THREADPOOL_CONTEXT;
+
+static pthread_mutex_t dispose_wait_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t dispose_wait_cond = PTHREAD_COND_INITIALIZER;
+static bool dispose_wait_hook_enabled;
+static bool threadpool_dispose_is_waiting;
+static bool timer_callback_returned;
+static int32_t outstanding_callback_count_when_dispose_starts_waiting;
+static int32_t outstanding_callback_count_when_dispose_stops_waiting;
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
@@ -27,8 +45,106 @@ static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
 }
 
+static int32_t get_outstanding_callback_count(void)
+{
+    return real_interlocked_add(captured_outstanding_callback_count, 0);
+}
+
 MOCK_FUNCTION_WITH_CODE(, void, test_work_function, void*, context)
+    outstanding_callback_count_seen_by_work_function = (captured_outstanding_callback_count == NULL) ? -1 : get_outstanding_callback_count();
 MOCK_FUNCTION_END()
+
+static void test_work_function_releasing_its_timer(void* context)
+{
+    THANDLE(THREADPOOL_TIMER)* timer = context;
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(timer, NULL);
+}
+
+static void test_work_function_cancelling_its_timer(void* context)
+{
+    THANDLE(THREADPOOL_TIMER)* timer = context;
+    threadpool_timer_cancel(*timer);
+}
+
+static void get_wait_deadline(struct timespec* deadline)
+{
+    (void)clock_gettime(CLOCK_REALTIME, deadline);
+    deadline->tv_sec += TEST_WAIT_TIMEOUT_S;
+}
+
+static INTERLOCKED_HL_RESULT hook_InterlockedHL_WaitForValue(int32_t volatile_atomic* address_to_check, int32_t value_to_wait, uint32_t timeout_ms)
+{
+    INTERLOCKED_HL_RESULT result;
+    (void)timeout_ms;
+
+    if (!dispose_wait_hook_enabled)
+    {
+        result = INTERLOCKED_HL_OK;
+    }
+    else
+    {
+        // Runs on the thread releasing the threadpool. Besides waiting for the value, it also waits for the
+        // timer callback to return, because umock_c is not thread safe and the callback still makes mocked calls
+        struct timespec deadline;
+        get_wait_deadline(&deadline);
+
+        (void)pthread_mutex_lock(&dispose_wait_mutex);
+        outstanding_callback_count_when_dispose_starts_waiting = real_interlocked_add(address_to_check, 0);
+        threadpool_dispose_is_waiting = true;
+        (void)pthread_cond_broadcast(&dispose_wait_cond);
+        while (
+            ((real_interlocked_add(address_to_check, 0) != value_to_wait) || !timer_callback_returned) &&
+            (pthread_cond_timedwait(&dispose_wait_cond, &dispose_wait_mutex, &deadline) == 0)
+            )
+        {
+        }
+        outstanding_callback_count_when_dispose_stops_waiting = real_interlocked_add(address_to_check, 0);
+        (void)pthread_mutex_unlock(&dispose_wait_mutex);
+
+        result = (outstanding_callback_count_when_dispose_stops_waiting == value_to_wait) ? INTERLOCKED_HL_OK : INTERLOCKED_HL_ERROR;
+    }
+
+    return result;
+}
+
+static void* release_threadpool_thread_func(void* arg)
+{
+    RELEASE_TIMER_AND_THREADPOOL_CONTEXT* release_context = arg;
+    THANDLE_ASSIGN(THREADPOOL)(&release_context->threadpool, NULL);
+    return NULL;
+}
+
+static void test_work_function_releasing_its_timer_and_the_threadpool(void* context)
+{
+    RELEASE_TIMER_AND_THREADPOOL_CONTEXT* release_context = context;
+
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&release_context->timer, NULL);
+
+    release_context->release_threadpool_thread_created = (pthread_create(&release_context->release_threadpool_thread, NULL, release_threadpool_thread_func, release_context) == 0);
+    if (release_context->release_threadpool_thread_created)
+    {
+        // keep the timer callback running until threadpool_dispose waits for it
+        struct timespec deadline;
+        get_wait_deadline(&deadline);
+
+        (void)pthread_mutex_lock(&dispose_wait_mutex);
+        while (
+            !threadpool_dispose_is_waiting &&
+            (pthread_cond_timedwait(&dispose_wait_cond, &dispose_wait_mutex, &deadline) == 0)
+            )
+        {
+        }
+        (void)pthread_mutex_unlock(&dispose_wait_mutex);
+    }
+}
+
+static void signal_timer_callback_returned(void)
+{
+    (void)pthread_mutex_lock(&dispose_wait_mutex);
+    timer_callback_returned = true;
+    (void)pthread_cond_broadcast(&dispose_wait_cond);
+    (void)pthread_mutex_unlock(&dispose_wait_mutex);
+}
 
 static EXECUTION_ENGINE_LINUX_WORK_HANDLE hook_execution_engine_linux_create_work(EXECUTION_ENGINE_HANDLE execution_engine, EXECUTION_ENGINE_LINUX_WORK_FUNCTION work_function, void* work_function_context)
 {
@@ -46,11 +162,6 @@ static EXECUTION_ENGINE_LINUX_WORK_HANDLE hook_execution_engine_linux_create_tim
     return test_timer;
 }
 
-static int32_t get_pending_work_count(void)
-{
-    return real_interlocked_add(captured_pending_work_count, 0);
-}
-
 static void setup_threadpool_create_expectations(void)
 {
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
@@ -58,7 +169,7 @@ static void setup_threadpool_create_expectations(void)
         .CallCannotFail();
     STRICT_EXPECTED_CALL(execution_engine_inc_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(interlocked_exchange(IGNORED_ARG, 0))
-        .CaptureArgumentValue_target(&captured_pending_work_count)
+        .CaptureArgumentValue_target(&captured_outstanding_callback_count)
         .CallCannotFail();
 }
 
@@ -107,7 +218,7 @@ static void* test_schedule_work(THANDLE(THREADPOOL) threadpool, void* work_funct
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG))
         .CaptureReturn(&scheduled_work_context);
     STRICT_EXPECTED_CALL(execution_engine_linux_create_work(test_execution_engine, IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_increment(captured_pending_work_count));
+    STRICT_EXPECTED_CALL(interlocked_increment(captured_outstanding_callback_count));
     STRICT_EXPECTED_CALL(execution_engine_linux_submit_work(test_work));
     ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, test_work_function, work_function_context));
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -115,14 +226,30 @@ static void* test_schedule_work(THANDLE(THREADPOOL) threadpool, void* work_funct
     return scheduled_work_context;
 }
 
-static THANDLE(THREADPOOL_TIMER) test_start_timer(THANDLE(THREADPOOL) threadpool, void* work_function_context)
+static THANDLE(THREADPOOL_TIMER) test_start_timer_with_work_function(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* work_function_context)
 {
     setup_threadpool_timer_start_expectations(TEST_START_DELAY_MS, TEST_TIMER_PERIOD_MS);
-    THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(threadpool, TEST_START_DELAY_MS, TEST_TIMER_PERIOD_MS, test_work_function, work_function_context);
+    THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(threadpool, TEST_START_DELAY_MS, TEST_TIMER_PERIOD_MS, work_function, work_function_context);
     ASSERT_IS_NOT_NULL(timer);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     umock_c_reset_all_calls();
     return timer;
+}
+
+static THANDLE(THREADPOOL_TIMER) test_start_timer(THANDLE(THREADPOOL) threadpool, void* work_function_context)
+{
+    return test_start_timer_with_work_function(threadpool, test_work_function, work_function_context);
+}
+
+static void setup_threadpool_timer_dispose_expectations(void)
+{
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(execution_engine_linux_disassociate_current_thread_from_work(test_timer));
+    STRICT_EXPECTED_CALL(execution_engine_linux_cancel_timer(test_timer));
+    STRICT_EXPECTED_CALL(execution_engine_linux_wait_for_work(test_timer, true));
+    STRICT_EXPECTED_CALL(execution_engine_linux_close_work(test_timer));
+    STRICT_EXPECTED_CALL(srw_lock_ll_deinit(captured_timer_lock));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 }
 
 BEGIN_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)
@@ -144,6 +271,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(execution_engine_linux_create_work, NULL);
     REGISTER_GLOBAL_MOCK_HOOK(execution_engine_linux_create_timer, hook_execution_engine_linux_create_timer);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(execution_engine_linux_create_timer, NULL);
+    REGISTER_GLOBAL_MOCK_HOOK(InterlockedHL_WaitForValue, hook_InterlockedHL_WaitForValue);
 
     REGISTER_UMOCK_ALIAS_TYPE(EXECUTION_ENGINE_HANDLE, void*);
     REGISTER_UMOCK_ALIAS_TYPE(EXECUTION_ENGINE_LINUX_WORK_HANDLE, void*);
@@ -168,8 +296,15 @@ TEST_FUNCTION_INITIALIZE(method_init)
     captured_work_function_context = NULL;
     captured_timer_function = NULL;
     captured_timer_function_context = NULL;
-    captured_pending_work_count = NULL;
+    captured_outstanding_callback_count = NULL;
     captured_timer_lock = NULL;
+    outstanding_callback_count_seen_by_work_function = -1;
+
+    dispose_wait_hook_enabled = false;
+    threadpool_dispose_is_waiting = false;
+    timer_callback_returned = false;
+    outstanding_callback_count_when_dispose_starts_waiting = -1;
+    outstanding_callback_count_when_dispose_stops_waiting = -1;
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
@@ -194,7 +329,7 @@ TEST_FUNCTION(threadpool_create_with_NULL_execution_engine_fails)
 
 /* Tests_SRS_THREADPOOL_LINUX_42_002: [ threadpool_create shall allocate a new threadpool object with threadpool_dispose as dispose function and on success shall return a non-NULL handle. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_003: [ threadpool_create shall increment the reference count on execution_engine and store it. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_42_004: [ threadpool_create shall set the count of pending scheduled work to 0. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_42_004: [ threadpool_create shall set the count of outstanding callbacks to 0. ]*/
 TEST_FUNCTION(threadpool_create_succeeds)
 {
     // arrange
@@ -206,7 +341,7 @@ TEST_FUNCTION(threadpool_create_succeeds)
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_IS_NOT_NULL(threadpool);
-    ASSERT_ARE_EQUAL(int32_t, 0, get_pending_work_count());
+    ASSERT_ARE_EQUAL(int32_t, 0, get_outstanding_callback_count());
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
@@ -239,15 +374,15 @@ TEST_FUNCTION(when_underlying_calls_fail_threadpool_create_fails)
 /* threadpool_dispose */
 
 /* Tests_SRS_THREADPOOL_LINUX_42_002: [ threadpool_create shall allocate a new threadpool object with threadpool_dispose as dispose function and on success shall return a non-NULL handle. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_42_006: [ threadpool_dispose shall wait for the count of pending scheduled work to reach 0 by calling InterlockedHL_WaitForValue. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_42_006: [ threadpool_dispose shall wait for the count of outstanding callbacks to reach 0 by calling InterlockedHL_WaitForValue. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_007: [ threadpool_dispose shall decrement the reference count on the execution engine. ]*/
-TEST_FUNCTION(threadpool_dispose_waits_for_the_pending_scheduled_work_and_decrements_the_execution_engine_reference_count)
+TEST_FUNCTION(threadpool_dispose_waits_for_the_outstanding_callbacks_and_decrements_the_execution_engine_reference_count)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
 
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(InterlockedHL_WaitForValue(captured_pending_work_count, 0, UINT32_MAX));
+    STRICT_EXPECTED_CALL(InterlockedHL_WaitForValue(captured_outstanding_callback_count, 0, UINT32_MAX));
     STRICT_EXPECTED_CALL(execution_engine_dec_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
@@ -259,7 +394,7 @@ TEST_FUNCTION(threadpool_dispose_waits_for_the_pending_scheduled_work_and_decrem
     ASSERT_IS_NULL(threadpool);
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_42_006: [ threadpool_dispose shall wait for the count of pending scheduled work to reach 0 by calling InterlockedHL_WaitForValue. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_42_006: [ threadpool_dispose shall wait for the count of outstanding callbacks to reach 0 by calling InterlockedHL_WaitForValue. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_007: [ threadpool_dispose shall decrement the reference count on the execution engine. ]*/
 TEST_FUNCTION(when_InterlockedHL_WaitForValue_fails_threadpool_dispose_still_decrements_the_execution_engine_reference_count)
 {
@@ -267,7 +402,7 @@ TEST_FUNCTION(when_InterlockedHL_WaitForValue_fails_threadpool_dispose_still_dec
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
 
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(InterlockedHL_WaitForValue(captured_pending_work_count, 0, UINT32_MAX))
+    STRICT_EXPECTED_CALL(InterlockedHL_WaitForValue(captured_outstanding_callback_count, 0, UINT32_MAX))
         .SetReturn(INTERLOCKED_HL_ERROR);
     STRICT_EXPECTED_CALL(execution_engine_dec_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
@@ -280,19 +415,19 @@ TEST_FUNCTION(when_InterlockedHL_WaitForValue_fails_threadpool_dispose_still_dec
     ASSERT_IS_NULL(threadpool);
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_42_006: [ threadpool_dispose shall wait for the count of pending scheduled work to reach 0 by calling InterlockedHL_WaitForValue. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_42_006: [ threadpool_dispose shall wait for the count of outstanding callbacks to reach 0 by calling InterlockedHL_WaitForValue. ]*/
 TEST_FUNCTION(threadpool_dispose_waits_on_the_count_maintained_by_threadpool_schedule_work)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
     (void)test_schedule_work(threadpool, test_work_function_context);
-    ASSERT_ARE_EQUAL(int32_t, 1, get_pending_work_count());
+    ASSERT_ARE_EQUAL(int32_t, 1, get_outstanding_callback_count());
     captured_work_function(captured_work_function_context);
-    ASSERT_ARE_EQUAL(int32_t, 0, get_pending_work_count());
+    ASSERT_ARE_EQUAL(int32_t, 0, get_outstanding_callback_count());
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(InterlockedHL_WaitForValue(captured_pending_work_count, 0, UINT32_MAX));
+    STRICT_EXPECTED_CALL(InterlockedHL_WaitForValue(captured_outstanding_callback_count, 0, UINT32_MAX));
     STRICT_EXPECTED_CALL(execution_engine_dec_ref(test_execution_engine));
     STRICT_EXPECTED_CALL(free(IGNORED_ARG));
 
@@ -593,7 +728,7 @@ TEST_FUNCTION(threadpool_schedule_work_with_NULL_work_function_fails)
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(int32_t, 0, get_pending_work_count());
+    ASSERT_ARE_EQUAL(int32_t, 0, get_outstanding_callback_count());
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
@@ -601,7 +736,7 @@ TEST_FUNCTION(threadpool_schedule_work_with_NULL_work_function_fails)
 
 /* Tests_SRS_THREADPOOL_LINUX_42_024: [ threadpool_schedule_work shall allocate a context that stores the threadpool, work_function and work_function_context. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_025: [ threadpool_schedule_work shall create a work object by calling execution_engine_linux_create_work with on_scheduled_work_callback and the context. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_42_026: [ threadpool_schedule_work shall increment the count of pending scheduled work by calling interlocked_increment. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_42_026: [ threadpool_schedule_work shall increment the count of outstanding callbacks by calling interlocked_increment. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_027: [ threadpool_schedule_work shall submit the work object by calling execution_engine_linux_submit_work and return 0. ]*/
 TEST_FUNCTION(threadpool_schedule_work_succeeds)
 {
@@ -613,7 +748,7 @@ TEST_FUNCTION(threadpool_schedule_work_succeeds)
         .CaptureReturn(&scheduled_work_context);
     STRICT_EXPECTED_CALL(execution_engine_linux_create_work(test_execution_engine, IGNORED_ARG, IGNORED_ARG))
         .ValidateArgumentValue_work_function_context(&scheduled_work_context);
-    STRICT_EXPECTED_CALL(interlocked_increment(captured_pending_work_count));
+    STRICT_EXPECTED_CALL(interlocked_increment(captured_outstanding_callback_count));
     STRICT_EXPECTED_CALL(execution_engine_linux_submit_work(test_work));
 
     // act
@@ -623,7 +758,7 @@ TEST_FUNCTION(threadpool_schedule_work_succeeds)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_EQUAL(int, 0, result);
     ASSERT_IS_NOT_NULL(captured_work_function);
-    ASSERT_ARE_EQUAL(int32_t, 1, get_pending_work_count());
+    ASSERT_ARE_EQUAL(int32_t, 1, get_outstanding_callback_count());
 
     // cleanup
     captured_work_function(captured_work_function_context);
@@ -638,7 +773,7 @@ TEST_FUNCTION(threadpool_schedule_work_with_NULL_work_function_context_succeeds)
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(execution_engine_linux_create_work(test_execution_engine, IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_increment(captured_pending_work_count));
+    STRICT_EXPECTED_CALL(interlocked_increment(captured_outstanding_callback_count));
     STRICT_EXPECTED_CALL(execution_engine_linux_submit_work(test_work));
 
     // act
@@ -647,7 +782,7 @@ TEST_FUNCTION(threadpool_schedule_work_with_NULL_work_function_context_succeeds)
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(int32_t, 1, get_pending_work_count());
+    ASSERT_ARE_EQUAL(int32_t, 1, get_outstanding_callback_count());
 
     // cleanup
     captured_work_function(captured_work_function_context);
@@ -674,7 +809,7 @@ TEST_FUNCTION(when_execution_engine_linux_create_work_fails_threadpool_schedule_
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_NOT_EQUAL(int, 0, result);
-    ASSERT_ARE_EQUAL(int32_t, 0, get_pending_work_count());
+    ASSERT_ARE_EQUAL(int32_t, 0, get_outstanding_callback_count());
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
@@ -688,7 +823,7 @@ TEST_FUNCTION(when_underlying_calls_fail_threadpool_schedule_work_fails)
 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     STRICT_EXPECTED_CALL(execution_engine_linux_create_work(test_execution_engine, IGNORED_ARG, IGNORED_ARG));
-    STRICT_EXPECTED_CALL(interlocked_increment(captured_pending_work_count))
+    STRICT_EXPECTED_CALL(interlocked_increment(captured_outstanding_callback_count))
         .CallCannotFail();
     STRICT_EXPECTED_CALL(execution_engine_linux_submit_work(test_work));
 
@@ -706,7 +841,7 @@ TEST_FUNCTION(when_underlying_calls_fail_threadpool_schedule_work_fails)
 
             // assert
             ASSERT_ARE_NOT_EQUAL(int, 0, result, "On failed call %zu", i);
-            ASSERT_ARE_EQUAL(int32_t, 0, get_pending_work_count(), "On failed call %zu", i);
+            ASSERT_ARE_EQUAL(int32_t, 0, get_outstanding_callback_count(), "On failed call %zu", i);
         }
     }
 
@@ -719,7 +854,7 @@ TEST_FUNCTION(when_underlying_calls_fail_threadpool_schedule_work_fails)
 /* Tests_SRS_THREADPOOL_LINUX_42_029: [ on_scheduled_work_callback shall call work_function with work_function_context. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_030: [ on_scheduled_work_callback shall close the work object by calling execution_engine_linux_close_work. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_031: [ on_scheduled_work_callback shall free the context. ]*/
-/* Tests_SRS_THREADPOOL_LINUX_42_032: [ on_scheduled_work_callback shall decrement the count of pending scheduled work of the threadpool by calling interlocked_decrement and, if it reached 0, call wake_by_address_all. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_42_032: [ on_scheduled_work_callback shall decrement the count of outstanding callbacks of the threadpool by calling interlocked_decrement and, if it reached 0, call wake_by_address_all. ]*/
 TEST_FUNCTION(on_scheduled_work_callback_calls_the_work_function_closes_the_work_frees_the_context_and_wakes_the_waiters)
 {
     // arrange
@@ -729,15 +864,15 @@ TEST_FUNCTION(on_scheduled_work_callback_calls_the_work_function_closes_the_work
     STRICT_EXPECTED_CALL(test_work_function(test_work_function_context));
     STRICT_EXPECTED_CALL(execution_engine_linux_close_work(test_work));
     STRICT_EXPECTED_CALL(free(scheduled_work_context));
-    STRICT_EXPECTED_CALL(interlocked_decrement(captured_pending_work_count));
-    STRICT_EXPECTED_CALL(wake_by_address_all(captured_pending_work_count));
+    STRICT_EXPECTED_CALL(interlocked_decrement(captured_outstanding_callback_count));
+    STRICT_EXPECTED_CALL(wake_by_address_all(captured_outstanding_callback_count));
 
     // act
     captured_work_function(captured_work_function_context);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(int32_t, 0, get_pending_work_count());
+    ASSERT_ARE_EQUAL(int32_t, 0, get_outstanding_callback_count());
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
@@ -753,8 +888,8 @@ TEST_FUNCTION(on_scheduled_work_callback_with_NULL_work_function_context_calls_t
     STRICT_EXPECTED_CALL(test_work_function(NULL));
     STRICT_EXPECTED_CALL(execution_engine_linux_close_work(test_work));
     STRICT_EXPECTED_CALL(free(scheduled_work_context));
-    STRICT_EXPECTED_CALL(interlocked_decrement(captured_pending_work_count));
-    STRICT_EXPECTED_CALL(wake_by_address_all(captured_pending_work_count));
+    STRICT_EXPECTED_CALL(interlocked_decrement(captured_outstanding_callback_count));
+    STRICT_EXPECTED_CALL(wake_by_address_all(captured_outstanding_callback_count));
 
     // act
     captured_work_function(captured_work_function_context);
@@ -766,7 +901,7 @@ TEST_FUNCTION(on_scheduled_work_callback_with_NULL_work_function_context_calls_t
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_42_032: [ on_scheduled_work_callback shall decrement the count of pending scheduled work of the threadpool by calling interlocked_decrement and, if it reached 0, call wake_by_address_all. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_42_032: [ on_scheduled_work_callback shall decrement the count of outstanding callbacks of the threadpool by calling interlocked_decrement and, if it reached 0, call wake_by_address_all. ]*/
 TEST_FUNCTION(on_scheduled_work_callback_does_not_wake_when_other_scheduled_work_is_pending)
 {
     // arrange
@@ -777,19 +912,19 @@ TEST_FUNCTION(on_scheduled_work_callback_does_not_wake_when_other_scheduled_work
     (void)test_schedule_work(threadpool, test_work_function_context_2);
     EXECUTION_ENGINE_LINUX_WORK_FUNCTION work_function_2 = captured_work_function;
     void* work_function_context_2 = captured_work_function_context;
-    ASSERT_ARE_EQUAL(int32_t, 2, get_pending_work_count());
+    ASSERT_ARE_EQUAL(int32_t, 2, get_outstanding_callback_count());
 
     STRICT_EXPECTED_CALL(test_work_function(test_work_function_context));
     STRICT_EXPECTED_CALL(execution_engine_linux_close_work(test_work));
     STRICT_EXPECTED_CALL(free(scheduled_work_context_1));
-    STRICT_EXPECTED_CALL(interlocked_decrement(captured_pending_work_count));
+    STRICT_EXPECTED_CALL(interlocked_decrement(captured_outstanding_callback_count));
 
     // act
     work_function_1(work_function_context_1);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(int32_t, 1, get_pending_work_count());
+    ASSERT_ARE_EQUAL(int32_t, 1, get_outstanding_callback_count());
 
     // cleanup
     work_function_2(work_function_context_2);
@@ -828,7 +963,7 @@ TEST_FUNCTION(threadpool_timer_start_with_NULL_work_function_fails)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
-/* Tests_SRS_THREADPOOL_LINUX_42_036: [ threadpool_timer_start shall allocate a THANDLE(THREADPOOL_TIMER) with threadpool_timer_dispose as dispose function and store work_function and work_function_context in it. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_42_036: [ threadpool_timer_start shall allocate a THANDLE(THREADPOOL_TIMER) with threadpool_timer_dispose as dispose function and store the threadpool, work_function and work_function_context in it. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_037: [ threadpool_timer_start shall initialize the lock guarding the timer state by calling srw_lock_ll_init. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_038: [ threadpool_timer_start shall create the timer by calling execution_engine_linux_create_timer with on_timer_callback and the timer as context. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_039: [ threadpool_timer_start shall arm the timer by calling execution_engine_linux_set_timer with start_delay_ms and timer_period_ms. ]*/
@@ -979,20 +1114,27 @@ TEST_FUNCTION(when_underlying_calls_fail_threadpool_timer_start_fails)
 
 /* on_timer_callback */
 
+/* Tests_SRS_THREADPOOL_LINUX_42_100: [ on_timer_callback shall increment the count of outstanding callbacks of the threadpool by calling interlocked_increment. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_042: [ on_timer_callback shall call the work_function of the timer with its work_function_context. ]*/
-TEST_FUNCTION(on_timer_callback_calls_the_work_function)
+/* Tests_SRS_THREADPOOL_LINUX_42_101: [ After work_function returns, on_timer_callback shall decrement the count of outstanding callbacks of the threadpool by calling interlocked_decrement and, if it reached 0, call wake_by_address_all, without accessing the timer, which work_function can release. ]*/
+TEST_FUNCTION(on_timer_callback_counts_the_callback_as_outstanding_while_it_calls_the_work_function)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
     THANDLE(THREADPOOL_TIMER) timer = test_start_timer(threadpool, test_work_function_context);
 
+    STRICT_EXPECTED_CALL(interlocked_increment(captured_outstanding_callback_count));
     STRICT_EXPECTED_CALL(test_work_function(test_work_function_context));
+    STRICT_EXPECTED_CALL(interlocked_decrement(captured_outstanding_callback_count));
+    STRICT_EXPECTED_CALL(wake_by_address_all(captured_outstanding_callback_count));
 
     // act
     captured_timer_function(captured_timer_function_context);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(int32_t, 1, outstanding_callback_count_seen_by_work_function);
+    ASSERT_ARE_EQUAL(int32_t, 0, get_outstanding_callback_count());
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer, NULL);
@@ -1006,7 +1148,10 @@ TEST_FUNCTION(on_timer_callback_with_NULL_work_function_context_calls_the_work_f
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
     THANDLE(THREADPOOL_TIMER) timer = test_start_timer(threadpool, NULL);
 
+    STRICT_EXPECTED_CALL(interlocked_increment(captured_outstanding_callback_count));
     STRICT_EXPECTED_CALL(test_work_function(NULL));
+    STRICT_EXPECTED_CALL(interlocked_decrement(captured_outstanding_callback_count));
+    STRICT_EXPECTED_CALL(wake_by_address_all(captured_outstanding_callback_count));
 
     // act
     captured_timer_function(captured_timer_function_context);
@@ -1017,6 +1162,132 @@ TEST_FUNCTION(on_timer_callback_with_NULL_work_function_context_calls_the_work_f
     // cleanup
     THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_42_036: [ threadpool_timer_start shall allocate a THANDLE(THREADPOOL_TIMER) with threadpool_timer_dispose as dispose function and store the threadpool, work_function and work_function_context in it. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_42_100: [ on_timer_callback shall increment the count of outstanding callbacks of the threadpool by calling interlocked_increment. ]*/
+TEST_FUNCTION(on_timer_callback_counts_the_callback_on_the_threadpool_the_timer_was_started_on)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool();
+    volatile_atomic int32_t* outstanding_callback_count = captured_outstanding_callback_count;
+    THANDLE(THREADPOOL_TIMER) timer = test_start_timer(threadpool, test_work_function_context);
+    THANDLE(THREADPOOL) other_threadpool = test_create_threadpool();
+    ASSERT_ARE_NOT_EQUAL(void_ptr, (void*)outstanding_callback_count, (void*)captured_outstanding_callback_count);
+
+    STRICT_EXPECTED_CALL(interlocked_increment(outstanding_callback_count));
+    STRICT_EXPECTED_CALL(test_work_function(test_work_function_context));
+    STRICT_EXPECTED_CALL(interlocked_decrement(outstanding_callback_count));
+    STRICT_EXPECTED_CALL(wake_by_address_all(outstanding_callback_count));
+
+    // act
+    captured_timer_function(captured_timer_function_context);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(int32_t, 0, get_outstanding_callback_count());
+    ASSERT_ARE_EQUAL(int32_t, 0, real_interlocked_add(outstanding_callback_count, 0));
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&other_threadpool, NULL);
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer, NULL);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_42_101: [ After work_function returns, on_timer_callback shall decrement the count of outstanding callbacks of the threadpool by calling interlocked_decrement and, if it reached 0, call wake_by_address_all, without accessing the timer, which work_function can release. ]*/
+TEST_FUNCTION(on_timer_callback_does_not_wake_when_other_callbacks_are_outstanding)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool();
+    THANDLE(THREADPOOL_TIMER) timer = test_start_timer(threadpool, test_work_function_context);
+    (void)test_schedule_work(threadpool, test_work_function_context_2);
+    EXECUTION_ENGINE_LINUX_WORK_FUNCTION scheduled_work_function = captured_work_function;
+    void* scheduled_work_function_context = captured_work_function_context;
+    ASSERT_ARE_EQUAL(int32_t, 1, get_outstanding_callback_count());
+
+    STRICT_EXPECTED_CALL(interlocked_increment(captured_outstanding_callback_count));
+    STRICT_EXPECTED_CALL(test_work_function(test_work_function_context));
+    STRICT_EXPECTED_CALL(interlocked_decrement(captured_outstanding_callback_count));
+
+    // act
+    captured_timer_function(captured_timer_function_context);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(int32_t, 2, outstanding_callback_count_seen_by_work_function);
+    ASSERT_ARE_EQUAL(int32_t, 1, get_outstanding_callback_count());
+
+    // cleanup
+    scheduled_work_function(scheduled_work_function_context);
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer, NULL);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_42_101: [ After work_function returns, on_timer_callback shall decrement the count of outstanding callbacks of the threadpool by calling interlocked_decrement and, if it reached 0, call wake_by_address_all, without accessing the timer, which work_function can release. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_42_102: [ threadpool_timer_dispose shall call execution_engine_linux_disassociate_current_thread_from_work, so that it does not wait for the timer callback running on the current thread. ]*/
+TEST_FUNCTION(on_timer_callback_does_not_access_the_timer_after_the_work_function_releases_it)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool();
+    THANDLE(THREADPOOL_TIMER) timer;
+    THANDLE(THREADPOOL_TIMER) started_timer = test_start_timer_with_work_function(threadpool, test_work_function_releasing_its_timer, (void*)&timer);
+    THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(&timer, &started_timer);
+
+    STRICT_EXPECTED_CALL(interlocked_increment(captured_outstanding_callback_count));
+    setup_threadpool_timer_dispose_expectations();
+    STRICT_EXPECTED_CALL(interlocked_decrement(captured_outstanding_callback_count));
+    STRICT_EXPECTED_CALL(wake_by_address_all(captured_outstanding_callback_count));
+
+    // act
+    captured_timer_function(captured_timer_function_context);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NULL(timer);
+    ASSERT_ARE_EQUAL(int32_t, 0, get_outstanding_callback_count());
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_42_006: [ threadpool_dispose shall wait for the count of outstanding callbacks to reach 0 by calling InterlockedHL_WaitForValue. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_42_100: [ on_timer_callback shall increment the count of outstanding callbacks of the threadpool by calling interlocked_increment. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_42_101: [ After work_function returns, on_timer_callback shall decrement the count of outstanding callbacks of the threadpool by calling interlocked_decrement and, if it reached 0, call wake_by_address_all, without accessing the timer, which work_function can release. ]*/
+TEST_FUNCTION(threadpool_dispose_waits_for_a_running_timer_callback_that_released_its_timer)
+{
+    // arrange
+    RELEASE_TIMER_AND_THREADPOOL_CONTEXT release_context;
+    release_context.release_threadpool_thread_created = false;
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool();
+    THANDLE(THREADPOOL_TIMER) timer = test_start_timer_with_work_function(threadpool, test_work_function_releasing_its_timer_and_the_threadpool, &release_context);
+    THANDLE_INITIALIZE_MOVE(THREADPOOL)(&release_context.threadpool, &threadpool);
+    THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(&release_context.timer, &timer);
+    dispose_wait_hook_enabled = true;
+
+    STRICT_EXPECTED_CALL(interlocked_increment(captured_outstanding_callback_count));
+    setup_threadpool_timer_dispose_expectations();
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(InterlockedHL_WaitForValue(captured_outstanding_callback_count, 0, UINT32_MAX));
+    STRICT_EXPECTED_CALL(interlocked_decrement(captured_outstanding_callback_count));
+    STRICT_EXPECTED_CALL(wake_by_address_all(captured_outstanding_callback_count));
+    STRICT_EXPECTED_CALL(execution_engine_dec_ref(test_execution_engine));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+
+    // act
+    captured_timer_function(captured_timer_function_context);
+    signal_timer_callback_returned();
+    if (release_context.release_threadpool_thread_created)
+    {
+        (void)pthread_join(release_context.release_threadpool_thread, NULL);
+    }
+
+    // assert
+    ASSERT_IS_TRUE(release_context.release_threadpool_thread_created);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(int32_t, 1, outstanding_callback_count_when_dispose_starts_waiting);
+    ASSERT_ARE_EQUAL(int32_t, 0, outstanding_callback_count_when_dispose_stops_waiting);
+    ASSERT_IS_NULL(release_context.timer);
+    ASSERT_IS_NULL(release_context.threadpool);
 }
 
 /* threadpool_timer_restart */
@@ -1102,6 +1373,7 @@ TEST_FUNCTION(threadpool_timer_cancel_with_NULL_timer_returns)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
+/* Tests_SRS_THREADPOOL_LINUX_42_103: [ Before acquiring the timer lock, threadpool_timer_cancel shall call execution_engine_linux_disassociate_current_thread_from_work, so that it does not wait for the timer callback running on the current thread. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_049: [ threadpool_timer_cancel shall acquire the timer lock exclusively by calling srw_lock_ll_acquire_exclusive. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_050: [ threadpool_timer_cancel shall disarm the timer by calling execution_engine_linux_cancel_timer. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_051: [ threadpool_timer_cancel shall drop the callbacks that have not started and wait for the running callback by calling execution_engine_linux_wait_for_work with cancel_pending set to true. ]*/
@@ -1112,6 +1384,7 @@ TEST_FUNCTION(threadpool_timer_cancel_succeeds)
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
     THANDLE(THREADPOOL_TIMER) timer = test_start_timer(threadpool, test_work_function_context);
 
+    STRICT_EXPECTED_CALL(execution_engine_linux_disassociate_current_thread_from_work(test_timer));
     STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(captured_timer_lock));
     STRICT_EXPECTED_CALL(execution_engine_linux_cancel_timer(test_timer));
     STRICT_EXPECTED_CALL(execution_engine_linux_wait_for_work(test_timer, true));
@@ -1128,25 +1401,53 @@ TEST_FUNCTION(threadpool_timer_cancel_succeeds)
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
+/* Tests_SRS_THREADPOOL_LINUX_42_103: [ Before acquiring the timer lock, threadpool_timer_cancel shall call execution_engine_linux_disassociate_current_thread_from_work, so that it does not wait for the timer callback running on the current thread. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_42_101: [ After work_function returns, on_timer_callback shall decrement the count of outstanding callbacks of the threadpool by calling interlocked_decrement and, if it reached 0, call wake_by_address_all, without accessing the timer, which work_function can release. ]*/
+TEST_FUNCTION(threadpool_timer_cancel_from_the_timer_callback_disassociates_the_thread_before_acquiring_the_lock)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = test_create_threadpool();
+    THANDLE(THREADPOOL_TIMER) timer;
+    THANDLE(THREADPOOL_TIMER) started_timer = test_start_timer_with_work_function(threadpool, test_work_function_cancelling_its_timer, (void*)&timer);
+    THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(&timer, &started_timer);
+
+    STRICT_EXPECTED_CALL(interlocked_increment(captured_outstanding_callback_count));
+    STRICT_EXPECTED_CALL(execution_engine_linux_disassociate_current_thread_from_work(test_timer));
+    STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(captured_timer_lock));
+    STRICT_EXPECTED_CALL(execution_engine_linux_cancel_timer(test_timer));
+    STRICT_EXPECTED_CALL(execution_engine_linux_wait_for_work(test_timer, true));
+    STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(captured_timer_lock));
+    STRICT_EXPECTED_CALL(interlocked_decrement(captured_outstanding_callback_count));
+    STRICT_EXPECTED_CALL(wake_by_address_all(captured_outstanding_callback_count));
+
+    // act
+    captured_timer_function(captured_timer_function_context);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NOT_NULL(timer);
+    ASSERT_ARE_EQUAL(int32_t, 0, get_outstanding_callback_count());
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer, NULL);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
 /* threadpool_timer_dispose */
 
-/* Tests_SRS_THREADPOOL_LINUX_42_036: [ threadpool_timer_start shall allocate a THANDLE(THREADPOOL_TIMER) with threadpool_timer_dispose as dispose function and store work_function and work_function_context in it. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_42_036: [ threadpool_timer_start shall allocate a THANDLE(THREADPOOL_TIMER) with threadpool_timer_dispose as dispose function and store the threadpool, work_function and work_function_context in it. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_42_102: [ threadpool_timer_dispose shall call execution_engine_linux_disassociate_current_thread_from_work, so that it does not wait for the timer callback running on the current thread. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_053: [ threadpool_timer_dispose shall disarm the timer by calling execution_engine_linux_cancel_timer. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_054: [ threadpool_timer_dispose shall drop the callbacks that have not started and wait for the running callback by calling execution_engine_linux_wait_for_work with cancel_pending set to true. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_055: [ threadpool_timer_dispose shall close the timer by calling execution_engine_linux_close_work. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_056: [ threadpool_timer_dispose shall de-initialize the timer lock by calling srw_lock_ll_deinit. ]*/
-TEST_FUNCTION(threadpool_timer_dispose_cancels_the_timer_waits_closes_it_and_deinitializes_the_lock)
+TEST_FUNCTION(threadpool_timer_dispose_disassociates_the_thread_cancels_the_timer_waits_closes_it_and_deinitializes_the_lock)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
     THANDLE(THREADPOOL_TIMER) timer = test_start_timer(threadpool, test_work_function_context);
 
-    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(execution_engine_linux_cancel_timer(test_timer));
-    STRICT_EXPECTED_CALL(execution_engine_linux_wait_for_work(test_timer, true));
-    STRICT_EXPECTED_CALL(execution_engine_linux_close_work(test_timer));
-    STRICT_EXPECTED_CALL(srw_lock_ll_deinit(captured_timer_lock));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+    setup_threadpool_timer_dispose_expectations();
 
     // act
     THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer, NULL);
@@ -1159,11 +1460,12 @@ TEST_FUNCTION(threadpool_timer_dispose_cancels_the_timer_waits_closes_it_and_dei
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 
+/* Tests_SRS_THREADPOOL_LINUX_42_102: [ threadpool_timer_dispose shall call execution_engine_linux_disassociate_current_thread_from_work, so that it does not wait for the timer callback running on the current thread. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_053: [ threadpool_timer_dispose shall disarm the timer by calling execution_engine_linux_cancel_timer. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_054: [ threadpool_timer_dispose shall drop the callbacks that have not started and wait for the running callback by calling execution_engine_linux_wait_for_work with cancel_pending set to true. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_055: [ threadpool_timer_dispose shall close the timer by calling execution_engine_linux_close_work. ]*/
 /* Tests_SRS_THREADPOOL_LINUX_42_056: [ threadpool_timer_dispose shall de-initialize the timer lock by calling srw_lock_ll_deinit. ]*/
-TEST_FUNCTION(threadpool_timer_dispose_after_threadpool_timer_cancel_cancels_waits_closes_and_deinitializes_the_lock)
+TEST_FUNCTION(threadpool_timer_dispose_after_threadpool_timer_cancel_disassociates_the_thread_cancels_waits_closes_and_deinitializes_the_lock)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = test_create_threadpool();
@@ -1171,12 +1473,7 @@ TEST_FUNCTION(threadpool_timer_dispose_after_threadpool_timer_cancel_cancels_wai
     threadpool_timer_cancel(timer);
     umock_c_reset_all_calls();
 
-    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(execution_engine_linux_cancel_timer(test_timer));
-    STRICT_EXPECTED_CALL(execution_engine_linux_wait_for_work(test_timer, true));
-    STRICT_EXPECTED_CALL(execution_engine_linux_close_work(test_timer));
-    STRICT_EXPECTED_CALL(srw_lock_ll_deinit(captured_timer_lock));
-    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+    setup_threadpool_timer_dispose_expectations();
 
     // act
     THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer, NULL);

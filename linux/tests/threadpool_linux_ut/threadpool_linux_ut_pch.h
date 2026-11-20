@@ -9,6 +9,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <pthread.h>
+#include <time.h>
 
 #include "macro_utils/macro_utils.h" // IWYU pragma: keep
 

@@ -27,7 +27,8 @@
         execution_engine_linux_set_timer, \
         execution_engine_linux_cancel_timer, \
         execution_engine_linux_wait_for_work, \
-        execution_engine_linux_close_work \
+        execution_engine_linux_close_work, \
+        execution_engine_linux_disassociate_current_thread_from_work \
     )
 
 #ifdef __cplusplus
@@ -42,6 +43,7 @@ extern "C" {
     void real_execution_engine_linux_cancel_timer(EXECUTION_ENGINE_LINUX_WORK_HANDLE timer);
     void real_execution_engine_linux_wait_for_work(EXECUTION_ENGINE_LINUX_WORK_HANDLE work, bool cancel_pending);
     void real_execution_engine_linux_close_work(EXECUTION_ENGINE_LINUX_WORK_HANDLE work);
+    void real_execution_engine_linux_disassociate_current_thread_from_work(EXECUTION_ENGINE_LINUX_WORK_HANDLE work);
 
 #ifdef __cplusplus
 }

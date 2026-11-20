@@ -101,6 +101,9 @@ DEFINE_REFCOUNT_TYPE(EXECUTION_ENGINE);
 
 static __thread EXECUTION_ENGINE* current_execution_engine = NULL;
 
+// the work object whose callback runs on the current thread, NULL if none or if the thread was disassociated from it
+static __thread EXECUTION_ENGINE_LINUX_WORK* current_work = NULL;
+
 static uint64_t get_time_ms(void)
 {
     struct timespec now;
@@ -296,6 +299,30 @@ static void wake_idle_worker(EXECUTION_ENGINE* execution_engine)
     (void)pthread_cond_signal(&idle_worker->wake_cond);
 }
 
+static void end_invocation(EXECUTION_ENGINE* execution_engine, EXECUTION_ENGINE_LINUX_WORK* work)
+{
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_065: [ end_invocation shall decrement the running count of work. ]*/
+    work->running_count--;
+
+    if ((work->pending_count == 0) && (work->running_count == 0))
+    {
+        if (work->is_closed)
+        {
+            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_066: [ If work has no pending and no running invocations and it is closed, end_invocation shall free it. ]*/
+            free_work(execution_engine, work);
+        }
+        else if (work->waiter_count > 0)
+        {
+            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_067: [ If work has no pending and no running invocations, it is not closed and threads are waiting for it, end_invocation shall wake them by calling pthread_cond_broadcast. ]*/
+            (void)pthread_cond_broadcast(&execution_engine->work_done_cond);
+        }
+        else
+        {
+            // nobody is waiting
+        }
+    }
+}
+
 static void enqueue_and_dispatch(EXECUTION_ENGINE* execution_engine, EXECUTION_ENGINE_LINUX_WORK* work)
 {
     if (execution_engine->queue_head == NULL)
@@ -394,30 +421,21 @@ static int worker_thread_func(void* arg)
             work->running_count++;
             execution_engine->last_progress_ms = get_time_ms();
 
-            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_064: [ Release the mutex, call the work function with the work function context and acquire the mutex. ]*/
+            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_064: [ Record the work object as the work running on the current thread, release the mutex, call the work function with the work function context and acquire the mutex. ]*/
+            current_work = work;
             (void)pthread_mutex_unlock(&execution_engine->lock);
             work->work_function(work->work_function_context);
             (void)pthread_mutex_lock(&execution_engine->lock);
 
-            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_065: [ Decrement the running count of the work object. ]*/
-            work->running_count--;
-
-            if ((work->pending_count == 0) && (work->running_count == 0))
+            if (current_work == NULL)
             {
-                if (work->is_closed)
-                {
-                    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_066: [ If the work object has no pending and no running invocations and it is closed, free it. ]*/
-                    free_work(execution_engine, work);
-                }
-                else if (work->waiter_count > 0)
-                {
-                    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_067: [ If the work object has no pending and no running invocations, it is not closed and threads are waiting for it, wake them by calling pthread_cond_broadcast. ]*/
-                    (void)pthread_cond_broadcast(&execution_engine->work_done_cond);
-                }
-                else
-                {
-                    // nobody is waiting
-                }
+                /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_090: [ If the current thread was disassociated from the work object while the work function ran, go on to the next work object without accessing the work object, which can be freed by then. ]*/
+            }
+            else
+            {
+                /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_091: [ Otherwise, clear the work running on the current thread and end the invocation of the work object. ]*/
+                current_work = NULL;
+                end_invocation(execution_engine, work);
             }
         }
         else if (execution_engine->stop)
@@ -1240,6 +1258,35 @@ void execution_engine_linux_close_work(EXECUTION_ENGINE_LINUX_WORK_HANDLE work)
         }
 
         /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_055: [ execution_engine_linux_close_work shall release the mutex. ]*/
+        (void)pthread_mutex_unlock(&execution_engine->lock);
+    }
+}
+
+void execution_engine_linux_disassociate_current_thread_from_work(EXECUTION_ENGINE_LINUX_WORK_HANDLE work)
+{
+    if (work == NULL)
+    {
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_084: [ If work is NULL, execution_engine_linux_disassociate_current_thread_from_work shall return. ]*/
+        LogError("Invalid arguments: EXECUTION_ENGINE_LINUX_WORK_HANDLE work=%p", work);
+    }
+    else if (current_work != work)
+    {
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_085: [ If the current thread is not running a callback of work, or was already disassociated from it, execution_engine_linux_disassociate_current_thread_from_work shall return. ]*/
+    }
+    else
+    {
+        EXECUTION_ENGINE* execution_engine = work->execution_engine;
+
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_086: [ Otherwise execution_engine_linux_disassociate_current_thread_from_work shall acquire the execution engine mutex. ]*/
+        (void)pthread_mutex_lock(&execution_engine->lock);
+
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_087: [ execution_engine_linux_disassociate_current_thread_from_work shall record that the current thread no longer runs a callback of work. ]*/
+        current_work = NULL;
+
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_088: [ execution_engine_linux_disassociate_current_thread_from_work shall end the invocation of work. ]*/
+        end_invocation(execution_engine, work);
+
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_089: [ execution_engine_linux_disassociate_current_thread_from_work shall release the mutex. ]*/
         (void)pthread_mutex_unlock(&execution_engine->lock);
     }
 }
