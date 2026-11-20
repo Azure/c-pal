@@ -184,13 +184,15 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_restart, THANDLE(THREADPOOL_TIMER), ti
 MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, THANDLE(THREADPOOL_TIMER), timer);
 ```
 
-`threadpool_timer_cancel` stops the timer and waits for any pending callbacks. Afterward, the timer may be resumed with a new time by calling `threadpool_timer_restart` or cleaned up by calling `threadpool_timer_destroy`.
+`threadpool_timer_cancel` stops the timer and waits for any pending callbacks. Afterward, the timer may be resumed with a new time by calling `threadpool_timer_restart` or cleaned up by calling `threadpool_timer_destroy`. When called from the timer's own callback, it disassociates the calling thread from the callback first, so it doesn't wait for itself.
 
 **SRS_THREADPOOL_WIN32_42_024: [** If `timer` is `NULL`, `threadpool_timer_cancel` shall fail and return. **]**
 
 **SRS_THREADPOOL_WIN32_07_005: [** `threadpool_timer_cancel` shall acquire an exclusive lock. **]**
 
 **SRS_THREADPOOL_WIN32_42_025: [** `threadpool_timer_cancel` shall call `SetThreadpoolTimer` with `NULL` for `pftDueTime` and 0 for `msPeriod` and `msWindowLength` to cancel ongoing timers. **]**
+
+**SRS_THREADPOOL_WIN32_42_029: [** If the current thread is running the callback of `timer`, `threadpool_timer_cancel` shall call `DisassociateCurrentThreadFromCallback` with the callback instance and clear the timer callback recorded for the current thread. **]**
 
 **SRS_THREADPOOL_WIN32_42_026: [** `threadpool_timer_cancel` shall call `WaitForThreadpoolTimerCallbacks`. **]**
 
@@ -202,9 +204,11 @@ MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, THANDLE(THREADPOOL_TIMER), ti
 static void threadpool_timer_dispose(THREADPOOL_TIMER* timer);
 ```
 
-`threadpool_timer_dispose` stops the timer when thre reference count of the THANDLE(THREADPOOL_TIMER) created by `threadpool_timer_start` reaches 0 and cleans up its resources.
+`threadpool_timer_dispose` stops the timer when thre reference count of the THANDLE(THREADPOOL_TIMER) created by `threadpool_timer_start` reaches 0 and cleans up its resources. When the last reference is released from the timer's own callback, it disassociates the calling thread from the callback first, so it doesn't wait for itself.
 
 **SRS_THREADPOOL_WIN32_42_012: [** `threadpool_timer_dispose` shall call `SetThreadpoolTimer` with `NULL` for `pftDueTime` and 0 for `msPeriod` and `msWindowLength` to cancel ongoing timers. **]**
+
+**SRS_THREADPOOL_WIN32_42_030: [** If the current thread is running the callback of the timer, `threadpool_timer_dispose` shall call `DisassociateCurrentThreadFromCallback` with the callback instance and clear the timer callback recorded for the current thread. **]**
 
 **SRS_THREADPOOL_WIN32_42_013: [** `threadpool_timer_dispose` shall call `WaitForThreadpoolTimerCallbacks`. **]**
 
@@ -220,11 +224,17 @@ static VOID CALLBACK on_timer_callback(PTP_CALLBACK_INSTANCE instance, PVOID con
 
 `on_work_callback` executes the work function passed to `threadpool_schedule_work`.
 
+While the work function runs, `on_timer_callback` records the timer and the callback instance in a thread-local variable. This lets `threadpool_timer_cancel` and `threadpool_timer_dispose` detect that they are called from the timer's own callback.
+
 **SRS_THREADPOOL_WIN32_42_016: [** If `context` is `NULL`, `on_work_callback` shall return. **]**
 
 **SRS_THREADPOOL_WIN32_42_017: [** Otherwise `context` shall be used as the context created in `threadpool_schedule_work`. **]**
 
+**SRS_THREADPOOL_WIN32_42_031: [** Before calling `work_function`, `on_timer_callback` shall record `timer` and `instance` as the timer callback running on the current thread. **]**
+
 **SRS_THREADPOOL_WIN32_42_018: [** The `work_function` callback passed to `threadpool_schedule_work` shall be called, passing to it the `work_function_context` argument passed to `threadpool_schedule_work`. **]**
+
+**SRS_THREADPOOL_WIN32_42_032: [** After `work_function` returns, `on_timer_callback` shall clear the timer callback recorded for the current thread without accessing `context`, which `work_function` can free by releasing the timer. **]**
 
 ### threadpool_create_work_item
 

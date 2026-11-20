@@ -124,6 +124,9 @@ static call_once_t g_lazy = LAZY_INIT_NOT_DONE;
 
 static CUSTOM_TIMER_DATA timer_table[TIMER_TABLE_SIZE];
 
+// the timer table entry whose callback is running on the current thread
+static _Thread_local CUSTOM_TIMER_DATA* timer_callback_on_current_thread;
+
 static int do_init(void* params)
 {
     for (uint32_t i = 0; i < TIMER_TABLE_SIZE; i++)
@@ -150,14 +153,28 @@ static void on_timer_callback(sigval_t timer_data)
     /* Codes_SRS_THREADPOOL_LINUX_01_007: [ on_timer_callback shall transition it to CALLING_CALLBACK. ]*/
     if (interlocked_compare_exchange(&timer_instance->timer_state, TIMER_CALLING_CALLBACK, TIMER_ARMED) == TIMER_ARMED)
     {
+        int32_t new_timer_state = TIMER_ARMED;
+
         if (timer_epoch == timer_instance->epoch_number)
         {
+            /* Codes_SRS_THREADPOOL_LINUX_42_101: [ Before calling the timer's work_function, on_timer_callback shall record the timer table entry as the timer callback running on the current thread. ]*/
+            timer_callback_on_current_thread = timer_instance;
+
             /* Codes_SRS_THREADPOOL_LINUX_45_004: [ If the timer epoch of the timer table entry is the same like the timer epoch in timer_data.sival_ptr, on_timer_callback shall call the timer's work_function with work_function_ctx. ]*/
             timer_instance->work_function(timer_instance->work_function_ctx);
+
+            if (timer_callback_on_current_thread != timer_instance)
+            {
+                /* Codes_SRS_THREADPOOL_LINUX_42_102: [ If threadpool_timer_dispose cleared the timer callback recorded for the current thread while work_function ran, on_timer_callback shall transition the timer to NOT_USED. ]*/
+                new_timer_state = TIMER_NOT_USED;
+            }
+
+            /* Codes_SRS_THREADPOOL_LINUX_42_103: [ After work_function returns, on_timer_callback shall clear the timer callback recorded for the current thread. ]*/
+            timer_callback_on_current_thread = NULL;
         }
 
-        /* Codes_SRS_THREADPOOL_LINUX_01_009: [ on_timer_callback shall transition it to ARMED. ]*/
-        (void)InterlockedHL_SetAndWake(&timer_instance->timer_state, TIMER_ARMED);
+        /* Codes_SRS_THREADPOOL_LINUX_01_009: [ Otherwise, on_timer_callback shall transition it to ARMED. ]*/
+        (void)InterlockedHL_SetAndWake(&timer_instance->timer_state, new_timer_state);
     }
 }
 
@@ -429,21 +446,30 @@ static void threadpool_timer_dispose(THREADPOOL_TIMER* timer)
 
     CUSTOM_TIMER_DATA* custom_timer_data = timer->custom_timer_data;
 
-    do
+    if (timer_callback_on_current_thread == custom_timer_data)
     {
-        /* Codes_SRS_THREADPOOL_LINUX_01_006: [ If the timer state is ARMED, threadpool_timer_dispose shall set the state of the timer to NOT_USED. ]*/
-        int32_t current_timer_state = interlocked_compare_exchange(&custom_timer_data->timer_state, TIMER_NOT_USED, TIMER_ARMED);
-        if (current_timer_state == TIMER_ARMED)
+        /* Codes_SRS_THREADPOOL_LINUX_42_100: [ If the current thread is running the callback of the timer, threadpool_timer_dispose shall clear the timer callback recorded for the current thread and return. ]*/
+        // The state only goes back to ARMED when this callback returns, so on_timer_callback releases the entry instead of waiting here
+        timer_callback_on_current_thread = NULL;
+    }
+    else
+    {
+        do
         {
-            wake_by_address_all(&custom_timer_data->timer_state);
-            break;
-        }
-        else
-        {
-            /* Codes_SRS_THREADPOOL_LINUX_01_010: [ Otherwise, threadpool_timer_dispose shall block until the state is ARMED and reattempt to set the state to NOT_USED. ]*/
-            (void)InterlockedHL_WaitForNotValue(&custom_timer_data->timer_state, current_timer_state, UINT32_MAX);
-        }
-    } while (1);
+            /* Codes_SRS_THREADPOOL_LINUX_01_006: [ If the timer state is ARMED, threadpool_timer_dispose shall set the state of the timer to NOT_USED. ]*/
+            int32_t current_timer_state = interlocked_compare_exchange(&custom_timer_data->timer_state, TIMER_NOT_USED, TIMER_ARMED);
+            if (current_timer_state == TIMER_ARMED)
+            {
+                wake_by_address_all(&custom_timer_data->timer_state);
+                break;
+            }
+            else
+            {
+                /* Codes_SRS_THREADPOOL_LINUX_01_010: [ Otherwise, threadpool_timer_dispose shall block until the state is ARMED and reattempt to set the state to NOT_USED. ]*/
+                (void)InterlockedHL_WaitForNotValue(&custom_timer_data->timer_state, current_timer_state, UINT32_MAX);
+            }
+        } while (1);
+    }
 }
 
 THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool, uint32_t start_delay_ms, uint32_t timer_period_ms, THREADPOOL_WORK_FUNCTION work_function, void* work_function_ctx)

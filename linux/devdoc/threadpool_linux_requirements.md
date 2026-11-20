@@ -37,7 +37,10 @@ stateDiagram-v2
     ARMED --> NOT_USED : threadpool_timer_dispose
     ARMED --> CALLING_CALLBACK : on_timer_callback called by POSIX
     CALLING_CALLBACK --> ARMED : work function called
+    CALLING_CALLBACK --> NOT_USED : work function released the timer
 ```
+
+A work function can release the last reference to its own timer. `threadpool_timer_dispose` can't then wait for the state to go back to `ARMED`, because only the returning `on_timer_callback` changes it. A thread-local variable records the timer table entry whose callback runs on the current thread: `threadpool_timer_dispose` clears it instead of waiting, and `on_timer_callback` moves the entry to `NOT_USED` when the work function returns.
 
 #### ABA problem
 
@@ -252,6 +255,8 @@ static void threadpool_timer_dispose(THREADPOOL_TIMER * timer);
 
 **SRS_THREADPOOL_LINUX_07_071: [** `threadpool_timer_dispose` shall call `timer_delete` to destroy the ongoing timers. **]**
 
+**SRS_THREADPOOL_LINUX_42_100: [** If the current thread is running the callback of the timer, `threadpool_timer_dispose` shall clear the timer callback recorded for the current thread and return. **]**
+
 **SRS_THREADPOOL_LINUX_01_006: [** If the timer state is `ARMED`, `threadpool_timer_dispose` shall set the state of the timer to `NOT_USED`. **]**
 
 **SRS_THREADPOOL_LINUX_01_010: [** Otherwise, `threadpool_timer_dispose` shall block until the state is `ARMED` and reattempt to set the state to `NOT_USED`. **]**
@@ -272,9 +277,15 @@ static void on_timer_callback(sigval_t timer_data);
 
 - **SRS_THREADPOOL_LINUX_01_007: [** `on_timer_callback` shall transition it to `CALLING_CALLBACK`. **]**
 
+- **SRS_THREADPOOL_LINUX_42_101: [** Before calling the timer's `work_function`, `on_timer_callback` shall record the timer table entry as the timer callback running on the current thread. **]**
+
 - **SRS_THREADPOOL_LINUX_45_004: [** If the timer epoch of the timer table entry is the same like the timer epoch in `timer_data.sival_ptr`, `on_timer_callback` shall call the timer's `work_function` with `work_function_ctx`. **]**
 
-- **SRS_THREADPOOL_LINUX_01_009: [** `on_timer_callback` shall transition it to `ARMED`. **]**
+- **SRS_THREADPOOL_LINUX_42_102: [** If `threadpool_timer_dispose` cleared the timer callback recorded for the current thread while `work_function` ran, `on_timer_callback` shall transition the timer to `NOT_USED`. **]**
+
+- **SRS_THREADPOOL_LINUX_42_103: [** After `work_function` returns, `on_timer_callback` shall clear the timer callback recorded for the current thread. **]**
+
+- **SRS_THREADPOOL_LINUX_01_009: [** Otherwise, `on_timer_callback` shall transition it to `ARMED`. **]**
 
 ### threadpool_work_func
 
