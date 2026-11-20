@@ -51,6 +51,7 @@ static int test_other_work_context;
 
 // state observed by the actions
 static EXECUTION_ENGINE_HANDLE observed_current_execution_engine;
+static EXECUTION_ENGINE_LINUX_WORK_HANDLE observed_current_work;
 static void* observed_idle_head;
 static uint32_t observed_pending_count;
 static uint32_t observed_running_count;
@@ -222,9 +223,41 @@ static void action_stop_engine_and_run_worker(void)
 static void action_observe_work(void)
 {
     observed_current_execution_engine = test_get_current_execution_engine();
+    observed_current_work = test_get_current_work();
     observed_pending_count = test_work_get_pending_count(test_work);
     observed_running_count = test_work_get_running_count(test_work);
     observed_queue_count = test_engine_get_queue_count(test_engine);
+}
+
+static void action_disassociate_test_work(void)
+{
+    execution_engine_linux_disassociate_current_thread_from_work(test_work);
+    action_observe_work();
+}
+
+static void action_disassociate_test_work_twice(void)
+{
+    execution_engine_linux_disassociate_current_thread_from_work(test_work);
+    execution_engine_linux_disassociate_current_thread_from_work(test_work);
+    action_observe_work();
+}
+
+static void action_disassociate_other_work(void)
+{
+    execution_engine_linux_disassociate_current_thread_from_work(test_other_work);
+    action_observe_work();
+}
+
+static void action_disassociate_and_close_test_work(void)
+{
+    execution_engine_linux_disassociate_current_thread_from_work(test_work);
+    execution_engine_linux_close_work(test_work);
+}
+
+static void action_close_and_disassociate_test_work(void)
+{
+    execution_engine_linux_close_work(test_work);
+    execution_engine_linux_disassociate_current_thread_from_work(test_work);
 }
 
 static void action_close_test_work(void)
@@ -391,6 +424,7 @@ TEST_FUNCTION_INITIALIZE(method_init)
     test_work = NULL;
     test_other_work = NULL;
     observed_current_execution_engine = NULL;
+    observed_current_work = NULL;
     observed_idle_head = NULL;
     observed_pending_count = 0;
     observed_running_count = 0;
@@ -1788,7 +1822,7 @@ TEST_FUNCTION(execution_engine_linux_wait_for_work_with_cancel_pending_unlinks_t
 /* Tests_SRS_EXECUTION_ENGINE_LINUX_42_046: [ execution_engine_linux_wait_for_work shall acquire the execution engine mutex. ]*/
 /* Tests_SRS_EXECUTION_ENGINE_LINUX_42_048: [ execution_engine_linux_wait_for_work shall wait by calling pthread_cond_wait until work has no pending and no running invocations. ]*/
 /* Tests_SRS_EXECUTION_ENGINE_LINUX_42_049: [ execution_engine_linux_wait_for_work shall release the mutex. ]*/
-/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_067: [ If the work object has no pending and no running invocations, it is not closed and threads are waiting for it, wake them by calling pthread_cond_broadcast. ]*/
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_067: [ If work has no pending and no running invocations, it is not closed and threads are waiting for it, end_invocation shall wake them by calling pthread_cond_broadcast. ]*/
 TEST_FUNCTION(execution_engine_linux_wait_for_work_waits_until_a_worker_runs_the_pending_invocation)
 {
     // arrange
@@ -1926,10 +1960,11 @@ TEST_FUNCTION(execution_engine_linux_close_work_with_pending_invocations_marks_t
 /* Tests_SRS_EXECUTION_ENGINE_LINUX_42_060: [ Otherwise, if the ready queue is not empty, worker_thread_func shall: ]*/
 /* Tests_SRS_EXECUTION_ENGINE_LINUX_42_061: [ unlink the work object at the head of the ready queue and decrement its pending count. ]*/
 /* Tests_SRS_EXECUTION_ENGINE_LINUX_42_063: [ Increment the running count of the work object and record the current time as the last progress time. ]*/
-/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_064: [ Release the mutex, call the work function with the work function context and acquire the mutex. ]*/
-/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_065: [ Decrement the running count of the work object. ]*/
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_064: [ Record the work object as the work running on the current thread, release the mutex, call the work function with the work function context and acquire the mutex. ]*/
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_065: [ end_invocation shall decrement the running count of work. ]*/
 /* Tests_SRS_EXECUTION_ENGINE_LINUX_42_068: [ Otherwise, if the stop flag is set, worker_thread_func shall release the mutex and return. ]*/
 /* Tests_SRS_EXECUTION_ENGINE_LINUX_42_069: [ Otherwise worker_thread_func shall add the worker to the front of the idle list and wait by calling pthread_cond_wait until it is signaled, retired or the stop flag is set. ]*/
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_091: [ Otherwise, clear the work running on the current thread and end the invocation of the work object. ]*/
 TEST_FUNCTION(worker_thread_func_runs_the_queued_work_then_waits_idle_and_returns_when_stopped)
 {
     // arrange
@@ -1959,6 +1994,8 @@ TEST_FUNCTION(worker_thread_func_runs_the_queued_work_then_waits_idle_and_return
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_EQUAL(void_ptr, test_engine, observed_current_execution_engine);
     ASSERT_IS_NULL(test_get_current_execution_engine());
+    ASSERT_ARE_EQUAL(void_ptr, test_work, observed_current_work);
+    ASSERT_IS_NULL(test_get_current_work());
     ASSERT_ARE_EQUAL(uint32_t, 0, observed_pending_count);
     ASSERT_ARE_EQUAL(uint32_t, 1, observed_running_count);
     ASSERT_ARE_EQUAL(uint32_t, 0, observed_queue_count);
@@ -2069,7 +2106,7 @@ TEST_FUNCTION(worker_thread_func_when_work_is_still_queued_after_taking_a_work_o
     execution_engine_dec_ref(test_engine);
 }
 
-/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_066: [ If the work object has no pending and no running invocations and it is closed, free it. ]*/
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_066: [ If work has no pending and no running invocations and it is closed, end_invocation shall free it. ]*/
 TEST_FUNCTION(worker_thread_func_frees_a_work_object_closed_by_its_own_callback_after_the_callback_returns)
 {
     // arrange
@@ -2173,6 +2210,268 @@ TEST_FUNCTION(worker_thread_func_when_the_worker_was_retired_returns_even_if_the
 
     // cleanup
     test_cancel_and_close_work(test_work);
+    execution_engine_dec_ref(test_engine);
+}
+
+/* execution_engine_linux_disassociate_current_thread_from_work */
+
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_084: [ If work is NULL, execution_engine_linux_disassociate_current_thread_from_work shall return. ]*/
+TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_work_with_NULL_work_returns)
+{
+    // arrange
+
+    // act
+    execution_engine_linux_disassociate_current_thread_from_work(NULL);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+}
+
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_085: [ If the current thread is not running a callback of work, or was already disassociated from it, execution_engine_linux_disassociate_current_thread_from_work shall return. ]*/
+TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_work_outside_a_callback_returns)
+{
+    // arrange
+    test_engine = test_create_execution_engine(1, 2);
+    test_work = test_create_work(test_engine);
+    test_submit_work(test_work);
+
+    // act
+    execution_engine_linux_disassociate_current_thread_from_work(test_work);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(uint32_t, 1, test_work_get_pending_count(test_work));
+    ASSERT_ARE_EQUAL(uint32_t, 0, test_work_get_running_count(test_work));
+
+    // cleanup
+    test_cancel_and_close_work(test_work);
+    execution_engine_dec_ref(test_engine);
+}
+
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_085: [ If the current thread is not running a callback of work, or was already disassociated from it, execution_engine_linux_disassociate_current_thread_from_work shall return. ]*/
+TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_work_from_a_callback_of_another_work_returns)
+{
+    // arrange
+    test_engine = test_create_execution_engine(1, 2);
+    test_work = test_create_work(test_engine);
+    test_other_work = test_create_work_with_context(test_engine, &test_other_work_context);
+    test_submit_work(test_work);
+    test_engine_set_stop(test_engine, true);
+    add_work_action(action_disassociate_other_work);
+    pthread_mutex_t* lock = test_engine_get_lock(test_engine);
+
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(lock));
+    STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_MONOTONIC, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(lock));
+    STRICT_EXPECTED_CALL(test_work_function(&test_work_context));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(lock));
+
+    // act
+    int result = run_test_thread(0);
+
+    // assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(void_ptr, test_work, observed_current_work);
+    ASSERT_ARE_EQUAL(uint32_t, 1, observed_running_count);
+    ASSERT_ARE_EQUAL(uint32_t, 0, test_work_get_running_count(test_work));
+    ASSERT_ARE_EQUAL(uint32_t, 0, test_work_get_running_count(test_other_work));
+
+    // cleanup
+    execution_engine_linux_close_work(test_work);
+    execution_engine_linux_close_work(test_other_work);
+    execution_engine_dec_ref(test_engine);
+}
+
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_065: [ end_invocation shall decrement the running count of work. ]*/
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_086: [ Otherwise execution_engine_linux_disassociate_current_thread_from_work shall acquire the execution engine mutex. ]*/
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_087: [ execution_engine_linux_disassociate_current_thread_from_work shall record that the current thread no longer runs a callback of work. ]*/
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_088: [ execution_engine_linux_disassociate_current_thread_from_work shall end the invocation of work. ]*/
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_089: [ execution_engine_linux_disassociate_current_thread_from_work shall release the mutex. ]*/
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_090: [ If the current thread was disassociated from the work object while the work function ran, go on to the next work object without accessing the work object, which can be freed by then. ]*/
+TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_work_from_its_callback_ends_the_invocation)
+{
+    // arrange
+    test_engine = test_create_execution_engine(1, 2);
+    test_work = test_create_work(test_engine);
+    test_submit_work(test_work);
+    test_engine_set_stop(test_engine, true);
+    add_work_action(action_disassociate_test_work);
+    pthread_mutex_t* lock = test_engine_get_lock(test_engine);
+
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(lock));
+    STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_MONOTONIC, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(lock));
+    STRICT_EXPECTED_CALL(test_work_function(&test_work_context));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(lock));
+
+    // act
+    int result = run_test_thread(0);
+
+    // assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    // the invocation ended when the callback disassociated its thread
+    ASSERT_IS_NULL(observed_current_work);
+    ASSERT_ARE_EQUAL(uint32_t, 0, observed_running_count);
+    // the worker did not end the invocation a second time
+    ASSERT_ARE_EQUAL(uint32_t, 0, test_work_get_running_count(test_work));
+    ASSERT_IS_NULL(test_get_current_work());
+
+    // cleanup
+    execution_engine_linux_close_work(test_work);
+    execution_engine_dec_ref(test_engine);
+}
+
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_067: [ If work has no pending and no running invocations, it is not closed and threads are waiting for it, end_invocation shall wake them by calling pthread_cond_broadcast. ]*/
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_088: [ execution_engine_linux_disassociate_current_thread_from_work shall end the invocation of work. ]*/
+TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_work_from_its_callback_wakes_the_threads_waiting_for_the_work)
+{
+    // arrange
+    test_engine = test_create_execution_engine(1, 2);
+    test_work = test_create_work(test_engine);
+    test_submit_work(test_work);
+    // while the test waits for the work a worker runs the callback, which disassociates its thread
+    add_wait_action(action_stop_engine_and_run_worker);
+    add_work_action(action_disassociate_test_work);
+    pthread_mutex_t* lock = test_engine_get_lock(test_engine);
+    pthread_cond_t* work_done_cond = test_engine_get_work_done_cond(test_engine);
+
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_cond_wait(work_done_cond, lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(lock));
+    STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_MONOTONIC, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(lock));
+    STRICT_EXPECTED_CALL(test_work_function(&test_work_context));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_cond_broadcast(work_done_cond));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(lock));
+
+    // act
+    execution_engine_linux_wait_for_work(test_work, false);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(uint32_t, 0, observed_running_count);
+    ASSERT_ARE_EQUAL(uint32_t, 0, test_work_get_running_count(test_work));
+
+    // cleanup
+    execution_engine_linux_close_work(test_work);
+    execution_engine_dec_ref(test_engine);
+}
+
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_053: [ If work has no pending and no running invocations, execution_engine_linux_close_work shall free it. ]*/
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_090: [ If the current thread was disassociated from the work object while the work function ran, go on to the next work object without accessing the work object, which can be freed by then. ]*/
+TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_work_lets_the_callback_close_and_free_its_work_object)
+{
+    // arrange
+    test_engine = test_create_execution_engine(1, 2);
+    test_work = test_create_work(test_engine);
+    test_submit_work(test_work);
+    test_engine_set_stop(test_engine, true);
+    add_work_action(action_disassociate_and_close_test_work);
+    pthread_mutex_t* lock = test_engine_get_lock(test_engine);
+
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(lock));
+    STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_MONOTONIC, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(lock));
+    STRICT_EXPECTED_CALL(test_work_function(&test_work_context));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(lock));
+    STRICT_EXPECTED_CALL(free(test_work));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(lock));
+    // the worker does not access the freed work object
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(lock));
+
+    // act
+    int result = run_test_thread(0);
+
+    // assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    execution_engine_dec_ref(test_engine);
+}
+
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_066: [ If work has no pending and no running invocations and it is closed, end_invocation shall free it. ]*/
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_088: [ execution_engine_linux_disassociate_current_thread_from_work shall end the invocation of work. ]*/
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_090: [ If the current thread was disassociated from the work object while the work function ran, go on to the next work object without accessing the work object, which can be freed by then. ]*/
+TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_work_after_the_callback_closed_its_work_object_frees_it)
+{
+    // arrange
+    test_engine = test_create_execution_engine(1, 2);
+    test_work = test_create_work(test_engine);
+    test_submit_work(test_work);
+    test_engine_set_stop(test_engine, true);
+    add_work_action(action_close_and_disassociate_test_work);
+    pthread_mutex_t* lock = test_engine_get_lock(test_engine);
+
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(lock));
+    STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_MONOTONIC, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(lock));
+    STRICT_EXPECTED_CALL(test_work_function(&test_work_context));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(lock));
+    STRICT_EXPECTED_CALL(free(test_work));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(lock));
+    // the worker does not access the freed work object
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(lock));
+
+    // act
+    int result = run_test_thread(0);
+
+    // assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    execution_engine_dec_ref(test_engine);
+}
+
+/* Tests_SRS_EXECUTION_ENGINE_LINUX_42_085: [ If the current thread is not running a callback of work, or was already disassociated from it, execution_engine_linux_disassociate_current_thread_from_work shall return. ]*/
+TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_work_a_second_time_returns)
+{
+    // arrange
+    test_engine = test_create_execution_engine(1, 2);
+    test_work = test_create_work(test_engine);
+    test_submit_work(test_work);
+    test_engine_set_stop(test_engine, true);
+    add_work_action(action_disassociate_test_work_twice);
+    pthread_mutex_t* lock = test_engine_get_lock(test_engine);
+
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(lock));
+    STRICT_EXPECTED_CALL(mocked_clock_gettime(CLOCK_MONOTONIC, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(lock));
+    STRICT_EXPECTED_CALL(test_work_function(&test_work_context));
+    // only the first call ends the invocation
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(lock));
+
+    // act
+    int result = run_test_thread(0);
+
+    // assert
+    ASSERT_ARE_EQUAL(int, 0, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(uint32_t, 0, observed_running_count);
+    ASSERT_ARE_EQUAL(uint32_t, 0, test_work_get_running_count(test_work));
+
+    // cleanup
+    execution_engine_linux_close_work(test_work);
     execution_engine_dec_ref(test_engine);
 }
 

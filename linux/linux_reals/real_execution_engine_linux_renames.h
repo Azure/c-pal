@@ -8,3 +8,4 @@
 #define execution_engine_linux_cancel_timer       real_execution_engine_linux_cancel_timer
 #define execution_engine_linux_wait_for_work      real_execution_engine_linux_wait_for_work
 #define execution_engine_linux_close_work         real_execution_engine_linux_close_work
+#define execution_engine_linux_disassociate_current_thread_from_work real_execution_engine_linux_disassociate_current_thread_from_work

@@ -24,7 +24,7 @@
 typedef struct THREADPOOL_TAG
 {
     EXECUTION_ENGINE_HANDLE execution_engine;
-    volatile_atomic int32_t pending_work_count;
+    volatile_atomic int32_t outstanding_callback_count;
 } THREADPOOL;
 
 THANDLE_TYPE_DEFINE(THREADPOOL);
@@ -40,6 +40,7 @@ THANDLE_TYPE_DEFINE(THREADPOOL_WORK_ITEM);
 
 typedef struct THREADPOOL_TIMER_TAG
 {
+    THREADPOOL* threadpool;
     THREADPOOL_WORK_FUNCTION work_function;
     void* work_function_context;
     EXECUTION_ENGINE_LINUX_WORK_HANDLE timer;
@@ -58,8 +59,8 @@ typedef struct SCHEDULED_WORK_CONTEXT_TAG
 
 static void threadpool_dispose(THREADPOOL* threadpool)
 {
-    /* Codes_SRS_THREADPOOL_LINUX_42_006: [ threadpool_dispose shall wait for the count of pending scheduled work to reach 0 by calling InterlockedHL_WaitForValue. ]*/
-    if (InterlockedHL_WaitForValue(&threadpool->pending_work_count, 0, UINT32_MAX) != INTERLOCKED_HL_OK)
+    /* Codes_SRS_THREADPOOL_LINUX_42_006: [ threadpool_dispose shall wait for the count of outstanding callbacks to reach 0 by calling InterlockedHL_WaitForValue. ]*/
+    if (InterlockedHL_WaitForValue(&threadpool->outstanding_callback_count, 0, UINT32_MAX) != INTERLOCKED_HL_OK)
     {
         LogError("InterlockedHL_WaitForValue failed");
     }
@@ -93,8 +94,8 @@ THANDLE(THREADPOOL) threadpool_create(EXECUTION_ENGINE_HANDLE execution_engine)
             execution_engine_inc_ref(execution_engine);
             result->execution_engine = execution_engine;
 
-            /* Codes_SRS_THREADPOOL_LINUX_42_004: [ threadpool_create shall set the count of pending scheduled work to 0. ]*/
-            (void)interlocked_exchange(&result->pending_work_count, 0);
+            /* Codes_SRS_THREADPOOL_LINUX_42_004: [ threadpool_create shall set the count of outstanding callbacks to 0. ]*/
+            (void)interlocked_exchange(&result->outstanding_callback_count, 0);
         }
     }
 
@@ -206,10 +207,10 @@ static void on_scheduled_work_callback(void* context)
     /* Codes_SRS_THREADPOOL_LINUX_42_031: [ on_scheduled_work_callback shall free the context. ]*/
     free(scheduled_work_context);
 
-    /* Codes_SRS_THREADPOOL_LINUX_42_032: [ on_scheduled_work_callback shall decrement the count of pending scheduled work of the threadpool by calling interlocked_decrement and, if it reached 0, call wake_by_address_all. ]*/
-    if (interlocked_decrement(&threadpool->pending_work_count) == 0)
+    /* Codes_SRS_THREADPOOL_LINUX_42_032: [ on_scheduled_work_callback shall decrement the count of outstanding callbacks of the threadpool by calling interlocked_decrement and, if it reached 0, call wake_by_address_all. ]*/
+    if (interlocked_decrement(&threadpool->outstanding_callback_count) == 0)
     {
-        wake_by_address_all(&threadpool->pending_work_count);
+        wake_by_address_all(&threadpool->outstanding_callback_count);
     }
 }
 
@@ -259,8 +260,8 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
             }
             else
             {
-                /* Codes_SRS_THREADPOOL_LINUX_42_026: [ threadpool_schedule_work shall increment the count of pending scheduled work by calling interlocked_increment. ]*/
-                (void)interlocked_increment(&threadpool_ptr->pending_work_count);
+                /* Codes_SRS_THREADPOOL_LINUX_42_026: [ threadpool_schedule_work shall increment the count of outstanding callbacks by calling interlocked_increment. ]*/
+                (void)interlocked_increment(&threadpool_ptr->outstanding_callback_count);
 
                 /* Codes_SRS_THREADPOOL_LINUX_42_027: [ threadpool_schedule_work shall submit the work object by calling execution_engine_linux_submit_work and return 0. ]*/
                 execution_engine_linux_submit_work(scheduled_work_context->work);
@@ -275,13 +276,26 @@ int threadpool_schedule_work(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUN
 static void on_timer_callback(void* context)
 {
     THREADPOOL_TIMER* timer = context;
+    THREADPOOL* threadpool = timer->threadpool;
+
+    /* Codes_SRS_THREADPOOL_LINUX_42_100: [ on_timer_callback shall increment the count of outstanding callbacks of the threadpool by calling interlocked_increment. ]*/
+    (void)interlocked_increment(&threadpool->outstanding_callback_count);
 
     /* Codes_SRS_THREADPOOL_LINUX_42_042: [ on_timer_callback shall call the work_function of the timer with its work_function_context. ]*/
     timer->work_function(timer->work_function_context);
+
+    /* Codes_SRS_THREADPOOL_LINUX_42_101: [ After work_function returns, on_timer_callback shall decrement the count of outstanding callbacks of the threadpool by calling interlocked_decrement and, if it reached 0, call wake_by_address_all, without accessing the timer, which work_function can release. ]*/
+    if (interlocked_decrement(&threadpool->outstanding_callback_count) == 0)
+    {
+        wake_by_address_all(&threadpool->outstanding_callback_count);
+    }
 }
 
 static void threadpool_timer_dispose(THREADPOOL_TIMER* timer)
 {
+    /* Codes_SRS_THREADPOOL_LINUX_42_102: [ threadpool_timer_dispose shall call execution_engine_linux_disassociate_current_thread_from_work, so that it does not wait for the timer callback running on the current thread. ]*/
+    execution_engine_linux_disassociate_current_thread_from_work(timer->timer);
+
     /* Codes_SRS_THREADPOOL_LINUX_42_053: [ threadpool_timer_dispose shall disarm the timer by calling execution_engine_linux_cancel_timer. ]*/
     execution_engine_linux_cancel_timer(timer->timer);
 
@@ -314,7 +328,7 @@ THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool,
     }
     else
     {
-        /* Codes_SRS_THREADPOOL_LINUX_42_036: [ threadpool_timer_start shall allocate a THANDLE(THREADPOOL_TIMER) with threadpool_timer_dispose as dispose function and store work_function and work_function_context in it. ]*/
+        /* Codes_SRS_THREADPOOL_LINUX_42_036: [ threadpool_timer_start shall allocate a THANDLE(THREADPOOL_TIMER) with threadpool_timer_dispose as dispose function and store the threadpool, work_function and work_function_context in it. ]*/
         result = THANDLE_MALLOC(THREADPOOL_TIMER)(threadpool_timer_dispose);
         if (result == NULL)
         {
@@ -323,6 +337,7 @@ THANDLE(THREADPOOL_TIMER) threadpool_timer_start(THANDLE(THREADPOOL) threadpool,
         }
         else
         {
+            result->threadpool = THANDLE_GET_T(THREADPOOL)(threadpool);
             result->work_function = work_function;
             result->work_function_context = work_function_context;
 
@@ -401,6 +416,10 @@ void threadpool_timer_cancel(THANDLE(THREADPOOL_TIMER) timer)
     else
     {
         THREADPOOL_TIMER* timer_content = THANDLE_GET_T(THREADPOOL_TIMER)(timer);
+
+        /* Codes_SRS_THREADPOOL_LINUX_42_103: [ Before acquiring the timer lock, threadpool_timer_cancel shall call execution_engine_linux_disassociate_current_thread_from_work, so that it does not wait for the timer callback running on the current thread. ]*/
+        // Before taking the lock: a cancel on another thread can hold it while waiting for this callback
+        execution_engine_linux_disassociate_current_thread_from_work(timer_content->timer);
 
         /* Codes_SRS_THREADPOOL_LINUX_42_049: [ threadpool_timer_cancel shall acquire the timer lock exclusively by calling srw_lock_ll_acquire_exclusive. ]*/
         srw_lock_ll_acquire_exclusive(&timer_content->timer_lock);

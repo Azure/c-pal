@@ -54,6 +54,11 @@ EXECUTION_ENGINE_HANDLE test_get_current_execution_engine(void)
     return current_execution_engine;
 }
 
+EXECUTION_ENGINE_LINUX_WORK_HANDLE test_get_current_work(void)
+{
+    return current_work;
+}
+
 pthread_mutex_t* test_engine_get_lock(EXECUTION_ENGINE_HANDLE execution_engine)
 {
     return &execution_engine->lock;

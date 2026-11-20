@@ -14,6 +14,8 @@ A work object (`EXECUTION_ENGINE_LINUX_WORK_HANDLE`) is created once (this can f
 
 Each work object tracks its pending and running invocations. `execution_engine_linux_wait_for_work` waits until both are zero, optionally dropping the invocations that have not started. `execution_engine_linux_close_work` frees the work object, immediately if it has no outstanding invocations, otherwise after the last one completes, so it can be called from the work object's own callback.
 
+A callback can disassociate its thread from its work object (`execution_engine_linux_disassociate_current_thread_from_work`, like Win32 `DisassociateCurrentThreadFromCallback`): its invocation then no longer counts as running, so the callback can wait for or close its own work object, and threads already waiting for the work object stop waiting for it. A thread-local variable records the work object whose callback runs on the current thread, and the worker does not touch the work object again once its thread was disassociated from it.
+
 ### Timers
 
 A timer is a work object that the engine submits when it expires. The engine keeps the armed timers in a binary min-heap ordered by due time. The heap capacity is grown when a timer is created (which can fail), so that it always holds every timer of the engine; arming, re-arming and cancelling a timer therefore never allocate and cannot fail. Due times use `CLOCK_MONOTONIC`. A start delay of 0 expires immediately.
@@ -59,6 +61,7 @@ MOCKABLE_FUNCTION(, void, execution_engine_linux_set_timer, EXECUTION_ENGINE_LIN
 MOCKABLE_FUNCTION(, void, execution_engine_linux_cancel_timer, EXECUTION_ENGINE_LINUX_WORK_HANDLE, timer);
 MOCKABLE_FUNCTION(, void, execution_engine_linux_wait_for_work, EXECUTION_ENGINE_LINUX_WORK_HANDLE, work, bool, cancel_pending);
 MOCKABLE_FUNCTION(, void, execution_engine_linux_close_work, EXECUTION_ENGINE_LINUX_WORK_HANDLE, work);
+MOCKABLE_FUNCTION(, void, execution_engine_linux_disassociate_current_thread_from_work, EXECUTION_ENGINE_LINUX_WORK_HANDLE, work);
 ```
 
 ### execution_engine_create
@@ -301,6 +304,40 @@ MOCKABLE_FUNCTION(, void, execution_engine_linux_close_work, EXECUTION_ENGINE_LI
 
 **SRS_EXECUTION_ENGINE_LINUX_42_055: [** `execution_engine_linux_close_work` shall release the mutex. **]**
 
+### execution_engine_linux_disassociate_current_thread_from_work
+
+```c
+MOCKABLE_FUNCTION(, void, execution_engine_linux_disassociate_current_thread_from_work, EXECUTION_ENGINE_LINUX_WORK_HANDLE, work);
+```
+
+`execution_engine_linux_disassociate_current_thread_from_work` is the equivalent of Win32 `DisassociateCurrentThreadFromCallback`. Called from a callback of `work`, it ends that invocation early: `execution_engine_linux_wait_for_work` no longer waits for it, so the callback can wait for, or close, its own work object. The callback must not use `work` after closing it.
+
+**SRS_EXECUTION_ENGINE_LINUX_42_084: [** If `work` is `NULL`, `execution_engine_linux_disassociate_current_thread_from_work` shall return. **]**
+
+**SRS_EXECUTION_ENGINE_LINUX_42_085: [** If the current thread is not running a callback of `work`, or was already disassociated from it, `execution_engine_linux_disassociate_current_thread_from_work` shall return. **]**
+
+**SRS_EXECUTION_ENGINE_LINUX_42_086: [** Otherwise `execution_engine_linux_disassociate_current_thread_from_work` shall acquire the execution engine mutex. **]**
+
+**SRS_EXECUTION_ENGINE_LINUX_42_087: [** `execution_engine_linux_disassociate_current_thread_from_work` shall record that the current thread no longer runs a callback of `work`. **]**
+
+**SRS_EXECUTION_ENGINE_LINUX_42_088: [** `execution_engine_linux_disassociate_current_thread_from_work` shall end the invocation of `work`. **]**
+
+**SRS_EXECUTION_ENGINE_LINUX_42_089: [** `execution_engine_linux_disassociate_current_thread_from_work` shall release the mutex. **]**
+
+### end_invocation (internal)
+
+```c
+static void end_invocation(EXECUTION_ENGINE* execution_engine, EXECUTION_ENGINE_LINUX_WORK* work);
+```
+
+`end_invocation` is called with the mutex held when an invocation of `work` completes or its thread is disassociated from it.
+
+**SRS_EXECUTION_ENGINE_LINUX_42_065: [** `end_invocation` shall decrement the running count of `work`. **]**
+
+**SRS_EXECUTION_ENGINE_LINUX_42_066: [** If `work` has no pending and no running invocations and it is closed, `end_invocation` shall free it. **]**
+
+**SRS_EXECUTION_ENGINE_LINUX_42_067: [** If `work` has no pending and no running invocations, it is not closed and threads are waiting for it, `end_invocation` shall wake them by calling `pthread_cond_broadcast`. **]**
+
 ### free_work (internal)
 
 ```c
@@ -335,13 +372,11 @@ static int worker_thread_func(void* arg);
 
 - **SRS_EXECUTION_ENGINE_LINUX_42_063: [** Increment the running count of the work object and record the current time as the last progress time. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_064: [** Release the mutex, call the work function with the work function context and acquire the mutex. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_064: [** Record the work object as the work running on the current thread, release the mutex, call the work function with the work function context and acquire the mutex. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_065: [** Decrement the running count of the work object. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_090: [** If the current thread was disassociated from the work object while the work function ran, go on to the next work object without accessing the work object, which can be freed by then. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_066: [** If the work object has no pending and no running invocations and it is closed, free it. **]**
-
-- **SRS_EXECUTION_ENGINE_LINUX_42_067: [** If the work object has no pending and no running invocations, it is not closed and threads are waiting for it, wake them by calling `pthread_cond_broadcast`. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_091: [** Otherwise, clear the work running on the current thread and end the invocation of the work object. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_068: [** Otherwise, if the stop flag is set, `worker_thread_func` shall release the mutex and return. **]**
 

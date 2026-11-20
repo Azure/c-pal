@@ -18,6 +18,7 @@
 THREAD_START_FUNC test_get_worker_thread_func(void);
 THREAD_START_FUNC test_get_manager_thread_func(void);
 EXECUTION_ENGINE_HANDLE test_get_current_execution_engine(void);
+EXECUTION_ENGINE_LINUX_WORK_HANDLE test_get_current_work(void);
 
 pthread_mutex_t* test_engine_get_lock(EXECUTION_ENGINE_HANDLE execution_engine);
 pthread_cond_t* test_engine_get_manager_cond(EXECUTION_ENGINE_HANDLE execution_engine);
