@@ -360,12 +360,8 @@ static void threadpool_internal_set_timer(PTP_TIMER tp_timer, uint32_t start_del
     SetThreadpoolTimer(tp_timer, &filetime_due_time, timer_period_ms, 0);
 }
 
-static void threadpool_internal_cancel_timer_and_wait(PTP_TIMER tp_timer)
+static void threadpool_internal_disassociate_from_timer_callback(PTP_TIMER tp_timer)
 {
-    /* Codes_SRS_THREADPOOL_WIN32_42_012: [ threadpool_timer_dispose shall call SetThreadpoolTimer with NULL for pftDueTime and 0 for msPeriod and msWindowLength to cancel ongoing timers. ]*/
-    /* Codes_SRS_THREADPOOL_WIN32_42_025: [ threadpool_timer_cancel shall call SetThreadpoolTimer with NULL for pftDueTime and 0 for msPeriod and msWindowLength to cancel ongoing timers. ]*/
-    SetThreadpoolTimer(tp_timer, NULL, 0, 0);
-
     if (timer_callback_on_current_thread.timer == tp_timer)
     {
         // Called from the timer's own callback: without this, WaitForThreadpoolTimerCallbacks would wait for the calling callback
@@ -375,6 +371,13 @@ static void threadpool_internal_cancel_timer_and_wait(PTP_TIMER tp_timer)
         timer_callback_on_current_thread.timer = NULL;
         timer_callback_on_current_thread.instance = NULL;
     }
+}
+
+static void threadpool_internal_cancel_timer_and_wait(PTP_TIMER tp_timer)
+{
+    /* Codes_SRS_THREADPOOL_WIN32_42_012: [ threadpool_timer_dispose shall call SetThreadpoolTimer with NULL for pftDueTime and 0 for msPeriod and msWindowLength to cancel ongoing timers. ]*/
+    /* Codes_SRS_THREADPOOL_WIN32_42_025: [ threadpool_timer_cancel shall call SetThreadpoolTimer with NULL for pftDueTime and 0 for msPeriod and msWindowLength to cancel ongoing timers. ]*/
+    SetThreadpoolTimer(tp_timer, NULL, 0, 0);
 
     /* Codes_SRS_THREADPOOL_WIN32_42_013: [ threadpool_timer_dispose shall call WaitForThreadpoolTimerCallbacks. ]*/
     /* Codes_SRS_THREADPOOL_WIN32_42_026: [ threadpool_timer_cancel shall call WaitForThreadpoolTimerCallbacks. ]*/
@@ -385,6 +388,7 @@ static void threadpool_timer_dispose(THREADPOOL_TIMER* timer)
 {
     if (timer->timer != NULL)
     {
+        threadpool_internal_disassociate_from_timer_callback(timer->timer);
         threadpool_internal_cancel_timer_and_wait(timer->timer);
         /* Codes_SRS_THREADPOOL_WIN32_42_014: [ threadpool_timer_dispose shall call CloseThreadpoolTimer. ]*/
         CloseThreadpoolTimer(timer->timer);
@@ -508,6 +512,9 @@ void threadpool_timer_cancel(THANDLE(THREADPOOL_TIMER) timer)
     else
     {
         THREADPOOL_TIMER * timer_content = THANDLE_GET_T(THREADPOOL_TIMER)(timer);
+
+        // Before taking the lock: a cancel on another thread can hold it while waiting for this callback
+        threadpool_internal_disassociate_from_timer_callback(timer_content->timer);
 
         /* Codes_SRS_THREADPOOL_WIN32_07_005: [ threadpool_timer_cancel shall acquire an exclusive lock. ]*/
         srw_lock_ll_acquire_exclusive(&timer_content->timer_lock);

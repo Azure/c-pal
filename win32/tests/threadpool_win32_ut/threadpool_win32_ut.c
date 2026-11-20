@@ -1122,8 +1122,8 @@ TEST_FUNCTION(on_timer_callback_releasing_its_timer_disassociates_the_thread_bef
 
     STRICT_EXPECTED_CALL(test_work_function((void*)0x4243));
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
-    STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(ptp_timer, NULL, 0, 0));
     STRICT_EXPECTED_CALL(mocked_DisassociateCurrentThreadFromCallback(test_callback_instance));
+    STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(ptp_timer, NULL, 0, 0));
     STRICT_EXPECTED_CALL(mocked_WaitForThreadpoolTimerCallbacks(ptp_timer, TRUE));
     STRICT_EXPECTED_CALL(mocked_CloseThreadpoolTimer(ptp_timer));
     STRICT_EXPECTED_CALL(srw_lock_ll_deinit(IGNORED_ARG));
@@ -1142,7 +1142,7 @@ TEST_FUNCTION(on_timer_callback_releasing_its_timer_disassociates_the_thread_bef
 
 /* Tests_SRS_THREADPOOL_WIN32_42_031: [ Before calling work_function, on_timer_callback shall record timer and instance as the timer callback running on the current thread. ]*/
 /* Tests_SRS_THREADPOOL_WIN32_42_029: [ If the current thread is running the callback of timer, threadpool_timer_cancel shall call DisassociateCurrentThreadFromCallback with the callback instance and clear the timer callback recorded for the current thread. ]*/
-TEST_FUNCTION(on_timer_callback_cancelling_its_timer_disassociates_the_thread_before_waiting)
+TEST_FUNCTION(on_timer_callback_cancelling_its_timer_disassociates_the_thread_before_taking_the_lock)
 {
     // arrange
     THANDLE(THREADPOOL) threadpool = NULL;
@@ -1154,9 +1154,9 @@ TEST_FUNCTION(on_timer_callback_cancelling_its_timer_disassociates_the_thread_be
     REGISTER_GLOBAL_MOCK_HOOK(test_work_function, hook_test_work_function_cancel_timer);
 
     STRICT_EXPECTED_CALL(test_work_function((void*)0x4243));
+    STRICT_EXPECTED_CALL(mocked_DisassociateCurrentThreadFromCallback(test_callback_instance));
     STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(ptp_timer, NULL, 0, 0));
-    STRICT_EXPECTED_CALL(mocked_DisassociateCurrentThreadFromCallback(test_callback_instance));
     STRICT_EXPECTED_CALL(mocked_WaitForThreadpoolTimerCallbacks(ptp_timer, TRUE));
     STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
 
@@ -1185,9 +1185,9 @@ TEST_FUNCTION(on_timer_callback_cancelling_and_releasing_its_timer_disassociates
     REGISTER_GLOBAL_MOCK_HOOK(test_work_function, hook_test_work_function_cancel_and_release_timer);
 
     STRICT_EXPECTED_CALL(test_work_function((void*)0x4243));
+    STRICT_EXPECTED_CALL(mocked_DisassociateCurrentThreadFromCallback(test_callback_instance));
     STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(ptp_timer, NULL, 0, 0));
-    STRICT_EXPECTED_CALL(mocked_DisassociateCurrentThreadFromCallback(test_callback_instance));
     STRICT_EXPECTED_CALL(mocked_WaitForThreadpoolTimerCallbacks(ptp_timer, TRUE));
     STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
     STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
