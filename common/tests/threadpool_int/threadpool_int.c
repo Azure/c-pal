@@ -897,6 +897,9 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
 
     LogInfo("Timer stopped");
 
+    // the timer has a start delay of 0, so its callback was running and stop waited for it
+    ASSERT_ARE_EQUAL(int64_t, 1, interlocked_add_64(&wait_work_context.call_count, 0));
+
     // set the event, that would trigger a WAIT_OBJECT_0 if stop would not wait for all items
     (void)interlocked_increment(&wait_work_context.wait_event);
 
@@ -937,6 +940,9 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
     threadpool_timer_cancel(timer);
 
     LogInfo("Timer canceled");
+
+    // the timer has a start delay of 0, so its callback was running and cancel waited for it
+    ASSERT_ARE_EQUAL(int64_t, 1, interlocked_add_64(&wait_work_context.call_count, 0));
 
     // set the event, that would trigger a WAIT_OBJECT_0 if stop would not wait for all items
     (void)interlocked_increment(&wait_work_context.wait_event);
@@ -1573,27 +1579,6 @@ static void timer_work_function_that_releases_its_timer(void* context)
     wake_by_address_all_64(released_count);
 }
 
-static void start_timer_when_one_is_available(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* context, THANDLE(THREADPOOL_TIMER)* timer)
-{
-    // On Linux, a timer released from its own callback frees its timer table entry only when the callback returns
-    double start_time = timer_global_get_elapsed_ms();
-    bool started = false;
-    do
-    {
-        THANDLE(THREADPOOL_TIMER) new_timer = threadpool_timer_start(threadpool, 1, 0, work_function, context);
-        if (new_timer != NULL)
-        {
-            THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(timer, &new_timer);
-            started = true;
-        }
-        else
-        {
-            ASSERT_IS_TRUE(timer_global_get_elapsed_ms() - start_time < TIMER_FROM_OWN_CALLBACK_TIMEOUT_MS, "Timeout waiting for a timer to be available");
-            ThreadAPI_Sleep(1);
-        }
-    } while (!started);
-}
-
 #define TIMERS_RELEASED_FROM_CALLBACK_BATCH_COUNT 3
 #define TIMERS_RELEASED_FROM_CALLBACK_PER_BATCH 500
 
@@ -1614,7 +1599,7 @@ TEST_FUNCTION(releasing_timers_from_their_own_callbacks_does_not_wait_for_the_ca
     ASSERT_IS_NOT_NULL(timer_contexts);
 
     // act
-    // more timers in total than the 1024 timers that Linux supports at a time, so the released timers have to be reused
+    // several batches, so timers keep being released from their callbacks while new ones start
     for (uint32_t batch = 0; batch < TIMERS_RELEASED_FROM_CALLBACK_BATCH_COUNT; batch++)
     {
         for (uint32_t i = 0; i < TIMERS_RELEASED_FROM_CALLBACK_PER_BATCH; i++)
@@ -1622,7 +1607,9 @@ TEST_FUNCTION(releasing_timers_from_their_own_callbacks_does_not_wait_for_the_ca
             timer_contexts[i].released_count = &released_count;
             (void)interlocked_exchange(&timer_contexts[i].timer_stored, 0);
 
-            start_timer_when_one_is_available(threadpool, timer_work_function_that_releases_its_timer, &timer_contexts[i], &timer_contexts[i].timer);
+            THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(threadpool, 1, 0, timer_work_function_that_releases_its_timer, &timer_contexts[i]);
+            ASSERT_IS_NOT_NULL(timer);
+            THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(&timer_contexts[i].timer, &timer);
             ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_SetAndWake(&timer_contexts[i].timer_stored, 1));
         }
 
@@ -1770,6 +1757,61 @@ TEST_FUNCTION(cancelling_a_timer_from_its_own_callback_while_another_thread_canc
     execution_engine_dec_ref(execution_engine);
 }
 
+#define TIMER_CALLBACK_AFTER_RELEASE_DELAY_MS 300
+
+typedef struct TIMER_RELEASED_THEN_RUNNING_CONTEXT_TAG
+{
+    THANDLE(THREADPOOL_TIMER) timer;
+    volatile_atomic int32_t timer_stored;
+    volatile_atomic int32_t timer_released;
+    volatile_atomic int32_t callback_done;
+} TIMER_RELEASED_THEN_RUNNING_CONTEXT;
+
+static void timer_work_function_that_releases_its_timer_and_keeps_running(void* context)
+{
+    TIMER_RELEASED_THEN_RUNNING_CONTEXT* timer_context = context;
+
+    // the timer can fire before the test stored the handle returned by threadpool_timer_start
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&timer_context->timer_stored, 1, UINT32_MAX));
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_context->timer, NULL);
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_SetAndWake(&timer_context->timer_released, 1));
+
+    // keep running after the timer was released, so the test releases the threadpool while this callback runs
+    ThreadAPI_Sleep(TIMER_CALLBACK_AFTER_RELEASE_DELAY_MS);
+    (void)interlocked_exchange(&timer_context->callback_done, 1);
+}
+
+TEST_FUNCTION(releasing_the_threadpool_waits_for_a_timer_callback_that_released_its_timer)
+{
+    // arrange
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 1, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    TIMER_RELEASED_THEN_RUNNING_CONTEXT timer_context;
+    (void)interlocked_exchange(&timer_context.timer_stored, 0);
+    (void)interlocked_exchange(&timer_context.timer_released, 0);
+    (void)interlocked_exchange(&timer_context.callback_done, 0);
+
+    THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(threadpool, 1, 0, timer_work_function_that_releases_its_timer_and_keeps_running, &timer_context);
+    ASSERT_IS_NOT_NULL(timer);
+    THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(&timer_context.timer, &timer);
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_SetAndWake(&timer_context.timer_stored, 1));
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&timer_context.timer_released, 1, TIMER_FROM_OWN_CALLBACK_TIMEOUT_MS));
+
+    // act
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+
+    // assert
+    ASSERT_ARE_EQUAL(int32_t, 1, interlocked_add(&timer_context.callback_done, 0));
+
+    // cleanup
+    execution_engine_dec_ref(execution_engine);
+}
+
 // Test: threadpool_timer_then_workers_does_not_race
 //
 // Exercises concurrent timer and threadpool creation to reproduce a helgrind
@@ -1822,6 +1864,287 @@ TEST_FUNCTION(threadpool_timer_then_workers_does_not_race)
     THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&timer_pool, NULL);
     execution_engine_dec_ref(engine);
+}
+
+typedef struct THREAD_ID_CONTEXT_TAG
+{
+    volatile_atomic int32_t done;
+    uint32_t thread_id;
+} THREAD_ID_CONTEXT;
+
+static void record_thread_id_work_function(void* context)
+{
+    THREAD_ID_CONTEXT* thread_id_context = context;
+    thread_id_context->thread_id = ThreadAPI_GetCurrentThreadId();
+    (void)interlocked_exchange(&thread_id_context->done, 1);
+    wake_by_address_all(&thread_id_context->done);
+}
+
+TEST_FUNCTION(threadpools_created_on_one_execution_engine_share_its_threads)
+{
+    // arrange
+    // the execution engine has exactly 1 thread
+    EXECUTION_ENGINE_PARAMETERS params = { 1, 1 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&params);
+    ASSERT_IS_NOT_NULL(execution_engine);
+    THANDLE(THREADPOOL) threadpool_1 = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool_1);
+    THANDLE(THREADPOOL) threadpool_2 = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool_2);
+    THREAD_ID_CONTEXT context_1 = { 0 };
+    THREAD_ID_CONTEXT context_2 = { 0 };
+
+    // act
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool_1, record_thread_id_work_function, &context_1));
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&context_1.done, 1, UINT32_MAX));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool_2, record_thread_id_work_function, &context_2));
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&context_2.done, 1, UINT32_MAX));
+
+    // assert
+    ASSERT_ARE_EQUAL(uint32_t, context_1.thread_id, context_2.thread_id);
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool_1, NULL);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool_2, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+TEST_FUNCTION(timer_callbacks_run_on_the_execution_engine_threads)
+{
+    // arrange
+    // the execution engine has exactly 1 thread
+    EXECUTION_ENGINE_PARAMETERS params = { 1, 1 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&params);
+    ASSERT_IS_NOT_NULL(execution_engine);
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+    THREAD_ID_CONTEXT work_context = { 0 };
+    THREAD_ID_CONTEXT timer_context = { 0 };
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, record_thread_id_work_function, &work_context));
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&work_context.done, 1, UINT32_MAX));
+
+    // act
+    THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(threadpool, 10, 0, record_thread_id_work_function, &timer_context);
+    ASSERT_IS_NOT_NULL(timer);
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&timer_context.done, 1, UINT32_MAX));
+
+    // assert
+    ASSERT_ARE_EQUAL(uint32_t, work_context.thread_id, timer_context.thread_id);
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer, NULL);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+typedef struct BLOCKING_TEST_CONTEXT_TAG
+{
+    volatile_atomic int32_t gate;
+    volatile_atomic int32_t blocked_count;
+    volatile_atomic int32_t timed_out_count;
+    volatile_atomic int32_t done_count;
+} BLOCKING_TEST_CONTEXT;
+
+static void wait_for_gate_work_function(void* context)
+{
+    BLOCKING_TEST_CONTEXT* blocking_test_context = context;
+    (void)interlocked_increment(&blocking_test_context->blocked_count);
+    wake_by_address_all(&blocking_test_context->blocked_count);
+
+    // block this thread until another callback opens the gate
+    if (InterlockedHL_WaitForValue(&blocking_test_context->gate, 1, 10000) != INTERLOCKED_HL_OK)
+    {
+        (void)interlocked_increment(&blocking_test_context->timed_out_count);
+    }
+
+    (void)interlocked_increment(&blocking_test_context->done_count);
+    wake_by_address_all(&blocking_test_context->done_count);
+}
+
+static void open_gate_work_function(void* context)
+{
+    BLOCKING_TEST_CONTEXT* blocking_test_context = context;
+    (void)interlocked_exchange(&blocking_test_context->gate, 1);
+    wake_by_address_all(&blocking_test_context->gate);
+}
+
+TEST_FUNCTION(callbacks_blocked_waiting_for_another_callback_do_not_starve_the_threadpool)
+{
+    // arrange
+    // 2 threads to start with, but more are allowed
+    EXECUTION_ENGINE_PARAMETERS params = { 2, 16 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&params);
+    ASSERT_IS_NOT_NULL(execution_engine);
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+    BLOCKING_TEST_CONTEXT context = { 0 };
+
+    // block both initial threads
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, wait_for_gate_work_function, &context));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, wait_for_gate_work_function, &context));
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&context.blocked_count, 2, UINT32_MAX));
+
+    // act
+    // the blocked callbacks only finish if this one gets a thread
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work(threadpool, open_gate_work_function, &context));
+
+    // assert
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&context.done_count, 2, UINT32_MAX));
+    ASSERT_ARE_EQUAL(int32_t, 0, interlocked_add(&context.timed_out_count, 0));
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+typedef struct SLOW_WORK_CONTEXT_TAG
+{
+    volatile_atomic int32_t started_count;
+    volatile_atomic int32_t done_count;
+} SLOW_WORK_CONTEXT;
+
+static void slow_work_function(void* context)
+{
+    SLOW_WORK_CONTEXT* slow_work_context = context;
+    (void)interlocked_increment(&slow_work_context->started_count);
+    wake_by_address_all(&slow_work_context->started_count);
+    ThreadAPI_Sleep(300);
+    (void)interlocked_increment(&slow_work_context->done_count);
+}
+
+TEST_FUNCTION(releasing_a_work_item_waits_for_its_scheduled_callbacks)
+{
+    // arrange
+    EXECUTION_ENGINE_PARAMETERS params = { 1, 1 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&params);
+    ASSERT_IS_NOT_NULL(execution_engine);
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+    SLOW_WORK_CONTEXT context = { 0 };
+    THANDLE(THREADPOOL_WORK_ITEM) work_item = threadpool_create_work_item(threadpool, slow_work_function, &context);
+    ASSERT_IS_NOT_NULL(work_item);
+
+    // one callback running and one waiting for the only thread
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(threadpool, work_item));
+    ASSERT_ARE_EQUAL(int, 0, threadpool_schedule_work_item(threadpool, work_item));
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&context.started_count, 1, UINT32_MAX));
+
+    // act
+    THANDLE_ASSIGN(THREADPOOL_WORK_ITEM)(&work_item, NULL);
+
+    // assert
+    ASSERT_ARE_EQUAL(int32_t, 2, interlocked_add(&context.done_count, 0));
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+TEST_FUNCTION(timer_with_a_start_delay_of_0_fires)
+{
+    // arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
+    ASSERT_IS_NOT_NULL(execution_engine);
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+    volatile_atomic int64_t call_count;
+    (void)interlocked_exchange_64(&call_count, 0);
+
+    // act
+    THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(threadpool, 0, 0, work_function, (void*)&call_count);
+    ASSERT_IS_NOT_NULL(timer);
+
+    // assert
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue64(&call_count, 1, 5000));
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer, NULL);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+typedef struct TIMER_FIRE_TIME_CONTEXT_TAG
+{
+    volatile_atomic int32_t fired;
+    double fire_time_ms;
+} TIMER_FIRE_TIME_CONTEXT;
+
+static void record_fire_time_work_function(void* context)
+{
+    TIMER_FIRE_TIME_CONTEXT* timer_fire_time_context = context;
+    timer_fire_time_context->fire_time_ms = timer_global_get_elapsed_ms();
+    (void)interlocked_exchange(&timer_fire_time_context->fired, 1);
+    wake_by_address_all(&timer_fire_time_context->fired);
+}
+
+// 4500 ms does not fit in a uint32_t once converted to nanoseconds
+#define LONG_TIMER_START_DELAY_MS 4500
+
+TEST_FUNCTION(timer_with_a_start_delay_above_4295_ms_fires_after_the_start_delay)
+{
+    // arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
+    ASSERT_IS_NOT_NULL(execution_engine);
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+    TIMER_FIRE_TIME_CONTEXT context = { 0 };
+    double start_time_ms = timer_global_get_elapsed_ms();
+
+    // act
+    THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(threadpool, LONG_TIMER_START_DELAY_MS, 0, record_fire_time_work_function, &context);
+    ASSERT_IS_NOT_NULL(timer);
+
+    // assert
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&context.fired, 1, LONG_TIMER_START_DELAY_MS * 3));
+    double elapsed_ms = context.fire_time_ms - start_time_ms;
+    LogInfo("Timer with a start delay of %d ms fired after %.0f ms", LONG_TIMER_START_DELAY_MS, elapsed_ms);
+    ASSERT_IS_TRUE(elapsed_ms >= LONG_TIMER_START_DELAY_MS - 50);
+    ASSERT_IS_TRUE(elapsed_ms < LONG_TIMER_START_DELAY_MS + 500);
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer, NULL);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+#define MANY_TIMERS_COUNT 2000
+
+TEST_FUNCTION(starting_2000_timers_succeeds)
+{
+    // arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(NULL);
+    ASSERT_IS_NOT_NULL(execution_engine);
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+    THANDLE(THREADPOOL_TIMER)* timers = malloc(MANY_TIMERS_COUNT * sizeof(THANDLE(THREADPOOL_TIMER)));
+    ASSERT_IS_NOT_NULL(timers);
+    volatile_atomic int64_t call_count;
+    (void)interlocked_exchange_64(&call_count, 0);
+
+    // act
+    uint32_t started_count = 0;
+    for (uint32_t i = 0; i < MANY_TIMERS_COUNT; i++)
+    {
+        // 1 hour, the timers never fire during the test
+        THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(threadpool, 3600000, 0, work_function, (void*)&call_count);
+        if (timer != NULL)
+        {
+            started_count++;
+        }
+        THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(&timers[i], &timer);
+    }
+
+    // assert
+    ASSERT_ARE_EQUAL(uint32_t, MANY_TIMERS_COUNT, started_count);
+
+    // cleanup
+    for (uint32_t i = 0; i < MANY_TIMERS_COUNT; i++)
+    {
+        THANDLE_ASSIGN(THREADPOOL_TIMER)(&timers[i], NULL);
+    }
+    free((void*)timers);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
 }
 
 END_TEST_SUITE(TEST_SUITE_NAME_FROM_CMAKE)

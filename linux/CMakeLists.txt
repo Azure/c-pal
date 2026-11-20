@@ -48,7 +48,6 @@ set(pal_linux_h_files
     inc/c_pal/execution_engine_linux.h
     inc/c_pal/platform_linux.h
     inc/c_pal/windows_defines.h
-    inc/c_pal/tqueue_threadpool_work_item.h
 )
 
 set(pal_linux_c_files
@@ -71,7 +70,6 @@ set(pal_linux_c_files
     src/sysinfo_linux.c
     src/process_watchdog_linux.c
     src/threadpool_linux.c
-    src/tqueue_threadpool_work_item.c
     src/timer_linux.c
     src/uuid_linux.c
     src/${gballoc_ll_c}
