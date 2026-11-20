@@ -1573,21 +1573,25 @@ static void timer_work_function_that_releases_its_timer(void* context)
     wake_by_address_all_64(released_count);
 }
 
-static THANDLE(THREADPOOL_TIMER) start_timer_when_one_is_available(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* context)
+static void start_timer_when_one_is_available(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* context, THANDLE(THREADPOOL_TIMER)* timer)
 {
     // On Linux, a timer released from its own callback frees its timer table entry only when the callback returns
     double start_time = timer_global_get_elapsed_ms();
+    bool started = false;
     do
     {
-        THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(threadpool, 1, 0, work_function, context);
-        if (timer != NULL)
+        THANDLE(THREADPOOL_TIMER) new_timer = threadpool_timer_start(threadpool, 1, 0, work_function, context);
+        if (new_timer != NULL)
         {
-            return timer;
+            THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(timer, &new_timer);
+            started = true;
         }
-
-        ASSERT_IS_TRUE(timer_global_get_elapsed_ms() - start_time < TIMER_FROM_OWN_CALLBACK_TIMEOUT_MS, "Timeout waiting for a timer to be available");
-        ThreadAPI_Sleep(1);
-    } while (1);
+        else
+        {
+            ASSERT_IS_TRUE(timer_global_get_elapsed_ms() - start_time < TIMER_FROM_OWN_CALLBACK_TIMEOUT_MS, "Timeout waiting for a timer to be available");
+            ThreadAPI_Sleep(1);
+        }
+    } while (!started);
 }
 
 #define TIMERS_RELEASED_FROM_CALLBACK_BATCH_COUNT 3
@@ -1618,8 +1622,7 @@ TEST_FUNCTION(releasing_timers_from_their_own_callbacks_does_not_wait_for_the_ca
             timer_contexts[i].released_count = &released_count;
             (void)interlocked_exchange(&timer_contexts[i].timer_stored, 0);
 
-            THANDLE(THREADPOOL_TIMER) timer = start_timer_when_one_is_available(threadpool, timer_work_function_that_releases_its_timer, &timer_contexts[i]);
-            THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(&timer_contexts[i].timer, &timer);
+            start_timer_when_one_is_available(threadpool, timer_work_function_that_releases_its_timer, &timer_contexts[i], &timer_contexts[i].timer);
             ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_SetAndWake(&timer_contexts[i].timer_stored, 1));
         }
 
