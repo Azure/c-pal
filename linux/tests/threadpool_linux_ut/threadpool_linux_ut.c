@@ -45,6 +45,18 @@ MOCK_FUNCTION_END()
 MOCK_FUNCTION_WITH_CODE(, void, test_work_function, void*, parameter)
 MOCK_FUNCTION_END()
 
+// THANDLE(T) is a const pointer, so it is kept in a struct to be writable
+static struct
+{
+    THANDLE(THREADPOOL_TIMER) timer;
+} g_work_function_data;
+
+static void hook_test_work_function_release_timer(void* parameter)
+{
+    (void)parameter;
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&g_work_function_data.timer, NULL);
+}
+
 MOCK_FUNCTION_WITH_CODE(, void, test_get_next_timer_instance, THREADPOOL*, threadpool)
 MOCK_FUNCTION_END()
 
@@ -230,6 +242,7 @@ TEST_FUNCTION_INITIALIZE(method_init)
     ASSERT_ARE_EQUAL(int, 0, umock_c_negative_tests_init(), "umock_c_negative_tests_init failed");
     g_saved_worker_thread_func = NULL;
     g_saved_worker_thread_func_context = NULL;
+    REGISTER_GLOBAL_MOCK_HOOK(test_work_function, NULL);
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
@@ -1065,7 +1078,7 @@ TEST_FUNCTION(threadpool_timer_dispose_waits_for_state_to_be_ARMED)
 /* Tests_SRS_THREADPOOL_LINUX_01_008: [ If the timer is in the state ARMED: ]*/
     /* Tests_SRS_THREADPOOL_LINUX_01_007: [ on_timer_callback shall transition it to CALLING_CALLBACK. ]*/
     /* Tests_SRS_THREADPOOL_LINUX_45_004: [ If the timer epoch of the timer table entry is the same like the timer epoch in timer_data.sival_ptr, on_timer_callback shall call the timer's work_function with work_function_ctx. ]*/
-    /* Tests_SRS_THREADPOOL_LINUX_01_009: [ on_timer_callback shall transition it to ARMED. ]*/
+    /* Tests_SRS_THREADPOOL_LINUX_01_009: [ Otherwise, on_timer_callback shall transition it to ARMED. ]*/
 TEST_FUNCTION(on_timer_callback_calls_work_function)
 {
     // arrange
@@ -1168,6 +1181,110 @@ TEST_FUNCTION(on_timer_for_timer_with_correct_epoch_for_2nd_timer_succeeds)
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_instance_2, NULL);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_42_101: [ Before calling the timer's work_function, on_timer_callback shall record the timer table entry as the timer callback running on the current thread. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_42_100: [ If the current thread is running the callback of the timer, threadpool_timer_dispose shall clear the timer callback recorded for the current thread and return. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_42_102: [ If threadpool_timer_dispose cleared the timer callback recorded for the current thread while work_function ran, on_timer_callback shall transition the timer to NOT_USED. ]*/
+TEST_FUNCTION(on_timer_callback_whose_work_function_releases_the_timer_does_not_wait_and_releases_the_timer_table_entry)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = NULL;
+    THANDLE(THREADPOOL_TIMER) timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool);
+    THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(&g_work_function_data.timer, &timer_instance);
+    REGISTER_GLOBAL_MOCK_HOOK(test_work_function, hook_test_work_function_release_timer);
+
+    int32_t armed_state;
+    int32_t calling_callback_state;
+    int32_t new_state;
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG))
+        .CaptureArgumentValue_exchange(&calling_callback_state)
+        .CaptureArgumentValue_comperand(&armed_state);  // state set to CALLING_CALLBACK
+    STRICT_EXPECTED_CALL(test_work_function((void*)0x4243));
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_timer_delete(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(InterlockedHL_SetAndWake(IGNORED_ARG, IGNORED_ARG))
+        .CaptureArgumentValue_value(&new_state);  // state set to NOT_USED
+
+    sigval_t timer_data = {0};
+    timer_data.sival_ptr = g_sigevent.sigev_value.sival_ptr;
+
+    // act
+    g_sigevent.sigev_notify_function(timer_data);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NULL(g_work_function_data.timer);
+    ASSERT_ARE_NOT_EQUAL(int, armed_state, new_state);
+    ASSERT_ARE_NOT_EQUAL(int, calling_callback_state, new_state);
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_42_100: [ If the current thread is running the callback of the timer, threadpool_timer_dispose shall clear the timer callback recorded for the current thread and return. ]*/
+/* Tests_SRS_THREADPOOL_LINUX_01_006: [ If the timer state is ARMED, threadpool_timer_dispose shall set the state of the timer to NOT_USED. ]*/
+TEST_FUNCTION(on_timer_callback_whose_work_function_releases_another_timer_disposes_it_as_usual)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = NULL;
+    THANDLE(THREADPOOL_TIMER) timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool);
+    sigval_t timer_data = {0};
+    timer_data.sival_ptr = g_sigevent.sigev_value.sival_ptr;
+
+    THANDLE(THREADPOOL) other_threadpool = NULL;
+    THANDLE(THREADPOOL_TIMER) other_timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4244, &other_threadpool);
+    THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(&g_work_function_data.timer, &other_timer_instance);
+    REGISTER_GLOBAL_MOCK_HOOK(test_work_function, hook_test_work_function_release_timer);
+
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));  // state set to CALLING_CALLBACK
+    STRICT_EXPECTED_CALL(test_work_function((void*)0x4243));
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_timer_delete(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));  // other timer state set to NOT_USED
+    STRICT_EXPECTED_CALL(wake_by_address_all(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(InterlockedHL_SetAndWake(IGNORED_ARG, IGNORED_ARG));  // state set to ARMED
+
+    // act
+    g_sigevent.sigev_notify_function(timer_data);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NULL(g_work_function_data.timer);
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_instance, NULL);
+    THANDLE_ASSIGN(THREADPOOL)(&other_threadpool, NULL);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_LINUX_42_103: [ After work_function returns, on_timer_callback shall clear the timer callback recorded for the current thread. ]*/
+TEST_FUNCTION(threadpool_timer_dispose_after_the_timer_callback_returned_waits_for_the_state_as_usual)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = NULL;
+    THANDLE(THREADPOOL_TIMER) timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool);
+    sigval_t timer_data = {0};
+    timer_data.sival_ptr = g_sigevent.sigev_value.sival_ptr;
+    g_sigevent.sigev_notify_function(timer_data);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_timer_delete(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_compare_exchange(IGNORED_ARG, IGNORED_ARG, IGNORED_ARG));  // state set to NOT_USED
+    STRICT_EXPECTED_CALL(wake_by_address_all(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+
+    // act
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_instance, NULL);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
     THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
 }
 

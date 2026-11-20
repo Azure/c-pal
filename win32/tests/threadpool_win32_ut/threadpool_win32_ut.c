@@ -178,8 +178,37 @@ MOCK_FUNCTION_END()
 MOCK_FUNCTION_WITH_CODE(, void, mocked_WaitForThreadpoolWorkCallbacks, PTP_WORK, pwk, BOOL, fCancelPendingCallbacks)
 MOCK_FUNCTION_END()
 
+MOCK_FUNCTION_WITH_CODE(, void, mocked_DisassociateCurrentThreadFromCallback, PTP_CALLBACK_INSTANCE, pci)
+MOCK_FUNCTION_END()
+
 MOCK_FUNCTION_WITH_CODE(, void, test_work_function, void*, context)
 MOCK_FUNCTION_END()
+
+static PTP_CALLBACK_INSTANCE test_callback_instance = (PTP_CALLBACK_INSTANCE)0x4246;
+// THANDLE(T) is a const pointer, so it is kept in a struct to be writable
+static struct
+{
+    THANDLE(THREADPOOL_TIMER) timer;
+} g_work_function_data;
+
+static void hook_test_work_function_release_timer(void* context)
+{
+    (void)context;
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&g_work_function_data.timer, NULL);
+}
+
+static void hook_test_work_function_cancel_timer(void* context)
+{
+    (void)context;
+    threadpool_timer_cancel(g_work_function_data.timer);
+}
+
+static void hook_test_work_function_cancel_and_release_timer(void* context)
+{
+    (void)context;
+    threadpool_timer_cancel(g_work_function_data.timer);
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&g_work_function_data.timer, NULL);
+}
 
 static THANDLE(THREADPOOL) test_create_threadpool(PTP_CALLBACK_ENVIRON* cbe)
 {
@@ -234,6 +263,7 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_UMOCK_ALIAS_TYPE(EXECUTION_ENGINE_HANDLE, void*);
     REGISTER_UMOCK_ALIAS_TYPE(PTP_TIMER, void*);
     REGISTER_UMOCK_ALIAS_TYPE(PTP_TIMER_CALLBACK, void*);
+    REGISTER_UMOCK_ALIAS_TYPE(PTP_CALLBACK_INSTANCE, void*);
 }
 
 TEST_SUITE_CLEANUP(suite_cleanup)
@@ -247,6 +277,7 @@ TEST_FUNCTION_INITIALIZE(method_init)
 {
     umock_c_reset_all_calls();
     umock_c_negative_tests_init();
+    REGISTER_GLOBAL_MOCK_HOOK(test_work_function, NULL);
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
@@ -1067,6 +1098,172 @@ TEST_FUNCTION(on_timer_callback_calls_user_callback_multiple_times_as_timer_fire
     {
         test_timer_callback(NULL, test_timer_callback_context, ptp_timer);
     }
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_instance, NULL);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_WIN32_42_031: [ Before calling work_function, on_timer_callback shall record timer and instance as the timer callback running on the current thread. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_42_030: [ If the current thread is running the callback of the timer, threadpool_timer_dispose shall call DisassociateCurrentThreadFromCallback with the callback instance and clear the timer callback recorded for the current thread. ]*/
+TEST_FUNCTION(on_timer_callback_releasing_its_timer_disassociates_the_thread_before_waiting)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = NULL;
+    PTP_TIMER_CALLBACK test_timer_callback;
+    PVOID test_timer_callback_context;
+    PTP_TIMER ptp_timer;
+    THANDLE(THREADPOOL_TIMER) timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &ptp_timer, &test_timer_callback, &test_timer_callback_context);
+    THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(&g_work_function_data.timer, &timer_instance);
+    REGISTER_GLOBAL_MOCK_HOOK(test_work_function, hook_test_work_function_release_timer);
+
+    STRICT_EXPECTED_CALL(test_work_function((void*)0x4243));
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_DisassociateCurrentThreadFromCallback(test_callback_instance));
+    STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(ptp_timer, NULL, 0, 0));
+    STRICT_EXPECTED_CALL(mocked_WaitForThreadpoolTimerCallbacks(ptp_timer, TRUE));
+    STRICT_EXPECTED_CALL(mocked_CloseThreadpoolTimer(ptp_timer));
+    STRICT_EXPECTED_CALL(srw_lock_ll_deinit(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+
+    // act
+    test_timer_callback(test_callback_instance, test_timer_callback_context, ptp_timer);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NULL(g_work_function_data.timer);
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_WIN32_42_031: [ Before calling work_function, on_timer_callback shall record timer and instance as the timer callback running on the current thread. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_42_029: [ If the current thread is running the callback of timer, threadpool_timer_cancel shall call DisassociateCurrentThreadFromCallback with the callback instance and clear the timer callback recorded for the current thread. ]*/
+TEST_FUNCTION(on_timer_callback_cancelling_its_timer_disassociates_the_thread_before_taking_the_lock)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = NULL;
+    PTP_TIMER_CALLBACK test_timer_callback;
+    PVOID test_timer_callback_context;
+    PTP_TIMER ptp_timer;
+    THANDLE(THREADPOOL_TIMER) timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &ptp_timer, &test_timer_callback, &test_timer_callback_context);
+    THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(&g_work_function_data.timer, &timer_instance);
+    REGISTER_GLOBAL_MOCK_HOOK(test_work_function, hook_test_work_function_cancel_timer);
+
+    STRICT_EXPECTED_CALL(test_work_function((void*)0x4243));
+    STRICT_EXPECTED_CALL(mocked_DisassociateCurrentThreadFromCallback(test_callback_instance));
+    STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(ptp_timer, NULL, 0, 0));
+    STRICT_EXPECTED_CALL(mocked_WaitForThreadpoolTimerCallbacks(ptp_timer, TRUE));
+    STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
+
+    // act
+    test_timer_callback(test_callback_instance, test_timer_callback_context, ptp_timer);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&g_work_function_data.timer, NULL);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_WIN32_42_029: [ If the current thread is running the callback of timer, threadpool_timer_cancel shall call DisassociateCurrentThreadFromCallback with the callback instance and clear the timer callback recorded for the current thread. ]*/
+/* Tests_SRS_THREADPOOL_WIN32_42_030: [ If the current thread is running the callback of the timer, threadpool_timer_dispose shall call DisassociateCurrentThreadFromCallback with the callback instance and clear the timer callback recorded for the current thread. ]*/
+TEST_FUNCTION(on_timer_callback_cancelling_and_releasing_its_timer_disassociates_the_thread_once)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = NULL;
+    PTP_TIMER_CALLBACK test_timer_callback;
+    PVOID test_timer_callback_context;
+    PTP_TIMER ptp_timer;
+    THANDLE(THREADPOOL_TIMER) timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &ptp_timer, &test_timer_callback, &test_timer_callback_context);
+    THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(&g_work_function_data.timer, &timer_instance);
+    REGISTER_GLOBAL_MOCK_HOOK(test_work_function, hook_test_work_function_cancel_and_release_timer);
+
+    STRICT_EXPECTED_CALL(test_work_function((void*)0x4243));
+    STRICT_EXPECTED_CALL(mocked_DisassociateCurrentThreadFromCallback(test_callback_instance));
+    STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(ptp_timer, NULL, 0, 0));
+    STRICT_EXPECTED_CALL(mocked_WaitForThreadpoolTimerCallbacks(ptp_timer, TRUE));
+    STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(ptp_timer, NULL, 0, 0));
+    STRICT_EXPECTED_CALL(mocked_WaitForThreadpoolTimerCallbacks(ptp_timer, TRUE));
+    STRICT_EXPECTED_CALL(mocked_CloseThreadpoolTimer(ptp_timer));
+    STRICT_EXPECTED_CALL(srw_lock_ll_deinit(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+
+    // act
+    test_timer_callback(test_callback_instance, test_timer_callback_context, ptp_timer);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_WIN32_42_030: [ If the current thread is running the callback of the timer, threadpool_timer_dispose shall call DisassociateCurrentThreadFromCallback with the callback instance and clear the timer callback recorded for the current thread. ]*/
+TEST_FUNCTION(on_timer_callback_releasing_another_timer_does_not_disassociate_the_thread)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = NULL;
+    PTP_TIMER_CALLBACK test_timer_callback;
+    PVOID test_timer_callback_context;
+    PTP_TIMER ptp_timer;
+    THANDLE(THREADPOOL_TIMER) timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &ptp_timer, &test_timer_callback, &test_timer_callback_context);
+
+    THANDLE(THREADPOOL) other_threadpool = NULL;
+    PTP_TIMER_CALLBACK other_timer_callback;
+    PVOID other_timer_callback_context;
+    PTP_TIMER other_ptp_timer;
+    THANDLE(THREADPOOL_TIMER) other_timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4244, &other_threadpool, &other_ptp_timer, &other_timer_callback, &other_timer_callback_context);
+    THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(&g_work_function_data.timer, &other_timer_instance);
+    REGISTER_GLOBAL_MOCK_HOOK(test_work_function, hook_test_work_function_release_timer);
+
+    STRICT_EXPECTED_CALL(test_work_function((void*)0x4243));
+    STRICT_EXPECTED_CALL(interlocked_decrement(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(other_ptp_timer, NULL, 0, 0));
+    STRICT_EXPECTED_CALL(mocked_WaitForThreadpoolTimerCallbacks(other_ptp_timer, TRUE));
+    STRICT_EXPECTED_CALL(mocked_CloseThreadpoolTimer(other_ptp_timer));
+    STRICT_EXPECTED_CALL(srw_lock_ll_deinit(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG));
+
+    // act
+    test_timer_callback(test_callback_instance, test_timer_callback_context, ptp_timer);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_instance, NULL);
+    THANDLE_ASSIGN(THREADPOOL)(&other_threadpool, NULL);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+}
+
+/* Tests_SRS_THREADPOOL_WIN32_42_032: [ After work_function returns, on_timer_callback shall clear the timer callback recorded for the current thread without accessing context, which work_function can free by releasing the timer. ]*/
+TEST_FUNCTION(threadpool_timer_cancel_after_the_timer_callback_returned_does_not_disassociate_the_thread)
+{
+    // arrange
+    THANDLE(THREADPOOL) threadpool = NULL;
+    PTP_TIMER_CALLBACK test_timer_callback;
+    PVOID test_timer_callback_context;
+    PTP_TIMER ptp_timer;
+    THANDLE(THREADPOOL_TIMER) timer_instance = test_create_threadpool_and_start_timer(42, 2000, (void*)0x4243, &threadpool, &ptp_timer, &test_timer_callback, &test_timer_callback_context);
+    test_timer_callback(test_callback_instance, test_timer_callback_context, ptp_timer);
+    umock_c_reset_all_calls();
+
+    STRICT_EXPECTED_CALL(srw_lock_ll_acquire_exclusive(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(mocked_SetThreadpoolTimer(ptp_timer, NULL, 0, 0));
+    STRICT_EXPECTED_CALL(mocked_WaitForThreadpoolTimerCallbacks(ptp_timer, TRUE));
+    STRICT_EXPECTED_CALL(srw_lock_ll_release_exclusive(IGNORED_ARG));
+
+    // act
+    threadpool_timer_cancel(timer_instance);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());

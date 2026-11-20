@@ -176,6 +176,7 @@ static void wait_for_greater_or_equal(volatile_atomic int64_t* value, int64_t ex
             break;
         }
         (void)wait_on_address_64(value, current_value, (uint32_t)(timeout - (current_time - start_time)));
+        current_time = timer_global_get_elapsed_ms();
     } while (1);
 }
 
@@ -1547,6 +1548,225 @@ TEST_FUNCTION(starting_a_timer_from_a_timer_callback_works)
     THANDLE_ASSIGN(THREADPOOL_TIMER)(&first_timer, NULL);
     THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_starts_a_timer_context.second_timer, NULL);
     THANDLE_ASSIGN(THREADPOOL)(&timer_starts_a_timer_context.threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+#define TIMER_FROM_OWN_CALLBACK_TIMEOUT_MS 10000
+
+typedef struct TIMER_RELEASED_FROM_CALLBACK_CONTEXT_TAG
+{
+    THANDLE(THREADPOOL_TIMER) timer;
+    volatile_atomic int32_t timer_stored;
+    volatile_atomic int64_t* released_count;
+} TIMER_RELEASED_FROM_CALLBACK_CONTEXT;
+
+static void timer_work_function_that_releases_its_timer(void* context)
+{
+    TIMER_RELEASED_FROM_CALLBACK_CONTEXT* timer_context = context;
+    volatile_atomic int64_t* released_count = timer_context->released_count;
+
+    // the timer can fire before the test stored the handle returned by threadpool_timer_start
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&timer_context->timer_stored, 1, UINT32_MAX));
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_context->timer, NULL);
+
+    (void)interlocked_increment_64(released_count);
+    wake_by_address_all_64(released_count);
+}
+
+static void start_timer_when_one_is_available(THANDLE(THREADPOOL) threadpool, THREADPOOL_WORK_FUNCTION work_function, void* context, THANDLE(THREADPOOL_TIMER)* timer)
+{
+    // On Linux, a timer released from its own callback frees its timer table entry only when the callback returns
+    double start_time = timer_global_get_elapsed_ms();
+    bool started = false;
+    do
+    {
+        THANDLE(THREADPOOL_TIMER) new_timer = threadpool_timer_start(threadpool, 1, 0, work_function, context);
+        if (new_timer != NULL)
+        {
+            THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(timer, &new_timer);
+            started = true;
+        }
+        else
+        {
+            ASSERT_IS_TRUE(timer_global_get_elapsed_ms() - start_time < TIMER_FROM_OWN_CALLBACK_TIMEOUT_MS, "Timeout waiting for a timer to be available");
+            ThreadAPI_Sleep(1);
+        }
+    } while (!started);
+}
+
+#define TIMERS_RELEASED_FROM_CALLBACK_BATCH_COUNT 3
+#define TIMERS_RELEASED_FROM_CALLBACK_PER_BATCH 500
+
+TEST_FUNCTION(releasing_timers_from_their_own_callbacks_does_not_wait_for_the_callbacks)
+{
+    // arrange
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 4, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    volatile_atomic int64_t released_count;
+    (void)interlocked_exchange_64(&released_count, 0);
+
+    TIMER_RELEASED_FROM_CALLBACK_CONTEXT* timer_contexts = malloc(TIMERS_RELEASED_FROM_CALLBACK_PER_BATCH * sizeof(TIMER_RELEASED_FROM_CALLBACK_CONTEXT));
+    ASSERT_IS_NOT_NULL(timer_contexts);
+
+    // act
+    // more timers in total than the 1024 timers that Linux supports at a time, so the released timers have to be reused
+    for (uint32_t batch = 0; batch < TIMERS_RELEASED_FROM_CALLBACK_BATCH_COUNT; batch++)
+    {
+        for (uint32_t i = 0; i < TIMERS_RELEASED_FROM_CALLBACK_PER_BATCH; i++)
+        {
+            timer_contexts[i].released_count = &released_count;
+            (void)interlocked_exchange(&timer_contexts[i].timer_stored, 0);
+
+            start_timer_when_one_is_available(threadpool, timer_work_function_that_releases_its_timer, &timer_contexts[i], &timer_contexts[i].timer);
+            ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_SetAndWake(&timer_contexts[i].timer_stored, 1));
+        }
+
+        wait_for_greater_or_equal(&released_count, (int64_t)(batch + 1) * TIMERS_RELEASED_FROM_CALLBACK_PER_BATCH, TIMER_FROM_OWN_CALLBACK_TIMEOUT_MS);
+    }
+
+    // assert
+    ASSERT_ARE_EQUAL(int64_t, TIMERS_RELEASED_FROM_CALLBACK_BATCH_COUNT * TIMERS_RELEASED_FROM_CALLBACK_PER_BATCH, interlocked_add_64(&released_count, 0));
+    for (uint32_t i = 0; i < TIMERS_RELEASED_FROM_CALLBACK_PER_BATCH; i++)
+    {
+        ASSERT_IS_NULL(timer_contexts[i].timer);
+    }
+
+    // cleanup
+    free(timer_contexts);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+typedef struct TIMER_CANCELLED_FROM_CALLBACK_CONTEXT_TAG
+{
+    THANDLE(THREADPOOL_TIMER) timer;
+    volatile_atomic int32_t timer_stored;
+    volatile_atomic int64_t call_count;
+} TIMER_CANCELLED_FROM_CALLBACK_CONTEXT;
+
+static void timer_work_function_that_cancels_its_timer(void* context)
+{
+    TIMER_CANCELLED_FROM_CALLBACK_CONTEXT* timer_context = context;
+
+    // the timer can fire before the test stored the handle returned by threadpool_timer_start
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&timer_context->timer_stored, 1, UINT32_MAX));
+    threadpool_timer_cancel(timer_context->timer);
+
+    (void)interlocked_increment_64(&timer_context->call_count);
+    wake_by_address_all_64(&timer_context->call_count);
+}
+
+TEST_FUNCTION(cancelling_a_timer_from_its_own_callback_does_not_wait_for_the_callback)
+{
+    // arrange
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 1, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    TIMER_CANCELLED_FROM_CALLBACK_CONTEXT timer_context;
+    (void)interlocked_exchange(&timer_context.timer_stored, 0);
+    (void)interlocked_exchange_64(&timer_context.call_count, 0);
+
+    THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(threadpool, 1, 0, timer_work_function_that_cancels_its_timer, &timer_context);
+    ASSERT_IS_NOT_NULL(timer);
+    THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(&timer_context.timer, &timer);
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_SetAndWake(&timer_context.timer_stored, 1));
+
+    // act
+    wait_for_greater_or_equal(&timer_context.call_count, 1, TIMER_FROM_OWN_CALLBACK_TIMEOUT_MS);
+
+    // assert
+    // the timer cancelled from its own callback can be restarted
+    ASSERT_ARE_EQUAL(int, 0, threadpool_timer_restart(timer_context.timer, 1, 0));
+    wait_for_greater_or_equal(&timer_context.call_count, 2, TIMER_FROM_OWN_CALLBACK_TIMEOUT_MS);
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_context.timer, NULL);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
+    execution_engine_dec_ref(execution_engine);
+}
+
+#define TIMER_CANCEL_RACE_CALLBACK_DELAY_MS 500
+
+typedef struct TIMER_CANCELLED_CONCURRENTLY_CONTEXT_TAG
+{
+    THANDLE(THREADPOOL_TIMER) timer;
+    volatile_atomic int32_t timer_stored;
+    volatile_atomic int32_t callback_started;
+    volatile_atomic int64_t cancel_count;
+} TIMER_CANCELLED_CONCURRENTLY_CONTEXT;
+
+static void timer_work_function_that_waits_then_cancels_its_timer(void* context)
+{
+    TIMER_CANCELLED_CONCURRENTLY_CONTEXT* timer_context = context;
+
+    // the timer can fire before the test stored the handle returned by threadpool_timer_start
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&timer_context->timer_stored, 1, UINT32_MAX));
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_SetAndWake(&timer_context->callback_started, 1));
+
+    // give the other thread time to start cancelling the timer and wait for this callback
+    ThreadAPI_Sleep(TIMER_CANCEL_RACE_CALLBACK_DELAY_MS);
+    threadpool_timer_cancel(timer_context->timer);
+
+    (void)interlocked_increment_64(&timer_context->cancel_count);
+    wake_by_address_all_64(&timer_context->cancel_count);
+}
+
+static int cancel_timer_once_its_callback_started(void* context)
+{
+    TIMER_CANCELLED_CONCURRENTLY_CONTEXT* timer_context = context;
+
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&timer_context->callback_started, 1, UINT32_MAX));
+    threadpool_timer_cancel(timer_context->timer);
+
+    (void)interlocked_increment_64(&timer_context->cancel_count);
+    wake_by_address_all_64(&timer_context->cancel_count);
+    return 0;
+}
+
+TEST_FUNCTION(cancelling_a_timer_from_its_own_callback_while_another_thread_cancels_it_does_not_deadlock)
+{
+    // arrange
+    EXECUTION_ENGINE_PARAMETERS execution_engine_parameters = { 1, 0 };
+    EXECUTION_ENGINE_HANDLE execution_engine = execution_engine_create(&execution_engine_parameters);
+    ASSERT_IS_NOT_NULL(execution_engine);
+
+    THANDLE(THREADPOOL) threadpool = threadpool_create(execution_engine);
+    ASSERT_IS_NOT_NULL(threadpool);
+
+    TIMER_CANCELLED_CONCURRENTLY_CONTEXT timer_context;
+    (void)interlocked_exchange(&timer_context.timer_stored, 0);
+    (void)interlocked_exchange(&timer_context.callback_started, 0);
+    (void)interlocked_exchange_64(&timer_context.cancel_count, 0);
+
+    THANDLE(THREADPOOL_TIMER) timer = threadpool_timer_start(threadpool, 1, 0, timer_work_function_that_waits_then_cancels_its_timer, &timer_context);
+    ASSERT_IS_NOT_NULL(timer);
+    THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(&timer_context.timer, &timer);
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_SetAndWake(&timer_context.timer_stored, 1));
+
+    THREAD_HANDLE cancel_thread;
+    ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Create(&cancel_thread, cancel_timer_once_its_callback_started, &timer_context));
+
+    // act
+    // the callback cancels its timer while the other thread is cancelling it
+    wait_for_greater_or_equal(&timer_context.cancel_count, 2, TIMER_FROM_OWN_CALLBACK_TIMEOUT_MS);
+
+    // assert
+    int thread_result;
+    ASSERT_ARE_EQUAL(THREADAPI_RESULT, THREADAPI_OK, ThreadAPI_Join(cancel_thread, &thread_result));
+    ASSERT_ARE_EQUAL(int, 0, thread_result);
+
+    // cleanup
+    THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer_context.timer, NULL);
+    THANDLE_ASSIGN(THREADPOOL)(&threadpool, NULL);
     execution_engine_dec_ref(execution_engine);
 }
 
