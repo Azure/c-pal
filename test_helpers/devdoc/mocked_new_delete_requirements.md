@@ -4,11 +4,13 @@
 
 `mocked_new_delete` provides an opt-in, test-only replacement for ordinary C++ `operator new`, `operator new[]`, and their unsized and sized delete counterparts. Link `c_pal_mocked_new_delete` explicitly; linking `c_pal` alone does not replace any operators. Over-aligned allocation is outside this helper's scope.
 
-Allocations use `gballoc_hl_malloc` before mocking is enabled and after it is disabled. While enabled, allocations use the test-provided `mocked_malloc`. Deallocations always use `gballoc_hl_free`, so a test's `mocked_malloc` hook must return memory compatible with that allocator. `mocked_free` is retained for compatibility with the existing test helpers, but is not called.
+Allocations use `gballoc_hl_malloc` before mocking is enabled and after it is disabled. While enabled, allocations use the test-provided `mocked_malloc`. Deallocations always use `gballoc_hl_free`, so the hook must allocate through `gballoc_hl_malloc`, not `real_gballoc_hl_malloc`. The separately initialized real allocator can own a different heap, notably with `GBALLOC_LL_TYPE=WIN32HEAP`. `mocked_free` is retained for compatibility with the existing test helpers, but is not called.
 
 Initialize umock-c and register the `mocked_malloc` hook before calling `use_mocks_for_new_delete`. Check its return value. Call `use_default_malloc_for_new_delete` before deinitializing umock-c or the allocator. Mode changes require that no other thread is allocating or using the helper's lock.
 
 Mocked allocations are serialized because umock-c is not thread-safe. While mocking is enabled, tests can use `lock_mocked_malloc` and `unlock_mocked_malloc` to protect expectation updates from background allocations. Do not allocate with C++ `new` while holding this non-recursive lock.
+
+The `mocked_malloc` hook executes under the same lock. Neither the hook nor a callback it invokes may use C++ `new`, throw an exception, or exit nonlocally (including through an assertion), because these actions can deadlock or bypass lock release.
 
 ## Exposed API
 
