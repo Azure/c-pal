@@ -6,6 +6,7 @@
 
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
+#include "umock_c/umock_c_negative_tests.h"
 #include "umock_c/umocktypes_bool.h"
 #include "umock_c/umocktypes_charptr.h"
 
@@ -15,17 +16,18 @@
 
 #include "c_pal/gballoc_hl.h"
 
-#include "umock_c/umock_c_ENABLE_MOCKS.h"
 #include "c_pal/srw_lock.h"
 #include "c_pal/mocked_new_delete.h"
-#include "umock_c/umock_c_DISABLE_MOCKS.h"
 
 #include "real_gballoc_hl.h"
 #include "real_srw_lock.h"
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
+#define TEST_ALLOCATION_SIZE ((size_t)32)
+
 static SRW_LOCK_HANDLE g_test_lock;
+static bool g_allocate_on_lock_destroy;
 
 static void internal_on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {
@@ -52,9 +54,17 @@ static void internal_expect_allocation(size_t size)
 
 static void internal_destroy_lock_with_allocation(SRW_LOCK_HANDLE lock)
 {
-    void* allocation = ::operator new(32);
-    ASSERT_IS_NOT_NULL(allocation);
-    ::operator delete(allocation);
+    if (g_allocate_on_lock_destroy)
+    {
+        void* allocation = ::operator new(TEST_ALLOCATION_SIZE);
+        ASSERT_IS_NOT_NULL(allocation);
+        ::operator delete(allocation);
+    }
+    else
+    {
+        /* do nothing */
+    }
+
     real_srw_lock_destroy(lock);
 }
 
@@ -65,11 +75,13 @@ TEST_SUITE_INITIALIZE(suite_init)
     ASSERT_ARE_EQUAL(int, 0, gballoc_hl_init(nullptr, nullptr));
     ASSERT_ARE_EQUAL(int, 0, real_gballoc_hl_init(nullptr, nullptr));
     ASSERT_ARE_EQUAL(int, 0, umock_c_init(internal_on_umock_c_error));
+    ASSERT_ARE_EQUAL(int, 0, umock_c_negative_tests_init());
     ASSERT_ARE_EQUAL(int, 0, umocktypes_bool_register_types());
     ASSERT_ARE_EQUAL(int, 0, umocktypes_charptr_register_types());
 
     REGISTER_UMOCK_ALIAS_TYPE(SRW_LOCK_HANDLE, void*);
     REGISTER_SRW_LOCK_GLOBAL_MOCK_HOOK();
+    REGISTER_GLOBAL_MOCK_HOOK(srw_lock_destroy, internal_destroy_lock_with_allocation);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(srw_lock_create, nullptr);
     REGISTER_GLOBAL_MOCK_HOOK(mocked_malloc, gballoc_hl_malloc);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_malloc, nullptr);
@@ -78,6 +90,7 @@ TEST_SUITE_INITIALIZE(suite_init)
 TEST_SUITE_CLEANUP(suite_cleanup)
 {
     use_default_malloc_for_new_delete();
+    umock_c_negative_tests_deinit();
     umock_c_deinit();
     real_gballoc_hl_deinit();
     gballoc_hl_deinit();
@@ -86,6 +99,7 @@ TEST_SUITE_CLEANUP(suite_cleanup)
 TEST_FUNCTION_INITIALIZE(test_init)
 {
     g_test_lock = nullptr;
+    g_allocate_on_lock_destroy = false;
     umock_c_reset_all_calls();
 }
 
@@ -95,8 +109,11 @@ TEST_FUNCTION_CLEANUP(test_cleanup)
     umock_c_reset_all_calls();
 }
 
-/*Tests_SRS_MOCKED_NEW_DELETE_16_001: [ If mocking is not enabled, use_mocks_for_new_delete shall create an exclusive lock by calling srw_lock_create with false and an empty lock name. ]*/
-/*Tests_SRS_MOCKED_NEW_DELETE_16_003: [ use_mocks_for_new_delete shall enable mocking and return 0 on success. ]*/
+/*Tests_SRS_MOCKED_NEW_DELETE_16_022: [ Otherwise, use_mocks_for_new_delete shall: ]*/
+/*Tests_SRS_MOCKED_NEW_DELETE_16_001: [ Create an exclusive lock by calling srw_lock_create with false and an empty lock name. ]*/
+/*Tests_SRS_MOCKED_NEW_DELETE_16_029: [ Otherwise, use_mocks_for_new_delete shall: ]*/
+/*Tests_SRS_MOCKED_NEW_DELETE_16_028: [ Enable mocking. ]*/
+/*Tests_SRS_MOCKED_NEW_DELETE_16_003: [ Return 0 on success. ]*/
 TEST_FUNCTION(when_enabling_mocking_then_the_lock_is_created)
 {
     // arrange
@@ -109,8 +126,8 @@ TEST_FUNCTION(when_enabling_mocking_then_the_lock_is_created)
     // assert
     ASSERT_ARE_EQUAL(int, 0, result);
     ASSERT_IS_NOT_NULL(g_test_lock);
-    internal_expect_allocation(32);
-    void* allocation = ::operator new(32);
+    internal_expect_allocation(TEST_ALLOCATION_SIZE);
+    void* allocation = ::operator new(TEST_ALLOCATION_SIZE);
     ASSERT_IS_NOT_NULL(allocation);
     ::operator delete(allocation);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -120,18 +137,31 @@ TEST_FUNCTION(when_enabling_mocking_then_the_lock_is_created)
 TEST_FUNCTION(when_lock_creation_fails_then_mocking_stays_disabled)
 {
     // arrange
-    STRICT_EXPECTED_CALL(srw_lock_create(false, ""))
-        .SetReturn(nullptr);
+    STRICT_EXPECTED_CALL(srw_lock_create(false, ""));
+    umock_c_negative_tests_snapshot();
 
-    // act
-    int result = use_mocks_for_new_delete();
+    for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
+    {
+        if (umock_c_negative_tests_can_call_fail(i))
+        {
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(i);
 
-    // assert
-    ASSERT_ARE_NOT_EQUAL(int, 0, result);
-    void* allocation = ::operator new(32);
-    ASSERT_IS_NOT_NULL(allocation);
-    ::operator delete(allocation);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+            // act
+            int result = use_mocks_for_new_delete();
+
+            // assert
+            ASSERT_ARE_NOT_EQUAL(int, 0, result);
+            void* allocation = ::operator new(TEST_ALLOCATION_SIZE);
+            ASSERT_IS_NOT_NULL(allocation);
+            ::operator delete(allocation);
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+        }
+        else
+        {
+            /* do nothing */
+        }
+    }
 }
 
 /*Tests_SRS_MOCKED_NEW_DELETE_16_004: [ If mocking is already enabled, use_mocks_for_new_delete shall leave the existing lock unchanged and return 0. ]*/
@@ -152,20 +182,21 @@ TEST_FUNCTION(when_enabling_mocking_twice_then_the_lock_is_reused)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_MOCKED_NEW_DELETE_16_005: [ If mocking is enabled, use_default_malloc_for_new_delete shall disable mocking before destroying the exclusive lock by calling srw_lock_destroy. ]*/
+/*Tests_SRS_MOCKED_NEW_DELETE_16_005: [ Otherwise, use_default_malloc_for_new_delete shall: ]*/
+/*Tests_SRS_MOCKED_NEW_DELETE_16_023: [ Disable mocking. ]*/
+/*Tests_SRS_MOCKED_NEW_DELETE_16_024: [ Destroy the exclusive lock by calling srw_lock_destroy. ]*/
 TEST_FUNCTION(when_disabling_mocking_then_the_lock_is_destroyed_and_allocations_bypass_mocks)
 {
     // arrange
     internal_enable_mocking();
     STRICT_EXPECTED_CALL(srw_lock_destroy(g_test_lock));
-    REGISTER_GLOBAL_MOCK_HOOK(srw_lock_destroy, internal_destroy_lock_with_allocation);
+    g_allocate_on_lock_destroy = true;
 
     // act
     use_default_malloc_for_new_delete();
 
     // assert
-    REGISTER_SRW_LOCK_GLOBAL_MOCK_HOOK();
-    void* allocation = ::operator new(32);
+    void* allocation = ::operator new(TEST_ALLOCATION_SIZE);
     ASSERT_IS_NOT_NULL(allocation);
     ::operator delete(allocation);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -183,7 +214,7 @@ TEST_FUNCTION(when_mocking_is_disabled_then_disabling_it_again_does_nothing)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_MOCKED_NEW_DELETE_16_007: [ If mocking is enabled, lock_mocked_malloc shall acquire the exclusive lock by calling srw_lock_acquire_exclusive. ]*/
+/*Tests_SRS_MOCKED_NEW_DELETE_16_007: [ Otherwise, lock_mocked_malloc shall acquire the exclusive lock by calling srw_lock_acquire_exclusive. ]*/
 TEST_FUNCTION(when_locking_mocked_malloc_then_the_lock_is_acquired)
 {
     // arrange
@@ -211,7 +242,7 @@ TEST_FUNCTION(when_mocking_is_disabled_then_locking_does_nothing)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_MOCKED_NEW_DELETE_16_009: [ If mocking is enabled, unlock_mocked_malloc shall release the exclusive lock by calling srw_lock_release_exclusive. ]*/
+/*Tests_SRS_MOCKED_NEW_DELETE_16_009: [ Otherwise, unlock_mocked_malloc shall release the exclusive lock by calling srw_lock_release_exclusive. ]*/
 TEST_FUNCTION(when_unlocking_mocked_malloc_then_the_lock_is_released)
 {
     // arrange
@@ -241,13 +272,13 @@ TEST_FUNCTION(when_mocking_is_disabled_then_unlocking_does_nothing)
 }
 
 /*Tests_SRS_MOCKED_NEW_DELETE_16_012: [ If mocking is disabled, operator new shall allocate memory by calling gballoc_hl_malloc. ]*/
-/*Tests_SRS_MOCKED_NEW_DELETE_16_015: [ operator new shall return the allocated memory on success. ]*/
+/*Tests_SRS_MOCKED_NEW_DELETE_16_015: [ Otherwise, operator new shall return the allocated memory on success. ]*/
 TEST_FUNCTION(when_mocking_is_disabled_then_operator_new_allocates_without_mocks)
 {
     // arrange
 
     // act
-    void* result = ::operator new(32);
+    void* result = ::operator new(TEST_ALLOCATION_SIZE);
 
     // assert
     ASSERT_IS_NOT_NULL(result);
@@ -256,21 +287,24 @@ TEST_FUNCTION(when_mocking_is_disabled_then_operator_new_allocates_without_mocks
     ::operator delete(result);
 }
 
-/*Tests_SRS_MOCKED_NEW_DELETE_16_013: [ If mocking is enabled, operator new shall acquire the exclusive lock, call mocked_malloc with the requested size, and release the exclusive lock. ]*/
-/*Tests_SRS_MOCKED_NEW_DELETE_16_015: [ operator new shall return the allocated memory on success. ]*/
+/*Tests_SRS_MOCKED_NEW_DELETE_16_013: [ Otherwise, operator new shall: ]*/
+/*Tests_SRS_MOCKED_NEW_DELETE_16_025: [ Acquire the exclusive lock by calling srw_lock_acquire_exclusive. ]*/
+/*Tests_SRS_MOCKED_NEW_DELETE_16_026: [ Allocate memory by calling mocked_malloc with the requested size. ]*/
+/*Tests_SRS_MOCKED_NEW_DELETE_16_027: [ Release the exclusive lock by calling srw_lock_release_exclusive. ]*/
+/*Tests_SRS_MOCKED_NEW_DELETE_16_015: [ Otherwise, operator new shall return the allocated memory on success. ]*/
 TEST_FUNCTION(when_mocking_is_enabled_then_operator_new_uses_mocked_malloc)
 {
     // arrange
     internal_enable_mocking();
-    void* allocation = gballoc_hl_malloc(32);
+    void* allocation = gballoc_hl_malloc(TEST_ALLOCATION_SIZE);
     ASSERT_IS_NOT_NULL(allocation);
     STRICT_EXPECTED_CALL(srw_lock_acquire_exclusive(g_test_lock));
-    STRICT_EXPECTED_CALL(mocked_malloc(32))
+    STRICT_EXPECTED_CALL(mocked_malloc(TEST_ALLOCATION_SIZE))
         .SetReturn(allocation);
     STRICT_EXPECTED_CALL(srw_lock_release_exclusive(g_test_lock));
 
     // act
-    void* result = ::operator new(32);
+    void* result = ::operator new(TEST_ALLOCATION_SIZE);
 
     // assert
     ASSERT_ARE_EQUAL(void_ptr, allocation, result);
@@ -285,25 +319,38 @@ TEST_FUNCTION(when_mocked_malloc_fails_then_operator_new_throws_bad_alloc)
     // arrange
     internal_enable_mocking();
     STRICT_EXPECTED_CALL(srw_lock_acquire_exclusive(g_test_lock));
-    STRICT_EXPECTED_CALL(mocked_malloc(32))
-        .SetReturn(nullptr);
+    STRICT_EXPECTED_CALL(mocked_malloc(TEST_ALLOCATION_SIZE));
     STRICT_EXPECTED_CALL(srw_lock_release_exclusive(g_test_lock));
-    bool caught_bad_alloc = false;
+    umock_c_negative_tests_snapshot();
 
-    // act
-    try
+    for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
     {
-        void* result = ::operator new(32);
-        ::operator delete(result);
-    }
-    catch (const std::bad_alloc&)
-    {
-        caught_bad_alloc = true;
-    }
+        if (umock_c_negative_tests_can_call_fail(i))
+        {
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(i);
+            bool caught_bad_alloc = false;
 
-    // assert
-    ASSERT_ARE_EQUAL(bool, true, caught_bad_alloc);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+            // act
+            try
+            {
+                void* result = ::operator new(TEST_ALLOCATION_SIZE);
+                ::operator delete(result);
+            }
+            catch (const std::bad_alloc&)
+            {
+                caught_bad_alloc = true;
+            }
+
+            // assert
+            ASSERT_ARE_EQUAL(bool, true, caught_bad_alloc);
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+        }
+        else
+        {
+            /* do nothing */
+        }
+    }
 }
 
 /*Tests_SRS_MOCKED_NEW_DELETE_16_011: [ If size is 0, operator new shall request 1 byte instead. ]*/
@@ -327,7 +374,7 @@ TEST_FUNCTION(when_operator_new_requests_zero_bytes_then_one_byte_is_allocated)
 PARAMETERIZED_TEST_FUNCTION(when_operator_new_array_is_called_then_the_request_is_forwarded,
     ARGS(size_t, size),
     CASE((0), zero_bytes),
-    CASE((32), nonzero_bytes))
+    CASE((TEST_ALLOCATION_SIZE), nonzero_bytes))
 {
     // arrange
     internal_enable_mocking();
@@ -349,25 +396,38 @@ TEST_FUNCTION(when_mocked_malloc_fails_then_operator_new_array_throws_bad_alloc)
     // arrange
     internal_enable_mocking();
     STRICT_EXPECTED_CALL(srw_lock_acquire_exclusive(g_test_lock));
-    STRICT_EXPECTED_CALL(mocked_malloc(32))
-        .SetReturn(nullptr);
+    STRICT_EXPECTED_CALL(mocked_malloc(TEST_ALLOCATION_SIZE));
     STRICT_EXPECTED_CALL(srw_lock_release_exclusive(g_test_lock));
-    bool caught_bad_alloc = false;
+    umock_c_negative_tests_snapshot();
 
-    // act
-    try
+    for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
     {
-        void* result = ::operator new[](32);
-        ::operator delete[](result);
-    }
-    catch (const std::bad_alloc&)
-    {
-        caught_bad_alloc = true;
-    }
+        if (umock_c_negative_tests_can_call_fail(i))
+        {
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(i);
+            bool caught_bad_alloc = false;
 
-    // assert
-    ASSERT_ARE_EQUAL(bool, true, caught_bad_alloc);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+            // act
+            try
+            {
+                void* result = ::operator new[](TEST_ALLOCATION_SIZE);
+                ::operator delete[](result);
+            }
+            catch (const std::bad_alloc&)
+            {
+                caught_bad_alloc = true;
+            }
+
+            // assert
+            ASSERT_ARE_EQUAL(bool, true, caught_bad_alloc);
+            ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+        }
+        else
+        {
+            /* do nothing */
+        }
+    }
 }
 
 /*Tests_SRS_MOCKED_NEW_DELETE_16_017: [ If ptr is NULL, operator delete(void* ptr) shall do nothing. ]*/
@@ -382,7 +442,7 @@ TEST_FUNCTION(when_operator_delete_receives_null_then_it_does_nothing)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_MOCKED_NEW_DELETE_16_018: [ If ptr is not NULL, operator delete(void* ptr) shall release ptr by calling gballoc_hl_free, regardless of whether mocking is enabled. ]*/
+/*Tests_SRS_MOCKED_NEW_DELETE_16_018: [ Otherwise, operator delete(void* ptr) shall release ptr by calling gballoc_hl_free, regardless of whether mocking is enabled. ]*/
 PARAMETERIZED_TEST_FUNCTION(when_operator_delete_is_called_then_it_bypasses_mocks,
     ARGS(bool, disable_before_delete),
     CASE((false), while_mocking),
@@ -390,8 +450,8 @@ PARAMETERIZED_TEST_FUNCTION(when_operator_delete_is_called_then_it_bypasses_mock
 {
     // arrange
     internal_enable_mocking();
-    internal_expect_allocation(32);
-    void* allocation = ::operator new(32);
+    internal_expect_allocation(TEST_ALLOCATION_SIZE);
+    void* allocation = ::operator new(TEST_ALLOCATION_SIZE);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     umock_c_reset_all_calls();
     if (disable_before_delete)
@@ -417,7 +477,7 @@ PARAMETERIZED_TEST_FUNCTION(when_operator_delete_is_called_then_it_bypasses_mock
 TEST_FUNCTION(when_operator_delete_array_is_called_then_it_bypasses_mocks)
 {
     // arrange
-    void* allocation = ::operator new[](32);
+    void* allocation = ::operator new[](TEST_ALLOCATION_SIZE);
     internal_enable_mocking();
 
     // act
@@ -431,11 +491,11 @@ TEST_FUNCTION(when_operator_delete_array_is_called_then_it_bypasses_mocks)
 TEST_FUNCTION(when_sized_operator_delete_is_called_then_it_bypasses_mocks)
 {
     // arrange
-    void* allocation = ::operator new(32);
+    void* allocation = ::operator new(TEST_ALLOCATION_SIZE);
     internal_enable_mocking();
 
     // act
-    ::operator delete(allocation, (size_t)32);
+    ::operator delete(allocation, TEST_ALLOCATION_SIZE);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -445,11 +505,11 @@ TEST_FUNCTION(when_sized_operator_delete_is_called_then_it_bypasses_mocks)
 TEST_FUNCTION(when_sized_operator_delete_array_is_called_then_it_bypasses_mocks)
 {
     // arrange
-    void* allocation = ::operator new[](32);
+    void* allocation = ::operator new[](TEST_ALLOCATION_SIZE);
     internal_enable_mocking();
 
     // act
-    ::operator delete[](allocation, (size_t)32);
+    ::operator delete[](allocation, TEST_ALLOCATION_SIZE);
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());

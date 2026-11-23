@@ -27,9 +27,10 @@ int use_mocks_for_new_delete(void)
     }
     else
     {
-        /*Codes_SRS_MOCKED_NEW_DELETE_16_001: [ If mocking is not enabled, use_mocks_for_new_delete shall create an exclusive lock by calling srw_lock_create with false and an empty lock name. ]*/
-        g_lock = srw_lock_create(false, "");
-        if (g_lock == nullptr)
+        /*Codes_SRS_MOCKED_NEW_DELETE_16_022: [ Otherwise, use_mocks_for_new_delete shall: ]*/
+        /*Codes_SRS_MOCKED_NEW_DELETE_16_001: [ Create an exclusive lock by calling srw_lock_create with false and an empty lock name. ]*/
+        SRW_LOCK_HANDLE lock = srw_lock_create(false, "");
+        if (lock == nullptr)
         {
             /*Codes_SRS_MOCKED_NEW_DELETE_16_002: [ If srw_lock_create fails, use_mocks_for_new_delete shall leave mocking disabled and return a non-zero value. ]*/
             LogError("srw_lock_create failed");
@@ -37,7 +38,10 @@ int use_mocks_for_new_delete(void)
         }
         else
         {
-            /*Codes_SRS_MOCKED_NEW_DELETE_16_003: [ use_mocks_for_new_delete shall enable mocking and return 0 on success. ]*/
+            /*Codes_SRS_MOCKED_NEW_DELETE_16_029: [ Otherwise, use_mocks_for_new_delete shall: ]*/
+            /*Codes_SRS_MOCKED_NEW_DELETE_16_028: [ Enable mocking. ]*/
+            g_lock = lock;
+            /*Codes_SRS_MOCKED_NEW_DELETE_16_003: [ Return 0 on success. ]*/
             result = 0;
         }
     }
@@ -53,9 +57,11 @@ void use_default_malloc_for_new_delete(void)
     }
     else
     {
-        /*Codes_SRS_MOCKED_NEW_DELETE_16_005: [ If mocking is enabled, use_default_malloc_for_new_delete shall disable mocking before destroying the exclusive lock by calling srw_lock_destroy. ]*/
+        /*Codes_SRS_MOCKED_NEW_DELETE_16_005: [ Otherwise, use_default_malloc_for_new_delete shall: ]*/
         SRW_LOCK_HANDLE lock = g_lock;
+        /*Codes_SRS_MOCKED_NEW_DELETE_16_023: [ Disable mocking. ]*/
         g_lock = nullptr;
+        /*Codes_SRS_MOCKED_NEW_DELETE_16_024: [ Destroy the exclusive lock by calling srw_lock_destroy. ]*/
         srw_lock_destroy(lock);
     }
 }
@@ -68,7 +74,7 @@ void lock_mocked_malloc(void)
     }
     else
     {
-        /*Codes_SRS_MOCKED_NEW_DELETE_16_007: [ If mocking is enabled, lock_mocked_malloc shall acquire the exclusive lock by calling srw_lock_acquire_exclusive. ]*/
+        /*Codes_SRS_MOCKED_NEW_DELETE_16_007: [ Otherwise, lock_mocked_malloc shall acquire the exclusive lock by calling srw_lock_acquire_exclusive. ]*/
         srw_lock_acquire_exclusive(g_lock);
     }
 }
@@ -81,7 +87,7 @@ void unlock_mocked_malloc(void)
     }
     else
     {
-        /*Codes_SRS_MOCKED_NEW_DELETE_16_009: [ If mocking is enabled, unlock_mocked_malloc shall release the exclusive lock by calling srw_lock_release_exclusive. ]*/
+        /*Codes_SRS_MOCKED_NEW_DELETE_16_009: [ Otherwise, unlock_mocked_malloc shall release the exclusive lock by calling srw_lock_release_exclusive. ]*/
         srw_lock_release_exclusive(g_lock);
     }
 }
@@ -106,9 +112,12 @@ void* operator new(size_t size)
     }
     else
     {
-        /*Codes_SRS_MOCKED_NEW_DELETE_16_013: [ If mocking is enabled, operator new shall acquire the exclusive lock, call mocked_malloc with the requested size, and release the exclusive lock. ]*/
+        /*Codes_SRS_MOCKED_NEW_DELETE_16_013: [ Otherwise, operator new shall: ]*/
+        /*Codes_SRS_MOCKED_NEW_DELETE_16_025: [ Acquire the exclusive lock by calling srw_lock_acquire_exclusive. ]*/
         srw_lock_acquire_exclusive(g_lock);
+        /*Codes_SRS_MOCKED_NEW_DELETE_16_026: [ Allocate memory by calling mocked_malloc with the requested size. ]*/
         result = mocked_malloc(size);
+        /*Codes_SRS_MOCKED_NEW_DELETE_16_027: [ Release the exclusive lock by calling srw_lock_release_exclusive. ]*/
         srw_lock_release_exclusive(g_lock);
     }
 
@@ -122,7 +131,7 @@ void* operator new(size_t size)
         /* do nothing */
     }
 
-    /*Codes_SRS_MOCKED_NEW_DELETE_16_015: [ operator new shall return the allocated memory on success. ]*/
+    /*Codes_SRS_MOCKED_NEW_DELETE_16_015: [ Otherwise, operator new shall return the allocated memory on success. ]*/
     return result;
 }
 
@@ -140,7 +149,7 @@ void operator delete(void* ptr) noexcept
     }
     else
     {
-        /*Codes_SRS_MOCKED_NEW_DELETE_16_018: [ If ptr is not NULL, operator delete(void* ptr) shall release ptr by calling gballoc_hl_free, regardless of whether mocking is enabled. ]*/
+        /*Codes_SRS_MOCKED_NEW_DELETE_16_018: [ Otherwise, operator delete(void* ptr) shall release ptr by calling gballoc_hl_free, regardless of whether mocking is enabled. ]*/
         gballoc_hl_free(ptr);
     }
 }
