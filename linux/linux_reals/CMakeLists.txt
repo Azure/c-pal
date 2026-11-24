@@ -14,9 +14,11 @@ set(linux_reals_c_files
     real_string_utils_linux.c
     real_srw_lock.c
     real_srw_lock_ll_linux.c
+    real_thread_count_policy_linux.c
     real_threadpool.c
     real_timer.c
     real_uuid.c
+    real_worker_pool_linux.c
     ../../common/reals/real_call_once.c
     ../../common/reals/real_doublylinkedlist.c
     ../../common/reals/real_s_list.c
@@ -46,10 +48,14 @@ set(linux_reals_h_files
     real_platform_linux_renames.h
     real_srw_lock.h
     real_srw_lock_renames.h
+    real_thread_count_policy_linux.h
+    real_thread_count_policy_linux_renames.h
     real_threadpool.h
     real_threadpool_renames.h
     real_uuid_renames.h
     real_uuid.h
+    real_worker_pool_linux.h
+    real_worker_pool_linux_renames.h
     ../../common/reals/real_refcount.h
     ../../common/reals/real_s_list.h
     ../../common/reals/real_s_list_renames.h
