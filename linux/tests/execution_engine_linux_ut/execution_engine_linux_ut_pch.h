@@ -24,22 +24,25 @@
 #include "umock_c/umocktypes.h"
 #include "umock_c/umocktypes_bool.h"
 #include "umock_c/umocktypes_stdint.h"
+#include "umock_c/umock_c_negative_tests.h"
+
+// the execution engine does not call min_heap, which timer_queue_linux.h includes
+#include "c_pal/min_heap.h" // IWYU pragma: keep
 
 #include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
 #include "c_pal/doublylinkedlist.h"
 #include "c_pal/gballoc_hl.h"
 #include "c_pal/gballoc_hl_redirect.h" // IWYU pragma: keep
 #include "c_pal/interlocked.h"
-#include "c_pal/min_heap.h"
 #include "c_pal/thread_count_policy_linux.h"
 #include "c_pal/timer.h"
+#include "c_pal/timer_queue_linux.h"
 #include "c_pal/worker_pool_linux.h"
 #include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
 
 #include "real_doublylinkedlist.h"
 #include "real_gballoc_hl.h"
 #include "real_interlocked.h"
-#include "real_min_heap.h"
 
 #include "c_pal/execution_engine.h"
 #include "c_pal/execution_engine_linux.h"

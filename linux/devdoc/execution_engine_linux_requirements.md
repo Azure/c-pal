@@ -25,16 +25,16 @@ The execution engine is built from these modules:
 | Module                      | Role                                                     |
 |-----------------------------|----------------------------------------------------------|
 | `doublylinkedlist`          | The ready queue of work objects.                         |
-| `min_heap`                  | The armed timers, ordered by due time.                   |
+| `timer_queue_linux`         | The armed timers, ordered by due time.                   |
 | `worker_pool_linux`         | The worker threads, idle worker threads and waking them. |
 | `thread_count_policy_linux` | When to add a worker thread and when to retire one.      |
 | `timer`                     | The current time (`CLOCK_MONOTONIC`, in milliseconds).   |
 
-One mutex guards the state of the execution engine and of its worker pool.
+One mutex guards the state of the execution engine and of its worker pool. The `internal_` functions are called with the mutex held, unless their description says otherwise.
 
 ### Work objects
 
-A work object is created once (this can fail) and then submitted any number of times. Submitting never allocates and cannot fail: it increments the pending count of the work object and, when the count goes from 0 to 1, inserts the work object at the tail of the ready queue. A worker thread that takes a work object from the ready queue decrements its pending count and, if invocations are still pending, inserts it back at the tail before running the work function, so several invocations of the same work object can run concurrently, as with Win32.
+A work object is created once (this can fail) and then submitted any number of times. Submitting never allocates and cannot fail: it increments the 64-bit pending count of the work object, which cannot overflow, and, when the count goes from 0 to 1, inserts the work object at the tail of the ready queue. A worker thread that takes a work object from the ready queue decrements its pending count and, if invocations are still pending, inserts it back at the tail before running the work function, so several invocations of the same work object can run concurrently, as with Win32.
 
 Each work object counts its pending and running invocations. Waiting for a work object waits until both are 0, optionally dropping the invocations that have not started. Closing a work object frees it immediately if it has no pending and no running invocations, otherwise after the last one completes, so a work function can close its own work object.
 
@@ -42,7 +42,7 @@ A work function can disassociate its thread from its work object, like Win32 `Di
 
 ### Timers
 
-A timer contains a work object, which the manager thread submits when the timer is due. The armed timers are in a `min_heap` ordered by due time. Creating a timer reserves room for it in the heap (this can fail), so arming, re-arming and cancelling a timer cannot fail. A timer never fires before its start delay: its due time is computed from the current time rounded up to the next millisecond. A start delay of 0 makes the timer due immediately.
+A timer contains a work object, which the manager thread submits when the timer is due. The armed timers are in a `timer_queue_linux`. Creating a timer reserves room for it in the timer queue (this can fail), so arming, re-arming and cancelling a timer cannot fail. A timer never fires before its start delay: its due time is computed from the current time rounded up to the next millisecond. A start delay of 0 makes the timer due immediately.
 
 ### Threads
 
@@ -107,75 +107,85 @@ MOCKABLE_FUNCTION(, EXECUTION_ENGINE_HANDLE, execution_engine_create, const EXEC
 
 **SRS_EXECUTION_ENGINE_LINUX_07_001: [** `execution_engine_create` shall allocate a new execution engine and on success shall return a non-`NULL` handle. **]**
 
+**SRS_EXECUTION_ENGINE_LINUX_42_178: [** `execution_engine_create` shall mark the execution engine as not stopping, with its teardown not deferred and the manager thread not watching the ready queue. **]**
+
+**SRS_EXECUTION_ENGINE_LINUX_42_179: [** `execution_engine_create` shall set the count of work objects in the ready queue to 0. **]**
+
 **SRS_EXECUTION_ENGINE_LINUX_42_001: [** `execution_engine_create` shall create the thread count policy by calling `thread_count_policy_create` with the minimum and the maximum number of threads. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_002: [** `execution_engine_create` shall create the timer heap by calling `min_heap_create`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_002: [** `execution_engine_create` shall create the timer queue by calling `timer_queue_create`. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_003: [** `execution_engine_create` shall initialize the ready queue by calling `DList_InitializeListHead`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_004: [** `execution_engine_create` shall initialize the mutex and the condition variables. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_004: [** `execution_engine_create` shall initialize the mutex and the condition variables by calling `internal_execution_engine_linux_init_synchronization`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_005: [** `execution_engine_create` shall start the threads. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_005: [** `execution_engine_create` shall start the threads by calling `internal_execution_engine_linux_start_threads`. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_07_006: [** If any error occurs, `execution_engine_create` shall fail and return `NULL`. **]**
 
-### init_synchronization
+### internal_execution_engine_linux_init_synchronization
 
 ```c
-static int init_synchronization(EXECUTION_ENGINE* execution_engine);
+static int internal_execution_engine_linux_init_synchronization(EXECUTION_ENGINE* execution_engine);
 ```
 
-`init_synchronization` initializes the mutex guarding the execution engine state, the condition variable that wakes the manager thread and the condition variable signaled when work objects have no more pending and running invocations. The manager thread waits with a deadline on `CLOCK_MONOTONIC`, the clock of `timer_global_get_elapsed_ms`.
+`internal_execution_engine_linux_init_synchronization` initializes the mutex and the condition variables of the execution engine.
 
-**SRS_EXECUTION_ENGINE_LINUX_42_006: [** `init_synchronization` shall initialize the mutex by calling `pthread_mutex_init`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_006: [** `internal_execution_engine_linux_init_synchronization` shall initialize the mutex by calling `pthread_mutex_init`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_007: [** `init_synchronization` shall initialize the condition variable that wakes the manager thread. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_007: [** `internal_execution_engine_linux_init_synchronization` shall initialize the condition variable that wakes the manager thread by calling `internal_execution_engine_linux_init_manager_cond`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_011: [** `init_synchronization` shall initialize the condition variable signaled when work objects have no more pending and running invocations by calling `pthread_cond_init`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_011: [** `internal_execution_engine_linux_init_synchronization` shall initialize the condition variable signaled when work objects have no more pending and running invocations by calling `pthread_cond_init`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_012: [** If any error occurs, `init_synchronization` shall destroy what it initialized and fail. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_012: [** If any error occurs, `internal_execution_engine_linux_init_synchronization` shall destroy what it initialized and fail. **]**
 
-### init_manager_cond
+### internal_execution_engine_linux_init_manager_cond
 
 ```c
-static int init_manager_cond(EXECUTION_ENGINE* execution_engine);
+static int internal_execution_engine_linux_init_manager_cond(EXECUTION_ENGINE* execution_engine);
 ```
 
-**SRS_EXECUTION_ENGINE_LINUX_42_008: [** `init_manager_cond` shall initialize a condition variable attribute by calling `pthread_condattr_init`. **]**
+`internal_execution_engine_linux_init_manager_cond` initializes the condition variable that wakes the manager thread on `CLOCK_MONOTONIC`, the clock of `timer_global_get_elapsed_ms`.
 
-**SRS_EXECUTION_ENGINE_LINUX_42_009: [** `init_manager_cond` shall set the clock of the attribute to `CLOCK_MONOTONIC` by calling `pthread_condattr_setclock`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_008: [** `internal_execution_engine_linux_init_manager_cond` shall initialize a condition variable attribute by calling `pthread_condattr_init`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_010: [** `init_manager_cond` shall initialize the condition variable that wakes the manager thread with the attribute by calling `pthread_cond_init`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_009: [** `internal_execution_engine_linux_init_manager_cond` shall set the clock of the attribute to `CLOCK_MONOTONIC` by calling `pthread_condattr_setclock`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_175: [** `init_manager_cond` shall destroy the attribute by calling `pthread_condattr_destroy`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_010: [** `internal_execution_engine_linux_init_manager_cond` shall initialize the condition variable that wakes the manager thread with the attribute by calling `pthread_cond_init`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_176: [** If any error occurs, `init_manager_cond` shall fail. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_175: [** `internal_execution_engine_linux_init_manager_cond` shall destroy the attribute by calling `pthread_condattr_destroy`. **]**
 
-### start_threads
+**SRS_EXECUTION_ENGINE_LINUX_42_176: [** If any error occurs, `internal_execution_engine_linux_init_manager_cond` shall fail. **]**
+
+### internal_execution_engine_linux_start_threads
 
 ```c
-static int start_threads(EXECUTION_ENGINE* execution_engine);
+static int internal_execution_engine_linux_start_threads(EXECUTION_ENGINE* execution_engine);
 ```
 
-**SRS_EXECUTION_ENGINE_LINUX_42_013: [** `start_threads` shall create the worker pool by calling `worker_pool_create` with the mutex, `run_next_work` and the execution engine. **]**
+`internal_execution_engine_linux_start_threads` starts the `min_thread_count` worker threads and the manager thread.
 
-**SRS_EXECUTION_ENGINE_LINUX_42_014: [** `start_threads` shall acquire the mutex by calling `pthread_mutex_lock`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_013: [** `internal_execution_engine_linux_start_threads` shall create the worker pool by calling `worker_pool_create` with the mutex, `internal_execution_engine_linux_run_next_work` and the execution engine. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_015: [** `start_threads` shall add `min_thread_count` worker threads by calling `worker_pool_add_worker`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_014: [** `internal_execution_engine_linux_start_threads` shall acquire the mutex by calling `pthread_mutex_lock`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_016: [** `start_threads` shall release the mutex by calling `pthread_mutex_unlock`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_015: [** `internal_execution_engine_linux_start_threads` shall add `min_thread_count` worker threads by calling `worker_pool_add_worker`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_017: [** `start_threads` shall start the manager thread by calling `pthread_create` with `manager_thread_func` and the execution engine. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_016: [** `internal_execution_engine_linux_start_threads` shall release the mutex by calling `pthread_mutex_unlock`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_018: [** If any error occurs after the worker pool was created, `start_threads` shall stop the worker threads by calling `worker_pool_destroy`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_017: [** `internal_execution_engine_linux_start_threads` shall start the manager thread by calling `pthread_create` with `internal_execution_engine_linux_manager_thread_func` and the execution engine. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_019: [** If any error occurs, `start_threads` shall fail. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_018: [** If any error occurs after the worker pool was created, `internal_execution_engine_linux_start_threads` shall stop the worker threads by calling `worker_pool_destroy`. **]**
+
+**SRS_EXECUTION_ENGINE_LINUX_42_019: [** If any error occurs, `internal_execution_engine_linux_start_threads` shall fail. **]**
 
 ### execution_engine_dec_ref
 
 ```c
 MOCKABLE_FUNCTION(, void, execution_engine_dec_ref, EXECUTION_ENGINE_HANDLE, execution_engine);
 ```
+
+`execution_engine_dec_ref` releases a reference to the execution engine and tears it down when the last reference is released.
 
 **SRS_EXECUTION_ENGINE_LINUX_07_007: [** If `execution_engine` is `NULL`, `execution_engine_dec_ref` shall return. **]**
 
@@ -197,35 +207,39 @@ MOCKABLE_FUNCTION(, void, execution_engine_dec_ref, EXECUTION_ENGINE_HANDLE, exe
 
   - **SRS_EXECUTION_ENGINE_LINUX_42_027: [** `execution_engine_dec_ref` shall wait for the manager thread to exit by calling `pthread_join`. **]**
 
-  - **SRS_EXECUTION_ENGINE_LINUX_42_028: [** `execution_engine_dec_ref` shall tear down the execution engine. **]**
+  - **SRS_EXECUTION_ENGINE_LINUX_42_185: [** If `pthread_join` fails, `execution_engine_dec_ref` shall return without tearing down the execution engine, which the manager thread can still use. **]**
 
-### teardown
+  - **SRS_EXECUTION_ENGINE_LINUX_42_028: [** `execution_engine_dec_ref` shall tear down the execution engine by calling `internal_execution_engine_linux_teardown`. **]**
+
+### internal_execution_engine_linux_teardown
 
 ```c
-static void teardown(EXECUTION_ENGINE* execution_engine);
+static void internal_execution_engine_linux_teardown(EXECUTION_ENGINE* execution_engine);
 ```
 
-`teardown` runs after the manager thread stopped, without holding the mutex.
+`internal_execution_engine_linux_teardown` stops the worker threads and frees the execution engine, after the manager thread stopped.
 
-**SRS_EXECUTION_ENGINE_LINUX_42_029: [** `teardown` shall stop the worker threads and wait for them to exit by calling `worker_pool_destroy`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_029: [** `internal_execution_engine_linux_teardown` shall stop the worker threads and wait for them to exit by calling `worker_pool_destroy`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_030: [** `teardown` shall destroy the condition variable signaled when work objects have no more pending and running invocations by calling `pthread_cond_destroy`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_030: [** `internal_execution_engine_linux_teardown` shall destroy the condition variable signaled when work objects have no more pending and running invocations by calling `pthread_cond_destroy`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_031: [** `teardown` shall destroy the condition variable that wakes the manager thread by calling `pthread_cond_destroy`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_031: [** `internal_execution_engine_linux_teardown` shall destroy the condition variable that wakes the manager thread by calling `pthread_cond_destroy`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_032: [** `teardown` shall destroy the mutex by calling `pthread_mutex_destroy`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_032: [** `internal_execution_engine_linux_teardown` shall destroy the mutex by calling `pthread_mutex_destroy`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_033: [** `teardown` shall destroy the timer heap by calling `min_heap_destroy`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_033: [** `internal_execution_engine_linux_teardown` shall destroy the timer queue by calling `timer_queue_destroy`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_034: [** `teardown` shall destroy the thread count policy by calling `thread_count_policy_destroy`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_034: [** `internal_execution_engine_linux_teardown` shall destroy the thread count policy by calling `thread_count_policy_destroy`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_035: [** `teardown` shall free the execution engine. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_035: [** `internal_execution_engine_linux_teardown` shall free the execution engine. **]**
 
 ### execution_engine_inc_ref
 
 ```c
 MOCKABLE_FUNCTION(, void, execution_engine_inc_ref, EXECUTION_ENGINE_HANDLE, execution_engine);
 ```
+
+`execution_engine_inc_ref` adds a reference to the execution engine.
 
 **SRS_EXECUTION_ENGINE_LINUX_07_010: [** If `execution_engine` is `NULL` then `execution_engine_inc_ref` shall return. **]**
 
@@ -236,6 +250,8 @@ MOCKABLE_FUNCTION(, void, execution_engine_inc_ref, EXECUTION_ENGINE_HANDLE, exe
 ```c
 MOCKABLE_FUNCTION(, const EXECUTION_ENGINE_PARAMETERS*, execution_engine_linux_get_parameters, EXECUTION_ENGINE_HANDLE, execution_engine);
 ```
+
+`execution_engine_linux_get_parameters` returns the parameters the execution engine was created with.
 
 **SRS_EXECUTION_ENGINE_LINUX_07_012: [** If `execution_engine` is `NULL`, `execution_engine_linux_get_parameters` shall fail and return `NULL`. **]**
 
@@ -255,31 +271,35 @@ MOCKABLE_FUNCTION(, EXECUTION_ENGINE_LINUX_WORK_HANDLE, execution_engine_linux_c
 
 **SRS_EXECUTION_ENGINE_LINUX_42_038: [** `execution_engine_linux_create_work` shall allocate a work object. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_039: [** `execution_engine_linux_create_work` shall initialize the work object with `free_work` as its free function. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_039: [** `execution_engine_linux_create_work` shall initialize the work object with `internal_execution_engine_linux_free_work` as its free function by calling `internal_execution_engine_linux_init_work`. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_040: [** `execution_engine_linux_create_work` shall succeed and return the work object. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_041: [** If any error occurs, `execution_engine_linux_create_work` shall fail and return `NULL`. **]**
 
-### init_work
+### internal_execution_engine_linux_init_work
 
 ```c
-static void init_work(EXECUTION_ENGINE_LINUX_WORK* work, EXECUTION_ENGINE* execution_engine, EXECUTION_ENGINE_LINUX_WORK_FUNCTION work_function, void* work_function_context, FREE_WORK_FUNCTION free_function);
+static void internal_execution_engine_linux_init_work(EXECUTION_ENGINE_LINUX_WORK* work, EXECUTION_ENGINE* execution_engine, EXECUTION_ENGINE_LINUX_WORK_FUNCTION work_function, void* work_function_context, FREE_WORK_FUNCTION free_function);
 ```
 
-**SRS_EXECUTION_ENGINE_LINUX_42_042: [** `init_work` shall store `execution_engine`, `work_function`, `work_function_context` and `free_function` in `work`. **]**
+`internal_execution_engine_linux_init_work` initializes a work object with no invocations.
 
-**SRS_EXECUTION_ENGINE_LINUX_42_043: [** `init_work` shall set the pending count, the running count and the waiter count of `work` to 0. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_042: [** `internal_execution_engine_linux_init_work` shall store `execution_engine`, `work_function`, `work_function_context` and `free_function` in `work`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_044: [** `init_work` shall mark `work` as not closed. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_043: [** `internal_execution_engine_linux_init_work` shall set the pending count, the running count and the waiter count of `work` to 0. **]**
 
-### free_work
+**SRS_EXECUTION_ENGINE_LINUX_42_044: [** `internal_execution_engine_linux_init_work` shall mark `work` as not closed. **]**
+
+### internal_execution_engine_linux_free_work
 
 ```c
-static void free_work(EXECUTION_ENGINE_LINUX_WORK* work);
+static void internal_execution_engine_linux_free_work(EXECUTION_ENGINE_LINUX_WORK* work);
 ```
 
-**SRS_EXECUTION_ENGINE_LINUX_42_045: [** `free_work` shall free `work`. **]**
+`internal_execution_engine_linux_free_work` is the free function of the work objects created by `execution_engine_linux_create_work`.
+
+**SRS_EXECUTION_ENGINE_LINUX_42_045: [** `internal_execution_engine_linux_free_work` shall free `work`. **]**
 
 ### execution_engine_linux_submit_work
 
@@ -287,121 +307,129 @@ static void free_work(EXECUTION_ENGINE_LINUX_WORK* work);
 MOCKABLE_FUNCTION(, void, execution_engine_linux_submit_work, EXECUTION_ENGINE_LINUX_WORK_HANDLE, work);
 ```
 
-`execution_engine_linux_submit_work` queues one invocation of `work`. It cannot fail.
+`execution_engine_linux_submit_work` queues one invocation of `work`, which cannot fail.
 
 **SRS_EXECUTION_ENGINE_LINUX_42_046: [** If `work` is `NULL`, `execution_engine_linux_submit_work` shall return. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_047: [** `execution_engine_linux_submit_work` shall acquire the mutex by calling `pthread_mutex_lock`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_048: [** `execution_engine_linux_submit_work` shall submit `work`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_048: [** `execution_engine_linux_submit_work` shall submit `work` by calling `internal_execution_engine_linux_submit_work_locked`. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_049: [** `execution_engine_linux_submit_work` shall release the mutex by calling `pthread_mutex_unlock`. **]**
 
-### submit_work_locked
+### internal_execution_engine_linux_submit_work_locked
 
 ```c
-static void submit_work_locked(EXECUTION_ENGINE* execution_engine, EXECUTION_ENGINE_LINUX_WORK* work);
+static void internal_execution_engine_linux_submit_work_locked(EXECUTION_ENGINE* execution_engine, EXECUTION_ENGINE_LINUX_WORK* work);
 ```
 
-`submit_work_locked` is called with the mutex held. The pending count is 64-bit, so it cannot overflow.
+`internal_execution_engine_linux_submit_work_locked` queues one invocation of `work`.
 
-**SRS_EXECUTION_ENGINE_LINUX_42_051: [** `submit_work_locked` shall increment the pending count of `work`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_051: [** `internal_execution_engine_linux_submit_work_locked` shall increment the pending count of `work`. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_052: [** If the pending count of `work` became 1: **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_053: [** `submit_work_locked` shall insert `work` in the ready queue. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_053: [** `internal_execution_engine_linux_submit_work_locked` shall insert `work` in the ready queue by calling `internal_execution_engine_linux_enqueue`. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_054: [** `submit_work_locked` shall dispatch the ready queue. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_054: [** `internal_execution_engine_linux_submit_work_locked` shall dispatch the ready queue by calling `internal_execution_engine_linux_dispatch`. **]**
 
-### enqueue
-
-```c
-static void enqueue(EXECUTION_ENGINE* execution_engine, EXECUTION_ENGINE_LINUX_WORK* work);
-```
-
-`enqueue` is called with the mutex held.
-
-**SRS_EXECUTION_ENGINE_LINUX_42_055: [** If the ready queue is empty, `enqueue` shall record progress by calling `thread_count_policy_on_progress` with the current time obtained by calling `timer_global_get_elapsed_ms`. **]**
-
-**SRS_EXECUTION_ENGINE_LINUX_42_056: [** `enqueue` shall insert `work` at the tail of the ready queue by calling `DList_InsertTailList`. **]**
-
-### dispatch
+### internal_execution_engine_linux_enqueue
 
 ```c
-static void dispatch(EXECUTION_ENGINE* execution_engine);
+static void internal_execution_engine_linux_enqueue(EXECUTION_ENGINE* execution_engine, EXECUTION_ENGINE_LINUX_WORK* work);
 ```
 
-`dispatch` makes sure a thread takes care of the work in the ready queue. It is called with the mutex held and the ready queue not empty.
+`internal_execution_engine_linux_enqueue` inserts `work` at the tail of the ready queue.
 
-**SRS_EXECUTION_ENGINE_LINUX_42_057: [** `dispatch` shall wake an idle worker thread by calling `worker_pool_wake_idle_worker`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_055: [** If the ready queue is empty, `internal_execution_engine_linux_enqueue` shall record progress by calling `thread_count_policy_on_progress` with the current time obtained by calling `timer_global_get_elapsed_ms`. **]**
+
+**SRS_EXECUTION_ENGINE_LINUX_42_056: [** `internal_execution_engine_linux_enqueue` shall insert `work` at the tail of the ready queue by calling `DList_InsertTailList`. **]**
+
+**SRS_EXECUTION_ENGINE_LINUX_42_180: [** `internal_execution_engine_linux_enqueue` shall increment the count of work objects in the ready queue. **]**
+
+### internal_execution_engine_linux_dispatch
+
+```c
+static void internal_execution_engine_linux_dispatch(EXECUTION_ENGINE* execution_engine);
+```
+
+`internal_execution_engine_linux_dispatch` makes sure a thread takes care of the work in the ready queue, which is not empty.
+
+**SRS_EXECUTION_ENGINE_LINUX_42_057: [** `internal_execution_engine_linux_dispatch` shall wake an idle worker thread by calling `worker_pool_wake_idle_worker`. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_058: [** If `worker_pool_wake_idle_worker` returns `WORKER_POOL_WAKE_RESULT_NO_IDLE_WORKER` and the manager thread is not watching the ready queue: **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_059: [** `dispatch` shall get the counts of the worker pool by calling `worker_pool_get_counts`. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_059: [** `internal_execution_engine_linux_dispatch` shall get the counts of the worker pool by calling `worker_pool_get_counts`. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_060: [** If `thread_count_policy_can_add_thread` returns `true` for the thread count, `dispatch` shall wake the manager thread by calling `pthread_cond_signal`. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_060: [** If `thread_count_policy_can_add_thread` returns `true` for the thread count, `internal_execution_engine_linux_dispatch` shall wake the manager thread by calling `pthread_cond_signal`. **]**
 
-### run_next_work
+### internal_execution_engine_linux_run_next_work
 
 ```c
-static bool run_next_work(void* context);
+static bool internal_execution_engine_linux_run_next_work(void* context);
 ```
 
-`run_next_work` is the `WORKER_POOL_RUN_FUNCTION` of the worker pool, called on a worker thread with the mutex held. `context` is the execution engine.
+`internal_execution_engine_linux_run_next_work` is the `WORKER_POOL_RUN_FUNCTION` of the worker pool, running the next work object of the ready queue, with the execution engine as `context`.
 
-**SRS_EXECUTION_ENGINE_LINUX_42_061: [** If the ready queue is empty, `run_next_work` shall return `false`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_061: [** If the ready queue is empty, `internal_execution_engine_linux_run_next_work` shall return `false`. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_062: [** If the ready queue is not empty: **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_063: [** `run_next_work` shall remove the work object at the head of the ready queue by calling `DList_RemoveHeadList`. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_063: [** `internal_execution_engine_linux_run_next_work` shall remove the work object at the head of the ready queue by calling `DList_RemoveHeadList`. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_064: [** `run_next_work` shall decrement the pending count of the work object. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_181: [** `internal_execution_engine_linux_run_next_work` shall decrement the count of work objects in the ready queue. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_065: [** If the pending count of the work object is not 0, `run_next_work` shall insert the work object at the tail of the ready queue by calling `DList_InsertTailList`. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_064: [** `internal_execution_engine_linux_run_next_work` shall decrement the pending count of the work object. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_066: [** If the ready queue is not empty, `run_next_work` shall dispatch the ready queue. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_065: [** If the pending count of the work object is not 0: **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_067: [** `run_next_work` shall increment the running count of the work object. **]**
+  - **SRS_EXECUTION_ENGINE_LINUX_42_182: [** `internal_execution_engine_linux_run_next_work` shall insert the work object at the tail of the ready queue by calling `DList_InsertTailList`. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_068: [** `run_next_work` shall record progress by calling `thread_count_policy_on_progress` with the current time obtained by calling `timer_global_get_elapsed_ms`. **]**
+  - **SRS_EXECUTION_ENGINE_LINUX_42_183: [** `internal_execution_engine_linux_run_next_work` shall increment the count of work objects in the ready queue. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_069: [** `run_next_work` shall record the execution engine as the execution engine running a work function on the current thread. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_066: [** If the ready queue is not empty, `internal_execution_engine_linux_run_next_work` shall dispatch the ready queue by calling `internal_execution_engine_linux_dispatch`. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_070: [** `run_next_work` shall record the work object as the work object running on the current thread. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_067: [** `internal_execution_engine_linux_run_next_work` shall increment the running count of the work object. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_071: [** `run_next_work` shall release the mutex by calling `pthread_mutex_unlock`. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_068: [** `internal_execution_engine_linux_run_next_work` shall record progress by calling `thread_count_policy_on_progress` with the current time obtained by calling `timer_global_get_elapsed_ms`. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_072: [** `run_next_work` shall call the work function of the work object with its work function context. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_069: [** `internal_execution_engine_linux_run_next_work` shall record the execution engine as the execution engine running a work function on the current thread. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_073: [** `run_next_work` shall acquire the mutex by calling `pthread_mutex_lock`. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_070: [** `internal_execution_engine_linux_run_next_work` shall record the work object as the work object running on the current thread. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_074: [** `run_next_work` shall clear the execution engine running a work function on the current thread. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_071: [** `internal_execution_engine_linux_run_next_work` shall release the mutex by calling `pthread_mutex_unlock`. **]**
+
+- **SRS_EXECUTION_ENGINE_LINUX_42_072: [** `internal_execution_engine_linux_run_next_work` shall call the work function of the work object with its work function context. **]**
+
+- **SRS_EXECUTION_ENGINE_LINUX_42_073: [** `internal_execution_engine_linux_run_next_work` shall acquire the mutex by calling `pthread_mutex_lock`. **]**
+
+- **SRS_EXECUTION_ENGINE_LINUX_42_074: [** `internal_execution_engine_linux_run_next_work` shall clear the execution engine running a work function on the current thread. **]**
 
 - **SRS_EXECUTION_ENGINE_LINUX_42_075: [** If the work object is still the work object running on the current thread: **]**
 
-  - **SRS_EXECUTION_ENGINE_LINUX_42_076: [** `run_next_work` shall clear the work object running on the current thread. **]**
+  - **SRS_EXECUTION_ENGINE_LINUX_42_076: [** `internal_execution_engine_linux_run_next_work` shall clear the work object running on the current thread. **]**
 
-  - **SRS_EXECUTION_ENGINE_LINUX_42_077: [** `run_next_work` shall end the invocation of the work object. **]**
+  - **SRS_EXECUTION_ENGINE_LINUX_42_077: [** `internal_execution_engine_linux_run_next_work` shall end the invocation of the work object by calling `internal_execution_engine_linux_end_invocation`. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_078: [** If the current thread was disassociated from the work object, `run_next_work` shall not access the work object, which can be freed by then. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_078: [** If the current thread was disassociated from the work object, `internal_execution_engine_linux_run_next_work` shall not access the work object, which can be freed by then. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_079: [** `run_next_work` shall return `true`. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_079: [** `internal_execution_engine_linux_run_next_work` shall return `true`. **]**
 
-### end_invocation
+### internal_execution_engine_linux_end_invocation
 
 ```c
-static void end_invocation(EXECUTION_ENGINE* execution_engine, EXECUTION_ENGINE_LINUX_WORK* work);
+static void internal_execution_engine_linux_end_invocation(EXECUTION_ENGINE* execution_engine, EXECUTION_ENGINE_LINUX_WORK* work);
 ```
 
-`end_invocation` is called with the mutex held.
+`internal_execution_engine_linux_end_invocation` ends a running invocation of `work`.
 
-**SRS_EXECUTION_ENGINE_LINUX_42_080: [** `end_invocation` shall decrement the running count of `work`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_080: [** `internal_execution_engine_linux_end_invocation` shall decrement the running count of `work`. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_081: [** If `work` has no pending and no running invocations: **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_082: [** If `work` is closed, `end_invocation` shall call the free function of `work`. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_082: [** If `work` is closed, `internal_execution_engine_linux_end_invocation` shall call the free function of `work`. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_083: [** If `work` is not closed and the waiter count of `work` is not 0, `end_invocation` shall wake the waiting threads by calling `pthread_cond_broadcast`. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_083: [** If `work` is not closed and the waiter count of `work` is not 0, `internal_execution_engine_linux_end_invocation` shall wake the waiting threads by calling `pthread_cond_broadcast`. **]**
 
 ### execution_engine_linux_wait_for_work
 
@@ -409,35 +437,39 @@ static void end_invocation(EXECUTION_ENGINE* execution_engine, EXECUTION_ENGINE_
 MOCKABLE_FUNCTION(, void, execution_engine_linux_wait_for_work, EXECUTION_ENGINE_LINUX_WORK_HANDLE, work, bool, cancel_pending);
 ```
 
-`execution_engine_linux_wait_for_work` waits until `work` has no pending and no running invocations. If `cancel_pending` is `true`, it first drops the invocations that have not started.
+`execution_engine_linux_wait_for_work` waits until `work` has no pending and no running invocations, first dropping the invocations that have not started if `cancel_pending` is `true`.
 
 **SRS_EXECUTION_ENGINE_LINUX_42_084: [** If `work` is `NULL`, `execution_engine_linux_wait_for_work` shall return. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_085: [** `execution_engine_linux_wait_for_work` shall wait for the invocations of `work`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_085: [** `execution_engine_linux_wait_for_work` shall wait for the invocations of `work` by calling `internal_execution_engine_linux_wait_for_invocations`. **]**
 
-### wait_for_invocations
+### internal_execution_engine_linux_wait_for_invocations
 
 ```c
-static void wait_for_invocations(EXECUTION_ENGINE_LINUX_WORK* work, bool cancel_pending);
+static void internal_execution_engine_linux_wait_for_invocations(EXECUTION_ENGINE_LINUX_WORK* work, bool cancel_pending);
 ```
 
-**SRS_EXECUTION_ENGINE_LINUX_42_086: [** `wait_for_invocations` shall acquire the mutex by calling `pthread_mutex_lock`. **]**
+`internal_execution_engine_linux_wait_for_invocations` waits until `work` has no pending and no running invocations, without the mutex held by the caller.
+
+**SRS_EXECUTION_ENGINE_LINUX_42_086: [** `internal_execution_engine_linux_wait_for_invocations` shall acquire the mutex by calling `pthread_mutex_lock`. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_087: [** If `cancel_pending` is `true` and the pending count of `work` is not 0: **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_088: [** `wait_for_invocations` shall remove `work` from the ready queue by calling `DList_RemoveEntryList`. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_088: [** `internal_execution_engine_linux_wait_for_invocations` shall remove `work` from the ready queue by calling `DList_RemoveEntryList`. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_089: [** `wait_for_invocations` shall set the pending count of `work` to 0. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_184: [** `internal_execution_engine_linux_wait_for_invocations` shall decrement the count of work objects in the ready queue. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_177: [** If `work` has no running invocations and the waiter count of `work` is not 0, `wait_for_invocations` shall wake the threads waiting for `work` by calling `pthread_cond_broadcast`. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_089: [** `internal_execution_engine_linux_wait_for_invocations` shall set the pending count of `work` to 0. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_090: [** `wait_for_invocations` shall increment the waiter count of `work`. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_177: [** If `work` has no running invocations and the waiter count of `work` is not 0, `internal_execution_engine_linux_wait_for_invocations` shall wake the threads waiting for `work` by calling `pthread_cond_broadcast`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_091: [** `wait_for_invocations` shall wait by calling `pthread_cond_wait` until `work` has no pending and no running invocations. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_090: [** `internal_execution_engine_linux_wait_for_invocations` shall increment the waiter count of `work`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_092: [** `wait_for_invocations` shall decrement the waiter count of `work`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_091: [** `internal_execution_engine_linux_wait_for_invocations` shall wait by calling `pthread_cond_wait` until `work` has no pending and no running invocations. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_093: [** `wait_for_invocations` shall release the mutex by calling `pthread_mutex_unlock`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_092: [** `internal_execution_engine_linux_wait_for_invocations` shall decrement the waiter count of `work`. **]**
+
+**SRS_EXECUTION_ENGINE_LINUX_42_093: [** `internal_execution_engine_linux_wait_for_invocations` shall release the mutex by calling `pthread_mutex_unlock`. **]**
 
 ### execution_engine_linux_close_work
 
@@ -445,27 +477,27 @@ static void wait_for_invocations(EXECUTION_ENGINE_LINUX_WORK* work, bool cancel_
 MOCKABLE_FUNCTION(, void, execution_engine_linux_close_work, EXECUTION_ENGINE_LINUX_WORK_HANDLE, work);
 ```
 
-`execution_engine_linux_close_work` frees `work` once it has no pending and no running invocations. It does not wait.
+`execution_engine_linux_close_work` frees `work` once it has no pending and no running invocations, without waiting.
 
 **SRS_EXECUTION_ENGINE_LINUX_42_094: [** If `work` is `NULL`, `execution_engine_linux_close_work` shall return. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_095: [** `execution_engine_linux_close_work` shall acquire the mutex by calling `pthread_mutex_lock`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_096: [** `execution_engine_linux_close_work` shall close `work`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_096: [** `execution_engine_linux_close_work` shall close `work` by calling `internal_execution_engine_linux_close_work_locked`. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_097: [** `execution_engine_linux_close_work` shall release the mutex by calling `pthread_mutex_unlock`. **]**
 
-### close_work_locked
+### internal_execution_engine_linux_close_work_locked
 
 ```c
-static void close_work_locked(EXECUTION_ENGINE_LINUX_WORK* work);
+static void internal_execution_engine_linux_close_work_locked(EXECUTION_ENGINE_LINUX_WORK* work);
 ```
 
-`close_work_locked` is called with the mutex held.
+`internal_execution_engine_linux_close_work_locked` frees `work`, or marks it closed so that its last invocation frees it.
 
-**SRS_EXECUTION_ENGINE_LINUX_42_098: [** If `work` has no pending and no running invocations, `close_work_locked` shall call the free function of `work`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_098: [** If `work` has no pending and no running invocations, `internal_execution_engine_linux_close_work_locked` shall call the free function of `work`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_099: [** If `work` has pending or running invocations, `close_work_locked` shall mark `work` as closed. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_099: [** If `work` has pending or running invocations, `internal_execution_engine_linux_close_work_locked` shall mark `work` as closed. **]**
 
 ### execution_engine_linux_disassociate_current_thread_from_work
 
@@ -473,27 +505,29 @@ static void close_work_locked(EXECUTION_ENGINE_LINUX_WORK* work);
 MOCKABLE_FUNCTION(, void, execution_engine_linux_disassociate_current_thread_from_work, EXECUTION_ENGINE_LINUX_WORK_HANDLE, work);
 ```
 
-When called from the work function of `work`, `execution_engine_linux_disassociate_current_thread_from_work` ends the invocation of `work` running on the current thread, so that waiting for `work` or closing it does not wait for the current thread. Otherwise it does nothing.
+`execution_engine_linux_disassociate_current_thread_from_work` ends the invocation of `work` running on the current thread, if any, so that waiting for or closing `work` does not wait for the current thread.
 
 **SRS_EXECUTION_ENGINE_LINUX_42_100: [** If `work` is `NULL`, `execution_engine_linux_disassociate_current_thread_from_work` shall return. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_101: [** `execution_engine_linux_disassociate_current_thread_from_work` shall disassociate the current thread from `work`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_101: [** `execution_engine_linux_disassociate_current_thread_from_work` shall disassociate the current thread from `work` by calling `internal_execution_engine_linux_disassociate_current_thread`. **]**
 
-### disassociate_current_thread
+### internal_execution_engine_linux_disassociate_current_thread
 
 ```c
-static void disassociate_current_thread(EXECUTION_ENGINE_LINUX_WORK* work);
+static void internal_execution_engine_linux_disassociate_current_thread(EXECUTION_ENGINE_LINUX_WORK* work);
 ```
 
-**SRS_EXECUTION_ENGINE_LINUX_42_102: [** If `work` is not the work object running on the current thread, `disassociate_current_thread` shall return. **]**
+`internal_execution_engine_linux_disassociate_current_thread` ends the invocation of `work` running on the current thread, if any, without the mutex held by the caller.
 
-**SRS_EXECUTION_ENGINE_LINUX_42_103: [** `disassociate_current_thread` shall acquire the mutex by calling `pthread_mutex_lock`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_102: [** If `work` is not the work object running on the current thread, `internal_execution_engine_linux_disassociate_current_thread` shall return. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_104: [** `disassociate_current_thread` shall clear the work object running on the current thread. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_103: [** `internal_execution_engine_linux_disassociate_current_thread` shall acquire the mutex by calling `pthread_mutex_lock`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_105: [** `disassociate_current_thread` shall end the invocation of `work`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_104: [** `internal_execution_engine_linux_disassociate_current_thread` shall clear the work object running on the current thread. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_106: [** `disassociate_current_thread` shall release the mutex by calling `pthread_mutex_unlock`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_105: [** `internal_execution_engine_linux_disassociate_current_thread` shall end the invocation of `work` by calling `internal_execution_engine_linux_end_invocation`. **]**
+
+**SRS_EXECUTION_ENGINE_LINUX_42_106: [** `internal_execution_engine_linux_disassociate_current_thread` shall release the mutex by calling `pthread_mutex_unlock`. **]**
 
 ### execution_engine_linux_create_timer
 
@@ -501,7 +535,7 @@ static void disassociate_current_thread(EXECUTION_ENGINE_LINUX_WORK* work);
 MOCKABLE_FUNCTION(, EXECUTION_ENGINE_LINUX_TIMER_HANDLE, execution_engine_linux_create_timer, EXECUTION_ENGINE_HANDLE, execution_engine, EXECUTION_ENGINE_LINUX_WORK_FUNCTION, work_function, void*, work_function_context);
 ```
 
-`execution_engine_linux_create_timer` creates a timer that is not armed. The timer calls `work_function` with `work_function_context` each time it fires.
+`execution_engine_linux_create_timer` creates a timer that is not armed and calls `work_function` with `work_function_context` each time it fires.
 
 **SRS_EXECUTION_ENGINE_LINUX_42_107: [** If `execution_engine` is `NULL`, `execution_engine_linux_create_timer` shall fail and return `NULL`. **]**
 
@@ -509,13 +543,13 @@ MOCKABLE_FUNCTION(, EXECUTION_ENGINE_LINUX_TIMER_HANDLE, execution_engine_linux_
 
 **SRS_EXECUTION_ENGINE_LINUX_42_109: [** `execution_engine_linux_create_timer` shall allocate a timer. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_110: [** `execution_engine_linux_create_timer` shall initialize the work object of the timer with `free_timer` as its free function. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_110: [** `execution_engine_linux_create_timer` shall initialize the work object of the timer with `internal_execution_engine_linux_free_timer` as its free function by calling `internal_execution_engine_linux_init_work`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_111: [** `execution_engine_linux_create_timer` shall initialize the timer heap entry of the timer by calling `min_heap_entry_init`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_111: [** `execution_engine_linux_create_timer` shall initialize the timer queue entry of the timer by calling `timer_queue_entry_init`. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_112: [** `execution_engine_linux_create_timer` shall acquire the mutex by calling `pthread_mutex_lock`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_113: [** `execution_engine_linux_create_timer` shall reserve room for the timer in the timer heap by calling `min_heap_reserve`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_113: [** `execution_engine_linux_create_timer` shall reserve room for the timer in the timer queue by calling `timer_queue_reserve`. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_114: [** `execution_engine_linux_create_timer` shall release the mutex by calling `pthread_mutex_unlock`. **]**
 
@@ -523,17 +557,17 @@ MOCKABLE_FUNCTION(, EXECUTION_ENGINE_LINUX_TIMER_HANDLE, execution_engine_linux_
 
 **SRS_EXECUTION_ENGINE_LINUX_42_116: [** If any error occurs, `execution_engine_linux_create_timer` shall free the timer, fail and return `NULL`. **]**
 
-### free_timer
+### internal_execution_engine_linux_free_timer
 
 ```c
-static void free_timer(EXECUTION_ENGINE_LINUX_WORK* work);
+static void internal_execution_engine_linux_free_timer(EXECUTION_ENGINE_LINUX_WORK* work);
 ```
 
-`free_timer` is called with the mutex held.
+`internal_execution_engine_linux_free_timer` is the free function of the work objects of timers.
 
-**SRS_EXECUTION_ENGINE_LINUX_42_117: [** `free_timer` shall release the room reserved for the timer in the timer heap by calling `min_heap_unreserve`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_117: [** `internal_execution_engine_linux_free_timer` shall give back the room reserved for the timer in the timer queue by calling `timer_queue_unreserve`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_118: [** `free_timer` shall free the timer. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_118: [** `internal_execution_engine_linux_free_timer` shall free the timer. **]**
 
 ### execution_engine_linux_set_timer
 
@@ -541,7 +575,7 @@ static void free_timer(EXECUTION_ENGINE_LINUX_WORK* work);
 MOCKABLE_FUNCTION(, void, execution_engine_linux_set_timer, EXECUTION_ENGINE_LINUX_TIMER_HANDLE, timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
 ```
 
-`execution_engine_linux_set_timer` arms `timer` to fire after `start_delay_ms`, and then every `timer_period_ms` if `timer_period_ms` is not 0. It replaces any previous setting of `timer`. It cannot fail.
+`execution_engine_linux_set_timer` arms `timer` to fire after `start_delay_ms` and then every `timer_period_ms` (only once if `timer_period_ms` is 0), replacing any previous arming, which cannot fail.
 
 **SRS_EXECUTION_ENGINE_LINUX_42_119: [** If `timer` is `NULL`, `execution_engine_linux_set_timer` shall return. **]**
 
@@ -549,13 +583,9 @@ MOCKABLE_FUNCTION(, void, execution_engine_linux_set_timer, EXECUTION_ENGINE_LIN
 
 **SRS_EXECUTION_ENGINE_LINUX_42_121: [** `execution_engine_linux_set_timer` shall acquire the mutex by calling `pthread_mutex_lock`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_122: [** `execution_engine_linux_set_timer` shall remove `timer` from the timer heap by calling `min_heap_remove`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_124: [** `execution_engine_linux_set_timer` shall arm `timer` with the current time plus `start_delay_ms` as due time and `timer_period_ms` as period by calling `timer_queue_arm`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_123: [** `execution_engine_linux_set_timer` shall store `timer_period_ms` as the period of `timer`. **]**
-
-**SRS_EXECUTION_ENGINE_LINUX_42_124: [** `execution_engine_linux_set_timer` shall insert `timer` in the timer heap with the current time plus `start_delay_ms` as due time by calling `min_heap_insert`. **]**
-
-**SRS_EXECUTION_ENGINE_LINUX_42_125: [** If `timer` is the first timer of the timer heap obtained by calling `min_heap_peek`, `execution_engine_linux_set_timer` shall wake the manager thread by calling `pthread_cond_signal`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_125: [** If `timer_queue_arm` returns `true`, `execution_engine_linux_set_timer` shall wake the manager thread by calling `pthread_cond_signal`. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_126: [** `execution_engine_linux_set_timer` shall release the mutex by calling `pthread_mutex_unlock`. **]**
 
@@ -565,13 +595,13 @@ MOCKABLE_FUNCTION(, void, execution_engine_linux_set_timer, EXECUTION_ENGINE_LIN
 MOCKABLE_FUNCTION(, void, execution_engine_linux_cancel_timer, EXECUTION_ENGINE_LINUX_TIMER_HANDLE, timer);
 ```
 
-`execution_engine_linux_cancel_timer` disarms `timer`. Invocations already submitted still run; `execution_engine_linux_wait_for_timer` waits for them or drops them.
+`execution_engine_linux_cancel_timer` disarms `timer`, without dropping or waiting for the invocations already submitted.
 
 **SRS_EXECUTION_ENGINE_LINUX_42_127: [** If `timer` is `NULL`, `execution_engine_linux_cancel_timer` shall return. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_128: [** `execution_engine_linux_cancel_timer` shall acquire the mutex by calling `pthread_mutex_lock`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_129: [** `execution_engine_linux_cancel_timer` shall remove `timer` from the timer heap by calling `min_heap_remove`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_129: [** `execution_engine_linux_cancel_timer` shall disarm `timer` by calling `timer_queue_disarm`. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_130: [** `execution_engine_linux_cancel_timer` shall release the mutex by calling `pthread_mutex_unlock`. **]**
 
@@ -581,11 +611,11 @@ MOCKABLE_FUNCTION(, void, execution_engine_linux_cancel_timer, EXECUTION_ENGINE_
 MOCKABLE_FUNCTION(, void, execution_engine_linux_wait_for_timer, EXECUTION_ENGINE_LINUX_TIMER_HANDLE, timer, bool, cancel_pending);
 ```
 
-`execution_engine_linux_wait_for_timer` waits until `timer` has no pending and no running invocations. If `cancel_pending` is `true`, it first drops the invocations that have not started.
+`execution_engine_linux_wait_for_timer` waits until `timer` has no pending and no running invocations, first dropping the invocations that have not started if `cancel_pending` is `true`.
 
 **SRS_EXECUTION_ENGINE_LINUX_42_131: [** If `timer` is `NULL`, `execution_engine_linux_wait_for_timer` shall return. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_132: [** `execution_engine_linux_wait_for_timer` shall wait for the invocations of the work object of `timer`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_132: [** `execution_engine_linux_wait_for_timer` shall wait for the invocations of the work object of `timer` by calling `internal_execution_engine_linux_wait_for_invocations`. **]**
 
 ### execution_engine_linux_close_timer
 
@@ -593,15 +623,15 @@ MOCKABLE_FUNCTION(, void, execution_engine_linux_wait_for_timer, EXECUTION_ENGIN
 MOCKABLE_FUNCTION(, void, execution_engine_linux_close_timer, EXECUTION_ENGINE_LINUX_TIMER_HANDLE, timer);
 ```
 
-`execution_engine_linux_close_timer` disarms `timer` and frees it once it has no pending and no running invocations. It does not wait.
+`execution_engine_linux_close_timer` disarms `timer` and frees it once it has no pending and no running invocations, without waiting.
 
 **SRS_EXECUTION_ENGINE_LINUX_42_133: [** If `timer` is `NULL`, `execution_engine_linux_close_timer` shall return. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_134: [** `execution_engine_linux_close_timer` shall acquire the mutex by calling `pthread_mutex_lock`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_135: [** `execution_engine_linux_close_timer` shall remove `timer` from the timer heap by calling `min_heap_remove`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_135: [** `execution_engine_linux_close_timer` shall disarm `timer` by calling `timer_queue_disarm`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_136: [** `execution_engine_linux_close_timer` shall close the work object of `timer`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_136: [** `execution_engine_linux_close_timer` shall close the work object of `timer` by calling `internal_execution_engine_linux_close_work_locked`. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_137: [** `execution_engine_linux_close_timer` shall release the mutex by calling `pthread_mutex_unlock`. **]**
 
@@ -611,118 +641,108 @@ MOCKABLE_FUNCTION(, void, execution_engine_linux_close_timer, EXECUTION_ENGINE_L
 MOCKABLE_FUNCTION(, void, execution_engine_linux_disassociate_current_thread_from_timer, EXECUTION_ENGINE_LINUX_TIMER_HANDLE, timer);
 ```
 
-When called from the work function of `timer`, `execution_engine_linux_disassociate_current_thread_from_timer` ends the invocation of `timer` running on the current thread, so that waiting for `timer` or closing it does not wait for the current thread. Otherwise it does nothing.
+`execution_engine_linux_disassociate_current_thread_from_timer` ends the invocation of `timer` running on the current thread, if any, so that waiting for or closing `timer` does not wait for the current thread.
 
 **SRS_EXECUTION_ENGINE_LINUX_42_138: [** If `timer` is `NULL`, `execution_engine_linux_disassociate_current_thread_from_timer` shall return. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_139: [** `execution_engine_linux_disassociate_current_thread_from_timer` shall disassociate the current thread from the work object of `timer`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_139: [** `execution_engine_linux_disassociate_current_thread_from_timer` shall disassociate the current thread from the work object of `timer` by calling `internal_execution_engine_linux_disassociate_current_thread`. **]**
 
-### manager_thread_func
+### internal_execution_engine_linux_manager_thread_func
 
 ```c
-static void* manager_thread_func(void* arg);
+static void* internal_execution_engine_linux_manager_thread_func(void* arg);
 ```
 
-`manager_thread_func` is the function of the manager thread. `arg` is the execution engine.
+`internal_execution_engine_linux_manager_thread_func` is the function of the manager thread, with the execution engine as `arg`.
 
-**SRS_EXECUTION_ENGINE_LINUX_42_140: [** `manager_thread_func` shall acquire the mutex by calling `pthread_mutex_lock`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_140: [** `internal_execution_engine_linux_manager_thread_func` shall acquire the mutex by calling `pthread_mutex_lock`. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_141: [** Until the execution engine is stopping: **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_142: [** `manager_thread_func` shall get the current time by calling `timer_global_get_elapsed_ms`. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_142: [** `internal_execution_engine_linux_manager_thread_func` shall get the current time by calling `timer_global_get_elapsed_ms`. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_143: [** `manager_thread_func` shall submit the due timers. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_143: [** `internal_execution_engine_linux_manager_thread_func` shall submit the due timers by calling `internal_execution_engine_linux_submit_due_timers`. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_144: [** `manager_thread_func` shall retire the worker threads idle for too long. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_144: [** `internal_execution_engine_linux_manager_thread_func` shall retire the worker threads idle for too long by calling `internal_execution_engine_linux_retire_idle_workers`. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_145: [** `manager_thread_func` shall join the retired worker threads by calling `worker_pool_join_retired_workers`. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_145: [** `internal_execution_engine_linux_manager_thread_func` shall join the retired worker threads by calling `worker_pool_join_retired_workers`. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_146: [** `manager_thread_func` shall get the counts of the worker pool by calling `worker_pool_get_counts`. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_146: [** `internal_execution_engine_linux_manager_thread_func` shall get the counts of the worker pool by calling `worker_pool_get_counts`. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_147: [** `manager_thread_func` shall get the time to add a worker thread by calling `thread_count_policy_get_add_thread_time` with the number of work objects in the ready queue and the counts. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_147: [** `internal_execution_engine_linux_manager_thread_func` shall get the time to add a worker thread by calling `thread_count_policy_get_add_thread_time` with the number of work objects in the ready queue and the counts. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_148: [** If the time to add a worker thread is not later than the current time, `manager_thread_func` shall add a worker thread. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_148: [** If the time to add a worker thread is not later than the current time, `internal_execution_engine_linux_manager_thread_func` shall add a worker thread by calling `internal_execution_engine_linux_add_worker`. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_149: [** If the time to add a worker thread is later than the current time, `manager_thread_func` shall wait for the next event. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_149: [** If the time to add a worker thread is later than the current time, `internal_execution_engine_linux_manager_thread_func` shall wait for the next event by calling `internal_execution_engine_linux_wait_for_next_event`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_150: [** `manager_thread_func` shall release the mutex by calling `pthread_mutex_unlock`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_150: [** `internal_execution_engine_linux_manager_thread_func` shall release the mutex by calling `pthread_mutex_unlock`. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_151: [** If the teardown is deferred to the manager thread: **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_152: [** `manager_thread_func` shall detach the manager thread by calling `pthread_detach`. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_152: [** `internal_execution_engine_linux_manager_thread_func` shall detach the manager thread by calling `pthread_detach`. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_153: [** `manager_thread_func` shall tear down the execution engine. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_153: [** `internal_execution_engine_linux_manager_thread_func` shall tear down the execution engine by calling `internal_execution_engine_linux_teardown`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_154: [** `manager_thread_func` shall return `NULL`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_154: [** `internal_execution_engine_linux_manager_thread_func` shall return `NULL`. **]**
 
-### submit_due_timers
-
-```c
-static void submit_due_timers(EXECUTION_ENGINE* execution_engine, uint64_t now);
-```
-
-`submit_due_timers` is called with the mutex held.
-
-**SRS_EXECUTION_ENGINE_LINUX_42_155: [** For each timer whose due time is not later than `now`, in due time order, as obtained by calling `min_heap_peek`: **]**
-
-- **SRS_EXECUTION_ENGINE_LINUX_42_156: [** `submit_due_timers` shall remove the timer from the timer heap by calling `min_heap_remove`. **]**
-
-- **SRS_EXECUTION_ENGINE_LINUX_42_157: [** If the period of the timer is not 0: **]**
-
-  - **SRS_EXECUTION_ENGINE_LINUX_42_158: [** `submit_due_timers` shall compute the next due time as the due time plus the period. **]**
-
-  - **SRS_EXECUTION_ENGINE_LINUX_42_159: [** If the next due time is not later than `now`, `submit_due_timers` shall use `now` plus the period as the next due time. **]**
-
-  - **SRS_EXECUTION_ENGINE_LINUX_42_160: [** `submit_due_timers` shall insert the timer in the timer heap with the next due time by calling `min_heap_insert`. **]**
-
-- **SRS_EXECUTION_ENGINE_LINUX_42_161: [** `submit_due_timers` shall submit the work object of the timer. **]**
-
-### retire_idle_workers
+### internal_execution_engine_linux_submit_due_timers
 
 ```c
-static void retire_idle_workers(EXECUTION_ENGINE* execution_engine, uint64_t now);
+static void internal_execution_engine_linux_submit_due_timers(EXECUTION_ENGINE* execution_engine, uint64_t now);
 ```
 
-`retire_idle_workers` is called with the mutex held.
+`internal_execution_engine_linux_submit_due_timers` submits the work objects of the timers due at `now`.
 
-**SRS_EXECUTION_ENGINE_LINUX_42_162: [** `retire_idle_workers` shall get the counts of the worker pool by calling `worker_pool_get_counts`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_155: [** For each timer returned by `timer_queue_pop_due` with `now`: **]**
+
+- **SRS_EXECUTION_ENGINE_LINUX_42_161: [** `internal_execution_engine_linux_submit_due_timers` shall submit the work object of the timer by calling `internal_execution_engine_linux_submit_work_locked`. **]**
+
+### internal_execution_engine_linux_retire_idle_workers
+
+```c
+static void internal_execution_engine_linux_retire_idle_workers(EXECUTION_ENGINE* execution_engine, uint64_t now);
+```
+
+`internal_execution_engine_linux_retire_idle_workers` retires the worker threads idle for too long at `now`.
+
+**SRS_EXECUTION_ENGINE_LINUX_42_162: [** `internal_execution_engine_linux_retire_idle_workers` shall get the counts of the worker pool by calling `worker_pool_get_counts`. **]**
 
 **SRS_EXECUTION_ENGINE_LINUX_42_163: [** While the time to retire a worker thread obtained by calling `thread_count_policy_get_retire_thread_time` with the counts and `now` is not later than `now`: **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_164: [** `retire_idle_workers` shall retire the worker thread idle the longest by calling `worker_pool_retire_oldest_idle_worker`. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_164: [** `internal_execution_engine_linux_retire_idle_workers` shall retire the worker thread idle the longest by calling `worker_pool_retire_oldest_idle_worker`. **]**
 
-- **SRS_EXECUTION_ENGINE_LINUX_42_165: [** `retire_idle_workers` shall get the counts of the worker pool by calling `worker_pool_get_counts`. **]**
+- **SRS_EXECUTION_ENGINE_LINUX_42_165: [** `internal_execution_engine_linux_retire_idle_workers` shall get the counts of the worker pool by calling `worker_pool_get_counts`. **]**
 
-### add_worker
-
-```c
-static void add_worker(EXECUTION_ENGINE* execution_engine, uint64_t now);
-```
-
-`add_worker` is called with the mutex held.
-
-**SRS_EXECUTION_ENGINE_LINUX_42_166: [** `add_worker` shall add a worker thread by calling `worker_pool_add_worker`. **]**
-
-**SRS_EXECUTION_ENGINE_LINUX_42_167: [** If `worker_pool_add_worker` fails, `add_worker` shall call `thread_count_policy_on_add_thread_failed` with `now`. **]**
-
-**SRS_EXECUTION_ENGINE_LINUX_42_168: [** If `worker_pool_add_worker` succeeds, `add_worker` shall record progress by calling `thread_count_policy_on_progress` with `now`. **]**
-
-### wait_for_next_event
+### internal_execution_engine_linux_add_worker
 
 ```c
-static void wait_for_next_event(EXECUTION_ENGINE* execution_engine, const WORKER_POOL_COUNTS* counts, uint64_t add_thread_time, uint64_t now);
+static void internal_execution_engine_linux_add_worker(EXECUTION_ENGINE* execution_engine, uint64_t now);
 ```
 
-`wait_for_next_event` is called with the mutex held. It waits until the next timer is due, a worker thread may have to be added, a worker thread may have to be retired, or the manager thread is woken.
+`internal_execution_engine_linux_add_worker` adds a worker thread.
 
-**SRS_EXECUTION_ENGINE_LINUX_42_169: [** `wait_for_next_event` shall record that the manager thread is watching the ready queue if `add_thread_time` is not `THREAD_COUNT_POLICY_NEVER`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_166: [** `internal_execution_engine_linux_add_worker` shall add a worker thread by calling `worker_pool_add_worker`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_170: [** `wait_for_next_event` shall get the time to retire a worker thread by calling `thread_count_policy_get_retire_thread_time` with `counts` and `now`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_167: [** If `worker_pool_add_worker` fails, `internal_execution_engine_linux_add_worker` shall call `thread_count_policy_on_add_thread_failed` with `now`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_171: [** `wait_for_next_event` shall get the first timer by calling `min_heap_peek`. **]**
+**SRS_EXECUTION_ENGINE_LINUX_42_168: [** If `worker_pool_add_worker` succeeds, `internal_execution_engine_linux_add_worker` shall record progress by calling `thread_count_policy_on_progress` with `now`. **]**
 
-**SRS_EXECUTION_ENGINE_LINUX_42_172: [** `wait_for_next_event` shall compute the deadline as the earliest of `add_thread_time`, the time to retire a worker thread and the due time of the first timer, if any. **]**
+### internal_execution_engine_linux_wait_for_next_event
 
-**SRS_EXECUTION_ENGINE_LINUX_42_173: [** If the deadline is `THREAD_COUNT_POLICY_NEVER`, `wait_for_next_event` shall wait by calling `pthread_cond_wait`. **]**
+```c
+static void internal_execution_engine_linux_wait_for_next_event(EXECUTION_ENGINE* execution_engine, const WORKER_POOL_COUNTS* counts, uint64_t add_thread_time, uint64_t now);
+```
 
-**SRS_EXECUTION_ENGINE_LINUX_42_174: [** If the deadline is not `THREAD_COUNT_POLICY_NEVER`, `wait_for_next_event` shall wait until the deadline by calling `pthread_cond_timedwait`. **]**
+`internal_execution_engine_linux_wait_for_next_event` waits until the next timer is due, a worker thread may have to be added or retired, or the manager thread is woken.
+
+**SRS_EXECUTION_ENGINE_LINUX_42_169: [** `internal_execution_engine_linux_wait_for_next_event` shall record that the manager thread is watching the ready queue if `add_thread_time` is not `THREAD_COUNT_POLICY_NEVER`. **]**
+
+**SRS_EXECUTION_ENGINE_LINUX_42_170: [** `internal_execution_engine_linux_wait_for_next_event` shall get the time to retire a worker thread by calling `thread_count_policy_get_retire_thread_time` with `counts` and `now`. **]**
+
+**SRS_EXECUTION_ENGINE_LINUX_42_171: [** `internal_execution_engine_linux_wait_for_next_event` shall get the due time of the first timer by calling `timer_queue_get_next_due_time`. **]**
+
+**SRS_EXECUTION_ENGINE_LINUX_42_172: [** `internal_execution_engine_linux_wait_for_next_event` shall compute the deadline as the earliest of `add_thread_time`, the time to retire a worker thread and the due time of the first timer. **]**
+
+**SRS_EXECUTION_ENGINE_LINUX_42_173: [** If the deadline is `THREAD_COUNT_POLICY_NEVER`, `internal_execution_engine_linux_wait_for_next_event` shall wait by calling `pthread_cond_wait`. **]**
+
+**SRS_EXECUTION_ENGINE_LINUX_42_174: [** If the deadline is not `THREAD_COUNT_POLICY_NEVER`, `internal_execution_engine_linux_wait_for_next_event` shall wait until the deadline by calling `pthread_cond_timedwait`. **]**
