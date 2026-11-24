@@ -29,6 +29,7 @@ MOCKABLE_FUNCTION(, void, DList_InsertHeadList, PDLIST_ENTRY, listHead, PDLIST_E
 MOCKABLE_FUNCTION(, void, DList_AppendTailList, PDLIST_ENTRY, listHead, PDLIST_ENTRY, ListToAppend);
 MOCKABLE_FUNCTION(, int, DList_RemoveEntryList, PDLIST_ENTRY, listEntry);
 MOCKABLE_FUNCTION(, PDLIST_ENTRY, DList_RemoveHeadList, PDLIST_ENTRY, listHead);
+MOCKABLE_FUNCTION(, PDLIST_ENTRY, DList_RemoveTailList, PDLIST_ENTRY, listHead);
 MOCKABLE_FUNCTION(, int, DList_ForEach, PDLIST_ENTRY, listHead, DLIST_ACTION_FUNCTION, actionFunction, void*, actionContext);
 ```
 
@@ -56,12 +57,17 @@ DATA* data = CONTAINING_RECORD(listEntry, DATA, anchor);
 ```c
 void DList_InitializeListHead(PDLIST_ENTRY listHead);
 ```
+
+`DList_InitializeListHead` initializes an empty list.
+
 **SRS_DLIST_06_005: [** DList_InitializeListHead will initialize the Flink & Blink to the address of the DLIST_ENTRY. **]**
 
 ### DList_IsListEmpty
 ```c
 int DList_IsListEmpty(const PDLIST_ENTRY listHead);
 ```
+
+`DList_IsListEmpty` checks whether a list has no entries.
 
 **SRS_DLIST_06_003: [** DList_IsListEmpty shall return a non-zero value if there are no DLIST_ENTRY's on this list other than the list head. **]**
 
@@ -76,12 +82,16 @@ Notes:
 void DList_InsertTailList(PDLIST_ENTRY listHead, PDLIST_ENTRY listEntry);
 ```
 
+`DList_InsertTailList` adds an entry at the end of a list.
+
 **SRS_DLIST_06_006: [** DList_InsertTailList shall place the DLIST_ENTRY at the end of the list defined by the listHead parameter. **]**
 
 ### DList_InsertHeadList
 ```c
 void DList_InsertHeadList(PDLIST_ENTRY listHead, PDLIST_ENTRY entry);
 ```
+
+`DList_InsertHeadList` adds an entry at the start of a list.
 
 **SRS_DLIST_02_002: [** DList_InsertHeadList inserts a singular entry in the list having as head listHead after "head". **]** (see diagram below)
 
@@ -92,12 +102,16 @@ DList_InsertHeadList shall assume listHead and listEntry non-NULL and pointing t
 void DList_AppendTailList(PDLIST_ENTRY listHead, PDLIST_ENTRY ListToAppend);
 ```
 
+`DList_AppendTailList` appends one list to the end of another.
+
 **SRS_DLIST_06_007: [** DList_AppendTailList shall place the list defined by listToAppend at the end of the list defined by the listHead parameter. **]**
 
 ### DList_RemoveEntryList
 ```c
 int DList_RemoveEntryList(PDLIST_ENTRY listEntry);
 ```
+
+`DList_RemoveEntryList` removes an entry from the list it is part of.
 
 **SRS_DLIST_06_008: [** DList_RemoveEntryList shall remove a listEntry from whatever list it is properly part of. **]**
 
@@ -116,6 +130,8 @@ Notes:
 PDLIST_ENTRY DList_RemoveHeadList(PDLIST_ENTRY listHead);
 ```
 
+`DList_RemoveHeadList` removes the first entry of a list.
+
 **SRS_DLIST_06_012: [** DList_RemoveHeadList removes the oldest entry from the list defined by the listHead parameter and returns a pointer to that entry. **]**
 
 **SRS_DLIST_06_013: [** DList_RemoveHeadList shall return listHead if that's the only item in the list. **]**
@@ -126,6 +142,8 @@ Note: The Flink & Blink of the returned PDLIST_ENTRY shall be undefined.
 ```c
 PDLIST_ENTRY DList_RemoveTailList(PDLIST_ENTRY listHead);
 ```
+
+`DList_RemoveTailList` removes the last entry of a list.
 
 **SRS_DLIST_02_003: [** `DList_RemoveTailList` removes the newest entry inserted at the tail of the list defined by the `listHead` parameter and returns a pointer to that entry. **]**
 
@@ -139,6 +157,7 @@ Note: The `Flink` & `Blink` of the returned `PDLIST_ENTRY` shall be undefined.
 ```c
 MOCKABLE_FUNCTION(, int, DList_ForEach, PDLIST_ENTRY, listHead, DLIST_ACTION_FUNCTION, actionFunction, void*, actionContext);
 ```
+
 `DList_ForEach` can be used to perform some action on each entry in a list. `actionFunction` is a user-provided function that returns zero on success and a non-zero value on error.
 
 **SRS_DLIST_43_001: [** If `listHead` is `NULL`, `DList_ForEach` shall fail and return a non-zero value. **]**
