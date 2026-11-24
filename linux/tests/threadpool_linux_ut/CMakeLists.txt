@@ -7,7 +7,7 @@ set(${theseTestsName}_test_files
 )
 
 set(${theseTestsName}_c_files
-    mock_threadpool.c
+    ../../src/threadpool_linux.c
 )
 
 set(${theseTestsName}_h_files
