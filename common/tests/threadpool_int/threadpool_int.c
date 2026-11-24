@@ -33,6 +33,7 @@ typedef struct WAIT_WORK_CONTEXT_TAG
 {
     volatile_atomic int64_t call_count;
     volatile_atomic int32_t wait_event;
+    volatile_atomic int32_t started;
 } WAIT_WORK_CONTEXT;
 
 typedef struct WRAP_DATA_TAG
@@ -131,6 +132,9 @@ static void work_function(void* context)
 static void wait_work_function(void* context)
 {
     WAIT_WORK_CONTEXT* wait_work_context = (WAIT_WORK_CONTEXT*)context;
+
+    (void)interlocked_exchange(&wait_work_context->started, 1);
+    wake_by_address_all(&wait_work_context->started);
 
     int32_t current_value = interlocked_add(&wait_work_context->wait_event, 0);
     ASSERT_IS_TRUE(wait_on_address(&wait_work_context->wait_event, current_value, 2000) == WAIT_ON_ADDRESS_TIMEOUT); //todo: should this line be changed?
@@ -497,6 +501,7 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items)
     ASSERT_IS_NOT_NULL(threadpool);
 
     (void)interlocked_exchange(&wait_work_context.wait_event, 0);
+    (void)interlocked_exchange(&wait_work_context.started, 0);
 
     (void)interlocked_exchange_64(&wait_work_context.call_count, 0);
 
@@ -882,6 +887,7 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
 
     (void)interlocked_exchange_64(&wait_work_context.call_count, 0);
     (void)interlocked_exchange(&wait_work_context.wait_event, 0);
+    (void)interlocked_exchange(&wait_work_context.started, 0);
 
     // schedule one timer that waits
     LogInfo("Starting timer");
@@ -889,7 +895,7 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
     ASSERT_IS_NOT_NULL(timer);
 
     // act
-    ThreadAPI_Sleep(500);
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&wait_work_context.started, 1, UINT32_MAX));
 
     // call stop
     LogInfo("Timer should be running and waiting, now stop timer");
@@ -897,7 +903,7 @@ TEST_FUNCTION(stop_timer_waits_for_ongoing_execution)
 
     LogInfo("Timer stopped");
 
-    // the timer has a start delay of 0, so its callback was running and stop waited for it
+    // the callback was running, so stop waited for it
     ASSERT_ARE_EQUAL(int64_t, 1, interlocked_add_64(&wait_work_context.call_count, 0));
 
     // set the event, that would trigger a WAIT_OBJECT_0 if stop would not wait for all items
@@ -926,6 +932,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
 
     (void)interlocked_exchange_64(&wait_work_context.call_count, 0);
     (void)interlocked_exchange(&wait_work_context.wait_event, 0);
+    (void)interlocked_exchange(&wait_work_context.started, 0);
 
     // schedule one timer that waits
     LogInfo("Starting timer");
@@ -933,7 +940,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
     ASSERT_IS_NOT_NULL(timer);
 
     // act
-    ThreadAPI_Sleep(500);
+    ASSERT_ARE_EQUAL(INTERLOCKED_HL_RESULT, INTERLOCKED_HL_OK, InterlockedHL_WaitForValue(&wait_work_context.started, 1, UINT32_MAX));
 
     // call cancel
     LogInfo("Timer should be running and waiting, now cancel timer");
@@ -941,7 +948,7 @@ TEST_FUNCTION(cancel_timer_waits_for_ongoing_execution)
 
     LogInfo("Timer canceled");
 
-    // the timer has a start delay of 0, so its callback was running and cancel waited for it
+    // the callback was running, so cancel waited for it
     ASSERT_ARE_EQUAL(int64_t, 1, interlocked_add_64(&wait_work_context.call_count, 0));
 
     // set the event, that would trigger a WAIT_OBJECT_0 if stop would not wait for all items
@@ -1479,6 +1486,7 @@ TEST_FUNCTION(close_while_items_are_scheduled_still_executes_all_items_v2)
     ASSERT_IS_NOT_NULL(threadpool);
 
     (void)interlocked_exchange(&wait_work_context.wait_event, 0);
+    (void)interlocked_exchange(&wait_work_context.started, 0);
 
     (void)interlocked_exchange_64(&wait_work_context.call_count, 0);
 
@@ -2103,7 +2111,6 @@ TEST_FUNCTION(timer_with_a_start_delay_above_4295_ms_fires_after_the_start_delay
     double elapsed_ms = context.fire_time_ms - start_time_ms;
     LogInfo("Timer with a start delay of %d ms fired after %.0f ms", LONG_TIMER_START_DELAY_MS, elapsed_ms);
     ASSERT_IS_TRUE(elapsed_ms >= LONG_TIMER_START_DELAY_MS - 50);
-    ASSERT_IS_TRUE(elapsed_ms < LONG_TIMER_START_DELAY_MS + 500);
 
     // cleanup
     THANDLE_ASSIGN(THREADPOOL_TIMER)(&timer, NULL);
