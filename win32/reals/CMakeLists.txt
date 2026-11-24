@@ -17,6 +17,7 @@ set(reals_win32_c_files
     real_execution_engine.c #note: also contains the code for execution_engine_win32.c
     real_execution_engine_win32.c #note:empty file
     ../../common/reals/real_lazy_init.c
+    ../../common/reals/real_min_heap.c
     ../../common/reals/real_call_once.c
     ../../common/reals/real_doublylinkedlist.c
     ../../common/reals/real_ps_util.c
@@ -53,6 +54,8 @@ set(reals_win32_h_files
     ../../common/reals/real_ps_util_renames.h
     ../../common/reals/real_lazy_init.h
     ../../common/reals/real_lazy_init_renames.h
+    ../../common/reals/real_min_heap.h
+    ../../common/reals/real_min_heap_renames.h
     ../../common/reals/real_s_list.h
     ../../common/reals/real_s_list_renames.h
     ../../common/reals/real_sm.h

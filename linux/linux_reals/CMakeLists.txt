@@ -22,6 +22,7 @@ set(linux_reals_c_files
     ../../common/reals/real_s_list.c
     ../../common/reals/real_ps_util.c
     ../../common/reals/real_lazy_init.c
+    ../../common/reals/real_min_heap.c
     ../../common/reals/real_sm.c
     ../../common/reals/real_interlocked_hl.c
     ../../common/reals/real_thandle_log_context_handle.c
@@ -60,6 +61,8 @@ set(linux_reals_h_files
     ../../common/reals/real_call_once.h
     ../../common/reals/real_lazy_init.h
     ../../common/reals/real_lazy_init_renames.h
+    ../../common/reals/real_min_heap.h
+    ../../common/reals/real_min_heap_renames.h
     ../../common/reals/real_sm.h
     ../../common/reals/real_sm_renames.h
     ../../common/reals/real_interlocked_hl.h
