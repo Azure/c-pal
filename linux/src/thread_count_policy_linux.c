@@ -14,7 +14,7 @@
 
 #include "c_pal/thread_count_policy_linux.h"
 
-#define DEFAULT_MAX_THREAD_COUNT 500
+#define THREAD_COUNT_POLICY_DEFAULT_MAX_THREAD_COUNT 500
 #define STARVATION_THRESHOLD_MS 50
 #define ADD_THREAD_RETRY_DELAY_MS 100
 #define IDLE_THREAD_TIMEOUT_MS 60000
@@ -54,7 +54,7 @@ THREAD_COUNT_POLICY_HANDLE thread_count_policy_create(uint32_t min_thread_count,
             if (max_thread_count == 0)
             {
                 /* Codes_SRS_THREAD_COUNT_POLICY_LINUX_42_004: [ If max_thread_count is 0, thread_count_policy_create shall use 500 as the maximum thread count, or min_thread_count if it is larger. ]*/
-                result->max_thread_count = (min_thread_count > DEFAULT_MAX_THREAD_COUNT) ? min_thread_count : DEFAULT_MAX_THREAD_COUNT;
+                result->max_thread_count = (min_thread_count > THREAD_COUNT_POLICY_DEFAULT_MAX_THREAD_COUNT) ? min_thread_count : THREAD_COUNT_POLICY_DEFAULT_MAX_THREAD_COUNT;
             }
             else
             {
@@ -117,8 +117,15 @@ void thread_count_policy_on_progress(THREAD_COUNT_POLICY_HANDLE thread_count_pol
     }
     else
     {
-        /* Codes_SRS_THREAD_COUNT_POLICY_LINUX_42_015: [ thread_count_policy_on_progress shall set the last progress time to now_ms. ]*/
-        thread_count_policy->last_progress_ms = now_ms;
+        if (now_ms <= thread_count_policy->last_progress_ms)
+        {
+            /* do nothing */
+        }
+        else
+        {
+            /* Codes_SRS_THREAD_COUNT_POLICY_LINUX_42_015: [ If now_ms is later than the last progress time, thread_count_policy_on_progress shall set the last progress time to now_ms. ]*/
+            thread_count_policy->last_progress_ms = now_ms;
+        }
     }
 }
 
@@ -162,9 +169,18 @@ uint64_t thread_count_policy_get_add_thread_time(THREAD_COUNT_POLICY_HANDLE thre
         }
         else
         {
-            /* Codes_SRS_THREAD_COUNT_POLICY_LINUX_42_022: [ Otherwise, thread_count_policy_get_add_thread_time shall return the later of the last progress time plus 50 and the earliest time to add a thread. ]*/
-            uint64_t starvation_time = thread_count_policy->last_progress_ms + STARVATION_THRESHOLD_MS;
-            result = (starvation_time > thread_count_policy->earliest_add_thread_ms) ? starvation_time : thread_count_policy->earliest_add_thread_ms;
+            if (thread_count == 0)
+            {
+                /* Codes_SRS_THREAD_COUNT_POLICY_LINUX_42_027: [ If thread_count is 0, thread_count_policy_get_add_thread_time shall return the earliest time to add a thread. ]*/
+                // no worker thread can make progress
+                result = thread_count_policy->earliest_add_thread_ms;
+            }
+            else
+            {
+                /* Codes_SRS_THREAD_COUNT_POLICY_LINUX_42_022: [ Otherwise, thread_count_policy_get_add_thread_time shall return the later of the last progress time plus 50 and the earliest time to add a thread. ]*/
+                uint64_t starvation_time = thread_count_policy->last_progress_ms + STARVATION_THRESHOLD_MS;
+                result = (starvation_time > thread_count_policy->earliest_add_thread_ms) ? starvation_time : thread_count_policy->earliest_add_thread_ms;
+            }
         }
     }
 

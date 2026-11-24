@@ -14,6 +14,7 @@ static THREAD_COUNT_POLICY_HANDLE test_create_policy(uint32_t min_thread_count, 
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
     THREAD_COUNT_POLICY_HANDLE result = thread_count_policy_create(min_thread_count, max_thread_count);
     ASSERT_IS_NOT_NULL(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     umock_c_reset_all_calls();
     return result;
 }
@@ -56,103 +57,31 @@ TEST_FUNCTION(thread_count_policy_create_with_max_thread_count_less_than_min_thr
     ASSERT_IS_NULL(thread_count_policy);
 }
 
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_001: [ If max_thread_count is not 0 and is less than min_thread_count, thread_count_policy_create shall fail and return NULL. ]*/
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_005: [ If max_thread_count is not 0, thread_count_policy_create shall use max_thread_count as the maximum thread count. ]*/
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_008: [ thread_count_policy_create shall succeed and return the policy. ]*/
-TEST_FUNCTION(thread_count_policy_create_with_max_thread_count_equal_to_min_thread_count_succeeds)
-{
-    ///arrange
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-
-    ///act
-    THREAD_COUNT_POLICY_HANDLE thread_count_policy = thread_count_policy_create(4, 4);
-
-    ///assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_IS_NOT_NULL(thread_count_policy);
-    ASSERT_IS_TRUE(thread_count_policy_can_add_thread(thread_count_policy, 3));
-    ASSERT_IS_FALSE(thread_count_policy_can_add_thread(thread_count_policy, 4));
-
-    ///cleanup
-    thread_count_policy_destroy(thread_count_policy);
-}
-
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_002: [ thread_count_policy_create shall allocate a new policy. ]*/
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_005: [ If max_thread_count is not 0, thread_count_policy_create shall use max_thread_count as the maximum thread count. ]*/
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_008: [ thread_count_policy_create shall succeed and return the policy. ]*/
-TEST_FUNCTION(thread_count_policy_create_with_max_thread_count_uses_max_thread_count_as_maximum)
-{
-    ///arrange
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-
-    ///act
-    THREAD_COUNT_POLICY_HANDLE thread_count_policy = thread_count_policy_create(2, 10);
-
-    ///assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_IS_NOT_NULL(thread_count_policy);
-    ASSERT_IS_TRUE(thread_count_policy_can_add_thread(thread_count_policy, 9));
-    ASSERT_IS_FALSE(thread_count_policy_can_add_thread(thread_count_policy, 10));
-
-    ///cleanup
-    thread_count_policy_destroy(thread_count_policy);
-}
-
 /*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_002: [ thread_count_policy_create shall allocate a new policy. ]*/
 /*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_004: [ If max_thread_count is 0, thread_count_policy_create shall use 500 as the maximum thread count, or min_thread_count if it is larger. ]*/
+/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_005: [ If max_thread_count is not 0, thread_count_policy_create shall use max_thread_count as the maximum thread count. ]*/
 /*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_008: [ thread_count_policy_create shall succeed and return the policy. ]*/
-TEST_FUNCTION(thread_count_policy_create_with_max_thread_count_0_uses_500_as_maximum)
+PARAMETERIZED_TEST_FUNCTION(thread_count_policy_create_succeeds_and_sets_the_maximum_thread_count,
+    ARGS(uint32_t, min_thread_count, uint32_t, max_thread_count, uint32_t, expected_max_thread_count),
+    CASE((2, 10, 10), min_2_max_10_uses_10),
+    CASE((4, 4, 4), min_4_max_4_uses_4),
+    CASE((0, 1, 1), min_0_max_1_uses_1),
+    CASE((0, 0, 500), min_0_max_0_uses_500),
+    CASE((4, 0, 500), min_4_max_0_uses_500),
+    CASE((500, 0, 500), min_500_max_0_uses_500),
+    CASE((600, 0, 600), min_600_max_0_uses_600))
 {
     ///arrange
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
 
     ///act
-    THREAD_COUNT_POLICY_HANDLE thread_count_policy = thread_count_policy_create(0, 0);
+    THREAD_COUNT_POLICY_HANDLE thread_count_policy = thread_count_policy_create(min_thread_count, max_thread_count);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_IS_NOT_NULL(thread_count_policy);
-    ASSERT_IS_TRUE(thread_count_policy_can_add_thread(thread_count_policy, 499));
-    ASSERT_IS_FALSE(thread_count_policy_can_add_thread(thread_count_policy, 500));
-
-    ///cleanup
-    thread_count_policy_destroy(thread_count_policy);
-}
-
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_004: [ If max_thread_count is 0, thread_count_policy_create shall use 500 as the maximum thread count, or min_thread_count if it is larger. ]*/
-TEST_FUNCTION(thread_count_policy_create_with_max_thread_count_0_and_min_thread_count_below_500_uses_500_as_maximum)
-{
-    ///arrange
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-
-    ///act
-    THREAD_COUNT_POLICY_HANDLE thread_count_policy = thread_count_policy_create(4, 0);
-
-    ///assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_IS_NOT_NULL(thread_count_policy);
-    ASSERT_IS_TRUE(thread_count_policy_can_add_thread(thread_count_policy, 499));
-    ASSERT_IS_FALSE(thread_count_policy_can_add_thread(thread_count_policy, 500));
-
-    ///cleanup
-    thread_count_policy_destroy(thread_count_policy);
-}
-
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_004: [ If max_thread_count is 0, thread_count_policy_create shall use 500 as the maximum thread count, or min_thread_count if it is larger. ]*/
-TEST_FUNCTION(thread_count_policy_create_with_max_thread_count_0_and_min_thread_count_above_500_uses_min_thread_count_as_maximum)
-{
-    ///arrange
-    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
-
-    ///act
-    THREAD_COUNT_POLICY_HANDLE thread_count_policy = thread_count_policy_create(600, 0);
-
-    ///assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_IS_NOT_NULL(thread_count_policy);
-    ASSERT_IS_TRUE(thread_count_policy_can_add_thread(thread_count_policy, 500));
-    ASSERT_IS_TRUE(thread_count_policy_can_add_thread(thread_count_policy, 599));
-    ASSERT_IS_FALSE(thread_count_policy_can_add_thread(thread_count_policy, 600));
+    ASSERT_IS_TRUE(thread_count_policy_can_add_thread(thread_count_policy, expected_max_thread_count - 1));
+    ASSERT_IS_FALSE(thread_count_policy_can_add_thread(thread_count_policy, expected_max_thread_count));
 
     ///cleanup
     thread_count_policy_destroy(thread_count_policy);
@@ -178,8 +107,7 @@ TEST_FUNCTION(thread_count_policy_create_stores_min_thread_count_as_minimum)
 }
 
 /*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_006: [ thread_count_policy_create shall set the last progress time to 0. ]*/
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_007: [ thread_count_policy_create shall set the earliest time to add a thread to 0. ]*/
-TEST_FUNCTION(thread_count_policy_create_sets_last_progress_time_and_earliest_add_thread_time_to_0)
+TEST_FUNCTION(thread_count_policy_create_sets_the_last_progress_time_to_0)
 {
     ///arrange
     STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
@@ -190,7 +118,25 @@ TEST_FUNCTION(thread_count_policy_create_sets_last_progress_time_and_earliest_ad
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_IS_NOT_NULL(thread_count_policy);
-    ASSERT_ARE_EQUAL(uint64_t, 50, thread_count_policy_get_add_thread_time(thread_count_policy, 1, 0, 0, 0));
+    ASSERT_ARE_EQUAL(uint64_t, 50, thread_count_policy_get_add_thread_time(thread_count_policy, 1, 0, 0, 1));
+
+    ///cleanup
+    thread_count_policy_destroy(thread_count_policy);
+}
+
+/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_007: [ thread_count_policy_create shall set the earliest time to add a thread to 0. ]*/
+TEST_FUNCTION(thread_count_policy_create_sets_the_earliest_add_thread_time_to_0)
+{
+    ///arrange
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+
+    ///act
+    THREAD_COUNT_POLICY_HANDLE thread_count_policy = thread_count_policy_create(0, 10);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NOT_NULL(thread_count_policy);
+    ASSERT_ARE_EQUAL(uint64_t, 0, thread_count_policy_get_add_thread_time(thread_count_policy, 1, 0, 0, 0));
 
     ///cleanup
     thread_count_policy_destroy(thread_count_policy);
@@ -256,70 +202,23 @@ TEST_FUNCTION(thread_count_policy_can_add_thread_with_NULL_thread_count_policy_r
 }
 
 /*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_013: [ thread_count_policy_can_add_thread shall return whether thread_count is less than the maximum thread count. ]*/
-TEST_FUNCTION(thread_count_policy_can_add_thread_with_no_threads_returns_true)
+PARAMETERIZED_TEST_FUNCTION(thread_count_policy_can_add_thread_returns_whether_thread_count_is_below_the_maximum,
+    ARGS(uint32_t, thread_count, bool, expected_result),
+    CASE((0, true), with_no_threads_returns_true),
+    CASE((9, true), with_thread_count_one_below_maximum_returns_true),
+    CASE((10, false), with_thread_count_at_maximum_returns_false),
+    CASE((11, false), with_thread_count_above_maximum_returns_false),
+    CASE((UINT32_MAX, false), with_thread_count_UINT32_MAX_returns_false))
 {
     ///arrange
     THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(0, 10);
 
     ///act
-    bool result = thread_count_policy_can_add_thread(thread_count_policy, 0);
+    bool result = thread_count_policy_can_add_thread(thread_count_policy, thread_count);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_IS_TRUE(result);
-
-    ///cleanup
-    thread_count_policy_destroy(thread_count_policy);
-}
-
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_013: [ thread_count_policy_can_add_thread shall return whether thread_count is less than the maximum thread count. ]*/
-TEST_FUNCTION(thread_count_policy_can_add_thread_with_thread_count_one_below_maximum_returns_true)
-{
-    ///arrange
-    THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(0, 10);
-
-    ///act
-    bool result = thread_count_policy_can_add_thread(thread_count_policy, 9);
-
-    ///assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_IS_TRUE(result);
-
-    ///cleanup
-    thread_count_policy_destroy(thread_count_policy);
-}
-
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_013: [ thread_count_policy_can_add_thread shall return whether thread_count is less than the maximum thread count. ]*/
-TEST_FUNCTION(thread_count_policy_can_add_thread_with_thread_count_at_maximum_returns_false)
-{
-    ///arrange
-    THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(0, 10);
-
-    ///act
-    bool result = thread_count_policy_can_add_thread(thread_count_policy, 10);
-
-    ///assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_IS_FALSE(result);
-
-    ///cleanup
-    thread_count_policy_destroy(thread_count_policy);
-}
-
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_013: [ thread_count_policy_can_add_thread shall return whether thread_count is less than the maximum thread count. ]*/
-TEST_FUNCTION(thread_count_policy_can_add_thread_with_thread_count_above_maximum_returns_false)
-{
-    ///arrange
-    THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(0, 10);
-
-    ///act
-    bool result_above = thread_count_policy_can_add_thread(thread_count_policy, 11);
-    bool result_uint32_max = thread_count_policy_can_add_thread(thread_count_policy, UINT32_MAX);
-
-    ///assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_IS_FALSE(result_above);
-    ASSERT_IS_FALSE(result_uint32_max);
+    ASSERT_ARE_EQUAL(bool, expected_result, result);
 
     ///cleanup
     thread_count_policy_destroy(thread_count_policy);
@@ -339,26 +238,26 @@ TEST_FUNCTION(thread_count_policy_on_progress_with_NULL_thread_count_policy_retu
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_015: [ thread_count_policy_on_progress shall set the last progress time to now_ms. ]*/
+/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_015: [ If now_ms is later than the last progress time, thread_count_policy_on_progress shall set the last progress time to now_ms. ]*/
 TEST_FUNCTION(thread_count_policy_on_progress_sets_the_last_progress_time)
 {
     ///arrange
     THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(0, 10);
-    ASSERT_ARE_EQUAL(uint64_t, 50, thread_count_policy_get_add_thread_time(thread_count_policy, 1, 0, 0, 0));
+    ASSERT_ARE_EQUAL(uint64_t, 50, thread_count_policy_get_add_thread_time(thread_count_policy, 1, 0, 0, 1));
 
     ///act
     thread_count_policy_on_progress(thread_count_policy, 1000);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(uint64_t, 1050, thread_count_policy_get_add_thread_time(thread_count_policy, 1, 0, 0, 0));
+    ASSERT_ARE_EQUAL(uint64_t, 1050, thread_count_policy_get_add_thread_time(thread_count_policy, 1, 0, 0, 1));
 
     ///cleanup
     thread_count_policy_destroy(thread_count_policy);
 }
 
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_015: [ thread_count_policy_on_progress shall set the last progress time to now_ms. ]*/
-TEST_FUNCTION(thread_count_policy_on_progress_twice_uses_the_latest_call)
+/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_015: [ If now_ms is later than the last progress time, thread_count_policy_on_progress shall set the last progress time to now_ms. ]*/
+TEST_FUNCTION(thread_count_policy_on_progress_with_later_time_moves_the_last_progress_time_forward)
 {
     ///arrange
     THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(0, 10);
@@ -369,14 +268,14 @@ TEST_FUNCTION(thread_count_policy_on_progress_twice_uses_the_latest_call)
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(uint64_t, 2050, thread_count_policy_get_add_thread_time(thread_count_policy, 1, 0, 0, 0));
+    ASSERT_ARE_EQUAL(uint64_t, 2050, thread_count_policy_get_add_thread_time(thread_count_policy, 1, 0, 0, 1));
 
     ///cleanup
     thread_count_policy_destroy(thread_count_policy);
 }
 
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_015: [ thread_count_policy_on_progress shall set the last progress time to now_ms. ]*/
-TEST_FUNCTION(thread_count_policy_on_progress_with_earlier_time_sets_the_last_progress_time_back)
+/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_015: [ If now_ms is later than the last progress time, thread_count_policy_on_progress shall set the last progress time to now_ms. ]*/
+TEST_FUNCTION(thread_count_policy_on_progress_with_earlier_time_does_not_move_the_last_progress_time_back)
 {
     ///arrange
     THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(0, 10);
@@ -387,7 +286,7 @@ TEST_FUNCTION(thread_count_policy_on_progress_with_earlier_time_sets_the_last_pr
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(uint64_t, 1550, thread_count_policy_get_add_thread_time(thread_count_policy, 1, 0, 0, 0));
+    ASSERT_ARE_EQUAL(uint64_t, 2050, thread_count_policy_get_add_thread_time(thread_count_policy, 1, 0, 0, 1));
 
     ///cleanup
     thread_count_policy_destroy(thread_count_policy);
@@ -419,7 +318,7 @@ TEST_FUNCTION(thread_count_policy_on_add_thread_failed_sets_the_earliest_add_thr
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(uint64_t, 1160, thread_count_policy_get_add_thread_time(thread_count_policy, 1, 0, 0, 0));
+    ASSERT_ARE_EQUAL(uint64_t, 1160, thread_count_policy_get_add_thread_time(thread_count_policy, 1, 0, 0, 1));
 
     ///cleanup
     thread_count_policy_destroy(thread_count_policy);
@@ -437,7 +336,7 @@ TEST_FUNCTION(thread_count_policy_on_add_thread_failed_with_earlier_time_sets_th
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(uint64_t, 1100, thread_count_policy_get_add_thread_time(thread_count_policy, 1, 0, 0, 0));
+    ASSERT_ARE_EQUAL(uint64_t, 1100, thread_count_policy_get_add_thread_time(thread_count_policy, 1, 0, 0, 1));
 
     ///cleanup
     thread_count_policy_destroy(thread_count_policy);
@@ -451,7 +350,7 @@ TEST_FUNCTION(thread_count_policy_get_add_thread_time_with_NULL_thread_count_pol
     ///arrange
 
     ///act
-    uint64_t result = thread_count_policy_get_add_thread_time(NULL, 1, 0, 0, 0);
+    uint64_t result = thread_count_policy_get_add_thread_time(NULL, 1, 0, 0, 1);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -459,64 +358,24 @@ TEST_FUNCTION(thread_count_policy_get_add_thread_time_with_NULL_thread_count_pol
 }
 
 /*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_019: [ If queued_work_count is not greater than starting_thread_count, thread_count_policy_get_add_thread_time shall return THREAD_COUNT_POLICY_NEVER. ]*/
-TEST_FUNCTION(thread_count_policy_get_add_thread_time_with_no_queued_work_returns_NEVER)
-{
-    ///arrange
-    THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(0, 10);
-
-    ///act
-    uint64_t result = thread_count_policy_get_add_thread_time(thread_count_policy, 0, 0, 0, 1);
-
-    ///assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(uint64_t, THREAD_COUNT_POLICY_NEVER, result);
-
-    ///cleanup
-    thread_count_policy_destroy(thread_count_policy);
-}
-
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_019: [ If queued_work_count is not greater than starting_thread_count, thread_count_policy_get_add_thread_time shall return THREAD_COUNT_POLICY_NEVER. ]*/
-TEST_FUNCTION(thread_count_policy_get_add_thread_time_with_queued_work_count_equal_to_starting_thread_count_returns_NEVER)
-{
-    ///arrange
-    THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(0, 10);
-
-    ///act
-    uint64_t result = thread_count_policy_get_add_thread_time(thread_count_policy, 3, 3, 0, 3);
-
-    ///assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(uint64_t, THREAD_COUNT_POLICY_NEVER, result);
-
-    ///cleanup
-    thread_count_policy_destroy(thread_count_policy);
-}
-
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_019: [ If queued_work_count is not greater than starting_thread_count, thread_count_policy_get_add_thread_time shall return THREAD_COUNT_POLICY_NEVER. ]*/
-TEST_FUNCTION(thread_count_policy_get_add_thread_time_with_queued_work_count_less_than_starting_thread_count_returns_NEVER)
-{
-    ///arrange
-    THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(0, 10);
-
-    ///act
-    uint64_t result = thread_count_policy_get_add_thread_time(thread_count_policy, 2, 3, 0, 3);
-
-    ///assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(uint64_t, THREAD_COUNT_POLICY_NEVER, result);
-
-    ///cleanup
-    thread_count_policy_destroy(thread_count_policy);
-}
-
 /*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_020: [ If idle_thread_count is not 0, thread_count_policy_get_add_thread_time shall return THREAD_COUNT_POLICY_NEVER. ]*/
-TEST_FUNCTION(thread_count_policy_get_add_thread_time_with_an_idle_thread_returns_NEVER)
+/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_021: [ If thread_count is not less than the maximum thread count, thread_count_policy_get_add_thread_time shall return THREAD_COUNT_POLICY_NEVER. ]*/
+PARAMETERIZED_TEST_FUNCTION(thread_count_policy_get_add_thread_time_returns_NEVER,
+    ARGS(uint32_t, max_thread_count, uint32_t, queued_work_count, uint32_t, starting_thread_count, uint32_t, idle_thread_count, uint32_t, thread_count),
+    CASE((10, 0, 0, 0, 1), with_no_queued_work),
+    CASE((10, 0, 0, 0, 0), with_no_queued_work_and_no_threads),
+    CASE((10, 3, 3, 0, 3), with_queued_work_count_equal_to_starting_thread_count),
+    CASE((10, 2, 3, 0, 3), with_queued_work_count_less_than_starting_thread_count),
+    CASE((10, 5, 0, 1, 1), with_an_idle_thread),
+    CASE((10, 5, 0, 0, 10), with_thread_count_at_maximum),
+    CASE((10, 5, 0, 0, 11), with_thread_count_above_maximum),
+    CASE((0, 5, 0, 0, 500), with_thread_count_at_default_maximum))
 {
     ///arrange
-    THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(0, 10);
+    THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(0, max_thread_count);
 
     ///act
-    uint64_t result = thread_count_policy_get_add_thread_time(thread_count_policy, 5, 0, 1, 1);
+    uint64_t result = thread_count_policy_get_add_thread_time(thread_count_policy, queued_work_count, starting_thread_count, idle_thread_count, thread_count);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -526,68 +385,67 @@ TEST_FUNCTION(thread_count_policy_get_add_thread_time_with_an_idle_thread_return
     thread_count_policy_destroy(thread_count_policy);
 }
 
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_021: [ If thread_count is not less than the maximum thread count, thread_count_policy_get_add_thread_time shall return THREAD_COUNT_POLICY_NEVER. ]*/
-TEST_FUNCTION(thread_count_policy_get_add_thread_time_with_thread_count_at_maximum_returns_NEVER)
-{
-    ///arrange
-    THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(0, 10);
-
-    ///act
-    uint64_t result = thread_count_policy_get_add_thread_time(thread_count_policy, 5, 0, 0, 10);
-
-    ///assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(uint64_t, THREAD_COUNT_POLICY_NEVER, result);
-
-    ///cleanup
-    thread_count_policy_destroy(thread_count_policy);
-}
-
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_021: [ If thread_count is not less than the maximum thread count, thread_count_policy_get_add_thread_time shall return THREAD_COUNT_POLICY_NEVER. ]*/
-TEST_FUNCTION(thread_count_policy_get_add_thread_time_with_thread_count_above_maximum_returns_NEVER)
-{
-    ///arrange
-    THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(0, 10);
-
-    ///act
-    uint64_t result = thread_count_policy_get_add_thread_time(thread_count_policy, 5, 0, 0, 11);
-
-    ///assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(uint64_t, THREAD_COUNT_POLICY_NEVER, result);
-
-    ///cleanup
-    thread_count_policy_destroy(thread_count_policy);
-}
-
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_004: [ If max_thread_count is 0, thread_count_policy_create shall use 500 as the maximum thread count, or min_thread_count if it is larger. ]*/
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_021: [ If thread_count is not less than the maximum thread count, thread_count_policy_get_add_thread_time shall return THREAD_COUNT_POLICY_NEVER. ]*/
-TEST_FUNCTION(thread_count_policy_get_add_thread_time_with_thread_count_at_default_maximum_returns_NEVER)
-{
-    ///arrange
-    THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(0, 0);
-
-    ///act
-    uint64_t result_below_maximum = thread_count_policy_get_add_thread_time(thread_count_policy, 5, 0, 0, 499);
-    uint64_t result_at_maximum = thread_count_policy_get_add_thread_time(thread_count_policy, 5, 0, 0, 500);
-
-    ///assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(uint64_t, 50, result_below_maximum);
-    ASSERT_ARE_EQUAL(uint64_t, THREAD_COUNT_POLICY_NEVER, result_at_maximum);
-
-    ///cleanup
-    thread_count_policy_destroy(thread_count_policy);
-}
-
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_022: [ Otherwise, thread_count_policy_get_add_thread_time shall return the later of the last progress time plus 50 and the earliest time to add a thread. ]*/
-TEST_FUNCTION(thread_count_policy_get_add_thread_time_right_after_create_returns_50)
+/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_027: [ If thread_count is 0, thread_count_policy_get_add_thread_time shall return the earliest time to add a thread. ]*/
+TEST_FUNCTION(thread_count_policy_get_add_thread_time_with_no_threads_right_after_create_returns_0)
 {
     ///arrange
     THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(0, 10);
 
     ///act
     uint64_t result = thread_count_policy_get_add_thread_time(thread_count_policy, 1, 0, 0, 0);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(uint64_t, 0, result);
+
+    ///cleanup
+    thread_count_policy_destroy(thread_count_policy);
+}
+
+/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_027: [ If thread_count is 0, thread_count_policy_get_add_thread_time shall return the earliest time to add a thread. ]*/
+TEST_FUNCTION(thread_count_policy_get_add_thread_time_with_no_threads_does_not_wait_50_after_the_last_progress_time)
+{
+    ///arrange
+    THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(0, 10);
+    thread_count_policy_on_progress(thread_count_policy, 1000);
+
+    ///act
+    uint64_t result = thread_count_policy_get_add_thread_time(thread_count_policy, 1, 0, 0, 0);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(uint64_t, 0, result);
+
+    ///cleanup
+    thread_count_policy_destroy(thread_count_policy);
+}
+
+/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_027: [ If thread_count is 0, thread_count_policy_get_add_thread_time shall return the earliest time to add a thread. ]*/
+TEST_FUNCTION(thread_count_policy_get_add_thread_time_with_no_threads_after_add_thread_failed_returns_the_retry_time)
+{
+    ///arrange
+    THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(0, 10);
+    thread_count_policy_on_add_thread_failed(thread_count_policy, 1000);
+
+    ///act
+    uint64_t result = thread_count_policy_get_add_thread_time(thread_count_policy, 1, 0, 0, 0);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_ARE_EQUAL(uint64_t, 1100, result);
+
+    ///cleanup
+    thread_count_policy_destroy(thread_count_policy);
+}
+
+/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_022: [ Otherwise, thread_count_policy_get_add_thread_time shall return the later of the last progress time plus 50 and the earliest time to add a thread. ]*/
+TEST_FUNCTION(thread_count_policy_get_add_thread_time_with_threads_right_after_create_returns_50)
+{
+    ///arrange
+    THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(0, 10);
+
+    ///act
+    uint64_t result = thread_count_policy_get_add_thread_time(thread_count_policy, 1, 0, 0, 1);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
@@ -688,47 +546,18 @@ TEST_FUNCTION(thread_count_policy_get_retire_thread_time_with_NULL_thread_count_
 }
 
 /*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_024: [ If thread_count is not greater than the minimum thread count, thread_count_policy_get_retire_thread_time shall return THREAD_COUNT_POLICY_NEVER. ]*/
-TEST_FUNCTION(thread_count_policy_get_retire_thread_time_with_thread_count_below_minimum_returns_NEVER)
+PARAMETERIZED_TEST_FUNCTION(thread_count_policy_get_retire_thread_time_returns_NEVER,
+    ARGS(uint32_t, min_thread_count, uint32_t, thread_count, uint32_t, idle_thread_count),
+    CASE((4, 3, 1), with_thread_count_below_minimum),
+    CASE((4, 4, 1), with_thread_count_equal_to_minimum),
+    CASE((4, 4, 0), with_thread_count_equal_to_minimum_and_no_idle_threads),
+    CASE((0, 0, 0), with_no_threads_and_minimum_0))
 {
     ///arrange
-    THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(4, 10);
+    THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(min_thread_count, 10);
 
     ///act
-    uint64_t result = thread_count_policy_get_retire_thread_time(thread_count_policy, 3, 1, 1000, 100000);
-
-    ///assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(uint64_t, THREAD_COUNT_POLICY_NEVER, result);
-
-    ///cleanup
-    thread_count_policy_destroy(thread_count_policy);
-}
-
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_024: [ If thread_count is not greater than the minimum thread count, thread_count_policy_get_retire_thread_time shall return THREAD_COUNT_POLICY_NEVER. ]*/
-TEST_FUNCTION(thread_count_policy_get_retire_thread_time_with_thread_count_equal_to_minimum_returns_NEVER)
-{
-    ///arrange
-    THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(4, 10);
-
-    ///act
-    uint64_t result = thread_count_policy_get_retire_thread_time(thread_count_policy, 4, 1, 1000, 100000);
-
-    ///assert
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(uint64_t, THREAD_COUNT_POLICY_NEVER, result);
-
-    ///cleanup
-    thread_count_policy_destroy(thread_count_policy);
-}
-
-/*Tests_SRS_THREAD_COUNT_POLICY_LINUX_42_024: [ If thread_count is not greater than the minimum thread count, thread_count_policy_get_retire_thread_time shall return THREAD_COUNT_POLICY_NEVER. ]*/
-TEST_FUNCTION(thread_count_policy_get_retire_thread_time_with_no_threads_and_minimum_0_returns_NEVER)
-{
-    ///arrange
-    THREAD_COUNT_POLICY_HANDLE thread_count_policy = test_create_policy(0, 10);
-
-    ///act
-    uint64_t result = thread_count_policy_get_retire_thread_time(thread_count_policy, 0, 0, 0, 100000);
+    uint64_t result = thread_count_policy_get_retire_thread_time(thread_count_policy, thread_count, idle_thread_count, 1000, 100000);
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
