@@ -23,7 +23,7 @@ typedef struct MIN_HEAP_TAG
     uint32_t capacity;
 } MIN_HEAP;
 
-static void swap_entries(MIN_HEAP* min_heap, uint32_t first, uint32_t second)
+static void internal_min_heap_swap_entries(MIN_HEAP* min_heap, uint32_t first, uint32_t second)
 {
     MIN_HEAP_ENTRY* temp = min_heap->entries[first];
     min_heap->entries[first] = min_heap->entries[second];
@@ -32,88 +32,100 @@ static void swap_entries(MIN_HEAP* min_heap, uint32_t first, uint32_t second)
     min_heap->entries[second]->index = second;
 }
 
-static void sift_up(MIN_HEAP* min_heap, uint32_t index)
+static void internal_min_heap_sift_up(MIN_HEAP* min_heap, uint32_t index)
 {
     while ((index > 0) && (min_heap->entries[index]->key < min_heap->entries[(index - 1) / 2]->key))
     {
         uint32_t parent = (index - 1) / 2;
-        swap_entries(min_heap, parent, index);
+        internal_min_heap_swap_entries(min_heap, parent, index);
         index = parent;
     }
 }
 
-static uint32_t get_lowest_of_entry_and_children(MIN_HEAP* min_heap, uint32_t index)
+static uint32_t internal_min_heap_get_lowest_of_entry_and_children(MIN_HEAP* min_heap, uint32_t index)
 {
     uint32_t result = index;
     uint64_t left = ((uint64_t)index * 2) + 1;
     uint64_t right = left + 1;
 
-    if ((left < min_heap->count) && (min_heap->entries[left]->key < min_heap->entries[result]->key))
+    if ((left >= min_heap->count) || (min_heap->entries[left]->key >= min_heap->entries[result]->key))
+    {
+        /* do nothing */
+    }
+    else
     {
         result = (uint32_t)left;
     }
-    else
-    {
-        // no left child, or its key is not lower
-    }
 
-    if ((right < min_heap->count) && (min_heap->entries[right]->key < min_heap->entries[result]->key))
+    if ((right >= min_heap->count) || (min_heap->entries[right]->key >= min_heap->entries[result]->key))
+    {
+        /* do nothing */
+    }
+    else
     {
         result = (uint32_t)right;
-    }
-    else
-    {
-        // no right child, or its key is not lower
     }
 
     return result;
 }
 
-static void sift_down(MIN_HEAP* min_heap, uint32_t index)
+static void internal_min_heap_sift_down(MIN_HEAP* min_heap, uint32_t index)
 {
-    uint32_t lowest = get_lowest_of_entry_and_children(min_heap, index);
+    uint32_t lowest = internal_min_heap_get_lowest_of_entry_and_children(min_heap, index);
     while (lowest != index)
     {
-        swap_entries(min_heap, lowest, index);
+        internal_min_heap_swap_entries(min_heap, lowest, index);
         index = lowest;
-        lowest = get_lowest_of_entry_and_children(min_heap, index);
+        lowest = internal_min_heap_get_lowest_of_entry_and_children(min_heap, index);
     }
 }
 
-static int grow_entries(MIN_HEAP* min_heap)
+static int internal_min_heap_ensure_room(MIN_HEAP* min_heap)
 {
     int result;
-    uint32_t new_capacity;
 
-    /* Codes_SRS_MIN_HEAP_42_009: [ min_heap_reserve shall compute the new capacity as 16 if the capacity is 0, or as twice the capacity capped at UINT32_MAX otherwise. ]*/
-    if (min_heap->capacity == 0)
+    if (min_heap->reserved_count < min_heap->capacity)
     {
-        new_capacity = MIN_HEAP_INITIAL_CAPACITY;
+        /* Codes_SRS_MIN_HEAP_42_041: [ If the reserved count is less than the capacity of the array of entries, internal_min_heap_ensure_room shall succeed and return 0. ]*/
+        result = 0;
     }
     else
     {
-        if (min_heap->capacity > UINT32_MAX / 2)
+        uint32_t new_capacity;
+
+        /* Codes_SRS_MIN_HEAP_42_009: [ internal_min_heap_ensure_room shall compute the new capacity as 16 if the capacity is 0, or as twice the capacity capped at UINT32_MAX otherwise. ]*/
+        if (min_heap->capacity == 0)
         {
-            new_capacity = UINT32_MAX;
+            new_capacity = MIN_HEAP_INITIAL_CAPACITY;
         }
         else
         {
-            new_capacity = min_heap->capacity * 2;
+            if (min_heap->capacity > UINT32_MAX / 2)
+            {
+                new_capacity = UINT32_MAX;
+            }
+            else
+            {
+                new_capacity = min_heap->capacity * 2;
+            }
         }
-    }
 
-    /* Codes_SRS_MIN_HEAP_42_010: [ min_heap_reserve shall grow the array of entries to the new capacity by calling realloc_2. ]*/
-    MIN_HEAP_ENTRY** new_entries = realloc_2(min_heap->entries, new_capacity, sizeof(MIN_HEAP_ENTRY*));
-    if (new_entries == NULL)
-    {
-        LogError("realloc_2(%p, %" PRIu32 ", %zu) failed", min_heap->entries, new_capacity, sizeof(MIN_HEAP_ENTRY*));
-        result = MU_FAILURE;
-    }
-    else
-    {
-        min_heap->entries = new_entries;
-        min_heap->capacity = new_capacity;
-        result = 0;
+        /* Codes_SRS_MIN_HEAP_42_010: [ internal_min_heap_ensure_room shall grow the array of entries to the new capacity by calling realloc_2. ]*/
+        MIN_HEAP_ENTRY** new_entries = realloc_2(min_heap->entries, new_capacity, sizeof(MIN_HEAP_ENTRY*));
+        if (new_entries == NULL)
+        {
+            /* Codes_SRS_MIN_HEAP_42_042: [ If realloc_2 fails, internal_min_heap_ensure_room shall fail and return a non-zero value. ]*/
+            LogError("realloc_2(%p, %" PRIu32 ", %zu) failed", min_heap->entries, new_capacity, sizeof(MIN_HEAP_ENTRY*));
+            result = MU_FAILURE;
+        }
+        else
+        {
+            min_heap->entries = new_entries;
+            min_heap->capacity = new_capacity;
+
+            /* Codes_SRS_MIN_HEAP_42_043: [ internal_min_heap_ensure_room shall succeed and return 0. ]*/
+            result = 0;
+        }
     }
 
     return result;
@@ -121,7 +133,7 @@ static int grow_entries(MIN_HEAP* min_heap)
 
 MIN_HEAP_HANDLE min_heap_create(void)
 {
-    /* Codes_SRS_MIN_HEAP_42_001: [ min_heap_create shall allocate a new heap with no entries, no reserved room and no array of entries, and return it. ]*/
+    /* Codes_SRS_MIN_HEAP_42_001: [ min_heap_create shall allocate a new heap by calling malloc. ]*/
     MIN_HEAP* result = malloc(sizeof(MIN_HEAP));
     if (result == NULL)
     {
@@ -130,10 +142,13 @@ MIN_HEAP_HANDLE min_heap_create(void)
     }
     else
     {
+        /* Codes_SRS_MIN_HEAP_42_038: [ min_heap_create shall set the heap to have no entries, no reserved room and no array of entries. ]*/
         result->entries = NULL;
         result->count = 0;
         result->reserved_count = 0;
         result->capacity = 0;
+
+        /* Codes_SRS_MIN_HEAP_42_039: [ min_heap_create shall succeed and return the heap. ]*/
     }
 
     return result;
@@ -176,20 +191,19 @@ int min_heap_reserve(MIN_HEAP_HANDLE min_heap)
         }
         else
         {
-            if (
-                /* Codes_SRS_MIN_HEAP_42_008: [ If the reserved count is equal to the capacity of the array of entries: ]*/
-                (min_heap->reserved_count == min_heap->capacity) &&
-                (grow_entries(min_heap) != 0)
-                )
+            /* Codes_SRS_MIN_HEAP_42_008: [ min_heap_reserve shall make sure the array of entries has room for one more reserved entry. ]*/
+            if (internal_min_heap_ensure_room(min_heap) != 0)
             {
-                /* Codes_SRS_MIN_HEAP_42_011: [ If realloc_2 fails, min_heap_reserve shall fail and return a non-zero value. ]*/
-                LogError("grow_entries failed");
+                /* Codes_SRS_MIN_HEAP_42_011: [ If making room fails, min_heap_reserve shall fail and return a non-zero value. ]*/
+                LogError("internal_min_heap_ensure_room failed");
                 result = MU_FAILURE;
             }
             else
             {
-                /* Codes_SRS_MIN_HEAP_42_012: [ min_heap_reserve shall increment the reserved count and return 0. ]*/
+                /* Codes_SRS_MIN_HEAP_42_012: [ min_heap_reserve shall increment the reserved count. ]*/
                 min_heap->reserved_count++;
+
+                /* Codes_SRS_MIN_HEAP_42_040: [ min_heap_reserve shall succeed and return 0. ]*/
                 result = 0;
             }
         }
@@ -209,7 +223,7 @@ void min_heap_unreserve(MIN_HEAP_HANDLE min_heap)
     {
         if (min_heap->count == min_heap->reserved_count)
         {
-            /* Codes_SRS_MIN_HEAP_42_014: [ If the heap has as many entries as the reserved count, min_heap_unreserve shall log an error and return. ]*/
+            /* Codes_SRS_MIN_HEAP_42_014: [ If the heap has as many entries as the reserved count, min_heap_unreserve shall return. ]*/
             LogError("min_heap %p has %" PRIu32 " entries and no room reserved for another one", min_heap, min_heap->count);
         }
         else
@@ -252,14 +266,14 @@ void min_heap_insert(MIN_HEAP_HANDLE min_heap, MIN_HEAP_ENTRY* entry, uint64_t k
     {
         if (entry->index != MIN_HEAP_ENTRY_NOT_IN_HEAP)
         {
-            /* Codes_SRS_MIN_HEAP_42_021: [ If the index of entry is not MIN_HEAP_ENTRY_NOT_IN_HEAP, min_heap_insert shall log an error and return. ]*/
+            /* Codes_SRS_MIN_HEAP_42_021: [ If the index of entry is not MIN_HEAP_ENTRY_NOT_IN_HEAP, min_heap_insert shall return. ]*/
             LogError("entry %p is already in a heap at index %" PRIu32 "", entry, entry->index);
         }
         else
         {
             if (min_heap->count == min_heap->reserved_count)
             {
-                /* Codes_SRS_MIN_HEAP_42_022: [ If the heap has as many entries as the reserved count, min_heap_insert shall log an error and return. ]*/
+                /* Codes_SRS_MIN_HEAP_42_022: [ If the heap has as many entries as the reserved count, min_heap_insert shall return. ]*/
                 LogError("min_heap %p has %" PRIu32 " entries and no room reserved for another one", min_heap, min_heap->count);
             }
             else
@@ -274,7 +288,7 @@ void min_heap_insert(MIN_HEAP_HANDLE min_heap, MIN_HEAP_ENTRY* entry, uint64_t k
                 min_heap->count++;
 
                 /* Codes_SRS_MIN_HEAP_42_025: [ min_heap_insert shall swap entry with its parent while its key is lower than the key of its parent. ]*/
-                sift_up(min_heap, index);
+                internal_min_heap_sift_up(min_heap, index);
             }
         }
     }
@@ -318,10 +332,10 @@ void min_heap_remove(MIN_HEAP_HANDLE min_heap, MIN_HEAP_ENTRY* entry)
                 moved_entry->index = index;
 
                 /* Codes_SRS_MIN_HEAP_42_032: [ min_heap_remove shall swap the moved entry with its child with the lowest key while its key is greater than the key of that child. ]*/
-                sift_down(min_heap, index);
+                internal_min_heap_sift_down(min_heap, index);
 
                 /* Codes_SRS_MIN_HEAP_42_033: [ min_heap_remove shall swap the moved entry with its parent while its key is lower than the key of its parent. ]*/
-                sift_up(min_heap, moved_entry->index);
+                internal_min_heap_sift_up(min_heap, moved_entry->index);
             }
 
             /* Codes_SRS_MIN_HEAP_42_034: [ min_heap_remove shall set the index of entry to MIN_HEAP_ENTRY_NOT_IN_HEAP. ]*/
