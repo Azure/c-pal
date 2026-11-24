@@ -21,6 +21,14 @@
 
 MU_DEFINE_ENUM_STRINGS(WORKER_POOL_WAKE_RESULT, WORKER_POOL_WAKE_RESULT_VALUES);
 
+#define WORKER_STATE_VALUES \
+    WORKER_STATE_RUNNING, \
+    WORKER_STATE_IDLE, \
+    WORKER_STATE_WOKEN, \
+    WORKER_STATE_RETIRED
+
+MU_DEFINE_ENUM(WORKER_STATE, WORKER_STATE_VALUES);
+
 typedef struct WORKER_POOL_TAG WORKER_POOL;
 
 typedef struct WORKER_TAG
@@ -28,9 +36,7 @@ typedef struct WORKER_TAG
     WORKER_POOL* worker_pool;
     THREAD_HANDLE thread;
     pthread_cond_t wake_cond;
-    bool is_signaled;
-    bool is_retired;
-    bool is_idle;
+    WORKER_STATE state;
     uint64_t idle_since_ms;
     DLIST_ENTRY worker_list_entry;
     DLIST_ENTRY idle_list_entry;
@@ -53,64 +59,77 @@ typedef struct WORKER_POOL_TAG
     bool is_stopped;
 } WORKER_POOL;
 
-static void wait_while_idle(WORKER_POOL* worker_pool, WORKER* worker)
+static void internal_worker_pool_wait_while_idle(WORKER_POOL* worker_pool, WORKER* worker)
 {
-    /* Codes_SRS_WORKER_POOL_LINUX_42_049: [ wait_while_idle shall mark the worker as not signaled. ]*/
-    worker->is_signaled = false;
+    /* Codes_SRS_WORKER_POOL_LINUX_42_049: [ internal_worker_pool_wait_while_idle shall set the state of the worker to idle. ]*/
+    worker->state = WORKER_STATE_IDLE;
 
-    /* Codes_SRS_WORKER_POOL_LINUX_42_050: [ wait_while_idle shall record the current time obtained by calling timer_global_get_elapsed_ms as the time the worker became idle. ]*/
+    /* Codes_SRS_WORKER_POOL_LINUX_42_050: [ internal_worker_pool_wait_while_idle shall record the current time obtained by calling timer_global_get_elapsed_ms as the time the worker became idle. ]*/
     worker->idle_since_ms = (uint64_t)timer_global_get_elapsed_ms();
 
-    /* Codes_SRS_WORKER_POOL_LINUX_42_051: [ wait_while_idle shall insert the worker at the head of the list of idle workers by calling DList_InsertHeadList. ]*/
+    /* Codes_SRS_WORKER_POOL_LINUX_42_051: [ internal_worker_pool_wait_while_idle shall insert the worker at the head of the list of idle workers by calling DList_InsertHeadList. ]*/
     DList_InsertHeadList(&worker_pool->idle_workers, &worker->idle_list_entry);
-    worker->is_idle = true;
+
+    /* Codes_SRS_WORKER_POOL_LINUX_42_088: [ internal_worker_pool_wait_while_idle shall increment the idle thread count. ]*/
     worker_pool->idle_thread_count++;
 
-    /* Codes_SRS_WORKER_POOL_LINUX_42_052: [ wait_while_idle shall wait by calling pthread_cond_wait on the condition variable of the worker until the worker is signaled, the worker is retired or the pool is stopped. ]*/
-    while (!worker->is_signaled && !worker->is_retired && !worker_pool->is_stopped)
+    /* Codes_SRS_WORKER_POOL_LINUX_42_052: [ internal_worker_pool_wait_while_idle shall wait by calling pthread_cond_wait on the condition variable of the worker while the worker is idle and the pool is not stopped. ]*/
+    while ((worker->state == WORKER_STATE_IDLE) && !worker_pool->is_stopped)
     {
         (void)pthread_cond_wait(&worker->wake_cond, worker_pool->lock);
     }
 
-    if (worker->is_signaled)
+    if (worker->state != WORKER_STATE_WOKEN)
     {
-        /* Codes_SRS_WORKER_POOL_LINUX_42_053: [ If the worker is signaled, wait_while_idle shall decrement the signaled thread count. ]*/
-        worker_pool->signaled_thread_count--;
+        /* do nothing */
     }
     else
     {
-        // retired or stopped
+        /* Codes_SRS_WORKER_POOL_LINUX_42_053: [ If the worker was woken: ]*/
+
+        /* Codes_SRS_WORKER_POOL_LINUX_42_089: [ internal_worker_pool_wait_while_idle shall decrement the signaled thread count. ]*/
+        worker_pool->signaled_thread_count--;
+
+        /* Codes_SRS_WORKER_POOL_LINUX_42_090: [ internal_worker_pool_wait_while_idle shall set the state of the worker to running. ]*/
+        worker->state = WORKER_STATE_RUNNING;
     }
 
-    if (worker->is_idle)
+    if (worker->state != WORKER_STATE_IDLE)
     {
-        /* Codes_SRS_WORKER_POOL_LINUX_42_054: [ If the worker is still in the list of idle workers, wait_while_idle shall remove it by calling DList_RemoveEntryList. ]*/
-        (void)DList_RemoveEntryList(&worker->idle_list_entry);
-        worker->is_idle = false;
-        worker_pool->idle_thread_count--;
+        // removed from the list of idle workers by whoever woke or retired it
     }
     else
     {
-        // removed from the list of idle workers by whoever woke it
+        /* Codes_SRS_WORKER_POOL_LINUX_42_054: [ If the worker is still idle: ]*/
+        // the pool is stopped
+
+        /* Codes_SRS_WORKER_POOL_LINUX_42_091: [ internal_worker_pool_wait_while_idle shall remove the worker from the list of idle workers by calling DList_RemoveEntryList. ]*/
+        (void)DList_RemoveEntryList(&worker->idle_list_entry);
+
+        /* Codes_SRS_WORKER_POOL_LINUX_42_092: [ internal_worker_pool_wait_while_idle shall decrement the idle thread count. ]*/
+        worker_pool->idle_thread_count--;
+
+        /* Codes_SRS_WORKER_POOL_LINUX_42_093: [ internal_worker_pool_wait_while_idle shall set the state of the worker to running. ]*/
+        worker->state = WORKER_STATE_RUNNING;
     }
 }
 
-static int worker_thread_func(void* arg)
+static int internal_worker_pool_worker_thread_func(void* arg)
 {
     WORKER* worker = arg;
     WORKER_POOL* worker_pool = worker->worker_pool;
     bool is_stopping = false;
 
-    /* Codes_SRS_WORKER_POOL_LINUX_42_040: [ worker_thread_func shall acquire lock by calling pthread_mutex_lock. ]*/
+    /* Codes_SRS_WORKER_POOL_LINUX_42_040: [ internal_worker_pool_worker_thread_func shall acquire lock by calling pthread_mutex_lock. ]*/
     (void)pthread_mutex_lock(worker_pool->lock);
 
-    /* Codes_SRS_WORKER_POOL_LINUX_42_041: [ worker_thread_func shall decrement the starting thread count. ]*/
+    /* Codes_SRS_WORKER_POOL_LINUX_42_041: [ internal_worker_pool_worker_thread_func shall decrement the starting thread count. ]*/
     worker_pool->starting_thread_count--;
 
-    /* Codes_SRS_WORKER_POOL_LINUX_42_042: [ Until the worker is retired or it stops, worker_thread_func shall: ]*/
-    while (!worker->is_retired && !is_stopping)
+    /* Codes_SRS_WORKER_POOL_LINUX_42_042: [ Until the worker is retired or the worker stops: ]*/
+    while ((worker->state != WORKER_STATE_RETIRED) && !is_stopping)
     {
-        /* Codes_SRS_WORKER_POOL_LINUX_42_043: [ worker_thread_func shall call run_function with run_function_context. ]*/
+        /* Codes_SRS_WORKER_POOL_LINUX_42_043: [ internal_worker_pool_worker_thread_func shall call run_function with run_function_context. ]*/
         if (worker_pool->run_function(worker_pool->run_function_context))
         {
             // ran work, look for more
@@ -120,60 +139,58 @@ static int worker_thread_func(void* arg)
             /* Codes_SRS_WORKER_POOL_LINUX_42_044: [ If run_function returns false: ]*/
             if (worker_pool->is_stopped)
             {
-                /* Codes_SRS_WORKER_POOL_LINUX_42_045: [ If the pool is stopped, worker_thread_func shall stop. ]*/
+                /* Codes_SRS_WORKER_POOL_LINUX_42_045: [ If the pool is stopped, internal_worker_pool_worker_thread_func shall stop. ]*/
                 is_stopping = true;
             }
             else
             {
-                /* Codes_SRS_WORKER_POOL_LINUX_42_046: [ If the pool is not stopped, worker_thread_func shall wait while the worker is idle. ]*/
-                wait_while_idle(worker_pool, worker);
+                /* Codes_SRS_WORKER_POOL_LINUX_42_046: [ If the pool is not stopped, internal_worker_pool_worker_thread_func shall wait while the worker is idle. ]*/
+                internal_worker_pool_wait_while_idle(worker_pool, worker);
             }
         }
     }
 
-    /* Codes_SRS_WORKER_POOL_LINUX_42_047: [ worker_thread_func shall release lock by calling pthread_mutex_unlock. ]*/
+    /* Codes_SRS_WORKER_POOL_LINUX_42_047: [ internal_worker_pool_worker_thread_func shall release lock by calling pthread_mutex_unlock. ]*/
     (void)pthread_mutex_unlock(worker_pool->lock);
 
-    /* Codes_SRS_WORKER_POOL_LINUX_42_048: [ worker_thread_func shall return 0. ]*/
+    /* Codes_SRS_WORKER_POOL_LINUX_42_048: [ internal_worker_pool_worker_thread_func shall return 0. ]*/
     return 0;
 }
 
-static WORKER* create_worker(WORKER_POOL* worker_pool)
+static WORKER* internal_worker_pool_create_worker(WORKER_POOL* worker_pool)
 {
-    /* Codes_SRS_WORKER_POOL_LINUX_42_031: [ create_worker shall allocate a worker. ]*/
+    /* Codes_SRS_WORKER_POOL_LINUX_42_031: [ internal_worker_pool_create_worker shall allocate a worker. ]*/
     WORKER* result = malloc(sizeof(WORKER));
     if (result == NULL)
     {
-        /* Codes_SRS_WORKER_POOL_LINUX_42_036: [ If any error occurs, create_worker shall free the resources it allocated and return NULL. ]*/
+        /* Codes_SRS_WORKER_POOL_LINUX_42_036: [ If any error occurs, internal_worker_pool_create_worker shall free the resources it allocated and return NULL. ]*/
         LogError("malloc(sizeof(WORKER)=%zu) failed", sizeof(WORKER));
     }
     else
     {
+        /* Codes_SRS_WORKER_POOL_LINUX_42_086: [ internal_worker_pool_create_worker shall store worker_pool in the worker. ]*/
         result->worker_pool = worker_pool;
 
-        /* Codes_SRS_WORKER_POOL_LINUX_42_032: [ create_worker shall mark the worker as not signaled, not retired and not idle. ]*/
-        result->is_signaled = false;
-        result->is_retired = false;
-        result->is_idle = false;
-        result->idle_since_ms = 0;
+        /* Codes_SRS_WORKER_POOL_LINUX_42_032: [ internal_worker_pool_create_worker shall set the state of the worker to running. ]*/
+        result->state = WORKER_STATE_RUNNING;
 
-        /* Codes_SRS_WORKER_POOL_LINUX_42_033: [ create_worker shall initialize the condition variable of the worker by calling pthread_cond_init. ]*/
+        /* Codes_SRS_WORKER_POOL_LINUX_42_033: [ internal_worker_pool_create_worker shall initialize the condition variable of the worker by calling pthread_cond_init. ]*/
         if (pthread_cond_init(&result->wake_cond, NULL) != 0)
         {
-            /* Codes_SRS_WORKER_POOL_LINUX_42_036: [ If any error occurs, create_worker shall free the resources it allocated and return NULL. ]*/
+            /* Codes_SRS_WORKER_POOL_LINUX_42_036: [ If any error occurs, internal_worker_pool_create_worker shall free the resources it allocated and return NULL. ]*/
             LogError("pthread_cond_init failed");
         }
         else
         {
-            /* Codes_SRS_WORKER_POOL_LINUX_42_034: [ create_worker shall start the worker thread by calling ThreadAPI_Create with worker_thread_func and the worker. ]*/
-            if (ThreadAPI_Create(&result->thread, worker_thread_func, result) != THREADAPI_OK)
+            /* Codes_SRS_WORKER_POOL_LINUX_42_034: [ internal_worker_pool_create_worker shall start the worker thread by calling ThreadAPI_Create with internal_worker_pool_worker_thread_func and the worker. ]*/
+            if (ThreadAPI_Create(&result->thread, internal_worker_pool_worker_thread_func, result) != THREADAPI_OK)
             {
-                /* Codes_SRS_WORKER_POOL_LINUX_42_036: [ If any error occurs, create_worker shall free the resources it allocated and return NULL. ]*/
+                /* Codes_SRS_WORKER_POOL_LINUX_42_036: [ If any error occurs, internal_worker_pool_create_worker shall free the resources it allocated and return NULL. ]*/
                 LogError("ThreadAPI_Create failed");
             }
             else
             {
-                /* Codes_SRS_WORKER_POOL_LINUX_42_035: [ create_worker shall return the worker. ]*/
+                /* Codes_SRS_WORKER_POOL_LINUX_42_035: [ internal_worker_pool_create_worker shall return the worker. ]*/
                 goto all_ok;
             }
             (void)pthread_cond_destroy(&result->wake_cond);
@@ -185,25 +202,24 @@ all_ok:
     return result;
 }
 
-static void join_and_free_worker(WORKER* worker)
+static void internal_worker_pool_destroy_worker(WORKER* worker)
 {
     int thread_result;
 
-    /* Codes_SRS_WORKER_POOL_LINUX_42_037: [ join_and_free_worker shall wait for the worker thread to exit by calling ThreadAPI_Join. ]*/
+    /* Codes_SRS_WORKER_POOL_LINUX_42_037: [ internal_worker_pool_destroy_worker shall wait for the worker thread to exit by calling ThreadAPI_Join. ]*/
     if (ThreadAPI_Join(worker->thread, &thread_result) != THREADAPI_OK)
     {
-        LogError("ThreadAPI_Join failed for worker %p", worker);
+        /* Codes_SRS_WORKER_POOL_LINUX_42_087: [ If ThreadAPI_Join fails, internal_worker_pool_destroy_worker shall return without freeing the worker, which the worker thread can still use. ]*/
+        LogError("ThreadAPI_Join failed for worker %p, the worker is not freed", worker);
     }
     else
     {
-        // the worker thread exited
+        /* Codes_SRS_WORKER_POOL_LINUX_42_038: [ internal_worker_pool_destroy_worker shall destroy the condition variable of the worker by calling pthread_cond_destroy. ]*/
+        (void)pthread_cond_destroy(&worker->wake_cond);
+
+        /* Codes_SRS_WORKER_POOL_LINUX_42_039: [ internal_worker_pool_destroy_worker shall free the worker. ]*/
+        free(worker);
     }
-
-    /* Codes_SRS_WORKER_POOL_LINUX_42_038: [ join_and_free_worker shall destroy the condition variable of the worker by calling pthread_cond_destroy. ]*/
-    (void)pthread_cond_destroy(&worker->wake_cond);
-
-    /* Codes_SRS_WORKER_POOL_LINUX_42_039: [ join_and_free_worker shall free the worker. ]*/
-    free(worker);
 }
 
 WORKER_POOL_HANDLE worker_pool_create(pthread_mutex_t* lock, WORKER_POOL_RUN_FUNCTION run_function, void* run_function_context)
@@ -283,18 +299,24 @@ void worker_pool_destroy(WORKER_POOL_HANDLE worker_pool)
         /* Codes_SRS_WORKER_POOL_LINUX_42_014: [ worker_pool_destroy shall release lock by calling pthread_mutex_unlock. ]*/
         (void)pthread_mutex_unlock(worker_pool->lock);
 
-        /* Codes_SRS_WORKER_POOL_LINUX_42_015: [ For each worker in the list of workers, worker_pool_destroy shall remove it from the list and join and free it. ]*/
+        /* Codes_SRS_WORKER_POOL_LINUX_42_015: [ For each worker in the list of workers: ]*/
         while (!DList_IsListEmpty(&worker_pool->workers))
         {
-            PDLIST_ENTRY entry = DList_RemoveHeadList(&worker_pool->workers);
-            join_and_free_worker(CONTAINING_RECORD(entry, WORKER, worker_list_entry));
+            /* Codes_SRS_WORKER_POOL_LINUX_42_082: [ worker_pool_destroy shall remove the worker from the list of workers by calling DList_RemoveHeadList. ]*/
+            WORKER* worker = CONTAINING_RECORD(DList_RemoveHeadList(&worker_pool->workers), WORKER, worker_list_entry);
+
+            /* Codes_SRS_WORKER_POOL_LINUX_42_083: [ worker_pool_destroy shall destroy the worker. ]*/
+            internal_worker_pool_destroy_worker(worker);
         }
 
-        /* Codes_SRS_WORKER_POOL_LINUX_42_016: [ For each worker in the list of retired workers, worker_pool_destroy shall remove it from the list and join and free it. ]*/
+        /* Codes_SRS_WORKER_POOL_LINUX_42_016: [ For each worker in the list of retired workers: ]*/
         while (!DList_IsListEmpty(&worker_pool->retired_workers))
         {
-            PDLIST_ENTRY entry = DList_RemoveHeadList(&worker_pool->retired_workers);
-            join_and_free_worker(CONTAINING_RECORD(entry, WORKER, worker_list_entry));
+            /* Codes_SRS_WORKER_POOL_LINUX_42_084: [ worker_pool_destroy shall remove the worker from the list of retired workers by calling DList_RemoveHeadList. ]*/
+            WORKER* worker = CONTAINING_RECORD(DList_RemoveHeadList(&worker_pool->retired_workers), WORKER, worker_list_entry);
+
+            /* Codes_SRS_WORKER_POOL_LINUX_42_085: [ worker_pool_destroy shall destroy the worker. ]*/
+            internal_worker_pool_destroy_worker(worker);
         }
 
         /* Codes_SRS_WORKER_POOL_LINUX_42_017: [ worker_pool_destroy shall free the pool. ]*/
@@ -324,7 +346,7 @@ int worker_pool_add_worker(WORKER_POOL_HANDLE worker_pool)
         (void)pthread_mutex_unlock(worker_pool->lock);
 
         /* Codes_SRS_WORKER_POOL_LINUX_42_022: [ worker_pool_add_worker shall create a worker. ]*/
-        WORKER* worker = create_worker(worker_pool);
+        WORKER* worker = internal_worker_pool_create_worker(worker_pool);
 
         /* Codes_SRS_WORKER_POOL_LINUX_42_023: [ worker_pool_add_worker shall acquire lock by calling pthread_mutex_lock. ]*/
         (void)pthread_mutex_lock(worker_pool->lock);
@@ -332,7 +354,7 @@ int worker_pool_add_worker(WORKER_POOL_HANDLE worker_pool)
         if (worker == NULL)
         {
             /* Codes_SRS_WORKER_POOL_LINUX_42_024: [ If creating the worker fails: ]*/
-            LogError("create_worker failed, %" PRIu32 " worker threads running", worker_pool->thread_count - 1);
+            LogError("internal_worker_pool_create_worker failed, %" PRIu32 " worker threads running", worker_pool->thread_count - 1);
 
             /* Codes_SRS_WORKER_POOL_LINUX_42_025: [ worker_pool_add_worker shall decrement the thread count. ]*/
             worker_pool->thread_count--;
@@ -387,11 +409,12 @@ WORKER_POOL_WAKE_RESULT worker_pool_wake_idle_worker(WORKER_POOL_HANDLE worker_p
             {
                 /* Codes_SRS_WORKER_POOL_LINUX_42_058: [ worker_pool_wake_idle_worker shall remove the worker at the head of the list of idle workers by calling DList_RemoveHeadList. ]*/
                 WORKER* worker = CONTAINING_RECORD(DList_RemoveHeadList(&worker_pool->idle_workers), WORKER, idle_list_entry);
-                worker->is_idle = false;
+
+                /* Codes_SRS_WORKER_POOL_LINUX_42_094: [ worker_pool_wake_idle_worker shall decrement the idle thread count. ]*/
                 worker_pool->idle_thread_count--;
 
-                /* Codes_SRS_WORKER_POOL_LINUX_42_059: [ worker_pool_wake_idle_worker shall mark the worker as signaled. ]*/
-                worker->is_signaled = true;
+                /* Codes_SRS_WORKER_POOL_LINUX_42_059: [ worker_pool_wake_idle_worker shall set the state of the worker to woken. ]*/
+                worker->state = WORKER_STATE_WOKEN;
 
                 /* Codes_SRS_WORKER_POOL_LINUX_42_060: [ worker_pool_wake_idle_worker shall increment the signaled thread count. ]*/
                 worker_pool->signaled_thread_count++;
@@ -450,18 +473,19 @@ void worker_pool_retire_oldest_idle_worker(WORKER_POOL_HANDLE worker_pool)
     {
         if (DList_IsListEmpty(&worker_pool->idle_workers))
         {
-            /* Codes_SRS_WORKER_POOL_LINUX_42_069: [ If no worker is idle, worker_pool_retire_oldest_idle_worker shall log an error and return. ]*/
+            /* Codes_SRS_WORKER_POOL_LINUX_42_069: [ If no worker is idle, worker_pool_retire_oldest_idle_worker shall return. ]*/
             LogError("worker pool %p has no idle worker to retire", worker_pool);
         }
         else
         {
             /* Codes_SRS_WORKER_POOL_LINUX_42_070: [ worker_pool_retire_oldest_idle_worker shall remove the worker at the tail of the list of idle workers by calling DList_RemoveTailList. ]*/
             WORKER* worker = CONTAINING_RECORD(DList_RemoveTailList(&worker_pool->idle_workers), WORKER, idle_list_entry);
-            worker->is_idle = false;
+
+            /* Codes_SRS_WORKER_POOL_LINUX_42_095: [ worker_pool_retire_oldest_idle_worker shall decrement the idle thread count. ]*/
             worker_pool->idle_thread_count--;
 
-            /* Codes_SRS_WORKER_POOL_LINUX_42_071: [ worker_pool_retire_oldest_idle_worker shall mark the worker as retired. ]*/
-            worker->is_retired = true;
+            /* Codes_SRS_WORKER_POOL_LINUX_42_071: [ worker_pool_retire_oldest_idle_worker shall set the state of the worker to retired. ]*/
+            worker->state = WORKER_STATE_RETIRED;
 
             /* Codes_SRS_WORKER_POOL_LINUX_42_072: [ worker_pool_retire_oldest_idle_worker shall wake the worker by calling pthread_cond_signal on its condition variable. ]*/
             (void)pthread_cond_signal(&worker->wake_cond);
@@ -496,8 +520,8 @@ void worker_pool_join_retired_workers(WORKER_POOL_HANDLE worker_pool)
             /* Codes_SRS_WORKER_POOL_LINUX_42_079: [ worker_pool_join_retired_workers shall release lock by calling pthread_mutex_unlock. ]*/
             (void)pthread_mutex_unlock(worker_pool->lock);
 
-            /* Codes_SRS_WORKER_POOL_LINUX_42_080: [ worker_pool_join_retired_workers shall join and free the worker. ]*/
-            join_and_free_worker(worker);
+            /* Codes_SRS_WORKER_POOL_LINUX_42_080: [ worker_pool_join_retired_workers shall destroy the worker. ]*/
+            internal_worker_pool_destroy_worker(worker);
 
             /* Codes_SRS_WORKER_POOL_LINUX_42_081: [ worker_pool_join_retired_workers shall acquire lock by calling pthread_mutex_lock. ]*/
             (void)pthread_mutex_lock(worker_pool->lock);

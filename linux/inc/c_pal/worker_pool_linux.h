@@ -21,9 +21,14 @@
 extern "C" {
 #endif
 
+// worker_pool_add_worker, worker_pool_retire_oldest_idle_worker, worker_pool_join_retired_workers and worker_pool_destroy
+// must not be called concurrently: worker_pool_add_worker releases the lock while it creates a thread, and the new worker
+// is linked into the pool only after the lock is acquired again
 typedef struct WORKER_POOL_TAG* WORKER_POOL_HANDLE;
 
 // called on a worker thread with the lock held, returns true if it ran work and false if there was no work to run
+// when it leaves work for other worker threads, it must call worker_pool_wake_idle_worker: at most one woken worker
+// thread is not running at a time, so woken worker threads wake each other one at a time
 typedef bool (*WORKER_POOL_RUN_FUNCTION)(void* context);
 
 #define WORKER_POOL_WAKE_RESULT_VALUES \

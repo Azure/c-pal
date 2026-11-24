@@ -7,3 +7,5 @@
 #define worker_pool_get_counts real_worker_pool_get_counts
 #define worker_pool_retire_oldest_idle_worker real_worker_pool_retire_oldest_idle_worker
 #define worker_pool_join_retired_workers real_worker_pool_join_retired_workers
+
+#define WORKER_POOL_WAKE_RESULT real_WORKER_POOL_WAKE_RESULT
