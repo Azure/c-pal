@@ -121,6 +121,8 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_WORK_ITEM), threadpool_create_work_item, 
 static void on_work_item_callback(void* context);
 ```
 
+`on_work_item_callback` runs one callback of a work item on a worker thread.
+
 **SRS_THREADPOOL_LINUX_42_014: [** `on_work_item_callback` shall call the `work_function` of the work item with its `work_function_context`. **]**
 
 ### threadpool_dispose_work_item
@@ -128,6 +130,8 @@ static void on_work_item_callback(void* context);
 ```c
 static void threadpool_dispose_work_item(THREADPOOL_WORK_ITEM* threadpool_work_item);
 ```
+
+`threadpool_dispose_work_item` is called when the last reference to the work item is released.
 
 **SRS_THREADPOOL_LINUX_42_015: [** `threadpool_dispose_work_item` shall wait for the pending and running callbacks of the work item by calling `execution_engine_linux_wait_for_work` with `cancel_pending` set to `false`. **]**
 
@@ -183,6 +187,8 @@ MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpo
 static void on_scheduled_work_callback(void* context);
 ```
 
+`on_scheduled_work_callback` runs a callback scheduled with `threadpool_schedule_work` and then frees its work object.
+
 **SRS_THREADPOOL_LINUX_42_029: [** `on_scheduled_work_callback` shall call `work_function` with `work_function_context`. **]**
 
 **SRS_THREADPOOL_LINUX_42_030: [** `on_scheduled_work_callback` shall close the work object by calling `execution_engine_linux_close_work`. **]**
@@ -227,11 +233,13 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_TIMER), threadpool_timer_start, THANDLE(T
 static void on_timer_callback(void* context);
 ```
 
-**SRS_THREADPOOL_LINUX_42_100: [** `on_timer_callback` shall increment the count of outstanding callbacks of the threadpool by calling `interlocked_increment`. **]**
+`on_timer_callback` runs one callback of a timer on a worker thread.
+
+**SRS_THREADPOOL_LINUX_42_112: [** `on_timer_callback` shall increment the count of outstanding callbacks of the threadpool by calling `interlocked_increment`. **]**
 
 **SRS_THREADPOOL_LINUX_42_042: [** `on_timer_callback` shall call the `work_function` of the timer with its `work_function_context`. **]**
 
-**SRS_THREADPOOL_LINUX_42_101: [** After `work_function` returns, `on_timer_callback` shall decrement the count of outstanding callbacks of the threadpool by calling `interlocked_decrement`, without accessing the timer, which `work_function` can release. **]**
+**SRS_THREADPOOL_LINUX_42_113: [** After `work_function` returns, `on_timer_callback` shall decrement the count of outstanding callbacks of the threadpool by calling `interlocked_decrement`, without accessing the timer, which `work_function` can release. **]**
 
 **SRS_THREADPOOL_LINUX_42_111: [** If the count of outstanding callbacks reached 0, `on_timer_callback` shall wake the threads waiting for it by calling `wake_by_address_all`. **]**
 
@@ -263,7 +271,7 @@ MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, THANDLE(THREADPOOL_TIMER), ti
 
 **SRS_THREADPOOL_LINUX_42_048: [** If `timer` is `NULL`, `threadpool_timer_cancel` shall return. **]**
 
-**SRS_THREADPOOL_LINUX_42_103: [** Before acquiring the timer lock, `threadpool_timer_cancel` shall call `execution_engine_linux_disassociate_current_thread_from_timer`, so that it does not wait for the timer callback running on the current thread. **]**
+**SRS_THREADPOOL_LINUX_42_115: [** Before acquiring the timer lock, `threadpool_timer_cancel` shall call `execution_engine_linux_disassociate_current_thread_from_timer`, so that it does not wait for the timer callback running on the current thread. **]**
 
 **SRS_THREADPOOL_LINUX_42_049: [** `threadpool_timer_cancel` shall acquire the timer lock exclusively by calling `srw_lock_ll_acquire_exclusive`. **]**
 
@@ -281,7 +289,7 @@ static void threadpool_timer_dispose(THREADPOOL_TIMER* timer);
 
 `threadpool_timer_dispose` is called when the last reference to the timer is released. It can run on the timer's own callback; it then does not wait for that callback.
 
-**SRS_THREADPOOL_LINUX_42_102: [** `threadpool_timer_dispose` shall call `execution_engine_linux_disassociate_current_thread_from_timer`, so that it does not wait for the timer callback running on the current thread. **]**
+**SRS_THREADPOOL_LINUX_42_114: [** `threadpool_timer_dispose` shall call `execution_engine_linux_disassociate_current_thread_from_timer`, so that it does not wait for the timer callback running on the current thread. **]**
 
 **SRS_THREADPOOL_LINUX_42_053: [** `threadpool_timer_dispose` shall disarm the timer by calling `execution_engine_linux_cancel_timer`. **]**
 
