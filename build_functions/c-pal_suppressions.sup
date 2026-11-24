@@ -70,16 +70,6 @@
    fun:__pthread_cond_wait_common
    fun:pthread_cond_timedwait@@GLIBC_*
    ...
-   fun:manager_thread_func
-   ...
-}
-{
-   <glibc pthread_cond_timedwait timeout path, helgrind reports its internal wakeup as a dubious signal with the lock held by no thread>
-   Helgrind:Dubious
-   ...
-   fun:__pthread_cond_wait_common
-   fun:pthread_cond_timedwait@@GLIBC_*
-   ...
-   fun:manager_thread_func
+   fun:internal_execution_engine_linux_manager_thread_func
    ...
 }
