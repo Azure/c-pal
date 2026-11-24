@@ -1956,6 +1956,10 @@ static void wait_for_gate_work_function(void* context)
     {
         (void)interlocked_increment(&blocking_test_context->timed_out_count);
     }
+    else
+    {
+        // another callback opened the gate
+    }
 
     (void)interlocked_increment(&blocking_test_context->done_count);
     wake_by_address_all(&blocking_test_context->done_count);
@@ -2131,6 +2135,11 @@ TEST_FUNCTION(starting_2000_timers_succeeds)
         {
             started_count++;
         }
+        else
+        {
+            // counted as not started
+        }
+
         THANDLE_INITIALIZE_MOVE(THREADPOOL_TIMER)(&timers[i], &timer);
     }
 
