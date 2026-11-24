@@ -1,0 +1,11 @@
+// Copyright (C) Microsoft Corporation. All rights reserved.
+
+#define timer_queue_create real_timer_queue_create
+#define timer_queue_destroy real_timer_queue_destroy
+#define timer_queue_reserve real_timer_queue_reserve
+#define timer_queue_unreserve real_timer_queue_unreserve
+#define timer_queue_entry_init real_timer_queue_entry_init
+#define timer_queue_arm real_timer_queue_arm
+#define timer_queue_disarm real_timer_queue_disarm
+#define timer_queue_get_next_due_time real_timer_queue_get_next_due_time
+#define timer_queue_pop_due real_timer_queue_pop_due

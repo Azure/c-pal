@@ -52,6 +52,7 @@ set(pal_linux_h_files
     inc/c_pal/execution_engine_linux.h
     inc/c_pal/platform_linux.h
     inc/c_pal/thread_count_policy_linux.h
+    inc/c_pal/timer_queue_linux.h
     inc/c_pal/windows_defines.h
     inc/c_pal/worker_pool_linux.h
 )
@@ -78,6 +79,7 @@ set(pal_linux_c_files
     src/process_watchdog_linux.c
     src/threadpool_linux.c
     src/timer_linux.c
+    src/timer_queue_linux.c
     src/uuid_linux.c
     src/worker_pool_linux.c
     src/${gballoc_ll_c}
