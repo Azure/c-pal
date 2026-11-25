@@ -8,11 +8,9 @@ Mocking is enabled from a successful `mocked_new_delete_enable` until `mocked_ne
 
 ## Usage
 
-- Include `c_pal_test_helpers/mocked_new_delete.h` with mocks enabled, so that umock-c defines `mocked_new_delete_malloc`.
-- Hook `mocked_new_delete_malloc` to `gballoc_hl_malloc`, not `real_gballoc_hl_malloc`, so that `gballoc_hl_free` can release its memory.
+- Include `c_pal_test_helpers/mocked_new_delete.h` with mocks enabled and hook `mocked_new_delete_malloc` to `gballoc_hl_malloc` (not `real_gballoc_hl_malloc`), so that `gballoc_hl_free` can release its memory.
 - Call `mocked_new_delete_enable` after `umock_c_init` and `mocked_new_delete_disable` before `umock_c_deinit`, while no other thread allocates.
-- Use `mocked_new_delete_lock` and `mocked_new_delete_unlock` around expectation changes that can race with allocations on other threads.
-- Code holding the lock, including the `mocked_new_delete_malloc` hook, must not use C++ `new`, throw, or exit nonlocally.
+- Hold `mocked_new_delete_lock` while changing expectations that can race with allocations on other threads. Code holding the lock, including the `mocked_new_delete_malloc` hook, must not use C++ `new`, throw, or exit nonlocally.
 
 ## Exposed API
 
@@ -34,15 +32,15 @@ void mocked_new_delete_unlock(void);
 int mocked_new_delete_enable(void);
 ```
 
-`mocked_new_delete_enable` enables mocking.
+`mocked_new_delete_enable` routes subsequent `operator new` calls to `mocked_new_delete_malloc`.
 
-**SRS_MOCKED_NEW_DELETE_16_001: [** If mocking is already enabled, `mocked_new_delete_enable` shall return `0`. **]**
+**SRS_MOCKED_NEW_DELETE_16_001: [** If mocking is already enabled, `mocked_new_delete_enable` shall return `0` without creating another lock. **]**
 
 **SRS_MOCKED_NEW_DELETE_16_002: [** Otherwise, `mocked_new_delete_enable` shall: **]**
 
-  - **SRS_MOCKED_NEW_DELETE_16_003: [** Create the lock by calling `srw_lock_create`. **]**
+  - **SRS_MOCKED_NEW_DELETE_16_003: [** Create the lock by calling `srw_lock_create` with `false` and an empty lock name. **]**
 
-  - **SRS_MOCKED_NEW_DELETE_16_004: [** If `srw_lock_create` fails, return a non-zero value. **]**
+  - **SRS_MOCKED_NEW_DELETE_16_004: [** If `srw_lock_create` fails, leave mocking disabled and return a non-zero value. **]**
 
   - **SRS_MOCKED_NEW_DELETE_16_005: [** Otherwise, enable mocking and return `0`. **]**
 
@@ -52,7 +50,7 @@ int mocked_new_delete_enable(void);
 void mocked_new_delete_disable(void);
 ```
 
-`mocked_new_delete_disable` disables mocking.
+`mocked_new_delete_disable` routes subsequent `operator new` calls back to `gballoc_hl_malloc`.
 
 **SRS_MOCKED_NEW_DELETE_16_006: [** If mocking is not enabled, `mocked_new_delete_disable` shall return. **]**
 
@@ -94,13 +92,13 @@ void* operator new(size_t size);
 
 **SRS_MOCKED_NEW_DELETE_16_014: [** If `size` is `0`, `operator new` shall allocate `1` byte instead. **]**
 
-**SRS_MOCKED_NEW_DELETE_16_015: [** If mocking is not enabled, `operator new` shall allocate memory by calling `gballoc_hl_malloc`. **]**
+**SRS_MOCKED_NEW_DELETE_16_015: [** If mocking is not enabled, `operator new` shall allocate memory by calling `gballoc_hl_malloc` with the size to allocate. **]**
 
 **SRS_MOCKED_NEW_DELETE_16_016: [** Otherwise, `operator new` shall: **]**
 
   - **SRS_MOCKED_NEW_DELETE_16_017: [** Acquire the lock by calling `srw_lock_acquire_exclusive`. **]**
 
-  - **SRS_MOCKED_NEW_DELETE_16_018: [** Allocate memory by calling `mocked_new_delete_malloc`. **]**
+  - **SRS_MOCKED_NEW_DELETE_16_018: [** Allocate memory by calling `mocked_new_delete_malloc` with the size to allocate. **]**
 
   - **SRS_MOCKED_NEW_DELETE_16_019: [** Release the lock by calling `srw_lock_release_exclusive`. **]**
 
@@ -114,7 +112,7 @@ void* operator new(size_t size);
 void* operator new[](size_t size);
 ```
 
-**SRS_MOCKED_NEW_DELETE_16_022: [** `operator new[]` shall return the result of calling `operator new` with `size`. **]**
+**SRS_MOCKED_NEW_DELETE_16_022: [** `operator new[]` shall return the result of calling `operator new` with `size`, propagating `std::bad_alloc`. **]**
 
 ### operator delete
 

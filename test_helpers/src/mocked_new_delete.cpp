@@ -23,17 +23,17 @@ int mocked_new_delete_enable(void)
 
     if (g_lock != nullptr)
     {
-        /*Codes_SRS_MOCKED_NEW_DELETE_16_001: [ If mocking is already enabled, mocked_new_delete_enable shall return 0. ]*/
+        /*Codes_SRS_MOCKED_NEW_DELETE_16_001: [ If mocking is already enabled, mocked_new_delete_enable shall return 0 without creating another lock. ]*/
         result = 0;
     }
     else
     {
         /*Codes_SRS_MOCKED_NEW_DELETE_16_002: [ Otherwise, mocked_new_delete_enable shall: ]*/
-        /*Codes_SRS_MOCKED_NEW_DELETE_16_003: [ Create the lock by calling srw_lock_create. ]*/
+        /*Codes_SRS_MOCKED_NEW_DELETE_16_003: [ Create the lock by calling srw_lock_create with false and an empty lock name. ]*/
         SRW_LOCK_HANDLE lock = srw_lock_create(false, "");
         if (lock == nullptr)
         {
-            /*Codes_SRS_MOCKED_NEW_DELETE_16_004: [ If srw_lock_create fails, return a non-zero value. ]*/
+            /*Codes_SRS_MOCKED_NEW_DELETE_16_004: [ If srw_lock_create fails, leave mocking disabled and return a non-zero value. ]*/
             LogError("srw_lock_create failed");
             result = MU_FAILURE;
         }
@@ -100,7 +100,7 @@ void* operator new(size_t size)
 
     if (g_lock == nullptr)
     {
-        /*Codes_SRS_MOCKED_NEW_DELETE_16_015: [ If mocking is not enabled, operator new shall allocate memory by calling gballoc_hl_malloc. ]*/
+        /*Codes_SRS_MOCKED_NEW_DELETE_16_015: [ If mocking is not enabled, operator new shall allocate memory by calling gballoc_hl_malloc with the size to allocate. ]*/
         result = gballoc_hl_malloc(allocation_size);
     }
     else
@@ -108,7 +108,7 @@ void* operator new(size_t size)
         /*Codes_SRS_MOCKED_NEW_DELETE_16_016: [ Otherwise, operator new shall: ]*/
         /*Codes_SRS_MOCKED_NEW_DELETE_16_017: [ Acquire the lock by calling srw_lock_acquire_exclusive. ]*/
         srw_lock_acquire_exclusive(g_lock);
-        /*Codes_SRS_MOCKED_NEW_DELETE_16_018: [ Allocate memory by calling mocked_new_delete_malloc. ]*/
+        /*Codes_SRS_MOCKED_NEW_DELETE_16_018: [ Allocate memory by calling mocked_new_delete_malloc with the size to allocate. ]*/
         result = mocked_new_delete_malloc(allocation_size);
         /*Codes_SRS_MOCKED_NEW_DELETE_16_019: [ Release the lock by calling srw_lock_release_exclusive. ]*/
         srw_lock_release_exclusive(g_lock);
@@ -130,7 +130,7 @@ void* operator new(size_t size)
 
 void* operator new[](size_t size)
 {
-    /*Codes_SRS_MOCKED_NEW_DELETE_16_022: [ operator new[] shall return the result of calling operator new with size. ]*/
+    /*Codes_SRS_MOCKED_NEW_DELETE_16_022: [ operator new[] shall return the result of calling operator new with size, propagating std::bad_alloc. ]*/
     return ::operator new(size);
 }
 
