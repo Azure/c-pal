@@ -78,9 +78,10 @@ static TEST_WORK_CONTEXT* g_cond_wait_action_context;
 static TEST_THREAD g_manager_thread;
 static void* g_manager_thread_result;
 
-// the worker thread runs internal_execution_engine_linux_run_next_work
-static TEST_THREAD g_worker_thread;
-static bool g_worker_thread_result;
+// another thread (a worker thread or a thread waiting for a work object) runs its action
+static TEST_THREAD g_other_thread;
+static TEST_ACTION g_other_thread_action;
+static TEST_WORK_CONTEXT* g_other_thread_action_context;
 
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {
@@ -93,10 +94,10 @@ static void manager_thread_entry(void)
     g_manager_thread.has_exited = true;
 }
 
-static void worker_thread_entry(void)
+static void other_thread_entry(void)
 {
-    g_worker_thread_result = g_run_next_work(g_run_next_work_context);
-    g_worker_thread.has_exited = true;
+    g_other_thread_action(g_other_thread_action_context);
+    g_other_thread.has_exited = true;
 }
 
 static void init_test_thread(TEST_THREAD* test_thread, void (*entry)(void))
@@ -170,11 +171,19 @@ static void wait_on_condition_variable(void)
     }
     else
     {
-        // the test thread blocks: the action does what another thread does meanwhile
-        TEST_ACTION action = g_cond_wait_action;
-        ASSERT_IS_TRUE(action != NULL, "unexpected wait on a condition variable on the test thread");
-        g_cond_wait_action = NULL;
-        action(g_cond_wait_action_context);
+        if (g_other_thread.is_running)
+        {
+            // the other thread blocks until the test runs it again
+            block_test_thread(&g_other_thread);
+        }
+        else
+        {
+            // the test thread blocks: the action does what another thread does meanwhile
+            TEST_ACTION action = g_cond_wait_action;
+            ASSERT_IS_TRUE(action != NULL, "unexpected wait on a condition variable on the test thread");
+            g_cond_wait_action = NULL;
+            action(g_cond_wait_action_context);
+        }
     }
 }
 
@@ -294,22 +303,37 @@ static void action_run_next_work(TEST_WORK_CONTEXT* test_context)
     ASSERT_IS_TRUE(g_run_next_work(g_run_next_work_context));
 }
 
-static void action_block_worker_thread(TEST_WORK_CONTEXT* test_context)
+static void action_block_other_thread(TEST_WORK_CONTEXT* test_context)
 {
     (void)test_context;
-    block_test_thread(&g_worker_thread);
+    block_test_thread(&g_other_thread);
 }
 
-static void action_resume_worker_thread(TEST_WORK_CONTEXT* test_context)
+static void action_resume_other_thread(TEST_WORK_CONTEXT* test_context)
 {
     (void)test_context;
-    run_test_thread(&g_worker_thread);
-    ASSERT_IS_TRUE(g_worker_thread.has_exited, "the work function of the worker thread did not return");
+    run_test_thread(&g_other_thread);
+    ASSERT_IS_TRUE(g_other_thread.has_exited, "the other thread did not finish");
+}
+
+static void action_wait_for_work(TEST_WORK_CONTEXT* test_context)
+{
+    execution_engine_linux_wait_for_work(test_context->work, false);
+}
+
+static void action_wait_for_timer(TEST_WORK_CONTEXT* test_context)
+{
+    execution_engine_linux_wait_for_timer(test_context->timer, false);
 }
 
 static void action_cancel_pending_invocations(TEST_WORK_CONTEXT* test_context)
 {
     execution_engine_linux_wait_for_work(test_context->work, true);
+}
+
+static void action_cancel_pending_timer_invocations(TEST_WORK_CONTEXT* test_context)
+{
+    execution_engine_linux_wait_for_timer(test_context->timer, true);
 }
 
 static void action_close_work(TEST_WORK_CONTEXT* test_context)
@@ -342,15 +366,32 @@ static void action_close_and_disassociate(TEST_WORK_CONTEXT* test_context)
     execution_engine_linux_disassociate_current_thread_from_work(test_context->work);
 }
 
+static void action_disassociate_from_work(TEST_WORK_CONTEXT* test_context)
+{
+    execution_engine_linux_disassociate_current_thread_from_work(test_context->work);
+}
+
 static void action_disassociate_from_other_work(TEST_WORK_CONTEXT* test_context)
 {
     execution_engine_linux_disassociate_current_thread_from_work(test_context->other_work);
 }
 
-static void action_disassociate_from_timer_and_wait(TEST_WORK_CONTEXT* test_context)
+static void action_disassociate_from_timer(TEST_WORK_CONTEXT* test_context)
 {
     execution_engine_linux_disassociate_current_thread_from_timer(test_context->timer);
+}
+
+static void action_disassociate_from_timer_twice_and_wait(TEST_WORK_CONTEXT* test_context)
+{
+    execution_engine_linux_disassociate_current_thread_from_timer(test_context->timer);
+    execution_engine_linux_disassociate_current_thread_from_timer(test_context->timer);
     execution_engine_linux_wait_for_timer(test_context->timer, false);
+}
+
+static void action_close_timer_and_disassociate(TEST_WORK_CONTEXT* test_context)
+{
+    execution_engine_linux_close_timer(test_context->timer);
+    execution_engine_linux_disassociate_current_thread_from_timer(test_context->timer);
 }
 
 static void setup_create_allocation_expectations(uint32_t min_thread_count, uint32_t max_thread_count)
@@ -436,7 +477,7 @@ static void setup_release_last_reference_expectations(void)
     STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(g_lock));
 }
 
-// expectations for internal_execution_engine_linux_enqueue inserting a work object in the ready queue
+// expectations for inserting a work object in the ready queue, which records progress if the ready queue is empty
 static void setup_enqueue_expectations(bool is_ready_queue_empty)
 {
     STRICT_EXPECTED_CALL(DList_IsListEmpty(g_ready_queue));
@@ -498,7 +539,7 @@ static void setup_manager_retire_join_and_get_add_thread_time_expectations(uint3
         .SetReturn(add_thread_time);
 }
 
-// expectations for internal_execution_engine_linux_wait_for_next_event until it waits
+// expectations for the manager thread getting the time to retire a worker thread and the due time of the first timer before it waits
 static void setup_wait_for_next_event_expectations(uint64_t retire_thread_time, uint64_t next_due_time)
 {
     STRICT_EXPECTED_CALL(thread_count_policy_get_retire_thread_time(TEST_THREAD_COUNT_POLICY, g_worker_pool_counts.thread_count, g_worker_pool_counts.idle_thread_count, g_worker_pool_counts.oldest_idle_since_ms, (uint64_t)g_now_ms))
@@ -633,8 +674,8 @@ static void test_run_next_work(TEST_WORK_CONTEXT* test_context)
     umock_c_reset_all_calls();
 }
 
-// waits for a work object with one pending invocation, which a worker thread runs while the test thread waits
-static void test_wait_for_work_while_it_runs(TEST_WORK_CONTEXT* test_context)
+// expectations for waiting for a work object with one pending invocation, which a worker thread runs while the test thread waits
+static void setup_wait_while_the_work_object_runs_expectations(TEST_WORK_CONTEXT* test_context)
 {
     g_cond_wait_action = action_run_next_work;
     g_cond_wait_action_context = test_context;
@@ -644,7 +685,66 @@ static void test_wait_for_work_while_it_runs(TEST_WORK_CONTEXT* test_context)
     STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
     STRICT_EXPECTED_CALL(mocked_pthread_cond_broadcast(g_work_done_cond));
     STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(g_lock));
+}
+
+// waits for a work object with one pending invocation, which a worker thread runs while the test thread waits
+static void test_wait_for_work_while_it_runs(TEST_WORK_CONTEXT* test_context)
+{
+    setup_wait_while_the_work_object_runs_expectations(test_context);
     execution_engine_linux_wait_for_work(test_context->work, false);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    umock_c_reset_all_calls();
+}
+
+// waits for a timer with one pending invocation, which a worker thread runs while the test thread waits
+static void test_wait_for_timer_while_it_runs(TEST_WORK_CONTEXT* test_context)
+{
+    setup_wait_while_the_work_object_runs_expectations(test_context);
+    execution_engine_linux_wait_for_timer(test_context->timer, false);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    umock_c_reset_all_calls();
+}
+
+// starts another thread that waits for a work object (wait_action is action_wait_for_work or action_wait_for_timer) until it blocks in pthread_cond_wait
+static void test_start_waiting_thread(TEST_ACTION wait_action, TEST_WORK_CONTEXT* test_context)
+{
+    g_other_thread_action = wait_action;
+    g_other_thread_action_context = test_context;
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_cond_wait(g_work_done_cond, g_lock));
+    run_test_thread(&g_other_thread);
+    ASSERT_IS_FALSE(g_other_thread.has_exited);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    umock_c_reset_all_calls();
+}
+
+// the woken waiting thread finds no more invocations and returns
+static void assert_waiting_thread_returns(void)
+{
+    umock_c_reset_all_calls();
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(g_lock));
+    run_test_thread(&g_other_thread);
+    ASSERT_IS_TRUE(g_other_thread.has_exited);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    umock_c_reset_all_calls();
+}
+
+// another thread runs the only work object of the ready queue, which has 2 pending invocations, until its work function (action_block_other_thread) blocks
+static void test_run_next_work_on_other_thread_until_the_work_function_blocks(TEST_WORK_CONTEXT* test_context, PDLIST_ENTRY work_entry)
+{
+    g_other_thread_action = action_run_next_work;
+    g_other_thread_action_context = test_context;
+    STRICT_EXPECTED_CALL(DList_IsListEmpty(g_ready_queue));
+    STRICT_EXPECTED_CALL(DList_RemoveHeadList(g_ready_queue));
+    STRICT_EXPECTED_CALL(DList_InsertTailList(g_ready_queue, work_entry));
+    STRICT_EXPECTED_CALL(DList_IsListEmpty(g_ready_queue));
+    STRICT_EXPECTED_CALL(worker_pool_wake_idle_worker(TEST_WORKER_POOL));
+    STRICT_EXPECTED_CALL(timer_global_get_elapsed_ms());
+    STRICT_EXPECTED_CALL(thread_count_policy_on_progress(TEST_THREAD_COUNT_POLICY, (uint64_t)g_now_ms));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(g_lock));
+    STRICT_EXPECTED_CALL(test_work_function(test_context));
+    run_test_thread(&g_other_thread);
+    ASSERT_IS_FALSE(g_other_thread.has_exited);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     umock_c_reset_all_calls();
 }
@@ -702,6 +802,23 @@ static void test_submit_timer(TIMER_QUEUE_ENTRY* timer_queue_entry, uint32_t que
         .SetReturn(timer_queue_entry);
     setup_enqueue_expectations(is_ready_queue_empty);
     STRICT_EXPECTED_CALL(worker_pool_wake_idle_worker(TEST_WORKER_POOL));
+    STRICT_EXPECTED_CALL(timer_queue_pop_due(TEST_TIMER_QUEUE, (uint64_t)g_now_ms))
+        .SetReturn(NULL);
+    setup_manager_retire_join_and_get_add_thread_time_expectations(queued_work_count, THREAD_COUNT_POLICY_NEVER);
+    setup_wait_for_next_event_expectations(THREAD_COUNT_POLICY_NEVER, TIMER_QUEUE_NO_DUE_TIME);
+    STRICT_EXPECTED_CALL(mocked_pthread_cond_wait(g_manager_cond, g_lock));
+    run_manager_thread();
+    ASSERT_IS_FALSE(g_manager_thread.has_exited);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    umock_c_reset_all_calls();
+}
+
+// runs the manager thread, which submits the work object of the due timer again, until it waits; the work object of the timer is in the ready queue
+static void test_submit_pending_timer(TIMER_QUEUE_ENTRY* timer_queue_entry, uint32_t queued_work_count)
+{
+    STRICT_EXPECTED_CALL(timer_global_get_elapsed_ms());
+    STRICT_EXPECTED_CALL(timer_queue_pop_due(TEST_TIMER_QUEUE, (uint64_t)g_now_ms))
+        .SetReturn(timer_queue_entry);
     STRICT_EXPECTED_CALL(timer_queue_pop_due(TEST_TIMER_QUEUE, (uint64_t)g_now_ms))
         .SetReturn(NULL);
     setup_manager_retire_join_and_get_add_thread_time_expectations(queued_work_count, THREAD_COUNT_POLICY_NEVER);
@@ -820,14 +937,15 @@ TEST_FUNCTION_INITIALIZE(method_init)
 
     init_test_thread(&g_manager_thread, manager_thread_entry);
     g_manager_thread_result = NULL;
-    init_test_thread(&g_worker_thread, worker_thread_entry);
-    g_worker_thread_result = false;
+    init_test_thread(&g_other_thread, other_thread_entry);
+    g_other_thread_action = NULL;
+    g_other_thread_action_context = NULL;
 }
 
 TEST_FUNCTION_CLEANUP(method_cleanup)
 {
     free_test_thread_stack(&g_manager_thread);
-    free_test_thread_stack(&g_worker_thread);
+    free_test_thread_stack(&g_other_thread);
     umock_c_negative_tests_deinit();
 }
 
@@ -864,20 +982,17 @@ TEST_FUNCTION(execution_engine_create_with_NULL_parameters_uses_the_default_thre
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_001: [ execution_engine_create shall create the thread count policy by calling thread_count_policy_create with the minimum and the maximum number of threads. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_002: [ execution_engine_create shall create the timer queue by calling timer_queue_create. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_003: [ execution_engine_create shall initialize the ready queue by calling DList_InitializeListHead. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_004: [ execution_engine_create shall initialize the mutex and the condition variables by calling internal_execution_engine_linux_init_synchronization. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_005: [ execution_engine_create shall start the threads by calling internal_execution_engine_linux_start_threads. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_006: [ internal_execution_engine_linux_init_synchronization shall initialize the mutex by calling pthread_mutex_init. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_007: [ internal_execution_engine_linux_init_synchronization shall initialize the condition variable that wakes the manager thread by calling internal_execution_engine_linux_init_manager_cond. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_008: [ internal_execution_engine_linux_init_manager_cond shall initialize a condition variable attribute by calling pthread_condattr_init. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_009: [ internal_execution_engine_linux_init_manager_cond shall set the clock of the attribute to CLOCK_MONOTONIC by calling pthread_condattr_setclock. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_010: [ internal_execution_engine_linux_init_manager_cond shall initialize the condition variable that wakes the manager thread with the attribute by calling pthread_cond_init. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_175: [ internal_execution_engine_linux_init_manager_cond shall destroy the attribute by calling pthread_condattr_destroy. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_011: [ internal_execution_engine_linux_init_synchronization shall initialize the condition variable signaled when work objects have no more pending and running invocations by calling pthread_cond_init. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_013: [ internal_execution_engine_linux_start_threads shall create the worker pool by calling worker_pool_create with the mutex, internal_execution_engine_linux_run_next_work and the execution engine. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_014: [ internal_execution_engine_linux_start_threads shall acquire the mutex by calling pthread_mutex_lock. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_015: [ internal_execution_engine_linux_start_threads shall add min_thread_count worker threads by calling worker_pool_add_worker. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_016: [ internal_execution_engine_linux_start_threads shall release the mutex by calling pthread_mutex_unlock. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_017: [ internal_execution_engine_linux_start_threads shall start the manager thread by calling pthread_create with internal_execution_engine_linux_manager_thread_func and the execution engine. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_006: [ execution_engine_create shall initialize the mutex by calling pthread_mutex_init. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_008: [ execution_engine_create shall initialize a condition variable attribute by calling pthread_condattr_init. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_009: [ execution_engine_create shall set the clock of the attribute to CLOCK_MONOTONIC, the clock of timer_global_get_elapsed_ms, by calling pthread_condattr_setclock. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_010: [ execution_engine_create shall initialize the condition variable that wakes the manager thread with the attribute by calling pthread_cond_init. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_175: [ execution_engine_create shall destroy the attribute by calling pthread_condattr_destroy. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_011: [ execution_engine_create shall initialize the condition variable signaled when work objects have no more pending and running invocations by calling pthread_cond_init. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_013: [ execution_engine_create shall create the worker pool by calling worker_pool_create with the mutex, internal_execution_engine_linux_run_next_work and the execution engine. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_014: [ execution_engine_create shall acquire the mutex by calling pthread_mutex_lock. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_015: [ execution_engine_create shall add min_thread_count worker threads by calling worker_pool_add_worker. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_016: [ execution_engine_create shall release the mutex by calling pthread_mutex_unlock. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_017: [ execution_engine_create shall start the manager thread by calling pthread_create with internal_execution_engine_linux_manager_thread_func and the execution engine. ]*/
 TEST_FUNCTION(execution_engine_create_succeeds)
 {
     ///arrange
@@ -952,7 +1067,7 @@ TEST_FUNCTION(execution_engine_create_with_max_thread_count_equal_to_min_thread_
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_015: [ internal_execution_engine_linux_start_threads shall add min_thread_count worker threads by calling worker_pool_add_worker. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_015: [ execution_engine_create shall add min_thread_count worker threads by calling worker_pool_add_worker. ]*/
 TEST_FUNCTION(execution_engine_create_with_min_thread_count_0_adds_no_worker_thread)
 {
     ///arrange
@@ -987,9 +1102,7 @@ TEST_FUNCTION(execution_engine_create_with_max_thread_count_less_than_min_thread
 }
 
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_07_006: [ If any error occurs, execution_engine_create shall fail and return NULL. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_012: [ If any error occurs, internal_execution_engine_linux_init_synchronization shall destroy what it initialized and fail. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_019: [ If any error occurs, internal_execution_engine_linux_start_threads shall fail. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_176: [ If any error occurs, internal_execution_engine_linux_init_manager_cond shall fail. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_012: [ If any error occurs, execution_engine_create shall destroy what it created and initialized. ]*/
 TEST_FUNCTION(execution_engine_create_fails_when_a_call_it_makes_fails)
 {
     ///arrange
@@ -1001,11 +1114,7 @@ TEST_FUNCTION(execution_engine_create_fails_when_a_call_it_makes_fails)
 
     for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
     {
-        if (!umock_c_negative_tests_can_call_fail(i))
-        {
-            // the call cannot fail
-        }
-        else
+        if (umock_c_negative_tests_can_call_fail(i))
         {
             umock_c_negative_tests_reset();
             umock_c_negative_tests_fail_call(i);
@@ -1020,9 +1129,8 @@ TEST_FUNCTION(execution_engine_create_fails_when_a_call_it_makes_fails)
 }
 
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_07_006: [ If any error occurs, execution_engine_create shall fail and return NULL. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_012: [ If any error occurs, internal_execution_engine_linux_init_synchronization shall destroy what it initialized and fail. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_175: [ internal_execution_engine_linux_init_manager_cond shall destroy the attribute by calling pthread_condattr_destroy. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_176: [ If any error occurs, internal_execution_engine_linux_init_manager_cond shall fail. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_012: [ If any error occurs, execution_engine_create shall destroy what it created and initialized. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_175: [ execution_engine_create shall destroy the attribute by calling pthread_condattr_destroy. ]*/
 TEST_FUNCTION(execution_engine_create_destroys_the_attribute_and_the_mutex_when_initializing_the_condition_variable_that_wakes_the_manager_thread_fails)
 {
     ///arrange
@@ -1049,7 +1157,7 @@ TEST_FUNCTION(execution_engine_create_destroys_the_attribute_and_the_mutex_when_
 }
 
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_07_006: [ If any error occurs, execution_engine_create shall fail and return NULL. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_012: [ If any error occurs, internal_execution_engine_linux_init_synchronization shall destroy what it initialized and fail. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_012: [ If any error occurs, execution_engine_create shall destroy what it created and initialized. ]*/
 TEST_FUNCTION(execution_engine_create_destroys_the_condition_variable_that_wakes_the_manager_thread_when_initializing_the_other_condition_variable_fails)
 {
     ///arrange
@@ -1079,8 +1187,7 @@ TEST_FUNCTION(execution_engine_create_destroys_the_condition_variable_that_wakes
 }
 
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_07_006: [ If any error occurs, execution_engine_create shall fail and return NULL. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_018: [ If any error occurs after the worker pool was created, internal_execution_engine_linux_start_threads shall stop the worker threads by calling worker_pool_destroy. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_019: [ If any error occurs, internal_execution_engine_linux_start_threads shall fail. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_018: [ If any error occurs after the worker pool was created, execution_engine_create shall stop the worker threads by calling worker_pool_destroy. ]*/
 TEST_FUNCTION(execution_engine_create_stops_the_worker_threads_when_adding_a_worker_thread_after_another_one_fails)
 {
     ///arrange
@@ -1110,8 +1217,7 @@ TEST_FUNCTION(execution_engine_create_stops_the_worker_threads_when_adding_a_wor
 }
 
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_07_006: [ If any error occurs, execution_engine_create shall fail and return NULL. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_018: [ If any error occurs after the worker pool was created, internal_execution_engine_linux_start_threads shall stop the worker threads by calling worker_pool_destroy. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_019: [ If any error occurs, internal_execution_engine_linux_start_threads shall fail. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_018: [ If any error occurs after the worker pool was created, execution_engine_create shall stop the worker threads by calling worker_pool_destroy. ]*/
 TEST_FUNCTION(execution_engine_create_stops_the_worker_threads_when_starting_the_manager_thread_fails)
 {
     ///arrange
@@ -1175,14 +1281,14 @@ TEST_FUNCTION(execution_engine_dec_ref_does_not_stop_the_execution_engine_while_
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_025: [ execution_engine_dec_ref shall release the mutex by calling pthread_mutex_unlock. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_026: [ If the current thread is not running a work function of execution_engine: ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_027: [ execution_engine_dec_ref shall wait for the manager thread to exit by calling pthread_join. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_028: [ execution_engine_dec_ref shall tear down the execution engine by calling internal_execution_engine_linux_teardown. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_029: [ internal_execution_engine_linux_teardown shall stop the worker threads and wait for them to exit by calling worker_pool_destroy. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_030: [ internal_execution_engine_linux_teardown shall destroy the condition variable signaled when work objects have no more pending and running invocations by calling pthread_cond_destroy. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_031: [ internal_execution_engine_linux_teardown shall destroy the condition variable that wakes the manager thread by calling pthread_cond_destroy. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_032: [ internal_execution_engine_linux_teardown shall destroy the mutex by calling pthread_mutex_destroy. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_033: [ internal_execution_engine_linux_teardown shall destroy the timer queue by calling timer_queue_destroy. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_034: [ internal_execution_engine_linux_teardown shall destroy the thread count policy by calling thread_count_policy_destroy. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_035: [ internal_execution_engine_linux_teardown shall free the execution engine. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_028: [ If pthread_join succeeds: ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_029: [ execution_engine_dec_ref shall stop the worker threads and wait for them to exit by calling worker_pool_destroy. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_030: [ execution_engine_dec_ref shall destroy the condition variable signaled when work objects have no more pending and running invocations by calling pthread_cond_destroy. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_031: [ execution_engine_dec_ref shall destroy the condition variable that wakes the manager thread by calling pthread_cond_destroy. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_032: [ execution_engine_dec_ref shall destroy the mutex by calling pthread_mutex_destroy. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_033: [ execution_engine_dec_ref shall destroy the timer queue by calling timer_queue_destroy. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_034: [ execution_engine_dec_ref shall destroy the thread count policy by calling thread_count_policy_destroy. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_035: [ execution_engine_dec_ref shall free the execution engine. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_141: [ Until the execution engine is stopping: ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_150: [ internal_execution_engine_linux_manager_thread_func shall release the mutex by calling pthread_mutex_unlock. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_154: [ internal_execution_engine_linux_manager_thread_func shall return NULL. ]*/
@@ -1209,7 +1315,7 @@ TEST_FUNCTION(execution_engine_dec_ref_with_the_last_reference_stops_the_manager
 
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_020: [ If the refcount reaches 0: ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_027: [ execution_engine_dec_ref shall wait for the manager thread to exit by calling pthread_join. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_028: [ execution_engine_dec_ref shall tear down the execution engine by calling internal_execution_engine_linux_teardown. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_028: [ If pthread_join succeeds: ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_140: [ internal_execution_engine_linux_manager_thread_func shall acquire the mutex by calling pthread_mutex_lock. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_141: [ Until the execution engine is stopping: ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_150: [ internal_execution_engine_linux_manager_thread_func shall release the mutex by calling pthread_mutex_unlock. ]*/
@@ -1236,7 +1342,7 @@ TEST_FUNCTION(execution_engine_dec_ref_with_the_last_reference_before_the_manage
 }
 
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_027: [ execution_engine_dec_ref shall wait for the manager thread to exit by calling pthread_join. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_185: [ If pthread_join fails, execution_engine_dec_ref shall return without tearing down the execution engine, which the manager thread can still use. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_028: [ If pthread_join succeeds: ]*/
 TEST_FUNCTION(execution_engine_dec_ref_with_the_last_reference_does_not_tear_down_the_execution_engine_when_pthread_join_fails)
 {
     ///arrange
@@ -1440,10 +1546,8 @@ TEST_FUNCTION(execution_engine_linux_create_work_succeeds)
     execution_engine_dec_ref(execution_engine);
 }
 
-/* internal_execution_engine_linux_init_work */
-
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_042: [ internal_execution_engine_linux_init_work shall store execution_engine, work_function, work_function_context and free_function in work. ]*/
-TEST_FUNCTION(internal_execution_engine_linux_init_work_stores_the_work_function_and_its_context)
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_042: [ execution_engine_linux_create_work shall store execution_engine, work_function, work_function_context and internal_execution_engine_linux_free_work as free function in the work object. ]*/
+TEST_FUNCTION(execution_engine_linux_create_work_stores_the_work_function_and_its_context)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
@@ -1466,9 +1570,9 @@ TEST_FUNCTION(internal_execution_engine_linux_init_work_stores_the_work_function
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_043: [ internal_execution_engine_linux_init_work shall set the pending count, the running count and the waiter count of work to 0. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_039: [ execution_engine_linux_create_work shall initialize the work object with internal_execution_engine_linux_free_work as its free function by calling internal_execution_engine_linux_init_work. ]*/
-TEST_FUNCTION(internal_execution_engine_linux_init_work_sets_no_pending_and_no_running_invocations)
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_043: [ execution_engine_linux_create_work shall set the pending count, the running count and the waiter count of the work object to 0. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_042: [ execution_engine_linux_create_work shall store execution_engine, work_function, work_function_context and internal_execution_engine_linux_free_work as free function in the work object. ]*/
+TEST_FUNCTION(execution_engine_linux_create_work_sets_no_pending_and_no_running_invocations)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
@@ -1490,9 +1594,9 @@ TEST_FUNCTION(internal_execution_engine_linux_init_work_sets_no_pending_and_no_r
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_043: [ internal_execution_engine_linux_init_work shall set the pending count, the running count and the waiter count of work to 0. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_044: [ internal_execution_engine_linux_init_work shall mark work as not closed. ]*/
-TEST_FUNCTION(internal_execution_engine_linux_init_work_marks_the_work_object_as_not_closed_with_no_waiter)
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_043: [ execution_engine_linux_create_work shall set the pending count, the running count and the waiter count of the work object to 0. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_044: [ execution_engine_linux_create_work shall mark the work object as not closed. ]*/
+TEST_FUNCTION(execution_engine_linux_create_work_marks_the_work_object_as_not_closed_with_no_waiter)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
@@ -1557,16 +1661,13 @@ TEST_FUNCTION(execution_engine_linux_submit_work_with_NULL_work_returns)
 }
 
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_047: [ execution_engine_linux_submit_work shall acquire the mutex by calling pthread_mutex_lock. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_048: [ execution_engine_linux_submit_work shall submit work by calling internal_execution_engine_linux_submit_work_locked. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_049: [ execution_engine_linux_submit_work shall release the mutex by calling pthread_mutex_unlock. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_051: [ internal_execution_engine_linux_submit_work_locked shall increment the pending count of work. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_051: [ execution_engine_linux_submit_work shall increment the pending count of work. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_052: [ If the pending count of work became 1: ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_053: [ internal_execution_engine_linux_submit_work_locked shall insert work in the ready queue by calling internal_execution_engine_linux_enqueue. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_054: [ internal_execution_engine_linux_submit_work_locked shall dispatch the ready queue by calling internal_execution_engine_linux_dispatch. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_055: [ If the ready queue is empty, internal_execution_engine_linux_enqueue shall record progress by calling thread_count_policy_on_progress with the current time obtained by calling timer_global_get_elapsed_ms. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_056: [ internal_execution_engine_linux_enqueue shall insert work at the tail of the ready queue by calling DList_InsertTailList. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_180: [ internal_execution_engine_linux_enqueue shall increment the count of work objects in the ready queue. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_057: [ internal_execution_engine_linux_dispatch shall wake an idle worker thread by calling worker_pool_wake_idle_worker. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_055: [ If the ready queue is empty, execution_engine_linux_submit_work shall record progress by calling thread_count_policy_on_progress with the current time obtained by calling timer_global_get_elapsed_ms. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_056: [ execution_engine_linux_submit_work shall insert work at the tail of the ready queue by calling DList_InsertTailList. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_180: [ execution_engine_linux_submit_work shall increment the count of work objects in the ready queue. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_057: [ execution_engine_linux_submit_work shall wake an idle worker thread by calling worker_pool_wake_idle_worker. ]*/
 TEST_FUNCTION(execution_engine_linux_submit_work_inserts_the_work_object_in_the_ready_queue_and_wakes_an_idle_worker_thread)
 {
     ///arrange
@@ -1601,7 +1702,7 @@ TEST_FUNCTION(execution_engine_linux_submit_work_inserts_the_work_object_in_the_
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_051: [ internal_execution_engine_linux_submit_work_locked shall increment the pending count of work. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_051: [ execution_engine_linux_submit_work shall increment the pending count of work. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_052: [ If the pending count of work became 1: ]*/
 TEST_FUNCTION(execution_engine_linux_submit_work_of_a_pending_work_object_only_increments_its_pending_count)
 {
@@ -1627,12 +1728,10 @@ TEST_FUNCTION(execution_engine_linux_submit_work_of_a_pending_work_object_only_i
     execution_engine_dec_ref(execution_engine);
 }
 
-/* internal_execution_engine_linux_enqueue */
-
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_055: [ If the ready queue is empty, internal_execution_engine_linux_enqueue shall record progress by calling thread_count_policy_on_progress with the current time obtained by calling timer_global_get_elapsed_ms. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_056: [ internal_execution_engine_linux_enqueue shall insert work at the tail of the ready queue by calling DList_InsertTailList. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_180: [ internal_execution_engine_linux_enqueue shall increment the count of work objects in the ready queue. ]*/
-TEST_FUNCTION(internal_execution_engine_linux_enqueue_inserts_at_the_tail_of_a_non_empty_ready_queue_without_recording_progress)
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_055: [ If the ready queue is empty, execution_engine_linux_submit_work shall record progress by calling thread_count_policy_on_progress with the current time obtained by calling timer_global_get_elapsed_ms. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_056: [ execution_engine_linux_submit_work shall insert work at the tail of the ready queue by calling DList_InsertTailList. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_180: [ execution_engine_linux_submit_work shall increment the count of work objects in the ready queue. ]*/
+TEST_FUNCTION(execution_engine_linux_submit_work_inserts_at_the_tail_of_a_non_empty_ready_queue_without_recording_progress)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
@@ -1669,11 +1768,9 @@ TEST_FUNCTION(internal_execution_engine_linux_enqueue_inserts_at_the_tail_of_a_n
     execution_engine_dec_ref(execution_engine);
 }
 
-/* internal_execution_engine_linux_dispatch */
-
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_057: [ internal_execution_engine_linux_dispatch shall wake an idle worker thread by calling worker_pool_wake_idle_worker. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_057: [ execution_engine_linux_submit_work shall wake an idle worker thread by calling worker_pool_wake_idle_worker. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_058: [ If worker_pool_wake_idle_worker returns WORKER_POOL_WAKE_RESULT_NO_IDLE_WORKER and the manager thread is not watching the ready queue: ]*/
-TEST_FUNCTION(internal_execution_engine_linux_dispatch_does_not_wake_the_manager_thread_when_an_idle_worker_thread_is_already_waking)
+TEST_FUNCTION(execution_engine_linux_submit_work_does_not_wake_the_manager_thread_when_an_idle_worker_thread_is_already_waking)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
@@ -1700,9 +1797,9 @@ TEST_FUNCTION(internal_execution_engine_linux_dispatch_does_not_wake_the_manager
 
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_178: [ execution_engine_create shall mark the execution engine as not stopping, with its teardown not deferred and the manager thread not watching the ready queue. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_058: [ If worker_pool_wake_idle_worker returns WORKER_POOL_WAKE_RESULT_NO_IDLE_WORKER and the manager thread is not watching the ready queue: ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_059: [ internal_execution_engine_linux_dispatch shall get the counts of the worker pool by calling worker_pool_get_counts. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_060: [ If thread_count_policy_can_add_thread returns true for the thread count, internal_execution_engine_linux_dispatch shall wake the manager thread by calling pthread_cond_signal. ]*/
-TEST_FUNCTION(internal_execution_engine_linux_dispatch_wakes_the_manager_thread_when_no_worker_thread_is_idle_and_one_can_be_added)
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_059: [ execution_engine_linux_submit_work shall get the counts of the worker pool by calling worker_pool_get_counts. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_060: [ If thread_count_policy_can_add_thread returns true for the thread count, execution_engine_linux_submit_work shall wake the manager thread by calling pthread_cond_signal. ]*/
+TEST_FUNCTION(execution_engine_linux_submit_work_wakes_the_manager_thread_when_no_worker_thread_is_idle_and_one_can_be_added)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
@@ -1733,9 +1830,9 @@ TEST_FUNCTION(internal_execution_engine_linux_dispatch_wakes_the_manager_thread_
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_059: [ internal_execution_engine_linux_dispatch shall get the counts of the worker pool by calling worker_pool_get_counts. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_060: [ If thread_count_policy_can_add_thread returns true for the thread count, internal_execution_engine_linux_dispatch shall wake the manager thread by calling pthread_cond_signal. ]*/
-TEST_FUNCTION(internal_execution_engine_linux_dispatch_does_not_wake_the_manager_thread_when_no_worker_thread_can_be_added)
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_059: [ execution_engine_linux_submit_work shall get the counts of the worker pool by calling worker_pool_get_counts. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_060: [ If thread_count_policy_can_add_thread returns true for the thread count, execution_engine_linux_submit_work shall wake the manager thread by calling pthread_cond_signal. ]*/
+TEST_FUNCTION(execution_engine_linux_submit_work_does_not_wake_the_manager_thread_when_no_worker_thread_can_be_added)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
@@ -1765,8 +1862,8 @@ TEST_FUNCTION(internal_execution_engine_linux_dispatch_does_not_wake_the_manager
 }
 
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_058: [ If worker_pool_wake_idle_worker returns WORKER_POOL_WAKE_RESULT_NO_IDLE_WORKER and the manager thread is not watching the ready queue: ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_169: [ internal_execution_engine_linux_wait_for_next_event shall record that the manager thread is watching the ready queue if add_thread_time is not THREAD_COUNT_POLICY_NEVER. ]*/
-TEST_FUNCTION(internal_execution_engine_linux_dispatch_does_not_wake_the_manager_thread_while_it_watches_the_ready_queue)
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_169: [ internal_execution_engine_linux_manager_thread_func shall record that the manager thread is watching the ready queue if the time to add a worker thread is not THREAD_COUNT_POLICY_NEVER. ]*/
+TEST_FUNCTION(execution_engine_linux_submit_work_does_not_wake_the_manager_thread_while_it_watches_the_ready_queue)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
@@ -1795,8 +1892,8 @@ TEST_FUNCTION(internal_execution_engine_linux_dispatch_does_not_wake_the_manager
 }
 
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_058: [ If worker_pool_wake_idle_worker returns WORKER_POOL_WAKE_RESULT_NO_IDLE_WORKER and the manager thread is not watching the ready queue: ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_169: [ internal_execution_engine_linux_wait_for_next_event shall record that the manager thread is watching the ready queue if add_thread_time is not THREAD_COUNT_POLICY_NEVER. ]*/
-TEST_FUNCTION(internal_execution_engine_linux_dispatch_wakes_the_manager_thread_once_it_stopped_watching_the_ready_queue)
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_169: [ internal_execution_engine_linux_manager_thread_func shall record that the manager thread is watching the ready queue if the time to add a worker thread is not THREAD_COUNT_POLICY_NEVER. ]*/
+TEST_FUNCTION(execution_engine_linux_submit_work_wakes_the_manager_thread_once_it_stopped_watching_the_ready_queue)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
@@ -1854,14 +1951,13 @@ TEST_FUNCTION(internal_execution_engine_linux_run_next_work_returns_false_when_t
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_063: [ internal_execution_engine_linux_run_next_work shall remove the work object at the head of the ready queue by calling DList_RemoveHeadList. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_181: [ internal_execution_engine_linux_run_next_work shall decrement the count of work objects in the ready queue. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_064: [ internal_execution_engine_linux_run_next_work shall decrement the pending count of the work object. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_066: [ If the ready queue is not empty, internal_execution_engine_linux_run_next_work shall dispatch the ready queue by calling internal_execution_engine_linux_dispatch. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_066: [ If the ready queue is not empty: ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_067: [ internal_execution_engine_linux_run_next_work shall increment the running count of the work object. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_068: [ internal_execution_engine_linux_run_next_work shall record progress by calling thread_count_policy_on_progress with the current time obtained by calling timer_global_get_elapsed_ms. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_071: [ internal_execution_engine_linux_run_next_work shall release the mutex by calling pthread_mutex_unlock. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_072: [ internal_execution_engine_linux_run_next_work shall call the work function of the work object with its work function context. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_073: [ internal_execution_engine_linux_run_next_work shall acquire the mutex by calling pthread_mutex_lock. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_075: [ If the work object is still the work object running on the current thread: ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_077: [ internal_execution_engine_linux_run_next_work shall end the invocation of the work object by calling internal_execution_engine_linux_end_invocation. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_079: [ internal_execution_engine_linux_run_next_work shall return true. ]*/
 TEST_FUNCTION(internal_execution_engine_linux_run_next_work_runs_the_work_object_at_the_head_of_the_ready_queue)
 {
@@ -1901,7 +1997,8 @@ TEST_FUNCTION(internal_execution_engine_linux_run_next_work_runs_the_work_object
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_182: [ internal_execution_engine_linux_run_next_work shall insert the work object at the tail of the ready queue by calling DList_InsertTailList. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_183: [ internal_execution_engine_linux_run_next_work shall increment the count of work objects in the ready queue. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_181: [ internal_execution_engine_linux_run_next_work shall decrement the count of work objects in the ready queue. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_066: [ If the ready queue is not empty, internal_execution_engine_linux_run_next_work shall dispatch the ready queue by calling internal_execution_engine_linux_dispatch. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_066: [ If the ready queue is not empty: ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_205: [ internal_execution_engine_linux_run_next_work shall wake an idle worker thread by calling worker_pool_wake_idle_worker. ]*/
 TEST_FUNCTION(internal_execution_engine_linux_run_next_work_inserts_the_work_object_at_the_tail_of_the_ready_queue_when_invocations_are_still_pending)
 {
     ///arrange
@@ -1947,8 +2044,10 @@ TEST_FUNCTION(internal_execution_engine_linux_run_next_work_inserts_the_work_obj
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_066: [ If the ready queue is not empty, internal_execution_engine_linux_run_next_work shall dispatch the ready queue by calling internal_execution_engine_linux_dispatch. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_066: [ If the ready queue is not empty: ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_181: [ internal_execution_engine_linux_run_next_work shall decrement the count of work objects in the ready queue. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_205: [ internal_execution_engine_linux_run_next_work shall wake an idle worker thread by calling worker_pool_wake_idle_worker. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_206: [ If worker_pool_wake_idle_worker returns WORKER_POOL_WAKE_RESULT_NO_IDLE_WORKER and the manager thread is not watching the ready queue: ]*/
 TEST_FUNCTION(internal_execution_engine_linux_run_next_work_dispatches_the_ready_queue_when_other_work_objects_wait)
 {
     ///arrange
@@ -1981,6 +2080,134 @@ TEST_FUNCTION(internal_execution_engine_linux_run_next_work_dispatches_the_ready
     ASSERT_ARE_EQUAL(void_ptr, work_2_entry, g_ready_queue->Flink);
     ASSERT_ARE_EQUAL(void_ptr, work_2_entry, g_ready_queue->Blink);
     assert_ready_queue_count(1);
+
+    ///cleanup
+    execution_engine_linux_wait_for_work(work_2, true);
+    execution_engine_linux_close_work(work_1);
+    execution_engine_linux_close_work(work_2);
+    execution_engine_dec_ref(execution_engine);
+}
+
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_066: [ If the ready queue is not empty: ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_205: [ internal_execution_engine_linux_run_next_work shall wake an idle worker thread by calling worker_pool_wake_idle_worker. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_206: [ If worker_pool_wake_idle_worker returns WORKER_POOL_WAKE_RESULT_NO_IDLE_WORKER and the manager thread is not watching the ready queue: ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_207: [ internal_execution_engine_linux_run_next_work shall get the counts of the worker pool by calling worker_pool_get_counts. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_208: [ If thread_count_policy_can_add_thread returns true for the thread count, internal_execution_engine_linux_run_next_work shall wake the manager thread by calling pthread_cond_signal. ]*/
+TEST_FUNCTION(internal_execution_engine_linux_run_next_work_wakes_the_manager_thread_when_other_work_objects_wait_and_no_worker_thread_is_idle)
+{
+    ///arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
+    TEST_WORK_CONTEXT test_context_1;
+    TEST_WORK_CONTEXT test_context_2;
+    EXECUTION_ENGINE_LINUX_WORK_HANDLE work_1 = test_create_work(execution_engine, &test_context_1, NULL);
+    EXECUTION_ENGINE_LINUX_WORK_HANDLE work_2 = test_create_work(execution_engine, &test_context_2, NULL);
+    test_submit_work(work_1);
+    test_submit_work(work_2);
+    g_worker_pool_counts = (WORKER_POOL_COUNTS){ .thread_count = 2, .starting_thread_count = 0, .idle_thread_count = 0, .oldest_idle_since_ms = 0 };
+
+    STRICT_EXPECTED_CALL(DList_IsListEmpty(g_ready_queue));
+    STRICT_EXPECTED_CALL(DList_RemoveHeadList(g_ready_queue));
+    STRICT_EXPECTED_CALL(DList_IsListEmpty(g_ready_queue));
+    STRICT_EXPECTED_CALL(worker_pool_wake_idle_worker(TEST_WORKER_POOL))
+        .SetReturn(WORKER_POOL_WAKE_RESULT_NO_IDLE_WORKER);
+    STRICT_EXPECTED_CALL(worker_pool_get_counts(TEST_WORKER_POOL, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(thread_count_policy_can_add_thread(TEST_THREAD_COUNT_POLICY, 2))
+        .SetReturn(true);
+    STRICT_EXPECTED_CALL(mocked_pthread_cond_signal(g_manager_cond));
+    STRICT_EXPECTED_CALL(timer_global_get_elapsed_ms());
+    STRICT_EXPECTED_CALL(thread_count_policy_on_progress(TEST_THREAD_COUNT_POLICY, (uint64_t)g_now_ms));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(g_lock));
+    STRICT_EXPECTED_CALL(test_work_function(&test_context_1));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+
+    ///act
+    bool result = g_run_next_work(g_run_next_work_context);
+
+    ///assert
+    ASSERT_IS_TRUE(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    execution_engine_linux_wait_for_work(work_2, true);
+    execution_engine_linux_close_work(work_1);
+    execution_engine_linux_close_work(work_2);
+    execution_engine_dec_ref(execution_engine);
+}
+
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_207: [ internal_execution_engine_linux_run_next_work shall get the counts of the worker pool by calling worker_pool_get_counts. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_208: [ If thread_count_policy_can_add_thread returns true for the thread count, internal_execution_engine_linux_run_next_work shall wake the manager thread by calling pthread_cond_signal. ]*/
+TEST_FUNCTION(internal_execution_engine_linux_run_next_work_does_not_wake_the_manager_thread_when_no_worker_thread_can_be_added)
+{
+    ///arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
+    TEST_WORK_CONTEXT test_context_1;
+    TEST_WORK_CONTEXT test_context_2;
+    EXECUTION_ENGINE_LINUX_WORK_HANDLE work_1 = test_create_work(execution_engine, &test_context_1, NULL);
+    EXECUTION_ENGINE_LINUX_WORK_HANDLE work_2 = test_create_work(execution_engine, &test_context_2, NULL);
+    test_submit_work(work_1);
+    test_submit_work(work_2);
+    g_worker_pool_counts = (WORKER_POOL_COUNTS){ .thread_count = 4, .starting_thread_count = 0, .idle_thread_count = 0, .oldest_idle_since_ms = 0 };
+
+    STRICT_EXPECTED_CALL(DList_IsListEmpty(g_ready_queue));
+    STRICT_EXPECTED_CALL(DList_RemoveHeadList(g_ready_queue));
+    STRICT_EXPECTED_CALL(DList_IsListEmpty(g_ready_queue));
+    STRICT_EXPECTED_CALL(worker_pool_wake_idle_worker(TEST_WORKER_POOL))
+        .SetReturn(WORKER_POOL_WAKE_RESULT_NO_IDLE_WORKER);
+    STRICT_EXPECTED_CALL(worker_pool_get_counts(TEST_WORKER_POOL, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(thread_count_policy_can_add_thread(TEST_THREAD_COUNT_POLICY, 4))
+        .SetReturn(false);
+    STRICT_EXPECTED_CALL(timer_global_get_elapsed_ms());
+    STRICT_EXPECTED_CALL(thread_count_policy_on_progress(TEST_THREAD_COUNT_POLICY, (uint64_t)g_now_ms));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(g_lock));
+    STRICT_EXPECTED_CALL(test_work_function(&test_context_1));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+
+    ///act
+    bool result = g_run_next_work(g_run_next_work_context);
+
+    ///assert
+    ASSERT_IS_TRUE(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    execution_engine_linux_wait_for_work(work_2, true);
+    execution_engine_linux_close_work(work_1);
+    execution_engine_linux_close_work(work_2);
+    execution_engine_dec_ref(execution_engine);
+}
+
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_206: [ If worker_pool_wake_idle_worker returns WORKER_POOL_WAKE_RESULT_NO_IDLE_WORKER and the manager thread is not watching the ready queue: ]*/
+TEST_FUNCTION(internal_execution_engine_linux_run_next_work_does_not_wake_the_manager_thread_while_it_watches_the_ready_queue)
+{
+    ///arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
+    TEST_WORK_CONTEXT test_context_1;
+    TEST_WORK_CONTEXT test_context_2;
+    EXECUTION_ENGINE_LINUX_WORK_HANDLE work_1 = test_create_work(execution_engine, &test_context_1, NULL);
+    EXECUTION_ENGINE_LINUX_WORK_HANDLE work_2 = test_create_work(execution_engine, &test_context_2, NULL);
+    test_submit_work(work_1);
+    test_submit_work(work_2);
+    g_now_ms = 5000.0;
+    // the manager thread waits until the time to add a worker thread, watching the ready queue
+    test_run_manager_thread_until_it_waits(2, 5050);
+
+    STRICT_EXPECTED_CALL(DList_IsListEmpty(g_ready_queue));
+    STRICT_EXPECTED_CALL(DList_RemoveHeadList(g_ready_queue));
+    STRICT_EXPECTED_CALL(DList_IsListEmpty(g_ready_queue));
+    STRICT_EXPECTED_CALL(worker_pool_wake_idle_worker(TEST_WORKER_POOL))
+        .SetReturn(WORKER_POOL_WAKE_RESULT_NO_IDLE_WORKER);
+    STRICT_EXPECTED_CALL(timer_global_get_elapsed_ms());
+    STRICT_EXPECTED_CALL(thread_count_policy_on_progress(TEST_THREAD_COUNT_POLICY, 5000));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(g_lock));
+    STRICT_EXPECTED_CALL(test_work_function(&test_context_1));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+
+    ///act
+    bool result = g_run_next_work(g_run_next_work_context);
+
+    ///assert
+    ASSERT_IS_TRUE(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///cleanup
     execution_engine_linux_wait_for_work(work_2, true);
@@ -2072,12 +2299,10 @@ TEST_FUNCTION(internal_execution_engine_linux_run_next_work_does_not_access_the_
     execution_engine_dec_ref(execution_engine);
 }
 
-/* internal_execution_engine_linux_end_invocation */
-
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_080: [ internal_execution_engine_linux_end_invocation shall decrement the running count of work. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_081: [ If work has no pending and no running invocations: ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_082: [ If work is closed, internal_execution_engine_linux_end_invocation shall call the free function of work. ]*/
-TEST_FUNCTION(internal_execution_engine_linux_end_invocation_frees_a_closed_work_object_after_its_last_invocation)
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_209: [ internal_execution_engine_linux_run_next_work shall decrement the running count of the work object. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_210: [ If the work object has no pending and no running invocations: ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_211: [ If the work object is closed, internal_execution_engine_linux_run_next_work shall call the free function of the work object. ]*/
+TEST_FUNCTION(internal_execution_engine_linux_run_next_work_frees_a_closed_work_object_after_its_last_invocation)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
@@ -2101,9 +2326,9 @@ TEST_FUNCTION(internal_execution_engine_linux_end_invocation_frees_a_closed_work
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_080: [ internal_execution_engine_linux_end_invocation shall decrement the running count of work. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_081: [ If work has no pending and no running invocations: ]*/
-TEST_FUNCTION(internal_execution_engine_linux_end_invocation_does_not_free_a_closed_work_object_with_pending_invocations)
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_209: [ internal_execution_engine_linux_run_next_work shall decrement the running count of the work object. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_210: [ If the work object has no pending and no running invocations: ]*/
+TEST_FUNCTION(internal_execution_engine_linux_run_next_work_does_not_free_a_closed_work_object_with_pending_invocations)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
@@ -2137,6 +2362,35 @@ TEST_FUNCTION(internal_execution_engine_linux_end_invocation_does_not_free_a_clo
     execution_engine_dec_ref(execution_engine);
 }
 
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_209: [ internal_execution_engine_linux_run_next_work shall decrement the running count of the work object. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_210: [ If the work object has no pending and no running invocations: ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_212: [ If the work object is not closed and the waiter count of the work object is not 0, internal_execution_engine_linux_run_next_work shall wake the waiting threads by calling pthread_cond_broadcast. ]*/
+TEST_FUNCTION(internal_execution_engine_linux_run_next_work_wakes_the_threads_waiting_for_the_work_object_after_its_last_invocation)
+{
+    ///arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
+    TEST_WORK_CONTEXT test_context;
+    EXECUTION_ENGINE_LINUX_WORK_HANDLE work = test_create_work(execution_engine, &test_context, NULL);
+    test_submit_work(work);
+    test_start_waiting_thread(action_wait_for_work, &test_context);
+
+    setup_run_next_work_start_expectations(&test_context);
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_cond_broadcast(g_work_done_cond));
+
+    ///act
+    bool result = g_run_next_work(g_run_next_work_context);
+
+    ///assert
+    ASSERT_IS_TRUE(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    assert_waiting_thread_returns();
+
+    ///cleanup
+    execution_engine_linux_close_work(work);
+    execution_engine_dec_ref(execution_engine);
+}
+
 /* execution_engine_linux_wait_for_work */
 
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_084: [ If work is NULL, execution_engine_linux_wait_for_work shall return. ]*/
@@ -2151,12 +2405,11 @@ TEST_FUNCTION(execution_engine_linux_wait_for_work_with_NULL_work_returns)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_085: [ execution_engine_linux_wait_for_work shall wait for the invocations of work by calling internal_execution_engine_linux_wait_for_invocations. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_086: [ internal_execution_engine_linux_wait_for_invocations shall acquire the mutex by calling pthread_mutex_lock. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_090: [ internal_execution_engine_linux_wait_for_invocations shall increment the waiter count of work. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_091: [ internal_execution_engine_linux_wait_for_invocations shall wait by calling pthread_cond_wait until work has no pending and no running invocations. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_092: [ internal_execution_engine_linux_wait_for_invocations shall decrement the waiter count of work. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_093: [ internal_execution_engine_linux_wait_for_invocations shall release the mutex by calling pthread_mutex_unlock. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_086: [ execution_engine_linux_wait_for_work shall acquire the mutex by calling pthread_mutex_lock. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_090: [ execution_engine_linux_wait_for_work shall increment the waiter count of work. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_091: [ execution_engine_linux_wait_for_work shall wait by calling pthread_cond_wait until work has no pending and no running invocations. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_092: [ execution_engine_linux_wait_for_work shall decrement the waiter count of work. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_093: [ execution_engine_linux_wait_for_work shall release the mutex by calling pthread_mutex_unlock. ]*/
 TEST_FUNCTION(execution_engine_linux_wait_for_work_returns_at_once_when_the_work_object_has_no_invocations)
 {
     ///arrange
@@ -2178,13 +2431,12 @@ TEST_FUNCTION(execution_engine_linux_wait_for_work_returns_at_once_when_the_work
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_085: [ execution_engine_linux_wait_for_work shall wait for the invocations of work by calling internal_execution_engine_linux_wait_for_invocations. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_086: [ internal_execution_engine_linux_wait_for_invocations shall acquire the mutex by calling pthread_mutex_lock. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_086: [ execution_engine_linux_wait_for_work shall acquire the mutex by calling pthread_mutex_lock. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_087: [ If cancel_pending is true and the pending count of work is not 0: ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_090: [ internal_execution_engine_linux_wait_for_invocations shall increment the waiter count of work. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_091: [ internal_execution_engine_linux_wait_for_invocations shall wait by calling pthread_cond_wait until work has no pending and no running invocations. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_093: [ internal_execution_engine_linux_wait_for_invocations shall release the mutex by calling pthread_mutex_unlock. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_083: [ If work is not closed and the waiter count of work is not 0, internal_execution_engine_linux_end_invocation shall wake the waiting threads by calling pthread_cond_broadcast. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_090: [ execution_engine_linux_wait_for_work shall increment the waiter count of work. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_091: [ execution_engine_linux_wait_for_work shall wait by calling pthread_cond_wait until work has no pending and no running invocations. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_093: [ execution_engine_linux_wait_for_work shall release the mutex by calling pthread_mutex_unlock. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_212: [ If the work object is not closed and the waiter count of the work object is not 0, internal_execution_engine_linux_run_next_work shall wake the waiting threads by calling pthread_cond_broadcast. ]*/
 TEST_FUNCTION(execution_engine_linux_wait_for_work_waits_until_the_invocations_of_the_work_object_complete)
 {
     ///arrange
@@ -2214,8 +2466,8 @@ TEST_FUNCTION(execution_engine_linux_wait_for_work_waits_until_the_invocations_o
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_092: [ internal_execution_engine_linux_wait_for_invocations shall decrement the waiter count of work. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_083: [ If work is not closed and the waiter count of work is not 0, internal_execution_engine_linux_end_invocation shall wake the waiting threads by calling pthread_cond_broadcast. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_092: [ execution_engine_linux_wait_for_work shall decrement the waiter count of work. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_212: [ If the work object is not closed and the waiter count of the work object is not 0, internal_execution_engine_linux_run_next_work shall wake the waiting threads by calling pthread_cond_broadcast. ]*/
 TEST_FUNCTION(execution_engine_linux_wait_for_work_no_longer_counts_the_waiting_thread_once_it_returns)
 {
     ///arrange
@@ -2243,10 +2495,10 @@ TEST_FUNCTION(execution_engine_linux_wait_for_work_no_longer_counts_the_waiting_
 }
 
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_087: [ If cancel_pending is true and the pending count of work is not 0: ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_088: [ internal_execution_engine_linux_wait_for_invocations shall remove work from the ready queue by calling DList_RemoveEntryList. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_184: [ internal_execution_engine_linux_wait_for_invocations shall decrement the count of work objects in the ready queue. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_089: [ internal_execution_engine_linux_wait_for_invocations shall set the pending count of work to 0. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_177: [ If work has no running invocations and the waiter count of work is not 0, internal_execution_engine_linux_wait_for_invocations shall wake the threads waiting for work by calling pthread_cond_broadcast. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_088: [ execution_engine_linux_wait_for_work shall remove work from the ready queue by calling DList_RemoveEntryList. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_184: [ execution_engine_linux_wait_for_work shall decrement the count of work objects in the ready queue. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_089: [ execution_engine_linux_wait_for_work shall set the pending count of work to 0. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_177: [ If work has no running invocations and the waiter count of work is not 0, execution_engine_linux_wait_for_work shall wake the threads waiting for work by calling pthread_cond_broadcast. ]*/
 TEST_FUNCTION(execution_engine_linux_wait_for_work_with_cancel_pending_removes_the_work_object_from_the_ready_queue)
 {
     ///arrange
@@ -2274,7 +2526,7 @@ TEST_FUNCTION(execution_engine_linux_wait_for_work_with_cancel_pending_removes_t
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_089: [ internal_execution_engine_linux_wait_for_invocations shall set the pending count of work to 0. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_089: [ execution_engine_linux_wait_for_work shall set the pending count of work to 0. ]*/
 TEST_FUNCTION(execution_engine_linux_wait_for_work_with_cancel_pending_drops_all_the_pending_invocations)
 {
     ///arrange
@@ -2324,7 +2576,7 @@ TEST_FUNCTION(execution_engine_linux_wait_for_work_with_cancel_pending_and_no_pe
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_177: [ If work has no running invocations and the waiter count of work is not 0, internal_execution_engine_linux_wait_for_invocations shall wake the threads waiting for work by calling pthread_cond_broadcast. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_177: [ If work has no running invocations and the waiter count of work is not 0, execution_engine_linux_wait_for_work shall wake the threads waiting for work by calling pthread_cond_broadcast. ]*/
 TEST_FUNCTION(execution_engine_linux_wait_for_work_with_cancel_pending_wakes_the_threads_waiting_for_the_work_object)
 {
     ///arrange
@@ -2357,36 +2609,24 @@ TEST_FUNCTION(execution_engine_linux_wait_for_work_with_cancel_pending_wakes_the
 }
 
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_087: [ If cancel_pending is true and the pending count of work is not 0: ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_088: [ internal_execution_engine_linux_wait_for_invocations shall remove work from the ready queue by calling DList_RemoveEntryList. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_184: [ internal_execution_engine_linux_wait_for_invocations shall decrement the count of work objects in the ready queue. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_089: [ internal_execution_engine_linux_wait_for_invocations shall set the pending count of work to 0. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_177: [ If work has no running invocations and the waiter count of work is not 0, internal_execution_engine_linux_wait_for_invocations shall wake the threads waiting for work by calling pthread_cond_broadcast. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_091: [ internal_execution_engine_linux_wait_for_invocations shall wait by calling pthread_cond_wait until work has no pending and no running invocations. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_088: [ execution_engine_linux_wait_for_work shall remove work from the ready queue by calling DList_RemoveEntryList. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_184: [ execution_engine_linux_wait_for_work shall decrement the count of work objects in the ready queue. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_089: [ execution_engine_linux_wait_for_work shall set the pending count of work to 0. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_177: [ If work has no running invocations and the waiter count of work is not 0, execution_engine_linux_wait_for_work shall wake the threads waiting for work by calling pthread_cond_broadcast. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_091: [ execution_engine_linux_wait_for_work shall wait by calling pthread_cond_wait until work has no pending and no running invocations. ]*/
 TEST_FUNCTION(execution_engine_linux_wait_for_work_with_cancel_pending_waits_for_the_running_invocation_without_waking_the_waiting_threads)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
     TEST_WORK_CONTEXT test_context;
-    EXECUTION_ENGINE_LINUX_WORK_HANDLE work = test_create_work(execution_engine, &test_context, action_block_worker_thread);
+    EXECUTION_ENGINE_LINUX_WORK_HANDLE work = test_create_work(execution_engine, &test_context, action_block_other_thread);
     test_submit_work(work);
     test_submit_pending_work(work);
     PDLIST_ENTRY work_entry = g_ready_queue->Flink;
     // a worker thread runs one invocation of the work object, whose work function blocks: one invocation runs and one is pending
-    STRICT_EXPECTED_CALL(DList_IsListEmpty(g_ready_queue));
-    STRICT_EXPECTED_CALL(DList_RemoveHeadList(g_ready_queue));
-    STRICT_EXPECTED_CALL(DList_InsertTailList(g_ready_queue, work_entry));
-    STRICT_EXPECTED_CALL(DList_IsListEmpty(g_ready_queue));
-    STRICT_EXPECTED_CALL(worker_pool_wake_idle_worker(TEST_WORKER_POOL));
-    STRICT_EXPECTED_CALL(timer_global_get_elapsed_ms());
-    STRICT_EXPECTED_CALL(thread_count_policy_on_progress(TEST_THREAD_COUNT_POLICY, (uint64_t)g_now_ms));
-    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(g_lock));
-    STRICT_EXPECTED_CALL(test_work_function(&test_context));
-    run_test_thread(&g_worker_thread);
-    ASSERT_IS_FALSE(g_worker_thread.has_exited);
-    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    umock_c_reset_all_calls();
+    test_run_next_work_on_other_thread_until_the_work_function_blocks(&test_context, work_entry);
     // while the test thread waits, the work function of the worker thread returns
-    g_cond_wait_action = action_resume_worker_thread;
+    g_cond_wait_action = action_resume_other_thread;
     g_cond_wait_action_context = &test_context;
 
     // the pending invocation is dropped, the running invocation is waited for
@@ -2403,8 +2643,7 @@ TEST_FUNCTION(execution_engine_linux_wait_for_work_with_cancel_pending_waits_for
 
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_IS_TRUE(g_worker_thread.has_exited);
-    ASSERT_IS_TRUE(g_worker_thread_result);
+    ASSERT_IS_TRUE(g_other_thread.has_exited);
     ASSERT_ARE_NOT_EQUAL(int, 0, real_DList_IsListEmpty(g_ready_queue));
     assert_ready_queue_count(0);
 
@@ -2428,9 +2667,8 @@ TEST_FUNCTION(execution_engine_linux_close_work_with_NULL_work_returns)
 }
 
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_095: [ execution_engine_linux_close_work shall acquire the mutex by calling pthread_mutex_lock. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_096: [ execution_engine_linux_close_work shall close work by calling internal_execution_engine_linux_close_work_locked. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_097: [ execution_engine_linux_close_work shall release the mutex by calling pthread_mutex_unlock. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_098: [ If work has no pending and no running invocations, internal_execution_engine_linux_close_work_locked shall call the free function of work. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_098: [ If work has no pending and no running invocations, execution_engine_linux_close_work shall call the free function of work. ]*/
 TEST_FUNCTION(execution_engine_linux_close_work_frees_a_work_object_without_invocations)
 {
     ///arrange
@@ -2452,8 +2690,7 @@ TEST_FUNCTION(execution_engine_linux_close_work_frees_a_work_object_without_invo
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_096: [ execution_engine_linux_close_work shall close work by calling internal_execution_engine_linux_close_work_locked. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_099: [ If work has pending or running invocations, internal_execution_engine_linux_close_work_locked shall mark work as closed. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_099: [ If work has pending or running invocations, execution_engine_linux_close_work shall mark work as closed. ]*/
 TEST_FUNCTION(execution_engine_linux_close_work_with_pending_invocations_does_not_free_the_work_object)
 {
     ///arrange
@@ -2477,8 +2714,8 @@ TEST_FUNCTION(execution_engine_linux_close_work_with_pending_invocations_does_no
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_099: [ If work has pending or running invocations, internal_execution_engine_linux_close_work_locked shall mark work as closed. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_082: [ If work is closed, internal_execution_engine_linux_end_invocation shall call the free function of work. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_099: [ If work has pending or running invocations, execution_engine_linux_close_work shall mark work as closed. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_211: [ If the work object is closed, internal_execution_engine_linux_run_next_work shall call the free function of the work object. ]*/
 TEST_FUNCTION(execution_engine_linux_close_work_from_its_work_function_frees_the_work_object_when_the_work_function_returns)
 {
     ///arrange
@@ -2518,8 +2755,7 @@ TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_work_with_
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_101: [ execution_engine_linux_disassociate_current_thread_from_work shall disassociate the current thread from work by calling internal_execution_engine_linux_disassociate_current_thread. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_102: [ If work is not the work object running on the current thread, internal_execution_engine_linux_disassociate_current_thread shall return. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_102: [ If work is not the work object running on the current thread, execution_engine_linux_disassociate_current_thread_from_work shall return. ]*/
 TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_work_outside_of_a_work_function_returns)
 {
     ///arrange
@@ -2540,7 +2776,7 @@ TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_work_outsi
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_102: [ If work is not the work object running on the current thread, internal_execution_engine_linux_disassociate_current_thread shall return. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_102: [ If work is not the work object running on the current thread, execution_engine_linux_disassociate_current_thread_from_work shall return. ]*/
 TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_work_from_the_work_function_of_another_work_object_returns)
 {
     ///arrange
@@ -2569,12 +2805,12 @@ TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_work_from_
 }
 
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_070: [ internal_execution_engine_linux_run_next_work shall record the work object as the work object running on the current thread. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_101: [ execution_engine_linux_disassociate_current_thread_from_work shall disassociate the current thread from work by calling internal_execution_engine_linux_disassociate_current_thread. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_103: [ internal_execution_engine_linux_disassociate_current_thread shall acquire the mutex by calling pthread_mutex_lock. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_104: [ internal_execution_engine_linux_disassociate_current_thread shall clear the work object running on the current thread. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_105: [ internal_execution_engine_linux_disassociate_current_thread shall end the invocation of work by calling internal_execution_engine_linux_end_invocation. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_106: [ internal_execution_engine_linux_disassociate_current_thread shall release the mutex by calling pthread_mutex_unlock. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_103: [ execution_engine_linux_disassociate_current_thread_from_work shall acquire the mutex by calling pthread_mutex_lock. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_104: [ execution_engine_linux_disassociate_current_thread_from_work shall clear the work object running on the current thread. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_106: [ execution_engine_linux_disassociate_current_thread_from_work shall release the mutex by calling pthread_mutex_unlock. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_078: [ If the current thread was disassociated from the work object, internal_execution_engine_linux_run_next_work shall not access the work object, which can be freed by then. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_225: [ execution_engine_linux_disassociate_current_thread_from_work shall decrement the running count of work. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_226: [ If work has no pending and no running invocations: ]*/
 TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_work_from_its_work_function_ends_the_invocation)
 {
     ///arrange
@@ -2605,9 +2841,10 @@ TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_work_from_
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_105: [ internal_execution_engine_linux_disassociate_current_thread shall end the invocation of work by calling internal_execution_engine_linux_end_invocation. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_082: [ If work is closed, internal_execution_engine_linux_end_invocation shall call the free function of work. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_078: [ If the current thread was disassociated from the work object, internal_execution_engine_linux_run_next_work shall not access the work object, which can be freed by then. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_225: [ execution_engine_linux_disassociate_current_thread_from_work shall decrement the running count of work. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_226: [ If work has no pending and no running invocations: ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_227: [ If work is closed, execution_engine_linux_disassociate_current_thread_from_work shall call the free function of work. ]*/
 TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_work_frees_its_closed_work_object)
 {
     ///arrange
@@ -2634,6 +2871,38 @@ TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_work_frees
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     ///cleanup
+    execution_engine_dec_ref(execution_engine);
+}
+
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_225: [ execution_engine_linux_disassociate_current_thread_from_work shall decrement the running count of work. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_226: [ If work has no pending and no running invocations: ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_228: [ If work is not closed and the waiter count of work is not 0, execution_engine_linux_disassociate_current_thread_from_work shall wake the waiting threads by calling pthread_cond_broadcast. ]*/
+TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_work_wakes_the_threads_waiting_for_the_work_object)
+{
+    ///arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
+    TEST_WORK_CONTEXT test_context;
+    EXECUTION_ENGINE_LINUX_WORK_HANDLE work = test_create_work(execution_engine, &test_context, action_disassociate_from_work);
+    test_submit_work(work);
+    test_start_waiting_thread(action_wait_for_work, &test_context);
+
+    setup_run_next_work_start_expectations(&test_context);
+    // the disassociation ends the last invocation of the work object, which wakes the waiting thread
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_cond_broadcast(g_work_done_cond));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(g_lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+
+    ///act
+    bool result = g_run_next_work(g_run_next_work_context);
+
+    ///assert
+    ASSERT_IS_TRUE(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    assert_waiting_thread_returns();
+
+    ///cleanup
+    execution_engine_linux_close_work(work);
     execution_engine_dec_ref(execution_engine);
 }
 
@@ -2693,11 +2962,7 @@ TEST_FUNCTION(execution_engine_linux_create_timer_fails_when_a_call_it_makes_fai
 
     for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
     {
-        if (!umock_c_negative_tests_can_call_fail(i))
-        {
-            // the call cannot fail
-        }
-        else
+        if (umock_c_negative_tests_can_call_fail(i))
         {
             umock_c_negative_tests_reset();
             umock_c_negative_tests_fail_call(i);
@@ -2715,7 +2980,6 @@ TEST_FUNCTION(execution_engine_linux_create_timer_fails_when_a_call_it_makes_fai
 }
 
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_109: [ execution_engine_linux_create_timer shall allocate a timer. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_110: [ execution_engine_linux_create_timer shall initialize the work object of the timer with internal_execution_engine_linux_free_timer as its free function by calling internal_execution_engine_linux_init_work. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_111: [ execution_engine_linux_create_timer shall initialize the timer queue entry of the timer by calling timer_queue_entry_init. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_112: [ execution_engine_linux_create_timer shall acquire the mutex by calling pthread_mutex_lock. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_113: [ execution_engine_linux_create_timer shall reserve room for the timer in the timer queue by calling timer_queue_reserve. ]*/
@@ -2752,12 +3016,92 @@ TEST_FUNCTION(execution_engine_linux_create_timer_succeeds)
     execution_engine_dec_ref(execution_engine);
 }
 
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_193: [ execution_engine_linux_create_timer shall store execution_engine, work_function, work_function_context and internal_execution_engine_linux_free_timer as free function in the work object of the timer. ]*/
+TEST_FUNCTION(execution_engine_linux_create_timer_stores_the_work_function_and_its_context)
+{
+    ///arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
+    TEST_WORK_CONTEXT test_context;
+    TIMER_QUEUE_ENTRY* timer_queue_entry;
+    EXECUTION_ENGINE_LINUX_TIMER_HANDLE timer = test_create_timer(execution_engine, &test_context, NULL, &timer_queue_entry);
+    test_submit_timer(timer_queue_entry, 1);
+
+    setup_run_next_work_start_expectations(&test_context);
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+
+    ///act
+    bool result = g_run_next_work(g_run_next_work_context);
+
+    ///assert
+    ASSERT_IS_TRUE(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    execution_engine_linux_close_timer(timer);
+    execution_engine_dec_ref(execution_engine);
+}
+
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_193: [ execution_engine_linux_create_timer shall store execution_engine, work_function, work_function_context and internal_execution_engine_linux_free_timer as free function in the work object of the timer. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_194: [ execution_engine_linux_create_timer shall set the pending count, the running count and the waiter count of the work object of the timer to 0. ]*/
+TEST_FUNCTION(execution_engine_linux_create_timer_sets_no_pending_and_no_running_invocations)
+{
+    ///arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
+    TEST_WORK_CONTEXT test_context;
+    TIMER_QUEUE_ENTRY* timer_queue_entry;
+    EXECUTION_ENGINE_LINUX_TIMER_HANDLE timer = test_create_timer(execution_engine, &test_context, NULL, &timer_queue_entry);
+
+    // closing frees the timer at once with internal_execution_engine_linux_free_timer because it has no invocations
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+    STRICT_EXPECTED_CALL(timer_queue_disarm(TEST_TIMER_QUEUE, timer_queue_entry));
+    STRICT_EXPECTED_CALL(timer_queue_unreserve(TEST_TIMER_QUEUE));
+    STRICT_EXPECTED_CALL(free(timer));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(g_lock));
+
+    ///act
+    execution_engine_linux_close_timer(timer);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    execution_engine_dec_ref(execution_engine);
+}
+
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_194: [ execution_engine_linux_create_timer shall set the pending count, the running count and the waiter count of the work object of the timer to 0. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_195: [ execution_engine_linux_create_timer shall mark the work object of the timer as not closed. ]*/
+TEST_FUNCTION(execution_engine_linux_create_timer_marks_the_work_object_as_not_closed_with_no_waiter)
+{
+    ///arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
+    TEST_WORK_CONTEXT test_context;
+    TIMER_QUEUE_ENTRY* timer_queue_entry;
+    EXECUTION_ENGINE_LINUX_TIMER_HANDLE timer = test_create_timer(execution_engine, &test_context, NULL, &timer_queue_entry);
+    test_submit_timer(timer_queue_entry, 1);
+
+    // the end of the last invocation neither frees the timer nor wakes waiting threads
+    setup_run_next_work_start_expectations(&test_context);
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+
+    ///act
+    bool result = g_run_next_work(g_run_next_work_context);
+
+    ///assert
+    ASSERT_IS_TRUE(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    execution_engine_linux_close_timer(timer);
+    execution_engine_dec_ref(execution_engine);
+}
+
 /* internal_execution_engine_linux_free_timer */
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_110: [ execution_engine_linux_create_timer shall initialize the work object of the timer with internal_execution_engine_linux_free_timer as its free function by calling internal_execution_engine_linux_init_work. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_082: [ If work is closed, internal_execution_engine_linux_end_invocation shall call the free function of work. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_117: [ internal_execution_engine_linux_free_timer shall give back the room reserved for the timer in the timer queue by calling timer_queue_unreserve. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_118: [ internal_execution_engine_linux_free_timer shall free the timer. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_209: [ internal_execution_engine_linux_run_next_work shall decrement the running count of the work object. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_210: [ If the work object has no pending and no running invocations: ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_211: [ If the work object is closed, internal_execution_engine_linux_run_next_work shall call the free function of the work object. ]*/
 TEST_FUNCTION(internal_execution_engine_linux_free_timer_gives_back_the_room_reserved_in_the_timer_queue_and_frees_the_timer)
 {
     ///arrange
@@ -2969,7 +3313,11 @@ TEST_FUNCTION(execution_engine_linux_wait_for_timer_with_NULL_timer_returns)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_132: [ execution_engine_linux_wait_for_timer shall wait for the invocations of the work object of timer by calling internal_execution_engine_linux_wait_for_invocations. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_213: [ execution_engine_linux_wait_for_timer shall acquire the mutex by calling pthread_mutex_lock. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_219: [ execution_engine_linux_wait_for_timer shall increment the waiter count of the work object of timer. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_220: [ execution_engine_linux_wait_for_timer shall wait by calling pthread_cond_wait until the work object of timer has no pending and no running invocations. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_221: [ execution_engine_linux_wait_for_timer shall decrement the waiter count of the work object of timer. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_222: [ execution_engine_linux_wait_for_timer shall release the mutex by calling pthread_mutex_unlock. ]*/
 TEST_FUNCTION(execution_engine_linux_wait_for_timer_returns_at_once_when_the_timer_has_no_invocations)
 {
     ///arrange
@@ -2992,7 +3340,12 @@ TEST_FUNCTION(execution_engine_linux_wait_for_timer_returns_at_once_when_the_tim
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_132: [ execution_engine_linux_wait_for_timer shall wait for the invocations of the work object of timer by calling internal_execution_engine_linux_wait_for_invocations. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_213: [ execution_engine_linux_wait_for_timer shall acquire the mutex by calling pthread_mutex_lock. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_214: [ If cancel_pending is true and the pending count of the work object of timer is not 0: ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_215: [ execution_engine_linux_wait_for_timer shall remove the work object of timer from the ready queue by calling DList_RemoveEntryList. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_216: [ execution_engine_linux_wait_for_timer shall decrement the count of work objects in the ready queue. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_217: [ execution_engine_linux_wait_for_timer shall set the pending count of the work object of timer to 0. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_218: [ If the work object of timer has no running invocations and the waiter count of the work object of timer is not 0, execution_engine_linux_wait_for_timer shall wake the threads waiting for the work object of timer by calling pthread_cond_broadcast. ]*/
 TEST_FUNCTION(execution_engine_linux_wait_for_timer_with_cancel_pending_drops_the_pending_invocation)
 {
     ///arrange
@@ -3013,6 +3366,199 @@ TEST_FUNCTION(execution_engine_linux_wait_for_timer_with_cancel_pending_drops_th
     ///assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     ASSERT_ARE_NOT_EQUAL(int, 0, real_DList_IsListEmpty(g_ready_queue));
+    assert_ready_queue_count(0);
+
+    ///cleanup
+    execution_engine_linux_close_timer(timer);
+    execution_engine_dec_ref(execution_engine);
+}
+
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_213: [ execution_engine_linux_wait_for_timer shall acquire the mutex by calling pthread_mutex_lock. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_214: [ If cancel_pending is true and the pending count of the work object of timer is not 0: ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_219: [ execution_engine_linux_wait_for_timer shall increment the waiter count of the work object of timer. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_220: [ execution_engine_linux_wait_for_timer shall wait by calling pthread_cond_wait until the work object of timer has no pending and no running invocations. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_222: [ execution_engine_linux_wait_for_timer shall release the mutex by calling pthread_mutex_unlock. ]*/
+TEST_FUNCTION(execution_engine_linux_wait_for_timer_waits_until_the_invocations_of_the_timer_complete)
+{
+    ///arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
+    TEST_WORK_CONTEXT test_context;
+    TIMER_QUEUE_ENTRY* timer_queue_entry;
+    EXECUTION_ENGINE_LINUX_TIMER_HANDLE timer = test_create_timer(execution_engine, &test_context, NULL, &timer_queue_entry);
+    test_submit_timer(timer_queue_entry, 1);
+    // while the test thread waits, a worker thread runs the work object of the timer
+    g_cond_wait_action = action_run_next_work;
+    g_cond_wait_action_context = &test_context;
+
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_cond_wait(g_work_done_cond, g_lock));
+    setup_run_next_work_start_expectations(&test_context);
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_cond_broadcast(g_work_done_cond));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(g_lock));
+
+    ///act
+    execution_engine_linux_wait_for_timer(timer, false);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    execution_engine_linux_close_timer(timer);
+    execution_engine_dec_ref(execution_engine);
+}
+
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_221: [ execution_engine_linux_wait_for_timer shall decrement the waiter count of the work object of timer. ]*/
+TEST_FUNCTION(execution_engine_linux_wait_for_timer_no_longer_counts_the_waiting_thread_once_it_returns)
+{
+    ///arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
+    TEST_WORK_CONTEXT test_context;
+    TIMER_QUEUE_ENTRY* timer_queue_entry;
+    EXECUTION_ENGINE_LINUX_TIMER_HANDLE timer = test_create_timer(execution_engine, &test_context, NULL, &timer_queue_entry);
+    test_submit_timer(timer_queue_entry, 1);
+    test_wait_for_timer_while_it_runs(&test_context);
+    test_submit_timer(timer_queue_entry, 1);
+
+    // the next invocation ends while no thread waits for the timer: no pthread_cond_broadcast
+    setup_run_next_work_start_expectations(&test_context);
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+
+    ///act
+    bool result = g_run_next_work(g_run_next_work_context);
+
+    ///assert
+    ASSERT_IS_TRUE(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    execution_engine_linux_close_timer(timer);
+    execution_engine_dec_ref(execution_engine);
+}
+
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_217: [ execution_engine_linux_wait_for_timer shall set the pending count of the work object of timer to 0. ]*/
+TEST_FUNCTION(execution_engine_linux_wait_for_timer_with_cancel_pending_drops_all_the_pending_invocations)
+{
+    ///arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
+    TEST_WORK_CONTEXT test_context;
+    TIMER_QUEUE_ENTRY* timer_queue_entry;
+    EXECUTION_ENGINE_LINUX_TIMER_HANDLE timer = test_create_timer(execution_engine, &test_context, NULL, &timer_queue_entry);
+    test_submit_timer(timer_queue_entry, 1);
+    test_submit_pending_timer(timer_queue_entry, 1);
+    PDLIST_ENTRY timer_work_entry = g_ready_queue->Flink;
+
+    // no pending invocation is left to wait for
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+    STRICT_EXPECTED_CALL(DList_RemoveEntryList(timer_work_entry));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(g_lock));
+
+    ///act
+    execution_engine_linux_wait_for_timer(timer, true);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    execution_engine_linux_close_timer(timer);
+    execution_engine_dec_ref(execution_engine);
+}
+
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_214: [ If cancel_pending is true and the pending count of the work object of timer is not 0: ]*/
+TEST_FUNCTION(execution_engine_linux_wait_for_timer_with_cancel_pending_and_no_pending_invocation_does_not_touch_the_ready_queue)
+{
+    ///arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
+    TEST_WORK_CONTEXT test_context;
+    TIMER_QUEUE_ENTRY* timer_queue_entry;
+    EXECUTION_ENGINE_LINUX_TIMER_HANDLE timer = test_create_timer(execution_engine, &test_context, NULL, &timer_queue_entry);
+
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(g_lock));
+
+    ///act
+    execution_engine_linux_wait_for_timer(timer, true);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    execution_engine_linux_close_timer(timer);
+    execution_engine_dec_ref(execution_engine);
+}
+
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_218: [ If the work object of timer has no running invocations and the waiter count of the work object of timer is not 0, execution_engine_linux_wait_for_timer shall wake the threads waiting for the work object of timer by calling pthread_cond_broadcast. ]*/
+TEST_FUNCTION(execution_engine_linux_wait_for_timer_with_cancel_pending_wakes_the_threads_waiting_for_the_timer)
+{
+    ///arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
+    TEST_WORK_CONTEXT test_context;
+    TIMER_QUEUE_ENTRY* timer_queue_entry;
+    EXECUTION_ENGINE_LINUX_TIMER_HANDLE timer = test_create_timer(execution_engine, &test_context, NULL, &timer_queue_entry);
+    test_submit_timer(timer_queue_entry, 1);
+    PDLIST_ENTRY timer_work_entry = g_ready_queue->Flink;
+    // while the test thread waits for the timer, another thread cancels its pending invocations
+    g_cond_wait_action = action_cancel_pending_timer_invocations;
+    g_cond_wait_action_context = &test_context;
+
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_cond_wait(g_work_done_cond, g_lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+    STRICT_EXPECTED_CALL(DList_RemoveEntryList(timer_work_entry));
+    STRICT_EXPECTED_CALL(mocked_pthread_cond_broadcast(g_work_done_cond));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(g_lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(g_lock));
+
+    ///act
+    execution_engine_linux_wait_for_timer(timer, false);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    execution_engine_linux_close_timer(timer);
+    execution_engine_dec_ref(execution_engine);
+}
+
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_214: [ If cancel_pending is true and the pending count of the work object of timer is not 0: ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_215: [ execution_engine_linux_wait_for_timer shall remove the work object of timer from the ready queue by calling DList_RemoveEntryList. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_216: [ execution_engine_linux_wait_for_timer shall decrement the count of work objects in the ready queue. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_217: [ execution_engine_linux_wait_for_timer shall set the pending count of the work object of timer to 0. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_218: [ If the work object of timer has no running invocations and the waiter count of the work object of timer is not 0, execution_engine_linux_wait_for_timer shall wake the threads waiting for the work object of timer by calling pthread_cond_broadcast. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_220: [ execution_engine_linux_wait_for_timer shall wait by calling pthread_cond_wait until the work object of timer has no pending and no running invocations. ]*/
+TEST_FUNCTION(execution_engine_linux_wait_for_timer_with_cancel_pending_waits_for_the_running_invocation_without_waking_the_waiting_threads)
+{
+    ///arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
+    TEST_WORK_CONTEXT test_context;
+    TIMER_QUEUE_ENTRY* timer_queue_entry;
+    EXECUTION_ENGINE_LINUX_TIMER_HANDLE timer = test_create_timer(execution_engine, &test_context, action_block_other_thread, &timer_queue_entry);
+    test_submit_timer(timer_queue_entry, 1);
+    test_submit_pending_timer(timer_queue_entry, 1);
+    PDLIST_ENTRY timer_work_entry = g_ready_queue->Flink;
+    // a worker thread runs one invocation of the timer, whose work function blocks: one invocation runs and one is pending
+    test_run_next_work_on_other_thread_until_the_work_function_blocks(&test_context, timer_work_entry);
+    // while the test thread waits, the work function of the worker thread returns
+    g_cond_wait_action = action_resume_other_thread;
+    g_cond_wait_action_context = &test_context;
+
+    // the pending invocation is dropped, the running invocation is waited for
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+    STRICT_EXPECTED_CALL(DList_RemoveEntryList(timer_work_entry));
+    STRICT_EXPECTED_CALL(mocked_pthread_cond_wait(g_work_done_cond, g_lock));
+    // the worker thread ends the running invocation, which wakes the waiting thread
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_cond_broadcast(g_work_done_cond));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(g_lock));
+
+    ///act
+    execution_engine_linux_wait_for_timer(timer, true);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_TRUE(g_other_thread.has_exited);
+    ASSERT_ARE_NOT_EQUAL(int, 0, real_DList_IsListEmpty(g_ready_queue));
+    assert_ready_queue_count(0);
 
     ///cleanup
     execution_engine_linux_close_timer(timer);
@@ -3035,11 +3581,10 @@ TEST_FUNCTION(execution_engine_linux_close_timer_with_NULL_timer_returns)
 
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_134: [ execution_engine_linux_close_timer shall acquire the mutex by calling pthread_mutex_lock. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_135: [ execution_engine_linux_close_timer shall disarm timer by calling timer_queue_disarm. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_136: [ execution_engine_linux_close_timer shall close the work object of timer by calling internal_execution_engine_linux_close_work_locked. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_137: [ execution_engine_linux_close_timer shall release the mutex by calling pthread_mutex_unlock. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_098: [ If work has no pending and no running invocations, internal_execution_engine_linux_close_work_locked shall call the free function of work. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_117: [ internal_execution_engine_linux_free_timer shall give back the room reserved for the timer in the timer queue by calling timer_queue_unreserve. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_118: [ internal_execution_engine_linux_free_timer shall free the timer. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_223: [ If the work object of timer has no pending and no running invocations, execution_engine_linux_close_timer shall call the free function of the work object of timer. ]*/
 TEST_FUNCTION(execution_engine_linux_close_timer_disarms_and_frees_a_timer_without_invocations)
 {
     ///arrange
@@ -3064,8 +3609,7 @@ TEST_FUNCTION(execution_engine_linux_close_timer_disarms_and_frees_a_timer_witho
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_136: [ execution_engine_linux_close_timer shall close the work object of timer by calling internal_execution_engine_linux_close_work_locked. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_099: [ If work has pending or running invocations, internal_execution_engine_linux_close_work_locked shall mark work as closed. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_224: [ If the work object of timer has pending or running invocations, execution_engine_linux_close_timer shall mark the work object of timer as closed. ]*/
 TEST_FUNCTION(execution_engine_linux_close_timer_with_a_pending_invocation_does_not_free_the_timer)
 {
     ///arrange
@@ -3105,8 +3649,7 @@ TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_timer_with
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_139: [ execution_engine_linux_disassociate_current_thread_from_timer shall disassociate the current thread from the work object of timer by calling internal_execution_engine_linux_disassociate_current_thread. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_102: [ If work is not the work object running on the current thread, internal_execution_engine_linux_disassociate_current_thread shall return. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_229: [ If the work object of timer is not the work object running on the current thread, execution_engine_linux_disassociate_current_thread_from_timer shall return. ]*/
 TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_timer_outside_of_its_work_function_returns)
 {
     ///arrange
@@ -3126,18 +3669,22 @@ TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_timer_outs
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_139: [ execution_engine_linux_disassociate_current_thread_from_timer shall disassociate the current thread from the work object of timer by calling internal_execution_engine_linux_disassociate_current_thread. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_230: [ execution_engine_linux_disassociate_current_thread_from_timer shall acquire the mutex by calling pthread_mutex_lock. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_231: [ execution_engine_linux_disassociate_current_thread_from_timer shall clear the work object running on the current thread. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_232: [ execution_engine_linux_disassociate_current_thread_from_timer shall decrement the running count of the work object of timer. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_233: [ If the work object of timer has no pending and no running invocations: ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_236: [ execution_engine_linux_disassociate_current_thread_from_timer shall release the mutex by calling pthread_mutex_unlock. ]*/
 TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_timer_from_its_work_function_ends_the_invocation)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
     TEST_WORK_CONTEXT test_context;
     TIMER_QUEUE_ENTRY* timer_queue_entry;
-    EXECUTION_ENGINE_LINUX_TIMER_HANDLE timer = test_create_timer(execution_engine, &test_context, action_disassociate_from_timer_and_wait, &timer_queue_entry);
+    EXECUTION_ENGINE_LINUX_TIMER_HANDLE timer = test_create_timer(execution_engine, &test_context, action_disassociate_from_timer_twice_and_wait, &timer_queue_entry);
     test_submit_timer(timer_queue_entry, 1);
 
     setup_run_next_work_start_expectations(&test_context);
-    // the disassociation ends the invocation
+    // the first disassociation ends the invocation, the second one does nothing
     STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
     STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(g_lock));
     // waiting for the timer does not wait for the current thread
@@ -3158,17 +3705,83 @@ TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_timer_from
     execution_engine_dec_ref(execution_engine);
 }
 
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_232: [ execution_engine_linux_disassociate_current_thread_from_timer shall decrement the running count of the work object of timer. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_233: [ If the work object of timer has no pending and no running invocations: ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_234: [ If the work object of timer is closed, execution_engine_linux_disassociate_current_thread_from_timer shall call the free function of the work object of timer. ]*/
+TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_timer_frees_its_closed_timer)
+{
+    ///arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
+    TEST_WORK_CONTEXT test_context;
+    TIMER_QUEUE_ENTRY* timer_queue_entry;
+    EXECUTION_ENGINE_LINUX_TIMER_HANDLE timer = test_create_timer(execution_engine, &test_context, action_close_timer_and_disassociate, &timer_queue_entry);
+    test_submit_timer(timer_queue_entry, 1);
+
+    setup_run_next_work_start_expectations(&test_context);
+    // the work function closes its timer, which still runs
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+    STRICT_EXPECTED_CALL(timer_queue_disarm(TEST_TIMER_QUEUE, timer_queue_entry));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(g_lock));
+    // the disassociation ends the last invocation of the closed timer, which frees it
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+    STRICT_EXPECTED_CALL(timer_queue_unreserve(TEST_TIMER_QUEUE));
+    STRICT_EXPECTED_CALL(free(timer));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(g_lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+
+    ///act
+    bool result = g_run_next_work(g_run_next_work_context);
+
+    ///assert
+    ASSERT_IS_TRUE(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    execution_engine_dec_ref(execution_engine);
+}
+
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_232: [ execution_engine_linux_disassociate_current_thread_from_timer shall decrement the running count of the work object of timer. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_233: [ If the work object of timer has no pending and no running invocations: ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_235: [ If the work object of timer is not closed and the waiter count of the work object of timer is not 0, execution_engine_linux_disassociate_current_thread_from_timer shall wake the waiting threads by calling pthread_cond_broadcast. ]*/
+TEST_FUNCTION(execution_engine_linux_disassociate_current_thread_from_timer_wakes_the_threads_waiting_for_the_timer)
+{
+    ///arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
+    TEST_WORK_CONTEXT test_context;
+    TIMER_QUEUE_ENTRY* timer_queue_entry;
+    EXECUTION_ENGINE_LINUX_TIMER_HANDLE timer = test_create_timer(execution_engine, &test_context, action_disassociate_from_timer, &timer_queue_entry);
+    test_submit_timer(timer_queue_entry, 1);
+    test_start_waiting_thread(action_wait_for_timer, &test_context);
+
+    setup_run_next_work_start_expectations(&test_context);
+    // the disassociation ends the last invocation of the timer, which wakes the waiting thread
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_cond_broadcast(g_work_done_cond));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(g_lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+
+    ///act
+    bool result = g_run_next_work(g_run_next_work_context);
+
+    ///assert
+    ASSERT_IS_TRUE(result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    assert_waiting_thread_returns();
+
+    ///cleanup
+    execution_engine_linux_close_timer(timer);
+    execution_engine_dec_ref(execution_engine);
+}
+
 /* internal_execution_engine_linux_manager_thread_func */
 
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_140: [ internal_execution_engine_linux_manager_thread_func shall acquire the mutex by calling pthread_mutex_lock. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_141: [ Until the execution engine is stopping: ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_142: [ internal_execution_engine_linux_manager_thread_func shall get the current time by calling timer_global_get_elapsed_ms. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_143: [ internal_execution_engine_linux_manager_thread_func shall submit the due timers by calling internal_execution_engine_linux_submit_due_timers. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_144: [ internal_execution_engine_linux_manager_thread_func shall retire the worker threads idle for too long by calling internal_execution_engine_linux_retire_idle_workers. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_145: [ internal_execution_engine_linux_manager_thread_func shall join the retired worker threads by calling worker_pool_join_retired_workers. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_146: [ internal_execution_engine_linux_manager_thread_func shall get the counts of the worker pool by calling worker_pool_get_counts. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_147: [ internal_execution_engine_linux_manager_thread_func shall get the time to add a worker thread by calling thread_count_policy_get_add_thread_time with the number of work objects in the ready queue and the counts. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_149: [ If the time to add a worker thread is later than the current time, internal_execution_engine_linux_manager_thread_func shall wait for the next event by calling internal_execution_engine_linux_wait_for_next_event. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_149: [ If the time to add a worker thread is later than the current time: ]*/
 TEST_FUNCTION(internal_execution_engine_linux_manager_thread_func_waits_for_the_next_event_when_no_worker_thread_needs_to_be_added)
 {
     ///arrange
@@ -3209,7 +3822,7 @@ TEST_FUNCTION(internal_execution_engine_linux_manager_thread_func_waits_for_the_
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_148: [ If the time to add a worker thread is not later than the current time, internal_execution_engine_linux_manager_thread_func shall add a worker thread by calling internal_execution_engine_linux_add_worker. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_148: [ If the time to add a worker thread is not later than the current time: ]*/
 TEST_FUNCTION(internal_execution_engine_linux_manager_thread_func_adds_a_worker_thread_when_the_time_to_add_one_is_not_later_than_now)
 {
     ///arrange
@@ -3236,7 +3849,7 @@ TEST_FUNCTION(internal_execution_engine_linux_manager_thread_func_adds_a_worker_
 }
 
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_141: [ Until the execution engine is stopping: ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_143: [ internal_execution_engine_linux_manager_thread_func shall submit the due timers by calling internal_execution_engine_linux_submit_due_timers. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_155: [ For each timer returned by timer_queue_pop_due with the current time: ]*/
 TEST_FUNCTION(internal_execution_engine_linux_manager_thread_func_checks_again_after_it_is_woken)
 {
     ///arrange
@@ -3276,8 +3889,14 @@ TEST_FUNCTION(internal_execution_engine_linux_manager_thread_func_checks_again_a
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_150: [ internal_execution_engine_linux_manager_thread_func shall release the mutex by calling pthread_mutex_unlock. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_151: [ If the teardown is deferred to the manager thread: ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_152: [ internal_execution_engine_linux_manager_thread_func shall detach the manager thread by calling pthread_detach. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_153: [ internal_execution_engine_linux_manager_thread_func shall tear down the execution engine by calling internal_execution_engine_linux_teardown. ]*/
 /*Tests_SRS_EXECUTION_ENGINE_LINUX_42_154: [ internal_execution_engine_linux_manager_thread_func shall return NULL. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_186: [ internal_execution_engine_linux_manager_thread_func shall stop the worker threads and wait for them to exit by calling worker_pool_destroy. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_187: [ internal_execution_engine_linux_manager_thread_func shall destroy the condition variable signaled when work objects have no more pending and running invocations by calling pthread_cond_destroy. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_188: [ internal_execution_engine_linux_manager_thread_func shall destroy the condition variable that wakes the manager thread by calling pthread_cond_destroy. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_189: [ internal_execution_engine_linux_manager_thread_func shall destroy the mutex by calling pthread_mutex_destroy. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_190: [ internal_execution_engine_linux_manager_thread_func shall destroy the timer queue by calling timer_queue_destroy. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_191: [ internal_execution_engine_linux_manager_thread_func shall destroy the thread count policy by calling thread_count_policy_destroy. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_192: [ internal_execution_engine_linux_manager_thread_func shall free the execution engine. ]*/
 TEST_FUNCTION(internal_execution_engine_linux_manager_thread_func_tears_down_the_execution_engine_when_the_teardown_is_deferred_to_it)
 {
     ///arrange
@@ -3306,11 +3925,14 @@ TEST_FUNCTION(internal_execution_engine_linux_manager_thread_func_tears_down_the
     ASSERT_IS_NULL(g_manager_thread_result);
 }
 
-/* internal_execution_engine_linux_submit_due_timers */
-
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_155: [ For each timer returned by timer_queue_pop_due with now: ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_161: [ internal_execution_engine_linux_submit_due_timers shall submit the work object of the timer by calling internal_execution_engine_linux_submit_work_locked. ]*/
-TEST_FUNCTION(internal_execution_engine_linux_submit_due_timers_submits_the_work_object_of_each_due_timer)
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_155: [ For each timer returned by timer_queue_pop_due with the current time: ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_196: [ internal_execution_engine_linux_manager_thread_func shall increment the pending count of the work object of the timer. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_197: [ If the pending count of the work object of the timer became 1: ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_198: [ If the ready queue is empty, internal_execution_engine_linux_manager_thread_func shall record progress by calling thread_count_policy_on_progress with the current time obtained by calling timer_global_get_elapsed_ms. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_199: [ internal_execution_engine_linux_manager_thread_func shall insert the work object of the timer at the tail of the ready queue by calling DList_InsertTailList. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_200: [ internal_execution_engine_linux_manager_thread_func shall increment the count of work objects in the ready queue. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_201: [ internal_execution_engine_linux_manager_thread_func shall wake an idle worker thread by calling worker_pool_wake_idle_worker. ]*/
+TEST_FUNCTION(internal_execution_engine_linux_manager_thread_func_submits_the_work_object_of_each_due_timer)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
@@ -3362,8 +3984,10 @@ TEST_FUNCTION(internal_execution_engine_linux_submit_due_timers_submits_the_work
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_161: [ internal_execution_engine_linux_submit_due_timers shall submit the work object of the timer by calling internal_execution_engine_linux_submit_work_locked. ]*/
-TEST_FUNCTION(internal_execution_engine_linux_submit_due_timers_counts_one_more_pending_invocation_of_a_timer_whose_work_object_is_pending)
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_155: [ For each timer returned by timer_queue_pop_due with the current time: ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_196: [ internal_execution_engine_linux_manager_thread_func shall increment the pending count of the work object of the timer. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_197: [ If the pending count of the work object of the timer became 1: ]*/
+TEST_FUNCTION(internal_execution_engine_linux_manager_thread_func_counts_one_more_pending_invocation_of_a_timer_whose_work_object_is_pending)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
@@ -3410,13 +4034,128 @@ TEST_FUNCTION(internal_execution_engine_linux_submit_due_timers_counts_one_more_
     execution_engine_dec_ref(execution_engine);
 }
 
-/* internal_execution_engine_linux_retire_idle_workers */
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_201: [ internal_execution_engine_linux_manager_thread_func shall wake an idle worker thread by calling worker_pool_wake_idle_worker. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_202: [ If worker_pool_wake_idle_worker returns WORKER_POOL_WAKE_RESULT_NO_IDLE_WORKER and the manager thread is not watching the ready queue: ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_203: [ internal_execution_engine_linux_manager_thread_func shall get the counts of the worker pool by calling worker_pool_get_counts. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_204: [ If thread_count_policy_can_add_thread returns true for the thread count, internal_execution_engine_linux_manager_thread_func shall wake the manager thread by calling pthread_cond_signal. ]*/
+TEST_FUNCTION(internal_execution_engine_linux_manager_thread_func_wakes_itself_when_it_submits_a_timer_while_no_worker_thread_is_idle_and_one_can_be_added)
+{
+    ///arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
+    TEST_WORK_CONTEXT test_context;
+    TIMER_QUEUE_ENTRY* timer_queue_entry;
+    EXECUTION_ENGINE_LINUX_TIMER_HANDLE timer = test_create_timer(execution_engine, &test_context, NULL, &timer_queue_entry);
+    g_worker_pool_counts = (WORKER_POOL_COUNTS){ .thread_count = 2, .starting_thread_count = 0, .idle_thread_count = 0, .oldest_idle_since_ms = 0 };
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_162: [ internal_execution_engine_linux_retire_idle_workers shall get the counts of the worker pool by calling worker_pool_get_counts. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_163: [ While the time to retire a worker thread obtained by calling thread_count_policy_get_retire_thread_time with the counts and now is not later than now: ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_164: [ internal_execution_engine_linux_retire_idle_workers shall retire the worker thread idle the longest by calling worker_pool_retire_oldest_idle_worker. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_165: [ internal_execution_engine_linux_retire_idle_workers shall get the counts of the worker pool by calling worker_pool_get_counts. ]*/
-TEST_FUNCTION(internal_execution_engine_linux_retire_idle_workers_retires_worker_threads_while_the_time_to_retire_one_is_not_later_than_now)
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+    STRICT_EXPECTED_CALL(timer_global_get_elapsed_ms());
+    STRICT_EXPECTED_CALL(timer_queue_pop_due(TEST_TIMER_QUEUE, (uint64_t)g_now_ms))
+        .SetReturn(timer_queue_entry);
+    setup_enqueue_expectations(true);
+    STRICT_EXPECTED_CALL(worker_pool_wake_idle_worker(TEST_WORKER_POOL))
+        .SetReturn(WORKER_POOL_WAKE_RESULT_NO_IDLE_WORKER);
+    STRICT_EXPECTED_CALL(worker_pool_get_counts(TEST_WORKER_POOL, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(thread_count_policy_can_add_thread(TEST_THREAD_COUNT_POLICY, 2))
+        .SetReturn(true);
+    STRICT_EXPECTED_CALL(mocked_pthread_cond_signal(g_manager_cond));
+    STRICT_EXPECTED_CALL(timer_queue_pop_due(TEST_TIMER_QUEUE, (uint64_t)g_now_ms))
+        .SetReturn(NULL);
+    setup_manager_retire_join_and_get_add_thread_time_expectations(1, THREAD_COUNT_POLICY_NEVER);
+    setup_wait_for_next_event_expectations(THREAD_COUNT_POLICY_NEVER, TIMER_QUEUE_NO_DUE_TIME);
+    STRICT_EXPECTED_CALL(mocked_pthread_cond_wait(g_manager_cond, g_lock));
+
+    ///act
+    run_manager_thread();
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    execution_engine_linux_wait_for_timer(timer, true);
+    execution_engine_linux_close_timer(timer);
+    execution_engine_dec_ref(execution_engine);
+}
+
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_203: [ internal_execution_engine_linux_manager_thread_func shall get the counts of the worker pool by calling worker_pool_get_counts. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_204: [ If thread_count_policy_can_add_thread returns true for the thread count, internal_execution_engine_linux_manager_thread_func shall wake the manager thread by calling pthread_cond_signal. ]*/
+TEST_FUNCTION(internal_execution_engine_linux_manager_thread_func_does_not_wake_itself_when_it_submits_a_timer_while_no_worker_thread_can_be_added)
+{
+    ///arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
+    TEST_WORK_CONTEXT test_context;
+    TIMER_QUEUE_ENTRY* timer_queue_entry;
+    EXECUTION_ENGINE_LINUX_TIMER_HANDLE timer = test_create_timer(execution_engine, &test_context, NULL, &timer_queue_entry);
+    g_worker_pool_counts = (WORKER_POOL_COUNTS){ .thread_count = 4, .starting_thread_count = 0, .idle_thread_count = 0, .oldest_idle_since_ms = 0 };
+
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(g_lock));
+    STRICT_EXPECTED_CALL(timer_global_get_elapsed_ms());
+    STRICT_EXPECTED_CALL(timer_queue_pop_due(TEST_TIMER_QUEUE, (uint64_t)g_now_ms))
+        .SetReturn(timer_queue_entry);
+    setup_enqueue_expectations(true);
+    STRICT_EXPECTED_CALL(worker_pool_wake_idle_worker(TEST_WORKER_POOL))
+        .SetReturn(WORKER_POOL_WAKE_RESULT_NO_IDLE_WORKER);
+    STRICT_EXPECTED_CALL(worker_pool_get_counts(TEST_WORKER_POOL, IGNORED_ARG));
+    STRICT_EXPECTED_CALL(thread_count_policy_can_add_thread(TEST_THREAD_COUNT_POLICY, 4))
+        .SetReturn(false);
+    STRICT_EXPECTED_CALL(timer_queue_pop_due(TEST_TIMER_QUEUE, (uint64_t)g_now_ms))
+        .SetReturn(NULL);
+    setup_manager_retire_join_and_get_add_thread_time_expectations(1, THREAD_COUNT_POLICY_NEVER);
+    setup_wait_for_next_event_expectations(THREAD_COUNT_POLICY_NEVER, TIMER_QUEUE_NO_DUE_TIME);
+    STRICT_EXPECTED_CALL(mocked_pthread_cond_wait(g_manager_cond, g_lock));
+
+    ///act
+    run_manager_thread();
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    execution_engine_linux_wait_for_timer(timer, true);
+    execution_engine_linux_close_timer(timer);
+    execution_engine_dec_ref(execution_engine);
+}
+
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_202: [ If worker_pool_wake_idle_worker returns WORKER_POOL_WAKE_RESULT_NO_IDLE_WORKER and the manager thread is not watching the ready queue: ]*/
+TEST_FUNCTION(internal_execution_engine_linux_manager_thread_func_does_not_wake_itself_when_it_submits_a_timer_while_it_watches_the_ready_queue)
+{
+    ///arrange
+    EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
+    TEST_WORK_CONTEXT test_context;
+    TIMER_QUEUE_ENTRY* timer_queue_entry;
+    EXECUTION_ENGINE_LINUX_TIMER_HANDLE timer = test_create_timer(execution_engine, &test_context, NULL, &timer_queue_entry);
+    g_now_ms = 5000.0;
+    // the manager thread waits until the time to add a worker thread, watching the ready queue
+    test_run_manager_thread_until_it_waits(0, 5050);
+
+    STRICT_EXPECTED_CALL(timer_global_get_elapsed_ms());
+    STRICT_EXPECTED_CALL(timer_queue_pop_due(TEST_TIMER_QUEUE, 5000))
+        .SetReturn(timer_queue_entry);
+    setup_enqueue_expectations(true);
+    STRICT_EXPECTED_CALL(worker_pool_wake_idle_worker(TEST_WORKER_POOL))
+        .SetReturn(WORKER_POOL_WAKE_RESULT_NO_IDLE_WORKER);
+    STRICT_EXPECTED_CALL(timer_queue_pop_due(TEST_TIMER_QUEUE, 5000))
+        .SetReturn(NULL);
+    setup_manager_retire_join_and_get_add_thread_time_expectations(1, THREAD_COUNT_POLICY_NEVER);
+    setup_wait_for_next_event_expectations(THREAD_COUNT_POLICY_NEVER, TIMER_QUEUE_NO_DUE_TIME);
+    STRICT_EXPECTED_CALL(mocked_pthread_cond_wait(g_manager_cond, g_lock));
+
+    ///act
+    run_manager_thread();
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    ///cleanup
+    execution_engine_linux_wait_for_timer(timer, true);
+    execution_engine_linux_close_timer(timer);
+    execution_engine_dec_ref(execution_engine);
+}
+
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_162: [ internal_execution_engine_linux_manager_thread_func shall get the counts of the worker pool by calling worker_pool_get_counts. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_163: [ While the time to retire a worker thread obtained by calling thread_count_policy_get_retire_thread_time with the counts and the current time is not later than the current time: ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_164: [ internal_execution_engine_linux_manager_thread_func shall retire the worker thread idle the longest by calling worker_pool_retire_oldest_idle_worker. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_165: [ internal_execution_engine_linux_manager_thread_func shall get the counts of the worker pool by calling worker_pool_get_counts. ]*/
+TEST_FUNCTION(internal_execution_engine_linux_manager_thread_func_retires_worker_threads_while_the_time_to_retire_one_is_not_later_than_now)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
@@ -3457,11 +4196,9 @@ TEST_FUNCTION(internal_execution_engine_linux_retire_idle_workers_retires_worker
     execution_engine_dec_ref(execution_engine);
 }
 
-/* internal_execution_engine_linux_add_worker */
-
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_166: [ internal_execution_engine_linux_add_worker shall add a worker thread by calling worker_pool_add_worker. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_168: [ If worker_pool_add_worker succeeds, internal_execution_engine_linux_add_worker shall record progress by calling thread_count_policy_on_progress with now. ]*/
-TEST_FUNCTION(internal_execution_engine_linux_add_worker_records_progress_when_adding_a_worker_thread_succeeds)
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_166: [ internal_execution_engine_linux_manager_thread_func shall add a worker thread by calling worker_pool_add_worker. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_168: [ If worker_pool_add_worker succeeds, internal_execution_engine_linux_manager_thread_func shall record progress by calling thread_count_policy_on_progress with the current time. ]*/
+TEST_FUNCTION(internal_execution_engine_linux_manager_thread_func_records_progress_when_adding_a_worker_thread_succeeds)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
@@ -3485,9 +4222,9 @@ TEST_FUNCTION(internal_execution_engine_linux_add_worker_records_progress_when_a
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_166: [ internal_execution_engine_linux_add_worker shall add a worker thread by calling worker_pool_add_worker. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_167: [ If worker_pool_add_worker fails, internal_execution_engine_linux_add_worker shall call thread_count_policy_on_add_thread_failed with now. ]*/
-TEST_FUNCTION(internal_execution_engine_linux_add_worker_reports_the_failure_to_the_thread_count_policy_when_adding_a_worker_thread_fails)
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_166: [ internal_execution_engine_linux_manager_thread_func shall add a worker thread by calling worker_pool_add_worker. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_167: [ If worker_pool_add_worker fails, internal_execution_engine_linux_manager_thread_func shall call thread_count_policy_on_add_thread_failed with the current time. ]*/
+TEST_FUNCTION(internal_execution_engine_linux_manager_thread_func_reports_the_failure_to_the_thread_count_policy_when_adding_a_worker_thread_fails)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
@@ -3511,14 +4248,12 @@ TEST_FUNCTION(internal_execution_engine_linux_add_worker_reports_the_failure_to_
     execution_engine_dec_ref(execution_engine);
 }
 
-/* internal_execution_engine_linux_wait_for_next_event */
-
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_169: [ internal_execution_engine_linux_wait_for_next_event shall record that the manager thread is watching the ready queue if add_thread_time is not THREAD_COUNT_POLICY_NEVER. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_170: [ internal_execution_engine_linux_wait_for_next_event shall get the time to retire a worker thread by calling thread_count_policy_get_retire_thread_time with counts and now. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_171: [ internal_execution_engine_linux_wait_for_next_event shall get the due time of the first timer by calling timer_queue_get_next_due_time. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_172: [ internal_execution_engine_linux_wait_for_next_event shall compute the deadline as the earliest of add_thread_time, the time to retire a worker thread and the due time of the first timer. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_173: [ If the deadline is THREAD_COUNT_POLICY_NEVER, internal_execution_engine_linux_wait_for_next_event shall wait by calling pthread_cond_wait. ]*/
-TEST_FUNCTION(internal_execution_engine_linux_wait_for_next_event_waits_without_a_deadline_when_nothing_is_scheduled)
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_169: [ internal_execution_engine_linux_manager_thread_func shall record that the manager thread is watching the ready queue if the time to add a worker thread is not THREAD_COUNT_POLICY_NEVER. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_170: [ internal_execution_engine_linux_manager_thread_func shall get the time to retire a worker thread by calling thread_count_policy_get_retire_thread_time with the counts and the current time. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_171: [ internal_execution_engine_linux_manager_thread_func shall get the due time of the first timer by calling timer_queue_get_next_due_time. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_172: [ internal_execution_engine_linux_manager_thread_func shall compute the deadline as the earliest of the time to add a worker thread, the time to retire a worker thread and the due time of the first timer. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_173: [ If the deadline is THREAD_COUNT_POLICY_NEVER, internal_execution_engine_linux_manager_thread_func shall wait by calling pthread_cond_wait. ]*/
+TEST_FUNCTION(internal_execution_engine_linux_manager_thread_func_waits_without_a_deadline_when_nothing_is_scheduled)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
@@ -3537,10 +4272,10 @@ TEST_FUNCTION(internal_execution_engine_linux_wait_for_next_event_waits_without_
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_169: [ internal_execution_engine_linux_wait_for_next_event shall record that the manager thread is watching the ready queue if add_thread_time is not THREAD_COUNT_POLICY_NEVER. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_172: [ internal_execution_engine_linux_wait_for_next_event shall compute the deadline as the earliest of add_thread_time, the time to retire a worker thread and the due time of the first timer. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_174: [ If the deadline is not THREAD_COUNT_POLICY_NEVER, internal_execution_engine_linux_wait_for_next_event shall wait until the deadline by calling pthread_cond_timedwait. ]*/
-TEST_FUNCTION(internal_execution_engine_linux_wait_for_next_event_waits_until_the_time_to_add_a_worker_thread)
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_169: [ internal_execution_engine_linux_manager_thread_func shall record that the manager thread is watching the ready queue if the time to add a worker thread is not THREAD_COUNT_POLICY_NEVER. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_172: [ internal_execution_engine_linux_manager_thread_func shall compute the deadline as the earliest of the time to add a worker thread, the time to retire a worker thread and the due time of the first timer. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_174: [ If the deadline is not THREAD_COUNT_POLICY_NEVER, internal_execution_engine_linux_manager_thread_func shall wait until the deadline by calling pthread_cond_timedwait. ]*/
+TEST_FUNCTION(internal_execution_engine_linux_manager_thread_func_waits_until_the_time_to_add_a_worker_thread)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
@@ -3564,10 +4299,10 @@ TEST_FUNCTION(internal_execution_engine_linux_wait_for_next_event_waits_until_th
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_170: [ internal_execution_engine_linux_wait_for_next_event shall get the time to retire a worker thread by calling thread_count_policy_get_retire_thread_time with counts and now. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_172: [ internal_execution_engine_linux_wait_for_next_event shall compute the deadline as the earliest of add_thread_time, the time to retire a worker thread and the due time of the first timer. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_174: [ If the deadline is not THREAD_COUNT_POLICY_NEVER, internal_execution_engine_linux_wait_for_next_event shall wait until the deadline by calling pthread_cond_timedwait. ]*/
-TEST_FUNCTION(internal_execution_engine_linux_wait_for_next_event_waits_until_the_time_to_retire_a_worker_thread_when_it_is_the_earliest)
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_170: [ internal_execution_engine_linux_manager_thread_func shall get the time to retire a worker thread by calling thread_count_policy_get_retire_thread_time with the counts and the current time. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_172: [ internal_execution_engine_linux_manager_thread_func shall compute the deadline as the earliest of the time to add a worker thread, the time to retire a worker thread and the due time of the first timer. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_174: [ If the deadline is not THREAD_COUNT_POLICY_NEVER, internal_execution_engine_linux_manager_thread_func shall wait until the deadline by calling pthread_cond_timedwait. ]*/
+TEST_FUNCTION(internal_execution_engine_linux_manager_thread_func_waits_until_the_time_to_retire_a_worker_thread_when_it_is_the_earliest)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
@@ -3591,10 +4326,10 @@ TEST_FUNCTION(internal_execution_engine_linux_wait_for_next_event_waits_until_th
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_171: [ internal_execution_engine_linux_wait_for_next_event shall get the due time of the first timer by calling timer_queue_get_next_due_time. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_172: [ internal_execution_engine_linux_wait_for_next_event shall compute the deadline as the earliest of add_thread_time, the time to retire a worker thread and the due time of the first timer. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_174: [ If the deadline is not THREAD_COUNT_POLICY_NEVER, internal_execution_engine_linux_wait_for_next_event shall wait until the deadline by calling pthread_cond_timedwait. ]*/
-TEST_FUNCTION(internal_execution_engine_linux_wait_for_next_event_waits_until_the_first_timer_is_due_when_it_is_the_earliest)
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_171: [ internal_execution_engine_linux_manager_thread_func shall get the due time of the first timer by calling timer_queue_get_next_due_time. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_172: [ internal_execution_engine_linux_manager_thread_func shall compute the deadline as the earliest of the time to add a worker thread, the time to retire a worker thread and the due time of the first timer. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_174: [ If the deadline is not THREAD_COUNT_POLICY_NEVER, internal_execution_engine_linux_manager_thread_func shall wait until the deadline by calling pthread_cond_timedwait. ]*/
+TEST_FUNCTION(internal_execution_engine_linux_manager_thread_func_waits_until_the_first_timer_is_due_when_it_is_the_earliest)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);
@@ -3618,9 +4353,9 @@ TEST_FUNCTION(internal_execution_engine_linux_wait_for_next_event_waits_until_th
     execution_engine_dec_ref(execution_engine);
 }
 
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_172: [ internal_execution_engine_linux_wait_for_next_event shall compute the deadline as the earliest of add_thread_time, the time to retire a worker thread and the due time of the first timer. ]*/
-/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_174: [ If the deadline is not THREAD_COUNT_POLICY_NEVER, internal_execution_engine_linux_wait_for_next_event shall wait until the deadline by calling pthread_cond_timedwait. ]*/
-TEST_FUNCTION(internal_execution_engine_linux_wait_for_next_event_waits_until_the_time_to_add_a_worker_thread_when_it_is_the_earliest)
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_172: [ internal_execution_engine_linux_manager_thread_func shall compute the deadline as the earliest of the time to add a worker thread, the time to retire a worker thread and the due time of the first timer. ]*/
+/*Tests_SRS_EXECUTION_ENGINE_LINUX_42_174: [ If the deadline is not THREAD_COUNT_POLICY_NEVER, internal_execution_engine_linux_manager_thread_func shall wait until the deadline by calling pthread_cond_timedwait. ]*/
+TEST_FUNCTION(internal_execution_engine_linux_manager_thread_func_waits_until_the_time_to_add_a_worker_thread_when_it_is_the_earliest)
 {
     ///arrange
     EXECUTION_ENGINE_HANDLE execution_engine = test_create_execution_engine(1, 4);

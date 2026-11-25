@@ -119,18 +119,21 @@ static void internal_execution_engine_linux_free_timer(EXECUTION_ENGINE_LINUX_WO
 
 static void internal_execution_engine_linux_init_work(EXECUTION_ENGINE_LINUX_WORK* work, EXECUTION_ENGINE* execution_engine, EXECUTION_ENGINE_LINUX_WORK_FUNCTION work_function, void* work_function_context, FREE_WORK_FUNCTION free_function)
 {
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_042: [ internal_execution_engine_linux_init_work shall store execution_engine, work_function, work_function_context and free_function in work. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_042: [ execution_engine_linux_create_work shall store execution_engine, work_function, work_function_context and internal_execution_engine_linux_free_work as free function in the work object. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_193: [ execution_engine_linux_create_timer shall store execution_engine, work_function, work_function_context and internal_execution_engine_linux_free_timer as free function in the work object of the timer. ]*/
     work->execution_engine = execution_engine;
     work->work_function = work_function;
     work->work_function_context = work_function_context;
     work->free_function = free_function;
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_043: [ internal_execution_engine_linux_init_work shall set the pending count, the running count and the waiter count of work to 0. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_043: [ execution_engine_linux_create_work shall set the pending count, the running count and the waiter count of the work object to 0. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_194: [ execution_engine_linux_create_timer shall set the pending count, the running count and the waiter count of the work object of the timer to 0. ]*/
     work->pending_count = 0;
     work->running_count = 0;
     work->waiter_count = 0;
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_044: [ internal_execution_engine_linux_init_work shall mark work as not closed. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_044: [ execution_engine_linux_create_work shall mark the work object as not closed. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_195: [ execution_engine_linux_create_timer shall mark the work object of the timer as not closed. ]*/
     work->is_closed = false;
 }
 
@@ -142,22 +145,27 @@ static void internal_execution_engine_linux_enqueue(EXECUTION_ENGINE* execution_
     }
     else
     {
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_055: [ If the ready queue is empty, internal_execution_engine_linux_enqueue shall record progress by calling thread_count_policy_on_progress with the current time obtained by calling timer_global_get_elapsed_ms. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_055: [ If the ready queue is empty, execution_engine_linux_submit_work shall record progress by calling thread_count_policy_on_progress with the current time obtained by calling timer_global_get_elapsed_ms. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_198: [ If the ready queue is empty, internal_execution_engine_linux_manager_thread_func shall record progress by calling thread_count_policy_on_progress with the current time obtained by calling timer_global_get_elapsed_ms. ]*/
         // work starts waiting now, so starvation is measured from now
         thread_count_policy_on_progress(execution_engine->thread_count_policy, internal_execution_engine_linux_get_time_ms());
     }
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_056: [ internal_execution_engine_linux_enqueue shall insert work at the tail of the ready queue by calling DList_InsertTailList. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_056: [ execution_engine_linux_submit_work shall insert work at the tail of the ready queue by calling DList_InsertTailList. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_199: [ internal_execution_engine_linux_manager_thread_func shall insert the work object of the timer at the tail of the ready queue by calling DList_InsertTailList. ]*/
     DList_InsertTailList(&execution_engine->ready_queue, &work->ready_queue_entry);
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_180: [ internal_execution_engine_linux_enqueue shall increment the count of work objects in the ready queue. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_180: [ execution_engine_linux_submit_work shall increment the count of work objects in the ready queue. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_200: [ internal_execution_engine_linux_manager_thread_func shall increment the count of work objects in the ready queue. ]*/
     execution_engine->ready_queue_count++;
 }
 
 static void internal_execution_engine_linux_dispatch(EXECUTION_ENGINE* execution_engine)
 {
     if (
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_057: [ internal_execution_engine_linux_dispatch shall wake an idle worker thread by calling worker_pool_wake_idle_worker. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_057: [ execution_engine_linux_submit_work shall wake an idle worker thread by calling worker_pool_wake_idle_worker. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_201: [ internal_execution_engine_linux_manager_thread_func shall wake an idle worker thread by calling worker_pool_wake_idle_worker. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_205: [ internal_execution_engine_linux_run_next_work shall wake an idle worker thread by calling worker_pool_wake_idle_worker. ]*/
         (worker_pool_wake_idle_worker(execution_engine->worker_pool) != WORKER_POOL_WAKE_RESULT_NO_IDLE_WORKER) ||
         execution_engine->is_manager_watching_ready_queue
         )
@@ -167,9 +175,13 @@ static void internal_execution_engine_linux_dispatch(EXECUTION_ENGINE* execution
     else
     {
         /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_058: [ If worker_pool_wake_idle_worker returns WORKER_POOL_WAKE_RESULT_NO_IDLE_WORKER and the manager thread is not watching the ready queue: ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_202: [ If worker_pool_wake_idle_worker returns WORKER_POOL_WAKE_RESULT_NO_IDLE_WORKER and the manager thread is not watching the ready queue: ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_206: [ If worker_pool_wake_idle_worker returns WORKER_POOL_WAKE_RESULT_NO_IDLE_WORKER and the manager thread is not watching the ready queue: ]*/
         WORKER_POOL_COUNTS counts;
 
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_059: [ internal_execution_engine_linux_dispatch shall get the counts of the worker pool by calling worker_pool_get_counts. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_059: [ execution_engine_linux_submit_work shall get the counts of the worker pool by calling worker_pool_get_counts. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_203: [ internal_execution_engine_linux_manager_thread_func shall get the counts of the worker pool by calling worker_pool_get_counts. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_207: [ internal_execution_engine_linux_run_next_work shall get the counts of the worker pool by calling worker_pool_get_counts. ]*/
         worker_pool_get_counts(execution_engine->worker_pool, &counts);
 
         if (!thread_count_policy_can_add_thread(execution_engine->thread_count_policy, counts.thread_count))
@@ -178,7 +190,9 @@ static void internal_execution_engine_linux_dispatch(EXECUTION_ENGINE* execution
         }
         else
         {
-            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_060: [ If thread_count_policy_can_add_thread returns true for the thread count, internal_execution_engine_linux_dispatch shall wake the manager thread by calling pthread_cond_signal. ]*/
+            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_060: [ If thread_count_policy_can_add_thread returns true for the thread count, execution_engine_linux_submit_work shall wake the manager thread by calling pthread_cond_signal. ]*/
+            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_204: [ If thread_count_policy_can_add_thread returns true for the thread count, internal_execution_engine_linux_manager_thread_func shall wake the manager thread by calling pthread_cond_signal. ]*/
+            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_208: [ If thread_count_policy_can_add_thread returns true for the thread count, internal_execution_engine_linux_run_next_work shall wake the manager thread by calling pthread_cond_signal. ]*/
             (void)pthread_cond_signal(&execution_engine->manager_cond);
         }
     }
@@ -186,7 +200,8 @@ static void internal_execution_engine_linux_dispatch(EXECUTION_ENGINE* execution
 
 static void internal_execution_engine_linux_submit_work_locked(EXECUTION_ENGINE* execution_engine, EXECUTION_ENGINE_LINUX_WORK* work)
 {
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_051: [ internal_execution_engine_linux_submit_work_locked shall increment the pending count of work. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_051: [ execution_engine_linux_submit_work shall increment the pending count of work. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_196: [ internal_execution_engine_linux_manager_thread_func shall increment the pending count of the work object of the timer. ]*/
     work->pending_count++;
 
     if (work->pending_count != 1)
@@ -196,18 +211,19 @@ static void internal_execution_engine_linux_submit_work_locked(EXECUTION_ENGINE*
     else
     {
         /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_052: [ If the pending count of work became 1: ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_197: [ If the pending count of the work object of the timer became 1: ]*/
 
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_053: [ internal_execution_engine_linux_submit_work_locked shall insert work in the ready queue by calling internal_execution_engine_linux_enqueue. ]*/
         internal_execution_engine_linux_enqueue(execution_engine, work);
 
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_054: [ internal_execution_engine_linux_submit_work_locked shall dispatch the ready queue by calling internal_execution_engine_linux_dispatch. ]*/
         internal_execution_engine_linux_dispatch(execution_engine);
     }
 }
 
 static void internal_execution_engine_linux_end_invocation(EXECUTION_ENGINE* execution_engine, EXECUTION_ENGINE_LINUX_WORK* work)
 {
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_080: [ internal_execution_engine_linux_end_invocation shall decrement the running count of work. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_209: [ internal_execution_engine_linux_run_next_work shall decrement the running count of the work object. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_225: [ execution_engine_linux_disassociate_current_thread_from_work shall decrement the running count of work. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_232: [ execution_engine_linux_disassociate_current_thread_from_timer shall decrement the running count of the work object of timer. ]*/
     work->running_count--;
 
     if ((work->pending_count != 0) || (work->running_count != 0))
@@ -216,10 +232,14 @@ static void internal_execution_engine_linux_end_invocation(EXECUTION_ENGINE* exe
     }
     else
     {
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_081: [ If work has no pending and no running invocations: ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_210: [ If the work object has no pending and no running invocations: ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_226: [ If work has no pending and no running invocations: ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_233: [ If the work object of timer has no pending and no running invocations: ]*/
         if (work->is_closed)
         {
-            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_082: [ If work is closed, internal_execution_engine_linux_end_invocation shall call the free function of work. ]*/
+            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_211: [ If the work object is closed, internal_execution_engine_linux_run_next_work shall call the free function of the work object. ]*/
+            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_227: [ If work is closed, execution_engine_linux_disassociate_current_thread_from_work shall call the free function of work. ]*/
+            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_234: [ If the work object of timer is closed, execution_engine_linux_disassociate_current_thread_from_timer shall call the free function of the work object of timer. ]*/
             work->free_function(work);
         }
         else
@@ -230,7 +250,9 @@ static void internal_execution_engine_linux_end_invocation(EXECUTION_ENGINE* exe
             }
             else
             {
-                /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_083: [ If work is not closed and the waiter count of work is not 0, internal_execution_engine_linux_end_invocation shall wake the waiting threads by calling pthread_cond_broadcast. ]*/
+                /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_212: [ If the work object is not closed and the waiter count of the work object is not 0, internal_execution_engine_linux_run_next_work shall wake the waiting threads by calling pthread_cond_broadcast. ]*/
+                /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_228: [ If work is not closed and the waiter count of work is not 0, execution_engine_linux_disassociate_current_thread_from_work shall wake the waiting threads by calling pthread_cond_broadcast. ]*/
+                /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_235: [ If the work object of timer is not closed and the waiter count of the work object of timer is not 0, execution_engine_linux_disassociate_current_thread_from_timer shall wake the waiting threads by calling pthread_cond_broadcast. ]*/
                 (void)pthread_cond_broadcast(&execution_engine->work_done_cond);
             }
         }
@@ -282,7 +304,7 @@ static bool internal_execution_engine_linux_run_next_work(void* context)
         }
         else
         {
-            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_066: [ If the ready queue is not empty, internal_execution_engine_linux_run_next_work shall dispatch the ready queue by calling internal_execution_engine_linux_dispatch. ]*/
+            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_066: [ If the ready queue is not empty: ]*/
             internal_execution_engine_linux_dispatch(execution_engine);
         }
 
@@ -321,7 +343,6 @@ static bool internal_execution_engine_linux_run_next_work(void* context)
             /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_076: [ internal_execution_engine_linux_run_next_work shall clear the work object running on the current thread. ]*/
             current_work = NULL;
 
-            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_077: [ internal_execution_engine_linux_run_next_work shall end the invocation of the work object by calling internal_execution_engine_linux_end_invocation. ]*/
             internal_execution_engine_linux_end_invocation(execution_engine, work);
         }
 
@@ -336,7 +357,8 @@ static void internal_execution_engine_linux_wait_for_invocations(EXECUTION_ENGIN
 {
     EXECUTION_ENGINE* execution_engine = work->execution_engine;
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_086: [ internal_execution_engine_linux_wait_for_invocations shall acquire the mutex by calling pthread_mutex_lock. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_086: [ execution_engine_linux_wait_for_work shall acquire the mutex by calling pthread_mutex_lock. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_213: [ execution_engine_linux_wait_for_timer shall acquire the mutex by calling pthread_mutex_lock. ]*/
     (void)pthread_mutex_lock(&execution_engine->lock);
 
     if (!cancel_pending || (work->pending_count == 0))
@@ -346,14 +368,18 @@ static void internal_execution_engine_linux_wait_for_invocations(EXECUTION_ENGIN
     else
     {
         /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_087: [ If cancel_pending is true and the pending count of work is not 0: ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_214: [ If cancel_pending is true and the pending count of the work object of timer is not 0: ]*/
 
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_088: [ internal_execution_engine_linux_wait_for_invocations shall remove work from the ready queue by calling DList_RemoveEntryList. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_088: [ execution_engine_linux_wait_for_work shall remove work from the ready queue by calling DList_RemoveEntryList. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_215: [ execution_engine_linux_wait_for_timer shall remove the work object of timer from the ready queue by calling DList_RemoveEntryList. ]*/
         (void)DList_RemoveEntryList(&work->ready_queue_entry);
 
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_184: [ internal_execution_engine_linux_wait_for_invocations shall decrement the count of work objects in the ready queue. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_184: [ execution_engine_linux_wait_for_work shall decrement the count of work objects in the ready queue. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_216: [ execution_engine_linux_wait_for_timer shall decrement the count of work objects in the ready queue. ]*/
         execution_engine->ready_queue_count--;
 
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_089: [ internal_execution_engine_linux_wait_for_invocations shall set the pending count of work to 0. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_089: [ execution_engine_linux_wait_for_work shall set the pending count of work to 0. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_217: [ execution_engine_linux_wait_for_timer shall set the pending count of the work object of timer to 0. ]*/
         work->pending_count = 0;
 
         if ((work->running_count != 0) || (work->waiter_count == 0))
@@ -362,24 +388,29 @@ static void internal_execution_engine_linux_wait_for_invocations(EXECUTION_ENGIN
         }
         else
         {
-            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_177: [ If work has no running invocations and the waiter count of work is not 0, internal_execution_engine_linux_wait_for_invocations shall wake the threads waiting for work by calling pthread_cond_broadcast. ]*/
+            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_177: [ If work has no running invocations and the waiter count of work is not 0, execution_engine_linux_wait_for_work shall wake the threads waiting for work by calling pthread_cond_broadcast. ]*/
+            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_218: [ If the work object of timer has no running invocations and the waiter count of the work object of timer is not 0, execution_engine_linux_wait_for_timer shall wake the threads waiting for the work object of timer by calling pthread_cond_broadcast. ]*/
             (void)pthread_cond_broadcast(&execution_engine->work_done_cond);
         }
     }
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_090: [ internal_execution_engine_linux_wait_for_invocations shall increment the waiter count of work. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_090: [ execution_engine_linux_wait_for_work shall increment the waiter count of work. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_219: [ execution_engine_linux_wait_for_timer shall increment the waiter count of the work object of timer. ]*/
     work->waiter_count++;
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_091: [ internal_execution_engine_linux_wait_for_invocations shall wait by calling pthread_cond_wait until work has no pending and no running invocations. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_091: [ execution_engine_linux_wait_for_work shall wait by calling pthread_cond_wait until work has no pending and no running invocations. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_220: [ execution_engine_linux_wait_for_timer shall wait by calling pthread_cond_wait until the work object of timer has no pending and no running invocations. ]*/
     while ((work->pending_count != 0) || (work->running_count != 0))
     {
         (void)pthread_cond_wait(&execution_engine->work_done_cond, &execution_engine->lock);
     }
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_092: [ internal_execution_engine_linux_wait_for_invocations shall decrement the waiter count of work. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_092: [ execution_engine_linux_wait_for_work shall decrement the waiter count of work. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_221: [ execution_engine_linux_wait_for_timer shall decrement the waiter count of the work object of timer. ]*/
     work->waiter_count--;
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_093: [ internal_execution_engine_linux_wait_for_invocations shall release the mutex by calling pthread_mutex_unlock. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_093: [ execution_engine_linux_wait_for_work shall release the mutex by calling pthread_mutex_unlock. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_222: [ execution_engine_linux_wait_for_timer shall release the mutex by calling pthread_mutex_unlock. ]*/
     (void)pthread_mutex_unlock(&execution_engine->lock);
 }
 
@@ -387,12 +418,14 @@ static void internal_execution_engine_linux_close_work_locked(EXECUTION_ENGINE_L
 {
     if ((work->pending_count == 0) && (work->running_count == 0))
     {
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_098: [ If work has no pending and no running invocations, internal_execution_engine_linux_close_work_locked shall call the free function of work. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_098: [ If work has no pending and no running invocations, execution_engine_linux_close_work shall call the free function of work. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_223: [ If the work object of timer has no pending and no running invocations, execution_engine_linux_close_timer shall call the free function of the work object of timer. ]*/
         work->free_function(work);
     }
     else
     {
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_099: [ If work has pending or running invocations, internal_execution_engine_linux_close_work_locked shall mark work as closed. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_099: [ If work has pending or running invocations, execution_engine_linux_close_work shall mark work as closed. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_224: [ If the work object of timer has pending or running invocations, execution_engine_linux_close_timer shall mark the work object of timer as closed. ]*/
         // the last invocation frees work
         work->is_closed = true;
     }
@@ -402,22 +435,25 @@ static void internal_execution_engine_linux_disassociate_current_thread(EXECUTIO
 {
     if (current_work != work)
     {
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_102: [ If work is not the work object running on the current thread, internal_execution_engine_linux_disassociate_current_thread shall return. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_102: [ If work is not the work object running on the current thread, execution_engine_linux_disassociate_current_thread_from_work shall return. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_229: [ If the work object of timer is not the work object running on the current thread, execution_engine_linux_disassociate_current_thread_from_timer shall return. ]*/
     }
     else
     {
         EXECUTION_ENGINE* execution_engine = work->execution_engine;
 
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_103: [ internal_execution_engine_linux_disassociate_current_thread shall acquire the mutex by calling pthread_mutex_lock. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_103: [ execution_engine_linux_disassociate_current_thread_from_work shall acquire the mutex by calling pthread_mutex_lock. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_230: [ execution_engine_linux_disassociate_current_thread_from_timer shall acquire the mutex by calling pthread_mutex_lock. ]*/
         (void)pthread_mutex_lock(&execution_engine->lock);
 
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_104: [ internal_execution_engine_linux_disassociate_current_thread shall clear the work object running on the current thread. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_104: [ execution_engine_linux_disassociate_current_thread_from_work shall clear the work object running on the current thread. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_231: [ execution_engine_linux_disassociate_current_thread_from_timer shall clear the work object running on the current thread. ]*/
         current_work = NULL;
 
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_105: [ internal_execution_engine_linux_disassociate_current_thread shall end the invocation of work by calling internal_execution_engine_linux_end_invocation. ]*/
         internal_execution_engine_linux_end_invocation(execution_engine, work);
 
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_106: [ internal_execution_engine_linux_disassociate_current_thread shall release the mutex by calling pthread_mutex_unlock. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_106: [ execution_engine_linux_disassociate_current_thread_from_work shall release the mutex by calling pthread_mutex_unlock. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_236: [ execution_engine_linux_disassociate_current_thread_from_timer shall release the mutex by calling pthread_mutex_unlock. ]*/
         (void)pthread_mutex_unlock(&execution_engine->lock);
     }
 }
@@ -426,12 +462,11 @@ static void internal_execution_engine_linux_submit_due_timers(EXECUTION_ENGINE* 
 {
     TIMER_QUEUE_ENTRY* timer_queue_entry;
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_155: [ For each timer returned by timer_queue_pop_due with now: ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_155: [ For each timer returned by timer_queue_pop_due with the current time: ]*/
     while ((timer_queue_entry = timer_queue_pop_due(execution_engine->timer_queue, now)) != NULL)
     {
         EXECUTION_ENGINE_LINUX_TIMER* timer = CONTAINING_RECORD(timer_queue_entry, EXECUTION_ENGINE_LINUX_TIMER, timer_queue_entry);
 
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_161: [ internal_execution_engine_linux_submit_due_timers shall submit the work object of the timer by calling internal_execution_engine_linux_submit_work_locked. ]*/
         internal_execution_engine_linux_submit_work_locked(execution_engine, &timer->work);
     }
 }
@@ -440,32 +475,32 @@ static void internal_execution_engine_linux_retire_idle_workers(EXECUTION_ENGINE
 {
     WORKER_POOL_COUNTS counts;
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_162: [ internal_execution_engine_linux_retire_idle_workers shall get the counts of the worker pool by calling worker_pool_get_counts. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_162: [ internal_execution_engine_linux_manager_thread_func shall get the counts of the worker pool by calling worker_pool_get_counts. ]*/
     worker_pool_get_counts(execution_engine->worker_pool, &counts);
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_163: [ While the time to retire a worker thread obtained by calling thread_count_policy_get_retire_thread_time with the counts and now is not later than now: ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_163: [ While the time to retire a worker thread obtained by calling thread_count_policy_get_retire_thread_time with the counts and the current time is not later than the current time: ]*/
     while (thread_count_policy_get_retire_thread_time(execution_engine->thread_count_policy, counts.thread_count, counts.idle_thread_count, counts.oldest_idle_since_ms, now) <= now)
     {
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_164: [ internal_execution_engine_linux_retire_idle_workers shall retire the worker thread idle the longest by calling worker_pool_retire_oldest_idle_worker. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_164: [ internal_execution_engine_linux_manager_thread_func shall retire the worker thread idle the longest by calling worker_pool_retire_oldest_idle_worker. ]*/
         worker_pool_retire_oldest_idle_worker(execution_engine->worker_pool);
 
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_165: [ internal_execution_engine_linux_retire_idle_workers shall get the counts of the worker pool by calling worker_pool_get_counts. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_165: [ internal_execution_engine_linux_manager_thread_func shall get the counts of the worker pool by calling worker_pool_get_counts. ]*/
         worker_pool_get_counts(execution_engine->worker_pool, &counts);
     }
 }
 
 static void internal_execution_engine_linux_add_worker(EXECUTION_ENGINE* execution_engine, uint64_t now)
 {
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_166: [ internal_execution_engine_linux_add_worker shall add a worker thread by calling worker_pool_add_worker. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_166: [ internal_execution_engine_linux_manager_thread_func shall add a worker thread by calling worker_pool_add_worker. ]*/
     if (worker_pool_add_worker(execution_engine->worker_pool) != 0)
     {
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_167: [ If worker_pool_add_worker fails, internal_execution_engine_linux_add_worker shall call thread_count_policy_on_add_thread_failed with now. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_167: [ If worker_pool_add_worker fails, internal_execution_engine_linux_manager_thread_func shall call thread_count_policy_on_add_thread_failed with the current time. ]*/
         LogError("worker_pool_add_worker failed, retrying later");
         thread_count_policy_on_add_thread_failed(execution_engine->thread_count_policy, now);
     }
     else
     {
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_168: [ If worker_pool_add_worker succeeds, internal_execution_engine_linux_add_worker shall record progress by calling thread_count_policy_on_progress with now. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_168: [ If worker_pool_add_worker succeeds, internal_execution_engine_linux_manager_thread_func shall record progress by calling thread_count_policy_on_progress with the current time. ]*/
         // the new worker thread gets time to take work before another one is added
         thread_count_policy_on_progress(execution_engine->thread_count_policy, now);
     }
@@ -473,28 +508,28 @@ static void internal_execution_engine_linux_add_worker(EXECUTION_ENGINE* executi
 
 static void internal_execution_engine_linux_wait_for_next_event(EXECUTION_ENGINE* execution_engine, const WORKER_POOL_COUNTS* counts, uint64_t add_thread_time, uint64_t now)
 {
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_169: [ internal_execution_engine_linux_wait_for_next_event shall record that the manager thread is watching the ready queue if add_thread_time is not THREAD_COUNT_POLICY_NEVER. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_169: [ internal_execution_engine_linux_manager_thread_func shall record that the manager thread is watching the ready queue if the time to add a worker thread is not THREAD_COUNT_POLICY_NEVER. ]*/
     // while it watches, submitting work does not need to wake the manager thread
     execution_engine->is_manager_watching_ready_queue = (add_thread_time != THREAD_COUNT_POLICY_NEVER);
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_170: [ internal_execution_engine_linux_wait_for_next_event shall get the time to retire a worker thread by calling thread_count_policy_get_retire_thread_time with counts and now. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_170: [ internal_execution_engine_linux_manager_thread_func shall get the time to retire a worker thread by calling thread_count_policy_get_retire_thread_time with the counts and the current time. ]*/
     uint64_t retire_thread_time = thread_count_policy_get_retire_thread_time(execution_engine->thread_count_policy, counts->thread_count, counts->idle_thread_count, counts->oldest_idle_since_ms, now);
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_171: [ internal_execution_engine_linux_wait_for_next_event shall get the due time of the first timer by calling timer_queue_get_next_due_time. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_171: [ internal_execution_engine_linux_manager_thread_func shall get the due time of the first timer by calling timer_queue_get_next_due_time. ]*/
     uint64_t next_due_time = timer_queue_get_next_due_time(execution_engine->timer_queue);
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_172: [ internal_execution_engine_linux_wait_for_next_event shall compute the deadline as the earliest of add_thread_time, the time to retire a worker thread and the due time of the first timer. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_172: [ internal_execution_engine_linux_manager_thread_func shall compute the deadline as the earliest of the time to add a worker thread, the time to retire a worker thread and the due time of the first timer. ]*/
     uint64_t deadline = (add_thread_time < retire_thread_time) ? add_thread_time : retire_thread_time;
     deadline = (next_due_time < deadline) ? next_due_time : deadline;
 
     if (deadline == THREAD_COUNT_POLICY_NEVER)
     {
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_173: [ If the deadline is THREAD_COUNT_POLICY_NEVER, internal_execution_engine_linux_wait_for_next_event shall wait by calling pthread_cond_wait. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_173: [ If the deadline is THREAD_COUNT_POLICY_NEVER, internal_execution_engine_linux_manager_thread_func shall wait by calling pthread_cond_wait. ]*/
         (void)pthread_cond_wait(&execution_engine->manager_cond, &execution_engine->lock);
     }
     else
     {
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_174: [ If the deadline is not THREAD_COUNT_POLICY_NEVER, internal_execution_engine_linux_wait_for_next_event shall wait until the deadline by calling pthread_cond_timedwait. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_174: [ If the deadline is not THREAD_COUNT_POLICY_NEVER, internal_execution_engine_linux_manager_thread_func shall wait until the deadline by calling pthread_cond_timedwait. ]*/
         // manager_cond uses CLOCK_MONOTONIC, the clock of timer_global_get_elapsed_ms
         struct timespec deadline_time;
         deadline_time.tv_sec = (time_t)(deadline / 1000);
@@ -505,25 +540,32 @@ static void internal_execution_engine_linux_wait_for_next_event(EXECUTION_ENGINE
 
 static void internal_execution_engine_linux_teardown(EXECUTION_ENGINE* execution_engine)
 {
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_029: [ internal_execution_engine_linux_teardown shall stop the worker threads and wait for them to exit by calling worker_pool_destroy. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_029: [ execution_engine_dec_ref shall stop the worker threads and wait for them to exit by calling worker_pool_destroy. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_186: [ internal_execution_engine_linux_manager_thread_func shall stop the worker threads and wait for them to exit by calling worker_pool_destroy. ]*/
     worker_pool_destroy(execution_engine->worker_pool);
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_030: [ internal_execution_engine_linux_teardown shall destroy the condition variable signaled when work objects have no more pending and running invocations by calling pthread_cond_destroy. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_030: [ execution_engine_dec_ref shall destroy the condition variable signaled when work objects have no more pending and running invocations by calling pthread_cond_destroy. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_187: [ internal_execution_engine_linux_manager_thread_func shall destroy the condition variable signaled when work objects have no more pending and running invocations by calling pthread_cond_destroy. ]*/
     (void)pthread_cond_destroy(&execution_engine->work_done_cond);
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_031: [ internal_execution_engine_linux_teardown shall destroy the condition variable that wakes the manager thread by calling pthread_cond_destroy. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_031: [ execution_engine_dec_ref shall destroy the condition variable that wakes the manager thread by calling pthread_cond_destroy. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_188: [ internal_execution_engine_linux_manager_thread_func shall destroy the condition variable that wakes the manager thread by calling pthread_cond_destroy. ]*/
     (void)pthread_cond_destroy(&execution_engine->manager_cond);
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_032: [ internal_execution_engine_linux_teardown shall destroy the mutex by calling pthread_mutex_destroy. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_032: [ execution_engine_dec_ref shall destroy the mutex by calling pthread_mutex_destroy. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_189: [ internal_execution_engine_linux_manager_thread_func shall destroy the mutex by calling pthread_mutex_destroy. ]*/
     (void)pthread_mutex_destroy(&execution_engine->lock);
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_033: [ internal_execution_engine_linux_teardown shall destroy the timer queue by calling timer_queue_destroy. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_033: [ execution_engine_dec_ref shall destroy the timer queue by calling timer_queue_destroy. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_190: [ internal_execution_engine_linux_manager_thread_func shall destroy the timer queue by calling timer_queue_destroy. ]*/
     timer_queue_destroy(execution_engine->timer_queue);
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_034: [ internal_execution_engine_linux_teardown shall destroy the thread count policy by calling thread_count_policy_destroy. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_034: [ execution_engine_dec_ref shall destroy the thread count policy by calling thread_count_policy_destroy. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_191: [ internal_execution_engine_linux_manager_thread_func shall destroy the thread count policy by calling thread_count_policy_destroy. ]*/
     thread_count_policy_destroy(execution_engine->thread_count_policy);
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_035: [ internal_execution_engine_linux_teardown shall free the execution engine. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_035: [ execution_engine_dec_ref shall free the execution engine. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_192: [ internal_execution_engine_linux_manager_thread_func shall free the execution engine. ]*/
     REFCOUNT_TYPE_DESTROY(EXECUTION_ENGINE, execution_engine);
 }
 
@@ -542,10 +584,8 @@ static void* internal_execution_engine_linux_manager_thread_func(void* arg)
         /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_142: [ internal_execution_engine_linux_manager_thread_func shall get the current time by calling timer_global_get_elapsed_ms. ]*/
         uint64_t now = internal_execution_engine_linux_get_time_ms();
 
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_143: [ internal_execution_engine_linux_manager_thread_func shall submit the due timers by calling internal_execution_engine_linux_submit_due_timers. ]*/
         internal_execution_engine_linux_submit_due_timers(execution_engine, now);
 
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_144: [ internal_execution_engine_linux_manager_thread_func shall retire the worker threads idle for too long by calling internal_execution_engine_linux_retire_idle_workers. ]*/
         internal_execution_engine_linux_retire_idle_workers(execution_engine, now);
 
         /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_145: [ internal_execution_engine_linux_manager_thread_func shall join the retired worker threads by calling worker_pool_join_retired_workers. ]*/
@@ -560,12 +600,12 @@ static void* internal_execution_engine_linux_manager_thread_func(void* arg)
 
         if (add_thread_time <= now)
         {
-            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_148: [ If the time to add a worker thread is not later than the current time, internal_execution_engine_linux_manager_thread_func shall add a worker thread by calling internal_execution_engine_linux_add_worker. ]*/
+            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_148: [ If the time to add a worker thread is not later than the current time: ]*/
             internal_execution_engine_linux_add_worker(execution_engine, now);
         }
         else
         {
-            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_149: [ If the time to add a worker thread is later than the current time, internal_execution_engine_linux_manager_thread_func shall wait for the next event by calling internal_execution_engine_linux_wait_for_next_event. ]*/
+            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_149: [ If the time to add a worker thread is later than the current time: ]*/
             internal_execution_engine_linux_wait_for_next_event(execution_engine, &counts, add_thread_time, now);
         }
     }
@@ -587,7 +627,6 @@ static void* internal_execution_engine_linux_manager_thread_func(void* arg)
         // nobody joins the manager thread
         (void)pthread_detach(execution_engine->manager_thread);
 
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_153: [ internal_execution_engine_linux_manager_thread_func shall tear down the execution engine by calling internal_execution_engine_linux_teardown. ]*/
         internal_execution_engine_linux_teardown(execution_engine);
     }
 
@@ -600,28 +639,25 @@ static int internal_execution_engine_linux_init_manager_cond(EXECUTION_ENGINE* e
     int result;
     pthread_condattr_t cond_attributes;
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_008: [ internal_execution_engine_linux_init_manager_cond shall initialize a condition variable attribute by calling pthread_condattr_init. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_008: [ execution_engine_create shall initialize a condition variable attribute by calling pthread_condattr_init. ]*/
     if (pthread_condattr_init(&cond_attributes) != 0)
     {
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_176: [ If any error occurs, internal_execution_engine_linux_init_manager_cond shall fail. ]*/
         LogError("pthread_condattr_init failed");
         result = MU_FAILURE;
     }
     else
     {
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_009: [ internal_execution_engine_linux_init_manager_cond shall set the clock of the attribute to CLOCK_MONOTONIC by calling pthread_condattr_setclock. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_009: [ execution_engine_create shall set the clock of the attribute to CLOCK_MONOTONIC, the clock of timer_global_get_elapsed_ms, by calling pthread_condattr_setclock. ]*/
         if (pthread_condattr_setclock(&cond_attributes, CLOCK_MONOTONIC) != 0)
         {
-            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_176: [ If any error occurs, internal_execution_engine_linux_init_manager_cond shall fail. ]*/
             LogError("pthread_condattr_setclock(CLOCK_MONOTONIC) failed");
             result = MU_FAILURE;
         }
         else
         {
-            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_010: [ internal_execution_engine_linux_init_manager_cond shall initialize the condition variable that wakes the manager thread with the attribute by calling pthread_cond_init. ]*/
+            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_010: [ execution_engine_create shall initialize the condition variable that wakes the manager thread with the attribute by calling pthread_cond_init. ]*/
             if (pthread_cond_init(&execution_engine->manager_cond, &cond_attributes) != 0)
             {
-                /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_176: [ If any error occurs, internal_execution_engine_linux_init_manager_cond shall fail. ]*/
                 LogError("pthread_cond_init failed");
                 result = MU_FAILURE;
             }
@@ -631,7 +667,7 @@ static int internal_execution_engine_linux_init_manager_cond(EXECUTION_ENGINE* e
             }
         }
 
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_175: [ internal_execution_engine_linux_init_manager_cond shall destroy the attribute by calling pthread_condattr_destroy. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_175: [ execution_engine_create shall destroy the attribute by calling pthread_condattr_destroy. ]*/
         (void)pthread_condattr_destroy(&cond_attributes);
     }
 
@@ -642,28 +678,27 @@ static int internal_execution_engine_linux_init_synchronization(EXECUTION_ENGINE
 {
     int result;
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_006: [ internal_execution_engine_linux_init_synchronization shall initialize the mutex by calling pthread_mutex_init. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_006: [ execution_engine_create shall initialize the mutex by calling pthread_mutex_init. ]*/
     if (pthread_mutex_init(&execution_engine->lock, NULL) != 0)
     {
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_012: [ If any error occurs, internal_execution_engine_linux_init_synchronization shall destroy what it initialized and fail. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_012: [ If any error occurs, execution_engine_create shall destroy what it created and initialized. ]*/
         LogError("pthread_mutex_init failed");
         result = MU_FAILURE;
     }
     else
     {
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_007: [ internal_execution_engine_linux_init_synchronization shall initialize the condition variable that wakes the manager thread by calling internal_execution_engine_linux_init_manager_cond. ]*/
         if (internal_execution_engine_linux_init_manager_cond(execution_engine) != 0)
         {
-            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_012: [ If any error occurs, internal_execution_engine_linux_init_synchronization shall destroy what it initialized and fail. ]*/
+            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_012: [ If any error occurs, execution_engine_create shall destroy what it created and initialized. ]*/
             LogError("internal_execution_engine_linux_init_manager_cond failed");
             result = MU_FAILURE;
         }
         else
         {
-            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_011: [ internal_execution_engine_linux_init_synchronization shall initialize the condition variable signaled when work objects have no more pending and running invocations by calling pthread_cond_init. ]*/
+            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_011: [ execution_engine_create shall initialize the condition variable signaled when work objects have no more pending and running invocations by calling pthread_cond_init. ]*/
             if (pthread_cond_init(&execution_engine->work_done_cond, NULL) != 0)
             {
-                /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_012: [ If any error occurs, internal_execution_engine_linux_init_synchronization shall destroy what it initialized and fail. ]*/
+                /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_012: [ If any error occurs, execution_engine_create shall destroy what it created and initialized. ]*/
                 LogError("pthread_cond_init failed");
                 result = MU_FAILURE;
             }
@@ -685,7 +720,7 @@ static int internal_execution_engine_linux_add_initial_workers(EXECUTION_ENGINE*
 {
     int result = 0;
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_015: [ internal_execution_engine_linux_start_threads shall add min_thread_count worker threads by calling worker_pool_add_worker. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_015: [ execution_engine_create shall add min_thread_count worker threads by calling worker_pool_add_worker. ]*/
     for (uint32_t i = 0; (result == 0) && (i < execution_engine->params.min_thread_count); i++)
     {
         if (worker_pool_add_worker(execution_engine->worker_pool) != 0)
@@ -706,36 +741,33 @@ static int internal_execution_engine_linux_start_threads(EXECUTION_ENGINE* execu
 {
     int result;
 
-    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_013: [ internal_execution_engine_linux_start_threads shall create the worker pool by calling worker_pool_create with the mutex, internal_execution_engine_linux_run_next_work and the execution engine. ]*/
+    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_013: [ execution_engine_create shall create the worker pool by calling worker_pool_create with the mutex, internal_execution_engine_linux_run_next_work and the execution engine. ]*/
     execution_engine->worker_pool = worker_pool_create(&execution_engine->lock, internal_execution_engine_linux_run_next_work, execution_engine);
     if (execution_engine->worker_pool == NULL)
     {
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_019: [ If any error occurs, internal_execution_engine_linux_start_threads shall fail. ]*/
         LogError("worker_pool_create failed");
         result = MU_FAILURE;
     }
     else
     {
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_014: [ internal_execution_engine_linux_start_threads shall acquire the mutex by calling pthread_mutex_lock. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_014: [ execution_engine_create shall acquire the mutex by calling pthread_mutex_lock. ]*/
         (void)pthread_mutex_lock(&execution_engine->lock);
 
         int add_result = internal_execution_engine_linux_add_initial_workers(execution_engine);
 
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_016: [ internal_execution_engine_linux_start_threads shall release the mutex by calling pthread_mutex_unlock. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_016: [ execution_engine_create shall release the mutex by calling pthread_mutex_unlock. ]*/
         (void)pthread_mutex_unlock(&execution_engine->lock);
 
         if (add_result != 0)
         {
-            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_019: [ If any error occurs, internal_execution_engine_linux_start_threads shall fail. ]*/
             LogError("internal_execution_engine_linux_add_initial_workers failed");
             result = MU_FAILURE;
         }
         else
         {
-            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_017: [ internal_execution_engine_linux_start_threads shall start the manager thread by calling pthread_create with internal_execution_engine_linux_manager_thread_func and the execution engine. ]*/
+            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_017: [ execution_engine_create shall start the manager thread by calling pthread_create with internal_execution_engine_linux_manager_thread_func and the execution engine. ]*/
             if (pthread_create(&execution_engine->manager_thread, NULL, internal_execution_engine_linux_manager_thread_func, execution_engine) != 0)
             {
-                /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_019: [ If any error occurs, internal_execution_engine_linux_start_threads shall fail. ]*/
                 LogError("pthread_create failed for the manager thread");
                 result = MU_FAILURE;
             }
@@ -746,7 +778,7 @@ static int internal_execution_engine_linux_start_threads(EXECUTION_ENGINE* execu
             }
         }
 
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_018: [ If any error occurs after the worker pool was created, internal_execution_engine_linux_start_threads shall stop the worker threads by calling worker_pool_destroy. ]*/
+        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_018: [ If any error occurs after the worker pool was created, execution_engine_create shall stop the worker threads by calling worker_pool_destroy. ]*/
         worker_pool_destroy(execution_engine->worker_pool);
     }
 
@@ -823,7 +855,6 @@ EXECUTION_ENGINE_HANDLE execution_engine_create(const EXECUTION_ENGINE_PARAMETER
                     /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_003: [ execution_engine_create shall initialize the ready queue by calling DList_InitializeListHead. ]*/
                     DList_InitializeListHead(&result->ready_queue);
 
-                    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_004: [ execution_engine_create shall initialize the mutex and the condition variables by calling internal_execution_engine_linux_init_synchronization. ]*/
                     if (internal_execution_engine_linux_init_synchronization(result) != 0)
                     {
                         /* Codes_SRS_EXECUTION_ENGINE_LINUX_07_006: [ If any error occurs, execution_engine_create shall fail and return NULL. ]*/
@@ -831,7 +862,6 @@ EXECUTION_ENGINE_HANDLE execution_engine_create(const EXECUTION_ENGINE_PARAMETER
                     }
                     else
                     {
-                        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_005: [ execution_engine_create shall start the threads by calling internal_execution_engine_linux_start_threads. ]*/
                         if (internal_execution_engine_linux_start_threads(result) != 0)
                         {
                             /* Codes_SRS_EXECUTION_ENGINE_LINUX_07_006: [ If any error occurs, execution_engine_create shall fail and return NULL. ]*/
@@ -913,12 +943,11 @@ void execution_engine_dec_ref(EXECUTION_ENGINE_HANDLE execution_engine)
                 /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_027: [ execution_engine_dec_ref shall wait for the manager thread to exit by calling pthread_join. ]*/
                 if (pthread_join(execution_engine->manager_thread, NULL) != 0)
                 {
-                    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_185: [ If pthread_join fails, execution_engine_dec_ref shall return without tearing down the execution engine, which the manager thread can still use. ]*/
                     LogError("pthread_join failed for the manager thread of execution engine %p, the execution engine is not torn down", execution_engine);
                 }
                 else
                 {
-                    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_028: [ execution_engine_dec_ref shall tear down the execution engine by calling internal_execution_engine_linux_teardown. ]*/
+                    /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_028: [ If pthread_join succeeds: ]*/
                     internal_execution_engine_linux_teardown(execution_engine);
                 }
             }
@@ -985,7 +1014,6 @@ EXECUTION_ENGINE_LINUX_WORK_HANDLE execution_engine_linux_create_work(EXECUTION_
         }
         else
         {
-            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_039: [ execution_engine_linux_create_work shall initialize the work object with internal_execution_engine_linux_free_work as its free function by calling internal_execution_engine_linux_init_work. ]*/
             internal_execution_engine_linux_init_work(result, execution_engine, work_function, work_function_context, internal_execution_engine_linux_free_work);
 
             /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_040: [ execution_engine_linux_create_work shall succeed and return the work object. ]*/
@@ -1009,7 +1037,6 @@ void execution_engine_linux_submit_work(EXECUTION_ENGINE_LINUX_WORK_HANDLE work)
         /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_047: [ execution_engine_linux_submit_work shall acquire the mutex by calling pthread_mutex_lock. ]*/
         (void)pthread_mutex_lock(&execution_engine->lock);
 
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_048: [ execution_engine_linux_submit_work shall submit work by calling internal_execution_engine_linux_submit_work_locked. ]*/
         internal_execution_engine_linux_submit_work_locked(execution_engine, work);
 
         /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_049: [ execution_engine_linux_submit_work shall release the mutex by calling pthread_mutex_unlock. ]*/
@@ -1026,7 +1053,6 @@ void execution_engine_linux_wait_for_work(EXECUTION_ENGINE_LINUX_WORK_HANDLE wor
     }
     else
     {
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_085: [ execution_engine_linux_wait_for_work shall wait for the invocations of work by calling internal_execution_engine_linux_wait_for_invocations. ]*/
         internal_execution_engine_linux_wait_for_invocations(work, cancel_pending);
     }
 }
@@ -1045,7 +1071,6 @@ void execution_engine_linux_close_work(EXECUTION_ENGINE_LINUX_WORK_HANDLE work)
         /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_095: [ execution_engine_linux_close_work shall acquire the mutex by calling pthread_mutex_lock. ]*/
         (void)pthread_mutex_lock(&execution_engine->lock);
 
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_096: [ execution_engine_linux_close_work shall close work by calling internal_execution_engine_linux_close_work_locked. ]*/
         internal_execution_engine_linux_close_work_locked(work);
 
         /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_097: [ execution_engine_linux_close_work shall release the mutex by calling pthread_mutex_unlock. ]*/
@@ -1062,7 +1087,6 @@ void execution_engine_linux_disassociate_current_thread_from_work(EXECUTION_ENGI
     }
     else
     {
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_101: [ execution_engine_linux_disassociate_current_thread_from_work shall disassociate the current thread from work by calling internal_execution_engine_linux_disassociate_current_thread. ]*/
         internal_execution_engine_linux_disassociate_current_thread(work);
     }
 }
@@ -1093,7 +1117,6 @@ EXECUTION_ENGINE_LINUX_TIMER_HANDLE execution_engine_linux_create_timer(EXECUTIO
         }
         else
         {
-            /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_110: [ execution_engine_linux_create_timer shall initialize the work object of the timer with internal_execution_engine_linux_free_timer as its free function by calling internal_execution_engine_linux_init_work. ]*/
             internal_execution_engine_linux_init_work(&result->work, execution_engine, work_function, work_function_context, internal_execution_engine_linux_free_timer);
 
             /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_111: [ execution_engine_linux_create_timer shall initialize the timer queue entry of the timer by calling timer_queue_entry_init. ]*/
@@ -1192,7 +1215,6 @@ void execution_engine_linux_wait_for_timer(EXECUTION_ENGINE_LINUX_TIMER_HANDLE t
     }
     else
     {
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_132: [ execution_engine_linux_wait_for_timer shall wait for the invocations of the work object of timer by calling internal_execution_engine_linux_wait_for_invocations. ]*/
         internal_execution_engine_linux_wait_for_invocations(&timer->work, cancel_pending);
     }
 }
@@ -1214,7 +1236,6 @@ void execution_engine_linux_close_timer(EXECUTION_ENGINE_LINUX_TIMER_HANDLE time
         /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_135: [ execution_engine_linux_close_timer shall disarm timer by calling timer_queue_disarm. ]*/
         timer_queue_disarm(execution_engine->timer_queue, &timer->timer_queue_entry);
 
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_136: [ execution_engine_linux_close_timer shall close the work object of timer by calling internal_execution_engine_linux_close_work_locked. ]*/
         internal_execution_engine_linux_close_work_locked(&timer->work);
 
         /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_137: [ execution_engine_linux_close_timer shall release the mutex by calling pthread_mutex_unlock. ]*/
@@ -1231,7 +1252,6 @@ void execution_engine_linux_disassociate_current_thread_from_timer(EXECUTION_ENG
     }
     else
     {
-        /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_139: [ execution_engine_linux_disassociate_current_thread_from_timer shall disassociate the current thread from the work object of timer by calling internal_execution_engine_linux_disassociate_current_thread. ]*/
         internal_execution_engine_linux_disassociate_current_thread(&timer->work);
     }
 }
