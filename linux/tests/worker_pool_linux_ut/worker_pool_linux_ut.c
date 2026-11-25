@@ -12,6 +12,7 @@ IMPLEMENT_UMOCK_C_ENUM_TYPE(WORKER_POOL_WAKE_RESULT, WORKER_POOL_WAKE_RESULT_VAL
 
 // implemented in mock_worker_pool_linux.c, which includes worker_pool_linux.c and so can read the state of a worker
 const char* mock_worker_pool_linux_get_worker_state(void* worker);
+WORKER_POOL_HANDLE mock_worker_pool_linux_get_worker_pool(void* worker);
 
 #define TEST_RUN_FUNCTION_CONTEXT ((void*)0x4242)
 #define MAX_TEST_WORKERS 4
@@ -502,11 +503,11 @@ TEST_FUNCTION(worker_pool_destroy_with_no_workers_frees_the_pool)
 /*Tests_SRS_WORKER_POOL_LINUX_42_014: [ worker_pool_destroy shall release lock by calling pthread_mutex_unlock. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_015: [ For each worker in the list of workers: ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_082: [ worker_pool_destroy shall remove the worker from the list of workers by calling DList_RemoveHeadList. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_083: [ worker_pool_destroy shall destroy the worker. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_096: [ worker_pool_destroy shall wait for the worker thread to exit by calling ThreadAPI_Join. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_097: [ If ThreadAPI_Join succeeds: ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_098: [ worker_pool_destroy shall destroy the condition variable of the worker by calling pthread_cond_destroy. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_099: [ worker_pool_destroy shall free the worker. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_017: [ worker_pool_destroy shall free the pool. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_037: [ internal_worker_pool_destroy_worker shall wait for the worker thread to exit by calling ThreadAPI_Join. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_038: [ internal_worker_pool_destroy_worker shall destroy the condition variable of the worker by calling pthread_cond_destroy. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_039: [ internal_worker_pool_destroy_worker shall free the worker. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_040: [ internal_worker_pool_worker_thread_func shall acquire lock by calling pthread_mutex_lock. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_041: [ internal_worker_pool_worker_thread_func shall decrement the starting thread count. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_044: [ If run_function returns false: ]*/
@@ -548,13 +549,16 @@ TEST_FUNCTION(worker_pool_destroy_destroys_a_worker_thread_that_did_not_start_ye
 /*Tests_SRS_WORKER_POOL_LINUX_42_013: [ For each idle worker, worker_pool_destroy shall wake it by calling pthread_cond_signal on its condition variable. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_015: [ For each worker in the list of workers: ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_082: [ worker_pool_destroy shall remove the worker from the list of workers by calling DList_RemoveHeadList. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_083: [ worker_pool_destroy shall destroy the worker. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_096: [ worker_pool_destroy shall wait for the worker thread to exit by calling ThreadAPI_Join. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_097: [ If ThreadAPI_Join succeeds: ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_098: [ worker_pool_destroy shall destroy the condition variable of the worker by calling pthread_cond_destroy. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_099: [ worker_pool_destroy shall free the worker. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_045: [ If the pool is stopped, internal_worker_pool_worker_thread_func shall stop. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_052: [ internal_worker_pool_wait_while_idle shall wait by calling pthread_cond_wait on the condition variable of the worker while the worker is idle and the pool is not stopped. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_052: [ internal_worker_pool_worker_thread_func shall wait by calling pthread_cond_wait on the condition variable of the worker while the worker is idle and the pool is not stopped. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_054: [ If the worker is still idle: ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_091: [ internal_worker_pool_wait_while_idle shall remove the worker from the list of idle workers by calling DList_RemoveEntryList. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_092: [ internal_worker_pool_wait_while_idle shall decrement the idle thread count. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_093: [ internal_worker_pool_wait_while_idle shall set the state of the worker to running. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_091: [ internal_worker_pool_worker_thread_func shall remove the worker from the list of idle workers by calling DList_RemoveEntryList. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_092: [ internal_worker_pool_worker_thread_func shall decrement the idle thread count. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_093: [ internal_worker_pool_worker_thread_func shall set the state of the worker to running. ]*/
 TEST_FUNCTION(worker_pool_destroy_wakes_the_idle_worker_threads_and_destroys_them)
 {
     ///arrange
@@ -655,10 +659,10 @@ TEST_FUNCTION(worker_pool_destroy_lets_the_worker_threads_run_the_remaining_work
 
 /*Tests_SRS_WORKER_POOL_LINUX_42_016: [ For each worker in the list of retired workers: ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_084: [ worker_pool_destroy shall remove the worker from the list of retired workers by calling DList_RemoveHeadList. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_085: [ worker_pool_destroy shall destroy the worker. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_037: [ internal_worker_pool_destroy_worker shall wait for the worker thread to exit by calling ThreadAPI_Join. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_038: [ internal_worker_pool_destroy_worker shall destroy the condition variable of the worker by calling pthread_cond_destroy. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_039: [ internal_worker_pool_destroy_worker shall free the worker. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_100: [ worker_pool_destroy shall wait for the worker thread to exit by calling ThreadAPI_Join. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_101: [ If ThreadAPI_Join succeeds: ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_102: [ worker_pool_destroy shall destroy the condition variable of the worker by calling pthread_cond_destroy. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_103: [ worker_pool_destroy shall free the worker. ]*/
 TEST_FUNCTION(worker_pool_destroy_destroys_the_retired_workers)
 {
     ///arrange
@@ -689,9 +693,11 @@ TEST_FUNCTION(worker_pool_destroy_destroys_the_retired_workers)
     ASSERT_IS_TRUE(worker_a->has_exited);
 }
 
-/*Tests_SRS_WORKER_POOL_LINUX_42_083: [ worker_pool_destroy shall destroy the worker. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_087: [ If ThreadAPI_Join fails, internal_worker_pool_destroy_worker shall return without freeing the worker, which the worker thread can still use. ]*/
-TEST_FUNCTION(when_ThreadAPI_Join_fails_worker_pool_destroy_does_not_free_the_worker)
+/*Tests_SRS_WORKER_POOL_LINUX_42_015: [ For each worker in the list of workers: ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_082: [ worker_pool_destroy shall remove the worker from the list of workers by calling DList_RemoveHeadList. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_096: [ worker_pool_destroy shall wait for the worker thread to exit by calling ThreadAPI_Join. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_097: [ If ThreadAPI_Join succeeds: ]*/
+TEST_FUNCTION(when_ThreadAPI_Join_fails_worker_pool_destroy_does_not_free_the_worker_from_the_list_of_workers)
 {
     ///arrange
     WORKER_POOL_HANDLE worker_pool = test_worker_pool_create();
@@ -731,6 +737,53 @@ TEST_FUNCTION(when_ThreadAPI_Join_fails_worker_pool_destroy_does_not_free_the_wo
     real_gballoc_hl_free(worker_a->worker);
 }
 
+/*Tests_SRS_WORKER_POOL_LINUX_42_016: [ For each worker in the list of retired workers: ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_084: [ worker_pool_destroy shall remove the worker from the list of retired workers by calling DList_RemoveHeadList. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_100: [ worker_pool_destroy shall wait for the worker thread to exit by calling ThreadAPI_Join. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_101: [ If ThreadAPI_Join succeeds: ]*/
+TEST_FUNCTION(when_ThreadAPI_Join_fails_worker_pool_destroy_does_not_free_the_worker_from_the_list_of_retired_workers)
+{
+    ///arrange
+    WORKER_POOL_HANDLE worker_pool = test_worker_pool_create();
+    TEST_WORKER* worker_a = test_worker_pool_add_worker(worker_pool);
+    TEST_WORKER* worker_b = test_worker_pool_add_worker(worker_pool);
+    test_run_worker_thread_until_idle(worker_a, 1000);
+    test_run_worker_thread_until_idle(worker_b, 2000);
+    test_worker_pool_retire_oldest_idle_worker(worker_pool, worker_a);
+    test_worker_pool_retire_oldest_idle_worker(worker_pool, worker_b);
+
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_lock(&test_lock));
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(&test_lock));
+    STRICT_EXPECTED_CALL(DList_IsListEmpty(g_workers_list_head));
+    STRICT_EXPECTED_CALL(DList_IsListEmpty(g_retired_workers_list_head));
+    STRICT_EXPECTED_CALL(DList_RemoveHeadList(g_retired_workers_list_head));
+    STRICT_EXPECTED_CALL(ThreadAPI_Join(worker_a, IGNORED_ARG))
+        .SetReturn(THREADAPI_ERROR);
+    // worker A is not freed, worker B is still destroyed
+    STRICT_EXPECTED_CALL(DList_IsListEmpty(g_retired_workers_list_head));
+    STRICT_EXPECTED_CALL(DList_RemoveHeadList(g_retired_workers_list_head));
+    STRICT_EXPECTED_CALL(ThreadAPI_Join(worker_b, IGNORED_ARG));
+    // worker B wakes up because it is retired
+    STRICT_EXPECTED_CALL(mocked_pthread_mutex_unlock(&test_lock));
+    // back in worker_pool_destroy
+    STRICT_EXPECTED_CALL(mocked_pthread_cond_destroy(worker_b->wake_cond));
+    STRICT_EXPECTED_CALL(free(worker_b->worker));
+    STRICT_EXPECTED_CALL(DList_IsListEmpty(g_retired_workers_list_head));
+    STRICT_EXPECTED_CALL(free(worker_pool));
+
+    ///act
+    worker_pool_destroy(worker_pool);
+
+    ///assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_FALSE(worker_a->has_exited);
+    ASSERT_IS_TRUE(worker_b->has_exited);
+
+    ///cleanup
+    // the worker that could not be joined is leaked by the pool
+    real_gballoc_hl_free(worker_a->worker);
+}
+
 /* worker_pool_add_worker */
 
 /*Tests_SRS_WORKER_POOL_LINUX_42_018: [ If worker_pool is NULL, worker_pool_add_worker shall fail and return a non-zero value. ]*/
@@ -749,16 +802,15 @@ TEST_FUNCTION(worker_pool_add_worker_with_NULL_worker_pool_fails)
 /*Tests_SRS_WORKER_POOL_LINUX_42_019: [ worker_pool_add_worker shall increment the thread count. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_020: [ worker_pool_add_worker shall increment the starting thread count. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_021: [ worker_pool_add_worker shall release lock by calling pthread_mutex_unlock. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_022: [ worker_pool_add_worker shall create a worker. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_031: [ worker_pool_add_worker shall allocate a worker. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_086: [ worker_pool_add_worker shall store worker_pool in the worker. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_032: [ worker_pool_add_worker shall set the state of the worker to running. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_033: [ worker_pool_add_worker shall initialize the condition variable of the worker by calling pthread_cond_init. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_034: [ worker_pool_add_worker shall start the worker thread by calling ThreadAPI_Create with internal_worker_pool_worker_thread_func and the worker. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_023: [ worker_pool_add_worker shall acquire lock by calling pthread_mutex_lock. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_028: [ If creating the worker succeeds: ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_028: [ If no error occurs: ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_029: [ worker_pool_add_worker shall insert the worker in the list of workers by calling DList_InsertTailList. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_030: [ worker_pool_add_worker shall succeed and return 0. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_031: [ internal_worker_pool_create_worker shall allocate a worker. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_032: [ internal_worker_pool_create_worker shall set the state of the worker to running. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_033: [ internal_worker_pool_create_worker shall initialize the condition variable of the worker by calling pthread_cond_init. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_034: [ internal_worker_pool_create_worker shall start the worker thread by calling ThreadAPI_Create with internal_worker_pool_worker_thread_func and the worker. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_035: [ internal_worker_pool_create_worker shall return the worker. ]*/
 TEST_FUNCTION(worker_pool_add_worker_succeeds)
 {
     ///arrange
@@ -777,6 +829,7 @@ TEST_FUNCTION(worker_pool_add_worker_succeeds)
     ASSERT_ARE_EQUAL(void_ptr, allocated_worker, g_test_workers[0].worker);
     ASSERT_IS_NOT_NULL(g_test_workers[0].thread_func);
     ASSERT_IS_FALSE(g_test_workers[0].is_started);
+    ASSERT_ARE_EQUAL(void_ptr, worker_pool, mock_worker_pool_linux_get_worker_pool(allocated_worker));
     ASSERT_ARE_EQUAL(char_ptr, "WORKER_STATE_RUNNING", mock_worker_pool_linux_get_worker_state(allocated_worker));
     assert_worker_pool_counts(worker_pool, 1, 1, 0, 0);
 
@@ -811,11 +864,11 @@ TEST_FUNCTION(worker_pool_add_worker_adds_one_more_worker_thread_each_time)
     worker_pool_destroy(worker_pool);
 }
 
-/*Tests_SRS_WORKER_POOL_LINUX_42_024: [ If creating the worker fails: ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_024: [ If any error occurs: ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_025: [ worker_pool_add_worker shall decrement the thread count. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_026: [ worker_pool_add_worker shall decrement the starting thread count. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_027: [ worker_pool_add_worker shall fail and return a non-zero value. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_036: [ If any error occurs, internal_worker_pool_create_worker shall free the resources it allocated and return NULL. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_036: [ If any error occurs, worker_pool_add_worker shall free the resources it allocated for the worker. ]*/
 TEST_FUNCTION(when_underlying_calls_fail_worker_pool_add_worker_fails)
 {
     ///arrange
@@ -829,11 +882,7 @@ TEST_FUNCTION(when_underlying_calls_fail_worker_pool_add_worker_fails)
 
     for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
     {
-        if (!umock_c_negative_tests_can_call_fail(i))
-        {
-            // the call cannot fail
-        }
-        else
+        if (umock_c_negative_tests_can_call_fail(i))
         {
             umock_c_negative_tests_reset();
             umock_c_negative_tests_fail_call(i);
@@ -852,11 +901,11 @@ TEST_FUNCTION(when_underlying_calls_fail_worker_pool_add_worker_fails)
     worker_pool_destroy(worker_pool);
 }
 
-/*Tests_SRS_WORKER_POOL_LINUX_42_024: [ If creating the worker fails: ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_024: [ If any error occurs: ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_025: [ worker_pool_add_worker shall decrement the thread count. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_026: [ worker_pool_add_worker shall decrement the starting thread count. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_027: [ worker_pool_add_worker shall fail and return a non-zero value. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_036: [ If any error occurs, internal_worker_pool_create_worker shall free the resources it allocated and return NULL. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_036: [ If any error occurs, worker_pool_add_worker shall free the resources it allocated for the worker. ]*/
 TEST_FUNCTION(when_ThreadAPI_Create_fails_worker_pool_add_worker_destroys_the_condition_variable_and_frees_the_worker)
 {
     ///arrange
@@ -896,19 +945,17 @@ TEST_FUNCTION(when_ThreadAPI_Create_fails_worker_pool_add_worker_destroys_the_co
 
 /*Tests_SRS_WORKER_POOL_LINUX_42_004: [ worker_pool_create shall store lock, run_function and run_function_context in the pool. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_007: [ worker_pool_create shall mark the pool as not stopped. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_032: [ internal_worker_pool_create_worker shall set the state of the worker to running. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_086: [ internal_worker_pool_create_worker shall store worker_pool in the worker. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_040: [ internal_worker_pool_worker_thread_func shall acquire lock by calling pthread_mutex_lock. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_041: [ internal_worker_pool_worker_thread_func shall decrement the starting thread count. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_042: [ Until the worker is retired or the worker stops: ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_043: [ internal_worker_pool_worker_thread_func shall call run_function with run_function_context. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_044: [ If run_function returns false: ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_046: [ If the pool is not stopped, internal_worker_pool_worker_thread_func shall wait while the worker is idle. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_049: [ internal_worker_pool_wait_while_idle shall set the state of the worker to idle. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_050: [ internal_worker_pool_wait_while_idle shall record the current time obtained by calling timer_global_get_elapsed_ms as the time the worker became idle. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_051: [ internal_worker_pool_wait_while_idle shall insert the worker at the head of the list of idle workers by calling DList_InsertHeadList. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_088: [ internal_worker_pool_wait_while_idle shall increment the idle thread count. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_052: [ internal_worker_pool_wait_while_idle shall wait by calling pthread_cond_wait on the condition variable of the worker while the worker is idle and the pool is not stopped. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_046: [ If the pool is not stopped: ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_049: [ internal_worker_pool_worker_thread_func shall set the state of the worker to idle. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_050: [ internal_worker_pool_worker_thread_func shall record the current time obtained by calling timer_global_get_elapsed_ms as the time the worker became idle. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_051: [ internal_worker_pool_worker_thread_func shall insert the worker at the head of the list of idle workers by calling DList_InsertHeadList. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_088: [ internal_worker_pool_worker_thread_func shall increment the idle thread count. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_052: [ internal_worker_pool_worker_thread_func shall wait by calling pthread_cond_wait on the condition variable of the worker while the worker is idle and the pool is not stopped. ]*/
 TEST_FUNCTION(internal_worker_pool_worker_thread_func_runs_work_until_there_is_none_and_waits_while_idle)
 {
     ///arrange
@@ -943,7 +990,7 @@ TEST_FUNCTION(internal_worker_pool_worker_thread_func_runs_work_until_there_is_n
 
 /*Tests_SRS_WORKER_POOL_LINUX_42_043: [ internal_worker_pool_worker_thread_func shall call run_function with run_function_context. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_053: [ If the worker was woken: ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_090: [ internal_worker_pool_wait_while_idle shall set the state of the worker to running. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_090: [ internal_worker_pool_worker_thread_func shall set the state of the worker to running. ]*/
 TEST_FUNCTION(internal_worker_pool_worker_thread_func_runs_work_again_when_woken)
 {
     ///arrange
@@ -976,7 +1023,7 @@ TEST_FUNCTION(internal_worker_pool_worker_thread_func_runs_work_again_when_woken
     worker_pool_destroy(worker_pool);
 }
 
-/*Tests_SRS_WORKER_POOL_LINUX_42_052: [ internal_worker_pool_wait_while_idle shall wait by calling pthread_cond_wait on the condition variable of the worker while the worker is idle and the pool is not stopped. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_052: [ internal_worker_pool_worker_thread_func shall wait by calling pthread_cond_wait on the condition variable of the worker while the worker is idle and the pool is not stopped. ]*/
 TEST_FUNCTION(internal_worker_pool_worker_thread_func_keeps_waiting_when_woken_while_idle)
 {
     ///arrange
@@ -1003,7 +1050,7 @@ TEST_FUNCTION(internal_worker_pool_worker_thread_func_keeps_waiting_when_woken_w
 /*Tests_SRS_WORKER_POOL_LINUX_42_042: [ Until the worker is retired or the worker stops: ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_047: [ internal_worker_pool_worker_thread_func shall release lock by calling pthread_mutex_unlock. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_048: [ internal_worker_pool_worker_thread_func shall return 0. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_052: [ internal_worker_pool_wait_while_idle shall wait by calling pthread_cond_wait on the condition variable of the worker while the worker is idle and the pool is not stopped. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_052: [ internal_worker_pool_worker_thread_func shall wait by calling pthread_cond_wait on the condition variable of the worker while the worker is idle and the pool is not stopped. ]*/
 TEST_FUNCTION(internal_worker_pool_worker_thread_func_exits_when_the_worker_is_retired)
 {
     ///arrange
@@ -1121,7 +1168,7 @@ TEST_FUNCTION(worker_pool_wake_idle_worker_while_the_woken_worker_did_not_run_ye
 }
 
 /*Tests_SRS_WORKER_POOL_LINUX_42_053: [ If the worker was woken: ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_089: [ internal_worker_pool_wait_while_idle shall decrement the signaled thread count. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_089: [ internal_worker_pool_worker_thread_func shall decrement the signaled thread count. ]*/
 TEST_FUNCTION(worker_pool_wake_idle_worker_wakes_a_worker_again_after_the_woken_worker_ran)
 {
     ///arrange
@@ -1327,13 +1374,13 @@ TEST_FUNCTION(worker_pool_join_retired_workers_with_no_retired_worker_returns)
     worker_pool_destroy(worker_pool);
 }
 
-/*Tests_SRS_WORKER_POOL_LINUX_42_037: [ internal_worker_pool_destroy_worker shall wait for the worker thread to exit by calling ThreadAPI_Join. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_038: [ internal_worker_pool_destroy_worker shall destroy the condition variable of the worker by calling pthread_cond_destroy. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_039: [ internal_worker_pool_destroy_worker shall free the worker. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_077: [ For each worker in the list of retired workers: ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_078: [ worker_pool_join_retired_workers shall remove the worker from the list of retired workers by calling DList_RemoveHeadList. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_079: [ worker_pool_join_retired_workers shall release lock by calling pthread_mutex_unlock. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_080: [ worker_pool_join_retired_workers shall destroy the worker. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_104: [ worker_pool_join_retired_workers shall wait for the worker thread to exit by calling ThreadAPI_Join. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_105: [ If ThreadAPI_Join succeeds: ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_106: [ worker_pool_join_retired_workers shall destroy the condition variable of the worker by calling pthread_cond_destroy. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_107: [ worker_pool_join_retired_workers shall free the worker. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_081: [ worker_pool_join_retired_workers shall acquire lock by calling pthread_mutex_lock. ]*/
 TEST_FUNCTION(worker_pool_join_retired_workers_destroys_the_retired_worker)
 {
@@ -1367,7 +1414,10 @@ TEST_FUNCTION(worker_pool_join_retired_workers_destroys_the_retired_worker)
 /*Tests_SRS_WORKER_POOL_LINUX_42_077: [ For each worker in the list of retired workers: ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_078: [ worker_pool_join_retired_workers shall remove the worker from the list of retired workers by calling DList_RemoveHeadList. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_079: [ worker_pool_join_retired_workers shall release lock by calling pthread_mutex_unlock. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_080: [ worker_pool_join_retired_workers shall destroy the worker. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_104: [ worker_pool_join_retired_workers shall wait for the worker thread to exit by calling ThreadAPI_Join. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_105: [ If ThreadAPI_Join succeeds: ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_106: [ worker_pool_join_retired_workers shall destroy the condition variable of the worker by calling pthread_cond_destroy. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_107: [ worker_pool_join_retired_workers shall free the worker. ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_081: [ worker_pool_join_retired_workers shall acquire lock by calling pthread_mutex_lock. ]*/
 TEST_FUNCTION(worker_pool_join_retired_workers_destroys_all_retired_workers)
 {
@@ -1411,8 +1461,7 @@ TEST_FUNCTION(worker_pool_join_retired_workers_destroys_all_retired_workers)
     worker_pool_destroy(worker_pool);
 }
 
-/*Tests_SRS_WORKER_POOL_LINUX_42_037: [ internal_worker_pool_destroy_worker shall wait for the worker thread to exit by calling ThreadAPI_Join. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_080: [ worker_pool_join_retired_workers shall destroy the worker. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_104: [ worker_pool_join_retired_workers shall wait for the worker thread to exit by calling ThreadAPI_Join. ]*/
 TEST_FUNCTION(worker_pool_join_retired_workers_waits_for_the_retired_worker_thread_to_exit)
 {
     ///arrange
@@ -1445,9 +1494,12 @@ TEST_FUNCTION(worker_pool_join_retired_workers_waits_for_the_retired_worker_thre
     worker_pool_destroy(worker_pool);
 }
 
-/*Tests_SRS_WORKER_POOL_LINUX_42_080: [ worker_pool_join_retired_workers shall destroy the worker. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_077: [ For each worker in the list of retired workers: ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_078: [ worker_pool_join_retired_workers shall remove the worker from the list of retired workers by calling DList_RemoveHeadList. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_079: [ worker_pool_join_retired_workers shall release lock by calling pthread_mutex_unlock. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_104: [ worker_pool_join_retired_workers shall wait for the worker thread to exit by calling ThreadAPI_Join. ]*/
+/*Tests_SRS_WORKER_POOL_LINUX_42_105: [ If ThreadAPI_Join succeeds: ]*/
 /*Tests_SRS_WORKER_POOL_LINUX_42_081: [ worker_pool_join_retired_workers shall acquire lock by calling pthread_mutex_lock. ]*/
-/*Tests_SRS_WORKER_POOL_LINUX_42_087: [ If ThreadAPI_Join fails, internal_worker_pool_destroy_worker shall return without freeing the worker, which the worker thread can still use. ]*/
 TEST_FUNCTION(when_ThreadAPI_Join_fails_worker_pool_join_retired_workers_does_not_free_the_worker)
 {
     ///arrange
