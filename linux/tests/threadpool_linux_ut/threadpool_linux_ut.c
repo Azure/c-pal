@@ -412,11 +412,7 @@ TEST_FUNCTION(when_underlying_calls_fail_threadpool_create_fails)
 
     for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
     {
-        if (!umock_c_negative_tests_can_call_fail(i))
-        {
-            // the call cannot fail
-        }
-        else
+        if (umock_c_negative_tests_can_call_fail(i))
         {
             umock_c_negative_tests_reset();
             umock_c_negative_tests_fail_call(i);
@@ -602,11 +598,7 @@ TEST_FUNCTION(when_underlying_calls_fail_threadpool_create_work_item_fails)
 
     for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
     {
-        if (!umock_c_negative_tests_can_call_fail(i))
-        {
-            // the call cannot fail
-        }
-        else
+        if (umock_c_negative_tests_can_call_fail(i))
         {
             umock_c_negative_tests_reset();
             umock_c_negative_tests_fail_call(i);
@@ -910,11 +902,7 @@ TEST_FUNCTION(when_underlying_calls_fail_threadpool_schedule_work_fails)
 
     for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
     {
-        if (!umock_c_negative_tests_can_call_fail(i))
-        {
-            // the call cannot fail
-        }
-        else
+        if (umock_c_negative_tests_can_call_fail(i))
         {
             umock_c_negative_tests_reset();
             umock_c_negative_tests_fail_call(i);
@@ -1182,11 +1170,7 @@ TEST_FUNCTION(when_underlying_calls_fail_threadpool_timer_start_fails)
 
     for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
     {
-        if (!umock_c_negative_tests_can_call_fail(i))
-        {
-            // the call cannot fail
-        }
-        else
+        if (umock_c_negative_tests_can_call_fail(i))
         {
             umock_c_negative_tests_reset();
             umock_c_negative_tests_fail_call(i);
