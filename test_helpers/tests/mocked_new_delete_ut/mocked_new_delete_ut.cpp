@@ -16,10 +16,8 @@
 
 #include "c_pal/gballoc_hl.h"
 
-#include "umock_c/umock_c_ENABLE_MOCKS.h" // ============================== ENABLE_MOCKS
-#include "c_pal/srw_lock.h"
-#include "c_pal_test_helpers/mocked_new_delete.h"
-#include "umock_c/umock_c_DISABLE_MOCKS.h" // ============================== DISABLE_MOCKS
+// c_pal/srw_lock.h and c_pal_test_helpers/mocked_new_delete.h are mocked through MOCK_PRECOMPILE_HEADERS,
+// which compiles their mock implementations as C.
 
 #include "real_gballoc_hl.h"
 #include "real_srw_lock.h"

@@ -91,6 +91,9 @@ void mocked_new_delete_unlock(void)
     }
 }
 
+// The operators below share this translation unit with mocked_new_delete_enable, so a binary that calls it
+// always links these replacements too; it cannot get the control functions without them.
+
 void* operator new(size_t size)
 {
     void* result;

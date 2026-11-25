@@ -11,6 +11,7 @@ Mocking is enabled from a successful `mocked_new_delete_enable` until `mocked_ne
 - Include `c_pal_test_helpers/mocked_new_delete.h` with mocks enabled and hook `mocked_new_delete_malloc` to `gballoc_hl_malloc` (not `real_gballoc_hl_malloc`), so that `gballoc_hl_free` can release its memory.
 - Call `mocked_new_delete_enable` after `umock_c_init` and `mocked_new_delete_disable` before `umock_c_deinit`, while no other thread allocates.
 - Hold `mocked_new_delete_lock` while changing expectations that can race with allocations on other threads. Code holding the lock, including the `mocked_new_delete_malloc` hook, must not use C++ `new`, throw, or exit nonlocally.
+- Only code linked into the same executable or DLL uses the replacement operators; on Windows, other DLLs keep their own.
 
 ## Exposed API
 
