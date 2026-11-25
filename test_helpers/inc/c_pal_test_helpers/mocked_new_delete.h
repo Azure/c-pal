@@ -16,20 +16,18 @@
 extern "C" {
 #endif
 
-MOCKABLE_FUNCTION(, void*, mocked_malloc, size_t, size);
+MOCKABLE_FUNCTION(, void*, mocked_new_delete_malloc, size_t, size);
 
-MOCKABLE_FUNCTION(, void, mocked_free, void*, ptr);
+int mocked_new_delete_enable(void);
 
-int use_mocks_for_new_delete(void);
+void mocked_new_delete_disable(void);
 
-void use_default_malloc_for_new_delete(void);
+void mocked_new_delete_lock(void);
 
-void lock_mocked_malloc(void);
-
-void unlock_mocked_malloc(void);
+void mocked_new_delete_unlock(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* MOCKED_NEW_DELETE_H */
+#endif // MOCKED_NEW_DELETE_H
