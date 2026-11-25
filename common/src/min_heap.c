@@ -86,14 +86,14 @@ static int internal_min_heap_ensure_room(MIN_HEAP* min_heap)
 
     if (min_heap->reserved_count < min_heap->capacity)
     {
-        /* Codes_SRS_MIN_HEAP_42_041: [ If the reserved count is less than the capacity of the array of entries, internal_min_heap_ensure_room shall succeed and return 0. ]*/
         result = 0;
     }
     else
     {
+        /* Codes_SRS_MIN_HEAP_42_041: [ If the reserved count is equal to the capacity of the array of entries: ]*/
         uint32_t new_capacity;
 
-        /* Codes_SRS_MIN_HEAP_42_009: [ internal_min_heap_ensure_room shall compute the new capacity as 16 if the capacity is 0, or as twice the capacity capped at UINT32_MAX otherwise. ]*/
+        /* Codes_SRS_MIN_HEAP_42_009: [ min_heap_reserve shall compute the new capacity as 16 if the capacity is 0, or as twice the capacity capped at UINT32_MAX otherwise. ]*/
         if (min_heap->capacity == 0)
         {
             new_capacity = MIN_HEAP_INITIAL_CAPACITY;
@@ -110,11 +110,11 @@ static int internal_min_heap_ensure_room(MIN_HEAP* min_heap)
             }
         }
 
-        /* Codes_SRS_MIN_HEAP_42_010: [ internal_min_heap_ensure_room shall grow the array of entries to the new capacity by calling realloc_2. ]*/
+        /* Codes_SRS_MIN_HEAP_42_010: [ min_heap_reserve shall grow the array of entries to the new capacity by calling realloc_2. ]*/
         MIN_HEAP_ENTRY** new_entries = realloc_2(min_heap->entries, new_capacity, sizeof(MIN_HEAP_ENTRY*));
         if (new_entries == NULL)
         {
-            /* Codes_SRS_MIN_HEAP_42_042: [ If realloc_2 fails, internal_min_heap_ensure_room shall fail and return a non-zero value. ]*/
+            /* Codes_SRS_MIN_HEAP_42_042: [ If realloc_2 fails, min_heap_reserve shall fail and return a non-zero value. ]*/
             LogError("realloc_2(%p, %" PRIu32 ", %zu) failed", min_heap->entries, new_capacity, sizeof(MIN_HEAP_ENTRY*));
             result = MU_FAILURE;
         }
@@ -122,8 +122,6 @@ static int internal_min_heap_ensure_room(MIN_HEAP* min_heap)
         {
             min_heap->entries = new_entries;
             min_heap->capacity = new_capacity;
-
-            /* Codes_SRS_MIN_HEAP_42_043: [ internal_min_heap_ensure_room shall succeed and return 0. ]*/
             result = 0;
         }
     }
@@ -191,10 +189,9 @@ int min_heap_reserve(MIN_HEAP_HANDLE min_heap)
         }
         else
         {
-            /* Codes_SRS_MIN_HEAP_42_008: [ min_heap_reserve shall make sure the array of entries has room for one more reserved entry. ]*/
             if (internal_min_heap_ensure_room(min_heap) != 0)
             {
-                /* Codes_SRS_MIN_HEAP_42_011: [ If making room fails, min_heap_reserve shall fail and return a non-zero value. ]*/
+                /* Codes_SRS_MIN_HEAP_42_042: [ If realloc_2 fails, min_heap_reserve shall fail and return a non-zero value. ]*/
                 LogError("internal_min_heap_ensure_room failed");
                 result = MU_FAILURE;
             }

@@ -75,31 +75,17 @@ MOCKABLE_FUNCTION(, int, min_heap_reserve, MIN_HEAP_HANDLE, min_heap);
 
 **SRS_MIN_HEAP_42_007: [** If the reserved count is `UINT32_MAX`, `min_heap_reserve` shall fail and return a non-zero value. **]**
 
-**SRS_MIN_HEAP_42_008: [** `min_heap_reserve` shall make sure the array of entries has room for one more reserved entry. **]**
+**SRS_MIN_HEAP_42_041: [** If the reserved count is equal to the capacity of the array of entries: **]**
 
-**SRS_MIN_HEAP_42_011: [** If making room fails, `min_heap_reserve` shall fail and return a non-zero value. **]**
+- **SRS_MIN_HEAP_42_009: [** `min_heap_reserve` shall compute the new capacity as 16 if the capacity is 0, or as twice the capacity capped at `UINT32_MAX` otherwise. **]**
+
+- **SRS_MIN_HEAP_42_010: [** `min_heap_reserve` shall grow the array of entries to the new capacity by calling `realloc_2`. **]**
+
+- **SRS_MIN_HEAP_42_042: [** If `realloc_2` fails, `min_heap_reserve` shall fail and return a non-zero value. **]**
 
 **SRS_MIN_HEAP_42_012: [** `min_heap_reserve` shall increment the reserved count. **]**
 
 **SRS_MIN_HEAP_42_040: [** `min_heap_reserve` shall succeed and return 0. **]**
-
-### internal_min_heap_ensure_room
-
-```c
-static int internal_min_heap_ensure_room(MIN_HEAP* min_heap);
-```
-
-`internal_min_heap_ensure_room` grows the array of entries when it has no room for one more reserved entry.
-
-**SRS_MIN_HEAP_42_041: [** If the reserved count is less than the capacity of the array of entries, `internal_min_heap_ensure_room` shall succeed and return 0. **]**
-
-**SRS_MIN_HEAP_42_009: [** `internal_min_heap_ensure_room` shall compute the new capacity as 16 if the capacity is 0, or as twice the capacity capped at `UINT32_MAX` otherwise. **]**
-
-**SRS_MIN_HEAP_42_010: [** `internal_min_heap_ensure_room` shall grow the array of entries to the new capacity by calling `realloc_2`. **]**
-
-**SRS_MIN_HEAP_42_042: [** If `realloc_2` fails, `internal_min_heap_ensure_room` shall fail and return a non-zero value. **]**
-
-**SRS_MIN_HEAP_42_043: [** `internal_min_heap_ensure_room` shall succeed and return 0. **]**
 
 ### min_heap_unreserve
 

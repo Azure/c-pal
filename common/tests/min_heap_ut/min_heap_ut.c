@@ -451,10 +451,9 @@ TEST_FUNCTION(min_heap_reserve_when_the_reserved_count_is_UINT32_MAX_fails)
     min_heap_destroy(min_heap);
 }
 
-/*Tests_SRS_MIN_HEAP_42_008: [ min_heap_reserve shall make sure the array of entries has room for one more reserved entry. ]*/
-/*Tests_SRS_MIN_HEAP_42_009: [ internal_min_heap_ensure_room shall compute the new capacity as 16 if the capacity is 0, or as twice the capacity capped at UINT32_MAX otherwise. ]*/
-/*Tests_SRS_MIN_HEAP_42_010: [ internal_min_heap_ensure_room shall grow the array of entries to the new capacity by calling realloc_2. ]*/
-/*Tests_SRS_MIN_HEAP_42_043: [ internal_min_heap_ensure_room shall succeed and return 0. ]*/
+/*Tests_SRS_MIN_HEAP_42_041: [ If the reserved count is equal to the capacity of the array of entries: ]*/
+/*Tests_SRS_MIN_HEAP_42_009: [ min_heap_reserve shall compute the new capacity as 16 if the capacity is 0, or as twice the capacity capped at UINT32_MAX otherwise. ]*/
+/*Tests_SRS_MIN_HEAP_42_010: [ min_heap_reserve shall grow the array of entries to the new capacity by calling realloc_2. ]*/
 /*Tests_SRS_MIN_HEAP_42_012: [ min_heap_reserve shall increment the reserved count. ]*/
 /*Tests_SRS_MIN_HEAP_42_040: [ min_heap_reserve shall succeed and return 0. ]*/
 TEST_FUNCTION(min_heap_reserve_the_first_time_grows_the_array_of_entries_to_16_entries)
@@ -485,8 +484,7 @@ TEST_FUNCTION(min_heap_reserve_the_first_time_grows_the_array_of_entries_to_16_e
     min_heap_destroy(min_heap);
 }
 
-/*Tests_SRS_MIN_HEAP_42_008: [ min_heap_reserve shall make sure the array of entries has room for one more reserved entry. ]*/
-/*Tests_SRS_MIN_HEAP_42_041: [ If the reserved count is less than the capacity of the array of entries, internal_min_heap_ensure_room shall succeed and return 0. ]*/
+/*Tests_SRS_MIN_HEAP_42_041: [ If the reserved count is equal to the capacity of the array of entries: ]*/
 /*Tests_SRS_MIN_HEAP_42_012: [ min_heap_reserve shall increment the reserved count. ]*/
 /*Tests_SRS_MIN_HEAP_42_040: [ min_heap_reserve shall succeed and return 0. ]*/
 TEST_FUNCTION(min_heap_reserve_does_not_grow_the_array_of_entries_while_the_reserved_count_is_below_the_capacity)
@@ -527,10 +525,9 @@ TEST_FUNCTION(min_heap_reserve_does_not_grow_the_array_of_entries_while_the_rese
     min_heap_destroy(min_heap);
 }
 
-/*Tests_SRS_MIN_HEAP_42_008: [ min_heap_reserve shall make sure the array of entries has room for one more reserved entry. ]*/
-/*Tests_SRS_MIN_HEAP_42_009: [ internal_min_heap_ensure_room shall compute the new capacity as 16 if the capacity is 0, or as twice the capacity capped at UINT32_MAX otherwise. ]*/
-/*Tests_SRS_MIN_HEAP_42_010: [ internal_min_heap_ensure_room shall grow the array of entries to the new capacity by calling realloc_2. ]*/
-/*Tests_SRS_MIN_HEAP_42_043: [ internal_min_heap_ensure_room shall succeed and return 0. ]*/
+/*Tests_SRS_MIN_HEAP_42_041: [ If the reserved count is equal to the capacity of the array of entries: ]*/
+/*Tests_SRS_MIN_HEAP_42_009: [ min_heap_reserve shall compute the new capacity as 16 if the capacity is 0, or as twice the capacity capped at UINT32_MAX otherwise. ]*/
+/*Tests_SRS_MIN_HEAP_42_010: [ min_heap_reserve shall grow the array of entries to the new capacity by calling realloc_2. ]*/
 /*Tests_SRS_MIN_HEAP_42_012: [ min_heap_reserve shall increment the reserved count. ]*/
 /*Tests_SRS_MIN_HEAP_42_040: [ min_heap_reserve shall succeed and return 0. ]*/
 TEST_FUNCTION(min_heap_reserve_the_17th_time_doubles_the_array_of_entries_to_32_entries)
@@ -570,11 +567,9 @@ TEST_FUNCTION(min_heap_reserve_the_17th_time_doubles_the_array_of_entries_to_32_
     min_heap_destroy(min_heap);
 }
 
-/*Tests_SRS_MIN_HEAP_42_008: [ min_heap_reserve shall make sure the array of entries has room for one more reserved entry. ]*/
-/*Tests_SRS_MIN_HEAP_42_041: [ If the reserved count is less than the capacity of the array of entries, internal_min_heap_ensure_room shall succeed and return 0. ]*/
-/*Tests_SRS_MIN_HEAP_42_009: [ internal_min_heap_ensure_room shall compute the new capacity as 16 if the capacity is 0, or as twice the capacity capped at UINT32_MAX otherwise. ]*/
-/*Tests_SRS_MIN_HEAP_42_010: [ internal_min_heap_ensure_room shall grow the array of entries to the new capacity by calling realloc_2. ]*/
-/*Tests_SRS_MIN_HEAP_42_043: [ internal_min_heap_ensure_room shall succeed and return 0. ]*/
+/*Tests_SRS_MIN_HEAP_42_041: [ If the reserved count is equal to the capacity of the array of entries: ]*/
+/*Tests_SRS_MIN_HEAP_42_009: [ min_heap_reserve shall compute the new capacity as 16 if the capacity is 0, or as twice the capacity capped at UINT32_MAX otherwise. ]*/
+/*Tests_SRS_MIN_HEAP_42_010: [ min_heap_reserve shall grow the array of entries to the new capacity by calling realloc_2. ]*/
 /*Tests_SRS_MIN_HEAP_42_040: [ min_heap_reserve shall succeed and return 0. ]*/
 TEST_FUNCTION(min_heap_reserve_grows_the_array_of_entries_only_when_the_reserved_count_reaches_the_capacity)
 {
@@ -604,11 +599,10 @@ TEST_FUNCTION(min_heap_reserve_grows_the_array_of_entries_only_when_the_reserved
     min_heap_destroy(min_heap);
 }
 
-/*Tests_SRS_MIN_HEAP_42_008: [ min_heap_reserve shall make sure the array of entries has room for one more reserved entry. ]*/
-/*Tests_SRS_MIN_HEAP_42_009: [ internal_min_heap_ensure_room shall compute the new capacity as 16 if the capacity is 0, or as twice the capacity capped at UINT32_MAX otherwise. ]*/
-/*Tests_SRS_MIN_HEAP_42_010: [ internal_min_heap_ensure_room shall grow the array of entries to the new capacity by calling realloc_2. ]*/
-/*Tests_SRS_MIN_HEAP_42_042: [ If realloc_2 fails, internal_min_heap_ensure_room shall fail and return a non-zero value. ]*/
-/*Tests_SRS_MIN_HEAP_42_011: [ If making room fails, min_heap_reserve shall fail and return a non-zero value. ]*/
+/*Tests_SRS_MIN_HEAP_42_041: [ If the reserved count is equal to the capacity of the array of entries: ]*/
+/*Tests_SRS_MIN_HEAP_42_009: [ min_heap_reserve shall compute the new capacity as 16 if the capacity is 0, or as twice the capacity capped at UINT32_MAX otherwise. ]*/
+/*Tests_SRS_MIN_HEAP_42_010: [ min_heap_reserve shall grow the array of entries to the new capacity by calling realloc_2. ]*/
+/*Tests_SRS_MIN_HEAP_42_042: [ If realloc_2 fails, min_heap_reserve shall fail and return a non-zero value. ]*/
 PARAMETERIZED_TEST_FUNCTION(min_heap_reserve_with_a_large_capacity_doubles_it_capped_at_UINT32_MAX,
     ARGS(uint32_t, capacity, uint32_t, expected_new_capacity),
     CASE((UINT32_MAX / 2, UINT32_MAX - 1), doubles_UINT32_MAX_divided_by_2),
@@ -641,8 +635,8 @@ PARAMETERIZED_TEST_FUNCTION(min_heap_reserve_with_a_large_capacity_doubles_it_ca
     min_heap_destroy(min_heap);
 }
 
-/*Tests_SRS_MIN_HEAP_42_042: [ If realloc_2 fails, internal_min_heap_ensure_room shall fail and return a non-zero value. ]*/
-/*Tests_SRS_MIN_HEAP_42_011: [ If making room fails, min_heap_reserve shall fail and return a non-zero value. ]*/
+/*Tests_SRS_MIN_HEAP_42_041: [ If the reserved count is equal to the capacity of the array of entries: ]*/
+/*Tests_SRS_MIN_HEAP_42_042: [ If realloc_2 fails, min_heap_reserve shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(when_realloc_2_fails_min_heap_reserve_fails)
 {
     // arrange
@@ -670,8 +664,9 @@ TEST_FUNCTION(when_realloc_2_fails_min_heap_reserve_fails)
     min_heap_destroy(min_heap);
 }
 
-/*Tests_SRS_MIN_HEAP_42_010: [ internal_min_heap_ensure_room shall grow the array of entries to the new capacity by calling realloc_2. ]*/
-/*Tests_SRS_MIN_HEAP_42_043: [ internal_min_heap_ensure_room shall succeed and return 0. ]*/
+/*Tests_SRS_MIN_HEAP_42_041: [ If the reserved count is equal to the capacity of the array of entries: ]*/
+/*Tests_SRS_MIN_HEAP_42_010: [ min_heap_reserve shall grow the array of entries to the new capacity by calling realloc_2. ]*/
+/*Tests_SRS_MIN_HEAP_42_012: [ min_heap_reserve shall increment the reserved count. ]*/
 /*Tests_SRS_MIN_HEAP_42_040: [ min_heap_reserve shall succeed and return 0. ]*/
 TEST_FUNCTION(min_heap_reserve_after_realloc_2_failed_grows_the_array_of_entries_again)
 {
@@ -704,8 +699,8 @@ TEST_FUNCTION(min_heap_reserve_after_realloc_2_failed_grows_the_array_of_entries
     min_heap_destroy(min_heap);
 }
 
-/*Tests_SRS_MIN_HEAP_42_042: [ If realloc_2 fails, internal_min_heap_ensure_room shall fail and return a non-zero value. ]*/
-/*Tests_SRS_MIN_HEAP_42_011: [ If making room fails, min_heap_reserve shall fail and return a non-zero value. ]*/
+/*Tests_SRS_MIN_HEAP_42_041: [ If the reserved count is equal to the capacity of the array of entries: ]*/
+/*Tests_SRS_MIN_HEAP_42_042: [ If realloc_2 fails, min_heap_reserve shall fail and return a non-zero value. ]*/
 TEST_FUNCTION(when_realloc_2_fails_to_grow_the_array_of_entries_min_heap_reserve_fails_and_keeps_the_entries)
 {
     // arrange
@@ -846,7 +841,7 @@ TEST_FUNCTION(min_heap_unreserve_gives_back_the_room_reserved_for_one_entry)
 }
 
 /*Tests_SRS_MIN_HEAP_42_015: [ min_heap_unreserve shall decrement the reserved count. ]*/
-/*Tests_SRS_MIN_HEAP_42_041: [ If the reserved count is less than the capacity of the array of entries, internal_min_heap_ensure_room shall succeed and return 0. ]*/
+/*Tests_SRS_MIN_HEAP_42_041: [ If the reserved count is equal to the capacity of the array of entries: ]*/
 TEST_FUNCTION(min_heap_unreserve_does_not_shrink_the_array_of_entries)
 {
     // arrange
