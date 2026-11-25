@@ -330,7 +330,7 @@ TEST_FUNCTION(min_heap_destroy_with_NULL_min_heap_returns)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_MIN_HEAP_42_004: [ min_heap_destroy shall free the array of entries. ]*/
+/*Tests_SRS_MIN_HEAP_42_004: [ If the heap has an array of entries, min_heap_destroy shall free it. ]*/
 /*Tests_SRS_MIN_HEAP_42_005: [ min_heap_destroy shall free min_heap. ]*/
 TEST_FUNCTION(min_heap_destroy_frees_the_array_of_entries_and_the_heap)
 {
@@ -363,14 +363,13 @@ TEST_FUNCTION(min_heap_destroy_frees_the_array_of_entries_and_the_heap)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_MIN_HEAP_42_004: [ min_heap_destroy shall free the array of entries. ]*/
+/*Tests_SRS_MIN_HEAP_42_004: [ If the heap has an array of entries, min_heap_destroy shall free it. ]*/
 /*Tests_SRS_MIN_HEAP_42_005: [ min_heap_destroy shall free min_heap. ]*/
 TEST_FUNCTION(min_heap_destroy_of_a_heap_with_no_array_of_entries_frees_the_heap)
 {
     // arrange
     MIN_HEAP_HANDLE min_heap = test_create_heap_with_reserved_room(0);
 
-    STRICT_EXPECTED_CALL(free(NULL));
     STRICT_EXPECTED_CALL(free(min_heap));
 
     // act
@@ -380,7 +379,7 @@ TEST_FUNCTION(min_heap_destroy_of_a_heap_with_no_array_of_entries_frees_the_heap
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-/*Tests_SRS_MIN_HEAP_42_004: [ min_heap_destroy shall free the array of entries. ]*/
+/*Tests_SRS_MIN_HEAP_42_004: [ If the heap has an array of entries, min_heap_destroy shall free it. ]*/
 /*Tests_SRS_MIN_HEAP_42_005: [ min_heap_destroy shall free min_heap. ]*/
 TEST_FUNCTION(min_heap_destroy_does_not_touch_the_entries_still_in_the_heap)
 {

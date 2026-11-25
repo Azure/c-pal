@@ -161,8 +161,15 @@ void min_heap_destroy(MIN_HEAP_HANDLE min_heap)
     }
     else
     {
-        /* Codes_SRS_MIN_HEAP_42_004: [ min_heap_destroy shall free the array of entries. ]*/
-        free(min_heap->entries);
+        if (min_heap->entries == NULL)
+        {
+            /* do nothing */
+        }
+        else
+        {
+            /* Codes_SRS_MIN_HEAP_42_004: [ If the heap has an array of entries, min_heap_destroy shall free it. ]*/
+            free(min_heap->entries);
+        }
 
         /* Codes_SRS_MIN_HEAP_42_005: [ min_heap_destroy shall free min_heap. ]*/
         free(min_heap);
