@@ -2,9 +2,9 @@
 
 ## Overview
 
-`mocked_new_delete` replaces the global C++ `operator new` and `operator delete` so that unit tests can make C++ allocations fail through a umock-c mock. Tests opt in by linking `c_pal_mocked_new_delete`; linking `c_pal` alone does not replace the operators.
+mocked_new_delete replaces the global C++ `operator new` and `operator delete` so that unit tests can make C++ allocations fail through a umock-c mock. Tests opt in by linking `c_pal_mocked_new_delete`; linking `c_pal` alone does not replace the operators.
 
-`mocked_new_delete` starts disabled; `mocked_new_delete_enable` enables it and `mocked_new_delete_disable` disables it. While `mocked_new_delete` is enabled, `operator new` calls `mocked_new_delete_malloc` while holding an exclusive lock, because umock-c is not thread-safe; otherwise it calls `gballoc_hl_malloc`. `operator delete` always calls `gballoc_hl_free`.
+mocked_new_delete starts disabled; `mocked_new_delete_enable` enables it and `mocked_new_delete_disable` disables it. While mocked_new_delete is enabled, `operator new` calls `mocked_new_delete_malloc` while holding an exclusive lock, because umock-c is not thread-safe; otherwise it calls `gballoc_hl_malloc`. `operator delete` always calls `gballoc_hl_free`.
 
 ## Exposed API
 
@@ -28,13 +28,13 @@ int mocked_new_delete_enable(void);
 
 `mocked_new_delete_enable` routes subsequent `operator new` calls to `mocked_new_delete_malloc`.
 
-**SRS_MOCKED_NEW_DELETE_16_001: [** If `mocked_new_delete` is already enabled, `mocked_new_delete_enable` shall return `0`. **]**
+**SRS_MOCKED_NEW_DELETE_16_001: [** If mocked_new_delete is already enabled, `mocked_new_delete_enable` shall return `0`. **]**
 
 **SRS_MOCKED_NEW_DELETE_16_002: [** Otherwise: **]**
 
   - **SRS_MOCKED_NEW_DELETE_16_003: [** `mocked_new_delete_enable` shall create the lock by calling `srw_lock_create` with `false` and an empty lock name. **]**
 
-  - **SRS_MOCKED_NEW_DELETE_16_004: [** `mocked_new_delete_enable` shall mark `mocked_new_delete` as enabled. **]**
+  - **SRS_MOCKED_NEW_DELETE_16_004: [** `mocked_new_delete_enable` shall mark mocked_new_delete as enabled. **]**
 
   - **SRS_MOCKED_NEW_DELETE_16_005: [** `mocked_new_delete_enable` shall return `0` on success. **]**
 
@@ -48,11 +48,11 @@ void mocked_new_delete_disable(void);
 
 `mocked_new_delete_disable` routes subsequent `operator new` calls back to `gballoc_hl_malloc`.
 
-**SRS_MOCKED_NEW_DELETE_16_007: [** If `mocked_new_delete` is disabled, `mocked_new_delete_disable` shall return. **]**
+**SRS_MOCKED_NEW_DELETE_16_007: [** If mocked_new_delete is disabled, `mocked_new_delete_disable` shall return. **]**
 
 **SRS_MOCKED_NEW_DELETE_16_008: [** Otherwise: **]**
 
-  - **SRS_MOCKED_NEW_DELETE_16_009: [** `mocked_new_delete_disable` shall mark `mocked_new_delete` as disabled. **]**
+  - **SRS_MOCKED_NEW_DELETE_16_009: [** `mocked_new_delete_disable` shall mark mocked_new_delete as disabled. **]**
 
   - **SRS_MOCKED_NEW_DELETE_16_010: [** `mocked_new_delete_disable` shall destroy the lock by calling `srw_lock_destroy`. **]**
 
@@ -64,7 +64,7 @@ void mocked_new_delete_lock(void);
 
 `mocked_new_delete_lock` blocks mocked allocations on other threads.
 
-**SRS_MOCKED_NEW_DELETE_16_011: [** If `mocked_new_delete` is disabled, `mocked_new_delete_lock` shall return. **]**
+**SRS_MOCKED_NEW_DELETE_16_011: [** If mocked_new_delete is disabled, `mocked_new_delete_lock` shall return. **]**
 
 **SRS_MOCKED_NEW_DELETE_16_012: [** Otherwise, `mocked_new_delete_lock` shall acquire the lock by calling `srw_lock_acquire_exclusive`. **]**
 
@@ -76,7 +76,7 @@ void mocked_new_delete_unlock(void);
 
 `mocked_new_delete_unlock` releases the lock acquired by `mocked_new_delete_lock`.
 
-**SRS_MOCKED_NEW_DELETE_16_013: [** If `mocked_new_delete` is disabled, `mocked_new_delete_unlock` shall return. **]**
+**SRS_MOCKED_NEW_DELETE_16_013: [** If mocked_new_delete is disabled, `mocked_new_delete_unlock` shall return. **]**
 
 **SRS_MOCKED_NEW_DELETE_16_014: [** Otherwise, `mocked_new_delete_unlock` shall release the lock by calling `srw_lock_release_exclusive`. **]**
 
@@ -88,7 +88,7 @@ void* operator new(size_t size);
 
 **SRS_MOCKED_NEW_DELETE_16_015: [** If `size` is `0`, `operator new` shall allocate `1` byte instead. **]**
 
-**SRS_MOCKED_NEW_DELETE_16_016: [** If `mocked_new_delete` is disabled, `operator new` shall allocate memory by calling `gballoc_hl_malloc` with the size to allocate. **]**
+**SRS_MOCKED_NEW_DELETE_16_016: [** If mocked_new_delete is disabled, `operator new` shall allocate memory by calling `gballoc_hl_malloc` with the size to allocate. **]**
 
 **SRS_MOCKED_NEW_DELETE_16_017: [** Otherwise: **]**
 
