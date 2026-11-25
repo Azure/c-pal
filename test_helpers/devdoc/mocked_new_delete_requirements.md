@@ -6,13 +6,6 @@
 
 `mocked_new_delete` starts disabled; `mocked_new_delete_enable` enables it and `mocked_new_delete_disable` disables it. While `mocked_new_delete` is enabled, `operator new` calls `mocked_new_delete_malloc` while holding an exclusive lock, because umock-c is not thread-safe; otherwise it calls `gballoc_hl_malloc`. `operator delete` always calls `gballoc_hl_free`.
 
-## Usage
-
-- Include `c_pal_test_helpers/mocked_new_delete.h` with mocks enabled and hook `mocked_new_delete_malloc` to `gballoc_hl_malloc` (not `real_gballoc_hl_malloc`), so that `gballoc_hl_free` can release its memory.
-- Call `mocked_new_delete_enable` after `umock_c_init` and `mocked_new_delete_disable` before `umock_c_deinit`, while no other thread allocates.
-- Hold `mocked_new_delete_lock` while changing expectations that can race with allocations on other threads. Code holding the lock, including the `mocked_new_delete_malloc` hook, must not use C++ `new`, throw, or exit nonlocally.
-- Only code linked into the same executable or DLL uses the replacement operators; on Windows, other DLLs keep their own.
-
 ## Exposed API
 
 ```c
