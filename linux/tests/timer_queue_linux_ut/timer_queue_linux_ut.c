@@ -10,39 +10,9 @@
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
-// number of blocks allocated with malloc and not freed yet
-static int32_t test_live_allocation_count;
-
 static void on_umock_c_error(UMOCK_C_ERROR_CODE error_code)
 {
     ASSERT_FAIL("umock_c reported error :%" PRI_MU_ENUM "", MU_ENUM_VALUE(UMOCK_C_ERROR_CODE, error_code));
-}
-
-static void* hook_malloc(size_t size)
-{
-    void* result = real_gballoc_hl_malloc(size);
-    if (result == NULL)
-    {
-        /* do nothing */
-    }
-    else
-    {
-        test_live_allocation_count++;
-    }
-    return result;
-}
-
-static void hook_free(void* ptr)
-{
-    if (ptr == NULL)
-    {
-        /* do nothing */
-    }
-    else
-    {
-        test_live_allocation_count--;
-    }
-    real_gballoc_hl_free(ptr);
 }
 
 static TIMER_QUEUE_HANDLE test_create_timer_queue(void)
@@ -76,8 +46,6 @@ TEST_SUITE_INITIALIZE(suite_init)
     ASSERT_ARE_EQUAL(int, 0, umocktypes_stdint_register_types(), "umocktypes_stdint_register_types");
 
     REGISTER_GBALLOC_HL_GLOBAL_MOCK_HOOK();
-    REGISTER_GLOBAL_MOCK_HOOK(malloc, hook_malloc);
-    REGISTER_GLOBAL_MOCK_HOOK(free, hook_free);
     REGISTER_GLOBAL_MOCK_FAIL_RETURN(malloc, NULL);
 
     REGISTER_UMOCK_ALIAS_TYPE(MIN_HEAP_HANDLE, void*);
@@ -100,8 +68,6 @@ TEST_SUITE_CLEANUP(suite_cleanup)
 TEST_FUNCTION_INITIALIZE(function_init)
 {
     umock_c_reset_all_calls();
-
-    test_live_allocation_count = 0;
 }
 
 TEST_FUNCTION_CLEANUP(function_cleanup)
@@ -125,10 +91,29 @@ TEST_FUNCTION(timer_queue_create_succeeds)
     // assert
     ASSERT_IS_NOT_NULL(timer_queue);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(int32_t, 1, test_live_allocation_count);
 
     // cleanup
     timer_queue_destroy(timer_queue);
+}
+
+/*Tests_SRS_TIMER_QUEUE_LINUX_42_004: [ If any error occurs, timer_queue_create shall free the resources it allocated, fail and return NULL. ]*/
+TEST_FUNCTION(when_min_heap_create_fails_timer_queue_create_frees_the_timer_queue_and_fails)
+{
+    // arrange
+    void* queue_memory;
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG))
+        .CaptureReturn(&queue_memory);
+    STRICT_EXPECTED_CALL(min_heap_create())
+        .SetReturn(NULL);
+    STRICT_EXPECTED_CALL(free(IGNORED_ARG))
+        .ValidateArgumentValue_ptr(&queue_memory);
+
+    // act
+    TIMER_QUEUE_HANDLE timer_queue = timer_queue_create();
+
+    // assert
+    ASSERT_IS_NULL(timer_queue);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
 /*Tests_SRS_TIMER_QUEUE_LINUX_42_004: [ If any error occurs, timer_queue_create shall free the resources it allocated, fail and return NULL. ]*/
@@ -142,16 +127,17 @@ TEST_FUNCTION(when_underlying_calls_fail_timer_queue_create_fails)
 
     for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
     {
-        umock_c_negative_tests_reset();
-        umock_c_negative_tests_fail_call(i);
+        if (umock_c_negative_tests_can_call_fail(i))
+        {
+            umock_c_negative_tests_reset();
+            umock_c_negative_tests_fail_call(i);
 
-        // act
-        TIMER_QUEUE_HANDLE timer_queue = timer_queue_create();
+            // act
+            TIMER_QUEUE_HANDLE timer_queue = timer_queue_create();
 
-        // assert
-        ASSERT_IS_NULL(timer_queue, "test failed for call %zu", i);
-        // the timer queue allocated before min_heap_create failed is freed
-        ASSERT_ARE_EQUAL(int32_t, 0, test_live_allocation_count, "test failed for call %zu", i);
+            // assert
+            ASSERT_IS_NULL(timer_queue, "test failed for call %zu", i);
+        }
     }
 }
 
@@ -184,7 +170,6 @@ TEST_FUNCTION(timer_queue_destroy_destroys_the_heap_and_frees_the_timer_queue)
 
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
-    ASSERT_ARE_EQUAL(int32_t, 0, test_live_allocation_count);
 }
 
 /* timer_queue_reserve */
