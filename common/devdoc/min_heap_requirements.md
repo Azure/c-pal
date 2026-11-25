@@ -4,6 +4,8 @@
 
 `min_heap` is a binary min-heap of caller-owned entries ordered by a 64-bit key. A `MIN_HEAP_ENTRY` is placed inside the caller's structure (`CONTAINING_RECORD` gets the structure back) and stores its position in the heap, so removing any entry takes O(log n).
 
+`key` is the key of the entry. `index` is the position of the entry in the heap, or `MIN_HEAP_ENTRY_NOT_IN_HEAP` if the entry is not in a heap. Callers read `key` and do not modify either field.
+
 Room for entries is reserved separately from inserting them: `min_heap_reserve` can fail, but `min_heap_insert` cannot fail once room is reserved. A caller can reserve room when it creates an object (for example a timer), so that inserting the object later cannot fail.
 
 `min_heap` is not thread-safe: the caller serializes the calls.
@@ -31,8 +33,6 @@ MOCKABLE_FUNCTION(, void, min_heap_remove, MIN_HEAP_HANDLE, min_heap, MIN_HEAP_E
 MOCKABLE_FUNCTION(, MIN_HEAP_ENTRY*, min_heap_peek, MIN_HEAP_HANDLE, min_heap);
 ```
 
-`key` is the key of the entry. `index` is the position of the entry in the heap, or `MIN_HEAP_ENTRY_NOT_IN_HEAP` if the entry is not in a heap. Callers read `key` and do not modify either field.
-
 ### min_heap_create
 
 ```c
@@ -59,7 +59,7 @@ MOCKABLE_FUNCTION(, void, min_heap_destroy, MIN_HEAP_HANDLE, min_heap);
 
 **SRS_MIN_HEAP_42_003: [** If `min_heap` is `NULL`, `min_heap_destroy` shall return. **]**
 
-**SRS_MIN_HEAP_42_004: [** `min_heap_destroy` shall free the array of entries. **]**
+**SRS_MIN_HEAP_42_004: [** If the heap has an array of entries, `min_heap_destroy` shall free it. **]**
 
 **SRS_MIN_HEAP_42_005: [** `min_heap_destroy` shall free `min_heap`. **]**
 
