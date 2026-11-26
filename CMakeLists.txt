@@ -218,6 +218,8 @@ else()
     target_link_libraries(c_pal_reals INTERFACE linux_reals linux_ll_reals)
 endif()
 
+add_subdirectory(test_helpers)
+
 if(${run_reals_check})
     add_reals_check_target()
 endif()
