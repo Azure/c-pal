@@ -358,7 +358,6 @@ int worker_pool_add_worker(WORKER_POOL_HANDLE worker_pool)
         if (worker == NULL)
         {
             /* Codes_SRS_WORKER_POOL_LINUX_42_024: [ If any error occurs: ]*/
-            LogError("internal_worker_pool_create_worker failed, %" PRIu32 " worker threads running", worker_pool->thread_count - 1);
 
             /* Codes_SRS_WORKER_POOL_LINUX_42_025: [ worker_pool_add_worker shall decrement the thread count. ]*/
             worker_pool->thread_count--;

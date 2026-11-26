@@ -690,7 +690,6 @@ static int internal_execution_engine_linux_init_synchronization(EXECUTION_ENGINE
         if (internal_execution_engine_linux_init_manager_cond(execution_engine) != 0)
         {
             /* Codes_SRS_EXECUTION_ENGINE_LINUX_42_012: [ If any error occurs, execution_engine_create shall destroy what it created and initialized. ]*/
-            LogError("internal_execution_engine_linux_init_manager_cond failed");
             result = MU_FAILURE;
         }
         else
@@ -760,7 +759,6 @@ static int internal_execution_engine_linux_start_threads(EXECUTION_ENGINE* execu
 
         if (add_result != 0)
         {
-            LogError("internal_execution_engine_linux_add_initial_workers failed");
             result = MU_FAILURE;
         }
         else
@@ -858,14 +856,12 @@ EXECUTION_ENGINE_HANDLE execution_engine_create(const EXECUTION_ENGINE_PARAMETER
                     if (internal_execution_engine_linux_init_synchronization(result) != 0)
                     {
                         /* Codes_SRS_EXECUTION_ENGINE_LINUX_07_006: [ If any error occurs, execution_engine_create shall fail and return NULL. ]*/
-                        LogError("internal_execution_engine_linux_init_synchronization failed");
                     }
                     else
                     {
                         if (internal_execution_engine_linux_start_threads(result) != 0)
                         {
                             /* Codes_SRS_EXECUTION_ENGINE_LINUX_07_006: [ If any error occurs, execution_engine_create shall fail and return NULL. ]*/
-                            LogError("internal_execution_engine_linux_start_threads failed");
                         }
                         else
                         {
