@@ -8,126 +8,426 @@
 
 #include <sys/epoll.h>
 
-#ifdef USE_VALGRIND
-#include "valgrind/helgrind.h"
-#endif
-
 #include "macro_utils/macro_utils.h"
 
 #include "c_logging/log_context.h"
 #include "c_logging/log_context_property_type_ascii_char_ptr.h"
 #include "c_logging/logger.h"
 
-#include "c_pal/containing_record.h"
+#include "c_pal/gballoc_hl.h"        // IWYU pragma: keep
+#include "c_pal/gballoc_hl_redirect.h"
 #include "c_pal/interlocked.h"
 #include "c_pal/interlocked_hl.h"
 #include "c_pal/refcount.h"
 #include "c_pal/socket_handle.h"
-#include "c_pal/s_list.h"
 #include "c_pal/sync.h"
 #include "c_pal/threadapi.h"
 
 #include "c_pal/completion_port_linux.h"
 
-#define MAX_EVENTS_NUM      64
-#define EVENTS_TIMEOUT_MS   2*1000
+#define MAX_EVENTS_NUM              64
+#define EVENTS_TIMEOUT_MS           2*1000
+#define SOCKET_ENTRY_BUCKET_COUNT   256
 
-typedef struct EPOLL_THREAD_DATA_TAG
+/*
+epoll keeps one registration (one event mask and one data pointer) per file descriptor, so all the operations of a socket
+share one SOCKET_ENTRY. The socket is registered once, with data.ptr pointing to its SOCKET_ENTRY and with EPOLLONESHOT,
+for the union of the directions that have pending operations. Each event completes at most one operation per direction,
+then the socket is re-armed for the operations that are still pending.
+*/
+
+typedef struct COMPLETION_PORT_OPERATION_TAG
 {
-    S_LIST_ENTRY link;
+    struct COMPLETION_PORT_OPERATION_TAG* next;
+    int epoll_op;
     ON_COMPLETION_PORT_EVENT_COMPLETE event_callback;
     void* event_callback_ctx;
-    volatile_atomic int32_t event_callback_called;
+} COMPLETION_PORT_OPERATION;
+
+typedef struct COMPLETION_PORT_OPERATION_QUEUE_TAG
+{
+    COMPLETION_PORT_OPERATION* head;
+    COMPLETION_PORT_OPERATION* tail;
+} COMPLETION_PORT_OPERATION_QUEUE;
+
+typedef struct SOCKET_ENTRY_TAG
+{
+    struct SOCKET_ENTRY_TAG* next;
     SOCKET_HANDLE socket;
-} EPOLL_THREAD_DATA;
+    bool is_registered;
+    bool is_removed;
+    COMPLETION_PORT_OPERATION_QUEUE inbound_operations;
+    COMPLETION_PORT_OPERATION_QUEUE outbound_operations;
+    volatile_atomic int32_t executing_callback_count;
+} SOCKET_ENTRY;
 
 typedef struct COMPLETION_PORT_TAG
 {
     int epoll;
     THREAD_HANDLE thread_handle;
     volatile_atomic int32_t worker_thread_continue;
-    S_LIST_ENTRY alloc_data_list;
-    volatile_atomic int32_t recv_data_access;
+    volatile_atomic int32_t lock;
     volatile_atomic int32_t pending_calls;
+    SOCKET_ENTRY* socket_entry_buckets[SOCKET_ENTRY_BUCKET_COUNT];
+    SOCKET_ENTRY* retired_socket_entries;
 } COMPLETION_PORT;
-
-#define COMPLETION_PORT_CALLBACK_STATE_VALUES \
-    COMPLETION_PORT_CALLBACK_INIT, \
-    COMPLETION_PORT_CALLBACK_EXECUTING, \
-    COMPLETION_PORT_CALLBACK_EXECUTED
-
-MU_DEFINE_ENUM(COMPLETION_PORT_CALLBACK_STATE, COMPLETION_PORT_CALLBACK_STATE_VALUES)
-MU_DEFINE_ENUM_STRINGS(COMPLETION_PORT_CALLBACK_STATE, COMPLETION_PORT_CALLBACK_STATE_VALUES)
 
 MU_DEFINE_ENUM_STRINGS(COMPLETION_PORT_EPOLL_ACTION, COMPLETION_PORT_EPOLL_ACTION_VALUES)
 
 DEFINE_REFCOUNT_TYPE(COMPLETION_PORT);
 
-static void enter_crit_section(COMPLETION_PORT* completion_port)
+static void internal_completion_port_lock(COMPLETION_PORT* completion_port)
 {
     do
     {
-        int32_t current_val = interlocked_compare_exchange(&completion_port->recv_data_access, 1, 0);
-        if (current_val == 0)
+        int32_t current_value = interlocked_compare_exchange(&completion_port->lock, 1, 0);
+        if (current_value == 0)
         {
             break;
         }
         else
         {
-            // Do Nothing wait for address
+            (void)wait_on_address(&completion_port->lock, current_value, UINT32_MAX);
         }
-        (void)wait_on_address(&completion_port->recv_data_access, current_val, UINT32_MAX);
     } while (true);
 }
 
-static void leave_crit_section(COMPLETION_PORT* completion_port)
+static void internal_completion_port_unlock(COMPLETION_PORT* completion_port)
 {
-    (void)interlocked_exchange(&completion_port->recv_data_access, 0);
-    wake_by_address_single(&completion_port->recv_data_access);
+    (void)interlocked_exchange(&completion_port->lock, 0);
+    wake_by_address_single(&completion_port->lock);
 }
 
-static int add_thread_data_to_list(COMPLETION_PORT* completion_port, EPOLL_THREAD_DATA* epoll_data)
+static void internal_completion_port_append_operation(COMPLETION_PORT_OPERATION_QUEUE* queue, COMPLETION_PORT_OPERATION* operation)
+{
+    operation->next = NULL;
+    if (queue->tail == NULL)
+    {
+        queue->head = operation;
+    }
+    else
+    {
+        queue->tail->next = operation;
+    }
+    queue->tail = operation;
+}
+
+static COMPLETION_PORT_OPERATION* internal_completion_port_pop_operation(COMPLETION_PORT_OPERATION_QUEUE* queue)
+{
+    COMPLETION_PORT_OPERATION* result = queue->head;
+    if (result == NULL)
+    {
+        /* do nothing */
+    }
+    else
+    {
+        queue->head = result->next;
+        if (queue->head == NULL)
+        {
+            queue->tail = NULL;
+        }
+        else
+        {
+            /* do nothing */
+        }
+    }
+    return result;
+}
+
+static void internal_completion_port_free_operations(COMPLETION_PORT_OPERATION* operation)
+{
+    while (operation != NULL)
+    {
+        COMPLETION_PORT_OPERATION* next_operation = operation->next;
+        free(operation);
+        operation = next_operation;
+    }
+}
+
+static void internal_completion_port_free_socket_entries(SOCKET_ENTRY* socket_entry)
+{
+    while (socket_entry != NULL)
+    {
+        SOCKET_ENTRY* next_socket_entry = socket_entry->next;
+        internal_completion_port_free_operations(socket_entry->inbound_operations.head);
+        internal_completion_port_free_operations(socket_entry->outbound_operations.head);
+        free(socket_entry);
+        socket_entry = next_socket_entry;
+    }
+}
+
+// Returns the link that points to the socket entry of socket, or the NULL link that ends its bucket if socket has no socket entry
+static SOCKET_ENTRY** internal_completion_port_find_socket_entry(COMPLETION_PORT* completion_port, SOCKET_HANDLE socket)
+{
+    SOCKET_ENTRY** result = &completion_port->socket_entry_buckets[(uint32_t)socket % SOCKET_ENTRY_BUCKET_COUNT];
+    while ((*result != NULL) && ((*result)->socket != socket))
+    {
+        result = &(*result)->next;
+    }
+    return result;
+}
+
+static uint32_t internal_completion_port_get_epoll_interest(bool has_inbound_operations, bool has_outbound_operations)
+{
+    uint32_t result = EPOLLONESHOT;
+    if (has_inbound_operations)
+    {
+        result |= (EPOLLIN | EPOLLRDHUP);
+    }
+    else
+    {
+        /* do nothing */
+    }
+
+    if (has_outbound_operations)
+    {
+        result |= EPOLLOUT;
+    }
+    else
+    {
+        /* do nothing */
+    }
+    return result;
+}
+
+// Must be called while holding the completion port lock
+static int internal_completion_port_queue_operation(COMPLETION_PORT* completion_port, SOCKET_HANDLE socket, COMPLETION_PORT_OPERATION* operation)
 {
     int result;
-    enter_crit_section(completion_port);
+    SOCKET_ENTRY** socket_entry_link = internal_completion_port_find_socket_entry(completion_port, socket);
+    SOCKET_ENTRY* socket_entry = *socket_entry_link;
+
+    if (socket_entry == NULL)
     {
-        if (s_list_add(&completion_port->alloc_data_list, &epoll_data->link) != 0)
+        // Codes_SRS_COMPLETION_PORT_LINUX_01_006: [ If no socket entry exists for socket, completion_port_add shall allocate a new socket entry and add it to the socket entry lookup. ]
+        socket_entry = malloc(sizeof(SOCKET_ENTRY));
+        if (socket_entry == NULL)
         {
-            LogError("failure adding receive data to list");
+            LogError("failure allocating socket entry size: %zu", sizeof(SOCKET_ENTRY));
+        }
+        else
+        {
+            socket_entry->next = NULL;
+            socket_entry->socket = socket;
+            socket_entry->is_registered = false;
+            socket_entry->is_removed = false;
+            socket_entry->inbound_operations.head = NULL;
+            socket_entry->inbound_operations.tail = NULL;
+            socket_entry->outbound_operations.head = NULL;
+            socket_entry->outbound_operations.tail = NULL;
+            (void)interlocked_exchange(&socket_entry->executing_callback_count, 0);
+            *socket_entry_link = socket_entry;
+        }
+    }
+    else
+    {
+        /* do nothing */
+    }
+
+    if (socket_entry == NULL)
+    {
+        result = MU_FAILURE;
+    }
+    else
+    {
+        bool is_outbound = ((operation->epoll_op & EPOLLOUT) != 0);
+        struct epoll_event epoll_registration = { 0 };
+        epoll_registration.events = internal_completion_port_get_epoll_interest(
+            (socket_entry->inbound_operations.head != NULL) || !is_outbound,
+            (socket_entry->outbound_operations.head != NULL) || is_outbound);
+        epoll_registration.data.ptr = socket_entry;
+
+        int epoll_ctl_result;
+        if (socket_entry->is_registered)
+        {
+            // Codes_SRS_COMPLETION_PORT_LINUX_01_008: [ If the socket entry is registered in epoll, completion_port_add shall call epoll_ctl with EPOLL_CTL_MOD, the epoll interest of the socket entry including the new operation and the socket entry as data.ptr. ]
+            epoll_ctl_result = epoll_ctl(completion_port->epoll, EPOLL_CTL_MOD, socket, &epoll_registration);
+        }
+        else
+        {
+            // Codes_SRS_COMPLETION_PORT_LINUX_01_007: [ If the socket entry is not registered in epoll, completion_port_add shall call epoll_ctl with EPOLL_CTL_ADD, the epoll interest of the socket entry including the new operation and the socket entry as data.ptr. ]
+            epoll_ctl_result = epoll_ctl(completion_port->epoll, EPOLL_CTL_ADD, socket, &epoll_registration);
+        }
+
+        if (epoll_ctl_result != 0)
+        {
+            LogErrorNo("failure epoll_ctl socket=%" PRI_SOCKET ", is_registered=%" PRI_BOOL ", events=0x%" PRIx32 "", socket, MU_BOOL_VALUE(socket_entry->is_registered), epoll_registration.events);
+            if (!socket_entry->is_registered)
+            {
+                // Codes_SRS_COMPLETION_PORT_LINUX_01_011: [ If epoll_ctl with EPOLL_CTL_ADD fails, completion_port_add shall remove the new socket entry from the socket entry lookup and free it. ]
+                // The socket entry was never registered in epoll, so no event can reference it
+                *socket_entry_link = socket_entry->next;
+                free(socket_entry);
+            }
+            else
+            {
+                // A failed EPOLL_CTL_MOD leaves the existing registration of the socket unchanged
+            }
             result = MU_FAILURE;
         }
         else
         {
+            socket_entry->is_registered = true;
+            if (is_outbound)
+            {
+                // Codes_SRS_COMPLETION_PORT_LINUX_01_009: [ If epoll_ctl succeeds and epoll_op contains EPOLLOUT, completion_port_add shall append the operation to the outbound operation queue of the socket entry. ]
+                internal_completion_port_append_operation(&socket_entry->outbound_operations, operation);
+            }
+            else
+            {
+                // Codes_SRS_COMPLETION_PORT_LINUX_01_010: [ If epoll_ctl succeeds and epoll_op does not contain EPOLLOUT, completion_port_add shall append the operation to the inbound operation queue of the socket entry. ]
+                internal_completion_port_append_operation(&socket_entry->inbound_operations, operation);
+            }
             result = 0;
         }
     }
-    leave_crit_section(completion_port);
     return result;
 }
 
-static int remove_thread_data_from_list(COMPLETION_PORT* completion_port, EPOLL_THREAD_DATA* epoll_data)
+static void internal_completion_port_abandon_operations(COMPLETION_PORT_OPERATION* operation)
 {
-    int result;
-    enter_crit_section(completion_port);
+    while (operation != NULL)
     {
-        if (s_list_remove(&completion_port->alloc_data_list, &epoll_data->link) != 0)
+        COMPLETION_PORT_OPERATION* next_operation = operation->next;
+        // Codes_SRS_COMPLETION_PORT_LINUX_01_019: [ completion_port_remove shall call the event_callback of every pending operation of the socket entry with COMPLETION_PORT_EPOLL_ABANDONED. ]
+        operation->event_callback(operation->event_callback_ctx, COMPLETION_PORT_EPOLL_ABANDONED);
+        // Codes_SRS_COMPLETION_PORT_LINUX_01_020: [ completion_port_remove shall free every abandoned operation. ]
+        free(operation);
+        operation = next_operation;
+    }
+}
+
+static void internal_completion_port_free_retired_socket_entries(COMPLETION_PORT* completion_port)
+{
+    internal_completion_port_lock(completion_port);
+    SOCKET_ENTRY* retired_socket_entries = completion_port->retired_socket_entries;
+    completion_port->retired_socket_entries = NULL;
+    internal_completion_port_unlock(completion_port);
+
+    internal_completion_port_free_socket_entries(retired_socket_entries);
+}
+
+static void internal_completion_port_process_event(COMPLETION_PORT* completion_port, uint32_t events, SOCKET_ENTRY* socket_entry)
+{
+    COMPLETION_PORT_OPERATION* inbound_operation = NULL;
+    COMPLETION_PORT_OPERATION* outbound_operation = NULL;
+
+    // Codes_SRS_COMPLETION_PORT_LINUX_01_023: [ For each event, epoll_worker_func shall acquire the completion port lock. ]
+    internal_completion_port_lock(completion_port);
+
+    // Codes_SRS_COMPLETION_PORT_LINUX_01_024: [ If the socket entry of the event is marked as removed, epoll_worker_func shall skip the event. ]
+    if (socket_entry->is_removed)
+    {
+        // completion_port_remove already abandoned the pending operations of this socket entry
+    }
+    else
+    {
+        if ((events & (EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLHUP)) != 0)
         {
-            LogError("failure removing receive data");
-            result = MU_FAILURE;
+            // Codes_SRS_COMPLETION_PORT_LINUX_01_025: [ If the event contains EPOLLIN, EPOLLRDHUP, EPOLLERR or EPOLLHUP, epoll_worker_func shall remove the first operation, if any, from the inbound operation queue of the socket entry. ]
+            inbound_operation = internal_completion_port_pop_operation(&socket_entry->inbound_operations);
         }
         else
         {
-            result = 0;
+            /* do nothing */
+        }
+
+        if ((events & (EPOLLOUT | EPOLLERR | EPOLLHUP)) != 0)
+        {
+            // Codes_SRS_COMPLETION_PORT_LINUX_01_026: [ If the event contains EPOLLOUT, EPOLLERR or EPOLLHUP, epoll_worker_func shall remove the first operation, if any, from the outbound operation queue of the socket entry. ]
+            outbound_operation = internal_completion_port_pop_operation(&socket_entry->outbound_operations);
+        }
+        else
+        {
+            /* do nothing */
+        }
+
+        if ((inbound_operation == NULL) && (outbound_operation == NULL))
+        {
+            /* do nothing */
+        }
+        else
+        {
+            // Codes_SRS_COMPLETION_PORT_LINUX_01_027: [ If an operation was removed from a queue, epoll_worker_func shall increment the executing callback count of the socket entry. ]
+            (void)interlocked_increment(&socket_entry->executing_callback_count);
+        }
+
+        if ((socket_entry->inbound_operations.head == NULL) && (socket_entry->outbound_operations.head == NULL))
+        {
+            // Codes_SRS_COMPLETION_PORT_LINUX_01_029: [ If no operation is pending for the socket entry, epoll_worker_func shall not re-arm the socket. ]
+            // EPOLLONESHOT disarmed the socket, completion_port_add re-arms it when an operation is queued
+        }
+        else
+        {
+            struct epoll_event epoll_registration = { 0 };
+            epoll_registration.events = internal_completion_port_get_epoll_interest(socket_entry->inbound_operations.head != NULL, socket_entry->outbound_operations.head != NULL);
+            epoll_registration.data.ptr = socket_entry;
+
+            // Codes_SRS_COMPLETION_PORT_LINUX_01_028: [ If any operation is still pending for the socket entry, epoll_worker_func shall re-arm the socket by calling epoll_ctl with EPOLL_CTL_MOD, the epoll interest of the socket entry and the socket entry as data.ptr. ]
+            if (epoll_ctl(completion_port->epoll, EPOLL_CTL_MOD, socket_entry->socket, &epoll_registration) != 0)
+            {
+                LogErrorNo("failure re-arming socket=%" PRI_SOCKET " with epoll_ctl EPOLL_CTL_MOD, events=0x%" PRIx32 "", socket_entry->socket, epoll_registration.events);
+            }
+            else
+            {
+                /* do nothing */
+            }
         }
     }
-    leave_crit_section(completion_port);
 
-    return result;
+    // Codes_SRS_COMPLETION_PORT_LINUX_01_030: [ epoll_worker_func shall release the completion port lock before calling any event_callback. ]
+    internal_completion_port_unlock(completion_port);
+
+    if (inbound_operation == NULL)
+    {
+        /* do nothing */
+    }
+    else
+    {
+        COMPLETION_PORT_EPOLL_ACTION inbound_action;
+        if (((inbound_operation->epoll_op & EPOLLRDHUP) != 0) && ((events & (EPOLLRDHUP | EPOLLERR | EPOLLHUP)) != 0))
+        {
+            // Codes_SRS_COMPLETION_PORT_LINUX_01_031: [ If the removed inbound operation was added with EPOLLRDHUP in epoll_op and the event contains EPOLLRDHUP, EPOLLERR or EPOLLHUP, epoll_worker_func shall call its event_callback with COMPLETION_PORT_EPOLL_EPOLLRDHUP. ]
+            inbound_action = COMPLETION_PORT_EPOLL_EPOLLRDHUP;
+        }
+        else
+        {
+            // Codes_SRS_COMPLETION_PORT_LINUX_01_032: [ Otherwise, epoll_worker_func shall call the event_callback of the removed inbound operation with COMPLETION_PORT_EPOLL_EPOLLIN. ]
+            inbound_action = COMPLETION_PORT_EPOLL_EPOLLIN;
+        }
+        inbound_operation->event_callback(inbound_operation->event_callback_ctx, inbound_action);
+
+        // Codes_SRS_COMPLETION_PORT_LINUX_01_034: [ epoll_worker_func shall free the removed operations after calling their event_callback. ]
+        free(inbound_operation);
+    }
+
+    if (outbound_operation == NULL)
+    {
+        /* do nothing */
+    }
+    else
+    {
+        // Codes_SRS_COMPLETION_PORT_LINUX_01_033: [ epoll_worker_func shall call the event_callback of the removed outbound operation with COMPLETION_PORT_EPOLL_EPOLLOUT. ]
+        outbound_operation->event_callback(outbound_operation->event_callback_ctx, COMPLETION_PORT_EPOLL_EPOLLOUT);
+
+        // Codes_SRS_COMPLETION_PORT_LINUX_01_034: [ epoll_worker_func shall free the removed operations after calling their event_callback. ]
+        free(outbound_operation);
+    }
+
+    if ((inbound_operation == NULL) && (outbound_operation == NULL))
+    {
+        /* do nothing */
+    }
+    else
+    {
+        // Codes_SRS_COMPLETION_PORT_LINUX_01_035: [ After calling the event callbacks, epoll_worker_func shall decrement the executing callback count of the socket entry by calling InterlockedHL_DecrementAndWake. ]
+        (void)InterlockedHL_DecrementAndWake(&socket_entry->executing_callback_count);
+    }
 }
 
 static int epoll_worker_func(void* parameter)
 {
-    COMPLETION_PORT_HANDLE completion_port = (COMPLETION_PORT_HANDLE)parameter;
+    COMPLETION_PORT_HANDLE completion_port = parameter;
     // Codes_SRS_COMPLETION_PORT_LINUX_11_031: [ If parameter is NULL, epoll_worker_func shall do nothing. ]
     if (completion_port == NULL)
     {
@@ -139,6 +439,11 @@ static int epoll_worker_func(void* parameter)
         // Loop while true
         do
         {
+            // Codes_SRS_COMPLETION_PORT_LINUX_01_022: [ Before each call to epoll_wait, epoll_worker_func shall free the socket entries in the retired list. ]
+            // Only epoll_wait batches that returned before a socket was removed from epoll can reference its retired socket entry,
+            // and all of them have been processed by now
+            internal_completion_port_free_retired_socket_entries(completion_port);
+
             struct epoll_event events[MAX_EVENTS_NUM];
             // Codes_SRS_COMPLETION_PORT_LINUX_11_032: [ epoll_worker_func shall call epoll_wait to wait for an epoll event to become signaled with a timeout of 2 Seconds. ]
             int num_ready = epoll_wait(completion_port->epoll, events, MAX_EVENTS_NUM, EVENTS_TIMEOUT_MS);
@@ -149,48 +454,20 @@ static int epoll_worker_func(void* parameter)
                     LogErrorNo("Failure epoll_wait, MAX_EVENTS_NUM: %d, EVENTS_TIMEOUT_MS: %d event: %p", MAX_EVENTS_NUM, EVENTS_TIMEOUT_MS, events);
                     log_only_once++;
                 }
+                else
+                {
+                    /* do nothing */
+                }
+            }
+            else
+            {
+                /* do nothing */
             }
 
             // Codes_SRS_COMPLETION_PORT_LINUX_11_034: [ epoll_worker_func shall loop through the num of descriptors that was returned. ]
             for (int index = 0; index < num_ready; index++)
             {
-                COMPLETION_PORT_EPOLL_ACTION epoll_action;
-                EPOLL_THREAD_DATA* epoll_data = events[index].data.ptr;
-                if (events[index].events & EPOLLRDHUP)
-                {
-                    epoll_action = COMPLETION_PORT_EPOLL_EPOLLRDHUP;
-                }
-                else if (events[index].events & EPOLLIN)
-                {
-                    epoll_action = COMPLETION_PORT_EPOLL_EPOLLIN;
-                }
-                else if (events[index].events & EPOLLOUT)
-                {
-                    epoll_action = COMPLETION_PORT_EPOLL_EPOLLOUT;
-                }
-                else
-                {
-                    LogWarning("Unexpected epoll event %d", events[index].events);
-                    continue;
-                }
-                #ifdef USE_VALGRIND
-                    ANNOTATE_HAPPENS_AFTER(epoll_data);
-                #endif
-                // If we haven't called into event_callback yet
-                if (interlocked_compare_exchange(&epoll_data->event_callback_called, COMPLETION_PORT_CALLBACK_EXECUTING, COMPLETION_PORT_CALLBACK_INIT) == COMPLETION_PORT_CALLBACK_INIT)
-                {
-                    // Codes_SRS_COMPLETION_PORT_LINUX_11_035: [ epoll_worker_func shall call the event_callback with the specified COMPLETION_PORT_EPOLL_ACTION that was returned. ]
-                    epoll_data->event_callback(epoll_data->event_callback_ctx, epoll_action);
-
-                    (void)interlocked_exchange(&epoll_data->event_callback_called, COMPLETION_PORT_CALLBACK_EXECUTED);
-                    wake_by_address_single(&epoll_data->event_callback_called);
-                }
-                // Codes_SRS_COMPLETION_PORT_LINUX_11_036: [ Then epoll_worker_func shall remove the EPOLL_THREAD_DATA from the list and free the object. ]
-                if (remove_thread_data_from_list(completion_port, epoll_data) != 0)
-                {
-                    LogWarning("failure removing receive data from list %p, action: %" PRI_MU_ENUM "", epoll_data, MU_ENUM_VALUE(COMPLETION_PORT_EPOLL_ACTION, epoll_action));
-                }
-                free(epoll_data);
+                internal_completion_port_process_event(completion_port, events[index].events, events[index].data.ptr);
             }
             // Codes_SRS_COMPLETION_PORT_LINUX_11_033: [ On a epoll_wait timeout epoll_worker_func shall ensure it should not exit and issue another epoll_wait. ]
         } while (interlocked_add(&completion_port->worker_thread_continue, 0) == 0);
@@ -211,33 +488,32 @@ COMPLETION_PORT_HANDLE completion_port_create(void)
     else
     {
         (void)interlocked_exchange(&result->worker_thread_continue, 0);
-        (void)interlocked_exchange(&result->recv_data_access, 0);
+        (void)interlocked_exchange(&result->lock, 0);
         (void)interlocked_exchange(&result->pending_calls, 0);
 
-        if (s_list_initialize(&result->alloc_data_list) != 0)
+        for (uint32_t bucket_index = 0; bucket_index < SOCKET_ENTRY_BUCKET_COUNT; bucket_index++)
         {
-            LogError("failure initializing recv list");
+            result->socket_entry_buckets[bucket_index] = NULL;
+        }
+        result->retired_socket_entries = NULL;
+
+        // Codes_SRS_COMPLETION_PORT_LINUX_11_002: [ completion_port_create shall create the epoll instance by calling epoll_create. ]
+        result->epoll = epoll_create(MAX_EVENTS_NUM);
+        if (result->epoll == -1)
+        {
+            LogErrorNo("failure epoll_create MAX_EVENTS_NUM: %d", MAX_EVENTS_NUM);
         }
         else
         {
-            // Codes_SRS_COMPLETION_PORT_LINUX_11_002: [ completion_port_create shall create the epoll instance by calling epoll_create. ]
-            result->epoll = epoll_create(MAX_EVENTS_NUM);
-            if (result->epoll == -1)
+            // Codes_SRS_COMPLETION_PORT_LINUX_11_003: [ completion_port_create shall create a thread that runs epoll_worker_func to handle the epoll events. ]
+            if (ThreadAPI_Create(&result->thread_handle, epoll_worker_func, result) != THREADAPI_OK)
             {
-                LogErrorNo("failure epoll_create MAX_EVENTS_NUM: %d", MAX_EVENTS_NUM);
+                LogCritical("Failure creating thread");
             }
             else
             {
-                // Codes_SRS_COMPLETION_PORT_LINUX_11_003: [ completion_port_create shall create a thread that runs epoll_worker_func to handle the epoll events. ]
-                if (ThreadAPI_Create(&result->thread_handle, epoll_worker_func, result) != THREADAPI_OK)
-                {
-                    LogCritical("Failure creating thread");
-                }
-                else
-                {
-                    // Codes_SRS_COMPLETION_PORT_LINUX_11_004: [ On success completion_port_create shall return the allocated COMPLETION_PORT_HANDLE. ]
-                    goto all_ok;
-                }
+                // Codes_SRS_COMPLETION_PORT_LINUX_11_004: [ On success completion_port_create shall return the allocated COMPLETION_PORT_HANDLE. ]
+                goto all_ok;
             }
             (void)close(result->epoll);
         }
@@ -299,14 +575,17 @@ void completion_port_dec_ref(COMPLETION_PORT_HANDLE completion_port)
                 LogError("Failure joining thread");
             }
 
-            // Codes_SRS_COMPLETION_PORT_LINUX_11_015: [ then the memory associated with completion_port shall be freed. ]
-            PS_LIST_ENTRY entry;
-            while ((entry = s_list_remove_head(&completion_port->alloc_data_list)) != &completion_port->alloc_data_list)
+            for (uint32_t bucket_index = 0; bucket_index < SOCKET_ENTRY_BUCKET_COUNT; bucket_index++)
             {
-                EPOLL_THREAD_DATA* epoll_data = CONTAINING_RECORD(entry, EPOLL_THREAD_DATA, link);
-                free(epoll_data);
+                // Codes_SRS_COMPLETION_PORT_LINUX_01_001: [ free the pending operations of every socket entry without calling their event_callback. ]
+                // Codes_SRS_COMPLETION_PORT_LINUX_01_002: [ free every socket entry. ]
+                internal_completion_port_free_socket_entries(completion_port->socket_entry_buckets[bucket_index]);
             }
 
+            // Codes_SRS_COMPLETION_PORT_LINUX_01_003: [ free every retired socket entry. ]
+            internal_completion_port_free_socket_entries(completion_port->retired_socket_entries);
+
+            // Codes_SRS_COMPLETION_PORT_LINUX_11_015: [ then the memory associated with completion_port shall be freed. ]
             REFCOUNT_TYPE_DESTROY(COMPLETION_PORT, completion_port);
         }
         else
@@ -345,71 +624,43 @@ int completion_port_add(COMPLETION_PORT_HANDLE completion_port, int epoll_op, SO
             // Codes_SRS_COMPLETION_PORT_LINUX_11_020: [ completion_port_add shall increment the ongoing call count value to prevent close. ]
             (void)interlocked_increment(&completion_port->pending_calls);
 
-            // Codes_SRS_COMPLETION_PORT_LINUX_11_021: [ completion_port_add shall allocate a EPOLL_THREAD_DATA object to store thread data. ]
-            EPOLL_THREAD_DATA* epoll_thread_data = malloc(sizeof(EPOLL_THREAD_DATA));
-            if (epoll_thread_data == NULL)
+            // Codes_SRS_COMPLETION_PORT_LINUX_01_004: [ completion_port_add shall allocate a pending operation that stores epoll_op, event_callback and event_callback_ctx. ]
+            COMPLETION_PORT_OPERATION* operation = malloc(sizeof(COMPLETION_PORT_OPERATION));
+            if (operation == NULL)
             {
-                LogError("failure allocating epoll thread data size: %zu", sizeof(EPOLL_THREAD_DATA));
+                LogError("failure allocating completion port operation size: %zu", sizeof(COMPLETION_PORT_OPERATION));
+                // Codes_SRS_COMPLETION_PORT_LINUX_11_027: [ If any error occurs, completion_port_add shall fail and return a non-zero value. ]
                 result = MU_FAILURE;
             }
             else
             {
-                epoll_thread_data->event_callback = event_callback;
-                epoll_thread_data->event_callback_ctx = event_callback_ctx;
-                (void)interlocked_exchange(&epoll_thread_data->event_callback_called, COMPLETION_PORT_CALLBACK_INIT);
-                epoll_thread_data->socket = socket;
-                epoll_thread_data->link.next = NULL;
+                operation->next = NULL;
+                operation->epoll_op = epoll_op;
+                operation->event_callback = event_callback;
+                operation->event_callback_ctx = event_callback_ctx;
 
-                struct epoll_event ev = {0};
-                ev.events = epoll_op;
-                ev.data.ptr = (void*)epoll_thread_data;
-                #ifdef USE_VALGRIND
-                    ANNOTATE_HAPPENS_BEFORE(epoll_thread_data);
-                #endif
-                // Codes_SRS_COMPLETION_PORT_LINUX_11_022: [ completion_port_add shall add the EPOLL_THREAD_DATA object to a list for later removal. ]
-                if (add_thread_data_to_list(completion_port, epoll_thread_data) != 0)
+                // Codes_SRS_COMPLETION_PORT_LINUX_01_005: [ completion_port_add shall acquire the completion port lock. ]
+                internal_completion_port_lock(completion_port);
+
+                int queue_result = internal_completion_port_queue_operation(completion_port, socket, operation);
+
+                // Codes_SRS_COMPLETION_PORT_LINUX_01_012: [ completion_port_add shall release the completion port lock. ]
+                internal_completion_port_unlock(completion_port);
+
+                if (queue_result != 0)
                 {
-                    LogError("failure adding data to list");
+                    LogError("failure queueing operation for socket=%" PRI_SOCKET ", epoll_op=%d", socket, epoll_op);
+                    // Codes_SRS_COMPLETION_PORT_LINUX_01_013: [ If queueing the operation fails, completion_port_add shall free the pending operation. ]
+                    free(operation);
+                    // Codes_SRS_COMPLETION_PORT_LINUX_11_027: [ If any error occurs, completion_port_add shall fail and return a non-zero value. ]
+                    result = MU_FAILURE;
                 }
                 else
                 {
-                    // Codes_SRS_COMPLETION_PORT_LINUX_11_023: [ completion_port_add shall add the socket in the epoll system by calling epoll_ctl with EPOLL_CTL_MOD along with the epoll_op variable. ]
-                    if (epoll_ctl(completion_port->epoll, EPOLL_CTL_MOD, epoll_thread_data->socket, &ev) < 0)
-                    {
-                        if (errno == ENOENT)
-                        {
-                            // Codes_SRS_COMPLETION_PORT_LINUX_11_024: [ If the epoll_ctl call fails with ENOENT, completion_port_add shall call epoll_ctl again with EPOLL_CTL_ADD. ]
-                            if (epoll_ctl(completion_port->epoll, EPOLL_CTL_ADD, epoll_thread_data->socket, &ev) < 0)
-                            {
-                                LogErrorNo("failure with epoll_ctl EPOLL_CTL_ADD");
-                            }
-                            else
-                            {
-                                result = 0;
-                                // (void)interlocked_decrement(&completion_port->pending_calls);
-                                // wake_by_address_single(&completion_port->pending_calls);
-                                goto all_ok;
-                            }
-                        }
-                        else
-                        {
-                            LogErrorNo("failure with epoll_ctl EPOLL_CTL_MOD");
-                        }
-                    }
-                    else
-                    {
-                        // Codes_SRS_COMPLETION_PORT_LINUX_11_026: [ On success, completion_port_add shall return 0. ]
-                        result = 0;
-                        goto all_ok;
-                    }
-                    // Remove
-                    remove_thread_data_from_list(completion_port, epoll_thread_data);
+                    // Codes_SRS_COMPLETION_PORT_LINUX_11_026: [ On success, completion_port_add shall return 0. ]
+                    result = 0;
                 }
-                free(epoll_thread_data);
             }
-            // Codes_SRS_COMPLETION_PORT_LINUX_11_027: [ If any error occurs, completion_port_add shall fail and return a non-zero value. ]
-            result = MU_FAILURE;
-all_ok:
             // Codes_SRS_COMPLETION_PORT_LINUX_11_025: [ completion_port_add shall decrement the ongoing call count value to unblock close. ]
             (void)interlocked_decrement(&completion_port->pending_calls);
             wake_by_address_single(&completion_port->pending_calls);
@@ -438,43 +689,76 @@ void completion_port_remove(COMPLETION_PORT_HANDLE completion_port, SOCKET_HANDL
         {
             (void)interlocked_increment(&completion_port->pending_calls);
 
+            COMPLETION_PORT_OPERATION* abandoned_inbound_operations;
+            COMPLETION_PORT_OPERATION* abandoned_outbound_operations;
+
+            // Codes_SRS_COMPLETION_PORT_LINUX_01_014: [ completion_port_remove shall acquire the completion port lock. ]
+            internal_completion_port_lock(completion_port);
+
             // Codes_SRS_COMPLETION_PORT_LINUX_11_030: [ completion_port_remove shall remove the underlying socket from the epoll by calling epoll_ctl with EPOLL_CTL_DEL. ]
             if (epoll_ctl(completion_port->epoll, EPOLL_CTL_DEL, socket, NULL) == -1)
             {
                 LogErrorNo("Failure epoll_ctl with EPOLL_CTL_DEL %" PRI_SOCKET "", socket);
             }
-
-            // Codes_SRS_COMPLETION_PORT_LINUX_11_037: [ completion_port_remove shall loop through the list of EPOLL_THREAD_DATA object and call the event_callback with COMPLETION_PORT_EPOLL_ABANDONED ]
-            enter_crit_section(completion_port);
+            else
             {
-                PS_LIST_ENTRY current_item = completion_port->alloc_data_list.next;
-                while (current_item != NULL)
-                {
-                    EPOLL_THREAD_DATA* epoll_data = CONTAINING_RECORD(current_item, EPOLL_THREAD_DATA, link);
-                    if (epoll_data->socket == socket)
-                    {
-                        COMPLETION_PORT_CALLBACK_STATE callback_state = interlocked_compare_exchange(&epoll_data->event_callback_called, COMPLETION_PORT_CALLBACK_EXECUTING, COMPLETION_PORT_CALLBACK_INIT);
-                        // Codes_SRS_COMPLETION_PORT_LINUX_11_038: [ If the event_callback has not been called, completion_port_remove shall call the event_callback. ]
-                        if (callback_state == COMPLETION_PORT_CALLBACK_INIT)
-                        {
-                            epoll_data->event_callback(epoll_data->event_callback_ctx, COMPLETION_PORT_EPOLL_ABANDONED);
-                            (void)interlocked_exchange(&epoll_data->event_callback_called, COMPLETION_PORT_CALLBACK_EXECUTED);
-                        }
-                        // Codes_SRS_COMPLETION_PORT_LINUX_11_039: [ If the event_callback is currently executing, completion_port_remove shall wait for the event_callback function to finish before completing. ]
-                        else if (callback_state == COMPLETION_PORT_CALLBACK_EXECUTING)
-                        {
-                            // Callback is executing, so wait till the callback is done
-                            (void)InterlockedHL_WaitForValue(&epoll_data->event_callback_called, COMPLETION_PORT_CALLBACK_EXECUTED, UINT32_MAX);
-                        }
-                        else
-                        {
-                            // callback state is Executed Do Nothing
-                        }
-                    }
-                    current_item = current_item->next;
-                }
+                /* do nothing */
             }
-            leave_crit_section(completion_port);
+
+            SOCKET_ENTRY** socket_entry_link = internal_completion_port_find_socket_entry(completion_port, socket);
+            SOCKET_ENTRY* socket_entry = *socket_entry_link;
+            if (socket_entry == NULL)
+            {
+                abandoned_inbound_operations = NULL;
+                abandoned_outbound_operations = NULL;
+            }
+            else
+            {
+                // Codes_SRS_COMPLETION_PORT_LINUX_01_016: [ completion_port_remove shall remove the socket entry from the socket entry lookup. ]
+                *socket_entry_link = socket_entry->next;
+                socket_entry->next = NULL;
+
+                // Codes_SRS_COMPLETION_PORT_LINUX_01_017: [ completion_port_remove shall mark the socket entry as removed. ]
+                socket_entry->is_removed = true;
+
+                abandoned_inbound_operations = socket_entry->inbound_operations.head;
+                abandoned_outbound_operations = socket_entry->outbound_operations.head;
+                socket_entry->inbound_operations.head = NULL;
+                socket_entry->inbound_operations.tail = NULL;
+                socket_entry->outbound_operations.head = NULL;
+                socket_entry->outbound_operations.tail = NULL;
+            }
+
+            // Codes_SRS_COMPLETION_PORT_LINUX_01_018: [ completion_port_remove shall release the completion port lock before calling any event_callback. ]
+            internal_completion_port_unlock(completion_port);
+
+            if (socket_entry == NULL)
+            {
+                // Codes_SRS_COMPLETION_PORT_LINUX_01_015: [ If no socket entry exists for socket, completion_port_remove shall not call any event_callback. ]
+            }
+            else
+            {
+                internal_completion_port_abandon_operations(abandoned_inbound_operations);
+                internal_completion_port_abandon_operations(abandoned_outbound_operations);
+
+                // Codes_SRS_COMPLETION_PORT_LINUX_11_039: [ If the event_callback is currently executing, completion_port_remove shall wait for the event_callback function to finish before completing. ]
+                if (InterlockedHL_WaitForValue(&socket_entry->executing_callback_count, 0, UINT32_MAX) != INTERLOCKED_HL_OK)
+                {
+                    LogError("failure waiting for the executing callbacks of socket=%" PRI_SOCKET "", socket);
+                }
+                else
+                {
+                    /* do nothing */
+                }
+
+                // The socket entry is not freed here: epoll_worker_func may still hold a pointer to it from an epoll_wait batch
+                // that returned before EPOLL_CTL_DEL. epoll_worker_func frees retired socket entries before its next epoll_wait.
+                // Codes_SRS_COMPLETION_PORT_LINUX_01_021: [ completion_port_remove shall add the socket entry to the retired list of the completion port. ]
+                internal_completion_port_lock(completion_port);
+                socket_entry->next = completion_port->retired_socket_entries;
+                completion_port->retired_socket_entries = socket_entry;
+                internal_completion_port_unlock(completion_port);
+            }
 
             (void)interlocked_decrement(&completion_port->pending_calls);
             wake_by_address_single(&completion_port->pending_calls);

@@ -30,7 +30,6 @@
 #include "c_pal/interlocked_hl.h"
 #include "c_pal/refcount.h"  // IWYU pragma: keep
 #include "c_pal/socket_handle.h"
-#include "c_pal/s_list.h"
 #include "c_pal/sync.h"
 #include "c_pal/threadapi.h"
 
@@ -40,14 +39,10 @@
 #include "real_interlocked.h"
 #include "real_interlocked_hl.h"
 #include "real_gballoc_hl.h" // IWYU pragma: keep
-#include "real_s_list.h" // IWYU pragma: keep
 
 #include "c_pal/completion_port_linux.h"
 
 #define TEST_MAX_EVENTS_NUM     64
 #define EVENTS_TIMEOUT_MS       2*1000
-
-#define TEST_COMPLETION_PORT_CALLBACK_EXECUTING  2
-#define TEST_COMPLETION_PORT_CALLBACK_EXECUTED   3
 
 #endif // COMPLETION_PORT_LINUX_UT_PCH_H
