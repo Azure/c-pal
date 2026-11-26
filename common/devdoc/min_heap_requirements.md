@@ -8,6 +8,8 @@
 
 Room for entries is reserved separately from inserting them: `min_heap_reserve` can fail, but `min_heap_insert` cannot fail once room is reserved. A caller can reserve room when it creates an object (for example a timer), so that inserting the object later cannot fail.
 
+The array of entries grows by doubling when more room is reserved than it holds. Giving back reserved room halves the array once at most a quarter of it is reserved, down to the initial capacity of 16, so the memory used goes back down after a peak without reallocating on every call.
+
 `min_heap` is not thread-safe: the caller serializes the calls.
 
 ## Exposed API
@@ -93,13 +95,19 @@ MOCKABLE_FUNCTION(, int, min_heap_reserve, MIN_HEAP_HANDLE, min_heap);
 MOCKABLE_FUNCTION(, void, min_heap_unreserve, MIN_HEAP_HANDLE, min_heap);
 ```
 
-`min_heap_unreserve` gives back the room reserved for one entry, without shrinking the array of entries.
+`min_heap_unreserve` gives back the room reserved for one entry, shrinking the array of entries when most of it is no longer reserved.
 
 **SRS_MIN_HEAP_42_013: [** If `min_heap` is `NULL`, `min_heap_unreserve` shall return. **]**
 
 **SRS_MIN_HEAP_42_014: [** If the heap has as many entries as the reserved count, `min_heap_unreserve` shall return. **]**
 
 **SRS_MIN_HEAP_42_015: [** `min_heap_unreserve` shall decrement the reserved count. **]**
+
+**SRS_MIN_HEAP_42_043: [** If the capacity of the array of entries is greater than 16 and the reserved count is at most a quarter of the capacity: **]**
+
+- **SRS_MIN_HEAP_42_044: [** `min_heap_unreserve` shall shrink the array of entries to half its capacity by calling `realloc_2`. **]**
+
+- **SRS_MIN_HEAP_42_045: [** If `realloc_2` fails, `min_heap_unreserve` shall keep the array of entries and its capacity. **]**
 
 ### min_heap_entry_init
 

@@ -199,7 +199,6 @@ int min_heap_reserve(MIN_HEAP_HANDLE min_heap)
             if (internal_min_heap_ensure_room(min_heap) != 0)
             {
                 /* Codes_SRS_MIN_HEAP_42_042: [ If realloc_2 fails, min_heap_reserve shall fail and return a non-zero value. ]*/
-                LogError("internal_min_heap_ensure_room failed");
                 result = MU_FAILURE;
             }
             else
@@ -234,6 +233,30 @@ void min_heap_unreserve(MIN_HEAP_HANDLE min_heap)
         {
             /* Codes_SRS_MIN_HEAP_42_015: [ min_heap_unreserve shall decrement the reserved count. ]*/
             min_heap->reserved_count--;
+
+            if ((min_heap->capacity <= MIN_HEAP_INITIAL_CAPACITY) || (min_heap->reserved_count > min_heap->capacity / 4))
+            {
+                /* do nothing */
+            }
+            else
+            {
+                /* Codes_SRS_MIN_HEAP_42_043: [ If the capacity of the array of entries is greater than 16 and the reserved count is at most a quarter of the capacity: ]*/
+                // the entries still in the heap fit, since there are at most reserved_count of them
+                uint32_t new_capacity = min_heap->capacity / 2;
+
+                /* Codes_SRS_MIN_HEAP_42_044: [ min_heap_unreserve shall shrink the array of entries to half its capacity by calling realloc_2. ]*/
+                MIN_HEAP_ENTRY** new_entries = realloc_2(min_heap->entries, new_capacity, sizeof(MIN_HEAP_ENTRY*));
+                if (new_entries == NULL)
+                {
+                    /* Codes_SRS_MIN_HEAP_42_045: [ If realloc_2 fails, min_heap_unreserve shall keep the array of entries and its capacity. ]*/
+                    LogWarning("realloc_2(%p, %" PRIu32 ", %zu) failed, min_heap %p keeps its capacity of %" PRIu32 "", min_heap->entries, new_capacity, sizeof(MIN_HEAP_ENTRY*), min_heap, min_heap->capacity);
+                }
+                else
+                {
+                    min_heap->entries = new_entries;
+                    min_heap->capacity = new_capacity;
+                }
+            }
         }
     }
 }

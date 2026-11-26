@@ -106,6 +106,44 @@ static MIN_HEAP_HANDLE test_create_heap_with_reserved_room(uint32_t reserved_cou
     return result;
 }
 
+// creates a heap whose array of entries has capacity entries (a power of 2, at least 16) by reserving room for one entry
+// more than half of it, then gives back room until reserved_count entries are reserved, which must not shrink the array
+// (reserved_count above a quarter of capacity, unless capacity is 16); entries_array receives the array of entries
+static MIN_HEAP_HANDLE test_create_heap_with_capacity(uint32_t capacity, uint32_t reserved_count, void** entries_array)
+{
+    uint32_t peak_reserved_count = (capacity / 2) + 1;
+
+    ASSERT_IS_TRUE(reserved_count <= peak_reserved_count);
+
+    STRICT_EXPECTED_CALL(malloc(IGNORED_ARG));
+    STRICT_EXPECTED_CALL(realloc_2(NULL, 16, sizeof(MIN_HEAP_ENTRY*)))
+        .CaptureReturn(entries_array);
+    for (uint32_t new_capacity = 32; new_capacity <= capacity; new_capacity *= 2)
+    {
+        STRICT_EXPECTED_CALL(realloc_2(IGNORED_ARG, new_capacity, sizeof(MIN_HEAP_ENTRY*)))
+            .CaptureReturn(entries_array);
+    }
+
+    MIN_HEAP_HANDLE result = min_heap_create();
+    ASSERT_IS_NOT_NULL(result);
+
+    for (uint32_t i = 0; i < peak_reserved_count; i++)
+    {
+        ASSERT_ARE_EQUAL(int, 0, min_heap_reserve(result));
+    }
+
+    for (uint32_t i = reserved_count; i < peak_reserved_count; i++)
+    {
+        min_heap_unreserve(result);
+    }
+
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NOT_NULL(*entries_array);
+    umock_c_reset_all_calls();
+
+    return result;
+}
+
 static void test_init_entries(MIN_HEAP_ENTRY* entries, uint32_t count)
 {
     for (uint32_t i = 0; i < count; i++)
@@ -840,14 +878,19 @@ TEST_FUNCTION(min_heap_unreserve_gives_back_the_room_reserved_for_one_entry)
 }
 
 /*Tests_SRS_MIN_HEAP_42_015: [ min_heap_unreserve shall decrement the reserved count. ]*/
+/*Tests_SRS_MIN_HEAP_42_043: [ If the capacity of the array of entries is greater than 16 and the reserved count is at most a quarter of the capacity: ]*/
 /*Tests_SRS_MIN_HEAP_42_041: [ If the reserved count is equal to the capacity of the array of entries: ]*/
-TEST_FUNCTION(min_heap_unreserve_does_not_shrink_the_array_of_entries)
+PARAMETERIZED_TEST_FUNCTION(min_heap_unreserve_keeps_the_capacity_of_the_array_of_entries,
+    ARGS(uint32_t, capacity, uint32_t, reserved_count),
+    CASE((16, 1), capacity_16_and_0_reserved_after),
+    CASE((32, 10), capacity_32_and_9_reserved_after),
+    CASE((64, 18), capacity_64_and_17_reserved_after),
+    CASE((64, 33), capacity_64_and_32_reserved_after))
 {
     // arrange
-    MIN_HEAP_ENTRY entry;
-    min_heap_entry_init(&entry);
+    void* entries_array = NULL;
 
-    MIN_HEAP_HANDLE min_heap = test_create_heap_with_reserved_room(1);
+    MIN_HEAP_HANDLE min_heap = test_create_heap_with_capacity(capacity, reserved_count, &entries_array);
 
     // act
     min_heap_unreserve(min_heap);
@@ -855,12 +898,144 @@ TEST_FUNCTION(min_heap_unreserve_does_not_shrink_the_array_of_entries)
     // assert
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
-    // reserving again does not need to grow the array of entries
+    // the capacity did not change: reserving back up to it does not grow the array
+    for (uint32_t i = reserved_count - 1; i < capacity; i++)
+    {
+        ASSERT_ARE_EQUAL(int, 0, min_heap_reserve(min_heap));
+    }
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // one more reserve doubles the same array
+    STRICT_EXPECTED_CALL(realloc_2(entries_array, capacity * 2, sizeof(MIN_HEAP_ENTRY*)));
     ASSERT_ARE_EQUAL(int, 0, min_heap_reserve(min_heap));
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
-    min_heap_insert(min_heap, &entry, 1);
-    ASSERT_ARE_EQUAL(uint32_t, 0, entry.index);
+    // cleanup
+    min_heap_destroy(min_heap);
+}
+
+/*Tests_SRS_MIN_HEAP_42_015: [ min_heap_unreserve shall decrement the reserved count. ]*/
+/*Tests_SRS_MIN_HEAP_42_043: [ If the capacity of the array of entries is greater than 16 and the reserved count is at most a quarter of the capacity: ]*/
+/*Tests_SRS_MIN_HEAP_42_044: [ min_heap_unreserve shall shrink the array of entries to half its capacity by calling realloc_2. ]*/
+PARAMETERIZED_TEST_FUNCTION(min_heap_unreserve_down_to_a_quarter_of_the_capacity_shrinks_the_array_of_entries_to_half,
+    ARGS(uint32_t, capacity),
+    CASE((32), capacity_32),
+    CASE((64), capacity_64),
+    CASE((128), capacity_128))
+{
+    // arrange
+    void* entries_array = NULL;
+    void* shrunk_entries_array = NULL;
+
+    MIN_HEAP_HANDLE min_heap = test_create_heap_with_capacity(capacity, (capacity / 4) + 1, &entries_array);
+
+    STRICT_EXPECTED_CALL(realloc_2(entries_array, capacity / 2, sizeof(MIN_HEAP_ENTRY*)))
+        .CaptureReturn(&shrunk_entries_array);
+
+    // act
+    min_heap_unreserve(min_heap);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    ASSERT_IS_NOT_NULL(shrunk_entries_array);
+    umock_c_reset_all_calls();
+
+    // the capacity is now half: reserving back up to it does not grow the array
+    for (uint32_t i = capacity / 4; i < capacity / 2; i++)
+    {
+        ASSERT_ARE_EQUAL(int, 0, min_heap_reserve(min_heap));
+    }
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // one more reserve doubles the shrunk array back to the old capacity
+    STRICT_EXPECTED_CALL(realloc_2(shrunk_entries_array, capacity, sizeof(MIN_HEAP_ENTRY*)));
+    ASSERT_ARE_EQUAL(int, 0, min_heap_reserve(min_heap));
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // cleanup
+    min_heap_destroy(min_heap);
+}
+
+/*Tests_SRS_MIN_HEAP_42_043: [ If the capacity of the array of entries is greater than 16 and the reserved count is at most a quarter of the capacity: ]*/
+/*Tests_SRS_MIN_HEAP_42_044: [ min_heap_unreserve shall shrink the array of entries to half its capacity by calling realloc_2. ]*/
+TEST_FUNCTION(min_heap_unreserve_shrinking_the_array_of_entries_keeps_the_entries_in_the_heap)
+{
+    // arrange
+    static const uint64_t keys[] = { 50, 10, 80, 40, 20, 70, 30, 60 };
+    static const uint64_t expected_keys[] = { 10, 20, 30, 40, 50, 60, 70, 80 };
+    MIN_HEAP_ENTRY entries[MU_COUNT_ARRAY_ITEMS(keys) + 1];
+    void* entries_array = NULL;
+    test_init_entries(entries, TEST_COUNT(entries));
+
+    MIN_HEAP_HANDLE min_heap = test_create_heap_with_capacity(64, 33, &entries_array);
+    test_insert_entries(min_heap, entries, keys, TEST_COUNT(keys));
+
+    // giving back all the free room shrinks the array to 32 entries when 16 are reserved, then to 16 entries when 8 are
+    // reserved, which is as many as there are entries in the heap
+    STRICT_EXPECTED_CALL(realloc_2(entries_array, 32, sizeof(MIN_HEAP_ENTRY*)));
+    STRICT_EXPECTED_CALL(realloc_2(IGNORED_ARG, 16, sizeof(MIN_HEAP_ENTRY*)));
+
+    // act
+    for (uint32_t i = TEST_COUNT(keys); i < 33; i++)
+    {
+        min_heap_unreserve(min_heap);
+    }
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    test_assert_heap_is_valid(min_heap, entries, TEST_COUNT(entries));
+
+    // all the reserved room is used, so another entry is not inserted
+    min_heap_insert(min_heap, &entries[TEST_COUNT(keys)], 1);
+    ASSERT_ARE_EQUAL(uint32_t, MIN_HEAP_ENTRY_NOT_IN_HEAP, entries[TEST_COUNT(keys)].index);
+
+    test_drain_and_assert_keys(min_heap, entries, TEST_COUNT(entries), expected_keys, TEST_COUNT(expected_keys));
+
+    // cleanup
+    min_heap_destroy(min_heap);
+}
+
+/*Tests_SRS_MIN_HEAP_42_043: [ If the capacity of the array of entries is greater than 16 and the reserved count is at most a quarter of the capacity: ]*/
+/*Tests_SRS_MIN_HEAP_42_044: [ min_heap_unreserve shall shrink the array of entries to half its capacity by calling realloc_2. ]*/
+/*Tests_SRS_MIN_HEAP_42_045: [ If realloc_2 fails, min_heap_unreserve shall keep the array of entries and its capacity. ]*/
+TEST_FUNCTION(when_realloc_2_fails_min_heap_unreserve_keeps_the_array_of_entries_and_its_capacity)
+{
+    // arrange
+    static const uint64_t keys[] = { 30, 10, 20 };
+    static const uint64_t expected_keys[] = { 5, 10, 20, 30 };
+    MIN_HEAP_ENTRY entries[MU_COUNT_ARRAY_ITEMS(keys) + 1];
+    void* entries_array = NULL;
+    test_init_entries(entries, TEST_COUNT(entries));
+
+    MIN_HEAP_HANDLE min_heap = test_create_heap_with_capacity(64, 17, &entries_array);
+    test_insert_entries(min_heap, entries, keys, TEST_COUNT(keys));
+
+    STRICT_EXPECTED_CALL(realloc_2(entries_array, 32, sizeof(MIN_HEAP_ENTRY*)))
+        .SetReturn(NULL);
+
+    // act
+    min_heap_unreserve(min_heap);
+
+    // assert
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+    umock_c_reset_all_calls();
+
+    // the capacity is still 64: reserving back up to it does not grow the array
+    for (uint32_t i = 16; i < 64; i++)
+    {
+        ASSERT_ARE_EQUAL(int, 0, min_heap_reserve(min_heap));
+    }
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // one more reserve doubles the same array
+    STRICT_EXPECTED_CALL(realloc_2(entries_array, 128, sizeof(MIN_HEAP_ENTRY*)));
+    ASSERT_ARE_EQUAL(int, 0, min_heap_reserve(min_heap));
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    // the entries are still in the heap and more can be inserted
+    min_heap_insert(min_heap, &entries[TEST_COUNT(keys)], 5);
+    ASSERT_ARE_EQUAL(uint32_t, 0, entries[TEST_COUNT(keys)].index);
+    test_drain_and_assert_keys(min_heap, entries, TEST_COUNT(entries), expected_keys, TEST_COUNT(expected_keys));
 
     // cleanup
     min_heap_destroy(min_heap);
