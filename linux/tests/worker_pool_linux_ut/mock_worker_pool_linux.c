@@ -21,15 +21,11 @@ int mocked_pthread_cond_signal(pthread_cond_t* cond);
 // lets the tests check the state and the pool of a worker, which are not visible through the API
 MU_DEFINE_ENUM_STRINGS(WORKER_STATE, WORKER_STATE_VALUES);
 
-const char* mock_worker_pool_linux_get_worker_state(void* worker);
-
 const char* mock_worker_pool_linux_get_worker_state(void* worker)
 {
     WORKER* worker_to_check = worker;
     return MU_ENUM_TO_STRING(WORKER_STATE, worker_to_check->state);
 }
-
-WORKER_POOL_HANDLE mock_worker_pool_linux_get_worker_pool(void* worker);
 
 WORKER_POOL_HANDLE mock_worker_pool_linux_get_worker_pool(void* worker)
 {
