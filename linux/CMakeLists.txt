@@ -3,9 +3,11 @@
 set(pal_common_h_files
     ../common/inc/c_pal/call_once.h
     ../common/inc/c_pal/containing_record.h
+    ../common/inc/c_pal/doublylinkedlist.h
     ../common/inc/c_pal/interlocked_hl.h
     ../common/inc/c_pal/lazy_init.h
     ../common/inc/c_pal/log_critical_and_terminate.h
+    ../common/inc/c_pal/min_heap.h
     ../common/inc/c_pal/ps_util.h
     ../common/inc/c_pal/s_list.h
     ../common/inc/c_pal/sm.h
@@ -19,8 +21,10 @@ set(pal_common_h_files
 
 set(pal_common_c_files
     ../common/src/call_once.c
-    ../common/src/lazy_init.c
+    ../common/src/doublylinkedlist.c
     ../common/src/interlocked_hl.c
+    ../common/src/lazy_init.c
+    ../common/src/min_heap.c
     ../common/src/ps_util.c
     ../common/src/s_list.c
     ../common/src/sm.c
@@ -47,8 +51,10 @@ set(pal_linux_h_files
     inc/c_pal/completion_port_linux.h
     inc/c_pal/execution_engine_linux.h
     inc/c_pal/platform_linux.h
+    inc/c_pal/thread_count_policy_linux.h
+    inc/c_pal/timer_queue_linux.h
     inc/c_pal/windows_defines.h
-    inc/c_pal/tqueue_threadpool_work_item.h
+    inc/c_pal/worker_pool_linux.h
 )
 
 set(pal_linux_c_files
@@ -69,11 +75,13 @@ set(pal_linux_c_files
     src/string_utils.c
     src/string_utils.c
     src/sysinfo_linux.c
+    src/thread_count_policy_linux.c
     src/process_watchdog_linux.c
     src/threadpool_linux.c
-    src/tqueue_threadpool_work_item.c
     src/timer_linux.c
+    src/timer_queue_linux.c
     src/uuid_linux.c
+    src/worker_pool_linux.c
     src/${gballoc_ll_c}
     src/${gballoc_hl_c}
 )

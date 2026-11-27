@@ -4,7 +4,7 @@
 
 The modules in PAL is splited into 3 layers:
 - c_pal_ll - contains platform abstractions with no additional dependencies on other modules outside of c_pal_ll itself : arithmetic, gballoc, interlocked, sync, threadapi, platform, socket_handle, srw_lock, sysinfo, timer, uuid
-- c_pal/common - contains utilities needed by the PAL, which may depend on the c_pal_ll : call_once, containing_record, interlocked_hl, lazy_init, log_critical_and_terminate, ps_util, refcount, s_list, sm
+- c_pal/common - contains utilities needed by the PAL, which may depend on the c_pal_ll : call_once, containing_record, doublylinkedlist, interlocked_hl, lazy_init, log_critical_and_terminate, min_heap, ps_util, refcount, s_list, sm
 - c_pal - contains remaining platform abstractions, which may depend on the c_pal_ll and/or common utilities : asynchronous_socket, execution_engine, file, pipe, threadpool, string_utils
 
 Each of these APIs have:

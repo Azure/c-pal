@@ -18,6 +18,12 @@
 #include "c_pal/thandle_log_context_handle.h" // IWYU pragma: keep
 #include "c_pal/socket_transport.h" // IWYU pragma: keep
 #include "c_pal/async_socket.h" // IWYU pragma: keep
+#include "c_pal/doublylinkedlist.h" // IWYU pragma: keep
+#include "c_pal/min_heap.h" // IWYU pragma: keep
+#include "c_pal/execution_engine_linux.h" // IWYU pragma: keep
+#include "c_pal/thread_count_policy_linux.h" // IWYU pragma: keep
+#include "c_pal/timer_queue_linux.h" // IWYU pragma: keep
+#include "c_pal/worker_pool_linux.h" // IWYU pragma: keep
 
 #define REGISTER_GLOBAL_MOCK_HOOK(original, real) \
     (original == real) ? (void)0 : (void)1;
@@ -34,5 +40,11 @@
 #include "real_thandle_log_context_handle.h"
 #include "real_socket_transport.h"
 #include "real_async_socket.h"
+#include "real_doublylinkedlist.h"
+#include "real_min_heap.h"
+#include "real_execution_engine_linux.h"
+#include "real_thread_count_policy_linux.h"
+#include "real_timer_queue_linux.h"
+#include "real_worker_pool_linux.h"
 
 #endif // REALS_LINUX_UT_PCH_H
