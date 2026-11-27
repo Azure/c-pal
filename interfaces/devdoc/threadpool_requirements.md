@@ -16,6 +16,10 @@ The `threadpool` interface supports:
 
 The lifetime of the execution engine should supersede the lifetime of the `threadpool` object.
 
+A timer can be cancelled, or its last reference released, from its own callback. Neither waits for that callback, and the callback must not use the timer after releasing it. After a callback cancels its own timer, cancelling or releasing the timer on another thread may not wait for that callback.
+
+Restarting a timer does not wait for a callback that is already running, so that callback can still be running when the timer fires again. A timer can be restarted from its own callback.
+
 ## Exposed API
 
 ```c
@@ -153,7 +157,7 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_restart, THANDLE(THREADPOOL_TIMER), ti
 
 **NON_THREADPOOL_07_002: [** `threadpool_timer_restart` shall acquire an exclusive lock. **]**
 
-**NON_THREADPOOL_42_016: [** `threadpool_timer_restart` shall stop execution of the existing timer and wait for any current executions to complete. **]**
+**NON_THREADPOOL_42_016: [** `threadpool_timer_restart` shall stop the existing timer from firing on its old schedule, without waiting for callbacks that are already running. **]**
 
 **NON_THREADPOOL_42_017: [** If `timer_period_ms` is 0 then `threadpool_timer_restart` shall queue for execution the function `work_function` to be executed once after `start_delay_ms` pass `context` to it when it executes. **]**
 
@@ -177,6 +181,8 @@ MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, THREADPOOL_TIMER *, timer);
 
 **NON_THREADPOOL_42_021: [** `threadpool_timer_cancel` shall stop further execution of the timer and wait for any current executions to complete. **]**
 
+**NON_THREADPOOL_42_022: [** If `threadpool_timer_cancel` is called from the timer's callback, it shall not wait for that callback to complete. **]**
+
 **NON_THREADPOOL_07_005: [** `threadpool_timer_cancel` shall release the exclusive lock. **]**
 
 ### threadpool_timer_destroy
@@ -190,6 +196,8 @@ MOCKABLE_FUNCTION(, void, threadpool_timer_destroy, THREADPOOL_TIMER *, timer);
 **NON_THREADPOOL_42_012: [** If `timer` is `NULL`, `threadpool_timer_destroy` shall fail and return. **]**
 
 **NON_THREADPOOL_42_013: [** `threadpool_timer_destroy` shall stop further execution of the timer and wait for any current executions to complete. **]**
+
+**NON_THREADPOOL_42_023: [** If the last reference to `timer` is released from the timer's callback, `threadpool_timer_destroy` shall not wait for that callback to complete. **]**
 
 **NON_THREADPOOL_42_014: [** `threadpool_timer_destroy` shall free all resources in `timer`. **]**
 

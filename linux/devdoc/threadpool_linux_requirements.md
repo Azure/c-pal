@@ -2,74 +2,38 @@
 
 ## Overview
 
-`threadpool_linux` is the Linux-specific implementation of the `threadpool` module. It receives an execution engine at creation time in order to executes scheduled asynchronous work items after been created. `threadpool_linux` supports timer functions to execute at a regular interval.
+`threadpool_linux` is the Linux implementation of the `threadpool` interface.
 
 ## Design
 
-`threadpool_linux` provides the Linux implementation of the `threadpool` PAL API. The `threadpool` object starts a predefined number of threads that are used to execute the work items. The `threadpool` unit tracks all the work items which need to be executed in an task array. All incoming tasks are being added in `threadpool_schedule_work` and scheduled in `threadpool_work_func`.
+`threadpool_linux` maps the `threadpool` API onto the work objects and timers of `execution_engine_linux`, the same way `threadpool_win32` maps it onto the Win32 thread pool:
 
-`threadpool_linux` maintains the following:
-1. `max_thread_count`, `min_thread_count`, `used_thread_count` : static 32-bit counters for the `threadpool` thread limits.
-2. `semaphore` : a semaphore to ensure the number of waiting tasks changed atomically when a task is inserted or consumed in the array.
-3. `task_queue` : a `TQUEUE` of waiting tasks with default size 2048, initialized in `threadpool_create`. Each array item contains a `THREADPOOL_TASK` object, which obtains the `task_state` and task function information.
-8. `thread_handle_array` : an array of threads in the `threadpool`, all intialized in `threadpool_create`.
+| `threadpool`                                    | `execution_engine_linux`                                                                                             | Win32                                                                                       |
+|-------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| `threadpool_create`                             | holds a reference to the execution engine                                                                            | cleanup group                                                                               |
+| `threadpool_create_work_item`                   | `execution_engine_linux_create_work`                                                                                 | `CreateThreadpoolWork`                                                                      |
+| `threadpool_schedule_work_item`                 | `execution_engine_linux_submit_work`                                                                                 | `SubmitThreadpoolWork`                                                                      |
+| work item dispose                               | `execution_engine_linux_wait_for_work`, `execution_engine_linux_close_work`                                          | `WaitForThreadpoolWorkCallbacks`, `CloseThreadpoolWork`                                     |
+| `threadpool_schedule_work`                      | one-time work object                                                                                                 | `CreateThreadpoolWork`, `SubmitThreadpoolWork`                                              |
+| `threadpool_timer_start`                        | `execution_engine_linux_create_timer`, `execution_engine_linux_set_timer`                                            | `CreateThreadpoolTimer`, `SetThreadpoolTimer`                                               |
+| `threadpool_timer_restart`                      | `execution_engine_linux_set_timer`                                                                                   | `SetThreadpoolTimer`                                                                        |
+| `threadpool_timer_cancel`                       | `execution_engine_linux_cancel_timer`, `execution_engine_linux_wait_for_timer`                                       | `SetThreadpoolTimer` with `NULL`, `WaitForThreadpoolTimerCallbacks`                         |
+| timer dispose                                   | `execution_engine_linux_cancel_timer`, `execution_engine_linux_wait_for_timer`, `execution_engine_linux_close_timer` | `SetThreadpoolTimer` with `NULL`, `WaitForThreadpoolTimerCallbacks`, `CloseThreadpoolTimer` |
+| cancel or release a timer from its own callback | `execution_engine_linux_disassociate_current_thread_from_timer` first                                                | `DisassociateCurrentThreadFromCallback` first                                               |
 
-```
-### Threadpool timer
+All callbacks run on the worker threads of the execution engine, which are shared by every `threadpool` created on it.
 
-The threadpool timer currently uses the POSIX timer implementation with the timer events generating a new thread (`SIGEV_THREAD`) when an event triggers.
-When the event is triggered, it needs the timer instance to stay allocated until it is completed. POSIX makes no guarantees whether the in flight signals will still execute. Thus it can happen that after a delete of a timer, the timer callback is still executed.
+`threadpool_schedule_work_item`, `threadpool_timer_restart` and `threadpool_timer_cancel` do not allocate and only fail for invalid arguments.
 
-In order to accomodate for this, the chosen design is to track the state of the timers (and their associated user callback function and context) in an internal table that is static. This ensures that regardless of when POSIX calls the callback supplied to the POSIX timer, the memory is available and it has not been freed.
+Releasing the last reference to a work item waits for its pending and running callbacks. Releasing the last reference to a timer cancels it and waits for its running callback. As with Win32, work items and timers must be released before the `threadpool` they were created on, and work items may not be released from their own callbacks.
 
-Each timer tracked in the internal timer table has:
-- a state (NOT_USED, ARMED, CALLING_CALLBACK)
-- the work function and context
-- epoch number (see below ABA problem details)
+A timer can be cancelled, or its last reference released, from its own callback. Cancel and dispose first disassociate the current thread from the timer, so they don't wait for that callback. Cancel does this before taking the timer lock, which a cancel on another thread can hold while it waits for the callback. The callback then no longer counts as running, so a later cancel or release on another thread doesn't wait for it either.
 
-```mermaid
----
-title: timer state in the timers table (for each timer)
----
-stateDiagram-v2
-    [*] --> NOT_USED: lazy_init
-    NOT_USED --> ARMED : threadpool_timer_start
-    ARMED --> NOT_USED : threadpool_timer_dispose
-    ARMED --> CALLING_CALLBACK : on_timer_callback called by POSIX
-    CALLING_CALLBACK --> ARMED : work function called
-```
-
-#### ABA problem
-
-The timer implementation is susceptible to the ABA problem.
-
-It could happen that a timer (T1) is started, taking one of the entries in the timer table to store its data.
-
-If the timer T1 is disposed before the callback from POSIX is executed, the timer entry in the table is released.
-
-Still before the POSIX callback is executed, let's assume another timer (T2) is started and it takes the same entry in the timers table.
-
-At this point the original POSIX callback (that was supposed to fire for timer T1) fires and executes the callback recorded in the timers table, but that is the callback for T2, resulting in an unwanted spurious callback.
-
-In order to avoid this problem an epoch number is to be used.
-This epoch number is stamped in the timer table entry and also is passed to the POSIX timer APIs, so that it can be used for comparison in the POSIX timer callback.
-
-This results in the need of storing 2 things in the sigval pointer that gets passed as context to the POSIX timer callback:
-- the epoch number.
-- a reference/index to the timer table entry.
-
-The context has in normal circumstances 64 bits, thus we can share the 64 bits between the 2 fields.
-Given that the expected number of timers to be used concurrently is not expected to be very high, we can reserve 10 bits (1024) for the index of the timer table entry, leaving the rest of the 54 bits for the epoch number.
-
-Rules for the timer epoch number:
-- Timer epoch number is initialized to 0 (static).
-- Timer epoch number is incremented whenever a new timer is started and thus an entry in the timers table becomes used.
-- Timer epoch number gets stamped in the entry in the timers table and gets passed to the POSIX timer function as context.
-- Timer epoch number is checked in the POSOX timer callback in order to make sure that the timer work function is called for the correct timer.
+Releasing the last reference to a `threadpool` waits for its outstanding callbacks: the callbacks scheduled with `threadpool_schedule_work` and the timer callbacks that are running, including a timer callback that released its own timer, as the Win32 cleanup group does.
 
 ## Exposed API
 
-```C
+```c
 typedef struct THREADPOOL_TAG THREADPOOL;
 typedef struct THREADPOOL_WORK_ITEM_TAG THREADPOOL_WORK_ITEM;
 typedef void (*THREADPOOL_WORK_FUNCTION)(void* context);
@@ -95,214 +59,39 @@ MOCKABLE_FUNCTION(, int, threadpool_timer_restart, THANDLE(THREADPOOL_TIMER), ti
 MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, THANDLE(THREADPOOL_TIMER), timer);
 ```
 
-## Static functions
-
-```c
-static void on_timer_callback(sigval_t timer_data);
-static int threadpool_work_func(void* param);
-```
-
 ### threadpool_create
 
-```C
+```c
 MOCKABLE_FUNCTION(, THANDLE(THREADPOOL), threadpool_create, EXECUTION_ENGINE_HANDLE, execution_engine);
 ```
 
-`threadpool_create` creates a new threadpool.
+`threadpool_create` creates a threadpool object that schedules callbacks on the worker threads of `execution_engine`.
 
-**SRS_THREADPOOL_LINUX_07_002: [** If `execution_engine` is `NULL`, `threadpool_create` shall fail and return `NULL`. **]**
+**SRS_THREADPOOL_LINUX_42_001: [** If `execution_engine` is `NULL`, `threadpool_create` shall fail and return `NULL`. **]**
 
-**SRS_THREADPOOL_LINUX_07_001: [** `threadpool_create` shall allocate memory for a threadpool object and on success return a non-`NULL` handle to it. **]**
+**SRS_THREADPOOL_LINUX_42_002: [** `threadpool_create` shall allocate a new threadpool object with `threadpool_dispose` as dispose function. **]**
 
-**SRS_THREADPOOL_LINUX_07_004: [** `threadpool_create` shall get the `min_thread_count` and `max_thread_count` thread parameters from the `execution_engine`. **]**
+**SRS_THREADPOOL_LINUX_42_003: [** `threadpool_create` shall increment the reference count on `execution_engine` by calling `execution_engine_inc_ref`. **]**
 
-**SRS_THREADPOOL_LINUX_07_005: [** `threadpool_create` shall allocate memory for an array of thread handles of size `min_thread_count` and on success return a non-`NULL` handle to it. **]**
+**SRS_THREADPOOL_LINUX_42_104: [** `threadpool_create` shall store `execution_engine` in the threadpool object. **]**
 
-**SRS_THREADPOOL_LINUX_01_013: [** `threadpool_create` shall create a queue of threadpool work items by calling `TQUEUE_CREATE(THANDLE(THREADPOOL_WORK_ITEM))` with initial size 2048 and max size `UINT32_MAX`. **]**
+**SRS_THREADPOOL_LINUX_42_004: [** `threadpool_create` shall set the count of outstanding callbacks to 0. **]**
 
-**SRS_THREADPOOL_LINUX_07_009: [** `threadpool_create` shall create a shared semaphore with initialized value zero. **]**
+**SRS_THREADPOOL_LINUX_42_105: [** `threadpool_create` shall succeed and return the threadpool object. **]**
 
-**SRS_THREADPOOL_LINUX_07_020: [** `threadpool_create` shall create `min_thread_count` number of threads for `threadpool` using `ThreadAPI_Create`. **]**
-
-**SRS_THREADPOOL_LINUX_07_022: [** If one of the thread creation fails, `threadpool_create` shall fail, terminate all threads already created and return `NULL`. **]**
-
-**SRS_THREADPOOL_LINUX_07_011: [** If any error occurs, `threadpool_create` shall fail and return `NULL`. **]**
+**SRS_THREADPOOL_LINUX_42_005: [** If any error occurs, `threadpool_create` shall fail and return `NULL`. **]**
 
 ### threadpool_dispose
 
-```C
-static void threadpool_dispose(THREADPOOL* threadpool)
+```c
+static void threadpool_dispose(THREADPOOL* threadpool);
 ```
 
-`threadpool_dispose` frees the resouces associated with threadpool.
+`threadpool_dispose` is called when the last reference to the threadpool is released.
 
-**SRS_THREADPOOL_LINUX_07_089: [** `threadpool_dispose` shall signal all threads to return. **]**
+**SRS_THREADPOOL_LINUX_42_006: [** `threadpool_dispose` shall wait for the count of outstanding callbacks to reach 0 by calling `InterlockedHL_WaitForValue`. **]**
 
-**SRS_THREADPOOL_LINUX_07_027: [** `threadpool_dispose` shall join all threads in the `threadpool`. **]**
-
-**SRS_THREADPOOL_LINUX_07_014: [** `threadpool_dispose` shall destroy the semphore by calling `sem_destroy`. **]**
-
-**SRS_THREADPOOL_LINUX_07_016: [** `threadpool_dispose` shall free the memory allocated in `threadpool_create`. **]**
-
-
-### threadpool_schedule_work
-
-```C
-MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
-```
-
-`threadpool_schedule_work` schedule the threadpool to work.
-
-**SRS_THREADPOOL_LINUX_07_029: [** If `threadpool` is `NULL`, `threadpool_schedule_work` shall fail and return a non-zero value. **]**
-
-**SRS_THREADPOOL_LINUX_07_030: [** If `work_function` is `NULL`, `threadpool_schedule_work` shall fail and return a non-zero value. **]**
-
-**SRS_THREADPOOL_LINUX_01_014: [** `threadpool_schedule_work` shall create a new `THANDLE(THREADPOOL_WORK_ITEM)` and save the `work_function` and `work_function_context` in it. **]**
-
-**SRS_THREADPOOL_LINUX_01_015: [** `threadpool_schedule_work` shall push the newly created `THANDLE(THREADPOOL_WORK_ITEM)` in the work item queue. **]**
-
-**SRS_THREADPOOL_LINUX_07_042: [** If any error occurs, `threadpool_schedule_work` shall fail and return a non-zero value. **]**
-
-**SRS_THREADPOOL_LINUX_07_051: [** `threadpool_schedule_work` shall unblock the `threadpool` semaphore by calling `sem_post`. **]**
-
-**SRS_THREADPOOL_LINUX_07_047: [** `threadpool_schedule_work` shall return zero on success. **]**
-
-### threadpool_timer_start
-
-```C
-MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_TIMER), threadpool_timer_start, THANDLE(THREADPOOL), threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_ctx);
-```
-
-`threadpool_timer_start` starts a threadpool timer which runs after `start_delay_ms` milliseconds and then runs again every `timer_period_ms` milliseconds until `threadpool_timer_cancel` or `threadpool_timer_destroy` is called. The `timer_handle` must be stopped before closing/destroying the threadpool.
-
-**SRS_THREADPOOL_LINUX_07_054: [** If `threadpool` is `NULL`, `threadpool_timer_start` shall fail and return NULL. **]**
-
-**SRS_THREADPOOL_LINUX_07_055: [** If `work_function` is `NULL`, `threadpool_timer_start` shall fail and return NULL. **]**
-
-**SRS_THREADPOOL_LINUX_07_058: [** `threadpool_timer_start` shall allocate memory for `THANDLE(THREADPOOL_TIMER)`, passing `threadpool_timer_dispose` as dispose function and store `work_function` and `work_function_ctx` in it. **]**
-
-**SRS_THREADPOOL_LINUX_07_096: [** `threadpool_timer_start` shall call `lazy_init` with `do_init` as initialization function.  **]**
-
-**SRS_THREADPOOL_LINUX_07_057: [** `work_function_ctx` shall be allowed to be `NULL`. **]**
-
-**SRS_THREADPOOL_LINUX_01_002: [** `threadpool_timer_start` shall find an unused entry in the timers table maintained by the module. **]**
-
-**SRS_THREADPOOL_LINUX_01_003: [** 1024 timers shall be supported. **]**
-
-**SRS_THREADPOOL_LINUX_01_001: [** If all timer entries are used, `threadpool_timer_start` shall fail and return NULL. **]**
-
-**SRS_THREADPOOL_LINUX_01_005: [** If an unused entry is found, it's state shall be marked as `ARMED`. **]**
-
-**SRS_THREADPOOL_LINUX_01_011: [** `threadpool_timer_start` shall increment the timer epoch number and store it in the selected entry in the timer table. **]**
-
-**SRS_THREADPOOL_LINUX_07_059: [** `threadpool_timer_start` shall call `timer_create` and `timer_settime` to schedule execution. **]**
-
-**SRS_THREADPOOL_LINUX_07_060: [** If any error occurs, `threadpool_timer_start` shall fail and return NULL. **]**
-
-**SRS_THREADPOOL_LINUX_07_062: [** `threadpool_timer_start` shall succeed and return a non-NULL handle. **]**
-
-**SRS_THREADPOOL_LINUX_07_063: [** If `timer_settime` fails, `threadpool_timer_start` shall delete the timer by calling `timer_delete`. **]**
-
-### do_init
-```C
-static int do_init(void* params);
-```
-
-`do_init` initializes the state tracked for each of the timers in the timers table.
-
-**SRS_THREADPOOL_LINUX_01_004: [** `do_init` shall initialize the state for each timer to `NOT_USED`. **]**
-
-**SRS_THREADPOOL_LINUX_07_099: [** `do_init` shall succeed and return 0. **]**
-
-### threadpool_timer_restart
-
-```C
-MOCKABLE_FUNCTION(, int, threadpool_timer_restart, THANDLE(THREADPOOL_TIMER), timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
-```
-
-`threadpool_timer_restart` changes the delay and period of an existing timer.
-
-**SRS_THREADPOOL_LINUX_07_064: [** If `timer` is `NULL`, `threadpool_timer_restart` shall fail and return a non-zero value. **]**
-
-**SRS_THREADPOOL_LINUX_07_065: [** `threadpool_timer_restart` shall call `timer_settime` to change the delay and period. **]**
-
-**SRS_THREADPOOL_LINUX_07_066: [** If `timer_settime` fails, `threadpool_timer_restart` shall fail and return a non-zero value. **]**
-
-**SRS_THREADPOOL_LINUX_07_067: [** `threadpool_timer_restart` shall succeed and return 0. **]**
-
-### threadpool_timer_cancel
-
-```C
-MOCKABLE_FUNCTION(, void, THANDLE(THREADPOOL_TIMER), THREADPOOL_TIMER *, timer);
-```
-
-`threadpool_timer_cancel` shall stops the timer. Afterward, the timer may be resumed with a new time by calling `threadpool_timer_restart` or cleaned up by calling `threadpool_timer_destroy`.
-
-**SRS_THREADPOOL_LINUX_07_068: [** If `timer` is `NULL`, `threadpool_timer_cancel` shall fail and return. **]**
-
-**SRS_THREADPOOL_LINUX_07_069: [** `threadpool_timer_cancel` shall call `timer_settime` with 0 for `flags` and `NULL` for `old_value` and `{0}` for `new_value` to cancel the ongoing timers. **]**
-
-### threadpool_timer_dispose
-
-```C
-static void threadpool_timer_dispose(THREADPOOL_TIMER * timer);
-```
-
-`threadpool_timer_destroy` stops the timer started by `threadpool_timer_start` and cleans up its resources.
-
-**SRS_THREADPOOL_LINUX_07_071: [** `threadpool_timer_dispose` shall call `timer_delete` to destroy the ongoing timers. **]**
-
-**SRS_THREADPOOL_LINUX_01_006: [** If the timer state is `ARMED`, `threadpool_timer_dispose` shall set the state of the timer to `NOT_USED`. **]**
-
-**SRS_THREADPOOL_LINUX_01_010: [** Otherwise, `threadpool_timer_dispose` shall block until the state is `ARMED` and reattempt to set the state to `NOT_USED`. **]**
-
-### static void on_timer_callback(sigval_t timer_data);
-
-```C
-static void on_timer_callback(sigval_t timer_data);
-```
-
-`on_timer_callback` executes when the POSIX timer is triggered.
-
-**SRS_THREADPOOL_LINUX_45_002: [** `on_timer_callback` shall extract from the lower 10 bits of `timer_data.sival_ptr` the information indicating which timer table entry is being triggered. **]**
-
-**SRS_THREADPOOL_LINUX_01_012: [** `on_timer_callback` shall use the rest of the higher bits of `timer_data.sival_ptr` as timer epoch. **]**
-
-**SRS_THREADPOOL_LINUX_01_008: [** If the timer is in the state `ARMED`: **]**
-
-- **SRS_THREADPOOL_LINUX_01_007: [** `on_timer_callback` shall transition it to `CALLING_CALLBACK`. **]**
-
-- **SRS_THREADPOOL_LINUX_45_004: [** If the timer epoch of the timer table entry is the same like the timer epoch in `timer_data.sival_ptr`, `on_timer_callback` shall call the timer's `work_function` with `work_function_ctx`. **]**
-
-- **SRS_THREADPOOL_LINUX_01_009: [** `on_timer_callback` shall transition it to `ARMED`. **]**
-
-### threadpool_work_func
-
-```C
-static int threadpool_work_func(void* param);
-```
-
-`threadpool_work_func` executes work items for as long as it can acquire work items from the threadpool's task queue.
-
-**SRS_THREADPOOL_LINUX_07_073: [** If `param` is `NULL`, `threadpool_work_func` shall fail and return. **]**
-
-**SRS_THREADPOOL_LINUX_07_074: [** `threadpool_work_func` shall get the real time by calling `clock_gettime` to set the waiting time for semaphore. **]**
-
-**SRS_THREADPOOL_LINUX_07_088: [** If `clock_gettime` fails, `threadpool_work_func` shall run the loop again. **]**
-
-**SRS_THREADPOOL_LINUX_07_075: [** `threadpool_work_func` shall wait on the semaphore with a time limit. **]**
-
-**SRS_THREADPOOL_LINUX_07_087: [** If `sem_timedwait` fails, `threadpool_work_func` shall timeout and run the loop again. **]**
-
-**SRS_THREADPOOL_LINUX_01_016: [** `threadpool_work_func` shall pop an item from the task queue by calling `TQUEUE_POP(THANDLE(THREADPOOL_WORK_ITEM))`. **]**
-
-**SRS_THREADPOOL_LINUX_01_017: [** If the pop returns `TQUEUE_POP_OK`: **]**
-
-- **SRS_THREADPOOL_LINUX_07_084: [** `threadpool_work_func` shall execute the `work_function` with `work_function_ctx`. **]**
-
-- **SRS_THREADPOOL_LINUX_01_018: [** `threadpool_work_func` shall release the reference to the work item. **]**
-
-**SRS_THREADPOOL_LINUX_07_085: [** `threadpool_work_func` shall loop until the flag to stop the threads is not set to 1. **]**
+**SRS_THREADPOOL_LINUX_42_007: [** `threadpool_dispose` shall decrement the reference count on the execution engine by calling `execution_engine_dec_ref`. **]**
 
 ### threadpool_create_work_item
 
@@ -310,17 +99,43 @@ static int threadpool_work_func(void* param);
 MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_WORK_ITEM), threadpool_create_work_item, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
 ```
 
-`threadpool_create_work_item` creates a work item to be executed by the threadpool.
+`threadpool_create_work_item` creates a work item that can be scheduled many times with `threadpool_schedule_work_item`.
 
-**SRS_THREADPOOL_LINUX_05_001: [** If `threadpool` is `NULL`, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
+**SRS_THREADPOOL_LINUX_42_008: [** If `threadpool` is `NULL`, `threadpool_create_work_item` shall fail and return `NULL`. **]**
 
-**SRS_THREADPOOL_LINUX_05_002: [** If `work_function` is `NULL`, `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
+**SRS_THREADPOOL_LINUX_42_009: [** If `work_function` is `NULL`, `threadpool_create_work_item` shall fail and return `NULL`. **]**
 
-**SRS_THREADPOOL_LINUX_05_005: [** `threadpool_create_work_item` shall allocate memory for `threadpool_work_item` of type `THANDLE(THREADPOOL_WORK_ITEM)`. **]**
+**SRS_THREADPOOL_LINUX_42_010: [** `threadpool_create_work_item` shall allocate a `THANDLE(THREADPOOL_WORK_ITEM)` with `threadpool_dispose_work_item` as dispose function. **]**
 
-**SRS_THREADPOOL_LINUX_05_006: [** If during the initialization of `threadpool_work_item`, `malloc` fails then `threadpool_create_work_item` shall fail and return a `NULL` value. **]**
+**SRS_THREADPOOL_LINUX_42_106: [** `threadpool_create_work_item` shall store `work_function` and `work_function_context` in the work item. **]**
 
-**SRS_THREADPOOL_LINUX_05_007: [** `threadpool_create_work_item` shall copy the `work_function` and `work_function_context` into the threadpool work item. **]**
+**SRS_THREADPOOL_LINUX_42_011: [** `threadpool_create_work_item` shall create a work object by calling `execution_engine_linux_create_work` with `on_work_item_callback` and the work item as context. **]**
+
+**SRS_THREADPOOL_LINUX_42_012: [** `threadpool_create_work_item` shall succeed and return the work item. **]**
+
+**SRS_THREADPOOL_LINUX_42_013: [** If any error occurs, `threadpool_create_work_item` shall fail, free the work item and return `NULL`. **]**
+
+### on_work_item_callback
+
+```c
+static void on_work_item_callback(void* context);
+```
+
+`on_work_item_callback` runs one callback of a work item on a worker thread.
+
+**SRS_THREADPOOL_LINUX_42_014: [** `on_work_item_callback` shall call the `work_function` of the work item with its `work_function_context`. **]**
+
+### threadpool_dispose_work_item
+
+```c
+static void threadpool_dispose_work_item(THREADPOOL_WORK_ITEM* threadpool_work_item);
+```
+
+`threadpool_dispose_work_item` is called when the last reference to the work item is released.
+
+**SRS_THREADPOOL_LINUX_42_015: [** `threadpool_dispose_work_item` shall wait for the pending and running callbacks of the work item by calling `execution_engine_linux_wait_for_work` with `cancel_pending` set to `false`. **]**
+
+**SRS_THREADPOOL_LINUX_42_016: [** `threadpool_dispose_work_item` shall close the work object by calling `execution_engine_linux_close_work`. **]**
 
 ### threadpool_schedule_work_item
 
@@ -328,16 +143,158 @@ MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_WORK_ITEM), threadpool_create_work_item, 
 MOCKABLE_FUNCTION(, int, threadpool_schedule_work_item, THANDLE(THREADPOOL), threadpool, THANDLE(THREADPOOL_WORK_ITEM), threadpool_work_item);
 ```
 
-`threadpool_schedule_work_item` schedules a work item to be executed by the threadpool.
+`threadpool_schedule_work_item` schedules one callback of a work item. It can be called any number of times on the same work item, each call results in one callback, and it fails only for invalid arguments.
 
-**SRS_THREADPOOL_LINUX_05_010: [** If `threadpool` is `NULL`, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
+**SRS_THREADPOOL_LINUX_42_017: [** If `threadpool` is `NULL`, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
 
-**SRS_THREADPOOL_LINUX_05_011: [** If `threadpool_work_item` is `NULL`,  `threadpool_schedule_work_item` shall fail and set the return variable with a non-zero value. **]**
+**SRS_THREADPOOL_LINUX_42_018: [** If `threadpool_work_item` is `NULL`, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
 
-**SRS_THREADPOOL_LINUX_01_019: [** `threadpool_schedule_work_item` shall `TQUEUE_PUSH` the `threadpool_work_item` into the task queue. **]**
+**SRS_THREADPOOL_LINUX_42_019: [** `threadpool_schedule_work_item` shall submit the work object of `threadpool_work_item` by calling `execution_engine_linux_submit_work`. **]**
 
-**SRS_THREADPOOL_LINUX_05_025: [** `threadpool_schedule_work_item` shall unblock the `threadpool` semaphore by calling `sem_post`. **]**
+**SRS_THREADPOOL_LINUX_42_020: [** `threadpool_schedule_work_item` shall succeed and return 0. **]**
 
-**SRS_THREADPOOL_LINUX_01_020: [** If any error occurrs, `threadpool_schedule_work_item` shall fail and return a non-zero value. **]**
+### threadpool_schedule_work
 
-**SRS_THREADPOOL_LINUX_05_026: [** `threadpool_schedule_work_item` shall succeed and return 0. **]**
+```c
+MOCKABLE_FUNCTION(, int, threadpool_schedule_work, THANDLE(THREADPOOL), threadpool, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
+```
+
+`threadpool_schedule_work` schedules one callback of `work_function`.
+
+**SRS_THREADPOOL_LINUX_42_021: [** If `threadpool` is `NULL`, `threadpool_schedule_work` shall fail and return a non-zero value. **]**
+
+**SRS_THREADPOOL_LINUX_42_022: [** If `work_function` is `NULL`, `threadpool_schedule_work` shall fail and return a non-zero value. **]**
+
+**SRS_THREADPOOL_LINUX_42_023: [** `work_function_context` shall be allowed to be `NULL`. **]**
+
+**SRS_THREADPOOL_LINUX_42_024: [** `threadpool_schedule_work` shall allocate a context. **]**
+
+**SRS_THREADPOOL_LINUX_42_107: [** `threadpool_schedule_work` shall store the threadpool, `work_function` and `work_function_context` in the context. **]**
+
+**SRS_THREADPOOL_LINUX_42_025: [** `threadpool_schedule_work` shall create a work object by calling `execution_engine_linux_create_work` with `on_scheduled_work_callback` and the context. **]**
+
+**SRS_THREADPOOL_LINUX_42_026: [** `threadpool_schedule_work` shall increment the count of outstanding callbacks by calling `interlocked_increment`. **]**
+
+**SRS_THREADPOOL_LINUX_42_027: [** `threadpool_schedule_work` shall submit the work object by calling `execution_engine_linux_submit_work`. **]**
+
+**SRS_THREADPOOL_LINUX_42_108: [** `threadpool_schedule_work` shall succeed and return 0. **]**
+
+**SRS_THREADPOOL_LINUX_42_028: [** If any error occurs, `threadpool_schedule_work` shall free the context, fail and return a non-zero value. **]**
+
+### on_scheduled_work_callback
+
+```c
+static void on_scheduled_work_callback(void* context);
+```
+
+`on_scheduled_work_callback` runs a callback scheduled with `threadpool_schedule_work` and then frees its work object.
+
+**SRS_THREADPOOL_LINUX_42_029: [** `on_scheduled_work_callback` shall call `work_function` with `work_function_context`. **]**
+
+**SRS_THREADPOOL_LINUX_42_030: [** `on_scheduled_work_callback` shall close the work object by calling `execution_engine_linux_close_work`. **]**
+
+**SRS_THREADPOOL_LINUX_42_031: [** `on_scheduled_work_callback` shall free the context. **]**
+
+**SRS_THREADPOOL_LINUX_42_032: [** `on_scheduled_work_callback` shall decrement the count of outstanding callbacks of the threadpool by calling `interlocked_decrement`. **]**
+
+**SRS_THREADPOOL_LINUX_42_109: [** If the count of outstanding callbacks reached 0, `on_scheduled_work_callback` shall wake the threads waiting for it by calling `wake_by_address_all`. **]**
+
+### threadpool_timer_start
+
+```c
+MOCKABLE_FUNCTION(, THANDLE(THREADPOOL_TIMER), threadpool_timer_start, THANDLE(THREADPOOL), threadpool, uint32_t, start_delay_ms, uint32_t, timer_period_ms, THREADPOOL_WORK_FUNCTION, work_function, void*, work_function_context);
+```
+
+`threadpool_timer_start` starts a timer that calls `work_function` after `start_delay_ms` milliseconds and then every `timer_period_ms` milliseconds, or only once if `timer_period_ms` is 0.
+
+**SRS_THREADPOOL_LINUX_42_033: [** If `threadpool` is `NULL`, `threadpool_timer_start` shall fail and return `NULL`. **]**
+
+**SRS_THREADPOOL_LINUX_42_034: [** If `work_function` is `NULL`, `threadpool_timer_start` shall fail and return `NULL`. **]**
+
+**SRS_THREADPOOL_LINUX_42_035: [** `work_function_context` shall be allowed to be `NULL`. **]**
+
+**SRS_THREADPOOL_LINUX_42_036: [** `threadpool_timer_start` shall allocate a `THANDLE(THREADPOOL_TIMER)` with `threadpool_timer_dispose` as dispose function. **]**
+
+**SRS_THREADPOOL_LINUX_42_110: [** `threadpool_timer_start` shall store the threadpool, `work_function` and `work_function_context` in the timer. **]**
+
+**SRS_THREADPOOL_LINUX_42_037: [** `threadpool_timer_start` shall initialize the lock guarding the timer state by calling `srw_lock_ll_init`. **]**
+
+**SRS_THREADPOOL_LINUX_42_038: [** `threadpool_timer_start` shall create the timer by calling `execution_engine_linux_create_timer` with `on_timer_callback` and the timer as context. **]**
+
+**SRS_THREADPOOL_LINUX_42_039: [** `threadpool_timer_start` shall arm the timer by calling `execution_engine_linux_set_timer` with `start_delay_ms` and `timer_period_ms`. **]**
+
+**SRS_THREADPOOL_LINUX_42_040: [** `threadpool_timer_start` shall succeed and return the timer. **]**
+
+**SRS_THREADPOOL_LINUX_42_041: [** If any error occurs, `threadpool_timer_start` shall free the resources it allocated, fail and return `NULL`. **]**
+
+### on_timer_callback
+
+```c
+static void on_timer_callback(void* context);
+```
+
+`on_timer_callback` runs one callback of a timer on a worker thread.
+
+**SRS_THREADPOOL_LINUX_42_112: [** `on_timer_callback` shall increment the count of outstanding callbacks of the threadpool by calling `interlocked_increment`. **]**
+
+**SRS_THREADPOOL_LINUX_42_042: [** `on_timer_callback` shall call the `work_function` of the timer with its `work_function_context`. **]**
+
+**SRS_THREADPOOL_LINUX_42_113: [** After `work_function` returns, `on_timer_callback` shall decrement the count of outstanding callbacks of the threadpool by calling `interlocked_decrement`, without accessing the timer, which `work_function` can release. **]**
+
+**SRS_THREADPOOL_LINUX_42_111: [** If the count of outstanding callbacks reached 0, `on_timer_callback` shall wake the threads waiting for it by calling `wake_by_address_all`. **]**
+
+### threadpool_timer_restart
+
+```c
+MOCKABLE_FUNCTION(, int, threadpool_timer_restart, THANDLE(THREADPOOL_TIMER), timer, uint32_t, start_delay_ms, uint32_t, timer_period_ms);
+```
+
+`threadpool_timer_restart` changes the delay and period of an existing timer. It does not wait for a running callback, so it can be called from the timer's own callback.
+
+**SRS_THREADPOOL_LINUX_42_043: [** If `timer` is `NULL`, `threadpool_timer_restart` shall fail and return a non-zero value. **]**
+
+**SRS_THREADPOOL_LINUX_42_044: [** `threadpool_timer_restart` shall acquire the timer lock exclusively by calling `srw_lock_ll_acquire_exclusive`. **]**
+
+**SRS_THREADPOOL_LINUX_42_045: [** `threadpool_timer_restart` shall re-arm the timer by calling `execution_engine_linux_set_timer` with `start_delay_ms` and `timer_period_ms`. **]**
+
+**SRS_THREADPOOL_LINUX_42_046: [** `threadpool_timer_restart` shall release the timer lock by calling `srw_lock_ll_release_exclusive`. **]**
+
+**SRS_THREADPOOL_LINUX_42_047: [** `threadpool_timer_restart` shall succeed and return 0. **]**
+
+### threadpool_timer_cancel
+
+```c
+MOCKABLE_FUNCTION(, void, threadpool_timer_cancel, THANDLE(THREADPOOL_TIMER), timer);
+```
+
+`threadpool_timer_cancel` stops the timer and waits for its running callback, unless it is called from that callback. The timer can be started again with `threadpool_timer_restart`.
+
+**SRS_THREADPOOL_LINUX_42_048: [** If `timer` is `NULL`, `threadpool_timer_cancel` shall return. **]**
+
+**SRS_THREADPOOL_LINUX_42_115: [** Before acquiring the timer lock, `threadpool_timer_cancel` shall call `execution_engine_linux_disassociate_current_thread_from_timer`, so that it does not wait for the timer callback running on the current thread. **]**
+
+**SRS_THREADPOOL_LINUX_42_049: [** `threadpool_timer_cancel` shall acquire the timer lock exclusively by calling `srw_lock_ll_acquire_exclusive`. **]**
+
+**SRS_THREADPOOL_LINUX_42_050: [** `threadpool_timer_cancel` shall disarm the timer by calling `execution_engine_linux_cancel_timer`. **]**
+
+**SRS_THREADPOOL_LINUX_42_051: [** `threadpool_timer_cancel` shall drop the callbacks that have not started and wait for the running callback by calling `execution_engine_linux_wait_for_timer` with `cancel_pending` set to `true`. **]**
+
+**SRS_THREADPOOL_LINUX_42_052: [** `threadpool_timer_cancel` shall release the timer lock by calling `srw_lock_ll_release_exclusive`. **]**
+
+### threadpool_timer_dispose
+
+```c
+static void threadpool_timer_dispose(THREADPOOL_TIMER* timer);
+```
+
+`threadpool_timer_dispose` is called when the last reference to the timer is released. It can run on the timer's own callback; it then does not wait for that callback.
+
+**SRS_THREADPOOL_LINUX_42_114: [** `threadpool_timer_dispose` shall call `execution_engine_linux_disassociate_current_thread_from_timer`, so that it does not wait for the timer callback running on the current thread. **]**
+
+**SRS_THREADPOOL_LINUX_42_053: [** `threadpool_timer_dispose` shall disarm the timer by calling `execution_engine_linux_cancel_timer`. **]**
+
+**SRS_THREADPOOL_LINUX_42_054: [** `threadpool_timer_dispose` shall drop the callbacks that have not started and wait for the running callback by calling `execution_engine_linux_wait_for_timer` with `cancel_pending` set to `true`. **]**
+
+**SRS_THREADPOOL_LINUX_42_055: [** `threadpool_timer_dispose` shall close the timer by calling `execution_engine_linux_close_timer`. **]**
+
+**SRS_THREADPOOL_LINUX_42_056: [** `threadpool_timer_dispose` shall de-initialize the timer lock by calling `srw_lock_ll_deinit`. **]**

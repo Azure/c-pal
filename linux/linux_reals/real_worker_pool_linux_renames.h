@@ -1,0 +1,11 @@
+// Copyright (C) Microsoft Corporation. All rights reserved.
+
+#define worker_pool_create real_worker_pool_create
+#define worker_pool_destroy real_worker_pool_destroy
+#define worker_pool_add_worker real_worker_pool_add_worker
+#define worker_pool_wake_idle_worker real_worker_pool_wake_idle_worker
+#define worker_pool_get_counts real_worker_pool_get_counts
+#define worker_pool_retire_oldest_idle_worker real_worker_pool_retire_oldest_idle_worker
+#define worker_pool_join_retired_workers real_worker_pool_join_retired_workers
+
+#define WORKER_POOL_WAKE_RESULT real_WORKER_POOL_WAKE_RESULT
